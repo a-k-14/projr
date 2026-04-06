@@ -23,7 +23,7 @@ function TabIcon({
       style={{
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 4,
+        paddingTop: 1,
         width: 74,
       }}
     >
@@ -68,13 +68,13 @@ export default function TabLayout() {
           borderTopWidth: 1,
           height: TAB_HEIGHT + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 12,
+          paddingTop: 6,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarItemStyle: {
           paddingHorizontal: 2,
-          paddingTop: 8,
+          paddingTop: 2,
         },
       }}
     >

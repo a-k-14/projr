@@ -226,7 +226,6 @@ export default function HomeScreen() {
                     : (accounts.find((item) => item.id === account.id)?.balance ?? 0)
                 }
                 onRefresh={refreshAccounts}
-                footerInset={insets.bottom}
                 isSelected={account.id === selectedAccountId}
               />
             </View>
@@ -267,7 +266,6 @@ function HomeAccountPage({
   totalBalance,
   onRefresh,
   isSelected,
-  footerInset,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -277,7 +275,6 @@ function HomeAccountPage({
   totalBalance: number;
   onRefresh: () => Promise<void>;
   isSelected: boolean;
-  footerInset: number;
 }) {
   const [period, setPeriod] = useState<PeriodType>('week');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
@@ -323,7 +320,7 @@ function HomeAccountPage({
     <View style={{ flex: 1, height: pageHeight }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 72 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <View style={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 8 }}>
