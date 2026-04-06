@@ -23,7 +23,7 @@ function TabIcon({
       style={{
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 2,
+        paddingTop: 4,
         width: 74,
       }}
     >
@@ -31,11 +31,11 @@ function TabIcon({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 11,
+          fontSize: 12,
           lineHeight: 14,
           marginTop: 4,
           color: focused ? active : inactive,
-          fontWeight: focused ? '600' : '500',
+          fontWeight: '500',
           textAlign: 'center',
           includeFontPadding: false,
         }}
@@ -52,7 +52,7 @@ export default function TabLayout() {
   const theme = useUIStore((s) => s.settings.theme);
   const palette = getThemePalette(resolveTheme(theme, scheme));
 
-  const TAB_HEIGHT = 60;
+  const TAB_HEIGHT = 64;
 
   return (
     <Tabs
@@ -68,12 +68,13 @@ export default function TabLayout() {
           borderTopWidth: 1,
           height: TAB_HEIGHT + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 6,
+          paddingTop: 12,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarItemStyle: {
           paddingHorizontal: 2,
+          paddingTop: 8,
         },
       }}
     >

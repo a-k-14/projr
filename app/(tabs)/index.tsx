@@ -31,6 +31,9 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   custom: 'Custom',
 };
 
+const TAB_ACTIVE = '#183B2E';
+const TAB_INACTIVE = '#B2B8C2';
+
 type AccountTab = {
   id: string | 'all';
   name: string;
@@ -163,16 +166,26 @@ export default function HomeScreen() {
               justifyContent: 'center',
             }}
           >
-            <Text
+            <Animated.Text
               numberOfLines={1}
               style={{
-                fontSize: 14,
-                fontWeight: selectedIndex === index ? '600' : '400',
-                color: selectedIndex === index ? '#1F2A44' : '#8C94AF',
+                fontSize: 16,
+                fontWeight: '500',
+                color: scrollX.interpolate({
+                  inputRange:
+                    index === 0
+                      ? [0, width * 0.35, width * 0.8]
+                      : [Math.max(0, (index - 1) * width), index * width, (index + 1) * width],
+                  outputRange:
+                    index === 0
+                      ? [TAB_ACTIVE, TAB_ACTIVE, TAB_INACTIVE]
+                      : [TAB_INACTIVE, TAB_ACTIVE, TAB_INACTIVE],
+                  extrapolate: 'clamp',
+                }),
               }}
             >
               {account.name.length > 14 ? `${account.name.slice(0, 12)}...` : account.name}
-            </Text>
+            </Animated.Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -192,30 +205,31 @@ export default function HomeScreen() {
           onMomentumScrollEnd={handlePagerEnd}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: false },
+            {
+              useNativeDriver: false,
+            },
           )}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
         >
           {displayAccounts.map((account) => (
-            <HomeAccountPage
-              key={account.id}
-              pageWidth={width}
-              pageMinHeight={pagerHeight}
-              accountId={account.id}
-              accountName={account.name}
-              settingsYearStart={settings.yearStart}
-              currencySymbol={settings.currencySymbol}
-              totalBalance={
-                account.id === 'all'
-                  ? getTotalBalance(accounts)
-                  : (accounts.find((item) => item.id === account.id)?.balance ?? 0)
-              }
-              onRefresh={refreshAccounts}
-              bottomInset={insets.bottom}
-              isSelected={account.id === selectedAccountId}
-              footerInset={insets.bottom}
-            />
+            <View key={account.id} style={{ width, height: pagerHeight || undefined }}>
+              <HomeAccountPage
+                pageHeight={pagerHeight}
+                accountId={account.id}
+                accountName={account.name}
+                settingsYearStart={settings.yearStart}
+                currencySymbol={settings.currencySymbol}
+                totalBalance={
+                  account.id === 'all'
+                    ? getTotalBalance(accounts)
+                    : (accounts.find((item) => item.id === account.id)?.balance ?? 0)
+                }
+                onRefresh={refreshAccounts}
+                footerInset={insets.bottom}
+                isSelected={account.id === selectedAccountId}
+              />
+            </View>
           ))}
         </Animated.ScrollView>
       </View>
@@ -245,27 +259,23 @@ export default function HomeScreen() {
 }
 
 function HomeAccountPage({
-  pageWidth,
-  pageMinHeight,
+  pageHeight,
   accountId,
   accountName,
   settingsYearStart,
   currencySymbol,
   totalBalance,
   onRefresh,
-  bottomInset,
   isSelected,
   footerInset,
 }: {
-  pageWidth: number;
-  pageMinHeight: number;
+  pageHeight: number;
   accountId: string | 'all';
   accountName: string;
   settingsYearStart: number;
   currencySymbol: string;
   totalBalance: number;
   onRefresh: () => Promise<void>;
-  bottomInset: number;
   isSelected: boolean;
   footerInset: number;
 }) {
@@ -310,207 +320,177 @@ function HomeAccountPage({
   const chartDays = dailyData.slice(-7);
 
   return (
-    <ScrollView
-      style={{ width: pageWidth, flex: 1 }}
-      contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-    >
-      <View style={{ flex: 1, minHeight: pageMinHeight, justifyContent: 'space-between' }}>
-        <View>
-          <View style={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-              <View style={{ flex: 1, paddingRight: 16 }}>
-                <Text style={{ fontSize: 15, color: '#1F2A44', fontWeight: '700' }}>
-                  {accountId === 'all' ? 'All Accounts' : accountName}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#8C94AF', marginTop: 4 }}>Current Balance</Text>
-              </View>
-              <Text
+    <View style={{ flex: 1, height: pageHeight }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 72 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
+        <View style={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, paddingRight: 16 }}>
+              <Text style={{ fontSize: 15, color: '#1F2A44', fontWeight: '700' }}>
+                {accountId === 'all' ? 'All Accounts' : accountName}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#8C94AF', marginTop: 4 }}>Current Balance</Text>
+            </View>
+            <Text
+              style={{
+                fontSize: 28,
+                lineHeight: 34,
+                fontWeight: '700',
+                color: '#1F2A44',
+                textAlign: 'right',
+                flexShrink: 1,
+              }}
+            >
+              {formatCurrency(totalBalance, currencySymbol)}
+            </Text>
+          </View>
+          <View style={{ height: 1, backgroundColor: '#D8DDE8', marginTop: 18 }} />
+        </View>
+
+        <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2A44', marginBottom: 12 }}>
+            {formatDate(today)} · Today
+          </Text>
+          <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              overflow: 'hidden',
+              marginBottom: 8,
+              marginTop: 6,
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2A44', paddingHorizontal: 12 }}>
+              This
+            </Text>
+            {PERIODS.map((value) => (
+              <TouchableOpacity
+                key={value}
+                onPress={() => setPeriod(value)}
                 style={{
-                  fontSize: 28,
-                  lineHeight: 34,
-                  fontWeight: '700',
-                  color: '#1F2A44',
-                  textAlign: 'right',
-                  flexShrink: 1,
+                  flex: 1,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  backgroundColor: period === value ? '#202845' : '#FFFFFF',
+                  borderLeftWidth: value === 'week' ? 0 : 1,
+                  borderLeftColor: '#E5E7EB',
                 }}
               >
-                {formatCurrency(totalBalance, currencySymbol)}
-              </Text>
-            </View>
-            <View style={{ height: 1, backgroundColor: '#D8DDE8', marginTop: 18 }} />
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: period === value ? '#FFFFFF' : '#8C94AF',
+                  }}
+                >
+                  {PERIOD_LABELS[value]}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2A44', marginBottom: 12 }}>
-              {formatDate(today)} · Today
-            </Text>
-            <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
+          <Text style={{ fontSize: 12, color: '#8C94AF', marginBottom: 12 }}>
+            {formatDate(from)} — {formatDate(to)}
+          </Text>
 
+          <SummaryCard cashflow={cashflow} sym={currencySymbol} />
+
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingTop: 18,
+              paddingBottom: 14,
+              marginBottom: 16,
+            }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2A44', marginBottom: 20 }}>
+              Spending
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 92, paddingHorizontal: 2 }}>
+              {chartDays.length > 0
+                ? chartDays.map((entry, index) => (
+                    <View key={`${entry.date}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
+                      <View
+                        style={{
+                          width: 16,
+                          backgroundColor: '#17673B',
+                          borderRadius: 6,
+                          opacity: entry.amount > 0 ? 0.88 : 0.2,
+                          height: Math.max(4, (entry.amount / maxSpend) * 62),
+                        }}
+                      />
+                      <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8 }}>
+                        {getDayLabel(entry.date)}
+                      </Text>
+                    </View>
+                  ))
+                : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
+                    <View key={`${day}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
+                      <View
+                        style={{
+                          width: 10,
+                          height: 4,
+                          backgroundColor: index === 0 ? '#202845' : '#D9DDE7',
+                          borderRadius: 999,
+                        }}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          color: index === 0 ? '#1F2A44' : '#8C94AF',
+                          marginTop: 8,
+                          fontWeight: index === 0 ? '700' : '500',
+                        }}
+                      >
+                        {day}
+                      </Text>
+                    </View>
+                  ))}
+            </View>
+          </View>
+
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16 }}>
             <View
               style={{
                 flexDirection: 'row',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                overflow: 'hidden',
-                marginBottom: 8,
-                marginTop: 6,
+                marginBottom: 12,
               }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2A44', paddingHorizontal: 12 }}>
-                This
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2A44' }}>Recent</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
+                <Text style={{ fontSize: 13, color: '#17673B', fontWeight: '600' }}>View all</Text>
+              </TouchableOpacity>
+            </View>
+            {transactions.length === 0 ? (
+              <Text style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', paddingVertical: 16 }}>
+                No transactions yet
               </Text>
-              {PERIODS.map((value) => (
-                <TouchableOpacity
-                  key={value}
-                  onPress={() => setPeriod(value)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    alignItems: 'center',
-                    backgroundColor: period === value ? '#202845' : '#FFFFFF',
-                    borderLeftWidth: value === 'week' ? 0 : 1,
-                    borderLeftColor: '#E5E7EB',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: '500',
-                      color: period === value ? '#FFFFFF' : '#8C94AF',
-                    }}
-                  >
-                    {PERIOD_LABELS[value]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={{ fontSize: 12, color: '#8C94AF', marginBottom: 12 }}>
-              {formatDate(from)} — {formatDate(to)}
-            </Text>
-
-            <SummaryCard cashflow={cashflow} sym={currencySymbol} />
-
-            <View
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 20,
-                paddingHorizontal: 16,
-                paddingTop: 18,
-                paddingBottom: 14,
-                marginBottom: 16,
-              }}
-            >
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2A44', marginBottom: 20 }}>
-                Spending
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 92, paddingHorizontal: 2 }}>
-                {chartDays.length > 0
-                  ? chartDays.map((entry, index) => (
-                      <View key={`${entry.date}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
-                        <View
-                          style={{
-                            width: 16,
-                            backgroundColor: '#17673B',
-                            borderRadius: 6,
-                            opacity: entry.amount > 0 ? 0.88 : 0.2,
-                            height: Math.max(4, (entry.amount / maxSpend) * 62),
-                          }}
-                        />
-                        <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8 }}>
-                          {getDayLabel(entry.date)}
-                        </Text>
-                      </View>
-                    ))
-                  : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-                      <View key={`${day}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
-                        <View
-                          style={{
-                            width: 10,
-                            height: 4,
-                            backgroundColor: index === 0 ? '#202845' : '#D9DDE7',
-                            borderRadius: 999,
-                          }}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 10,
-                            color: index === 0 ? '#1F2A44' : '#8C94AF',
-                            marginTop: 8,
-                            fontWeight: index === 0 ? '700' : '500',
-                          }}
-                        >
-                          {day}
-                        </Text>
-                      </View>
-                    ))}
-              </View>
-            </View>
-
-            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16 }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 12,
-                }}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2A44' }}>Recent</Text>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
-                  <Text style={{ fontSize: 13, color: '#17673B', fontWeight: '600' }}>View all</Text>
-                </TouchableOpacity>
-              </View>
-              {transactions.length === 0 ? (
-                <Text style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', paddingVertical: 16 }}>
-                  No transactions yet
-                </Text>
-              ) : (
-                transactions.map((transaction, index) => (
-                  <TransactionRow
-                    key={transaction.id}
-                    tx={transaction}
-                    sym={currencySymbol}
-                    isLast={index === transactions.length - 1}
-                  />
-                ))
-              )}
-            </View>
+            ) : (
+              transactions.map((transaction, index) => (
+                <TransactionRow
+                  key={transaction.id}
+                  tx={transaction}
+                  sym={currencySymbol}
+                  isLast={index === transactions.length - 1}
+                />
+              ))
+            )}
           </View>
         </View>
+      </ScrollView>
 
-        <View
-          style={{
-            marginTop: 16,
-            marginHorizontal: -16,
-            paddingTop: 28,
-            paddingBottom: footerInset + 2,
-            backgroundColor: '#E8EBF2',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            overflow: 'hidden',
-          }}
-        >
-          <Text
-            style={{
-              width: '100%',
-              textAlign: 'center',
-              fontSize: 64,
-              lineHeight: 72,
-              fontWeight: '700',
-              letterSpacing: -2,
-              color: 'rgba(31, 42, 68, 0.14)',
-              textTransform: 'lowercase',
-            }}
-          >
-            reni
-          </Text>
-        </View>
-      </View>
-
-    </ScrollView>
+    </View>
   );
 }
 
