@@ -44,10 +44,8 @@ export default function RootLayout() {
   const palette = getThemePalette(themeMode);
 
   useEffect(() => {
-    NavigationBar.setPositionAsync('relative').catch(() => undefined);
-    NavigationBar.setBackgroundColorAsync(palette.surface).catch(() => undefined);
     NavigationBar.setButtonStyleAsync(palette.navigationButtonStyle).catch(() => undefined);
-  }, [palette.navigationButtonStyle, palette.surface]);
+  }, [palette.navigationButtonStyle]);
 
   if (!ready) {
     return (
