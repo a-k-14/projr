@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +5,14 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -32,23 +32,36 @@ export default function SettingsScreen() {
   const { settings, updateSettings } = useUIStore();
   const { accounts } = useAccountsStore();
   const { categories, tags } = useCategoriesStore();
+  const systemScheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, systemScheme));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
         <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16 }}>
-          <Text style={{ fontSize: 28, fontWeight: '700', color: '#0A0A0A' }}>Settings</Text>
+          <Text style={{ fontSize: 28, fontWeight: '700', color: palette.text }}>Settings</Text>
         </View>
 
         {/* GENERAL */}
-        <SectionHeader label="GENERAL" />
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, marginHorizontal: 16, overflow: 'hidden', marginBottom: 16 }}>
+        <SectionHeader label="GENERAL" color={palette.textMuted} />
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            overflow: 'hidden',
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+          }}
+        >
           {/* Year Start */}
           <SettingsRow
             icon="calendar"
             label="Year Start"
             value={MONTHS[settings.yearStart]}
+            palette={palette}
             onPress={() => {
               Alert.alert(
                 'Year Start Month',
@@ -64,9 +77,10 @@ export default function SettingsScreen() {
 
           {/* Default Account */}
           <SettingsRow
-            icon="card"
+            icon="credit-card"
             label="Default Account"
             value={accounts.find((a) => a.id === settings.defaultAccountId)?.name ?? 'None'}
+            palette={palette}
             onPress={() => {
               Alert.alert(
                 'Default Account',
@@ -85,9 +99,10 @@ export default function SettingsScreen() {
 
           {/* Currency */}
           <SettingsRow
-            icon="cash"
+            icon="dollar-sign"
             label="Currency"
             value={`${settings.currency} ${settings.currencySymbol}`}
+            palette={palette}
             onPress={() => {
               Alert.alert(
                 'Currency',
@@ -106,9 +121,10 @@ export default function SettingsScreen() {
 
           {/* Theme */}
           <SettingsRow
-            icon="contrast"
+            icon="sun"
             label="Theme"
             value={settings.theme.charAt(0).toUpperCase() + settings.theme.slice(1)}
+            palette={palette}
             onPress={() => {
               Alert.alert(
                 'Theme',
@@ -127,12 +143,23 @@ export default function SettingsScreen() {
         </View>
 
         {/* MANAGE */}
-        <SectionHeader label="MANAGE" />
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, marginHorizontal: 16, overflow: 'hidden', marginBottom: 16 }}>
+        <SectionHeader label="MANAGE" color={palette.textMuted} />
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            overflow: 'hidden',
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+          }}
+        >
           <SettingsRow
             icon="layers"
             label="Accounts"
             value={String(accounts.length)}
+            palette={palette}
             onPress={() => {
               // TODO: navigate to accounts management screen
               Alert.alert('Accounts', `You have ${accounts.length} accounts.`);
@@ -142,14 +169,16 @@ export default function SettingsScreen() {
             icon="grid"
             label="Categories"
             value={String(categories.length)}
+            palette={palette}
             onPress={() => {
               Alert.alert('Categories', `You have ${categories.length} categories.`);
             }}
           />
           <SettingsRow
-            icon="pricetag"
+            icon="tag"
             label="Tags"
             value={String(tags.length)}
+            palette={palette}
             onPress={() => {
               Alert.alert('Tags', `You have ${tags.length} tags.`);
             }}
@@ -158,12 +187,23 @@ export default function SettingsScreen() {
         </View>
 
         {/* DATA */}
-        <SectionHeader label="DATA" />
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, marginHorizontal: 16, overflow: 'hidden', marginBottom: 16 }}>
+        <SectionHeader label="DATA" color={palette.textMuted} />
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            overflow: 'hidden',
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+          }}
+        >
           <SettingsRow
-            icon="cloud-upload"
+            icon="cloud"
             label="Cloud Backup"
             value={settings.cloudBackupEnabled ? 'On' : 'Off'}
+            palette={palette}
             rightElement={
               <Switch
                 value={settings.cloudBackupEnabled}
@@ -179,7 +219,7 @@ export default function SettingsScreen() {
                   }
                 }}
                 trackColor={{ false: '#E5E7EB', true: '#1B4332' }}
-                thumbColor="#fff"
+                thumbColor={palette.surface}
               />
             }
             noBorder
@@ -187,12 +227,23 @@ export default function SettingsScreen() {
         </View>
 
         {/* ABOUT */}
-        <SectionHeader label="ABOUT" />
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, marginHorizontal: 16, overflow: 'hidden', marginBottom: 16 }}>
+        <SectionHeader label="ABOUT" color={palette.textMuted} />
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            overflow: 'hidden',
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+          }}
+        >
           <SettingsRow
-            icon="information-circle"
+            icon="info"
             label="Version"
             value="1.0.0"
+            palette={palette}
             noBorder
           />
         </View>
@@ -201,13 +252,13 @@ export default function SettingsScreen() {
   );
 }
 
-function SectionHeader({ label }: { label: string }) {
+function SectionHeader({ label, color }: { label: string; color: string }) {
   return (
     <Text
       style={{
         fontSize: 11,
         fontWeight: '600',
-        color: '#9CA3AF',
+        color,
         letterSpacing: 0.8,
         marginHorizontal: 16,
         marginBottom: 8,
@@ -223,13 +274,15 @@ function SettingsRow({
   icon,
   label,
   value,
+  palette,
   onPress,
   noBorder,
   rightElement,
 }: {
-  icon: string;
+  icon: keyof typeof Feather.glyphMap;
   label: string;
   value?: string;
+  palette: ReturnType<typeof getThemePalette>;
   onPress?: () => void;
   noBorder?: boolean;
   rightElement?: React.ReactNode;
@@ -244,7 +297,7 @@ function SettingsRow({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: noBorder ? 0 : 1,
-        borderBottomColor: '#F3F4F6',
+        borderBottomColor: palette.divider,
       }}
     >
       <View
@@ -252,23 +305,22 @@ function SettingsRow({
           width: 32,
           height: 32,
           borderRadius: 8,
-          backgroundColor: '#F3F4F6',
           alignItems: 'center',
           justifyContent: 'center',
           marginRight: 12,
         }}
       >
-        <Ionicons name={icon as any} size={16} color="#6B7280" />
+        <Feather name={icon} size={21} color={palette.iconTint} strokeWidth={1.8} />
       </View>
-      <Text style={{ flex: 1, fontSize: 15, color: '#0A0A0A', fontWeight: '400' }}>{label}</Text>
+      <Text style={{ flex: 1, fontSize: 15, color: palette.text, fontWeight: '400' }}>{label}</Text>
       {rightElement ? (
         rightElement
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           {value && (
-            <Text style={{ fontSize: 14, color: '#9CA3AF' }}>{value}</Text>
+            <Text style={{ fontSize: 14, color: palette.textMuted }}>{value}</Text>
           )}
-          {onPress && <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />}
+          {onPress && <Feather name="chevron-right" size={18} color={palette.textSoft} />}
         </View>
       )}
     </TouchableOpacity>

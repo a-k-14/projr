@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -28,6 +29,7 @@ export default function AddLoanModal() {
   const [note, setNote] = useState('');
   const [date, setDate] = useState(todayUTC());
   const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const sym = settings.currencySymbol;
 
@@ -66,13 +68,15 @@ export default function AddLoanModal() {
       style={{ flex: 1, backgroundColor: '#F0F0F5' }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
-          <Ionicons name="close" size={24} color="#0A0A0A" />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: '#0A0A0A' }}>Add Loan</Text>
-      </View>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12, padding: 4 }}>
+            <Ionicons name="close" size={24} color="#0A0A0A" />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: '#0A0A0A' }}>Add Loan</Text>
+        </View>
+      </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Amount */}
@@ -178,7 +182,7 @@ export default function AddLoanModal() {
         </View>
       </ScrollView>
 
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: 32, paddingTop: 12, backgroundColor: '#F0F0F5' }}>
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: insets.bottom + 16, paddingTop: 12, backgroundColor: '#F0F0F5' }}>
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!isValid || loading}

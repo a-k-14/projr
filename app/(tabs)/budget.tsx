@@ -48,7 +48,7 @@ export default function BudgetScreen() {
       >
         {/* Header */}
         <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 }}>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#0A0A0A' }}>Budget</Text>
+          <Text style={{ fontSize: 28, fontWeight: '700', color: '#0A0A0A' }}>Budgets</Text>
         </View>
 
         {/* Summary */}

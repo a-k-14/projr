@@ -1,49 +1,43 @@
 import { Tabs } from 'expo-router';
 import { View, Text, useColorScheme } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const LIGHT = {
-  bg: '#FFFFFF',
-  border: '#E5E7EB',
-  active: '#1B4332',
-  inactive: '#9CA3AF',
-  label: '#0A0A0A',
-};
-
-const DARK = {
-  bg: '#111827',
-  border: '#1F2937',
-  active: '#4ADE80',
-  inactive: '#6B7280',
-  label: '#F9FAFB',
-};
+import { useUIStore } from '../../stores/useUIStore';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
 
 function TabIcon({
   name,
   focused,
   label,
-  colors,
+  active,
+  inactive,
 }: {
-  name: keyof typeof Ionicons.glyphMap;
+  name: keyof typeof Feather.glyphMap;
   focused: boolean;
   label: string;
-  colors: typeof LIGHT;
+  active: string;
+  inactive: string;
 }) {
-  const outlineName = `${name}-outline` as keyof typeof Ionicons.glyphMap;
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 2 }}>
-      <Ionicons
-        name={focused ? name : outlineName}
-        size={22}
-        color={focused ? colors.active : colors.inactive}
-      />
+    <View
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 2,
+        width: 74,
+      }}
+    >
+      <Feather name={name} size={22} color={focused ? active : inactive} />
       <Text
+        numberOfLines={1}
         style={{
-          fontSize: 10,
-          marginTop: 2,
-          color: focused ? colors.active : colors.inactive,
-          fontWeight: focused ? '600' : '400',
+          fontSize: 11,
+          lineHeight: 14,
+          marginTop: 4,
+          color: focused ? active : inactive,
+          fontWeight: focused ? '600' : '500',
+          textAlign: 'center',
+          includeFontPadding: false,
         }}
       >
         {label}
@@ -55,24 +49,31 @@ function TabIcon({
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
-  const colors = scheme === 'dark' ? DARK : LIGHT;
+  const theme = useUIStore((s) => s.settings.theme);
+  const palette = getThemePalette(resolveTheme(theme, scheme));
 
-  const TAB_HEIGHT = 56;
+  const TAB_HEIGHT = 60;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
+        sceneStyle: {
+          backgroundColor: palette.background,
+        },
         tabBarStyle: {
-          backgroundColor: colors.bg,
-          borderTopColor: colors.border,
+          backgroundColor: palette.surface,
+          borderTopColor: palette.border,
           borderTopWidth: 1,
           height: TAB_HEIGHT + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 4,
+          paddingTop: 6,
           elevation: 0,
           shadowOpacity: 0,
+        },
+        tabBarItemStyle: {
+          paddingHorizontal: 2,
         },
       }}
     >
@@ -80,7 +81,13 @@ export default function TabLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="grid" focused={focused} label="Home" colors={colors} />
+            <TabIcon
+              name="grid"
+              focused={focused}
+              label="Home"
+              active={palette.tabActive}
+              inactive={palette.tabInactive}
+            />
           ),
         }}
       />
@@ -88,7 +95,13 @@ export default function TabLayout() {
         name="activity"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="list" focused={focused} label="Activity" colors={colors} />
+            <TabIcon
+              name="list"
+              focused={focused}
+              label="Activity"
+              active={palette.tabActive}
+              inactive={palette.tabInactive}
+            />
           ),
         }}
       />
@@ -96,7 +109,13 @@ export default function TabLayout() {
         name="loans"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="cash" focused={focused} label="Loans" colors={colors} />
+            <TabIcon
+              name="dollar-sign"
+              focused={focused}
+              label="Loans"
+              active={palette.tabActive}
+              inactive={palette.tabInactive}
+            />
           ),
         }}
       />
@@ -104,7 +123,13 @@ export default function TabLayout() {
         name="budget"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="pricetag" focused={focused} label="Budget" colors={colors} />
+            <TabIcon
+              name="tag"
+              focused={focused}
+              label="Budgets"
+              active={palette.tabActive}
+              inactive={palette.tabInactive}
+            />
           ),
         }}
       />
@@ -112,7 +137,13 @@ export default function TabLayout() {
         name="settings"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="settings" focused={focused} label="Settings" colors={colors} />
+            <TabIcon
+              name="settings"
+              focused={focused}
+              label="Settings"
+              active={palette.tabActive}
+              inactive={palette.tabInactive}
+            />
           ),
         }}
       />

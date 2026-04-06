@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -46,6 +47,7 @@ export default function AddTransactionModal() {
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const sym = settings.currencySymbol;
 
@@ -126,46 +128,49 @@ export default function AddTransactionModal() {
       style={{ flex: 1, backgroundColor: '#F0F0F5' }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Header type selector */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingTop: 20,
-          paddingBottom: 16,
-          backgroundColor: '#F0F0F5',
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
-          <Ionicons name="close" size={24} color="#0A0A0A" />
-        </TouchableOpacity>
-        {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
-          <TouchableOpacity
-            key={t}
-            onPress={() => setType(t)}
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 20,
-              marginRight: 8,
-              borderWidth: 1.5,
-              borderColor: type === t ? TYPE_CONFIG[t].borderColor : '#E5E7EB',
-              backgroundColor: type === t ? TYPE_CONFIG[t].bg : '#fff',
-            }}
-          >
-            <Text
+      <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
+        {/* Header type selector */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: 16,
+          }}
+        >
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16, padding: 4 }}>
+            <Ionicons name="close" size={24} color="#0A0A0A" />
+          </TouchableOpacity>
+          {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setType(t)}
               style={{
-                fontSize: 13,
-                fontWeight: '600',
-                color: type === t ? TYPE_CONFIG[t].color : '#6B7280',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                marginRight: 8,
+                borderWidth: 1.5,
+                borderColor: type === t ? TYPE_CONFIG[t].borderColor : '#E5E7EB',
+                backgroundColor: type === t ? TYPE_CONFIG[t].bg : '#fff',
               }}
             >
-              {TYPE_CONFIG[t].label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: type === t ? TYPE_CONFIG[t].color : '#6B7280',
+                }}
+              >
+                {TYPE_CONFIG[t].label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Amount */}
@@ -324,7 +329,7 @@ export default function AddTransactionModal() {
           left: 0,
           right: 0,
           paddingHorizontal: 16,
-          paddingBottom: 32,
+          paddingBottom: insets.bottom + 16,
           paddingTop: 12,
           backgroundColor: '#F0F0F5',
         }}

@@ -7,7 +7,7 @@ import {
   FlatList,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useLoansStore } from '../../stores/useLoansStore';
@@ -22,6 +22,7 @@ export default function LoansScreen() {
   const { accounts } = useAccountsStore();
   const { settings } = useUIStore();
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const sym = settings.currencySymbol;
 
@@ -51,6 +52,9 @@ export default function LoansScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View style={{ padding: 16 }}>
+            <View style={{ paddingTop: 4, paddingBottom: 12 }}>
+              <Text style={{ fontSize: 28, fontWeight: '700', color: '#0A0A0A' }}>Loans</Text>
+            </View>
             {/* Summary cards */}
             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
               <View
@@ -189,7 +193,7 @@ export default function LoansScreen() {
         onPress={() => router.push('/modals/add-loan')}
         style={{
           position: 'absolute',
-          bottom: 24,
+          bottom: Math.max(insets.bottom + 12, 24),
           right: 24,
           width: 56,
           height: 56,
