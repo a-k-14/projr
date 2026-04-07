@@ -60,7 +60,7 @@ export async function runMigrations() {
       created_at TEXT NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS budgets (
+    CREATE TABLE IF NOT EXISTS budget (
       id TEXT PRIMARY KEY,
       category_id TEXT NOT NULL,
       amount REAL NOT NULL,

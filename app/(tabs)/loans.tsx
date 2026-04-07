@@ -51,12 +51,13 @@ export default function LoansScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
-          <View style={{ padding: 16 }}>
-            <View style={{ paddingTop: 4, paddingBottom: 12 }}>
-              <Text style={{ fontSize: 28, fontWeight: '700', color: '#0A0A0A' }}>Loans</Text>
+          <View>
+            <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
+              <Text style={{ fontSize: 24, fontWeight: '600', color: '#0A0A0A' }}>Loans</Text>
             </View>
-            {/* Summary cards */}
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+              {/* Summary cards */}
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
               <View
                 style={{
                   flex: 1,
@@ -170,7 +171,8 @@ export default function LoansScreen() {
               ))}
             </View>
           </View>
-        }
+        </View>
+      }
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
             <Ionicons name="people-outline" size={48} color="#D1D5DB" />

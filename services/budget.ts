@@ -1,12 +1,12 @@
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { db } from '../db/client';
-import { budgets, transactions } from '../db/schema';
+import { budget, transactions } from '../db/schema';
 import type { Budget, BudgetWithSpent, CreateBudgetInput } from '../types';
 import { generateId } from '../lib/ids';
 import { todayUTC, getDateRange } from '../lib/dateUtils';
 import { getCategoryById } from './categories';
 
-function rowToBudget(row: typeof budgets.$inferSelect): Budget {
+function rowToBudget(row: typeof budget.$inferSelect): Budget {
   return {
     id: row.id,
     categoryId: row.categoryId,
@@ -17,19 +17,19 @@ function rowToBudget(row: typeof budgets.$inferSelect): Budget {
   };
 }
 
-export async function getBudgets(): Promise<Budget[]> {
-  const rows = await db.select().from(budgets);
+export async function getBudgetList(): Promise<Budget[]> {
+  const rows = await db.select().from(budget);
   return rows.map(rowToBudget);
 }
 
-export async function getBudgetsWithSpent(yearStart: number = 3): Promise<BudgetWithSpent[]> {
-  const budgetList = await getBudgets();
+export async function getBudgetWithSpent(yearStart: number = 3): Promise<BudgetWithSpent[]> {
+  const budgetList = await getBudgetList();
   const result: BudgetWithSpent[] = [];
 
-  for (const budget of budgetList) {
-    const category = await getCategoryById(budget.categoryId);
+  for (const b of budgetList) {
+    const category = await getCategoryById(b.categoryId);
     const { from, to } = getDateRange(
-      budget.period === 'month' ? 'month' : 'year',
+      b.period === 'month' ? 'month' : 'year',
       yearStart
     );
 
@@ -39,18 +39,18 @@ export async function getBudgetsWithSpent(yearStart: number = 3): Promise<Budget
       .where(
         and(
           eq(transactions.type, 'out'),
-          eq(transactions.categoryId, budget.categoryId),
+          eq(transactions.categoryId, b.categoryId),
           gte(transactions.date, from),
           lte(transactions.date, to)
         )
       );
 
     const spent = rows.reduce((sum, r) => sum + r.amount, 0);
-    const remaining = Math.max(0, budget.amount - spent);
-    const percent = budget.amount > 0 ? Math.round((spent / budget.amount) * 100) : 0;
+    const remaining = Math.max(0, b.amount - spent);
+    const percent = b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0;
 
     result.push({
-      ...budget,
+      ...b,
       spent,
       remaining,
       percent,
@@ -66,16 +66,16 @@ export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
   const id = generateId();
   const now = todayUTC();
   const row = { id, ...data, createdAt: now };
-  await db.insert(budgets).values(row);
+  await db.insert(budget).values(row);
   return rowToBudget(row);
 }
 
 export async function updateBudget(id: string, data: Partial<Budget>): Promise<Budget> {
-  await db.update(budgets).set(data as any).where(eq(budgets.id, id));
-  const rows = await db.select().from(budgets).where(eq(budgets.id, id));
+  await db.update(budget).set(data as any).where(eq(budget.id, id));
+  const rows = await db.select().from(budget).where(eq(budget.id, id));
   return rowToBudget(rows[0]);
 }
 
 export async function deleteBudget(id: string): Promise<void> {
-  await db.delete(budgets).where(eq(budgets.id, id));
+  await db.delete(budget).where(eq(budget.id, id));
 }

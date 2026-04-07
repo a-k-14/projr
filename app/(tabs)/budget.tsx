@@ -11,14 +11,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useBudgetsStore } from '../../stores/useBudgetsStore';
+import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency } from '../../lib/derived';
 import type { BudgetWithSpent, CreateBudgetInput } from '../../types';
 
 export default function BudgetScreen() {
-  const { budgets, load, add, remove } = useBudgetsStore();
+  const { budgets, load, add, remove } = useBudgetStore();
   const { categories, getCategoryById } = useCategoriesStore();
   const { settings } = useUIStore();
 
@@ -47,8 +47,8 @@ export default function BudgetScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Header */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 }}>
-          <Text style={{ fontSize: 28, fontWeight: '700', color: '#0A0A0A' }}>Budgets</Text>
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
+          <Text style={{ fontSize: 24, fontWeight: '600', color: '#0A0A0A' }}>Budget</Text>
         </View>
 
         {/* Summary */}
@@ -109,7 +109,7 @@ export default function BudgetScreen() {
             >
               <Ionicons name="pricetag-outline" size={48} color="#D1D5DB" />
               <Text style={{ color: '#9CA3AF', fontSize: 15, fontWeight: '500', marginTop: 12 }}>
-                No budgets yet
+                No budget yet
               </Text>
               <Text style={{ color: '#9CA3AF', fontSize: 13, marginTop: 4, textAlign: 'center' }}>
                 Set spending limits for categories to track your budget

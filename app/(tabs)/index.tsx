@@ -425,7 +425,7 @@ function HomeAccountPage({
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text }}>
               {formatDate(today)}
             </Text>
-            <InlineDot size={3.5} color={HOME_COLORS.todayDot} />
+            <InlineDot size={3} color={HOME_COLORS.todayDot} />
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text }}>Today</Text>
           </View>
           <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
@@ -454,30 +454,30 @@ function HomeAccountPage({
                       }
                       : () => setPeriod(value)
                   }
+                  style={{
+                    flex: 1,
+                    height: HOME_LAYOUT.periodHeight,
+                    paddingHorizontal: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: period === value ? HOME_COLORS.heroBar : HOME_COLORS.surface,
+                    borderLeftWidth: value === 'week' ? 0 : 1,
+                    borderLeftColor: HOME_COLORS.divider,
+                  }}
+                >
+                  <Text
                     style={{
-                      flex: 1,
-                      height: HOME_LAYOUT.periodHeight,
-                      paddingHorizontal: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: period === value ? HOME_COLORS.heroBar : HOME_COLORS.surface,
-                      borderLeftWidth: value === 'week' ? 0 : 1,
-                      borderLeftColor: HOME_COLORS.divider,
+                      fontSize: HOME_TEXT.bodySmall,
+                      fontWeight: '500',
+                      lineHeight: 13,
+                      textAlignVertical: 'center',
+                      includeFontPadding: false,
+                      color: period === value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: HOME_TEXT.bodySmall,
-                        fontWeight: '500',
-                        lineHeight: 13,
-                        textAlignVertical: 'center',
-                        includeFontPadding: false,
-                        color: period === value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
-                      }}
-                    >
-                      {PERIOD_LABELS[value]}
-                    </Text>
-                  </TouchableOpacity>
+                    {PERIOD_LABELS[value]}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </View>
           </View>

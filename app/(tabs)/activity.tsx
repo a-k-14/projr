@@ -267,26 +267,51 @@ function ActivityAccountPage({
           </ScrollView>
         </View>
       }
-      renderItem={({ item }) => (
-        <View style={{ marginBottom: 16 }}>
-          <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: HOME_COLORS.textSoft, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              {getRelativeDateLabel(item.dateKey)}
-            </Text>
+      renderItem={({ item }) => {
+        const { date, label } = getRelativeDateLabel(item.dateKey);
+        return (
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ paddingHorizontal: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: HOME_COLORS.textSoft }}>
+                {date}
+              </Text>
+              {label ? (
+                <>
+                  <InlineDot size={3} color={HOME_COLORS.todayDot} />
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: HOME_COLORS.textSoft }}>
+                    {label}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+            <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: 16, overflow: 'hidden' }}>
+              {item.items.map((tx, idx) => (
+                <TransactionItem
+                  key={tx.id}
+                  tx={tx}
+                  sym={sym}
+                  isLast={idx === item.items.length - 1}
+                  categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
+                />
+              ))}
+            </View>
           </View>
-          <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: 16, overflow: 'hidden' }}>
-            {item.items.map((tx, idx) => (
-              <TransactionItem
-                key={tx.id}
-                tx={tx}
-                sym={sym}
-                isLast={idx === item.items.length - 1}
-                categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
-              />
-            ))}
-          </View>
-        </View>
-      )}
+        );
+      }}
+    />
+  );
+}
+
+function InlineDot({ size = 8, color = '#8C94AF' }: { size?: number; color?: string }) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        marginHorizontal: 8,
+      }}
     />
   );
 }

@@ -127,7 +127,7 @@ export default function TabLayout() {
             <TabIcon
               name="pie-chart"
               focused={focused}
-              label="Budgets"
+              label="Budget"
               active={palette.tabActive}
               inactive={palette.tabInactive}
             />
