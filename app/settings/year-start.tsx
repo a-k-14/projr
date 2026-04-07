@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { MONTHS, PickerSheetShell } from './_shared';
+import { MONTHS, PickerSheetShell } from '../../lib/settings-shared';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 
 export default function YearStartScreen() {

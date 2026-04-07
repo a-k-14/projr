@@ -13,7 +13,7 @@ import {
   THEMES,
   PickerSheetShell,
   formatDisplayCurrency,
-} from '../settings/_shared';
+} from '../../lib/settings-shared';
 
 type PickerKind = 'year-start' | 'default-account' | 'currency' | 'theme' | null;
 

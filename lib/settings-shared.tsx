@@ -10,9 +10,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { AppThemePalette } from '../../lib/theme';
-import { CardSection, SectionLabel } from '../../components/settings-ui';
-import { formatCurrency } from '../../lib/derived';
+import type { AppThemePalette } from './theme';
+import { CardSection, SectionLabel } from '../components/settings-ui';
+import { formatCurrency } from './derived';
 
 export const MONTHS = [
   'January',

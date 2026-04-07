@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
-import { PickerSheetShell, THEMES } from './_shared';
+import { PickerSheetShell, THEMES } from '../../lib/settings-shared';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 

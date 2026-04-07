@@ -25,6 +25,7 @@ import { getDateRange, todayUTC, formatDate } from '../../lib/dateUtils';
 import { getCashflowSummary, getDailySpending } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
+import { AccountTabBar } from '../../components/AccountTabBar';
 import type {
   PeriodType,
   Transaction,
@@ -51,36 +52,16 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const pagerRef = useRef<any>(null);
-  const tabStripRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => todayUTC());
   const [customRangeTo, setCustomRangeTo] = useState(() => todayUTC());
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
-  const TAB_GAP = HOME_LAYOUT.tabGap;
-  const TAB_PADDING = HOME_SPACE.sm + 4;
 
   const displayAccounts: AccountTab[] = [{ id: 'all', name: 'All' }, ...accounts.map((a) => ({ id: a.id, name: a.name }))];
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
-  const tabWidths = displayAccounts.map((account) =>
-    Math.max(HOME_LAYOUT.tabMinWidth, Math.min(HOME_LAYOUT.tabMaxWidth, 22 + account.name.length * 7)),
-  );
-  const tabOffsets = tabWidths.map((_, index) => {
-    return tabWidths.slice(0, index).reduce((sum, widthValue) => sum + widthValue + TAB_GAP, 0);
-  });
-  const inputRange = displayAccounts.map((_, index) => index * width);
-  const underlineTranslateX = scrollX.interpolate({
-    inputRange,
-    outputRange: tabOffsets,
-    extrapolate: 'clamp',
-  });
-  const underlineWidth = scrollX.interpolate({
-    inputRange,
-    outputRange: tabWidths,
-    extrapolate: 'clamp',
-  });
 
   useEffect(() => {
     if (
@@ -120,16 +101,6 @@ export default function HomeScreen() {
   useEffect(() => {
     pagerRef.current?.scrollTo({ x: selectedIndex * width, animated: false });
   }, [selectedIndex, width]);
-
-  useEffect(() => {
-    const currentOffset = tabOffsets[selectedIndex] ?? 0;
-    const currentWidth = tabWidths[selectedIndex] ?? 54;
-    const targetX = Math.max(
-      0,
-      currentOffset - (width - currentWidth) / 2 + TAB_PADDING,
-    );
-    tabStripRef.current?.scrollTo({ x: targetX, animated: true });
-  }, [TAB_PADDING, selectedIndex, tabOffsets, tabWidths, width]);
 
   const openCustomRange = useCallback(() => {
     setCustomDraftFrom(new Date(customRangeFrom));
@@ -178,77 +149,15 @@ export default function HomeScreen() {
       edges={['top', 'left', 'right']}
       style={{ flex: 1, backgroundColor: HOME_COLORS.background }}
     >
-      <ScrollView
-        ref={tabStripRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{
-          backgroundColor: HOME_COLORS.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: HOME_COLORS.divider,
-          maxHeight: HOME_LAYOUT.tabHeight,
+      <AccountTabBar
+        accounts={displayAccounts}
+        selectedId={selectedAccountId}
+        externalScrollX={scrollX}
+        onSelect={(id) => {
+          const index = displayAccounts.findIndex((a) => a.id === id);
+          handleTabPress(index);
         }}
-        contentContainerStyle={{ paddingHorizontal: 12 }}
-      >
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: TAB_PADDING,
-            bottom: 0,
-            height: 3,
-            borderRadius: HOME_RADIUS.full,
-            backgroundColor: HOME_COLORS.active,
-            width: underlineWidth,
-            transform: [
-              {
-                translateX: underlineTranslateX,
-              },
-            ],
-          }}
-        />
-        {displayAccounts.map((account, index) => (
-          <TouchableOpacity
-            key={account.id}
-            onPress={() => handleTabPress(index)}
-              style={{
-              minWidth: HOME_LAYOUT.tabMinWidth,
-              maxWidth: HOME_LAYOUT.tabMaxWidth,
-              width: tabWidths[index],
-              marginRight: TAB_GAP,
-              paddingHorizontal: 8,
-              paddingVertical: 12,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <View style={{ width: '100%', paddingHorizontal: 2 }}>
-              <Animated.Text
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={{
-                  fontSize: 15,
-                  lineHeight: 18,
-                  fontWeight: '500',
-                  color: scrollX.interpolate({
-                    inputRange:
-                      index === 0
-                        ? [0, width * 0.35, width * 0.8]
-                        : [Math.max(0, (index - 1) * width), index * width, (index + 1) * width],
-                    outputRange:
-                      index === 0
-                        ? [HOME_COLORS.active, HOME_COLORS.active, HOME_COLORS.inactive]
-                        : [HOME_COLORS.inactive, HOME_COLORS.active, HOME_COLORS.inactive],
-                    extrapolate: 'clamp',
-                  }),
-                }}
-              >
-                {account.name}
-              </Animated.Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      />
 
       <View
         style={{ flex: 1 }}

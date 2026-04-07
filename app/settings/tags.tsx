@@ -4,7 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { TAG_COLORS, SettingsScreenShell } from './_shared';
+import { TAG_COLORS, SettingsScreenShell } from '../../lib/settings-shared';
 import {
   ActionButton,
   CardSection,

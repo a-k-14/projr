@@ -3,7 +3,7 @@ import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { formatDisplayCurrency, PickerSheetShell } from './_shared';
+import { formatDisplayCurrency, PickerSheetShell } from '../../lib/settings-shared';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 

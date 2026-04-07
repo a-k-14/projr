@@ -8,7 +8,7 @@ import {
   CATEGORY_COLORS,
   CATEGORY_ICONS,
   SettingsScreenShell,
-} from './_shared';
+} from '../../lib/settings-shared';
 import {
   ActionButton,
   CardSection,

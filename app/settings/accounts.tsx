@@ -10,7 +10,7 @@ import {
   ACCOUNT_TYPES,
   SettingsScreenShell,
   formatDisplayCurrency,
-} from './_shared';
+} from '../../lib/settings-shared';
 import {
   ActionButton,
   CardSection,

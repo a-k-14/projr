@@ -17,6 +17,8 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { groupTransactionsByDate, formatCurrency } from '../../lib/derived';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
+import { HOME_COLORS } from '../../lib/homeTokens';
+import { AccountTabBar } from '../../components/AccountTabBar';
 import type { TransactionType, Transaction } from '../../types';
 
 const FILTERS: { label: string; value: TransactionType | 'all' }[] = [
@@ -40,6 +42,11 @@ export default function ActivityScreen() {
 
   const sym = settings.currencySymbol;
 
+  const displayAccounts = [
+    { id: 'all' as const, name: 'All' },
+    ...accounts.map((a) => ({ id: a.id, name: a.name })),
+  ];
+
   const loadData = useCallback(async () => {
     await load({
       accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
@@ -58,54 +65,15 @@ export default function ActivityScreen() {
     setRefreshing(false);
   };
 
-  const displayAccounts = [
-    { id: 'all', name: 'All' },
-    ...accounts.map((a) => ({ id: a.id, name: a.name })),
-  ];
-
   const grouped = groupTransactionsByDate(transactions);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
-      {/* Account Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', maxHeight: 48 }}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-      >
-        {displayAccounts.map((acc) => (
-          <TouchableOpacity
-            key={acc.id}
-            onPress={() => setSelectedAccountId(acc.id)}
-            style={{ marginRight: 24, paddingVertical: 12, position: 'relative' }}
-          >
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: selectedAccountId === acc.id ? '600' : '400',
-                color: selectedAccountId === acc.id ? '#1B4332' : '#6B7280',
-              }}
-              numberOfLines={1}
-            >
-              {acc.name.length > 14 ? acc.name.substring(0, 12) + '…' : acc.name}
-            </Text>
-            {selectedAccountId === acc.id && (
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 2,
-                  backgroundColor: '#1B4332',
-                  borderRadius: 2,
-                }}
-              />
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: HOME_COLORS.background }}>
+      <AccountTabBar
+        accounts={displayAccounts}
+        selectedId={selectedAccountId}
+        onSelect={(id) => setSelectedAccountId(id)}
+      />
 
       <FlatList
         data={grouped}
