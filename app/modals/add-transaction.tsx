@@ -10,11 +10,16 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from 'react-native';
+import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { formatDateTime12, nowUTC } from '../../lib/dateUtils';
 import { formatCurrency } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getTransactionById } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -56,13 +61,15 @@ function sanitizeDecimalInput(value: string): string {
 }
 
 export default function AddTransactionModal() {
-  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const { editId, accountId: sourceAccountId } = useLocalSearchParams<{ editId?: string; accountId?: string }>();
   const isEditing = !!editId;
 
   const { add, update, remove } = useTransactionsStore();
   const { accounts, refresh: refreshAccounts } = useAccountsStore();
   const { categories, tags } = useCategoriesStore();
   const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const {
     accountId: draftAccountId,
     categoryId: draftCategoryId,
@@ -85,46 +92,30 @@ export default function AddTransactionModal() {
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loading, setLoading] = useState(false);
+  const [showAccountSheet, setShowAccountSheet] = useState(false);
+  const [showTagSheet, setShowTagSheet] = useState(false);
   const splitIdSeed = useRef(0);
 
   const sym = settings.currencySymbol;
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
-      setAccountId(settings.defaultAccountId || accounts[0].id);
+      const preferred =
+        sourceAccountId && sourceAccountId !== 'all' && accounts.some((account) => account.id === sourceAccountId)
+          ? sourceAccountId
+          : settings.defaultAccountId || accounts[0].id;
+      setAccountId(preferred);
       if (accounts.length > 1) setLinkedAccountId(accounts[1].id);
     }
-  }, [accounts, accountId, settings.defaultAccountId]);
-
-  useEffect(() => {
-    if (draftAccountId && draftAccountId !== accountId) setAccountId(draftAccountId);
-  }, [accountId, draftAccountId]);
+  }, [accounts, accountId, settings.defaultAccountId, sourceAccountId]);
 
   useEffect(() => {
     if (draftCategoryId && draftCategoryId !== categoryId) setCategoryId(draftCategoryId);
   }, [categoryId, draftCategoryId]);
 
   useEffect(() => {
-    const same =
-      draftTagIds.length === selectedTagIds.length &&
-      draftTagIds.every((id, index) => id === selectedTagIds[index]);
-    if (!same) setSelectedTagIds(draftTagIds);
-  }, [draftTagIds, selectedTagIds]);
-
-  useEffect(() => {
-    if (accountId !== draftAccountId) setDraftAccountId(accountId);
-  }, [accountId, draftAccountId, setDraftAccountId]);
-
-  useEffect(() => {
     if (categoryId !== draftCategoryId) setDraftCategoryId(categoryId);
   }, [categoryId, draftCategoryId, setDraftCategoryId]);
-
-  useEffect(() => {
-    const same =
-      selectedTagIds.length === draftTagIds.length &&
-      selectedTagIds.every((id, index) => id === draftTagIds[index]);
-    if (!same) setDraftTagIds(selectedTagIds);
-  }, [draftTagIds, selectedTagIds, setDraftTagIds]);
 
   useEffect(() => {
     if (!isEditing || !editId) return;
@@ -336,8 +327,7 @@ export default function AddTransactionModal() {
                 value={getAccountName(accounts, accountId)}
                 placeholder={!accountId}
                 onPress={() => {
-                  setDraftAccountId(accountId);
-                  router.push('/modals/select-account');
+                  setShowAccountSheet(true);
                 }}
               />
               <PickerRow
@@ -371,8 +361,7 @@ export default function AddTransactionModal() {
                 value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
                 placeholder={!selectedTagIds.length}
                 onPress={() => {
-                  setDraftTagIds(selectedTagIds);
-                  router.push('/modals/select-tag');
+                  setShowTagSheet(true);
                 }}
               />
               <NotesSection note={note} onChangeNote={setNote} />
@@ -483,28 +472,6 @@ export default function AddTransactionModal() {
             </SectionCard>
           )}
 
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 14 }}>
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={!isValid || loading}
-              style={{
-                backgroundColor: isValid ? activeConfig.color : '#9CA3AF',
-                borderRadius: 18,
-                paddingVertical: 16,
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{actionLabel}</Text>
-            </TouchableOpacity>
-            {isEditing && (
-              <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#DC2626', fontSize: 15, fontWeight: '500' }}>
-                  Delete transaction
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
         </View>
       </ScrollView>
 
@@ -541,6 +508,72 @@ export default function AddTransactionModal() {
           </TouchableOpacity>
         )}
       </View>
+
+      {showAccountSheet ? (
+        <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)}>
+          <SectionLabel label="Select an account" palette={palette} />
+          {accounts.length === 0 ? (
+            <Text style={{ color: '#9CA3AF', fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+          ) : (
+            accounts
+              .slice()
+              .sort((left, right) => (left.id === accountId ? -1 : right.id === accountId ? 1 : 0))
+              .map((account, index) => {
+                return (
+                  <ChoiceRow
+                    key={account.id}
+                    title={account.name}
+                    subtitle={account.type}
+                    selected={account.id === accountId}
+                    palette={palette}
+                    onPress={() => {
+                      setAccountId(account.id);
+                      setShowAccountSheet(false);
+                    }}
+                    noBorder={index === accounts.length - 1}
+                  />
+                );
+              })
+          )}
+        </BottomSheet>
+      ) : null}
+
+      {showTagSheet ? (
+        <BottomSheet title="Select tags" palette={palette} onClose={() => setShowTagSheet(false)}>
+          <SectionLabel label="Select one or more tags" palette={palette} />
+          {tags.length === 0 ? (
+            <Text style={{ color: '#9CA3AF', fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
+          ) : (
+            tags.map((tag, index) => {
+              return (
+                <ChoiceRow
+                  key={tag.id}
+                  title={tag.name}
+                  selected={selectedTagIds.includes(tag.id)}
+                  palette={palette}
+                  leftElement={<View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />}
+                  onPress={() => toggleTag(tag.id)}
+                  noBorder={index === tags.length - 1}
+                />
+              );
+            })
+          )}
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 18, paddingBottom: 6 }}>
+            <RnghTouchableOpacity
+              onPress={() => setShowTagSheet(false)}
+              style={{
+                backgroundColor: palette.tabActive,
+                borderRadius: 18,
+                minHeight: 54,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Done</Text>
+            </RnghTouchableOpacity>
+          </View>
+        </BottomSheet>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

@@ -137,6 +137,7 @@ export function ChoiceRow({
   palette,
   onPress,
   noBorder,
+  leftElement,
 }: {
   title: string;
   subtitle?: string;
@@ -144,6 +145,7 @@ export function ChoiceRow({
   palette: AppThemePalette;
   onPress: () => void;
   noBorder?: boolean;
+  leftElement?: ReactNode;
 }) {
   return (
     <TouchableOpacity
@@ -165,6 +167,7 @@ export function ChoiceRow({
         borderBottomColor: palette.divider,
       }}
     >
+      {leftElement && <View style={{ marginRight: 14 }}>{leftElement}</View>}
       <View style={{ flex: 1 }}>
         <Text
           style={{

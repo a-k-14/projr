@@ -207,7 +207,12 @@ export default function HomeScreen() {
       </View>
 
       <TouchableOpacity
-        onPress={() => router.push('/modals/add-transaction')}
+        onPress={() =>
+          router.push({
+            pathname: '/modals/add-transaction',
+            params: selectedAccountId === 'all' ? undefined : { accountId: selectedAccountId },
+          })
+        }
         style={{
           position: 'absolute',
           bottom: Math.max(0, insets.bottom - 24),
