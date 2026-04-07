@@ -19,11 +19,11 @@ function TabIcon({
   inactive: string;
 }) {
   return (
-    <View
+      <View
       style={{
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 1,
+        paddingTop: 4,
         width: 74,
       }}
     >
@@ -68,13 +68,13 @@ export default function TabLayout() {
           borderTopWidth: 1,
           height: TAB_HEIGHT + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 6,
+          paddingTop: 10,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarItemStyle: {
           paddingHorizontal: 2,
-          paddingTop: 2,
+          paddingTop: 4,
         },
       }}
     >
@@ -97,7 +97,7 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              name="list"
+              name="activity"
               focused={focused}
               label="Activity"
               active={palette.tabActive}
@@ -111,7 +111,7 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              name="dollar-sign"
+              name="credit-card"
               focused={focused}
               label="Loans"
               active={palette.tabActive}
@@ -125,7 +125,7 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              name="tag"
+              name="pie-chart"
               focused={focused}
               label="Budgets"
               active={palette.tabActive}
