@@ -16,6 +16,7 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { formatCurrency } from '../../lib/derived';
 import { nowUTC, formatDateTime } from '../../lib/dateUtils';
 import type {
@@ -40,6 +41,17 @@ type SplitDraft = {
   amountStr: string;
 };
 
+const SCREEN_GUTTER = 12;
+
+function sanitizeDecimalInput(value: string): string {
+  const cleaned = value.replace(/[^0-9.]/g, '');
+  if (!cleaned) return '';
+  const [head, ...rest] = cleaned.split('.');
+  const normalizedHead = head === '' ? '0' : head;
+  if (rest.length === 0) return normalizedHead;
+  return `${normalizedHead}.${rest.join('').replace(/\./g, '')}`;
+}
+
 export default function AddTransactionModal() {
   const { editId } = useLocalSearchParams<{ editId?: string }>();
   const isEditing = !!editId;
@@ -48,6 +60,14 @@ export default function AddTransactionModal() {
   const { accounts, refresh: refreshAccounts } = useAccountsStore();
   const { categories, tags } = useCategoriesStore();
   const { settings } = useUIStore();
+  const {
+    accountId: draftAccountId,
+    categoryId: draftCategoryId,
+    tagIds: draftTagIds,
+    setAccountId: setDraftAccountId,
+    setCategoryId: setDraftCategoryId,
+    setTagIds: setDraftTagIds,
+  } = useTransactionDraftStore();
   const insets = useSafeAreaInsets();
 
   const [type, setType] = useState<TransactionType>('out');
@@ -73,6 +93,36 @@ export default function AddTransactionModal() {
       if (accounts.length > 1) setLinkedAccountId(accounts[1].id);
     }
   }, [accounts, accountId, settings.defaultAccountId]);
+
+  useEffect(() => {
+    if (draftAccountId && draftAccountId !== accountId) setAccountId(draftAccountId);
+  }, [accountId, draftAccountId]);
+
+  useEffect(() => {
+    if (draftCategoryId && draftCategoryId !== categoryId) setCategoryId(draftCategoryId);
+  }, [categoryId, draftCategoryId]);
+
+  useEffect(() => {
+    const same =
+      draftTagIds.length === selectedTagIds.length &&
+      draftTagIds.every((id, index) => id === selectedTagIds[index]);
+    if (!same) setSelectedTagIds(draftTagIds);
+  }, [draftTagIds, selectedTagIds]);
+
+  useEffect(() => {
+    if (accountId !== draftAccountId) setDraftAccountId(accountId);
+  }, [accountId, draftAccountId, setDraftAccountId]);
+
+  useEffect(() => {
+    if (categoryId !== draftCategoryId) setDraftCategoryId(categoryId);
+  }, [categoryId, draftCategoryId, setDraftCategoryId]);
+
+  useEffect(() => {
+    const same =
+      selectedTagIds.length === draftTagIds.length &&
+      selectedTagIds.every((id, index) => id === draftTagIds[index]);
+    if (!same) setDraftTagIds(selectedTagIds);
+  }, [draftTagIds, selectedTagIds, setDraftTagIds]);
 
   useEffect(() => {
     if (!isEditing || !editId) return;
@@ -217,43 +267,33 @@ export default function AddTransactionModal() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: 16,
+            paddingHorizontal: SCREEN_GUTTER,
             paddingTop: 8,
-            paddingBottom: 14,
+            paddingBottom: 12,
           }}
         >
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
             <Ionicons name="close" size={24} color="#0A0A0A" />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, fontWeight: '700', color: '#0A0A0A' }}>
-              {isEditing ? 'Edit transaction' : 'New transaction'}
-            </Text>
-            <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
-              {type === 'in'
-                ? 'Money coming in'
-                : type === 'out'
-                  ? 'Money going out'
-                  : type === 'transfer'
-                    ? 'Move between accounts'
-                    : 'Track what someone owes'}
-            </Text>
-          </View>
+          <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: '#0A0A0A' }}>
+            {isEditing ? 'Edit transaction' : 'New transaction'}
+          </Text>
         </View>
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 132 }}>
-        <View style={{ paddingHorizontal: 16, paddingTop: 2, paddingBottom: 12 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
               <TouchableOpacity
                 key={t}
                 onPress={() => setType(t)}
                 style={{
-                  paddingHorizontal: 16,
+                  flex: 1,
                   paddingVertical: 8,
                   borderRadius: 20,
                   borderWidth: 1.5,
+                  alignItems: 'center',
                   borderColor: type === t ? TYPE_CONFIG[t].borderColor : '#E5E7EB',
                   backgroundColor: type === t ? TYPE_CONFIG[t].bg : '#fff',
                 }}
@@ -269,105 +309,79 @@ export default function AddTransactionModal() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
-        {(type === 'in' || type === 'out') ? (
-          <>
-            <SectionCard>
-              <DateTimeRow date={date} />
-              <AmountRow
-                sym={sym}
-                activeConfig={activeConfig}
-                amountStr={amountStr}
-                setAmountStr={setAmountStr}
-                amountPreview={amountPreview}
-                isEditing={isEditing}
+        {type === 'out' ? (
+          <SectionCard>
+            <KeyValueRow label="Date">
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 15, color: '#0A0A0A' }}>{formatDateTime(date)}</Text>
+                <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+              </View>
+            </KeyValueRow>
+            <AmountRow
+              sym={sym}
+              activeConfig={activeConfig}
+              amountStr={amountStr}
+              setAmountStr={setAmountStr}
+              amountPreview={amountPreview}
+              isEditing={isEditing}
+            />
+            <PickerRow
+              label="Account"
+              value={getAccountName(accounts, accountId)}
+              placeholder={!accountId}
+              onPress={() => {
+                setDraftAccountId(accountId);
+                router.push('/modals/select-account');
+              }}
+            />
+            <PickerRow
+              label="Category"
+              value={getCategoryName(categories, categoryId)}
+              placeholder={!categoryId}
+              onPress={() => {
+                setDraftCategoryId(categoryId);
+                router.push({
+                  pathname: '/modals/select-category',
+                  params: { type },
+                });
+              }}
+            />
+            <KeyValueRow label="Payee">
+              <TextInput
+                value={payee}
+                onChangeText={setPayee}
+                placeholder="Add payee"
+                placeholderTextColor="#9CA3AF"
+                style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0, textAlign: 'left' }}
               />
-              <FieldRow label="Account">
-                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} />
-              </FieldRow>
-              <FieldRow label="Category">
-                <CategoryPicker
-                  categories={categories}
-                  selectedId={categoryId}
-                  onSelect={setCategoryId}
-                  type={type}
-                />
-              </FieldRow>
-              <FieldRow label="Payee">
-                <TextInput
-                  value={payee}
-                  onChangeText={setPayee}
-                  placeholder="Who was it for?"
-                  placeholderTextColor="#9CA3AF"
-                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
-                />
-              </FieldRow>
-              <FieldRow label="Split">
-                {splitRows.length === 0 ? (
-                  <TouchableOpacity onPress={addSplitRow} style={{ paddingVertical: 6 }}>
-                    <Text style={{ fontSize: 15, color: '#17673B', fontWeight: '600' }}>
-                      + Add split
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={{ flex: 1, gap: 12 }}>
-                    {splitRows.map((row, index) => (
-                      <SplitRowEditor
-                        key={row.id}
-                        row={row}
-                        index={index}
-                        categories={categories}
-                        type={type}
-                        onChange={updateSplitRow}
-                        onRemove={removeSplitRow}
-                      />
-                    ))}
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <TouchableOpacity onPress={addSplitRow}>
-                        <Text style={{ fontSize: 14, color: '#17673B', fontWeight: '600' }}>
-                          + Add split line
-                        </Text>
-                      </TouchableOpacity>
-                      <Text style={{ fontSize: 12, color: Math.abs(splitTotal - amount) < 0.01 ? '#6B7280' : '#DC2626' }}>
-                        Total {formatCurrency(splitTotal, sym)} / {formatCurrency(amount, sym)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </FieldRow>
-              <FieldRow label="Receipt">
-                <TouchableOpacity
-                  onPress={() => Alert.alert('Receipt capture', 'Receipt capture is coming next.')}
-                  style={{
-                    paddingVertical: 6,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <Ionicons name="camera-outline" size={18} color="#17673B" />
-                  <Text style={{ fontSize: 15, color: '#17673B', fontWeight: '600' }}>
-                    + Capture receipt
-                  </Text>
-                </TouchableOpacity>
-              </FieldRow>
-              <FieldRow label="Tag">
-                <TagPicker tags={tags} selectedIds={selectedTagIds} onToggle={toggleTag} />
-              </FieldRow>
-              <FieldRow label="Notes" noBorder>
-                <TextInput
-                  value={note}
-                  onChangeText={setNote}
-                  placeholder="Add a note..."
-                  placeholderTextColor="#9CA3AF"
-                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
-                  multiline
-                />
-              </FieldRow>
-            </SectionCard>
-          </>
+            </KeyValueRow>
+            <SplitSection
+              amount={amount}
+              amountStr={amountStr}
+              currencySymbol={sym}
+              splitRows={splitRows}
+              splitTotal={splitTotal}
+              categories={categories}
+              type={type}
+              onAddSplit={addSplitRow}
+              onChangeSplit={updateSplitRow}
+              onRemoveSplit={removeSplitRow}
+            />
+            <ReceiptSection />
+            <PickerRow
+              label="Tag"
+              value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
+              placeholder={!selectedTagIds.length}
+              onPress={() => {
+                setDraftTagIds(selectedTagIds);
+                router.push('/modals/select-tag');
+              }}
+            />
+            <NotesSection note={note} onChangeNote={setNote} />
+          </SectionCard>
         ) : type === 'transfer' ? (
           <SectionCard>
             <FieldRow label="From account">
@@ -481,8 +495,8 @@ export default function AddTransactionModal() {
           bottom: 0,
           left: 0,
           right: 0,
-          paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 16,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingBottom: insets.bottom + 14,
           paddingTop: 12,
           backgroundColor: '#F0F0F5',
         }}
@@ -518,7 +532,7 @@ function SectionCard({ children }: { children: React.ReactNode }) {
       style={{
         backgroundColor: '#fff',
         borderRadius: 24,
-        marginHorizontal: 16,
+        marginHorizontal: SCREEN_GUTTER,
         borderWidth: 1,
         borderColor: '#E8EBF0',
         overflow: 'hidden',
@@ -541,13 +555,13 @@ function FieldRow({
   return (
     <View
       style={{
-        paddingHorizontal: 18,
+        paddingHorizontal: SCREEN_GUTTER,
         paddingVertical: 14,
         borderBottomWidth: noBorder ? 0 : 1,
         borderBottomColor: '#F3F4F6',
       }}
     >
-      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF', marginBottom: 10 }}>
+      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', marginBottom: 10 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -557,12 +571,91 @@ function FieldRow({
   );
 }
 
+function KeyValueRow({
+  label,
+  children,
+  noBorder,
+}: {
+  label: string;
+  children: React.ReactNode;
+  noBorder?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        paddingVertical: 14,
+        borderBottomWidth: noBorder ? 0 : 1,
+        borderBottomColor: '#F3F4F6',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+      }}
+    >
+      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280' }}>
+        {label}
+      </Text>
+      <View style={{ flex: 1, alignItems: 'flex-start' }}>{children}</View>
+    </View>
+  );
+}
+
+function PickerRow({
+  label,
+  value,
+  placeholder,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  placeholder?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+      }}
+    >
+      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280' }}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-start' }}>
+        <Text
+          style={{
+            fontSize: 15,
+            fontWeight: '500',
+            color: placeholder ? '#9CA3AF' : '#0A0A0A',
+            textAlign: 'left',
+            flexShrink: 1,
+          }}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 function DateTimeRow({ date }: { date: string }) {
   return (
-    <FieldRow label="Date / time">
-      <Text style={{ fontSize: 15, color: '#0A0A0A' }}>{formatDateTime(date)}</Text>
-      <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
-    </FieldRow>
+    <KeyValueRow label="Date">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text style={{ fontSize: 15, color: '#0A0A0A' }} numberOfLines={1}>
+          {formatDateTime(date)}
+        </Text>
+        <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+      </View>
+    </KeyValueRow>
   );
 }
 
@@ -584,7 +677,7 @@ function AmountRow({
   return (
     <View
       style={{
-        paddingHorizontal: 18,
+        paddingHorizontal: SCREEN_GUTTER,
         paddingVertical: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
@@ -609,7 +702,7 @@ function AmountRow({
         </View>
         <TextInput
           value={amountStr}
-          onChangeText={setAmountStr}
+          onChangeText={(value) => setAmountStr(sanitizeDecimalInput(value))}
           keyboardType="decimal-pad"
           placeholder="0"
           placeholderTextColor="#C1C7D0"
@@ -627,6 +720,132 @@ function AmountRow({
         <Text style={{ fontSize: 12, color: '#9CA3AF' }}>Fast, natural entry</Text>
         <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{amountPreview || ' '}</Text>
       </View>
+    </View>
+  );
+}
+
+function SplitSection({
+  amount,
+  amountStr,
+  currencySymbol,
+  splitRows,
+  splitTotal,
+  categories,
+  type,
+  onAddSplit,
+  onChangeSplit,
+  onRemoveSplit,
+}: {
+  amount: number;
+  amountStr: string;
+  currencySymbol: string;
+  splitRows: SplitDraft[];
+  splitTotal: number;
+  categories: Category[];
+  type: TransactionType;
+  onAddSplit: () => void;
+  onChangeSplit: (id: string, patch: Partial<SplitDraft>) => void;
+  onRemoveSplit: (id: string) => void;
+}) {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF' }}>
+          Split
+        </Text>
+        <TouchableOpacity onPress={onAddSplit}>
+          <Text style={{ fontSize: 13, color: '#17673B', fontWeight: '600' }}>+ Add split</Text>
+        </TouchableOpacity>
+      </View>
+      {splitRows.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          {splitRows.map((row, index) => (
+            <SplitRowEditor
+              key={row.id}
+              row={row}
+              index={index}
+              categories={categories}
+              type={type}
+              onChange={onChangeSplit}
+              onRemove={onRemoveSplit}
+            />
+          ))}
+          <Text style={{ fontSize: 12, color: Math.abs(splitTotal - amount) < 0.01 ? '#6B7280' : '#DC2626' }}>
+            Total {formatCurrency(splitTotal, currencySymbol)} / {formatCurrency(amount, currencySymbol)}
+          </Text>
+        </View>
+      ) : (
+        <Text style={{ fontSize: 13, color: '#9CA3AF' }}>Split this transaction across categories.</Text>
+      )}
+    </View>
+  );
+}
+
+function ReceiptSection() {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF', marginBottom: 10 }}>
+        Receipt
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+        <TouchableOpacity
+          onPress={() => Alert.alert('Receipt capture', 'Receipt capture is coming next.')}
+          style={{
+            width: 58,
+            height: 58,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#D1D5DB',
+            backgroundColor: '#F8FAFC',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="camera-outline" size={22} color="#17673B" />
+        </TouchableOpacity>
+        <View
+          style={{
+            width: 58,
+            height: 58,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#E5E7EB',
+            backgroundColor: '#FFFFFF',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="receipt-outline" size={22} color="#9CA3AF" />
+        </View>
+        <View style={{ justifyContent: 'center' }}>
+          <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>Captured receipts</Text>
+          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Thumbnails appear here</Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function NotesSection({
+  note,
+  onChangeNote,
+}: {
+  note: string;
+  onChangeNote: (value: string) => void;
+}) {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF', marginBottom: 10 }}>
+        Notes
+      </Text>
+      <TextInput
+        value={note}
+        onChangeText={onChangeNote}
+        placeholder="Add a note..."
+        placeholderTextColor="#9CA3AF"
+        style={{ minHeight: 72, fontSize: 15, color: '#0A0A0A', paddingVertical: 0, textAlignVertical: 'top' }}
+        multiline
+      />
     </View>
   );
 }
@@ -785,7 +1004,7 @@ function SplitRowEditor({
       </ScrollView>
       <TextInput
         value={row.amountStr}
-        onChangeText={(value) => onChange(row.id, { amountStr: value })}
+        onChangeText={(value) => onChange(row.id, { amountStr: sanitizeDecimalInput(value) })}
         keyboardType="decimal-pad"
         placeholder="Split amount"
         placeholderTextColor="#9CA3AF"
@@ -849,6 +1068,27 @@ function TagPicker({
       })}
     </ScrollView>
   );
+}
+
+function tagSummary(tags: Tag[], selectedIds: string[]) {
+  const names = selectedIds
+    .map((id) => tags.find((tag) => tag.id === id)?.name)
+    .filter((value): value is string => !!value);
+  if (names.length === 0) return 'Add tag';
+  if (names.length <= 2) return names.join(', ');
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+}
+
+function getAccountName(accounts: Account[], accountId: string) {
+  return accounts.find((account) => account.id === accountId)?.name ?? 'Select account';
+}
+
+function getCategoryName(categories: Category[], categoryId: string) {
+  const category = categories.find((item) => item.id === categoryId);
+  if (!category) return 'Select category';
+  return category.parentId
+    ? `${categories.find((item) => item.id === category.parentId)?.name ?? 'Category'} › ${category.name}`
+    : category.name;
 }
 
 function getRelevantCategoryOptions(categories: Category[], type: TransactionType) {

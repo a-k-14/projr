@@ -147,36 +147,17 @@ export function PickerSheetShell({
 
   const closeSheet = useCallback(() => {
     Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: screenHeight,
-        duration: 250,
-        useNativeDriver: true,
-      }),
+      Animated.timing(opacity, { toValue: 0, duration: 180, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: screenHeight, duration: 220, useNativeDriver: true }),
     ]).start(({ finished }) => {
-      if (finished) {
-        onClose();
-      }
+      if (finished) onClose();
     });
   }, [screenHeight, onClose, translateY, opacity]);
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 12,
-      }),
+      Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 70, friction: 13 }),
     ]).start();
   }, [translateY, opacity]);
 
@@ -184,24 +165,22 @@ export function PickerSheetShell({
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          // Captures vertical drags for dismiss
-          return Math.abs(gestureState.dy) > 5 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+        // Only capture downward vertical drags
+        onMoveShouldSetPanResponder: (_, gs) =>
+          gs.dy > 5 && Math.abs(gs.dy) > Math.abs(gs.dx),
+        onPanResponderMove: (_, gs) => {
+          // Never go upward — clamp at 0
+          translateY.setValue(Math.max(0, gs.dy));
         },
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dy > 0) {
-            translateY.setValue(gestureState.dy);
-          }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 80 || gestureState.vy > 0.3) {
+        onPanResponderRelease: (_, gs) => {
+          if (gs.dy > 80 || gs.vy > 0.5) {
             closeSheet();
           } else {
             Animated.spring(translateY, {
               toValue: 0,
               useNativeDriver: true,
               tension: 70,
-              friction: 12,
+              friction: 13,
             }).start();
           }
         },
@@ -211,40 +190,36 @@ export function PickerSheetShell({
 
   return (
     <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 1000 }}>
-      {/* Backdrop */}
+      {/* Dimmed backdrop — content behind is still visible */}
       <Animated.View
-        style={{
-          ...StyleSheet.absoluteFillObject,
-          backgroundColor: 'rgba(5, 10, 20, 0.6)',
-          opacity,
-        }}
+        style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', opacity }}
       >
         <Pressable style={{ flex: 1 }} onPress={closeSheet} />
       </Animated.View>
 
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      {/* Sheet: grows to content height, max 50% of screen */}
+      <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
         <Animated.View
           {...panResponder.panHandlers}
           style={{
-            maxHeight: screenHeight * 0.85,
+            maxHeight: screenHeight * 0.5,
             backgroundColor: palette.surface,
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
             overflow: 'hidden',
             transform: [{ translateY }],
-            width: '100%',
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: -6 },
-            shadowOpacity: 0.12,
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.1,
             shadowRadius: 12,
-            elevation: 20,
+            elevation: 24,
           }}
         >
-          {/* Handle */}
-          <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 8 }}>
+          {/* Drag handle */}
+          <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 6 }}>
             <View
               style={{
-                width: 38,
+                width: 36,
                 height: 4,
                 borderRadius: 2,
                 backgroundColor: palette.divider,
@@ -253,40 +228,30 @@ export function PickerSheetShell({
             />
           </View>
 
-          {/* Header */}
-          <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
+          {/* Title */}
+          <View style={{ paddingHorizontal: 22, paddingBottom: 12 }}>
             <Text
-              style={{
-                fontSize: 22,
-                fontWeight: '600',
-                color: palette.text,
-                letterSpacing: -0.4,
-              }}
+              style={{ fontSize: 20, fontWeight: '600', color: palette.text, letterSpacing: -0.3 }}
             >
               {title}
             </Text>
-            {subtitle && (
+            {subtitle ? (
               <Text
-                style={{
-                  fontSize: 13,
-                  color: palette.textMuted,
-                  marginTop: 4,
-                  fontWeight: '400',
-                }}
+                style={{ fontSize: 13, color: palette.textMuted, marginTop: 3, fontWeight: '400' }}
               >
                 {subtitle}
               </Text>
-            )}
+            ) : null}
           </View>
 
+          {/* Scrollable content */}
           <ScrollView
-            style={{ flexShrink: 1 }} // Changed from flex: 1 to flexShrink: 1 to prevent collapse
-            contentContainerStyle={{ paddingBottom: 40 }}
-            showsVerticalScrollIndicator={true}
+            style={{ flexShrink: 1 }}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
             overScrollMode="never"
           >
-            {/* Pressables inside ScrollView often conflict with PanResponder, 
-                so we use onStartShouldSetPanResponder: () => false above */}
             {children}
           </ScrollView>
         </Animated.View>

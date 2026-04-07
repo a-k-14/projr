@@ -1,8 +1,8 @@
-import { ReactNode } from 'react';
-import { Text, TouchableOpacity, View, TextInput } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import type { AppThemePalette } from '../lib/theme';
+import { ReactNode } from 'react';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RADIUS, SPACING, TYPE } from '../lib/design';
+import type { AppThemePalette } from '../lib/theme';
 
 export function ScreenTitle({
   title,
@@ -29,13 +29,14 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
   return (
     <Text
       style={{
-        fontSize: 10,
+        fontSize: 13,
         fontWeight: '600',
-        letterSpacing: 1,
+        letterSpacing: 1.2,
         color: palette.textMuted,
         marginHorizontal: SPACING.lg,
         marginBottom: 6,
-        marginTop: SPACING.md,
+        marginTop: 4,
+        textTransform: 'uppercase',
       }}
     >
       {label}

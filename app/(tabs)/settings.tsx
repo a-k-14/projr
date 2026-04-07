@@ -33,10 +33,14 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 120 }} // Increased for seamless scroll behind navbar
+        showsVerticalScrollIndicator={false}
+      >
         <ScreenTitle title="Settings" palette={palette} />
 
-        <View style={{ marginTop: 8 }}>
+        <View>
           <SectionLabel label="GENERAL" palette={palette} />
           <CardSection palette={palette}>
             <SettingsRow
@@ -71,7 +75,7 @@ export default function SettingsScreen() {
           </CardSection>
         </View>
 
-        <View style={{ marginTop: 24 }}>
+        <View>
           <SectionLabel label="MANAGE" palette={palette} />
           <CardSection palette={palette}>
             <SettingsRow
@@ -99,7 +103,7 @@ export default function SettingsScreen() {
           </CardSection>
         </View>
 
-        <View style={{ marginTop: 24 }}>
+        <View>
           <SectionLabel label="DATA" palette={palette} />
           <CardSection palette={palette}>
             <SettingsRow
@@ -120,7 +124,7 @@ export default function SettingsScreen() {
           </CardSection>
         </View>
 
-        <View style={{ marginTop: 24 }}>
+        <View>
           <SectionLabel label="ABOUT" palette={palette} />
           <CardSection palette={palette}>
             <SettingsRow icon="info" label="Version" value="1.0.0" palette={palette} noBorder />
