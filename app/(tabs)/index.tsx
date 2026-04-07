@@ -513,7 +513,7 @@ function HomeAccountPage({
           <View style={{ height: 1, backgroundColor: '#D8DDE8', marginTop: 10 }} />
         </View>
 
-        <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+        <View style={{ paddingHorizontal: 16, marginTop: 4 }}>
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2A44', marginBottom: 10 }}>
               {formatDate(today)} <InlineDot size={8} /> Today
             </Text>
@@ -545,7 +545,7 @@ function HomeAccountPage({
                   }
                   style={{
                     flex: 1,
-                    height: 34,
+                    height: 36,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: period === value ? '#202845' : '#FFFFFF',
@@ -557,7 +557,8 @@ function HomeAccountPage({
                     style={{
                       fontSize: 13,
                       fontWeight: '500',
-                      lineHeight: 16,
+                      lineHeight: 13,
+                      textAlignVertical: 'center',
                       includeFontPadding: false,
                       color: period === value ? '#FFFFFF' : '#8C94AF',
                     }}
