@@ -24,6 +24,7 @@ import { buildSpendingChartData, getTotalBalance, formatCurrency } from '../../l
 import { getDateRange, todayUTC, formatDate } from '../../lib/dateUtils';
 import { getCashflowSummary, getDailySpending } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
+import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
 import type {
   PeriodType,
   Transaction,
@@ -38,9 +39,6 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   year: 'Year',
   custom: 'Custom',
 };
-
-const TAB_ACTIVE = '#183B2E';
-const TAB_INACTIVE = '#B2B8C2';
 
 type AccountTab = {
   id: string | 'all';
@@ -60,14 +58,14 @@ export default function HomeScreen() {
   const [customRangeTo, setCustomRangeTo] = useState(() => todayUTC());
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
-  const TAB_GAP = 8;
-  const TAB_PADDING = 12;
+  const TAB_GAP = HOME_LAYOUT.tabGap;
+  const TAB_PADDING = HOME_SPACE.sm + 4;
 
   const displayAccounts: AccountTab[] = [{ id: 'all', name: 'All' }, ...accounts.map((a) => ({ id: a.id, name: a.name }))];
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
   const tabWidths = displayAccounts.map((account) =>
-    Math.max(54, Math.min(118, 22 + account.name.length * 7)),
+    Math.max(HOME_LAYOUT.tabMinWidth, Math.min(HOME_LAYOUT.tabMaxWidth, 22 + account.name.length * 7)),
   );
   const tabOffsets = tabWidths.map((_, index) => {
     return tabWidths.slice(0, index).reduce((sum, widthValue) => sum + widthValue + TAB_GAP, 0);
@@ -178,17 +176,17 @@ export default function HomeScreen() {
   return (
     <SafeAreaView
       edges={['top', 'left', 'right']}
-      style={{ flex: 1, backgroundColor: '#F0F0F5' }}
+      style={{ flex: 1, backgroundColor: HOME_COLORS.background }}
     >
       <ScrollView
         ref={tabStripRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: HOME_COLORS.surface,
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
-          maxHeight: 52,
+          borderBottomColor: HOME_COLORS.divider,
+          maxHeight: HOME_LAYOUT.tabHeight,
         }}
         contentContainerStyle={{ paddingHorizontal: 12 }}
       >
@@ -199,8 +197,8 @@ export default function HomeScreen() {
             left: TAB_PADDING,
             bottom: 0,
             height: 3,
-            borderRadius: 999,
-            backgroundColor: '#17673B',
+            borderRadius: HOME_RADIUS.full,
+            backgroundColor: HOME_COLORS.active,
             width: underlineWidth,
             transform: [
               {
@@ -213,9 +211,9 @@ export default function HomeScreen() {
           <TouchableOpacity
             key={account.id}
             onPress={() => handleTabPress(index)}
-            style={{
-              minWidth: 54,
-              maxWidth: 118,
+              style={{
+              minWidth: HOME_LAYOUT.tabMinWidth,
+              maxWidth: HOME_LAYOUT.tabMaxWidth,
               width: tabWidths[index],
               marginRight: TAB_GAP,
               paddingHorizontal: 8,
@@ -239,8 +237,8 @@ export default function HomeScreen() {
                         : [Math.max(0, (index - 1) * width), index * width, (index + 1) * width],
                     outputRange:
                       index === 0
-                        ? [TAB_ACTIVE, TAB_ACTIVE, TAB_INACTIVE]
-                        : [TAB_INACTIVE, TAB_ACTIVE, TAB_INACTIVE],
+                        ? [HOME_COLORS.active, HOME_COLORS.active, HOME_COLORS.inactive]
+                        : [HOME_COLORS.inactive, HOME_COLORS.active, HOME_COLORS.inactive],
                     extrapolate: 'clamp',
                   }),
                 }}
@@ -303,10 +301,10 @@ export default function HomeScreen() {
           position: 'absolute',
           bottom: Math.max(0, insets.bottom - 24),
           right: 24,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: '#17673B',
+          width: HOME_LAYOUT.fabSize,
+          height: HOME_LAYOUT.fabSize,
+          borderRadius: HOME_RADIUS.fab,
+          backgroundColor: HOME_COLORS.active,
           alignItems: 'center',
           justifyContent: 'center',
           shadowColor: '#000000',
@@ -315,7 +313,7 @@ export default function HomeScreen() {
           elevation: 6,
         }}
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={HOME_COLORS.surface} />
       </TouchableOpacity>
 
       <Modal
@@ -336,30 +334,30 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => { }}
             style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 24,
-              padding: 20,
+              backgroundColor: HOME_COLORS.surface,
+              borderRadius: HOME_RADIUS.large,
+              padding: HOME_SPACE.xxl,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2A44', marginBottom: 8 }}>
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: HOME_COLORS.text, marginBottom: 8 }}>
               Custom range
             </Text>
-            <Text style={{ fontSize: 13, color: '#8C94AF', marginBottom: 16 }}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: HOME_COLORS.textMuted, marginBottom: 16 }}>
               Pick the from and to dates for this range.
             </Text>
-            <View style={{ gap: 12, marginBottom: 18 }}>
+            <View style={{ gap: HOME_SPACE.md, marginBottom: HOME_SPACE.lg }}>
               <TouchableOpacity
                 onPress={() => openDatePicker('from')}
                 style={{
                   borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 16,
-                  paddingHorizontal: 14,
+                  borderColor: HOME_COLORS.divider,
+                  borderRadius: HOME_RADIUS.card,
+                  paddingHorizontal: HOME_SPACE.lg,
                   paddingVertical: 12,
                 }}
               >
-                <Text style={{ fontSize: 12, color: '#8C94AF', marginBottom: 4 }}>From</Text>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2A44' }}>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginBottom: 4 }}>From</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: HOME_COLORS.text }}>
                   {formatDate(customDraftFrom.toISOString())}
                 </Text>
               </TouchableOpacity>
@@ -367,44 +365,44 @@ export default function HomeScreen() {
                 onPress={() => openDatePicker('to')}
                 style={{
                   borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 16,
-                  paddingHorizontal: 14,
+                  borderColor: HOME_COLORS.divider,
+                  borderRadius: HOME_RADIUS.card,
+                  paddingHorizontal: HOME_SPACE.lg,
                   paddingVertical: 12,
                 }}
               >
-                <Text style={{ fontSize: 12, color: '#8C94AF', marginBottom: 4 }}>To</Text>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2A44' }}>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginBottom: 4 }}>To</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: HOME_COLORS.text }}>
                   {formatDate(customDraftTo.toISOString())}
                 </Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg }}>
               <TouchableOpacity
                 onPress={() => setCustomRangeOpen(false)}
                 style={{
                   flex: 1,
                   minHeight: 48,
-                  borderRadius: 14,
-                  backgroundColor: '#F3F4F6',
+                  borderRadius: HOME_RADIUS.tab,
+                  backgroundColor: HOME_COLORS.divider,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2A44' }}>Cancel</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: HOME_COLORS.text }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleCustomRangeDone}
                 style={{
                   flex: 1,
                   minHeight: 48,
-                  borderRadius: 14,
-                  backgroundColor: '#17673B',
+                  borderRadius: HOME_RADIUS.tab,
+                  backgroundColor: HOME_COLORS.active,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>Done</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: HOME_COLORS.surface }}>Done</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -489,20 +487,20 @@ function HomeAccountPage({
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 2 }}>
+        <View style={{ paddingHorizontal: HOME_SPACE.screen, paddingTop: 14, paddingBottom: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: 16 }}>
-              <Text style={{ fontSize: 16, color: '#1F2A44', fontWeight: '700' }}>
+              <Text style={{ fontSize: HOME_TEXT.heroLabel, color: HOME_COLORS.text, fontWeight: '700' }}>
                 {accountId === 'all' ? 'All Accounts' : accountName}
               </Text>
-              <Text style={{ fontSize: 12, color: '#8C94AF', marginTop: 4 }}>Current Balance</Text>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginTop: 4 }}>Current Balance</Text>
             </View>
             <Text
               style={{
-                fontSize: 24,
+                fontSize: HOME_TEXT.heroValue,
                 lineHeight: 36,
                 fontWeight: '700',
-                color: '#1F2A44',
+                color: HOME_COLORS.text,
                 textAlign: 'right',
                 flexShrink: 1,
               }}
@@ -510,29 +508,29 @@ function HomeAccountPage({
               {formatCurrency(totalBalance, currencySymbol)}
             </Text>
           </View>
-          <View style={{ height: 1, backgroundColor: '#D8DDE8', marginTop: 18, marginBottom: 14 }} />
+          <View style={{ height: 1, backgroundColor: HOME_COLORS.borderSoft, marginTop: 18, marginBottom: 14 }} />
         </View>
 
-        <View style={{ paddingHorizontal: 16 }}>
+        <View style={{ paddingHorizontal: HOME_SPACE.screen }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2A44' }}>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text }}>
               {formatDate(today)}
             </Text>
-            <InlineDot size={3.5} color="#1F2A44" />
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2A44' }}>Today</Text>
+            <InlineDot size={3.5} color={HOME_COLORS.todayDot} />
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text }}>Today</Text>
           </View>
           <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 6 }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2A44', marginRight: 12 }}>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text, marginRight: 12 }}>
               This
             </Text>
             <View
               style={{
                 flex: 1,
                 flexDirection: 'row',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 14,
+                backgroundColor: HOME_COLORS.surface,
+                borderRadius: HOME_RADIUS.tab,
                 overflow: 'hidden',
               }}
             >
@@ -547,35 +545,35 @@ function HomeAccountPage({
                       }
                       : () => setPeriod(value)
                   }
-                  style={{
-                    flex: 1,
-                    height: 36,
-                    paddingHorizontal: 12,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: period === value ? '#202845' : '#FFFFFF',
-                    borderLeftWidth: value === 'week' ? 0 : 1,
-                    borderLeftColor: '#E5E7EB',
-                  }}
-                >
-                  <Text
                     style={{
-                      fontSize: 13,
-                      fontWeight: '500',
-                      lineHeight: 13,
-                      textAlignVertical: 'center',
-                      includeFontPadding: false,
-                      color: period === value ? '#FFFFFF' : '#8C94AF',
+                      flex: 1,
+                      height: HOME_LAYOUT.periodHeight,
+                      paddingHorizontal: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: period === value ? HOME_COLORS.heroBar : HOME_COLORS.surface,
+                      borderLeftWidth: value === 'week' ? 0 : 1,
+                      borderLeftColor: HOME_COLORS.divider,
                     }}
                   >
-                    {PERIOD_LABELS[value]}
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      style={{
+                        fontSize: HOME_TEXT.bodySmall,
+                        fontWeight: '500',
+                        lineHeight: 13,
+                        textAlignVertical: 'center',
+                        includeFontPadding: false,
+                        color: period === value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                      }}
+                    >
+                      {PERIOD_LABELS[value]}
+                    </Text>
+                  </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          <Text style={{ fontSize: 12, color: '#8C94AF', marginBottom: 10 }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginBottom: 10 }}>
             {formatDate(from)} — {formatDate(to)}
           </Text>
 
@@ -583,31 +581,31 @@ function HomeAccountPage({
 
           <View
             style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 16,
+              backgroundColor: HOME_COLORS.surface,
+              borderRadius: HOME_RADIUS.card,
               paddingHorizontal: 16,
               paddingTop: 14,
               paddingBottom: 10,
               marginBottom: 14,
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2A44', marginBottom: 18 }}>
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: HOME_COLORS.text, marginBottom: 18 }}>
               Spending
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 116, paddingHorizontal: 2 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: HOME_LAYOUT.chartHeight, paddingHorizontal: 2 }}>
               {chartPoints.length > 0
                 ? chartPoints.map((entry, index) => (
                   <View key={`${entry.label}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
                     <View
                       style={{
                         width: 14,
-                        backgroundColor: '#17673B',
-                        borderRadius: 6,
+                        backgroundColor: HOME_COLORS.chartBar,
+                        borderRadius: HOME_RADIUS.chartBar,
                         opacity: entry.amount > 0 ? 0.88 : 0.2,
-                        height: Math.max(4, (entry.amount / maxSpend) * 74),
+                        height: Math.max(4, (entry.amount / maxSpend) * HOME_LAYOUT.chartBarHeight),
                       }}
                     />
-                    <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8 }}>
+                    <Text style={{ fontSize: HOME_TEXT.tiny, color: HOME_COLORS.textSoft, marginTop: 8 }}>
                       {entry.label}
                     </Text>
                   </View>
@@ -618,14 +616,14 @@ function HomeAccountPage({
                       style={{
                         width: 10,
                         height: 4,
-                        backgroundColor: index === 0 ? '#202845' : '#D9DDE7',
-                        borderRadius: 999,
+                        backgroundColor: index === 0 ? HOME_COLORS.heroBar : HOME_COLORS.chartBarMuted,
+                        borderRadius: HOME_RADIUS.full,
                       }}
                     />
                     <Text
                       style={{
-                        fontSize: 10,
-                        color: index === 0 ? '#1F2A44' : '#8C94AF',
+                        fontSize: HOME_TEXT.tiny,
+                        color: index === 0 ? HOME_COLORS.text : HOME_COLORS.textMuted,
                         marginTop: 8,
                         fontWeight: index === 0 ? '700' : '500',
                       }}
@@ -637,7 +635,7 @@ function HomeAccountPage({
             </View>
           </View>
 
-          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 32 }}>
+          <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, padding: 16, marginBottom: HOME_SPACE.pageBottom }}>
             <View
               style={{
                 flexDirection: 'row',
@@ -646,9 +644,9 @@ function HomeAccountPage({
                 marginBottom: 12,
               }}
             >
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2A44' }}>Recent</Text>
+              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: HOME_COLORS.text }}>Recent</Text>
               <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
-                <Text style={{ fontSize: 13, color: '#17673B', fontWeight: '600' }}>View all</Text>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: HOME_COLORS.active, fontWeight: '600' }}>View all</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -658,7 +656,7 @@ function HomeAccountPage({
               contentContainerStyle={{ paddingBottom: 4 }}
             >
               {transactions.length === 0 ? (
-                <Text style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', paddingVertical: 16 }}>
+                <Text style={{ color: HOME_COLORS.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
                   No transactions yet
                 </Text>
               ) : (
@@ -691,8 +689,8 @@ function SummaryCard({
     <View
       style={{
         flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
+        backgroundColor: HOME_COLORS.surface,
+        borderRadius: HOME_RADIUS.card,
         overflow: 'hidden',
         marginBottom: 18,
       }}
@@ -706,13 +704,13 @@ function SummaryCard({
             paddingHorizontal: 8,
             alignItems: 'center',
             borderLeftWidth: index === 0 ? 0 : 1,
-            borderLeftColor: '#E5E7EB',
+            borderLeftColor: HOME_COLORS.divider,
           }}
         >
           <Text
             style={{
-              fontSize: 11,
-              color: '#8C94AF',
+              fontSize: HOME_TEXT.caption,
+              color: HOME_COLORS.textMuted,
               marginBottom: 6,
               textTransform: 'capitalize',
             }}
@@ -721,9 +719,9 @@ function SummaryCard({
           </Text>
           <Text
             style={{
-              fontSize: 14,
+              fontSize: HOME_TEXT.body,
               fontWeight: '700',
-              color: key === 'out' ? '#CC3B2D' : '#17673B',
+              color: key === 'out' ? HOME_COLORS.negative : HOME_COLORS.active,
             }}
           >
             {formatCurrency(cashflow[key], sym)}
@@ -779,7 +777,7 @@ function TransactionRow({
 
   const iconColor =
     tx.type === 'in'
-      ? '#16A34A'
+      ? HOME_COLORS.positive
       : tx.type === 'out'
         ? '#DC2626'
         : '#1E293B';
@@ -798,14 +796,14 @@ function TransactionRow({
         alignItems: 'center',
         paddingVertical: 10,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: '#F3F4F6',
+        borderBottomColor: HOME_COLORS.divider,
       }}
     >
       <View
         style={{
           width: 36,
           height: 36,
-          borderRadius: 10,
+          borderRadius: HOME_RADIUS.small,
           backgroundColor: iconBg,
           alignItems: 'center',
           justifyContent: 'center',
@@ -815,20 +813,20 @@ function TransactionRow({
         <Ionicons name={iconName as never} size={16} color={iconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', color: '#0A0A0A' }} numberOfLines={1}>
+        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: HOME_COLORS.neutral }} numberOfLines={1}>
           {tx.note ?? tx.type}
         </Text>
         {subtitle ? (
-          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }} numberOfLines={1}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textSoft, marginTop: 1 }} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
       </View>
       <Text
         style={{
-          fontSize: 14,
+          fontSize: HOME_TEXT.body,
           fontWeight: '600',
-          color: tx.type === 'in' ? '#16A34A' : '#0A0A0A',
+          color: tx.type === 'in' ? HOME_COLORS.positive : HOME_COLORS.neutral,
         }}
       >
         {formatCurrency(tx.amount, sym)}

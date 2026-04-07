@@ -1,8 +1,17 @@
-import { ReactNode } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  Animated,
+  Dimensions,
+  PanResponder,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AppThemePalette } from '../../lib/theme';
-import { CardSection, ScreenTitle, SectionLabel } from '../../components/settings-ui';
+import { CardSection, SectionLabel } from '../../components/settings-ui';
 import { formatCurrency } from '../../lib/derived';
 
 export const MONTHS = [
@@ -132,37 +141,103 @@ export function PickerSheetShell({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { height } = Dimensions.get('window');
+  const sheetHeight = Math.min(Math.round(height * 0.78), 560);
+  const translateY = useRef(new Animated.Value(42)).current;
+
+  useEffect(() => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 70,
+      friction: 12,
+    }).start();
+  }, [translateY]);
+
+  const closeSheet = useCallback(() => {
+    Animated.timing(translateY, {
+      toValue: height,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        onClose();
+      }
+    });
+  }, [height, onClose, translateY]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dy) > 6 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+        onPanResponderMove: (_, gestureState) => {
+          translateY.setValue(Math.max(0, gestureState.dy));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dy > 80 || gestureState.vy > 1.1) {
+            closeSheet();
+            return;
+          }
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 70,
+            friction: 12,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 70,
+            friction: 12,
+          }).start();
+        },
+      }),
+    [closeSheet, translateY],
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.45)' }}>
-      <Pressable style={{ flex: 1, justifyContent: 'flex-end' }} onPress={onClose}>
-        <Pressable
+      <Pressable style={{ ...StyleSheet.absoluteFillObject }} onPress={closeSheet} />
+      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <Animated.View
           style={{
+            height: sheetHeight,
             backgroundColor: palette.surface,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
             borderWidth: 1,
             borderColor: palette.border,
-            maxHeight: '92%',
             overflow: 'hidden',
+            transform: [{ translateY }],
+            width: '100%',
           }}
-          onPress={() => undefined}
         >
-          <View style={{ alignItems: 'center', paddingTop: 10 }}>
+          <View {...panResponder.panHandlers} style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 4 }}>
             <View
               style={{
-                width: 42,
-                height: 4,
+                width: 38,
+                height: 3,
                 borderRadius: 2,
                 backgroundColor: palette.divider,
               }}
             />
           </View>
-          <ScreenTitle title={title} subtitle={subtitle} palette={palette} />
-          <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ paddingBottom: 24 }}>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+            <Text style={{ fontSize: 20, fontWeight: '600', color: palette.text }}>{title}</Text>
+            {subtitle ? (
+              <Text style={{ fontSize: 12, lineHeight: 16, color: palette.textMuted, marginTop: 2 }}>
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
             {children}
           </ScrollView>
-        </Pressable>
-      </Pressable>
+        </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }
