@@ -15,6 +15,8 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
+import { FilterChip } from '../../components/ui/FilterChip';
+import { HOME_COLORS } from '../../lib/homeTokens';
 import type { LoanWithSummary, LoanStatus } from '../../types';
 
 export default function LoansScreen() {
@@ -121,53 +123,24 @@ export default function LoansScreen() {
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 4 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
                 {displayAccounts.map((acc) => (
-                  <TouchableOpacity
+                  <FilterChip
                     key={acc.id}
+                    label={acc.name}
+                    isActive={(filters.accountId ?? 'all') === acc.id}
                     onPress={() => load({ accountId: acc.id === 'all' ? undefined : acc.id, status: filters.status })}
-                    style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 10,
-                      marginRight: 8,
-                      backgroundColor: (filters.accountId ?? 'all') === acc.id ? '#1B4332' : '#fff',
-                      borderWidth: 1,
-                      borderColor: (filters.accountId ?? 'all') === acc.id ? '#1B4332' : '#E5E7EB',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        color: (filters.accountId ?? 'all') === acc.id ? '#fff' : '#6B7280',
-                      }}
-                    >
-                      {acc.name}
-                    </Text>
-                  </TouchableOpacity>
+                    activeColor="#1B4332"
+                  />
                 ))}
               </ScrollView>
 
               {(['open', 'closed', undefined] as (LoanStatus | undefined)[]).map((s) => (
-                <TouchableOpacity
+                <FilterChip
                   key={String(s)}
+                  label={s === undefined ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                  isActive={filters.status === s}
                   onPress={() => load({ ...filters, status: s })}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    backgroundColor: filters.status === s ? '#1B4332' : '#fff',
-                    borderWidth: 1,
-                    borderColor: filters.status === s ? '#1B4332' : '#E5E7EB',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: filters.status === s ? '#fff' : '#6B7280',
-                    }}
-                  >
-                    {s === undefined ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-                  </Text>
-                </TouchableOpacity>
+                  activeColor="#1B4332"
+                />
               ))}
             </View>
           </View>

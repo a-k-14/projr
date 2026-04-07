@@ -21,6 +21,9 @@ import { groupTransactionsByDate, formatCurrency } from '../../lib/derived';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
 import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../../lib/homeTokens';
 import { AccountTabBar } from '../../components/AccountTabBar';
+import { InlineDot } from '../../components/ui/InlineDot';
+import { FilterChip } from '../../components/ui/FilterChip';
+import { TransactionItem } from '../../components/TransactionItem';
 import * as transactionsService from '../../services/transactions';
 import type { TransactionType, Transaction } from '../../types';
 
@@ -240,29 +243,12 @@ function ActivityAccountPage({
           {/* Type Filter */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
             {FILTERS.map((f) => (
-              <TouchableOpacity
+              <FilterChip
                 key={f.value}
+                label={f.label}
+                isActive={typeFilter === f.value}
                 onPress={() => onTypeFilterChange(f.value)}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: HOME_RADIUS.tab,
-                  marginRight: 8,
-                  backgroundColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.surface,
-                  borderWidth: 1,
-                  borderColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.divider,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: '500',
-                    color: typeFilter === f.value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
-                  }}
-                >
-                  {f.label}
-                </Text>
-              </TouchableOpacity>
+              />
             ))}
           </ScrollView>
         </View>
@@ -291,7 +277,6 @@ function ActivityAccountPage({
                   tx={tx}
                   sym={sym}
                   isLast={idx === item.items.length - 1}
-                  categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
                 />
               ))}
             </View>
@@ -299,104 +284,5 @@ function ActivityAccountPage({
         );
       }}
     />
-  );
-}
-
-function InlineDot({ size = 8, color = '#8C94AF' }: { size?: number; color?: string }) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: color,
-        marginHorizontal: 8,
-      }}
-    />
-  );
-}
-
-function TransactionItem({
-  tx,
-  sym,
-  isLast,
-  categoryName,
-}: {
-  tx: Transaction;
-  sym: string;
-  isLast: boolean;
-  categoryName?: string;
-}) {
-  const { getById } = useAccountsStore();
-  const account = getById(tx.accountId);
-
-  const iconName =
-    tx.type === 'in'
-      ? 'arrow-down'
-      : tx.type === 'out'
-        ? 'arrow-up'
-        : tx.type === 'transfer'
-          ? 'swap-horizontal'
-          : 'cash';
-
-  const iconBg =
-    tx.type === 'in'
-      ? '#DCFCE7'
-      : tx.type === 'out'
-        ? '#FEE2E2'
-        : '#F1F5F9';
-
-  const iconColor =
-    tx.type === 'in'
-      ? HOME_COLORS.positive
-      : tx.type === 'out'
-        ? '#DC2626'
-        : '#1E293B';
-
-  const subtitle = [categoryName, account?.name].filter(Boolean).join(' · ');
-
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: HOME_COLORS.divider,
-      }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          backgroundColor: iconBg,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 12,
-        }}
-      >
-        <Ionicons name={iconName as never} size={18} color={iconColor} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: HOME_COLORS.text }} numberOfLines={1}>
-          {tx.note || tx.type}
-        </Text>
-        {subtitle ? (
-          <Text style={{ fontSize: 12, color: HOME_COLORS.textMuted, marginTop: 2 }} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
-      <Text
-        style={{
-          fontSize: 16,
-          fontWeight: '700',
-          color: tx.type === 'in' ? HOME_COLORS.positive : HOME_COLORS.text,
-        }}
-      >
-        {formatCurrency(tx.amount, sym)}
-      </Text>
-    </View>
   );
 }
