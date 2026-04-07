@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
+  Animated,
   View,
   Text,
   ScrollView,
@@ -7,18 +8,20 @@ import {
   TextInput,
   RefreshControl,
   FlatList,
+  useWindowDimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { groupTransactionsByDate, formatCurrency } from '../../lib/derived';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
-import { HOME_COLORS } from '../../lib/homeTokens';
+import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../../lib/homeTokens';
 import { AccountTabBar } from '../../components/AccountTabBar';
+import * as transactionsService from '../../services/transactions';
 import type { TransactionType, Transaction } from '../../types';
 
 const FILTERS: { label: string; value: TransactionType | 'all' }[] = [
@@ -31,219 +34,316 @@ const FILTERS: { label: string; value: TransactionType | 'all' }[] = [
 
 export default function ActivityScreen() {
   const { accounts } = useAccountsStore();
-  const { settings } = useUIStore();
-  const { transactions, load, loadMore, hasMore } = useTransactionsStore();
-  const { getCategoryDisplayName } = useCategoriesStore();
-
+  const { width } = useWindowDimensions();
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
-  const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [search, setSearch] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
 
-  const sym = settings.currencySymbol;
+  const pagerRef = useRef<ScrollView>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   const displayAccounts = [
     { id: 'all' as const, name: 'All' },
     ...accounts.map((a) => ({ id: a.id, name: a.name })),
   ];
 
-  const loadData = useCallback(async () => {
-    await load({
-      accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
-      type: typeFilter === 'all' ? undefined : typeFilter,
-      search: search || undefined,
-    });
-  }, [selectedAccountId, typeFilter, search]);
+  const selectedIndex = Math.max(
+    0,
+    displayAccounts.findIndex((a) => a.id === selectedAccountId),
+  );
+
+  const handleTabPress = useCallback(
+    (index: number) => {
+      const next = displayAccounts[index];
+      if (!next) return;
+      setSelectedAccountId(next.id);
+      pagerRef.current?.scrollTo({ x: index * width, animated: true });
+    },
+    [displayAccounts, width],
+  );
+
+  const handlePagerEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const nextIndex = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
+      const next = displayAccounts[nextIndex];
+      if (next && next.id !== selectedAccountId) {
+        setSelectedAccountId(next.id);
+      }
+    },
+    [displayAccounts, selectedAccountId, width],
+  );
+
+  // Sync pager when selectedAccountId changes (e.g. from external sources)
+  useEffect(() => {
+    pagerRef.current?.scrollTo({ x: selectedIndex * width, animated: false });
+  }, [selectedIndex, width]);
+
+  return (
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: HOME_COLORS.background }}>
+      <AccountTabBar
+        accounts={displayAccounts}
+        selectedId={selectedAccountId}
+        externalScrollX={scrollX}
+        onSelect={(id) => {
+          const index = displayAccounts.findIndex((a) => a.id === id);
+          handleTabPress(index);
+        }}
+      />
+
+      <Animated.ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        directionalLockEnabled
+        onMomentumScrollEnd={handlePagerEnd}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+        style={{ flex: 1 }}
+      >
+        {displayAccounts.map((account) => (
+          <View key={account.id} style={{ width }}>
+            <ActivityAccountPage
+              accountId={account.id}
+              isSelected={account.id === selectedAccountId}
+              search={search}
+              onSearchChange={setSearch}
+              typeFilter={typeFilter}
+              onTypeFilterChange={setTypeFilter}
+            />
+          </View>
+        ))}
+      </Animated.ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function ActivityAccountPage({
+  accountId,
+  isSelected,
+  search,
+  onSearchChange,
+  typeFilter,
+  onTypeFilterChange,
+}: {
+  accountId: string | 'all';
+  isSelected: boolean;
+  search: string;
+  onSearchChange: (s: string) => void;
+  typeFilter: TransactionType | 'all';
+  onTypeFilterChange: (t: TransactionType | 'all') => void;
+}) {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const loadingRef = useRef(false);
+
+  const PAGE_SIZE = 40;
+  const { settings } = useUIStore();
+  const { getCategoryDisplayName } = useCategoriesStore();
+  const sym = settings.currencySymbol;
+
+  const loadData = useCallback(async (isInitial = true) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+
+    try {
+      const currentOffset = isInitial ? 0 : offset;
+      const filterParams = {
+        accountId: accountId === 'all' ? undefined : accountId,
+        type: typeFilter === 'all' ? undefined : typeFilter,
+        search: search || undefined,
+        limit: PAGE_SIZE,
+        offset: currentOffset,
+      };
+
+      const results = await transactionsService.getTransactions(filterParams);
+
+      if (isInitial) {
+        setTransactions(results);
+        setOffset(PAGE_SIZE);
+        setHasMore(results.length === PAGE_SIZE);
+      } else {
+        setTransactions((prev) => {
+          // Deduplicate by ID to prevent key collisions
+          const existingIds = new Set(prev.map(t => t.id));
+          const newTxs = results.filter(t => !existingIds.has(t.id));
+          return [...prev, ...newTxs];
+        });
+        setOffset((prev) => prev + PAGE_SIZE);
+        setHasMore(results.length === PAGE_SIZE);
+      }
+    } finally {
+      loadingRef.current = false;
+    }
+  }, [accountId, typeFilter, search, offset]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (isSelected) {
+      loadData(true);
+    }
+  }, [isSelected, typeFilter, search]);
 
   const onRefresh = async () => {
+    if (loadingRef.current) return;
     setRefreshing(true);
-    await loadData();
+    await loadData(true);
     setRefreshing(false);
+  };
+
+  const onLoadMore = async () => {
+    if (!hasMore || loadingRef.current || transactions.length === 0) return;
+    await loadData(false);
   };
 
   const grouped = groupTransactionsByDate(transactions);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: HOME_COLORS.background }}>
-      <AccountTabBar
-        accounts={displayAccounts}
-        selectedId={selectedAccountId}
-        onSelect={(id) => setSelectedAccountId(id)}
-      />
+    <FlatList
+      data={grouped}
+      keyExtractor={(item) => item.dateKey}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={HOME_COLORS.active} />}
+      onEndReached={onLoadMore}
+      onEndReachedThreshold={0.4}
+      contentContainerStyle={{ paddingBottom: 100 }}
+      ListHeaderComponent={
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+          {/* Search */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: HOME_COLORS.surface,
+              borderRadius: HOME_RADIUS.card,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: HOME_COLORS.divider,
+            }}
+          >
+            <Ionicons name="search" size={16} color={HOME_COLORS.textSoft} style={{ marginRight: 8 }} />
+            <TextInput
+              placeholder="Search transactions..."
+              placeholderTextColor={HOME_COLORS.textSoft}
+              value={search}
+              onChangeText={onSearchChange}
+              style={{ flex: 1, fontSize: 14, color: HOME_COLORS.text, padding: 0 }}
+              returnKeyType="search"
+            />
+          </View>
 
-      <FlatList
-        data={grouped}
-        keyExtractor={(item) => item.dateKey}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        onEndReached={() => hasMore && loadMore()}
-        onEndReachedThreshold={0.3}
-        ListHeaderComponent={
-          <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
-            {/* Search */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: '#fff',
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-                marginBottom: 12,
-              }}
-            >
-              <Ionicons name="search" size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
-              <TextInput
-                placeholder="Search transactions..."
-                placeholderTextColor="#9CA3AF"
-                value={search}
-                onChangeText={setSearch}
-                style={{ flex: 1, fontSize: 14, color: '#0A0A0A' }}
-                returnKeyType="search"
-              />
-            </View>
-
-            {/* Type Filter */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {FILTERS.map((f) => (
-                <TouchableOpacity
-                  key={f.value}
-                  onPress={() => setTypeFilter(f.value)}
+          {/* Type Filter */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+            {FILTERS.map((f) => (
+              <TouchableOpacity
+                key={f.value}
+                onPress={() => onTypeFilterChange(f.value)}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: HOME_RADIUS.tab,
+                  marginRight: 8,
+                  backgroundColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.surface,
+                  borderWidth: 1,
+                  borderColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.divider,
+                }}
+              >
+                <Text
                   style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    marginRight: 8,
-                    backgroundColor: typeFilter === f.value ? '#1B4332' : '#fff',
-                    borderWidth: 1,
-                    borderColor: typeFilter === f.value ? '#1B4332' : '#E5E7EB',
+                    fontSize: 13,
+                    fontWeight: '500',
+                    color: typeFilter === f.value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '500',
-                      color: typeFilter === f.value ? '#fff' : '#6B7280',
-                    }}
-                  >
-                    {f.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        }
-        ListEmptyComponent={
-          <View style={{ alignItems: 'center', paddingTop: 60 }}>
-            <Ionicons name="receipt-outline" size={48} color="#D1D5DB" />
-            <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 12 }}>No transactions found</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      }
+      renderItem={({ item }) => (
+        <View style={{ marginBottom: 16 }}>
           <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>
-              {getRelativeDateLabel(item.dateKey + 'T00:00:00.000Z')}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: HOME_COLORS.textSoft, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              {getRelativeDateLabel(item.dateKey)}
             </Text>
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden' }}>
-              {item.items.map((tx, i) => (
-                <ActivityRow
-                  key={tx.id}
-                  tx={tx}
-                  sym={sym}
-                  isLast={i === item.items.length - 1}
-                  onPress={() => router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } })}
-                />
-              ))}
-            </View>
           </View>
-        )}
-      />
-
-      {/* FAB */}
-      <TouchableOpacity
-        onPress={() => router.push('/modals/add-transaction')}
-        style={{
-          position: 'absolute',
-          bottom: 24,
-          right: 24,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: '#1B4332',
-          alignItems: 'center',
-          justifyContent: 'center',
-          shadowColor: '#000',
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
-          elevation: 6,
-        }}
-      >
-        <Ionicons name="add" size={28} color="white" />
-      </TouchableOpacity>
-    </SafeAreaView>
+          <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: 16, overflow: 'hidden' }}>
+            {item.items.map((tx, idx) => (
+              <TransactionItem
+                key={tx.id}
+                tx={tx}
+                sym={sym}
+                isLast={idx === item.items.length - 1}
+                categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+    />
   );
 }
 
-function ActivityRow({
+function TransactionItem({
   tx,
   sym,
   isLast,
-  onPress,
+  categoryName,
 }: {
   tx: Transaction;
   sym: string;
   isLast: boolean;
-  onPress: () => void;
+  categoryName?: string;
 }) {
   const { getById } = useAccountsStore();
-  const { getCategoryDisplayName, getTagById } = useCategoriesStore();
   const account = getById(tx.accountId);
 
   const iconName =
     tx.type === 'in'
       ? 'arrow-down'
       : tx.type === 'out'
-      ? 'arrow-up'
-      : tx.type === 'transfer'
-      ? 'swap-horizontal'
-      : 'cash';
+        ? 'arrow-up'
+        : tx.type === 'transfer'
+          ? 'swap-horizontal'
+          : 'cash';
 
   const iconBg =
-    tx.type === 'in' ? '#DCFCE7' : tx.type === 'out' ? '#FEE2E2' : '#F1F5F9';
+    tx.type === 'in'
+      ? '#DCFCE7'
+      : tx.type === 'out'
+        ? '#FEE2E2'
+        : '#F1F5F9';
+
   const iconColor =
-    tx.type === 'in' ? '#16A34A' : tx.type === 'out' ? '#DC2626' : '#1E293B';
+    tx.type === 'in'
+      ? HOME_COLORS.positive
+      : tx.type === 'out'
+        ? '#DC2626'
+        : '#1E293B';
 
-  const tagNames = tx.tags
-    .map((id) => getTagById(id)?.name)
-    .filter(Boolean)
-    .join(' · ');
-
-  const subtitleParts = [
-    tx.categoryId ? getCategoryDisplayName(tx.categoryId) : null,
-    account?.name,
-    tagNames || null,
-  ].filter(Boolean);
+  const subtitle = [categoryName, account?.name].filter(Boolean).join(' · ');
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
+    <View
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        padding: 12,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: '#F3F4F6',
+        borderBottomColor: HOME_COLORS.divider,
       }}
     >
       <View
         style={{
-          width: 36,
-          height: 36,
+          width: 40,
+          height: 40,
           borderRadius: 10,
           backgroundColor: iconBg,
           alignItems: 'center',
@@ -251,27 +351,27 @@ function ActivityRow({
           marginRight: 12,
         }}
       >
-        <Ionicons name={iconName as any} size={16} color={iconColor} />
+        <Ionicons name={iconName as never} size={18} color={iconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', color: '#0A0A0A' }} numberOfLines={1}>
-          {tx.note ?? tx.type}
+        <Text style={{ fontSize: 15, fontWeight: '600', color: HOME_COLORS.text }} numberOfLines={1}>
+          {tx.note || tx.type}
         </Text>
-        {subtitleParts.length > 0 && (
-          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }} numberOfLines={1}>
-            {subtitleParts.join(' · ')}
+        {subtitle ? (
+          <Text style={{ fontSize: 12, color: HOME_COLORS.textMuted, marginTop: 2 }} numberOfLines={1}>
+            {subtitle}
           </Text>
-        )}
+        ) : null}
       </View>
       <Text
         style={{
-          fontSize: 14,
-          fontWeight: '600',
-          color: tx.type === 'in' ? '#16A34A' : '#0A0A0A',
+          fontSize: 16,
+          fontWeight: '700',
+          color: tx.type === 'in' ? HOME_COLORS.positive : HOME_COLORS.text,
         }}
       >
         {formatCurrency(tx.amount, sym)}
       </Text>
-    </TouchableOpacity>
+    </View>
   );
 }

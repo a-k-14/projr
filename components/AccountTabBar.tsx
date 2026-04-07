@@ -43,18 +43,11 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX 
     tabWidths.slice(0, i).reduce((sum, w) => sum + w + TAB_GAP, 0),
   );
 
-  // Animated.interpolate requires at least 2 points in inputRange.
-  // Pad to [0, width] when there is only one account ("All").
-  const safeInputRange =
-    accounts.length >= 2 ? accounts.map((_, i) => i * width) : [0, width];
-  const safeOffsets =
-    accounts.length >= 2
-      ? tabOffsets
-      : [tabOffsets[0] ?? 0, tabOffsets[0] ?? 0];
-  const safeWidths =
-    accounts.length >= 2
-      ? tabWidths
-      : [tabWidths[0] ?? HOME_LAYOUT.tabMinWidth, tabWidths[0] ?? HOME_LAYOUT.tabMinWidth];
+  // Guard: interpolation needs at least 2 points in inputRange / outputRange.
+  const hasMultipleAccounts = accounts.length >= 2;
+  const safeInputRange = hasMultipleAccounts ? accounts.map((_, i) => i * width) : [0, width];
+  const safeOffsets = hasMultipleAccounts ? tabOffsets : [tabOffsets[0] ?? 0, tabOffsets[0] ?? 0];
+  const safeWidths = hasMultipleAccounts ? tabWidths : [tabWidths[0] ?? HOME_LAYOUT.tabMinWidth, tabWidths[0] ?? HOME_LAYOUT.tabMinWidth];
 
   const underlineTranslateX = scrollX.interpolate({
     inputRange: safeInputRange,
@@ -85,7 +78,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX 
     const tw = tabWidths[selectedIndex] ?? HOME_LAYOUT.tabMinWidth;
     const targetX = Math.max(0, offset - (width - tw) / 2 + TAB_PADDING);
     tabStripRef.current?.scrollTo({ x: targetX, animated: true });
-  }, [selectedIndex]);
+  }, [selectedIndex, width]);
 
   return (
     <ScrollView
@@ -117,19 +110,22 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX 
 
       {accounts.map((account, index) => {
         // Per-tab text colour interpolation — guard against single-item list
-        const textInputRange: number[] =
-          accounts.length === 1
-            ? [0, width]
-            : index === 0
+        let textInputRange: number[];
+        let textOutputRange: string[];
+
+        if (!hasMultipleAccounts) {
+          textInputRange = [0, width];
+          textOutputRange = [HOME_COLORS.active, HOME_COLORS.active];
+        } else {
+          textInputRange =
+            index === 0
               ? [0, width * 0.35, width * 0.8]
               : [Math.max(0, (index - 1) * width), index * width, (index + 1) * width];
-
-        const textOutputRange: string[] =
-          accounts.length === 1
-            ? [HOME_COLORS.active, HOME_COLORS.active]
-            : index === 0
+          textOutputRange =
+            index === 0
               ? [HOME_COLORS.active, HOME_COLORS.active, HOME_COLORS.inactive]
               : [HOME_COLORS.inactive, HOME_COLORS.active, HOME_COLORS.inactive];
+        }
 
         return (
           <TouchableOpacity
