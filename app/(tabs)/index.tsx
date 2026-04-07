@@ -159,7 +159,7 @@ export default function HomeScreen() {
             setCustomDraftTo(selected < customDraftFrom ? customDraftFrom : selected);
           }
         },
-        onDismiss: () => {},
+        onDismiss: () => { },
       });
     },
     [customDraftFrom, customDraftTo],
@@ -314,7 +314,7 @@ export default function HomeScreen() {
           shadowRadius: 10,
           elevation: 6,
         }}
-        >
+      >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
 
@@ -334,7 +334,7 @@ export default function HomeScreen() {
           }}
         >
           <Pressable
-            onPress={() => {}}
+            onPress={() => { }}
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: 24,
@@ -380,12 +380,12 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
-          <TouchableOpacity
-            onPress={() => setCustomRangeOpen(false)}
-            style={{
-              flex: 1,
-              minHeight: 48,
-              borderRadius: 14,
+              <TouchableOpacity
+                onPress={() => setCustomRangeOpen(false)}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  borderRadius: 14,
                   backgroundColor: '#F3F4F6',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -510,13 +510,13 @@ function HomeAccountPage({
               {formatCurrency(totalBalance, currencySymbol)}
             </Text>
           </View>
-          <View style={{ height: 1, backgroundColor: '#D8DDE8', marginTop: 10 }} />
+          <View style={{ height: 1, backgroundColor: '#D8DDE8', marginTop: 18, marginBottom: 14 }} />
         </View>
 
-        <View style={{ paddingHorizontal: 16, marginTop: 4 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2A44', marginBottom: 10 }}>
-              {formatDate(today)} <InlineDot size={8} /> Today
-            </Text>
+        <View style={{ paddingHorizontal: 16 }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2A44', marginBottom: 10 }}>
+            {formatDate(today)} <InlineDot size={14} /> Today
+          </Text>
           <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 6 }}>
@@ -538,14 +538,15 @@ function HomeAccountPage({
                   onPress={
                     value === 'custom'
                       ? () => {
-                          setPeriod('custom');
-                          onOpenCustomRange();
-                        }
+                        setPeriod('custom');
+                        onOpenCustomRange();
+                      }
                       : () => setPeriod(value)
                   }
                   style={{
                     flex: 1,
                     height: 36,
+                    paddingHorizontal: 12,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: period === value ? '#202845' : '#FFFFFF',
@@ -592,42 +593,42 @@ function HomeAccountPage({
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 116, paddingHorizontal: 2 }}>
               {chartPoints.length > 0
                 ? chartPoints.map((entry, index) => (
-                    <View key={`${entry.label}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
-                      <View
-                        style={{
-                          width: 14,
-                          backgroundColor: '#17673B',
-                          borderRadius: 6,
-                          opacity: entry.amount > 0 ? 0.88 : 0.2,
-                          height: Math.max(4, (entry.amount / maxSpend) * 74),
-                        }}
-                      />
-                      <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8 }}>
-                        {entry.label}
-                      </Text>
-                    </View>
-                  ))
+                  <View key={`${entry.label}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
+                    <View
+                      style={{
+                        width: 14,
+                        backgroundColor: '#17673B',
+                        borderRadius: 6,
+                        opacity: entry.amount > 0 ? 0.88 : 0.2,
+                        height: Math.max(4, (entry.amount / maxSpend) * 74),
+                      }}
+                    />
+                    <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8 }}>
+                      {entry.label}
+                    </Text>
+                  </View>
+                ))
                 : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-                    <View key={`${day}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
-                      <View
-                        style={{
-                          width: 10,
-                          height: 4,
-                          backgroundColor: index === 0 ? '#202845' : '#D9DDE7',
-                          borderRadius: 999,
-                        }}
-                      />
-                      <Text
-                        style={{
-                          fontSize: 10,
-                          color: index === 0 ? '#1F2A44' : '#8C94AF',
-                          marginTop: 8,
-                          fontWeight: index === 0 ? '700' : '500',
-                        }}
-                      >
-                        {day}
-                      </Text>
-                    </View>
+                  <View key={`${day}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
+                    <View
+                      style={{
+                        width: 10,
+                        height: 4,
+                        backgroundColor: index === 0 ? '#202845' : '#D9DDE7',
+                        borderRadius: 999,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        color: index === 0 ? '#1F2A44' : '#8C94AF',
+                        marginTop: 8,
+                        fontWeight: index === 0 ? '700' : '500',
+                      }}
+                    >
+                      {day}
+                    </Text>
+                  </View>
                 ))}
             </View>
           </View>
