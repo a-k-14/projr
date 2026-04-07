@@ -12,7 +12,10 @@ export function todayUTC(): string {
 
 export function formatDate(isoDate: string): string {
   const d = new Date(isoDate);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = d.toLocaleDateString('en-IN', { month: 'short' });
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
 }
 
 export function formatDateShort(isoDate: string): string {
@@ -20,16 +23,21 @@ export function formatDateShort(isoDate: string): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-export function getRelativeDateLabel(isoDate: string): string {
+export function getRelativeDateLabel(isoDate: string): { date: string; label?: string } {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const date = new Date(isoDate);
   date.setHours(0, 0, 0, 0);
   const diff = today.getTime() - date.getTime();
   const days = Math.round(diff / (1000 * 60 * 60 * 24));
-  if (days === 0) return `${formatDate(isoDate)} · Today`;
-  if (days === 1) return `${formatDate(isoDate)} · Yesterday`;
-  return formatDate(isoDate);
+
+  const formattedDate = formatDate(isoDate);
+
+  if (days === 0) return { date: formattedDate, label: 'Today' };
+  if (days === 1) return { date: formattedDate, label: 'Yesterday' };
+  if (days === -1) return { date: formattedDate, label: 'Tomorrow' };
+
+  return { date: formattedDate };
 }
 
 export function getDateRange(

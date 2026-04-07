@@ -277,7 +277,7 @@ function ActivityAccountPage({
               </Text>
               {label ? (
                 <>
-                  <InlineDot size={3} color={HOME_COLORS.todayDot} />
+                  <InlineDot size={3} color={HOME_COLORS.textSoft} />
                   <Text style={{ fontSize: 13, fontWeight: '700', color: HOME_COLORS.textSoft }}>
                     {label}
                   </Text>
