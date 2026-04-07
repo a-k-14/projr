@@ -17,6 +17,8 @@ import {
   PickerChip,
   SectionLabel,
   SettingsRow,
+  IconGrid,
+  ColorGrid,
 } from '../../components/settings-ui';
 
 type Draft = {
@@ -138,27 +140,19 @@ export default function CategoriesScreen() {
 
   return (
     <SettingsScreenShell palette={palette}>
-      <SectionLabel label="Two-level hierarchy: parent categories and subcategories" palette={palette} />
+      <SectionLabel label="Transaction Categories" palette={palette} />
       <CardSection palette={palette}>
         {rows.map((category, index) => {
           const selected = selectedId === category.id && !creating;
-          const display = category.parentId
-            ? `${parentName(category.parentId, categories)} › ${category.name}`
+          const isSub = !!category.parentId;
+          const display = isSub
+            ? `${parentName(category.parentId!, categories)} › ${category.name}`
             : category.name;
           return (
             <SettingsRow
               key={category.id}
               icon={(category.icon as keyof typeof Feather.glyphMap) ?? 'tag'}
               label={display}
-              value={
-                selected
-                  ? undefined
-                  : category.type === 'both'
-                    ? 'Both'
-                    : category.type === 'in'
-                      ? 'Income'
-                      : 'Expense'
-              }
               palette={palette}
               onPress={() => {
                 setCreating(false);
@@ -166,16 +160,34 @@ export default function CategoriesScreen() {
               }}
               noBorder={index === rows.length - 1}
               rightElement={
-                selected ? <Feather name="check" size={18} color={palette.tabActive} /> : undefined
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  {!selected && (
+                    <Text style={{ color: palette.textMuted, fontSize: 13, fontWeight: '500' }}>
+                      {category.type === 'both' ? 'Both' : category.type === 'in' ? 'Income' : 'Expense'}
+                    </Text>
+                  )}
+                  {selected ? (
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: palette.tabActive, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="check" size={12} color="#FFFFFF" />
+                    </View>
+                  ) : (
+                    <Feather name="chevron-right" size={18} color={palette.divider} />
+                  )}
+                </View>
               }
             />
           );
         })}
+        {!rows.length ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: palette.textMuted, fontSize: 14 }}>No categories yet.</Text>
+          </View>
+        ) : null}
       </CardSection>
 
-      <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
         <ActionButton
-          label="Add new category"
+          label="Add New Category"
           variant="secondary"
           palette={palette}
           onPress={() => {
@@ -185,106 +197,88 @@ export default function CategoriesScreen() {
         />
       </View>
 
-      <SectionLabel label={creating ? 'NEW CATEGORY' : 'EDIT CATEGORY'} palette={palette} />
+      <SectionLabel label={creating ? 'CREATE NEW CATEGORY' : 'EDIT CATEGORY'} palette={palette} />
       <CardSection palette={palette}>
-        <View style={{ padding: 16 }}>
-          <FieldLabel label="Name" palette={palette} />
-          <InputField
-            palette={palette}
-            value={draft.name}
-            onChangeText={(value) => setDraft((state) => ({ ...state, name: value }))}
-            placeholder="Groceries"
-          />
+        <View style={{ padding: 20 }}>
+          <View style={{ marginBottom: 20 }}>
+            <FieldLabel label="Category Name" palette={palette} />
+            <InputField
+              palette={palette}
+              value={draft.name}
+              onChangeText={(value) => setDraft((state) => ({ ...state, name: value }))}
+              placeholder="e.g. Groceries"
+            />
+          </View>
 
-          <FieldLabel label="Parent" palette={palette} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <View style={{ width: '48%' }}>
-              <PickerChip
-                label="None"
-                selected={!draft.parentId}
-                palette={palette}
-                onPress={() => setDraft((state) => ({ ...state, parentId: '' }))}
-              />
+          <View style={{ marginBottom: 20 }}>
+            <FieldLabel label="Parent Category (Optional)" palette={palette} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              <View style={{ width: '48%' }}>
+                <PickerChip
+                  label="None (Top Level)"
+                  selected={!draft.parentId}
+                  palette={palette}
+                  onPress={() => setDraft((state) => ({ ...state, parentId: '' }))}
+                />
+              </View>
+              {topLevelCategories.filter(c => c.id !== selectedId).map((category) => (
+                <View key={category.id} style={{ width: '48%' }}>
+                  <PickerChip
+                    label={category.name}
+                    selected={draft.parentId === category.id}
+                    palette={palette}
+                    onPress={() => setDraft((state) => ({ ...state, parentId: category.id }))}
+                  />
+                </View>
+              ))}
             </View>
-            {topLevelCategories.map((category) => (
-              <View key={category.id} style={{ width: '48%' }}>
-                <PickerChip
-                  label={category.name}
-                  selected={draft.parentId === category.id}
-                  palette={palette}
-                  onPress={() => setDraft((state) => ({ ...state, parentId: category.id }))}
-                />
-              </View>
-            ))}
           </View>
 
-          <FieldLabel label="Type" palette={palette} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {CATEGORY_TYPES.map((item) => (
-              <View key={item.key} style={{ width: '31%' }}>
-                <PickerChip
-                  label={item.label}
-                  selected={draft.type === item.key}
-                  palette={palette}
-                  onPress={() => setDraft((state) => ({ ...state, type: item.key }))}
-                />
-              </View>
-            ))}
+          <View style={{ marginBottom: 20 }}>
+            <FieldLabel label="Transaction Type" palette={palette} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {CATEGORY_TYPES.map((item) => (
+                <View key={item.key} style={{ width: '31%' }}>
+                  <PickerChip
+                    label={item.label}
+                    selected={draft.type === item.key}
+                    palette={palette}
+                    onPress={() => setDraft((state) => ({ ...state, type: item.key }))}
+                  />
+                </View>
+              ))}
+            </View>
           </View>
 
-          <FieldLabel label="Icon" palette={palette} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {CATEGORY_ICONS.map((icon) => (
-              <TouchableOpacity
-                key={icon}
-                onPress={() => setDraft((state) => ({ ...state, icon }))}
-                style={{
-                  width: '18%',
-                  minHeight: 48,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: draft.icon === icon ? palette.tabActive : palette.border,
-                  backgroundColor:
-                    draft.icon === icon
-                      ? palette.background === '#11161F'
-                        ? '#182131'
-                        : '#E8F3EC'
-                      : palette.surface,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Feather
-                  name={icon as keyof typeof Feather.glyphMap}
-                  size={16}
-                  color={draft.icon === icon ? palette.tabActive : palette.iconTint}
-                />
-              </TouchableOpacity>
-            ))}
+          <View style={{ marginBottom: 20 }}>
+            <FieldLabel label="Choose Icon" palette={palette} />
+            <IconGrid
+              icons={CATEGORY_ICONS}
+              selectedIcon={draft.icon}
+              onSelect={(icon) => setDraft((state) => ({ ...state, icon }))}
+              palette={palette}
+            />
           </View>
 
-          <FieldLabel label="Color" palette={palette} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {CATEGORY_COLORS.map((color) => (
-              <TouchableOpacity
-                key={color}
-                onPress={() => setDraft((state) => ({ ...state, color }))}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  backgroundColor: color,
-                  borderWidth: draft.color === color ? 3 : 1,
-                  borderColor: draft.color === color ? palette.text : palette.border,
-                }}
-              />
-            ))}
+          <View style={{ marginBottom: 24 }}>
+            <FieldLabel label="Select Color Theme" palette={palette} />
+            <ColorGrid
+              colors={CATEGORY_COLORS}
+              selectedColor={draft.color}
+              onSelect={(color) => setDraft((state) => ({ ...state, color }))}
+              palette={palette}
+            />
           </View>
 
-          <View style={{ marginTop: 16, gap: 10 }}>
-            <ActionButton label="Save category" variant="primary" palette={palette} onPress={onSave} />
+          <View style={{ gap: 12 }}>
+            <ActionButton
+              label={creating ? 'Create Category' : 'Update Category'}
+              variant="primary"
+              palette={palette}
+              onPress={onSave}
+            />
             {selectedId && !creating ? (
-              <ActionButton label="Delete category" variant="danger" palette={palette} onPress={onDelete} />
+              <ActionButton label="Remove Category" variant="danger" palette={palette} onPress={onDelete} />
             ) : null}
           </View>
         </View>

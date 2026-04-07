@@ -149,7 +149,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView
-      edges={['top', 'left', 'right']}
+      edges={['top']}
       style={{ flex: 1, backgroundColor: HOME_COLORS.background }}
     >
       <AccountTabBar

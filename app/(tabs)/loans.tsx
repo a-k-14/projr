@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   RefreshControl,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -13,11 +14,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
 import { FilterChip } from '../../components/ui/FilterChip';
 import { HOME_COLORS } from '../../lib/homeTokens';
 import type { LoanWithSummary, LoanStatus } from '../../types';
+
+import { ScreenTitle } from '../../components/settings-ui';
 
 export default function LoansScreen() {
   const { loans, load, filters, setFilters } = useLoansStore();
@@ -38,6 +42,10 @@ export default function LoansScreen() {
     setRefreshing(false);
   };
 
+  const scheme = useColorScheme();
+  const theme = useUIStore((s) => s.settings.theme);
+  const palette = getThemePalette(resolveTheme(theme, scheme));
+
   const summary = getLoanSummary(loans);
 
   const displayAccounts = [
@@ -46,7 +54,7 @@ export default function LoansScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
       <FlatList
         data={loans}
         keyExtractor={(item) => item.id}
@@ -54,9 +62,7 @@ export default function LoansScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
-              <Text style={{ fontSize: 24, fontWeight: '600', color: '#0A0A0A' }}>Loans</Text>
-            </View>
+            <ScreenTitle title="Loans" palette={palette} />
             <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
               {/* Summary cards */}
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
@@ -97,7 +103,7 @@ export default function LoansScreen() {
             {/* Net */}
             <View
               style={{
-                backgroundColor: '#fff',
+                backgroundColor: palette.card,
                 borderRadius: 16,
                 paddingHorizontal: 16,
                 paddingVertical: 14,
@@ -107,11 +113,11 @@ export default function LoansScreen() {
                 marginBottom: 16,
               }}
             >
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#0A0A0A' }}>Net position</Text>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text }}>Net position</Text>
               <Text
                 style={{
                   fontSize: 16,
-                  fontWeight: '700',
+                  fontWeight: '600',
                   color: summary.net >= 0 ? '#16A34A' : '#DC2626',
                 }}
               >

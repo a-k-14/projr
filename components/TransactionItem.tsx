@@ -24,6 +24,7 @@ export function TransactionItem({
   
   const account = getById(tx.accountId);
   const categoryName = tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined;
+  const splitLabel = tx.splits?.length ? `Split ${tx.splits.length > 1 ? `(${tx.splits.length})` : ''}` : undefined;
 
   const iconName =
     tx.type === 'in'
@@ -48,7 +49,7 @@ export function TransactionItem({
         ? '#DC2626'
         : '#1E293B';
 
-  const subtitle = [categoryName, account?.name].filter(Boolean).join(' · ');
+  const subtitle = [splitLabel ?? categoryName, tx.payee, account?.name].filter(Boolean).join(' · ');
 
   return (
     <View

@@ -69,6 +69,23 @@ export async function getCategoryBreakdown(
 
   const byCat: Record<string, number> = {};
   for (const row of rows) {
+    const splits = (() => {
+      try {
+        const parsed = JSON.parse((row as any).splitData ?? '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+
+    if (splits.length > 0) {
+      for (const split of splits) {
+        if (!split?.categoryId || !split?.amount) continue;
+        byCat[split.categoryId] = (byCat[split.categoryId] ?? 0) + Number(split.amount);
+      }
+      continue;
+    }
+
     if (!row.categoryId) continue;
     byCat[row.categoryId] = (byCat[row.categoryId] ?? 0) + row.amount;
   }

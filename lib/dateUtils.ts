@@ -10,12 +10,27 @@ export function todayUTC(): string {
   return toUTCMidnight(new Date());
 }
 
+export function nowUTC(): string {
+  return new Date().toISOString();
+}
+
 export function formatDate(isoDate: string): string {
   const d = new Date(isoDate);
   const day = d.getDate().toString().padStart(2, '0');
   const month = d.toLocaleDateString('en-IN', { month: 'short' });
   const year = d.getFullYear();
   return `${day} ${month} ${year}`;
+}
+
+export function formatDateTime(isoDate: string): string {
+  const d = new Date(isoDate);
+  const date = formatDate(isoDate);
+  const time = d.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return `${date} · ${time}`;
 }
 
 export function formatDateShort(isoDate: string): string {

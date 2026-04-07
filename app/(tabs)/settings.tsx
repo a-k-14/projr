@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, Switch, Text, useColorScheme } from 'react-native';
+import { ScrollView, Switch, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
@@ -32,92 +32,100 @@ export default function SettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 60 }}>
         <ScreenTitle title="Settings" palette={palette} />
 
-        <SectionLabel label="GENERAL" palette={palette} />
-        <CardSection palette={palette}>
-          <SettingsRow
-            icon="calendar"
-            label="Year Start"
-            value={MONTHS[settings.yearStart]}
-            palette={palette}
-            onPress={() => setPicker('year-start')}
-          />
-          <SettingsRow
-            icon="credit-card"
-            label="Default Account"
-            value={selectedAccount?.name ?? 'None'}
-            palette={palette}
-            onPress={() => setPicker('default-account')}
-          />
-          <SettingsRow
-            icon="dollar-sign"
-            label="Currency"
-            value={`${settings.currency} ${settings.currencySymbol}`}
-            palette={palette}
-            onPress={() => setPicker('currency')}
-          />
-          <SettingsRow
-            icon="sun"
-            label="Theme"
-            value={capitalize(settings.theme)}
-            palette={palette}
-            onPress={() => setPicker('theme')}
-            noBorder
-          />
-        </CardSection>
+        <View style={{ marginTop: 8 }}>
+          <SectionLabel label="GENERAL" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow
+              icon="calendar"
+              label="Year Start"
+              value={MONTHS[settings.yearStart]}
+              palette={palette}
+              onPress={() => setPicker('year-start')}
+            />
+            <SettingsRow
+              icon="credit-card"
+              label="Default Account"
+              value={selectedAccount?.name ?? 'None'}
+              palette={palette}
+              onPress={() => setPicker('default-account')}
+            />
+            <SettingsRow
+              icon="dollar-sign"
+              label="Currency"
+              value={`${settings.currency} ${settings.currencySymbol}`}
+              palette={palette}
+              onPress={() => setPicker('currency')}
+            />
+            <SettingsRow
+              icon="sun"
+              label="Theme"
+              value={capitalize(settings.theme)}
+              palette={palette}
+              onPress={() => setPicker('theme')}
+              noBorder
+            />
+          </CardSection>
+        </View>
 
-        <SectionLabel label="MANAGE" palette={palette} />
-        <CardSection palette={palette}>
-          <SettingsRow
-            icon="layers"
-            label="Accounts"
-            value={String(accounts.length)}
-            palette={palette}
-            onPress={() => router.push('/settings/accounts')}
-          />
-          <SettingsRow
-            icon="grid"
-            label="Categories"
-            value={String(categories.length)}
-            palette={palette}
-            onPress={() => router.push('/settings/categories')}
-          />
-          <SettingsRow
-            icon="tag"
-            label="Tags"
-            value={String(tags.length)}
-            palette={palette}
-            onPress={() => router.push('/settings/tags')}
-            noBorder
-          />
-        </CardSection>
+        <View style={{ marginTop: 24 }}>
+          <SectionLabel label="MANAGE" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow
+              icon="layers"
+              label="Accounts"
+              value={String(accounts.length)}
+              palette={palette}
+              onPress={() => router.push('/settings/accounts')}
+            />
+            <SettingsRow
+              icon="grid"
+              label="Categories"
+              value={String(categories.length)}
+              palette={palette}
+              onPress={() => router.push('/settings/categories')}
+            />
+            <SettingsRow
+              icon="tag"
+              label="Tags"
+              value={String(tags.length)}
+              palette={palette}
+              onPress={() => router.push('/settings/tags')}
+              noBorder
+            />
+          </CardSection>
+        </View>
 
-        <SectionLabel label="DATA" palette={palette} />
-        <CardSection palette={palette}>
-          <SettingsRow
-            icon="cloud"
-            label="Cloud Backup"
-            value={settings.cloudBackupEnabled ? 'On' : 'Off'}
-            palette={palette}
-            rightElement={
-              <Switch
-                value={settings.cloudBackupEnabled}
-                onValueChange={(value) => updateSettings({ cloudBackupEnabled: value })}
-                trackColor={{ false: palette.border, true: palette.tabActive }}
-                thumbColor={settings.cloudBackupEnabled ? '#FFFFFF' : '#F3F4F6'}
-              />
-            }
-            noBorder
-          />
-        </CardSection>
+        <View style={{ marginTop: 24 }}>
+          <SectionLabel label="DATA" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow
+              icon="cloud"
+              label="Cloud Backup"
+              value={settings.cloudBackupEnabled ? 'On' : 'Off'}
+              palette={palette}
+              rightElement={
+                <Switch
+                  value={settings.cloudBackupEnabled}
+                  onValueChange={(value) => updateSettings({ cloudBackupEnabled: value })}
+                  trackColor={{ false: palette.border, true: palette.tabActive }}
+                  thumbColor={settings.cloudBackupEnabled ? '#FFFFFF' : '#F3F4F6'}
+                />
+              }
+              noBorder
+            />
+          </CardSection>
+        </View>
 
-        <SectionLabel label="ABOUT" palette={palette} />
-        <CardSection palette={palette}>
-          <SettingsRow icon="info" label="Version" value="1.0.0" palette={palette} noBorder />
-        </CardSection>
+        <View style={{ marginTop: 24 }}>
+          <SectionLabel label="ABOUT" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow icon="info" label="Version" value="1.0.0" palette={palette} noBorder />
+          </CardSection>
+        </View>
       </ScrollView>
 
       {picker ? (

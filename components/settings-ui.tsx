@@ -14,8 +14,8 @@ export function ScreenTitle({
   palette: AppThemePalette;
 }) {
   return (
-    <View style={{ paddingHorizontal: SPACING.lg, paddingTop: SPACING.lg, paddingBottom: SPACING.md }}>
-      <Text style={{ fontSize: 24, fontWeight: '600', color: palette.text }}>{title}</Text>
+    <View style={{ paddingHorizontal: SPACING.lg, paddingTop: 8, paddingBottom: SPACING.md }}>
+      <Text style={{ fontSize: 26, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>{title}</Text>
       {subtitle ? (
         <Text style={{ fontSize: TYPE.caption, color: palette.textMuted, marginTop: 2, lineHeight: 17 }}>
           {subtitle}
@@ -103,7 +103,7 @@ export function SettingsRow({
         style={{
           flex: 1,
           fontSize: 15,
-          fontWeight: '500',
+          fontWeight: '400',
           color: palette.text,
           marginLeft: 14,
         }}
@@ -139,24 +139,60 @@ export function ChoiceRow({
   return (
     <TouchableOpacity
       onPress={onPress}
+      activeOpacity={0.6}
       style={{
-        minHeight: 56,
-        paddingHorizontal: SPACING.lg,
-        paddingVertical: 10,
+        minHeight: 68,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: selected
+          ? palette.background === '#11161F'
+            ? 'rgba(37, 99, 235, 0.1)'
+            : 'rgba(23, 103, 59, 0.05)'
+          : 'transparent',
         borderBottomWidth: noBorder ? 0 : 1,
         borderBottomColor: palette.divider,
-        backgroundColor: selected ? (palette.background === '#11161F' ? '#182131' : '#F6FAF7') : palette.surface,
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text }}>{title}</Text>
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: selected ? '500' : '400',
+            color: selected ? palette.tabActive : palette.text,
+          }}
+        >
+          {title}
+        </Text>
         {subtitle ? (
-          <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2, lineHeight: 16 }}>{subtitle}</Text>
+          <Text
+            style={{
+              fontSize: 13,
+              color: palette.textMuted,
+              marginTop: 2,
+              lineHeight: 18,
+              fontWeight: '400',
+            }}
+          >
+            {subtitle}
+          </Text>
         ) : null}
       </View>
-      {selected ? <Feather name="check" size={18} color={palette.tabActive} /> : null}
+      {selected && (
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            backgroundColor: palette.tabActive,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Feather name="check" size={13} color="#FFFFFF" />
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -192,7 +228,7 @@ export function PickerChip({
 
 export function FieldLabel({ label, palette }: { label: string; palette: AppThemePalette }) {
   return (
-    <Text style={{ fontSize: 11, fontWeight: '600', color: palette.textMuted, marginBottom: 4 }}>
+    <Text style={{ fontSize: 11, fontWeight: '500', color: palette.textMuted, marginBottom: 4 }}>
       {label}
     </Text>
   );
@@ -223,6 +259,101 @@ export function InputField({
   );
 }
 
+export function ColorGrid({
+  colors,
+  selectedColor,
+  onSelect,
+  palette,
+}: {
+  colors: readonly string[];
+  selectedColor: string;
+  onSelect: (color: string) => void;
+  palette: AppThemePalette;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>
+      {colors.map((color) => {
+        const isSelected = selectedColor === color;
+        return (
+          <TouchableOpacity
+            key={color}
+            activeOpacity={0.8}
+            onPress={() => onSelect(color)}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: color,
+              borderWidth: 2,
+              borderColor: isSelected ? palette.text : 'transparent',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {isSelected && (
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: '#FFFFFF',
+                }}
+              />
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+export function IconGrid({
+  icons,
+  selectedIcon,
+  onSelect,
+  palette,
+}: {
+  icons: readonly string[];
+  selectedIcon: string;
+  onSelect: (icon: string) => void;
+  palette: AppThemePalette;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+      {icons.map((icon) => {
+        const isSelected = selectedIcon === icon;
+        return (
+          <TouchableOpacity
+            key={icon}
+            activeOpacity={0.7}
+            onPress={() => onSelect(icon)}
+            style={{
+              width: '18%',
+              aspectRatio: 1,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: isSelected ? palette.tabActive : palette.border,
+              backgroundColor: isSelected
+                ? palette.background === '#11161F'
+                  ? 'rgba(37, 99, 235, 0.1)'
+                  : 'rgba(23, 103, 59, 0.08)'
+                : palette.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Feather
+              name={icon as any}
+              size={20}
+              color={isSelected ? palette.tabActive : palette.iconTint}
+            />
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 export function ActionButton({
   label,
   onPress,
@@ -236,24 +367,26 @@ export function ActionButton({
 }) {
   const styles = {
     primary: { backgroundColor: palette.tabActive, color: '#FFFFFF' },
-    danger: { backgroundColor: '#CC3B2D', color: '#FFFFFF' },
+    danger: { backgroundColor: 'rgba(204, 59, 45, 0.1)', color: '#CC3B2D' },
     secondary: { backgroundColor: palette.surface, color: palette.text },
   } as const;
   const picked = styles[variant];
   return (
     <TouchableOpacity
       onPress={onPress}
+      activeOpacity={0.8}
       style={{
-        minHeight: 48,
-        borderRadius: RADIUS.md,
+        minHeight: 52,
+        borderRadius: 16,
         backgroundColor: picked.backgroundColor,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: variant === 'secondary' ? 1 : 0,
         borderColor: variant === 'secondary' ? palette.border : 'transparent',
+        paddingHorizontal: 20,
       }}
     >
-      <Text style={{ fontSize: 14, fontWeight: '600', color: picked.color }}>{label}</Text>
+      <Text style={{ fontSize: 15, fontWeight: '700', color: picked.color }}>{label}</Text>
     </TouchableOpacity>
   );
 }

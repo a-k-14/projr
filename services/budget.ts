@@ -39,13 +39,34 @@ export async function getBudgetWithSpent(yearStart: number = 3): Promise<BudgetW
       .where(
         and(
           eq(transactions.type, 'out'),
-          eq(transactions.categoryId, b.categoryId),
           gte(transactions.date, from),
           lte(transactions.date, to)
         )
       );
 
-    const spent = rows.reduce((sum, r) => sum + r.amount, 0);
+    const spent = rows.reduce((sum, r) => {
+      const splits = (() => {
+        try {
+          const parsed = JSON.parse((r as any).splitData ?? '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })();
+
+      if (splits.length > 0) {
+        return (
+          sum +
+          splits.reduce((splitSum: number, split: any) => {
+            if (split.categoryId !== b.categoryId) return splitSum;
+            return splitSum + Number(split.amount || 0);
+          }, 0)
+        );
+      }
+
+      if (r.categoryId !== b.categoryId) return sum;
+      return sum + r.amount;
+    }, 0);
     const remaining = Math.max(0, b.amount - spent);
     const percent = b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0;
 

@@ -8,6 +8,7 @@ import {
   Modal,
   Alert,
   RefreshControl,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,11 +17,16 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency } from '../../lib/derived';
 import type { BudgetWithSpent, CreateBudgetInput } from '../../types';
+import { ScreenTitle } from '../../components/settings-ui';
+
+import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
 
 export default function BudgetScreen() {
   const { budgets, load, add, remove } = useBudgetStore();
   const { categories, getCategoryById } = useCategoriesStore();
   const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
 
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -41,33 +47,31 @@ export default function BudgetScreen() {
   const overBudgetCount = budgets.filter((b) => b.spent > b.amount).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Header */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
-          <Text style={{ fontSize: 24, fontWeight: '600', color: '#0A0A0A' }}>Budget</Text>
-        </View>
+        <ScreenTitle title="Budget" palette={palette} />
 
         {/* Summary */}
         {budgets.length > 0 && (
           <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 16 }}>
-                <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 }}>BUDGETED</Text>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: '#0A0A0A', marginTop: 4 }}>
+                <Text style={{ fontSize: 11, color: palette.textMuted, fontWeight: '500', letterSpacing: 0.5 }}>BUDGETED</Text>
+                <Text style={{ fontSize: 20, fontWeight: '600', color: palette.text, marginTop: 4 }}>
                   {formatCurrency(totalBudgeted, sym)}
                 </Text>
               </View>
               <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 16 }}>
-                <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 }}>SPENT</Text>
+                <Text style={{ fontSize: 11, color: palette.textMuted, fontWeight: '500', letterSpacing: 0.5 }}>SPENT</Text>
                 <Text
                   style={{
                     fontSize: 20,
-                    fontWeight: '700',
-                    color: totalSpent > totalBudgeted ? '#DC2626' : '#0A0A0A',
+                    fontWeight: '600',
+                    color: totalSpent > totalBudgeted ? '#DC2626' : palette.text,
                     marginTop: 4,
                   }}
                 >
@@ -121,6 +125,7 @@ export default function BudgetScreen() {
                 key={budget.id}
                 budget={budget}
                 sym={sym}
+                palette={palette}
                 onDelete={() => {
                   Alert.alert('Delete budget?', 'This cannot be undone.', [
                     { text: 'Cancel', style: 'cancel' },
@@ -171,10 +176,12 @@ export default function BudgetScreen() {
 function BudgetCard({
   budget,
   sym,
+  palette,
   onDelete,
 }: {
   budget: BudgetWithSpent;
   sym: string;
+  palette: AppThemePalette;
   onDelete: () => void;
 }) {
   const isOver = budget.spent > budget.amount;
@@ -205,7 +212,7 @@ function BudgetCard({
           <Ionicons name={budget.categoryIcon as any} size={18} color={budget.categoryColor} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: '600', color: '#0A0A0A' }}>
+          <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text }}>
             {budget.categoryName}
           </Text>
           <Text style={{ fontSize: 12, color: '#9CA3AF' }}>
@@ -213,7 +220,7 @@ function BudgetCard({
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: isOver ? '#DC2626' : '#0A0A0A' }}>
+          <Text style={{ fontSize: 15, fontWeight: '600', color: isOver ? '#DC2626' : palette.text }}>
             {formatCurrency(budget.spent, sym)}
           </Text>
           <Text style={{ fontSize: 12, color: '#9CA3AF' }}>

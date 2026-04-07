@@ -19,6 +19,8 @@ import {
   PickerChip,
   SectionLabel,
   SettingsRow,
+  ColorGrid,
+  IconGrid,
 } from '../../components/settings-ui';
 
 type Draft = {
@@ -133,7 +135,7 @@ export default function AccountsScreen() {
 
   return (
     <SettingsScreenShell palette={palette}>
-      <SectionLabel label="Manage the accounts used across the app" palette={palette} />
+      <SectionLabel label="Your Accounts" palette={palette} />
       <CardSection palette={palette}>
         {accounts.map((account, index) => {
           const selected = selectedId === account.id && !creating;
@@ -142,11 +144,6 @@ export default function AccountsScreen() {
               key={account.id}
               icon={(account.icon as keyof typeof Feather.glyphMap) ?? 'credit-card'}
               label={account.name}
-              value={
-                selected
-                  ? undefined
-                  : `${account.currency} · ${formatDisplayCurrency(account.balance, symbolFor(account.currency))}`
-              }
               palette={palette}
               onPress={() => {
                 setCreating(false);
@@ -154,28 +151,33 @@ export default function AccountsScreen() {
               }}
               noBorder={index === accounts.length - 1}
               rightElement={
-                selected ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ color: palette.textMuted, fontSize: 13 }}>
-                      {`${account.currency} · ${formatDisplayCurrency(account.balance, symbolFor(account.currency))}`}
-                    </Text>
-                    <Feather name="check" size={18} color={palette.tabActive} />
-                  </View>
-                ) : undefined
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={{ color: palette.textMuted, fontSize: 13, fontWeight: '500' }}>
+                    {`${account.currency} · ${formatDisplayCurrency(account.balance, symbolFor(account.currency))}`}
+                  </Text>
+                  {selected ? (
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: palette.tabActive, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="check" size={12} color="#FFFFFF" />
+                    </View>
+                  ) : (
+                    <Feather name="chevron-right" size={18} color={palette.divider} />
+                  )
+                  }
+                </View>
               }
             />
           );
         })}
         {!accounts.length ? (
-          <View style={{ padding: 16 }}>
-            <Text style={{ color: palette.textMuted }}>No accounts yet.</Text>
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: palette.textMuted, fontSize: 14 }}>No accounts configured yet.</Text>
           </View>
         ) : null}
       </CardSection>
 
-      <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
         <ActionButton
-          label="Add new account"
+          label="Add New Account"
           variant="secondary"
           palette={palette}
           onPress={() => {
@@ -185,102 +187,88 @@ export default function AccountsScreen() {
         />
       </View>
 
-      <SectionLabel label={creating ? 'NEW ACCOUNT' : 'EDIT ACCOUNT'} palette={palette} />
+      <SectionLabel label={creating ? 'CREATE NEW ACCOUNT' : 'EDIT ACCOUNT'} palette={palette} />
       <CardSection palette={palette}>
-        <View style={{ padding: 16 }}>
-          <FieldLabel label="Name" palette={palette} />
-          <InputField
-            palette={palette}
-            value={draft.name}
-            onChangeText={(value) => setDraft((state) => ({ ...state, name: value }))}
-            placeholder="SBI Savings Account"
-          />
-
-          <FieldLabel label="Type" palette={palette} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {ACCOUNT_TYPES.map((type) => (
-              <View key={type.key} style={{ width: '48%' }}>
-                <PickerChip
-                  label={type.label}
-                  selected={draft.type === type.key}
-                  palette={palette}
-                  onPress={() => setDraft((state) => ({ ...state, type: type.key }))}
-                />
-              </View>
-            ))}
+        <View style={{ padding: 20 }}>
+          <View style={{ marginBottom: 20 }}>
+            <FieldLabel label="Account Name" palette={palette} />
+            <InputField
+              palette={palette}
+              value={draft.name}
+              onChangeText={(value) => setDraft((state) => ({ ...state, name: value }))}
+              placeholder="e.g. HDFC Bank"
+            />
           </View>
 
-          <FieldLabel label="Balance" palette={palette} />
-          <InputField
-            palette={palette}
-            value={draft.balance}
-            onChangeText={(value) => setDraft((state) => ({ ...state, balance: value }))}
-            placeholder="0"
-            keyboardType="numeric"
-          />
-
-          <FieldLabel label="Currency" palette={palette} />
-          <InputField
-            palette={palette}
-            value={draft.currency}
-            onChangeText={(value) => setDraft((state) => ({ ...state, currency: value.toUpperCase() }))}
-            placeholder="INR"
-            autoCapitalize="characters"
-          />
-
-          <FieldLabel label="Icon" palette={palette} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {ACCOUNT_ICONS.map((icon) => (
-              <TouchableOpacity
-                key={icon}
-                onPress={() => setDraft((state) => ({ ...state, icon }))}
-                style={{
-                  width: '18%',
-                  minHeight: 48,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: draft.icon === icon ? palette.tabActive : palette.border,
-                  backgroundColor:
-                    draft.icon === icon
-                      ? palette.background === '#11161F'
-                        ? '#182131'
-                        : '#E8F3EC'
-                      : palette.surface,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Feather
-                  name={icon as keyof typeof Feather.glyphMap}
-                  size={16}
-                  color={draft.icon === icon ? palette.tabActive : palette.iconTint}
-                />
-              </TouchableOpacity>
-            ))}
+          <View style={{ marginBottom: 20 }}>
+            <FieldLabel label="Account Type" palette={palette} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {ACCOUNT_TYPES.map((type) => (
+                <View key={type.key} style={{ width: '48%' }}>
+                  <PickerChip
+                    label={type.label}
+                    selected={draft.type === type.key}
+                    palette={palette}
+                    onPress={() => setDraft((state) => ({ ...state, type: type.key }))}
+                  />
+                </View>
+              ))}
+            </View>
           </View>
 
-          <FieldLabel label="Color" palette={palette} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {ACCOUNT_COLORS.map((color) => (
-              <TouchableOpacity
-                key={color}
-                onPress={() => setDraft((state) => ({ ...state, color }))}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  backgroundColor: color,
-                  borderWidth: draft.color === color ? 3 : 1,
-                  borderColor: draft.color === color ? palette.text : palette.border,
-                }}
+          <View style={{ flexDirection: 'row', gap: 16, marginBottom: 20 }}>
+            <View style={{ flex: 1 }}>
+              <FieldLabel label="Current Balance" palette={palette} />
+                            <InputField
+                palette={palette}
+                value={draft.balance}
+                onChangeText={(value) => setDraft((state) => ({ ...state, balance: value }))}
+                placeholder="0.00"
+                keyboardType="numeric"
               />
-            ))}
+            </View>
+            <View style={{ width: 100 }}>
+              <FieldLabel label="Currency" palette={palette} />
+              <InputField
+                palette={palette}
+                value={draft.currency}
+                onChangeText={(value) => setDraft((state) => ({ ...state, currency: value.toUpperCase() }))}
+                placeholder="INR"
+                autoCapitalize="characters"
+                maxLength={3}
+              />
+            </View>
           </View>
 
-          <View style={{ marginTop: 16, gap: 10 }}>
-            <ActionButton label="Save account" variant="primary" palette={palette} onPress={onSave} />
+          <View style={{ marginBottom: 20 }}>
+            <FieldLabel label="Choose Icon" palette={palette} />
+            <IconGrid
+              icons={ACCOUNT_ICONS}
+              selectedIcon={draft.icon}
+              onSelect={(icon) => setDraft((state) => ({ ...state, icon }))}
+              palette={palette}
+            />
+          </View>
+
+          <View style={{ marginBottom: 24 }}>
+            <FieldLabel label="Select Color Theme" palette={palette} />
+            <ColorGrid
+              colors={ACCOUNT_COLORS}
+              selectedColor={draft.color}
+              onSelect={(color) => setDraft((state) => ({ ...state, color }))}
+              palette={palette}
+            />
+          </View>
+
+          <View style={{ gap: 12 }}>
+            <ActionButton
+              label={creating ? 'Create Account' : 'Update Account'}
+              variant="primary"
+              palette={palette}
+              onPress={onSave}
+            />
             {selectedId && !creating ? (
-              <ActionButton label="Delete account" variant="danger" palette={palette} onPress={onDelete} />
+              <ActionButton label="Remove Account" variant="danger" palette={palette} onPress={onDelete} />
             ) : null}
           </View>
         </View>

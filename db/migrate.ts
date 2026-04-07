@@ -1,5 +1,15 @@
 import { sqlite } from './client';
 
+async function hasColumn(table: string, column: string): Promise<boolean> {
+  const rows = await sqlite.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  return rows.some((row) => row.name === column);
+}
+
+async function ensureColumn(table: string, column: string, definition: string): Promise<void> {
+  if (await hasColumn(table, column)) return;
+  await sqlite.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`);
+}
+
 export async function runMigrations() {
   await sqlite.execAsync(`
     CREATE TABLE IF NOT EXISTS accounts (
@@ -37,6 +47,8 @@ export async function runMigrations() {
       loan_id TEXT,
       category_id TEXT,
       tags TEXT NOT NULL DEFAULT '[]',
+      split_data TEXT NOT NULL DEFAULT '[]',
+      payee TEXT,
       note TEXT,
       date TEXT NOT NULL,
       transfer_pair_id TEXT,
@@ -74,4 +86,7 @@ export async function runMigrations() {
       value TEXT NOT NULL
     );
   `);
+
+  await ensureColumn('transactions', 'split_data', "TEXT NOT NULL DEFAULT '[]'");
+  await ensureColumn('transactions', 'payee', 'TEXT');
 }
