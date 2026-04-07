@@ -489,7 +489,7 @@ function HomeAccountPage({
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: 16 }}>
               <Text style={{ fontSize: 16, color: '#1F2A44', fontWeight: '700' }}>
@@ -514,9 +514,13 @@ function HomeAccountPage({
         </View>
 
         <View style={{ paddingHorizontal: 16 }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2A44', marginBottom: 10 }}>
-            {formatDate(today)} <InlineDot size={14} /> Today
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2A44' }}>
+              {formatDate(today)}
+            </Text>
+            <InlineDot size={3.5} color="#1F2A44" />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2A44' }}>Today</Text>
+          </View>
           <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 6 }}>
@@ -732,16 +736,15 @@ function SummaryCard({
 
 function InlineDot({ size = 8, color = '#8C94AF' }: { size?: number; color?: string }) {
   return (
-    <Text
+    <View
       style={{
-        fontSize: size,
-        lineHeight: size,
-        color,
-        fontWeight: '700',
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        marginHorizontal: 6,
       }}
-    >
-      •
-    </Text>
+    />
   );
 }
 
