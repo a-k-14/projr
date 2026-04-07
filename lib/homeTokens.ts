@@ -1,3 +1,5 @@
+import { SCREEN_GUTTER } from './design';
+
 export const HOME_COLORS = {
   background: '#F0F0F5',
   surface: '#FFFFFF',
@@ -31,7 +33,7 @@ export const HOME_RADIUS = {
 } as const;
 
 export const HOME_SPACE = {
-  screen: 16,
+  screen: SCREEN_GUTTER,
   xs: 4,
   sm: 8,
   md: 12,

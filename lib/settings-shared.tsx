@@ -1,8 +1,10 @@
-import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  LayoutAnimation,
   PanResponder,
+  Platform,
   Pressable,
   StyleSheet,
   ScrollView,
@@ -161,21 +163,56 @@ export function PickerSheetShell({
     ]).start();
   }, [translateY, opacity]);
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const expand = useCallback(() => {
+    if (Platform.OS === 'android') {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    } else {
+      LayoutAnimation.configureNext({
+        duration: 280,
+        create: { type: 'easeInEaseOut', property: 'scaleXY' },
+        update: { type: 'spring', springDamping: 0.7 },
+      });
+    }
+    setIsExpanded(true);
+  }, []);
+
+  const collapse = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded(false);
+  }, []);
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
-        // Only capture downward vertical drags
+        // Capture both up and down vertical drags on the header
         onMoveShouldSetPanResponder: (_, gs) =>
-          gs.dy > 5 && Math.abs(gs.dy) > Math.abs(gs.dx),
+          Math.abs(gs.dy) > 5 && Math.abs(gs.dy) > Math.abs(gs.dx),
         onPanResponderMove: (_, gs) => {
-          // Never go upward — clamp at 0
-          translateY.setValue(Math.max(0, gs.dy));
+          // Only move the sheet visually on downward drags (dismissal)
+          if (gs.dy > 0 && !isExpanded) {
+            translateY.setValue(gs.dy);
+          } else if (gs.dy > 0 && isExpanded) {
+            // If expanded, small downward resistance — collapse happens on release
+            translateY.setValue(gs.dy * 0.3);
+          }
         },
         onPanResponderRelease: (_, gs) => {
           if (gs.dy > 80 || gs.vy > 0.5) {
-            closeSheet();
+            if (isExpanded) {
+              translateY.setValue(0);
+              collapse();
+            } else {
+              closeSheet();
+            }
+          } else if (gs.dy < -40) {
+            // Upward swipe → expand
+            translateY.setValue(0);
+            expand();
           } else {
+            // Snap back
             Animated.spring(translateY, {
               toValue: 0,
               useNativeDriver: true,
@@ -185,7 +222,7 @@ export function PickerSheetShell({
           }
         },
       }),
-    [closeSheet, translateY],
+    [closeSheet, translateY, isExpanded, expand, collapse],
   );
 
   return (
@@ -197,12 +234,11 @@ export function PickerSheetShell({
         <Pressable style={{ flex: 1 }} onPress={closeSheet} />
       </Animated.View>
 
-      {/* Sheet: grows to content height, max 50% of screen */}
+      {/* Sheet: grows to content height, expands to 75% on swipe up */}
       <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
         <Animated.View
-          {...panResponder.panHandlers}
           style={{
-            maxHeight: screenHeight * 0.5,
+            maxHeight: isExpanded ? screenHeight * 0.75 : screenHeight * 0.5,
             backgroundColor: palette.surface,
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
@@ -215,36 +251,36 @@ export function PickerSheetShell({
             elevation: 24,
           }}
         >
-          {/* Drag handle */}
-          <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 6 }}>
-            <View
-              style={{
-                width: 36,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: palette.divider,
-                opacity: 0.5,
-              }}
-            />
-          </View>
-
-          {/* Title */}
-          <View style={{ paddingHorizontal: 22, paddingBottom: 12 }}>
-            <Text
-              style={{ fontSize: 20, fontWeight: '600', color: palette.text, letterSpacing: -0.3 }}
-            >
-              {title}
-            </Text>
-            {subtitle ? (
+          {/* Header: drag handle + title — ONLY this area has panHandlers */}
+          <View {...panResponder.panHandlers}>
+            <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 6 }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: palette.divider,
+                  opacity: 0.5,
+                }}
+              />
+            </View>
+            <View style={{ paddingHorizontal: 22, paddingBottom: 12 }}>
               <Text
-                style={{ fontSize: 13, color: palette.textMuted, marginTop: 3, fontWeight: '400' }}
+                style={{ fontSize: 20, fontWeight: '600', color: palette.text, letterSpacing: -0.3 }}
               >
-                {subtitle}
+                {title}
               </Text>
-            ) : null}
+              {subtitle ? (
+                <Text
+                  style={{ fontSize: 13, color: palette.textMuted, marginTop: 3, fontWeight: '400' }}
+                >
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
           </View>
 
-          {/* Scrollable content */}
+          {/* List items — no pan handlers, taps are instant */}
           <ScrollView
             style={{ flexShrink: 1 }}
             contentContainerStyle={{ paddingBottom: 20 }}

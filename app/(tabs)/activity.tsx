@@ -20,6 +20,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { groupTransactionsByDate, formatCurrency } from '../../lib/derived';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
 import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../../lib/homeTokens';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { FilterChip } from '../../components/ui/FilterChip';
@@ -214,7 +215,7 @@ function ActivityAccountPage({
       onEndReachedThreshold={0.4}
       contentContainerStyle={{ paddingBottom: 100 }}
       ListHeaderComponent={
-        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 16, paddingBottom: 8 }}>
           {/* Search */}
           <View
             style={{
@@ -257,7 +258,7 @@ function ActivityAccountPage({
         const { date, label } = getRelativeDateLabel(item.dateKey);
         return (
           <View style={{ marginBottom: 16 }}>
-            <View style={{ paddingHorizontal: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ fontSize: 13, fontWeight: '700', color: HOME_COLORS.textSoft }}>
                 {date}
               </Text>
@@ -270,7 +271,7 @@ function ActivityAccountPage({
                 </>
               ) : null}
             </View>
-            <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: 16, overflow: 'hidden' }}>
+            <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: SCREEN_GUTTER, overflow: 'hidden' }}>
               {item.items.map((tx, idx) => (
                 <TransactionItem
                   key={tx.id}

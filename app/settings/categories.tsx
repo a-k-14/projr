@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { SCREEN_GUTTER } from '../../lib/design';
 import {
   CATEGORY_COLORS,
   CATEGORY_ICONS,
@@ -185,7 +186,7 @@ export default function CategoriesScreen() {
         ) : null}
       </CardSection>
 
-      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+      <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: 24 }}>
         <ActionButton
           label="Add New Category"
           variant="secondary"
@@ -199,7 +200,7 @@ export default function CategoriesScreen() {
 
       <SectionLabel label={creating ? 'CREATE NEW CATEGORY' : 'EDIT CATEGORY'} palette={palette} />
       <CardSection palette={palette}>
-        <View style={{ padding: 20 }}>
+        <View style={{ padding: SCREEN_GUTTER }}>
           <View style={{ marginBottom: 20 }}>
             <FieldLabel label="Category Name" palette={palette} />
             <InputField

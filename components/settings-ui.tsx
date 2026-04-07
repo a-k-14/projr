@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { ReactNode } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { RADIUS, SPACING, TYPE } from '../lib/design';
+import { RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
 
 export function ScreenTitle({
@@ -14,7 +14,7 @@ export function ScreenTitle({
   palette: AppThemePalette;
 }) {
   return (
-    <View style={{ paddingHorizontal: SPACING.lg, paddingTop: 8, paddingBottom: SPACING.md }}>
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: SPACING.md }}>
       <Text style={{ fontSize: 26, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>{title}</Text>
       {subtitle ? (
         <Text style={{ fontSize: TYPE.caption, color: palette.textMuted, marginTop: 2, lineHeight: 17 }}>
@@ -33,7 +33,7 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
         fontWeight: '600',
         letterSpacing: 1.2,
         color: palette.textMuted,
-        marginHorizontal: SPACING.lg,
+        marginHorizontal: SCREEN_GUTTER,
         marginBottom: 6,
         marginTop: 4,
         textTransform: 'uppercase',
@@ -56,7 +56,7 @@ export function CardSection({
       style={{
         backgroundColor: palette.surface,
         borderRadius: RADIUS.lg,
-        marginHorizontal: SPACING.lg,
+        marginHorizontal: SCREEN_GUTTER,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: palette.border,
@@ -91,7 +91,7 @@ export function SettingsRow({
       onPress={onPress}
       style={{
         minHeight: 62,
-        paddingHorizontal: SPACING.lg,
+        paddingHorizontal: SCREEN_GUTTER,
         paddingVertical: 12,
         flexDirection: 'row',
         alignItems: 'center',
@@ -143,7 +143,7 @@ export function ChoiceRow({
       activeOpacity={0.6}
       style={{
         minHeight: 68,
-        paddingHorizontal: 24,
+        paddingHorizontal: SCREEN_GUTTER,
         paddingVertical: 14,
         flexDirection: 'row',
         alignItems: 'center',

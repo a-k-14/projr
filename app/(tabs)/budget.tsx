@@ -16,6 +16,7 @@ import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency } from '../../lib/derived';
+import { SCREEN_GUTTER } from '../../lib/design';
 import type { BudgetWithSpent, CreateBudgetInput } from '../../types';
 import { ScreenTitle } from '../../components/settings-ui';
 
@@ -57,7 +58,7 @@ export default function BudgetScreen() {
 
         {/* Summary */}
         {budgets.length > 0 && (
-          <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: 16 }}>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 16 }}>
                 <Text style={{ fontSize: 11, color: palette.textMuted, fontWeight: '500', letterSpacing: 0.5 }}>BUDGETED</Text>
@@ -101,7 +102,7 @@ export default function BudgetScreen() {
         )}
 
         {/* Budget list */}
-        <View style={{ paddingHorizontal: 16 }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
           {budgets.length === 0 ? (
             <View
               style={{
@@ -298,7 +299,7 @@ function AddBudgetModal({
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: '#F0F0F5', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+        <View style={{ backgroundColor: '#F0F0F5', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: SCREEN_GUTTER }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
             <Text style={{ fontSize: 17, fontWeight: '700', color: '#0A0A0A' }}>New Budget</Text>
             <TouchableOpacity onPress={onClose}>

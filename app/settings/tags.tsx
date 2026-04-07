@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { TAG_COLORS, SettingsScreenShell } from '../../lib/settings-shared';
 import {
   ActionButton,
@@ -150,7 +151,7 @@ export default function TagsScreen() {
         ) : null}
       </CardSection>
 
-      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+      <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: 24 }}>
         <ActionButton
           label="Add New Tag"
           variant="secondary"
@@ -164,7 +165,7 @@ export default function TagsScreen() {
 
       <SectionLabel label={creating ? 'CREATE NEW TAG' : 'EDIT TAG'} palette={palette} />
       <CardSection palette={palette}>
-        <View style={{ padding: 20 }}>
+        <View style={{ padding: SCREEN_GUTTER }}>
           <View style={{ marginBottom: 20 }}>
             <FieldLabel label="Tag Name" palette={palette} />
             <InputField

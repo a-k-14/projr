@@ -18,6 +18,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { formatCurrency } from '../../lib/derived';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { nowUTC, formatDateTime } from '../../lib/dateUtils';
 import type {
   TransactionType,
@@ -40,8 +41,6 @@ type SplitDraft = {
   categoryId: string;
   amountStr: string;
 };
-
-const SCREEN_GUTTER = 12;
 
 function sanitizeDecimalInput(value: string): string {
   const cleaned = value.replace(/[^0-9.]/g, '');

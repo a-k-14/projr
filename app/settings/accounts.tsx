@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { SCREEN_GUTTER } from '../../lib/design';
 import {
   ACCOUNT_COLORS,
   ACCOUNT_ICONS,
@@ -175,7 +176,7 @@ export default function AccountsScreen() {
         ) : null}
       </CardSection>
 
-      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+      <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: 24 }}>
         <ActionButton
           label="Add New Account"
           variant="secondary"
@@ -189,7 +190,7 @@ export default function AccountsScreen() {
 
       <SectionLabel label={creating ? 'CREATE NEW ACCOUNT' : 'EDIT ACCOUNT'} palette={palette} />
       <CardSection palette={palette}>
-        <View style={{ padding: 20 }}>
+        <View style={{ padding: SCREEN_GUTTER }}>
           <View style={{ marginBottom: 20 }}>
             <FieldLabel label="Account Name" palette={palette} />
             <InputField
@@ -274,7 +275,7 @@ export default function AccountsScreen() {
         </View>
       </CardSection>
       {selectedAccount ? (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 12 }}>
           <Text style={{ color: palette.textMuted, fontSize: 12 }}>
             Editing {selectedAccount.name}
           </Text>

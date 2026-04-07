@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Pressable } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 
@@ -27,7 +28,7 @@ export default function SelectTagSheet() {
           borderTopRightRadius: 24,
           paddingTop: 12,
           paddingBottom: insets.bottom + 14,
-          paddingHorizontal: 12,
+          paddingHorizontal: SCREEN_GUTTER,
         }}
       >
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
@@ -54,7 +55,7 @@ export default function SelectTagSheet() {
                 }
                 style={{
                   paddingVertical: 14,
-                  paddingHorizontal: 12,
+                  paddingHorizontal: SCREEN_GUTTER,
                   borderRadius: 16,
                   borderWidth: 1,
                   borderColor: selected ? tag.color : '#E5E7EB',

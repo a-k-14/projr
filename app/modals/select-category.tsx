@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import type { TransactionType } from '../../types';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -34,7 +35,7 @@ export default function SelectCategoryScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
             <Ionicons name="arrow-back" size={24} color="#0A0A0A" />
           </TouchableOpacity>
@@ -42,7 +43,7 @@ export default function SelectCategoryScreen() {
             Select category
           </Text>
         </View>
-        <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 12 }}>
           <View
             style={{
               flexDirection: 'row',
@@ -66,7 +67,7 @@ export default function SelectCategoryScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: insets.bottom + 24 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: insets.bottom + 24 }}>
         {sections.map(({ parent, options }) => (
           <View key={parent.id} style={{ marginBottom: 18 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: '#9CA3AF', marginBottom: 10 }}>
@@ -83,7 +84,7 @@ export default function SelectCategoryScreen() {
                       router.back();
                     }}
                     style={{
-                      paddingHorizontal: 12,
+                      paddingHorizontal: SCREEN_GUTTER,
                       paddingVertical: 14,
                       borderBottomWidth: index === options.length - 1 ? 0 : 1,
                       borderBottomColor: '#F3F4F6',

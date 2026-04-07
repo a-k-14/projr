@@ -547,13 +547,14 @@ function HomeAccountPage({
             </View>
           </View>
 
-          <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, padding: 16, marginBottom: HOME_SPACE.pageBottom }}>
+          <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, paddingTop: 14, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
             <View
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 12,
+                marginBottom: 8,
+                paddingHorizontal: 16,
               }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: HOME_COLORS.text }}>Recent</Text>

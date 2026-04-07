@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -70,7 +71,7 @@ export default function AddLoanModal() {
     >
       <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
         {/* Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 16 }}>
           <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12, padding: 4 }}>
             <Ionicons name="close" size={24} color="#0A0A0A" />
           </TouchableOpacity>
@@ -96,9 +97,9 @@ export default function AddLoanModal() {
           </View>
         </View>
 
-        <View style={{ backgroundColor: '#fff', borderRadius: 20, marginHorizontal: 16, overflow: 'hidden' }}>
+        <View style={{ backgroundColor: '#fff', borderRadius: 20, marginHorizontal: SCREEN_GUTTER, overflow: 'hidden' }}>
           {/* Account */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
             <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Account</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {accounts.map((acc) => (
@@ -122,7 +123,7 @@ export default function AddLoanModal() {
           </View>
 
           {/* Person */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
             <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Person</Text>
             <TextInput
               value={personName}
@@ -134,7 +135,7 @@ export default function AddLoanModal() {
           </View>
 
           {/* Direction */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
             <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Direction</Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               {(['lent', 'borrowed'] as const).map((d) => (
@@ -160,7 +161,7 @@ export default function AddLoanModal() {
           </View>
 
           {/* Date */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ fontSize: 12, color: '#9CA3AF' }}>Date</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 15, color: '#0A0A0A' }}>{formatDate(date)}</Text>
@@ -169,7 +170,7 @@ export default function AddLoanModal() {
           </View>
 
           {/* Note */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
             <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Note</Text>
             <TextInput
               value={note}
@@ -182,7 +183,7 @@ export default function AddLoanModal() {
         </View>
       </ScrollView>
 
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: insets.bottom + 16, paddingTop: 12, backgroundColor: '#F0F0F5' }}>
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: SCREEN_GUTTER, paddingBottom: insets.bottom + 16, paddingTop: 12, backgroundColor: '#F0F0F5' }}>
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!isValid || loading}

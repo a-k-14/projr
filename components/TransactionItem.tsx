@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
+    paddingHorizontal: 16,
     borderBottomColor: HOME_COLORS.divider,
   },
   iconBox: {

@@ -21,7 +21,7 @@ export default function YearStartScreen() {
   return (
     <PickerSheetShell
       title="Year Start"
-      subtitle="Choose the first month of your financial year"
+      subtitle="Choose the first month of your year"
       palette={palette}
       onClose={() => router.back()}
     >

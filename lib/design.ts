@@ -7,6 +7,8 @@ export const SPACING = {
   xxl: 24,
 } as const;
 
+export const SCREEN_GUTTER = SPACING.lg - 2;
+
 export const RADIUS = {
   sm: 12,
   md: 16,

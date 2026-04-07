@@ -19,6 +19,7 @@ import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
 import { FilterChip } from '../../components/ui/FilterChip';
 import { HOME_COLORS } from '../../lib/homeTokens';
+import { SCREEN_GUTTER } from '../../lib/design';
 import type { LoanWithSummary, LoanStatus } from '../../types';
 
 import { ScreenTitle } from '../../components/settings-ui';
@@ -63,7 +64,7 @@ export default function LoansScreen() {
         ListHeaderComponent={
           <View>
             <ScreenTitle title="Loans" palette={palette} />
-            <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16 }}>
               {/* Summary cards */}
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
               <View
@@ -105,7 +106,7 @@ export default function LoansScreen() {
               style={{
                 backgroundColor: palette.card,
                 borderRadius: 16,
-                paddingHorizontal: 16,
+                paddingHorizontal: SCREEN_GUTTER,
                 paddingVertical: 14,
                 flexDirection: 'row',
                 justifyContent: 'space-between',
@@ -214,7 +215,7 @@ function LoanRow({
       onPress={onPress}
       style={{
         backgroundColor: '#fff',
-        marginHorizontal: 16,
+        marginHorizontal: SCREEN_GUTTER,
         marginBottom: 2,
         borderRadius: 16,
         padding: 16,

@@ -17,6 +17,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
 import { formatDate, formatDateShort, todayUTC } from '../../lib/dateUtils';
+import { SCREEN_GUTTER } from '../../lib/design';
 import type { LoanWithSummary } from '../../types';
 
 export default function LoanDetailScreen() {
@@ -86,7 +87,7 @@ export default function LoanDetailScreen() {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: 16,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingVertical: 12,
           backgroundColor: '#F0F0F5',
         }}
@@ -107,7 +108,7 @@ export default function LoanDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-          <View style={{ paddingHorizontal: 16 }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             {/* Person header */}
             <View
               style={{
@@ -276,7 +277,7 @@ export default function LoanDetailScreen() {
               bottom: 0,
               left: 0,
               right: 0,
-              paddingHorizontal: 16,
+              paddingHorizontal: SCREEN_GUTTER,
               paddingBottom: 28,
               paddingTop: 12,
               backgroundColor: '#F0F0F5',
@@ -295,7 +296,7 @@ export default function LoanDetailScreen() {
                     flex: 1,
                     backgroundColor: '#fff',
                     borderRadius: 14,
-                    paddingHorizontal: 16,
+                    paddingHorizontal: SCREEN_GUTTER,
                     paddingVertical: 14,
                     fontSize: 15,
                     color: '#0A0A0A',
@@ -307,7 +308,7 @@ export default function LoanDetailScreen() {
                   style={{
                     backgroundColor: '#1B4332',
                     borderRadius: 14,
-                    paddingHorizontal: 20,
+                    paddingHorizontal: SCREEN_GUTTER,
                     justifyContent: 'center',
                   }}
                 >

@@ -248,7 +248,7 @@ function pickerTitle(kind: PickerKind) {
 function pickerSubtitle(kind: PickerKind) {
   switch (kind) {
     case 'year-start':
-      return 'Choose the first month of your financial year';
+      return 'Choose the first month of your year';
     case 'default-account':
       return 'Choose the default account for new transactions';
     case 'currency':
