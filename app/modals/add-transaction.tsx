@@ -19,7 +19,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { formatCurrency } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { nowUTC, formatDateTime } from '../../lib/dateUtils';
+import { nowUTC, formatDateTime12 } from '../../lib/dateUtils';
 import type {
   TransactionType,
   CreateTransactionInput,
@@ -41,6 +41,9 @@ type SplitDraft = {
   categoryId: string;
   amountStr: string;
 };
+
+const ROW_LABEL_WIDTH = 72;
+const ROW_MIN_HEIGHT = 72;
 
 function sanitizeDecimalInput(value: string): string {
   const cleaned = value.replace(/[^0-9.]/g, '');
@@ -150,7 +153,6 @@ export default function AddTransactionModal() {
 
   const amount = parseFloat(amountStr) || 0;
   const activeConfig = TYPE_CONFIG[type];
-  const amountPreview = amount > 0 ? formatCurrency(amount, sym) : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(row.amountStr) || 0), 0);
   const splitValid =
     splitRows.length === 0 ||
@@ -313,18 +315,19 @@ export default function AddTransactionModal() {
 
         {type === 'out' ? (
           <SectionCard>
-            <KeyValueRow label="Date">
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 15, color: '#0A0A0A' }}>{formatDateTime(date)}</Text>
-                <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
-              </View>
-            </KeyValueRow>
+            <InlinePickerRow
+              label="Date"
+              value={formatDateTime12(date)}
+              onPress={() => undefined}
+              icon="calendar-outline"
+              showChevron={false}
+              valueStyle={{ color: '#0A0A0A' }}
+            />
             <AmountRow
               sym={sym}
               activeConfig={activeConfig}
               amountStr={amountStr}
               setAmountStr={setAmountStr}
-              amountPreview={amountPreview}
               isEditing={isEditing}
             />
             <PickerRow
@@ -348,15 +351,7 @@ export default function AddTransactionModal() {
                 });
               }}
             />
-            <KeyValueRow label="Payee">
-              <TextInput
-                value={payee}
-                onChangeText={setPayee}
-                placeholder="Add payee"
-                placeholderTextColor="#9CA3AF"
-                style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0, textAlign: 'left' }}
-              />
-            </KeyValueRow>
+            <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" />
             <SplitSection
               amount={amount}
               amountStr={amountStr}
@@ -570,33 +565,69 @@ function FieldRow({
   );
 }
 
-function KeyValueRow({
+function InlinePickerRow({
   label,
-  children,
+  value,
+  onPress,
+  placeholder,
+  icon,
+  showChevron = true,
   noBorder,
+  valueStyle,
 }: {
   label: string;
-  children: React.ReactNode;
+  value: string;
+  onPress: () => void;
+  placeholder?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
+  showChevron?: boolean;
   noBorder?: boolean;
+  valueStyle?: object;
 }) {
   return (
-    <View
+    <TouchableOpacity
+      onPress={onPress}
       style={{
         paddingHorizontal: SCREEN_GUTTER,
-        paddingVertical: 14,
-        borderBottomWidth: noBorder ? 0 : 1,
-        borderBottomColor: '#F3F4F6',
+        minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280' }}>
-        {label}
-      </Text>
-      <View style={{ flex: 1, alignItems: 'flex-start' }}>{children}</View>
-    </View>
+      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', width: ROW_LABEL_WIDTH }}>{label}</Text>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottomWidth: noBorder ? 0 : 1,
+          borderBottomColor: '#F3F4F6',
+        }}
+      >
+        <Text
+          style={[
+            {
+              fontSize: 15,
+              fontWeight: '500',
+              color: placeholder ? '#9CA3AF' : '#0A0A0A',
+              textAlign: 'left',
+              flexShrink: 1,
+            },
+            valueStyle,
+          ]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+        <View style={{ width: 24, alignItems: 'flex-end' }}>
+          {icon ? <Ionicons name={icon} size={18} color="#9CA3AF" /> : null}
+        </View>
+      </View>
+      {showChevron ? <Ionicons name="chevron-forward" size={16} color="#9CA3AF" /> : null}
+    </TouchableOpacity>
   );
 }
 
@@ -616,17 +647,24 @@ function PickerRow({
       onPress={onPress}
       style={{
         paddingHorizontal: SCREEN_GUTTER,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+        minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280' }}>{label}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-start' }}>
+      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', width: ROW_LABEL_WIDTH }}>{label}</Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          borderBottomWidth: 1,
+          borderBottomColor: '#F3F4F6',
+        }}
+      >
         <Text
           style={{
             fontSize: 15,
@@ -639,7 +677,9 @@ function PickerRow({
         >
           {value}
         </Text>
-        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+        <View style={{ width: 20, alignItems: 'flex-end' }}>
+          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -647,14 +687,14 @@ function PickerRow({
 
 function DateTimeRow({ date }: { date: string }) {
   return (
-    <KeyValueRow label="Date">
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={{ fontSize: 15, color: '#0A0A0A' }} numberOfLines={1}>
-          {formatDateTime(date)}
-        </Text>
-        <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
-      </View>
-    </KeyValueRow>
+    <InlinePickerRow
+      label="Date"
+      value={formatDateTime12(date)}
+      onPress={() => undefined}
+      icon="calendar-outline"
+      noBorder={false}
+      valueStyle={{ color: '#0A0A0A' }}
+    />
   );
 }
 
@@ -663,42 +703,38 @@ function AmountRow({
   activeConfig,
   amountStr,
   setAmountStr,
-  amountPreview,
   isEditing,
 }: {
   sym: string;
   activeConfig: (typeof TYPE_CONFIG)[TransactionType];
   amountStr: string;
   setAmountStr: (value: string) => void;
-  amountPreview: string;
   isEditing: boolean;
 }) {
   return (
     <View
       style={{
         paddingHorizontal: SCREEN_GUTTER,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
       }}
     >
-      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF', marginBottom: 10 }}>
-        AMOUNT
+      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', width: ROW_LABEL_WIDTH }}>
+          Amount ({sym})
       </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 14,
-            backgroundColor: activeConfig.bg,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: 12,
-          }}
-        >
-          <Text style={{ fontSize: 18, fontWeight: '700', color: activeConfig.color }}>{sym}</Text>
-        </View>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottomWidth: 1,
+          borderBottomColor: '#F3F4F6',
+        }}
+      >
         <TextInput
           value={amountStr}
           onChangeText={(value) => setAmountStr(sanitizeDecimalInput(value))}
@@ -707,17 +743,78 @@ function AmountRow({
           placeholderTextColor="#C1C7D0"
           style={{
             flex: 1,
-            fontSize: 42,
-            fontWeight: '800',
+            fontSize: 18,
+            fontWeight: '700',
             color: activeConfig.color,
             paddingVertical: 0,
+            textAlign: 'left',
           }}
           autoFocus={!isEditing}
         />
+        <TouchableOpacity
+          onPress={() => Alert.alert('Calculator', 'Calculator screen is coming next.')}
+          hitSlop={10}
+          style={{
+            width: 40,
+            height: 40,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="calculator-outline" size={20} color="#9CA3AF" />
+        </TouchableOpacity>
       </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-        <Text style={{ fontSize: 12, color: '#9CA3AF' }}>Fast, natural entry</Text>
-        <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{amountPreview || ' '}</Text>
+    </View>
+  );
+}
+
+function InlineInputRow({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', width: ROW_LABEL_WIDTH }}>{label}</Text>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderBottomWidth: 1,
+          borderBottomColor: '#F3F4F6',
+        }}
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#9CA3AF"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontSize: 15,
+            fontWeight: '500',
+            color: '#0A0A0A',
+            paddingVertical: 0,
+            textAlign: 'left',
+          }}
+        />
       </View>
     </View>
   );

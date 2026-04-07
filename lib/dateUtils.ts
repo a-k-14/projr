@@ -33,6 +33,17 @@ export function formatDateTime(isoDate: string): string {
   return `${date} · ${time}`;
 }
 
+export function formatDateTime12(isoDate: string): string {
+  const d = new Date(isoDate);
+  const date = formatDate(isoDate);
+  const time = d.toLocaleTimeString('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${date} · ${time.toLowerCase()}`;
+}
+
 export function formatDateShort(isoDate: string): string {
   const d = new Date(isoDate);
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });

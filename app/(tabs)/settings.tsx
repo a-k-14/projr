@@ -172,7 +172,6 @@ export default function SettingsScreen() {
                   <ChoiceRow
                     key={account.id}
                     title={account.name}
-                    subtitle={`${capitalize(account.type)} · ${formatDisplayCurrency(account.balance, account.currency === 'INR' ? '₹' : account.currency === 'USD' ? '$' : account.currency === 'EUR' ? '€' : '£')}`}
                     selected={settings.defaultAccountId === account.id}
                     palette={palette}
                     onPress={() => {
