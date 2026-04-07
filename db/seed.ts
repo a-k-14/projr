@@ -1,4 +1,6 @@
 import { toUTCMidnight } from '../lib/dateUtils';
+import { db } from './client';
+import { accounts, categories, tags, transactions, loans, budgets, settings } from './schema';
 import * as accountsService from '../services/accounts';
 import * as categoriesService from '../services/categories';
 import * as tagsService from '../services/tags';
@@ -11,9 +13,27 @@ function daysAgo(n: number): string {
   return toUTCMidnight(date);
 }
 
+async function clearDemoData(): Promise<void> {
+  await db.delete(transactions);
+  await db.delete(loans);
+  await db.delete(budgets);
+  await db.delete(tags);
+  await db.delete(categories);
+  await db.delete(settings);
+  await db.delete(accounts);
+}
+
 export async function seedDatabase(): Promise<void> {
   const existing = await accountsService.getAccounts();
-  if (existing.length > 0) return;
+  const sampleNames = ['SBI Savings Account', 'Cash', 'HDFC Credit Card'];
+  const looksLikeStarterData =
+    existing.length === sampleNames.length &&
+    existing.every((account) => sampleNames.includes(account.name));
+
+  if (existing.length > 0 && !looksLikeStarterData) return;
+  if (looksLikeStarterData) {
+    await clearDemoData();
+  }
 
   // Accounts
   const sbi = await accountsService.createAccount({
@@ -121,7 +141,41 @@ export async function seedDatabase(): Promise<void> {
   // Transactions — balance is updated by createTransaction
   await transactionsService.createTransaction({
     type: 'in',
-    amount: 85000,
+    amount: 13268050,
+    accountId: sbi.id,
+    categoryId: salary.id,
+    date: daysAgo(0),
+    note: 'Salary credit',
+  });
+  await transactionsService.createTransaction({
+    type: 'out',
+    amount: 2340000.5,
+    accountId: sbi.id,
+    categoryId: groceries.id,
+    date: daysAgo(0),
+    note: 'Groceries',
+  });
+  await transactionsService.createTransaction({
+    type: 'out',
+    amount: 459900.25,
+    accountId: hdfc.id,
+    categoryId: online.id,
+    date: daysAgo(0),
+    note: 'Amazon order',
+  });
+  await transactionsService.createTransaction({
+    type: 'out',
+    amount: 380000,
+    accountId: cash.id,
+    categoryId: cab.id,
+    date: daysAgo(0),
+    note: 'Uber ride',
+    tags: [officeTag.id, paytmTag.id],
+  });
+
+  await transactionsService.createTransaction({
+    type: 'in',
+    amount: 8500000,
     accountId: sbi.id,
     categoryId: salary.id,
     date: daysAgo(7),
@@ -129,7 +183,7 @@ export async function seedDatabase(): Promise<void> {
   });
   await transactionsService.createTransaction({
     type: 'out',
-    amount: 2340,
+    amount: 234000,
     accountId: sbi.id,
     categoryId: groceries.id,
     date: daysAgo(1),
@@ -137,7 +191,7 @@ export async function seedDatabase(): Promise<void> {
   });
   await transactionsService.createTransaction({
     type: 'out',
-    amount: 380,
+    amount: 38000,
     accountId: cash.id,
     categoryId: cab.id,
     date: daysAgo(2),
@@ -146,7 +200,7 @@ export async function seedDatabase(): Promise<void> {
   });
   await transactionsService.createTransaction({
     type: 'out',
-    amount: 4599,
+    amount: 459900,
     accountId: hdfc.id,
     categoryId: online.id,
     date: daysAgo(2),
@@ -154,7 +208,7 @@ export async function seedDatabase(): Promise<void> {
   });
   await transactionsService.createTransaction({
     type: 'out',
-    amount: 1800,
+    amount: 180000,
     accountId: sbi.id,
     categoryId: electricity.id,
     date: daysAgo(11),
@@ -162,7 +216,7 @@ export async function seedDatabase(): Promise<void> {
   });
   await transactionsService.createTransaction({
     type: 'in',
-    amount: 15000,
+    amount: 1500000,
     accountId: cash.id,
     categoryId: incomeParent.id,
     date: daysAgo(14),
@@ -170,11 +224,35 @@ export async function seedDatabase(): Promise<void> {
   });
   await transactionsService.createTransaction({
     type: 'out',
-    amount: 650,
+    amount: 65000,
     accountId: cash.id,
     categoryId: restaurants.id,
     date: daysAgo(5),
     note: 'Lunch',
+  });
+  await transactionsService.createTransaction({
+    type: 'out',
+    amount: 1250000.75,
+    accountId: sbi.id,
+    categoryId: electricity.id,
+    date: daysAgo(4),
+    note: 'Electricity bill',
+  });
+  await transactionsService.createTransaction({
+    type: 'out',
+    amount: 275000,
+    accountId: hdfc.id,
+    categoryId: online.id,
+    date: daysAgo(9),
+    note: 'Subscription renewal',
+  });
+  await transactionsService.createTransaction({
+    type: 'out',
+    amount: 100000,
+    accountId: cash.id,
+    categoryId: restaurants.id,
+    date: daysAgo(3),
+    note: 'Dinner',
   });
 
   // Loans
@@ -182,7 +260,7 @@ export async function seedDatabase(): Promise<void> {
     personName: 'Ravi Kumar',
     direction: 'lent',
     accountId: cash.id,
-    givenAmount: 10000,
+    givenAmount: 10000000,
     note: 'For bike repair',
     date: daysAgo(13),
   });
@@ -190,19 +268,19 @@ export async function seedDatabase(): Promise<void> {
     personName: 'Meena',
     direction: 'lent',
     accountId: sbi.id,
-    givenAmount: 5000,
+    givenAmount: 5000000,
     note: 'Emergency',
     date: daysAgo(50),
   });
-  await loansService.recordLoanPayment(meenaLoan.id, 2000, daysAgo(20));
+  await loansService.recordLoanPayment(meenaLoan.id, 2000000, daysAgo(20));
 
   const priyaLoan = await loansService.createLoan({
     personName: 'Priya',
     direction: 'borrowed',
     accountId: cash.id,
-    givenAmount: 20000,
+    givenAmount: 20000000,
     note: 'Emergency medical',
     date: daysAgo(85),
   });
-  await loansService.recordLoanPayment(priyaLoan.id, 8000, daysAgo(45));
+  await loansService.recordLoanPayment(priyaLoan.id, 8000000, daysAgo(45));
 }

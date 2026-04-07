@@ -63,7 +63,11 @@ export function groupTransactionsByDate(
 
 export function formatCurrency(amount: number, symbol: string = '₹'): string {
   const abs = Math.abs(amount);
-  const formatted = new Intl.NumberFormat('en-IN').format(abs);
+  const hasFraction = Math.abs(abs - Math.round(abs)) > 0.000001;
+  const formatted = new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: hasFraction ? 2 : 0,
+  }).format(abs);
   return `${symbol}${formatted}`;
 }
 

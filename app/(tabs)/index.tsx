@@ -499,7 +499,7 @@ function HomeAccountPage({
             </View>
             <Text
               style={{
-                fontSize: 30,
+                fontSize: 24,
                 lineHeight: 36,
                 fontWeight: '700',
                 color: '#1F2A44',
@@ -515,11 +515,11 @@ function HomeAccountPage({
 
         <View style={{ paddingHorizontal: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2A44' }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2A44' }}>
               {formatDate(today)}
             </Text>
             <InlineDot size={3.5} color="#1F2A44" />
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2A44' }}>Today</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2A44' }}>Today</Text>
           </View>
           <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
 
