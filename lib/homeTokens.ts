@@ -48,7 +48,7 @@ export const HOME_SPACE = {
 
 export const HOME_TEXT = {
   heroLabel: 16,
-  heroValue: 24,
+  heroValue: 22,
   sectionTitle: 15,
   body: 14,
   bodySmall: 13,

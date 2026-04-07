@@ -1,33 +1,33 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTransactionsStore } from '../../stores/useTransactionsStore';
-import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useUIStore } from '../../stores/useUIStore';
-import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import { formatDateTime12, nowUTC } from '../../lib/dateUtils';
 import { formatCurrency } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { nowUTC, formatDateTime12 } from '../../lib/dateUtils';
+import { getTransactionById } from '../../services/transactions';
+import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { useUIStore } from '../../stores/useUIStore';
 import type {
-  TransactionType,
-  CreateTransactionInput,
   Account,
   Category,
+  CreateTransactionInput,
   Tag,
+  TransactionType,
 } from '../../types';
-import { getTransactionById } from '../../services/transactions';
 
 const TYPE_CONFIG = {
   in: { label: 'In', color: '#16A34A', borderColor: '#16A34A', bg: '#DCFCE7' },
@@ -42,8 +42,9 @@ type SplitDraft = {
   amountStr: string;
 };
 
-const ROW_LABEL_WIDTH = 72;
-const ROW_MIN_HEIGHT = 72;
+const ROW_LABEL_WIDTH = 92;
+const ROW_MIN_HEIGHT = 62;
+const ROW_COLUMN_GAP = 16;
 
 function sanitizeDecimalInput(value: string): string {
   const cleaned = value.replace(/[^0-9.]/g, '');
@@ -71,7 +72,6 @@ export default function AddTransactionModal() {
     setTagIds: setDraftTagIds,
   } = useTransactionDraftStore();
   const insets = useSafeAreaInsets();
-
   const [type, setType] = useState<TransactionType>('out');
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -193,9 +193,9 @@ export default function AddTransactionModal() {
           type === 'in' || type === 'out'
             ? splitRows.length > 0
               ? splitRows.map((row) => ({
-                  categoryId: row.categoryId,
-                  amount: parseFloat(row.amountStr) || 0,
-                }))
+                categoryId: row.categoryId,
+                amount: parseFloat(row.amountStr) || 0,
+              }))
               : []
             : undefined,
         linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
@@ -283,204 +283,229 @@ export default function AddTransactionModal() {
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 132 }}>
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
-              <TouchableOpacity
-                key={t}
-                onPress={() => setType(t)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  borderWidth: 1.5,
-                  alignItems: 'center',
-                  borderColor: type === t ? TYPE_CONFIG[t].borderColor : '#E5E7EB',
-                  backgroundColor: type === t ? TYPE_CONFIG[t].bg : '#fff',
-                }}
-              >
-                <Text
+        <View style={{ paddingBottom: 20 }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => setType(t)}
                   style={{
-                    fontSize: 13,
-                    fontWeight: '700',
-                    color: type === t ? TYPE_CONFIG[t].color : '#6B7280',
+                    flex: 1,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    borderWidth: 1.5,
+                    alignItems: 'center',
+                    borderColor: type === t ? TYPE_CONFIG[t].borderColor : '#E5E7EB',
+                    backgroundColor: type === t ? TYPE_CONFIG[t].bg : '#fff',
                   }}
                 >
-                  {TYPE_CONFIG[t].label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {type === 'out' ? (
-          <SectionCard>
-            <InlinePickerRow
-              label="Date"
-              value={formatDateTime12(date)}
-              onPress={() => undefined}
-              icon="calendar-outline"
-              showChevron={false}
-              valueStyle={{ color: '#0A0A0A' }}
-            />
-            <AmountRow
-              sym={sym}
-              activeConfig={activeConfig}
-              amountStr={amountStr}
-              setAmountStr={setAmountStr}
-              isEditing={isEditing}
-            />
-            <PickerRow
-              label="Account"
-              value={getAccountName(accounts, accountId)}
-              placeholder={!accountId}
-              onPress={() => {
-                setDraftAccountId(accountId);
-                router.push('/modals/select-account');
-              }}
-            />
-            <PickerRow
-              label="Category"
-              value={getCategoryName(categories, categoryId)}
-              placeholder={!categoryId}
-              onPress={() => {
-                setDraftCategoryId(categoryId);
-                router.push({
-                  pathname: '/modals/select-category',
-                  params: { type },
-                });
-              }}
-            />
-            <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" />
-            <SplitSection
-              amount={amount}
-              amountStr={amountStr}
-              currencySymbol={sym}
-              splitRows={splitRows}
-              splitTotal={splitTotal}
-              categories={categories}
-              type={type}
-              onAddSplit={addSplitRow}
-              onChangeSplit={updateSplitRow}
-              onRemoveSplit={removeSplitRow}
-            />
-            <ReceiptSection />
-            <PickerRow
-              label="Tag"
-              value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
-              placeholder={!selectedTagIds.length}
-              onPress={() => {
-                setDraftTagIds(selectedTagIds);
-                router.push('/modals/select-tag');
-              }}
-            />
-            <NotesSection note={note} onChangeNote={setNote} />
-          </SectionCard>
-        ) : type === 'transfer' ? (
-          <SectionCard>
-            <FieldRow label="From account">
-              <AccountPicker
-                accounts={accounts}
-                selectedId={accountId}
-                onSelect={setAccountId}
-                excludeId={linkedAccountId}
-              />
-            </FieldRow>
-            <View style={{ alignItems: 'center', paddingVertical: 2 }}>
-              <TouchableOpacity
-                onPress={() => {
-                  const tmp = accountId;
-                  setAccountId(linkedAccountId);
-                  setLinkedAccountId(tmp);
-                }}
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 17,
-                  backgroundColor: '#F3F4F6',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="swap-vertical" size={16} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            <FieldRow label="To account">
-              <AccountPicker
-                accounts={accounts}
-                selectedId={linkedAccountId}
-                onSelect={setLinkedAccountId}
-                excludeId={accountId}
-              />
-            </FieldRow>
-            <DateTimeRow date={date} />
-            <FieldRow label="Notes" noBorder>
-              <TextInput
-                value={note}
-                onChangeText={setNote}
-                placeholder="Add a note..."
-                placeholderTextColor="#9CA3AF"
-                style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
-                multiline
-              />
-            </FieldRow>
-          </SectionCard>
-        ) : (
-          <SectionCard>
-            <FieldRow label="Account">
-              <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} />
-            </FieldRow>
-            <FieldRow label="Person">
-              <TextInput
-                value={personName}
-                onChangeText={setPersonName}
-                placeholder="Name"
-                placeholderTextColor="#9CA3AF"
-                style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
-              />
-            </FieldRow>
-            <FieldRow label="Direction">
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {(['lent', 'borrowed'] as const).map((d) => (
-                  <TouchableOpacity
-                    key={d}
-                    onPress={() => setLoanDirection(d)}
+                  <Text
                     style={{
-                      flex: 1,
-                      paddingVertical: 11,
-                      borderRadius: 14,
-                      alignItems: 'center',
-                      borderWidth: 1.5,
-                      borderColor: loanDirection === d ? '#1B4332' : '#E5E7EB',
-                      backgroundColor: loanDirection === d ? '#DCFCE7' : '#fff',
+                      fontSize: 13,
+                      fontWeight: '700',
+                      color: type === t ? TYPE_CONFIG[t].color : '#6B7280',
                     }}
                   >
-                    <Text
+                    {TYPE_CONFIG[t].label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {type === 'out' ? (
+            <SectionCard>
+              <InlinePickerRow
+                label="Date"
+                value={formatDateTime12(date)}
+                onPress={() => undefined}
+                icon="calendar-outline"
+                showChevron={false}
+                valueStyle={{ color: '#0A0A0A' }}
+              />
+              <AmountRow
+                sym={sym}
+                activeConfig={activeConfig}
+                amountStr={amountStr}
+                setAmountStr={setAmountStr}
+                isEditing={isEditing}
+              />
+              <PickerRow
+                label="Account"
+                value={getAccountName(accounts, accountId)}
+                placeholder={!accountId}
+                onPress={() => {
+                  setDraftAccountId(accountId);
+                  router.push('/modals/select-account');
+                }}
+              />
+              <PickerRow
+                label="Category"
+                value={getCategoryName(categories, categoryId)}
+                placeholder={!categoryId}
+                onPress={() => {
+                  setDraftCategoryId(categoryId);
+                  router.push({
+                    pathname: '/modals/select-category',
+                    params: { type },
+                  });
+                }}
+              />
+              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" />
+              <SplitSection
+                amount={amount}
+                amountStr={amountStr}
+                currencySymbol={sym}
+                splitRows={splitRows}
+                splitTotal={splitTotal}
+                categories={categories}
+                type={type}
+                onAddSplit={addSplitRow}
+                onChangeSplit={updateSplitRow}
+                onRemoveSplit={removeSplitRow}
+              />
+              <ReceiptSection />
+              <PickerRow
+                label="Tag"
+                value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
+                placeholder={!selectedTagIds.length}
+                onPress={() => {
+                  setDraftTagIds(selectedTagIds);
+                  router.push('/modals/select-tag');
+                }}
+              />
+              <NotesSection note={note} onChangeNote={setNote} />
+            </SectionCard>
+          ) : type === 'transfer' ? (
+            <SectionCard>
+              <FieldRow label="From account">
+                <AccountPicker
+                  accounts={accounts}
+                  selectedId={accountId}
+                  onSelect={setAccountId}
+                  excludeId={linkedAccountId}
+                />
+              </FieldRow>
+              <View style={{ alignItems: 'center', paddingVertical: 2 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const tmp = accountId;
+                    setAccountId(linkedAccountId);
+                    setLinkedAccountId(tmp);
+                  }}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    backgroundColor: '#F3F4F6',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="swap-vertical" size={16} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              <FieldRow label="To account">
+                <AccountPicker
+                  accounts={accounts}
+                  selectedId={linkedAccountId}
+                  onSelect={setLinkedAccountId}
+                  excludeId={accountId}
+                />
+              </FieldRow>
+              <DateTimeRow date={date} />
+              <FieldRow label="Notes" noBorder>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder="Add a note..."
+                  placeholderTextColor="#9CA3AF"
+                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
+                  multiline
+                />
+              </FieldRow>
+            </SectionCard>
+          ) : (
+            <SectionCard>
+              <FieldRow label="Account">
+                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} />
+              </FieldRow>
+              <FieldRow label="Person">
+                <TextInput
+                  value={personName}
+                  onChangeText={setPersonName}
+                  placeholder="Name"
+                  placeholderTextColor="#9CA3AF"
+                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
+                />
+              </FieldRow>
+              <FieldRow label="Direction">
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {(['lent', 'borrowed'] as const).map((d) => (
+                    <TouchableOpacity
+                      key={d}
+                      onPress={() => setLoanDirection(d)}
                       style={{
-                        fontSize: 13,
-                        fontWeight: '600',
-                        color: loanDirection === d ? '#1B4332' : '#6B7280',
+                        flex: 1,
+                        paddingVertical: 11,
+                        borderRadius: 14,
+                        alignItems: 'center',
+                        borderWidth: 1.5,
+                        borderColor: loanDirection === d ? '#1B4332' : '#E5E7EB',
+                        backgroundColor: loanDirection === d ? '#DCFCE7' : '#fff',
                       }}
                     >
-                      {d === 'lent' ? 'I lent' : 'I borrowed'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </FieldRow>
-            <DateTimeRow date={date} />
-            <FieldRow label="Notes" noBorder>
-              <TextInput
-                value={note}
-                onChangeText={setNote}
-                placeholder="Add a note..."
-                placeholderTextColor="#9CA3AF"
-                style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
-                multiline
-              />
-            </FieldRow>
-          </SectionCard>
-        )}
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: loanDirection === d ? '#1B4332' : '#6B7280',
+                        }}
+                      >
+                        {d === 'lent' ? 'I lent' : 'I borrowed'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </FieldRow>
+              <DateTimeRow date={date} />
+              <FieldRow label="Notes" noBorder>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder="Add a note..."
+                  placeholderTextColor="#9CA3AF"
+                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
+                  multiline
+                />
+              </FieldRow>
+            </SectionCard>
+          )}
+
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 14 }}>
+            <TouchableOpacity
+              onPress={handleSubmit}
+              disabled={!isValid || loading}
+              style={{
+                backgroundColor: isValid ? activeConfig.color : '#9CA3AF',
+                borderRadius: 18,
+                paddingVertical: 16,
+                alignItems: 'center',
+                marginBottom: 12,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{actionLabel}</Text>
+            </TouchableOpacity>
+            {isEditing && (
+              <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
+                <Text style={{ color: '#DC2626', fontSize: 15, fontWeight: '500' }}>
+                  Delete transaction
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </ScrollView>
 
       <View
@@ -594,7 +619,18 @@ function InlinePickerRow({
         alignItems: 'center',
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', width: ROW_LABEL_WIDTH }}>{label}</Text>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#6B7280',
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
       <View
         style={{
           flex: 1,
@@ -605,6 +641,7 @@ function InlinePickerRow({
           justifyContent: 'space-between',
           borderBottomWidth: noBorder ? 0 : 1,
           borderBottomColor: '#F3F4F6',
+          paddingLeft: ROW_COLUMN_GAP,
         }}
       >
         <Text
@@ -652,7 +689,18 @@ function PickerRow({
         alignItems: 'center',
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', width: ROW_LABEL_WIDTH }}>{label}</Text>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#6B7280',
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
       <View
         style={{
           flexDirection: 'row',
@@ -663,6 +711,7 @@ function PickerRow({
           minHeight: ROW_MIN_HEIGHT,
           borderBottomWidth: 1,
           borderBottomColor: '#F3F4F6',
+          paddingLeft: ROW_COLUMN_GAP,
         }}
       >
         <Text
@@ -677,7 +726,7 @@ function PickerRow({
         >
           {value}
         </Text>
-        <View style={{ width: 20, alignItems: 'flex-end' }}>
+        <View style={{ width: 24, alignItems: 'flex-end' }}>
           <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
         </View>
       </View>
@@ -720,8 +769,17 @@ function AmountRow({
         alignItems: 'center',
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', width: ROW_LABEL_WIDTH }}>
-          Amount ({sym})
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#6B7280',
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        Amount ({sym})
       </Text>
       <View
         style={{
@@ -733,6 +791,7 @@ function AmountRow({
           justifyContent: 'space-between',
           borderBottomWidth: 1,
           borderBottomColor: '#F3F4F6',
+          paddingLeft: ROW_COLUMN_GAP,
         }}
       >
         <TextInput
@@ -755,8 +814,8 @@ function AmountRow({
           onPress={() => Alert.alert('Calculator', 'Calculator screen is coming next.')}
           hitSlop={10}
           style={{
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             alignItems: 'center',
             justifyContent: 'center',
           }}
@@ -788,7 +847,18 @@ function InlineInputRow({
         alignItems: 'center',
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', width: ROW_LABEL_WIDTH }}>{label}</Text>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#6B7280',
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
       <View
         style={{
           flex: 1,
@@ -798,6 +868,7 @@ function InlineInputRow({
           alignItems: 'center',
           borderBottomWidth: 1,
           borderBottomColor: '#F3F4F6',
+          paddingLeft: ROW_COLUMN_GAP,
         }}
       >
         <TextInput

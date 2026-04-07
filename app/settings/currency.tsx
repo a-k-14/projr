@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
-import { PickerSheetShell, CURRENCIES } from '../../lib/settings-shared';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { CURRENCIES } from '../../lib/settings-shared';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 
@@ -19,7 +20,7 @@ export default function CurrencyScreen() {
   }, [isLoaded, load]);
 
   return (
-    <PickerSheetShell
+    <BottomSheet
       title="Currency"
       subtitle="Pick the currency shown across the app"
       palette={palette}
@@ -37,6 +38,6 @@ export default function CurrencyScreen() {
           noBorder={index === CURRENCIES.length - 1}
         />
       ))}
-    </PickerSheetShell>
+    </BottomSheet>
   );
 }

@@ -1,3 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -13,27 +16,23 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useUIStore } from '../../stores/useUIStore';
-import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { buildSpendingChartData, getTotalBalance, formatCurrency } from '../../lib/derived';
-import { getDateRange, todayUTC, formatDate } from '../../lib/dateUtils';
-import { getCashflowSummary, getDailySpending } from '../../services/analytics';
-import { getTransactions } from '../../services/transactions';
-import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { SummaryCard } from '../../components/SummaryCard';
-import { InlineDot } from '../../components/ui/InlineDot';
 import { TransactionItem as TransactionRow } from '../../components/TransactionItem';
+import { InlineDot } from '../../components/ui/InlineDot';
+import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
+import { buildSpendingChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
+import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
+import { getCashflowSummary, getDailySpending } from '../../services/analytics';
+import { getTransactions } from '../../services/transactions';
+import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useUIStore } from '../../stores/useUIStore';
 import type {
-  PeriodType,
-  Transaction,
   CashflowSummary,
   DailySpending,
+  PeriodType,
+  Transaction,
 } from '../../types';
 
 const PERIODS: PeriodType[] = ['week', 'month', 'year', 'custom'];
@@ -401,11 +400,11 @@ function HomeAccountPage({
       >
         <View style={{ paddingHorizontal: HOME_SPACE.screen, paddingTop: 14, paddingBottom: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1, paddingRight: 16 }}>
+            <View style={{ flex: 1, paddingRight: 18 }}>
               <Text style={{ fontSize: HOME_TEXT.heroLabel, color: HOME_COLORS.text, fontWeight: '700' }}>
                 {accountId === 'all' ? 'All Accounts' : accountName}
               </Text>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginTop: 4 }}>Current Balance</Text>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginTop: 2 }}>Current Balance</Text>
             </View>
             <Text
               style={{

@@ -7,11 +7,11 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { CardSection, ScreenTitle, SectionLabel, SettingsRow, ChoiceRow } from '../../components/settings-ui';
+import { BottomSheet } from '../../components/ui/BottomSheet';
 import {
   CURRENCIES,
   MONTHS,
   THEMES,
-  PickerSheetShell,
   formatDisplayCurrency,
 } from '../../lib/settings-shared';
 
@@ -133,7 +133,7 @@ export default function SettingsScreen() {
       </ScrollView>
 
       {picker ? (
-        <PickerSheetShell
+        <BottomSheet
           title={pickerTitle(picker)}
           subtitle={pickerSubtitle(picker)}
           palette={palette}
@@ -223,7 +223,7 @@ export default function SettingsScreen() {
                 />
               ))
             : null}
-        </PickerSheetShell>
+        </BottomSheet>
       ) : null}
     </SafeAreaView>
   );

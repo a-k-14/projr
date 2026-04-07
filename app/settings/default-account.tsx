@@ -3,7 +3,8 @@ import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { formatDisplayCurrency, PickerSheetShell } from '../../lib/settings-shared';
+import { formatDisplayCurrency } from '../../lib/settings-shared';
+import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 
@@ -24,7 +25,7 @@ export default function DefaultAccountScreen() {
   }, [isLoaded, accountsLoaded, load, loadAccounts]);
 
   return (
-    <PickerSheetShell
+    <BottomSheet
       title="Default Account"
       subtitle="Choose the default account for new transactions"
       palette={palette}
@@ -49,7 +50,7 @@ export default function DefaultAccountScreen() {
           noBorder={index === accounts.length - 1}
         />
       ))}
-    </PickerSheetShell>
+    </BottomSheet>
   );
 }
 

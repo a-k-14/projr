@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { ReactNode } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
 
@@ -85,20 +86,8 @@ export function SettingsRow({
   noBorder?: boolean;
   rightElement?: ReactNode;
 }) {
-  const Container = onPress ? TouchableOpacity : View;
-  return (
-    <Container
-      onPress={onPress}
-      style={{
-        minHeight: 62,
-        paddingHorizontal: SCREEN_GUTTER,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderBottomWidth: noBorder ? 0 : 1,
-        borderBottomColor: palette.divider,
-      }}
-    >
+  const content = (
+    <>
       <Feather name={icon} size={18} color={palette.iconTint} />
       <Text
         style={{
@@ -118,8 +107,27 @@ export function SettingsRow({
         </Text>
       ) : null}
       {onPress && !rightElement ? <Feather name="chevron-right" size={18} color={palette.textSoft} /> : null}
-    </Container>
+    </>
   );
+
+  const style = {
+    minHeight: 62,
+    paddingHorizontal: SCREEN_GUTTER,
+    paddingVertical: 12,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    borderBottomWidth: noBorder ? 0 : 1,
+    borderBottomColor: palette.divider,
+  };
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} delayPressIn={0} style={style}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+  return <View style={style}>{content}</View>;
 }
 
 export function ChoiceRow({
@@ -141,6 +149,7 @@ export function ChoiceRow({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.6}
+      delayPressIn={0}
       style={{
         minHeight: 68,
         paddingHorizontal: SCREEN_GUTTER,

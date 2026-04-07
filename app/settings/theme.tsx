@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
-import { PickerSheetShell, THEMES } from '../../lib/settings-shared';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { THEMES } from '../../lib/settings-shared';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 
@@ -19,7 +20,7 @@ export default function ThemeScreen() {
   }, [isLoaded, load]);
 
   return (
-    <PickerSheetShell
+    <BottomSheet
       title="Theme"
       subtitle="Choose how the app follows system appearance"
       palette={palette}
@@ -43,6 +44,6 @@ export default function ThemeScreen() {
           noBorder={index === THEMES.length - 1}
         />
       ))}
-    </PickerSheetShell>
+    </BottomSheet>
   );
 }

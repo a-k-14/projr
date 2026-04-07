@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { MONTHS, PickerSheetShell } from '../../lib/settings-shared';
+import { MONTHS } from '../../lib/settings-shared';
+import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 
 export default function YearStartScreen() {
@@ -19,7 +20,7 @@ export default function YearStartScreen() {
   }, [isLoaded, load]);
 
   return (
-    <PickerSheetShell
+    <BottomSheet
       title="Year Start"
       subtitle="Choose the first month of your year"
       palette={palette}
@@ -36,6 +37,6 @@ export default function YearStartScreen() {
           noBorder={index === MONTHS.length - 1}
         />
       ))}
-    </PickerSheetShell>
+    </BottomSheet>
   );
 }
