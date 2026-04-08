@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, Switch, Text, useColorScheme } from 'react-native';
+import { Modal, ScrollView, Switch, Text, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
@@ -121,12 +121,21 @@ export default function SettingsScreen() {
         </CardSection>
       </ScrollView>
 
-      {picker ? (
+      <Modal visible={!!picker} transparent animationType="none" statusBarTranslucent>
         <PickerSheetShell
           title={pickerTitle(picker)}
           subtitle={pickerSubtitle(picker)}
           palette={palette}
           onClose={() => setPicker(null)}
+          itemCount={
+            picker === 'year-start'
+              ? 12
+              : picker === 'currency'
+                ? 4
+                : picker === 'theme'
+                  ? 3
+                  : accounts.length + 1
+          }
         >
           {picker === 'year-start'
             ? MONTHS.map((month, index) => (
@@ -214,7 +223,7 @@ export default function SettingsScreen() {
               ))
             : null}
         </PickerSheetShell>
-      ) : null}
+      </Modal>
     </SafeAreaView>
   );
 }
