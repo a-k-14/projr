@@ -17,10 +17,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { groupTransactionsByDate, formatCurrency } from '../../lib/derived';
+import { groupTransactionsByDate } from '../../lib/derived';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
-import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../../lib/homeTokens';
+import { HOME_COLORS, HOME_RADIUS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/homeTokens';
 import { AccountTabBar } from '../../components/AccountTabBar';
+import { TransactionListItem } from '../../components/TransactionListItem';
 import * as transactionsService from '../../services/transactions';
 import type { TransactionType, Transaction } from '../../types';
 
@@ -38,6 +39,7 @@ export default function ActivityScreen() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined);
 
   const pagerRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -113,6 +115,8 @@ export default function ActivityScreen() {
               onSearchChange={setSearch}
               typeFilter={typeFilter}
               onTypeFilterChange={setTypeFilter}
+              categoryFilter={categoryFilter}
+              onCategoryFilterChange={setCategoryFilter}
             />
           </View>
         ))}
@@ -128,6 +132,8 @@ function ActivityAccountPage({
   onSearchChange,
   typeFilter,
   onTypeFilterChange,
+  categoryFilter,
+  onCategoryFilterChange,
 }: {
   accountId: string | 'all';
   isSelected: boolean;
@@ -135,17 +141,21 @@ function ActivityAccountPage({
   onSearchChange: (s: string) => void;
   typeFilter: TransactionType | 'all';
   onTypeFilterChange: (t: TransactionType | 'all') => void;
+  categoryFilter?: string;
+  onCategoryFilterChange: (id: string | undefined) => void;
 }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const offsetRef = useRef(0);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const loadingRef = useRef(false);
 
-  const PAGE_SIZE = 40;
   const { settings } = useUIStore();
-  const { getCategoryDisplayName } = useCategoriesStore();
+  const { categories, getCategoryDisplayName } = useCategoriesStore();
   const sym = settings.currencySymbol;
+  // Top-level categories only for the filter chips
+  const topCategories = categories.filter((c) => !c.parentId);
 
   const loadData = useCallback(async (isInitial = true) => {
     if (loadingRef.current) return;
@@ -156,8 +166,9 @@ function ActivityAccountPage({
       const filterParams = {
         accountId: accountId === 'all' ? undefined : accountId,
         type: typeFilter === 'all' ? undefined : typeFilter,
+        categoryId: categoryFilter || undefined,
         search: search || undefined,
-        limit: PAGE_SIZE,
+        limit: TRANSACTIONS_PAGE_SIZE,
         offset: currentOffset,
       };
 
@@ -165,8 +176,8 @@ function ActivityAccountPage({
 
       if (isInitial) {
         setTransactions(results);
-        offsetRef.current = PAGE_SIZE;
-        setHasMore(results.length === PAGE_SIZE);
+        offsetRef.current = TRANSACTIONS_PAGE_SIZE;
+        setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
       } else {
         setTransactions((prev) => {
           // Deduplicate by ID to prevent key collisions
@@ -174,19 +185,19 @@ function ActivityAccountPage({
           const newTxs = results.filter(t => !existingIds.has(t.id));
           return [...prev, ...newTxs];
         });
-        offsetRef.current += PAGE_SIZE;
-        setHasMore(results.length === PAGE_SIZE);
+        offsetRef.current += TRANSACTIONS_PAGE_SIZE;
+        setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
       }
     } finally {
       loadingRef.current = false;
     }
-  }, [accountId, typeFilter, search]);
+  }, [accountId, typeFilter, categoryFilter, search]);
 
   useEffect(() => {
     if (isSelected) {
       loadData(true);
     }
-  }, [isSelected, typeFilter, search, loadData]);
+  }, [isSelected, typeFilter, categoryFilter, search, loadData]);
 
   const onRefresh = async () => {
     if (loadingRef.current) return;
@@ -237,34 +248,129 @@ function ActivityAccountPage({
             />
           </View>
 
-          {/* Type Filter */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
-            {FILTERS.map((f) => (
-              <TouchableOpacity
-                key={f.value}
-                onPress={() => onTypeFilterChange(f.value)}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: HOME_RADIUS.tab,
-                  marginRight: 8,
-                  backgroundColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.surface,
-                  borderWidth: 1,
-                  borderColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.divider,
-                }}
-              >
-                <Text
+          {/* Type filter row + Category toggle */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+              {FILTERS.map((f) => (
+                <TouchableOpacity
+                  key={f.value}
+                  onPress={() => onTypeFilterChange(f.value)}
                   style={{
-                    fontSize: 13,
-                    fontWeight: '500',
-                    color: typeFilter === f.value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: HOME_RADIUS.tab,
+                    marginRight: 8,
+                    backgroundColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.surface,
+                    borderWidth: 1,
+                    borderColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.divider,
                   }}
                 >
-                  {f.label}
+                  <Text
+                    style={{
+                      fontSize: HOME_TEXT.bodySmall,
+                      fontWeight: '500',
+                      color: typeFilter === f.value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            {/* Category filter toggle button */}
+            <TouchableOpacity
+              onPress={() => setShowCategoryFilter((v) => !v)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: HOME_RADIUS.tab,
+                borderWidth: 1,
+                marginLeft: 8,
+                borderColor: (showCategoryFilter || categoryFilter) ? HOME_COLORS.active : HOME_COLORS.divider,
+                backgroundColor: (showCategoryFilter || categoryFilter) ? HOME_COLORS.active : HOME_COLORS.surface,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Ionicons
+                name="options-outline"
+                size={14}
+                color={(showCategoryFilter || categoryFilter) ? HOME_COLORS.surface : HOME_COLORS.textMuted}
+              />
+              {categoryFilter ? (
+                <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: HOME_COLORS.surface }}>
+                  1
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+              ) : null}
+            </TouchableOpacity>
+          </View>
+
+          {/* Collapsible category filter */}
+          {showCategoryFilter && (
+            <View style={{ marginTop: 8, marginBottom: 4 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity
+                  onPress={() => onCategoryFilterChange(undefined)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 6,
+                    borderRadius: HOME_RADIUS.tab,
+                    marginRight: 8,
+                    backgroundColor: !categoryFilter ? HOME_COLORS.active : HOME_COLORS.surface,
+                    borderWidth: 1,
+                    borderColor: !categoryFilter ? HOME_COLORS.active : HOME_COLORS.divider,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: HOME_TEXT.caption,
+                      fontWeight: '500',
+                      color: !categoryFilter ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                    }}
+                  >
+                    All categories
+                  </Text>
+                </TouchableOpacity>
+                {topCategories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={() => onCategoryFilterChange(categoryFilter === cat.id ? undefined : cat.id)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      borderRadius: HOME_RADIUS.tab,
+                      marginRight: 8,
+                      backgroundColor: categoryFilter === cat.id ? HOME_COLORS.active : HOME_COLORS.surface,
+                      borderWidth: 1,
+                      borderColor: categoryFilter === cat.id ? HOME_COLORS.active : HOME_COLORS.divider,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: categoryFilter === cat.id ? HOME_COLORS.surface : cat.color,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: HOME_TEXT.caption,
+                        fontWeight: '500',
+                        color: categoryFilter === cat.id ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                      }}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
       }
       renderItem={({ item }) => (
@@ -276,7 +382,7 @@ function ActivityAccountPage({
           </View>
           <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: 16, overflow: 'hidden' }}>
             {item.items.map((tx, idx) => (
-              <TransactionItem
+              <TransactionListItem
                 key={tx.id}
                 tx={tx}
                 sym={sym}
@@ -288,90 +394,5 @@ function ActivityAccountPage({
         </View>
       )}
     />
-  );
-}
-
-function TransactionItem({
-  tx,
-  sym,
-  isLast,
-  categoryName,
-}: {
-  tx: Transaction;
-  sym: string;
-  isLast: boolean;
-  categoryName?: string;
-}) {
-  const { getById } = useAccountsStore();
-  const account = getById(tx.accountId);
-
-  const iconName =
-    tx.type === 'in'
-      ? 'arrow-down'
-      : tx.type === 'out'
-        ? 'arrow-up'
-        : tx.type === 'transfer'
-          ? 'swap-horizontal'
-          : 'cash';
-
-  const iconBg =
-    tx.type === 'in'
-      ? '#DCFCE7'
-      : tx.type === 'out'
-        ? '#FEE2E2'
-        : '#F1F5F9';
-
-  const iconColor =
-    tx.type === 'in'
-      ? HOME_COLORS.positive
-      : tx.type === 'out'
-        ? '#DC2626'
-        : '#1E293B';
-
-  const subtitle = [categoryName, account?.name].filter(Boolean).join(' · ');
-
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: HOME_COLORS.divider,
-      }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          backgroundColor: iconBg,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 12,
-        }}
-      >
-        <Ionicons name={iconName as never} size={18} color={iconColor} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: HOME_COLORS.text }} numberOfLines={1}>
-          {tx.note || tx.type}
-        </Text>
-        {subtitle ? (
-          <Text style={{ fontSize: 12, color: HOME_COLORS.textMuted, marginTop: 2 }} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
-      <Text
-        style={{
-          fontSize: 16,
-          fontWeight: '700',
-          color: tx.type === 'in' ? HOME_COLORS.positive : HOME_COLORS.text,
-        }}
-      >
-        {formatCurrency(tx.amount, sym)}
-      </Text>
-    </View>
   );
 }

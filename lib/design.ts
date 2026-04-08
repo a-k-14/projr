@@ -1,3 +1,5 @@
+// Design tokens for settings screens (consumed by components/settings-ui.tsx).
+// Main-app screens (Home, Activity, Budgets, Loans, modals) use lib/homeTokens.ts instead.
 export const SPACING = {
   xs: 4,
   sm: 8,

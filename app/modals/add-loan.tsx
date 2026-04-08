@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  useColorScheme,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,11 +17,20 @@ import { useLoansStore } from '../../stores/useLoansStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { todayUTC, formatDate } from '../../lib/dateUtils';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import {
+  HOME_COLORS,
+  HOME_RADIUS,
+  HOME_SPACE,
+  HOME_TEXT,
+} from '../../lib/homeTokens';
 
 export default function AddLoanModal() {
   const { add } = useLoansStore();
   const { accounts, refresh } = useAccountsStore();
   const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
 
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -63,57 +73,97 @@ export default function AddLoanModal() {
     }
   };
 
+  const isLent = direction === 'lent';
+
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#F0F0F5' }}
+      style={{ flex: 1, backgroundColor: palette.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         {/* Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12, padding: 4 }}>
-            <Ionicons name="close" size={24} color="#0A0A0A" />
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: HOME_SPACE.screen,
+            paddingTop: HOME_SPACE.sm,
+            paddingBottom: HOME_SPACE.xl,
+          }}
+        >
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: HOME_SPACE.md, padding: HOME_SPACE.xs }}>
+            <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 17, fontWeight: '700', color: '#0A0A0A' }}>Add Loan</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: palette.text }}>Add Loan</Text>
         </View>
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Amount */}
-        <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-          <Text style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 8 }}>Amount</Text>
+        <View style={{ alignItems: 'center', paddingVertical: HOME_SPACE.xxl }}>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
+            Amount
+          </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 32, color: '#9CA3AF', marginRight: 4 }}>{sym}</Text>
+            <Text style={{ fontSize: 32, color: palette.textMuted, marginRight: HOME_SPACE.xs }}>{sym}</Text>
             <TextInput
               value={amountStr}
               onChangeText={setAmountStr}
               keyboardType="decimal-pad"
               placeholder="0"
-              placeholderTextColor="#9CA3AF"
-              style={{ fontSize: 40, fontWeight: '700', color: '#B45309', minWidth: 80, textAlign: 'center' }}
+              placeholderTextColor={palette.textMuted}
+              style={{
+                fontSize: 40,
+                fontWeight: '700',
+                color: HOME_COLORS.loan,
+                minWidth: 80,
+                textAlign: 'center',
+              }}
               autoFocus
             />
           </View>
         </View>
 
-        <View style={{ backgroundColor: '#fff', borderRadius: 20, marginHorizontal: 16, overflow: 'hidden' }}>
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: HOME_RADIUS.large,
+            marginHorizontal: HOME_SPACE.screen,
+            overflow: 'hidden',
+          }}
+        >
           {/* Account */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-            <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Account</Text>
+          <View
+            style={{
+              paddingHorizontal: HOME_SPACE.xl,
+              paddingVertical: HOME_SPACE.lg,
+              borderBottomWidth: 1,
+              borderBottomColor: HOME_COLORS.inputBg,
+            }}
+          >
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
+              Account
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {accounts.map((acc) => (
                 <TouchableOpacity
                   key={acc.id}
                   onPress={() => setAccountId(acc.id)}
                   style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    marginRight: 8,
-                    backgroundColor: accountId === acc.id ? '#1B4332' : '#F3F4F6',
+                    paddingHorizontal: HOME_SPACE.lg,
+                    paddingVertical: HOME_SPACE.sm,
+                    borderRadius: HOME_RADIUS.small,
+                    marginRight: HOME_SPACE.sm,
+                    backgroundColor: accountId === acc.id ? HOME_COLORS.active : HOME_COLORS.inputBg,
                   }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: accountId === acc.id ? '#fff' : '#6B7280' }}>
+                  <Text
+                    style={{
+                      fontSize: HOME_TEXT.body,
+                      fontWeight: '500',
+                      color: accountId === acc.id ? HOME_COLORS.surface : HOME_COLORS.textSecondary,
+                    }}
+                  >
                     {acc.name}
                   </Text>
                 </TouchableOpacity>
@@ -122,78 +172,130 @@ export default function AddLoanModal() {
           </View>
 
           {/* Person */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-            <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Person</Text>
+          <View
+            style={{
+              paddingHorizontal: HOME_SPACE.xl,
+              paddingVertical: HOME_SPACE.lg,
+              borderBottomWidth: 1,
+              borderBottomColor: HOME_COLORS.inputBg,
+            }}
+          >
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
+              Person
+            </Text>
             <TextInput
               value={personName}
               onChangeText={setPersonName}
               placeholder="Name"
-              placeholderTextColor="#9CA3AF"
-              style={{ fontSize: 15, color: '#0A0A0A' }}
+              placeholderTextColor={palette.textMuted}
+              style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}
             />
           </View>
 
           {/* Direction */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-            <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Direction</Text>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              {(['lent', 'borrowed'] as const).map((d) => (
-                <TouchableOpacity
-                  key={d}
-                  onPress={() => setDirection(d)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    alignItems: 'center',
-                    borderWidth: 1.5,
-                    borderColor: direction === d ? '#1B4332' : '#E5E7EB',
-                    backgroundColor: direction === d ? '#DCFCE7' : '#fff',
-                  }}
-                >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: direction === d ? '#1B4332' : '#6B7280' }}>
-                    {d === 'lent' ? 'I lent' : 'I borrowed'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          <View
+            style={{
+              paddingHorizontal: HOME_SPACE.xl,
+              paddingVertical: HOME_SPACE.lg,
+              borderBottomWidth: 1,
+              borderBottomColor: HOME_COLORS.inputBg,
+            }}
+          >
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
+              Direction
+            </Text>
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md }}>
+              {(['lent', 'borrowed'] as const).map((d) => {
+                const active = direction === d;
+                return (
+                  <TouchableOpacity
+                    key={d}
+                    onPress={() => setDirection(d)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: HOME_SPACE.md,
+                      borderRadius: HOME_RADIUS.small,
+                      alignItems: 'center',
+                      borderWidth: 1.5,
+                      borderColor: active ? HOME_COLORS.active : HOME_COLORS.divider,
+                      backgroundColor: active ? HOME_COLORS.inBg : palette.surface,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: HOME_TEXT.body,
+                        fontWeight: '600',
+                        color: active ? HOME_COLORS.active : HOME_COLORS.textSecondary,
+                      }}
+                    >
+                      {d === 'lent' ? 'I lent' : 'I borrowed'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
           {/* Date */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 12, color: '#9CA3AF' }}>Date</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={{ fontSize: 15, color: '#0A0A0A' }}>{formatDate(date)}</Text>
-              <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+          <View
+            style={{
+              paddingHorizontal: HOME_SPACE.xl,
+              paddingVertical: HOME_SPACE.lg,
+              borderBottomWidth: 1,
+              borderBottomColor: HOME_COLORS.inputBg,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Date</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: HOME_SPACE.sm }}>
+              <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{formatDate(date)}</Text>
+              <Ionicons name="calendar-outline" size={18} color={palette.textMuted} />
             </View>
           </View>
 
           {/* Note */}
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
-            <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Note</Text>
+          <View style={{ paddingHorizontal: HOME_SPACE.xl, paddingVertical: HOME_SPACE.lg }}>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
+              Note
+            </Text>
             <TextInput
               value={note}
               onChangeText={setNote}
               placeholder="Add a note..."
-              placeholderTextColor="#9CA3AF"
-              style={{ fontSize: 15, color: '#0A0A0A' }}
+              placeholderTextColor={palette.textMuted}
+              style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}
             />
           </View>
         </View>
       </ScrollView>
 
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: insets.bottom + 16, paddingTop: 12, backgroundColor: '#F0F0F5' }}>
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: HOME_SPACE.screen,
+          paddingBottom: insets.bottom + HOME_SPACE.xl,
+          paddingTop: HOME_SPACE.md,
+          backgroundColor: palette.background,
+        }}
+      >
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!isValid || loading}
           style={{
-            backgroundColor: isValid ? '#B45309' : '#9CA3AF',
-            borderRadius: 16,
-            paddingVertical: 16,
+            backgroundColor: isValid ? HOME_COLORS.loan : palette.textMuted,
+            borderRadius: HOME_RADIUS.card,
+            paddingVertical: HOME_SPACE.xl,
             alignItems: 'center',
           }}
         >
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Add</Text>
+          <Text style={{ color: HOME_COLORS.surface, fontSize: HOME_TEXT.heroLabel, fontWeight: '600' }}>
+            Add
+          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

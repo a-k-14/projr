@@ -106,30 +106,37 @@ export default function CategoriesScreen() {
       return;
     }
 
-    await updateCategory(selectedId, payload as any);
+    await updateCategory(selectedId, payload);
   }
 
   async function onDelete() {
     if (!selectedId) return;
-    Alert.alert('Delete category?', 'This will remove the category from the app.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await removeCategory(selectedId);
-            setSelectedId(categories[0]?.id ?? null);
-            setCreating(!categories[0]);
-          } catch (error) {
-            Alert.alert(
-              'Unable to delete',
-              error instanceof Error ? error.message : 'This category could not be deleted.'
-            );
-          }
+    const category = categories.find((c) => c.id === selectedId);
+    const childCount = categories.filter((c) => c.parentId === selectedId).length;
+    const childNote = childCount > 0 ? ` It has ${childCount} subcategor${childCount === 1 ? 'y' : 'ies'} that will also be removed.` : '';
+    Alert.alert(
+      'Delete category?',
+      `"${category?.name}" will be permanently removed from all transactions.${childNote} This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeCategory(selectedId);
+              setSelectedId(categories[0]?.id ?? null);
+              setCreating(!categories[0]);
+            } catch (error) {
+              Alert.alert(
+                'Unable to delete',
+                error instanceof Error ? error.message : 'This category could not be deleted.'
+              );
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   }
 
   const rows = useMemo(() => {

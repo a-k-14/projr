@@ -8,6 +8,7 @@ import {
   Modal,
   Alert,
   RefreshControl,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,12 +16,22 @@ import { useBudgetsStore } from '../../stores/useBudgetsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency } from '../../lib/derived';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import {
+  HOME_COLORS,
+  HOME_RADIUS,
+  HOME_SHADOW,
+  HOME_SPACE,
+  HOME_TEXT,
+} from '../../lib/homeTokens';
 import type { BudgetWithSpent, CreateBudgetInput } from '../../types';
 
 export default function BudgetScreen() {
   const { budgets, load, add, remove } = useBudgetsStore();
-  const { categories, getCategoryById } = useCategoriesStore();
+  const { categories } = useCategoriesStore();
   const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
 
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -38,57 +49,78 @@ export default function BudgetScreen() {
 
   const totalBudgeted = budgets.reduce((s, b) => s + b.amount, 0);
   const totalSpent = budgets.reduce((s, b) => s + b.spent, 0);
+  const totalRemaining = totalBudgeted - totalSpent;
   const overBudgetCount = budgets.filter((b) => b.spent > b.amount).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={HOME_COLORS.active} />}
       >
         {/* Header */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 }}>
-          <Text style={{ fontSize: 28, fontWeight: '700', color: '#0A0A0A' }}>Budgets</Text>
+        <View style={{ paddingHorizontal: HOME_SPACE.screen, paddingTop: HOME_SPACE.xxxl, paddingBottom: HOME_SPACE.sm }}>
+          <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '700', color: palette.text }}>Budgets</Text>
         </View>
 
         {/* Summary */}
         {budgets.length > 0 && (
-          <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 16 }}>
-                <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 }}>BUDGETED</Text>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: '#0A0A0A', marginTop: 4 }}>
+          <View style={{ paddingHorizontal: HOME_SPACE.screen, marginBottom: HOME_SPACE.xl }}>
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md }}>
+              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: HOME_SPACE.xl }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
+                  BUDGETED
+                </Text>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: palette.text, marginTop: HOME_SPACE.xs }}>
                   {formatCurrency(totalBudgeted, sym)}
                 </Text>
               </View>
-              <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 16 }}>
-                <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 }}>SPENT</Text>
+              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: HOME_SPACE.xl }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
+                  SPENT
+                </Text>
                 <Text
                   style={{
                     fontSize: 20,
                     fontWeight: '700',
-                    color: totalSpent > totalBudgeted ? '#DC2626' : '#0A0A0A',
-                    marginTop: 4,
+                    color: totalSpent > totalBudgeted ? HOME_COLORS.negative : palette.text,
+                    marginTop: HOME_SPACE.xs,
                   }}
                 >
                   {formatCurrency(totalSpent, sym)}
                 </Text>
               </View>
+              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: HOME_SPACE.xl }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
+                  LEFT
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: totalRemaining < 0 ? HOME_COLORS.negative : HOME_COLORS.positive,
+                    marginTop: HOME_SPACE.xs,
+                  }}
+                >
+                  {formatCurrency(Math.abs(totalRemaining), sym)}
+                </Text>
+              </View>
             </View>
+
             {overBudgetCount > 0 && (
               <View
                 style={{
-                  backgroundColor: '#FEE2E2',
-                  borderRadius: 12,
-                  padding: 12,
-                  marginTop: 10,
+                  backgroundColor: HOME_COLORS.outBg,
+                  borderRadius: HOME_RADIUS.small,
+                  padding: HOME_SPACE.md,
+                  marginTop: HOME_SPACE.md,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: HOME_SPACE.sm,
                 }}
               >
-                <Ionicons name="warning" size={16} color="#DC2626" />
-                <Text style={{ fontSize: 13, color: '#DC2626', fontWeight: '500' }}>
+                <Ionicons name="warning" size={16} color={HOME_COLORS.negative} />
+                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: HOME_COLORS.negative, fontWeight: '500' }}>
                   {overBudgetCount} {overBudgetCount === 1 ? 'category' : 'categories'} over budget
                 </Text>
               </View>
@@ -97,22 +129,22 @@ export default function BudgetScreen() {
         )}
 
         {/* Budget list */}
-        <View style={{ paddingHorizontal: 16 }}>
+        <View style={{ paddingHorizontal: HOME_SPACE.screen }}>
           {budgets.length === 0 ? (
             <View
               style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
+                backgroundColor: palette.surface,
+                borderRadius: HOME_RADIUS.card,
                 padding: 32,
                 alignItems: 'center',
               }}
             >
-              <Ionicons name="pricetag-outline" size={48} color="#D1D5DB" />
-              <Text style={{ color: '#9CA3AF', fontSize: 15, fontWeight: '500', marginTop: 12 }}>
+              <Ionicons name="pricetag-outline" size={48} color={palette.textMuted} />
+              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', marginTop: HOME_SPACE.md }}>
                 No budgets yet
               </Text>
-              <Text style={{ color: '#9CA3AF', fontSize: 13, marginTop: 4, textAlign: 'center' }}>
-                Set spending limits for categories to track your budget
+              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.bodySmall, marginTop: HOME_SPACE.xs, textAlign: 'center' }}>
+                Tap + to set spending limits per category
               </Text>
             </View>
           ) : (
@@ -121,6 +153,7 @@ export default function BudgetScreen() {
                 key={budget.id}
                 budget={budget}
                 sym={sym}
+                palette={palette}
                 onDelete={() => {
                   Alert.alert('Delete budget?', 'This cannot be undone.', [
                     { text: 'Cancel', style: 'cancel' },
@@ -142,20 +175,16 @@ export default function BudgetScreen() {
           right: 24,
           width: 56,
           height: 56,
-          borderRadius: 28,
-          backgroundColor: '#1B4332',
+          borderRadius: HOME_RADIUS.fab,
+          backgroundColor: HOME_COLORS.active,
           alignItems: 'center',
           justifyContent: 'center',
-          shadowColor: '#000',
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
-          elevation: 6,
+          ...HOME_SHADOW.card,
         }}
       >
-        <Ionicons name="add" size={28} color="white" />
+        <Ionicons name="add" size={28} color={HOME_COLORS.surface} />
       </TouchableOpacity>
 
-      {/* Add Budget Modal */}
       <AddBudgetModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -163,67 +192,81 @@ export default function BudgetScreen() {
           await add(data, settings.yearStart);
           setShowAddModal(false);
         }}
+        palette={palette}
+        sym={sym}
+        categories={categories}
       />
     </SafeAreaView>
   );
 }
 
+// ─── BudgetCard ───────────────────────────────────────────────────────────────
+
+import type { AppThemePalette } from '../../lib/theme';
+import type { Category } from '../../types';
+
 function BudgetCard({
   budget,
   sym,
+  palette,
   onDelete,
 }: {
   budget: BudgetWithSpent;
   sym: string;
+  palette: AppThemePalette;
   onDelete: () => void;
 }) {
   const isOver = budget.spent > budget.amount;
-  const barColor = isOver ? '#DC2626' : budget.percent > 75 ? '#B45309' : '#1B4332';
+  const barColor = isOver
+    ? HOME_COLORS.negative
+    : budget.percent > 75
+      ? HOME_COLORS.loan
+      : HOME_COLORS.active;
 
   return (
     <TouchableOpacity
       onLongPress={onDelete}
       style={{
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 10,
+        backgroundColor: palette.surface,
+        borderRadius: HOME_RADIUS.card,
+        padding: HOME_SPACE.xl,
+        marginBottom: HOME_SPACE.md,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.md }}>
         <View
           style={{
             width: 36,
             height: 36,
-            borderRadius: 10,
+            borderRadius: HOME_RADIUS.small,
             backgroundColor: budget.categoryColor + '20',
             alignItems: 'center',
             justifyContent: 'center',
-            marginRight: 12,
+            marginRight: HOME_SPACE.md,
           }}
         >
           <Ionicons name={budget.categoryIcon as any} size={18} color={budget.categoryColor} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: '600', color: '#0A0A0A' }}>
+          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>
             {budget.categoryName}
           </Text>
-          <Text style={{ fontSize: 12, color: '#9CA3AF' }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
             {budget.period === 'month' ? 'Monthly' : 'Yearly'} budget
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: isOver ? '#DC2626' : '#0A0A0A' }}>
+          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: isOver ? HOME_COLORS.negative : palette.text }}>
             {formatCurrency(budget.spent, sym)}
           </Text>
-          <Text style={{ fontSize: 12, color: '#9CA3AF' }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
             of {formatCurrency(budget.amount, sym)}
           </Text>
         </View>
       </View>
 
-      {/* Progress bar */}
-      <View style={{ height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+      {/* Progress bar with ghost track */}
+      <View style={{ height: 6, backgroundColor: HOME_COLORS.divider, borderRadius: 3, overflow: 'hidden' }}>
         <View
           style={{
             height: 6,
@@ -234,13 +277,13 @@ function BudgetCard({
         />
       </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-        <Text style={{ fontSize: 12, color: isOver ? '#DC2626' : '#9CA3AF' }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
+        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? HOME_COLORS.negative : palette.textMuted }}>
           {isOver
             ? `${formatCurrency(budget.spent - budget.amount, sym)} over`
             : `${formatCurrency(budget.remaining, sym)} left`}
         </Text>
-        <Text style={{ fontSize: 12, color: isOver ? '#DC2626' : '#9CA3AF' }}>
+        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? HOME_COLORS.negative : palette.textMuted }}>
           {budget.percent}%
         </Text>
       </View>
@@ -248,19 +291,23 @@ function BudgetCard({
   );
 }
 
+// ─── AddBudgetModal ───────────────────────────────────────────────────────────
+
 function AddBudgetModal({
   visible,
   onClose,
   onSave,
+  palette,
+  sym,
+  categories,
 }: {
   visible: boolean;
   onClose: () => void;
   onSave: (data: CreateBudgetInput) => Promise<void>;
+  palette: AppThemePalette;
+  sym: string;
+  categories: Category[];
 }) {
-  const { categories } = useCategoriesStore();
-  const { settings } = useUIStore();
-  const sym = settings.currencySymbol;
-
   const [amountStr, setAmountStr] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [period, setPeriod] = useState<'month' | 'year'>('month');
@@ -288,53 +335,79 @@ function AddBudgetModal({
     }
   };
 
+  const isReady = !!amountStr && !!categoryId;
+
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: '#F0F0F5', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: '#0A0A0A' }}>New Budget</Text>
+        <View
+          style={{
+            backgroundColor: palette.background,
+            borderTopLeftRadius: HOME_RADIUS.large,
+            borderTopRightRadius: HOME_RADIUS.large,
+            padding: HOME_SPACE.xxl,
+          }}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: HOME_SPACE.xxxl }}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: palette.text }}>New Budget</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color={palette.textMuted} />
             </TouchableOpacity>
           </View>
 
           {/* Amount */}
-          <View style={{ backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 10 }}>
-            <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 6 }}>Budget amount</Text>
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: HOME_RADIUS.pill,
+              paddingHorizontal: HOME_SPACE.xl,
+              paddingVertical: HOME_SPACE.lg,
+              marginBottom: HOME_SPACE.md,
+            }}
+          >
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
+              Budget amount
+            </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 20, color: '#9CA3AF', marginRight: 4 }}>{sym}</Text>
+              <Text style={{ fontSize: 20, color: palette.textMuted, marginRight: HOME_SPACE.xs }}>{sym}</Text>
               <TextInput
                 value={amountStr}
                 onChangeText={setAmountStr}
                 keyboardType="decimal-pad"
                 placeholder="0"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={palette.textMuted}
                 autoFocus
-                style={{ fontSize: 24, fontWeight: '700', color: '#1B4332', flex: 1 }}
+                style={{ fontSize: 24, fontWeight: '700', color: HOME_COLORS.active, flex: 1 }}
               />
             </View>
           </View>
 
           {/* Category */}
-          <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Category</Text>
+          <View style={{ marginBottom: HOME_SPACE.md }}>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
+              Category
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {outCategories.map((cat) => (
                 <TouchableOpacity
                   key={cat.id}
                   onPress={() => setCategoryId(cat.id)}
                   style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    marginRight: 8,
-                    backgroundColor: categoryId === cat.id ? '#1B4332' : '#fff',
+                    paddingHorizontal: HOME_SPACE.lg,
+                    paddingVertical: HOME_SPACE.sm,
+                    borderRadius: HOME_RADIUS.small,
+                    marginRight: HOME_SPACE.sm,
+                    backgroundColor: categoryId === cat.id ? HOME_COLORS.active : palette.surface,
                     borderWidth: 1,
-                    borderColor: categoryId === cat.id ? '#1B4332' : '#E5E7EB',
+                    borderColor: categoryId === cat.id ? HOME_COLORS.active : HOME_COLORS.divider,
                   }}
                 >
-                  <Text style={{ fontSize: 13, color: categoryId === cat.id ? '#fff' : '#6B7280' }}>
+                  <Text
+                    style={{
+                      fontSize: HOME_TEXT.bodySmall,
+                      color: categoryId === cat.id ? HOME_COLORS.surface : HOME_COLORS.textSecondary,
+                    }}
+                  >
                     {cat.name}
                   </Text>
                 </TouchableOpacity>
@@ -343,22 +416,28 @@ function AddBudgetModal({
           </View>
 
           {/* Period */}
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginBottom: HOME_SPACE.xxl }}>
             {(['month', 'year'] as const).map((p) => (
               <TouchableOpacity
                 key={p}
                 onPress={() => setPeriod(p)}
                 style={{
                   flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 12,
+                  paddingVertical: HOME_SPACE.md,
+                  borderRadius: HOME_RADIUS.small,
                   alignItems: 'center',
-                  backgroundColor: period === p ? '#1B4332' : '#fff',
+                  backgroundColor: period === p ? HOME_COLORS.active : palette.surface,
                   borderWidth: 1,
-                  borderColor: period === p ? '#1B4332' : '#E5E7EB',
+                  borderColor: period === p ? HOME_COLORS.active : HOME_COLORS.divider,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '500', color: period === p ? '#fff' : '#6B7280' }}>
+                <Text
+                  style={{
+                    fontSize: HOME_TEXT.body,
+                    fontWeight: '500',
+                    color: period === p ? HOME_COLORS.surface : HOME_COLORS.textSecondary,
+                  }}
+                >
                   {p === 'month' ? 'Monthly' : 'Yearly'}
                 </Text>
               </TouchableOpacity>
@@ -367,15 +446,17 @@ function AddBudgetModal({
 
           <TouchableOpacity
             onPress={handleSave}
-            disabled={!amountStr || !categoryId || loading}
+            disabled={!isReady || loading}
             style={{
-              backgroundColor: amountStr && categoryId ? '#1B4332' : '#9CA3AF',
-              borderRadius: 14,
-              paddingVertical: 16,
+              backgroundColor: isReady ? HOME_COLORS.active : palette.textMuted,
+              borderRadius: HOME_RADIUS.pill,
+              paddingVertical: HOME_SPACE.xl,
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Add Budget</Text>
+            <Text style={{ color: HOME_COLORS.surface, fontSize: HOME_TEXT.heroLabel, fontWeight: '600' }}>
+              Add Budget
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
