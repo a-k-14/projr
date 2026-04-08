@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -261,9 +262,12 @@ export default function AddTransactionModal() {
   };
 
   const handleOpenCalculator = () => {
-    setCalculatorOpen(true);
-    setCalculatorValue(amountStr || '0');
-    router.push('/modals/calculator');
+    Keyboard.dismiss();
+    setTimeout(() => {
+      setCalculatorOpen(true);
+      setCalculatorValue(amountStr || '0');
+      router.push('/modals/calculator');
+    }, 50);
   };
 
   return (
@@ -345,7 +349,10 @@ export default function AddTransactionModal() {
                 value={getAccountName(accounts, accountId)}
                 placeholder={!accountId}
                 onPress={() => {
-                  setShowAccountSheet(true);
+                  Keyboard.dismiss();
+                  setTimeout(() => {
+                    setShowAccountSheet(true);
+                  }, 50);
                 }}
               />
               <PickerRow
@@ -353,11 +360,14 @@ export default function AddTransactionModal() {
                 value={getCategoryName(categories, categoryId)}
                 placeholder={!categoryId}
                 onPress={() => {
-                  setDraftCategoryId(categoryId);
-                  router.push({
-                    pathname: '/modals/select-category',
-                    params: { type },
-                  });
+                  Keyboard.dismiss();
+                  setTimeout(() => {
+                    setDraftCategoryId(categoryId);
+                    router.push({
+                      pathname: '/modals/select-category',
+                      params: { type },
+                    });
+                  }, 50);
                 }}
               />
               <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" />
@@ -379,7 +389,10 @@ export default function AddTransactionModal() {
                 value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
                 placeholder={!selectedTagIds.length}
                 onPress={() => {
-                  setShowTagSheet(true);
+                  Keyboard.dismiss();
+                  setTimeout(() => {
+                    setShowTagSheet(true);
+                  }, 50);
                 }}
               />
               <NotesSection note={note} onChangeNote={setNote} />

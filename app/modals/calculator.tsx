@@ -103,7 +103,7 @@ export default function CalculatorModal() {
             <Text
               numberOfLines={1}
               style={{
-                fontSize: 42,
+                fontSize: 40,
                 fontWeight: '700',
                 color: palette.text,
                 textAlign: 'right',
@@ -184,7 +184,7 @@ function CalcButton({
       onPress={onPress}
       style={{
         flex: 1,
-        minHeight: 60,
+        minHeight: 64,
         borderRadius: 18,
         backgroundColor: bg,
         borderWidth: 1,
