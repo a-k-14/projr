@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { useUIStore } from '../../stores/useUIStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 const BUTTONS = [
   ['7', '8', '9', '÷'],
@@ -81,7 +82,14 @@ export default function CalculatorModal() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <View style={{ flex: 1, paddingTop: 8, paddingBottom: 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18, paddingHorizontal: 16 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 120,
+            paddingHorizontal: SCREEN_GUTTER,
+          }}
+        >
           <TouchableOpacity onPress={handleClose} style={{ padding: 6, marginRight: 8 }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
@@ -90,55 +98,60 @@ export default function CalculatorModal() {
           </Text>
         </View>
 
-        <View
-          style={{
-            backgroundColor: palette.surface,
-            borderRadius: 24,
-            paddingHorizontal: 18,
-            paddingVertical: 18,
-            borderWidth: 1,
-            borderColor: palette.border,
-            marginBottom: 18,
-          }}
-        >
-          <Text style={{ fontSize: 12, color: palette.textMuted, marginBottom: 8 }}>Amount</Text>
-          <Text
-            numberOfLines={1}
-            style={{
-              fontSize: 34,
-              fontWeight: '700',
-              color: palette.text,
-              textAlign: 'right',
-              letterSpacing: -0.8,
-            }}
-          >
-            {display}
-          </Text>
-        </View>
-
-        <View style={{ width: '100%', gap: 10, marginBottom: 16, paddingHorizontal: 0 }}>
-          {BUTTONS.map((row) => (
-            <View
-              key={row.join('')}
-              style={{ width: '100%', flexDirection: 'row', gap: 10, paddingHorizontal: 0 }}
+        <View style={{ flex: 1, justifyContent: 'space-between' }}>
+          <View style={{ flex: 0.16, justifyContent: 'flex-end', paddingHorizontal: SCREEN_GUTTER }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 42,
+                fontWeight: '700',
+                color: palette.text,
+                textAlign: 'right',
+                letterSpacing: -1,
+                marginBottom: 4,
+              }}
             >
-              {row.map((label) => (
-                <CalcButton
-                  key={label}
-                  label={label}
-                  onPress={() => appendToken(label)}
-                  palette={palette}
-                />
+              {display}
+            </Text>
+          </View>
+
+          <View style={{ flex: 0.84, justifyContent: 'flex-end', paddingHorizontal: SCREEN_GUTTER }}>
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: palette.border,
+                paddingTop: 12,
+                width: '100%',
+              }}
+            />
+
+            <View style={{ height: 14 }} />
+
+            <View style={{ width: '100%', gap: 10, marginBottom: 18, paddingHorizontal: 0 }}>
+              {BUTTONS.map((row) => (
+                <View
+                  key={row.join('')}
+                  style={{ width: '100%', flexDirection: 'row', gap: 10, paddingHorizontal: 0 }}
+                >
+                  {row.map((label) => (
+                    <CalcButton
+                      key={label}
+                      label={label}
+                      onPress={() => appendToken(label)}
+                      palette={palette}
+                    />
+                  ))}
+                </View>
               ))}
             </View>
-          ))}
-        </View>
 
-        <View style={{ width: '100%', flexDirection: 'row', gap: 10, paddingHorizontal: 0 }}>
-          <CalcButton label="C" onPress={clearAll} palette={palette} />
-          <CalcButton label="⌫" onPress={backspace} palette={palette} />
-          <CalcButton label="=" onPress={evaluate} palette={palette} />
-          <CalcButton label="OK" onPress={handleClose} palette={palette} primary />
+            <View style={{ width: '100%', flexDirection: 'row', gap: 10, paddingHorizontal: 0 }}>
+              <CalcButton label="C" onPress={clearAll} palette={palette} />
+              <CalcButton label="⌫" onPress={backspace} palette={palette} />
+              <CalcButton label="=" onPress={evaluate} palette={palette} />
+              <CalcButton label="OK" onPress={handleClose} palette={palette} primary />
+            </View>
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -171,7 +184,7 @@ function CalcButton({
       onPress={onPress}
       style={{
         flex: 1,
-        minHeight: 56,
+        minHeight: 60,
         borderRadius: 18,
         backgroundColor: bg,
         borderWidth: 1,
@@ -180,15 +193,23 @@ function CalcButton({
         justifyContent: 'center',
       }}
     >
-      <Text
-        style={{
-          fontSize: label === 'OK' ? 15 : 18,
-          fontWeight: '700',
-          color: primary ? '#fff' : palette.text,
-        }}
-      >
-        {label}
-      </Text>
+      {label === '⌫' ? (
+        <Ionicons
+          name="backspace-outline"
+          size={24}
+          color={primary ? '#fff' : palette.text}
+        />
+      ) : (
+        <Text
+          style={{
+            fontSize: label === 'OK' ? 15 : 18,
+            fontWeight: '700',
+            color: primary ? '#fff' : palette.text,
+          }}
+        >
+          {label}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }

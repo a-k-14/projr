@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppThemePalette } from '../../lib/theme';
 
 /**
@@ -37,6 +38,7 @@ export function BottomSheet({
   children: ReactNode;
 }) {
   const { height: screenHeight } = Dimensions.get('window');
+  const insets = useSafeAreaInsets();
 
   const MIN_HEIGHT = screenHeight * 0.5;
   const MAX_HEIGHT = screenHeight * 0.75;
@@ -63,8 +65,8 @@ export function BottomSheet({
 
   const closeSheet = useCallback(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 0, duration: 180, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: screenHeight, duration: 220, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: screenHeight, duration: 160, useNativeDriver: true }),
     ]).start(({ finished }) => {
       if (finished) onClose();
     });
@@ -72,8 +74,8 @@ export function BottomSheet({
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 70, friction: 13 }),
+      Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 120, friction: 14 }),
     ]).start();
   }, [translateY, opacity]);
 
@@ -198,7 +200,7 @@ export function BottomSheet({
             {/* Scrollable content — no panHandlers, taps are instant */}
             <ScrollView
               style={{ flexShrink: 1 }}
-              contentContainerStyle={{ paddingBottom: 20 }}
+              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) }}
               showsVerticalScrollIndicator={false}
               bounces={false}
               overScrollMode="never"

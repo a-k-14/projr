@@ -18,7 +18,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { formatDateTime12, nowUTC } from '../../lib/dateUtils';
 import { formatCurrency } from '../../lib/derived';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { RADIUS, SCREEN_GUTTER } from '../../lib/design';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getTransactionById } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -290,7 +290,7 @@ export default function AddTransactionModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 132 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 132 }} keyboardShouldPersistTaps="handled">
         <View style={{ paddingBottom: 20 }}>
           <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -529,7 +529,6 @@ export default function AddTransactionModal() {
 
       {showAccountSheet ? (
         <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)}>
-          <SectionLabel label="Select an account" palette={palette} />
           {accounts.length === 0 ? (
             <Text style={{ color: '#9CA3AF', fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
@@ -557,8 +556,7 @@ export default function AddTransactionModal() {
       ) : null}
 
       {showTagSheet ? (
-        <BottomSheet title="Select tags" palette={palette} onClose={() => setShowTagSheet(false)}>
-          <SectionLabel label="Select one or more tags" palette={palette} />
+        <BottomSheet title="Select tags" subtitle="Select one or more" palette={palette} onClose={() => setShowTagSheet(false)}>
           {tags.length === 0 ? (
             <Text style={{ color: '#9CA3AF', fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
           ) : (
@@ -710,14 +708,20 @@ function InlinePickerRow({
         >
           {value}
         </Text>
-        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end' }}>
-          {icon ? <Ionicons name={icon} size={18} color="#9CA3AF" /> : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {icon ? (
+            <View style={{ width: 32, alignItems: 'flex-end', justifyContent: 'center' }}>
+              <View style={{ width: 32, height: 32, borderRadius: RADIUS.sm, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={icon} size={16} color="#4B5563" />
+              </View>
+            </View>
+          ) : null}
+          {showChevron ? (
+            <View style={{ width: 24, alignItems: 'flex-end', justifyContent: 'center' }}>
+              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            </View>
+          ) : null}
         </View>
-        {showChevron ? (
-          <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end' }}>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-          </View>
-        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -781,7 +785,7 @@ function PickerRow({
         >
           {value}
         </Text>
-        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end' }}>
+        <View style={{ width: 24, alignItems: 'flex-end', justifyContent: 'center' }}>
           <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
         </View>
       </View>
@@ -869,15 +873,17 @@ function AmountRow({
         />
         <TouchableOpacity
           onPress={onOpenCalculator}
-          hitSlop={10}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           style={{
             width: 44,
-            height: 44,
-            alignItems: 'center',
+            height: ROW_MIN_HEIGHT,
+            alignItems: 'flex-end',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="calculator-outline" size={20} color="#9CA3AF" />
+          <View style={{ width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="calculator-outline" size={18} color="#4B5563" />
+          </View>
         </TouchableOpacity>
       </View>
     </View>
