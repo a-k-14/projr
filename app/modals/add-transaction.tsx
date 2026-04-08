@@ -50,6 +50,7 @@ type SplitDraft = {
 const ROW_LABEL_WIDTH = 92;
 const ROW_MIN_HEIGHT = 62;
 const ROW_COLUMN_GAP = 16;
+const ROW_TRAILING_WIDTH = 24;
 
 function sanitizeDecimalInput(value: string): string {
   const cleaned = value.replace(/[^0-9.]/g, '');
@@ -74,9 +75,13 @@ export default function AddTransactionModal() {
     accountId: draftAccountId,
     categoryId: draftCategoryId,
     tagIds: draftTagIds,
+    calculatorValue,
+    calculatorOpen,
     setAccountId: setDraftAccountId,
     setCategoryId: setDraftCategoryId,
     setTagIds: setDraftTagIds,
+    setCalculatorValue,
+    setCalculatorOpen,
   } = useTransactionDraftStore();
   const insets = useSafeAreaInsets();
   const [type, setType] = useState<TransactionType>('out');
@@ -116,6 +121,12 @@ export default function AddTransactionModal() {
   useEffect(() => {
     if (categoryId !== draftCategoryId) setDraftCategoryId(categoryId);
   }, [categoryId, draftCategoryId, setDraftCategoryId]);
+
+  useEffect(() => {
+    if (calculatorOpen) {
+      setAmountStr(calculatorValue);
+    }
+  }, [calculatorOpen, calculatorValue]);
 
   useEffect(() => {
     if (!isEditing || !editId) return;
@@ -249,6 +260,12 @@ export default function AddTransactionModal() {
     setSplitRows((current) => current.filter((row) => row.id !== id));
   };
 
+  const handleOpenCalculator = () => {
+    setCalculatorOpen(true);
+    setCalculatorValue(amountStr || '0');
+    router.push('/modals/calculator');
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: '#F0F0F5' }}
@@ -315,13 +332,14 @@ export default function AddTransactionModal() {
                 showChevron={false}
                 valueStyle={{ color: '#0A0A0A' }}
               />
-              <AmountRow
-                sym={sym}
-                activeConfig={activeConfig}
-                amountStr={amountStr}
-                setAmountStr={setAmountStr}
-                isEditing={isEditing}
-              />
+            <AmountRow
+              sym={sym}
+              activeConfig={activeConfig}
+              amountStr={amountStr}
+              setAmountStr={setAmountStr}
+              onOpenCalculator={handleOpenCalculator}
+              isEditing={isEditing}
+            />
               <PickerRow
                 label="Account"
                 value={getAccountName(accounts, accountId)}
@@ -692,11 +710,15 @@ function InlinePickerRow({
         >
           {value}
         </Text>
-        <View style={{ width: 24, alignItems: 'flex-end' }}>
+        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end' }}>
           {icon ? <Ionicons name={icon} size={18} color="#9CA3AF" /> : null}
         </View>
+        {showChevron ? (
+          <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end' }}>
+            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+          </View>
+        ) : null}
       </View>
-      {showChevron ? <Ionicons name="chevron-forward" size={16} color="#9CA3AF" /> : null}
     </TouchableOpacity>
   );
 }
@@ -759,7 +781,7 @@ function PickerRow({
         >
           {value}
         </Text>
-        <View style={{ width: 24, alignItems: 'flex-end' }}>
+        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end' }}>
           <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
         </View>
       </View>
@@ -785,12 +807,14 @@ function AmountRow({
   activeConfig,
   amountStr,
   setAmountStr,
+  onOpenCalculator,
   isEditing,
 }: {
   sym: string;
   activeConfig: (typeof TYPE_CONFIG)[TransactionType];
   amountStr: string;
   setAmountStr: (value: string) => void;
+  onOpenCalculator: () => void;
   isEditing: boolean;
 }) {
   return (
@@ -844,7 +868,7 @@ function AmountRow({
           autoFocus={!isEditing}
         />
         <TouchableOpacity
-          onPress={() => Alert.alert('Calculator', 'Calculator screen is coming next.')}
+          onPress={onOpenCalculator}
           hitSlop={10}
           style={{
             width: 44,

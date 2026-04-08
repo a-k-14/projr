@@ -94,6 +94,10 @@ export default function RootLayout() {
             name="modals/select-category"
             options={{ presentation: 'modal', headerShown: false }}
           />
+          <Stack.Screen
+            name="modals/calculator"
+            options={{ presentation: 'modal', headerShown: false }}
+          />
         </Stack>
         <StatusBar
           style={palette.statusBarStyle}
