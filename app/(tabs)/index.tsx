@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   LayoutChangeEvent,
@@ -372,6 +372,14 @@ function HomeAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showViewPicker, setShowViewPicker] = useState(false);
+
+  const leftScrollRef = useRef<ScrollView>(null);
+  const rightScrollRef = useRef<ScrollView>(null);
+
+  const handleSyncScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = event.nativeEvent.contentOffset.y;
+    leftScrollRef.current?.scrollTo({ y, animated: false });
+  };
   const isDarkMode = palette.statusBarStyle === 'light';
 
   const { from, to } = getDateRange(
@@ -431,7 +439,7 @@ function HomeAccountPage({
               style={{
                 fontSize: HOME_TEXT.heroValue,
                 lineHeight: 36,
-                fontWeight: '700',
+                fontWeight: '600',
                 color: palette.text,
                 textAlign: 'right',
                 flexShrink: 1,
@@ -484,23 +492,19 @@ function HomeAccountPage({
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: period === value
-                      ? isDarkMode
-                        ? '#2C3038'
-                        : '#202845'
-                      : palette.surface,
-                    borderLeftWidth: value === 'week' ? 0 : 1,
-                    borderLeftColor: palette.divider,
+                      ? 'rgba(23, 103, 59, 0.15)'
+                      : 'transparent',
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: HOME_TEXT.bodySmall,
-                      fontWeight: '500',
-                      lineHeight: 13,
+                      fontSize: 12,
+                      fontWeight: period === value ? '700' : '600',
+                      textAlign: 'center',
                       textAlignVertical: 'center',
                       includeFontPadding: false,
                       color: period === value
-                        ? palette.surface
+                        ? palette.active
                         : palette.textMuted,
                     }}
                   >
@@ -543,13 +547,49 @@ function HomeAccountPage({
             </TouchableOpacity>
 
             {activeView === 'table' ? (
-              <View>
+              <View style={{ flexDirection: 'row' }}>
+                {/* Left Fixed Column: Period */}
+                <View style={{ width: 45 }}>
+                  <View style={{ borderBottomWidth: 1, borderBottomColor: palette.borderSoft, paddingBottom: 10, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center' }}>
+                      Period
+                    </Text>
+                  </View>
+                  <ScrollView
+                    ref={leftScrollRef}
+                    style={{ maxHeight: 310 }}
+                    showsVerticalScrollIndicator={false}
+                    scrollEnabled={false} // Synced by right scroll
+                  >
+                    {viewData.map((row, i) => (
+                      <View
+                        key={i}
+                        style={{
+                          height: 52, // 14*2 + fontSize + padding
+                          justifyContent: 'center',
+                          borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
+                          borderBottomColor: palette.borderSoft,
+                        }}
+                      >
+                        <Text 
+                          numberOfLines={1} 
+                          style={{ width: 45, fontSize: 14, fontWeight: '600', color: palette.text, opacity: 0.85, textAlign: 'center' }}
+                        >
+                          {row.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Right Scrollable Data: Inflow, Outflow, Net */}
                 <GestureScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false}
                   disallowInterruption={true}
+                  style={{ flex: 1 }}
                 >
-                  <View style={{ paddingRight: 20 }}>
+                  <View>
                     <View
                       style={{
                         flexDirection: 'row',
@@ -559,22 +599,25 @@ function HomeAccountPage({
                         marginBottom: 4,
                       }}
                     >
-                      <Text style={{ width: 45, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center' }}>Period</Text>
-                      <Text style={{ minWidth: 80, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 16 }}>Inflow</Text>
-                      <Text style={{ minWidth: 80, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 16 }}>Outflow</Text>
-                      <Text style={{ minWidth: 90, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 16 }}>Net</Text>
+                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 12 }}>Inflow</Text>
+                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 12 }}>Outflow</Text>
+                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 12 }}>Net</Text>
                     </View>
                     <ScrollView
+                      ref={rightScrollRef}
                       style={{ maxHeight: 310 }}
                       nestedScrollEnabled
                       showsVerticalScrollIndicator={false}
+                      onScroll={handleSyncScroll}
+                      scrollEventThrottle={16}
                     >
                       {viewData.map((row, i) => (
                         <View
                           key={i}
                           style={{
                             flexDirection: 'row',
-                            paddingVertical: 14,
+                            paddingVertical: 14, // Adjusted from 18 to 14 to stabilize height
+                            height: 52,
                             borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
                             borderBottomColor: palette.borderSoft,
                             alignItems: 'center',
@@ -582,31 +625,26 @@ function HomeAccountPage({
                         >
                           <Text 
                             numberOfLines={1} 
-                            style={{ width: 45, fontSize: 14, fontWeight: '600', color: palette.text }}
-                          >
-                            {row.label}
-                          </Text>
-                          <Text 
-                            numberOfLines={1} 
-                            style={{ minWidth: 80, fontSize: 14, color: palette.active, textAlign: 'right', marginLeft: 16 }}
+                            style={{ width: 95, fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right', marginLeft: 12 }}
                           >
                             {row.in > 0 ? formatIndianNumberStr(String(row.in)) : '-'}
                           </Text>
                           <Text 
                             numberOfLines={1} 
-                            style={{ minWidth: 80, fontSize: 14, color: palette.negative, textAlign: 'right', marginLeft: 16 }}
+                            style={{ width: 95, fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right', marginLeft: 12 }}
                           >
                             {row.out > 0 ? formatIndianNumberStr(String(row.out)) : '-'}
                           </Text>
                           <Text
                             numberOfLines={1}
                             style={{
-                              minWidth: 90,
+                              width: 95,
                               fontSize: 14,
                               fontWeight: '600',
-                              color: row.net > 0 ? palette.active : row.net < 0 ? palette.negative : palette.textMuted,
+                              color: row.net > 0 ? palette.active : row.net < 0 ? palette.negative : palette.text,
+                              opacity: row.net === 0 ? 0.85 : 1,
                               textAlign: 'right',
-                              marginLeft: 16
+                              marginLeft: 12
                             }}
                           >
                             {row.net !== 0 ? formatIndianNumberStr(String(row.net)) : '-'}

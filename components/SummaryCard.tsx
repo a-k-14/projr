@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: HOME_TEXT.body,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });
