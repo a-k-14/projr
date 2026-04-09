@@ -484,7 +484,7 @@ function HomeAccountPage({
                     justifyContent: 'center',
                     backgroundColor: period === value
                       ? isDarkMode
-                        ? 'rgba(255, 255, 255, 0.12)'
+                        ? '#2C3038'
                         : '#202845'
                       : palette.surface,
                     borderLeftWidth: value === 'week' ? 0 : 1,
@@ -499,9 +499,7 @@ function HomeAccountPage({
                       textAlignVertical: 'center',
                       includeFontPadding: false,
                       color: period === value
-                        ? isDarkMode
-                          ? palette.neutral
-                          : palette.surface
+                        ? palette.surface
                         : palette.textMuted,
                     }}
                   >
