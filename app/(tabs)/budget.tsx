@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useBudgetsStore } from '../../stores/useBudgetsStore';
+import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency } from '../../lib/derived';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
 import {
   HOME_COLORS,
   HOME_RADIUS,
@@ -25,9 +25,10 @@ import {
   HOME_TEXT,
 } from '../../lib/homeTokens';
 import type { BudgetWithSpent, CreateBudgetInput } from '../../types';
+import { ScreenTitle } from '../../components/settings-ui';
 
 export default function BudgetScreen() {
-  const { budgets, load, add, remove } = useBudgetsStore();
+  const { budgets, load, add, remove } = useBudgetStore();
   const { categories } = useCategoriesStore();
   const { settings } = useUIStore();
   const scheme = useColorScheme();
@@ -53,15 +54,13 @@ export default function BudgetScreen() {
   const overBudgetCount = budgets.filter((b) => b.spent > b.amount).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={HOME_COLORS.active} />}
       >
         {/* Header */}
-        <View style={{ paddingHorizontal: HOME_SPACE.screen, paddingTop: HOME_SPACE.xxxl, paddingBottom: HOME_SPACE.sm }}>
-          <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '700', color: palette.text }}>Budgets</Text>
-        </View>
+        <ScreenTitle title="Budgets" palette={palette} />
 
         {/* Summary */}
         {budgets.length > 0 && (
@@ -202,7 +201,6 @@ export default function BudgetScreen() {
 
 // ─── BudgetCard ───────────────────────────────────────────────────────────────
 
-import type { AppThemePalette } from '../../lib/theme';
 import type { Category } from '../../types';
 
 function BudgetCard({

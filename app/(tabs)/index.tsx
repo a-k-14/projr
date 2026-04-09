@@ -1,3 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -13,25 +16,23 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useUIStore } from '../../stores/useUIStore';
-import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { buildSpendingChartData, getTotalBalance, formatCurrency } from '../../lib/derived';
-import { getDateRange, todayUTC, formatDate } from '../../lib/dateUtils';
+import { AccountTabBar } from '../../components/AccountTabBar';
+import { SummaryCard } from '../../components/SummaryCard';
+import { TransactionItem as TransactionRow } from '../../components/TransactionItem';
+import { InlineDot } from '../../components/ui/InlineDot';
+import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
+import { buildSpendingChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
+import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
 import { getCashflowSummary, getDailySpending } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
-import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
-import { AccountTabBar } from '../../components/AccountTabBar';
-import { TransactionListItem } from '../../components/TransactionListItem';
+import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useUIStore } from '../../stores/useUIStore';
 import type {
-  PeriodType,
-  Transaction,
   CashflowSummary,
   DailySpending,
+  PeriodType,
+  Transaction,
 } from '../../types';
 
 const PERIODS: PeriodType[] = ['week', 'month', 'year', 'custom'];
@@ -147,7 +148,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView
-      edges={['top', 'left', 'right']}
+      edges={['top']}
       style={{ flex: 1, backgroundColor: HOME_COLORS.background }}
     >
       <AccountTabBar
@@ -206,7 +207,12 @@ export default function HomeScreen() {
       </View>
 
       <TouchableOpacity
-        onPress={() => router.push('/modals/add-transaction')}
+        onPress={() =>
+          router.push({
+            pathname: '/modals/add-transaction',
+            params: selectedAccountId === 'all' ? undefined : { accountId: selectedAccountId },
+          })
+        }
         style={{
           position: 'absolute',
           bottom: Math.max(0, insets.bottom - 24),
@@ -397,11 +403,11 @@ function HomeAccountPage({
       >
         <View style={{ paddingHorizontal: HOME_SPACE.screen, paddingTop: 14, paddingBottom: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1, paddingRight: 16 }}>
+            <View style={{ flex: 1, paddingRight: 18 }}>
               <Text style={{ fontSize: HOME_TEXT.heroLabel, color: HOME_COLORS.text, fontWeight: '700' }}>
                 {accountId === 'all' ? 'All Accounts' : accountName}
               </Text>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginTop: 4 }}>Current Balance</Text>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginTop: 2 }}>Current Balance</Text>
             </View>
             <Text
               style={{
@@ -424,7 +430,7 @@ function HomeAccountPage({
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text }}>
               {formatDate(today)}
             </Text>
-            <InlineDot size={3.5} color={HOME_COLORS.todayDot} />
+            <InlineDot size={3} color={HOME_COLORS.todayDot} />
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text }}>Today</Text>
           </View>
           <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
@@ -453,30 +459,30 @@ function HomeAccountPage({
                       }
                       : () => setPeriod(value)
                   }
+                  style={{
+                    flex: 1,
+                    height: HOME_LAYOUT.periodHeight,
+                    paddingHorizontal: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: period === value ? HOME_COLORS.heroBar : HOME_COLORS.surface,
+                    borderLeftWidth: value === 'week' ? 0 : 1,
+                    borderLeftColor: HOME_COLORS.divider,
+                  }}
+                >
+                  <Text
                     style={{
-                      flex: 1,
-                      height: HOME_LAYOUT.periodHeight,
-                      paddingHorizontal: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: period === value ? HOME_COLORS.heroBar : HOME_COLORS.surface,
-                      borderLeftWidth: value === 'week' ? 0 : 1,
-                      borderLeftColor: HOME_COLORS.divider,
+                      fontSize: HOME_TEXT.bodySmall,
+                      fontWeight: '500',
+                      lineHeight: 13,
+                      textAlignVertical: 'center',
+                      includeFontPadding: false,
+                      color: period === value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: HOME_TEXT.bodySmall,
-                        fontWeight: '500',
-                        lineHeight: 13,
-                        textAlignVertical: 'center',
-                        includeFontPadding: false,
-                        color: period === value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
-                      }}
-                    >
-                      {PERIOD_LABELS[value]}
-                    </Text>
-                  </TouchableOpacity>
+                    {PERIOD_LABELS[value]}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -543,13 +549,14 @@ function HomeAccountPage({
             </View>
           </View>
 
-          <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, padding: 16, marginBottom: HOME_SPACE.pageBottom }}>
+          <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, paddingTop: 14, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
             <View
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 12,
+                marginBottom: 8,
+                paddingHorizontal: 16,
               }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: HOME_COLORS.text }}>Recent</Text>
@@ -586,73 +593,5 @@ function HomeAccountPage({
       </ScrollView>
 
     </View>
-  );
-}
-
-function SummaryCard({
-  cashflow,
-  sym,
-}: {
-  cashflow: CashflowSummary;
-  sym: string;
-}) {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        backgroundColor: HOME_COLORS.surface,
-        borderRadius: HOME_RADIUS.card,
-        overflow: 'hidden',
-        marginBottom: 18,
-      }}
-    >
-      {(['in', 'out', 'net'] as const).map((key, index) => (
-        <View
-          key={key}
-          style={{
-            flex: 1,
-            paddingVertical: 16,
-            paddingHorizontal: 8,
-            alignItems: 'center',
-            borderLeftWidth: index === 0 ? 0 : 1,
-            borderLeftColor: HOME_COLORS.divider,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: HOME_TEXT.caption,
-              color: HOME_COLORS.textMuted,
-              marginBottom: 6,
-              textTransform: 'capitalize',
-            }}
-          >
-            {key.charAt(0).toUpperCase() + key.slice(1)}
-          </Text>
-          <Text
-            style={{
-              fontSize: HOME_TEXT.body,
-              fontWeight: '700',
-              color: key === 'out' ? HOME_COLORS.negative : HOME_COLORS.active,
-            }}
-          >
-            {formatCurrency(cashflow[key], sym)}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function InlineDot({ size = 8, color = '#8C94AF' }: { size?: number; color?: string }) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: color,
-        marginHorizontal: 6,
-      }}
-    />
   );
 }

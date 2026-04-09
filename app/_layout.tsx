@@ -82,6 +82,22 @@ export default function RootLayout() {
             name="modals/add-loan"
             options={{ presentation: 'modal', headerShown: false }}
           />
+          <Stack.Screen
+            name="modals/select-account"
+            options={{ presentation: 'transparentModal', headerShown: false }}
+          />
+          <Stack.Screen
+            name="modals/select-tag"
+            options={{ presentation: 'transparentModal', headerShown: false }}
+          />
+          <Stack.Screen
+            name="modals/select-category"
+            options={{ presentation: 'modal', headerShown: false }}
+          />
+          <Stack.Screen
+            name="modals/calculator"
+            options={{ presentation: 'modal', headerShown: false }}
+          />
         </Stack>
         <StatusBar
           style={palette.statusBarStyle}

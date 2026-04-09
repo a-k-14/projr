@@ -1,138 +1,213 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
+  Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
   useColorScheme,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
+import { formatDateTime12, nowUTC } from '../../lib/dateUtils';
+import { formatCurrency } from '../../lib/derived';
+import { RADIUS, SCREEN_GUTTER } from '../../lib/design';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { getTransactionById } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { useLoansStore } from '../../stores/useLoansStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { todayUTC, formatDate, toUTCMidnight } from '../../lib/dateUtils';
-import {
-  HOME_COLORS,
-  HOME_RADIUS,
-  HOME_SPACE,
-  HOME_TEXT,
-  TX_TYPE_CONFIG,
-} from '../../lib/homeTokens';
-import type { TransactionType, CreateTransactionInput, Account, Category } from '../../types';
-import { getTransactionById } from '../../services/transactions';
+import type {
+  Account,
+  Category,
+  CreateTransactionInput,
+  Tag,
+  TransactionType,
+} from '../../types';
+
+const TYPE_CONFIG = {
+  in: { label: 'In', color: '#16A34A', borderColor: '#16A34A', bg: '#DCFCE7' },
+  out: { label: 'Out', color: '#DC2626', borderColor: '#DC2626', bg: '#FEE2E2' },
+  transfer: { label: 'Transfer', color: '#1E293B', borderColor: '#1E293B', bg: '#F1F5F9' },
+  loan: { label: 'Loan', color: '#B45309', borderColor: '#B45309', bg: '#FEF3C7' },
+};
+
+type SplitDraft = {
+  id: string;
+  categoryId: string;
+  amountStr: string;
+};
+
+const ROW_LABEL_WIDTH = 92;
+const ROW_MIN_HEIGHT = 62;
+const ROW_COLUMN_GAP = 16;
+const ROW_TRAILING_WIDTH = 24;
+
+function sanitizeDecimalInput(value: string): string {
+  const cleaned = value.replace(/[^0-9.]/g, '');
+  if (!cleaned) return '';
+  const [head, ...rest] = cleaned.split('.');
+  const normalizedHead = head === '' ? '0' : head;
+  if (rest.length === 0) return normalizedHead;
+  return `${normalizedHead}.${rest.join('').replace(/\./g, '')}`;
+}
 
 export default function AddTransactionModal() {
-  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const { editId, accountId: sourceAccountId } = useLocalSearchParams<{ editId?: string; accountId?: string }>();
   const isEditing = !!editId;
 
   const { add, update, remove } = useTransactionsStore();
-  const { add: addLoan } = useLoansStore();
   const { accounts, refresh: refreshAccounts } = useAccountsStore();
-  const { categories, getCategoryDisplayName } = useCategoriesStore();
+  const { categories, tags } = useCategoriesStore();
   const { settings } = useUIStore();
   const scheme = useColorScheme();
   const palette = getThemePalette(resolveTheme(settings.theme, scheme));
-
+  const {
+    accountId: draftAccountId,
+    categoryId: draftCategoryId,
+    tagIds: draftTagIds,
+    calculatorValue,
+    calculatorOpen,
+    setAccountId: setDraftAccountId,
+    setCategoryId: setDraftCategoryId,
+    setTagIds: setDraftTagIds,
+    setCalculatorValue,
+    setCalculatorOpen,
+  } = useTransactionDraftStore();
+  const insets = useSafeAreaInsets();
   const [type, setType] = useState<TransactionType>('out');
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
   const [linkedAccountId, setLinkedAccountId] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [date, setDate] = useState(todayUTC());
+  const [payee, setPayee] = useState('');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [splitRows, setSplitRows] = useState<SplitDraft[]>([]);
+  const [date, setDate] = useState(nowUTC());
   const [note, setNote] = useState('');
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loading, setLoading] = useState(false);
-  const [showIosDatePicker, setShowIosDatePicker] = useState(false);
-  const insets = useSafeAreaInsets();
+  const [showAccountSheet, setShowAccountSheet] = useState(false);
+  const [showTagSheet, setShowTagSheet] = useState(false);
+  const splitIdSeed = useRef(0);
 
   const sym = settings.currencySymbol;
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
-      setAccountId(settings.defaultAccountId || accounts[0].id);
+      const preferred =
+        sourceAccountId && sourceAccountId !== 'all' && accounts.some((account) => account.id === sourceAccountId)
+          ? sourceAccountId
+          : settings.defaultAccountId || accounts[0].id;
+      setAccountId(preferred);
       if (accounts.length > 1) setLinkedAccountId(accounts[1].id);
     }
-  }, [accounts]);
+  }, [accounts, accountId, settings.defaultAccountId, sourceAccountId]);
 
   useEffect(() => {
-    if (isEditing && editId) {
-      getTransactionById(editId).then((tx) => {
-        if (!tx) return;
-        setType(tx.type);
-        // Guard: ensure parseFloat never receives undefined/null
-        setAmountStr(tx.amount != null ? String(tx.amount) : '');
-        setAccountId(tx.accountId);
-        if (tx.linkedAccountId) setLinkedAccountId(tx.linkedAccountId);
-        if (tx.categoryId) setCategoryId(tx.categoryId);
-        setDate(tx.date);
-        if (tx.note) setNote(tx.note);
-      });
+    if (draftCategoryId && draftCategoryId !== categoryId) setCategoryId(draftCategoryId);
+  }, [categoryId, draftCategoryId]);
+
+  useEffect(() => {
+    if (categoryId !== draftCategoryId) setDraftCategoryId(categoryId);
+  }, [categoryId, draftCategoryId, setDraftCategoryId]);
+
+  useEffect(() => {
+    if (calculatorOpen) {
+      setAmountStr(calculatorValue);
     }
-  }, [editId]);
+  }, [calculatorOpen, calculatorValue]);
+
+  useEffect(() => {
+    if (!isEditing || !editId) return;
+    getTransactionById(editId).then((tx) => {
+      if (!tx) return;
+      setType(tx.type);
+      setAmountStr(String(tx.amount));
+      setAccountId(tx.accountId);
+      if (tx.linkedAccountId) setLinkedAccountId(tx.linkedAccountId);
+      if (tx.categoryId) setCategoryId(tx.categoryId);
+      if (tx.payee) setPayee(tx.payee);
+      if (tx.tags?.length) setSelectedTagIds(tx.tags);
+      if (tx.splits?.length) {
+        setSplitRows(
+          tx.splits.map((split) => ({
+            id: `split-${splitIdSeed.current++}`,
+            categoryId: split.categoryId,
+            amountStr: String(split.amount),
+          }))
+        );
+      }
+      setDate(tx.date);
+      if (tx.note) setNote(tx.note);
+    });
+  }, [editId, isEditing]);
 
   const amount = parseFloat(amountStr) || 0;
-  const isValid =
-    amount > 0 &&
-    accountId.length > 0 &&
-    (type !== 'loan' || personName.trim().length > 0);
+  const activeConfig = TYPE_CONFIG[type];
+  const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(row.amountStr) || 0), 0);
+  const splitValid =
+    splitRows.length === 0 ||
+    (splitRows.every((row) => row.categoryId && (parseFloat(row.amountStr) || 0) > 0) &&
+      Math.abs(splitTotal - amount) < 0.01);
 
-  const openDatePicker = () => {
-    const current = new Date(date);
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: current,
-        mode: 'date',
-        display: 'calendar',
-        onChange: (_event: unknown, selected?: Date) => {
-          if (selected) setDate(toUTCMidnight(selected));
-        },
-      });
-    } else {
-      setShowIosDatePicker(true);
-    }
-  };
+  const isValid =
+    type === 'transfer'
+      ? amount > 0 && accountId && linkedAccountId && accountId !== linkedAccountId
+      : type === 'loan'
+        ? amount > 0 && accountId && personName.trim().length > 0
+        : amount > 0 && accountId && categoryId && splitValid;
+
+  const actionLabel = isEditing
+    ? 'Save changes'
+    : type === 'in'
+      ? 'Add income'
+      : type === 'transfer'
+        ? 'Move money'
+        : type === 'loan'
+          ? 'Add loan'
+          : 'Add expense';
 
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
     try {
-      if (!isEditing && type === 'loan') {
-        // Loan creation must go through the loan service to create a proper
-        // loan record with personName/direction and a linked transaction.
-        await addLoan({
-          personName: personName.trim(),
-          direction: loanDirection,
-          accountId,
-          givenAmount: amount,
-          note: note || undefined,
-          date,
-        });
+      const data: CreateTransactionInput = {
+        type,
+        amount,
+        accountId,
+        date,
+        note: note || undefined,
+        categoryId: categoryId || undefined,
+        payee: payee.trim() || undefined,
+        tags: selectedTagIds,
+        splits:
+          type === 'in' || type === 'out'
+            ? splitRows.length > 0
+              ? splitRows.map((row) => ({
+                categoryId: row.categoryId,
+                amount: parseFloat(row.amountStr) || 0,
+              }))
+              : []
+            : undefined,
+        linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
+      };
+
+      if (isEditing && editId) {
+        await update(editId, data);
       } else {
-        const data: CreateTransactionInput = {
-          type,
-          amount,
-          accountId,
-          date,
-          note: note || undefined,
-          categoryId: categoryId || undefined,
-          linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
-        };
-        if (isEditing && editId) {
-          await update(editId, data);
-        } else {
-          await add(data);
-        }
+        await add(data);
       }
       await refreshAccounts();
       router.back();
@@ -158,106 +233,181 @@ export default function AddTransactionModal() {
     ]);
   };
 
-  const activeConfig = TX_TYPE_CONFIG[type];
-  const types = Object.keys(TX_TYPE_CONFIG) as TransactionType[];
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((current) =>
+      current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId]
+    );
+  };
+
+  const addSplitRow = () => {
+    const fallbackCategory = categoryId || getRelevantCategoryOptions(categories, type)[0]?.id || '';
+    setSplitRows((current) => [
+      ...current,
+      {
+        id: `split-${splitIdSeed.current++}`,
+        categoryId: fallbackCategory,
+        amountStr: current.length === 0 ? amountStr : '',
+      },
+    ]);
+  };
+
+  const updateSplitRow = (id: string, patch: Partial<SplitDraft>) => {
+    setSplitRows((current) =>
+      current.map((row) => (row.id === id ? { ...row, ...patch } : row))
+    );
+  };
+
+  const removeSplitRow = (id: string) => {
+    setSplitRows((current) => current.filter((row) => row.id !== id));
+  };
+
+  const handleOpenCalculator = () => {
+    Keyboard.dismiss();
+    setTimeout(() => {
+      setCalculatorOpen(true);
+      setCalculatorValue(amountStr || '0');
+      router.push('/modals/calculator');
+    }, 50);
+  };
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: palette.background }}
+      style={{ flex: 1, backgroundColor: '#F0F0F5' }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
-        {/* Header: close button + title + 2×2 type grid */}
-        <View style={{ paddingHorizontal: HOME_SPACE.screen, paddingTop: HOME_SPACE.sm, paddingBottom: HOME_SPACE.xl }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.md }}>
-            <TouchableOpacity onPress={() => router.back()} style={{ marginRight: HOME_SPACE.xl, padding: HOME_SPACE.xs }}>
-              <Ionicons name="close" size={24} color={palette.text} />
-            </TouchableOpacity>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: palette.text }}>
-              {isEditing ? 'Edit transaction' : 'Add transaction'}
-            </Text>
-          </View>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: SCREEN_GUTTER,
+            paddingTop: 8,
+            paddingBottom: 12,
+          }}
+        >
+          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+            <Ionicons name="close" size={24} color="#0A0A0A" />
+          </TouchableOpacity>
+          <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: '#0A0A0A' }}>
+            {isEditing ? 'Edit transaction' : 'New transaction'}
+          </Text>
+        </View>
+      </SafeAreaView>
 
-          {/* 2×2 type selector — avoids clipping on small screens */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: HOME_SPACE.sm }}>
-            {types.map((t) => {
-              const cfg = TX_TYPE_CONFIG[t];
-              const selected = type === t;
-              return (
+      <ScrollView contentContainerStyle={{ paddingBottom: 132 }} keyboardShouldPersistTaps="handled">
+        <View style={{ paddingBottom: 20 }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
                 <TouchableOpacity
                   key={t}
                   onPress={() => setType(t)}
                   style={{
-                    paddingHorizontal: HOME_SPACE.xl,
-                    paddingVertical: HOME_SPACE.sm,
-                    borderRadius: HOME_RADIUS.pill,
+                    flex: 1,
+                    paddingVertical: 8,
+                    borderRadius: 20,
                     borderWidth: 1.5,
-                    borderColor: selected ? cfg.borderColor : HOME_COLORS.divider,
-                    backgroundColor: selected ? cfg.bg : palette.surface,
+                    alignItems: 'center',
+                    borderColor: type === t ? TYPE_CONFIG[t].borderColor : '#E5E7EB',
+                    backgroundColor: type === t ? TYPE_CONFIG[t].bg : '#fff',
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: HOME_TEXT.bodySmall,
-                      fontWeight: '600',
-                      color: selected ? cfg.color : HOME_COLORS.textSecondary,
+                      fontSize: 13,
+                      fontWeight: '700',
+                      color: type === t ? TYPE_CONFIG[t].color : '#6B7280',
                     }}
                   >
-                    {cfg.label}
+                    {TYPE_CONFIG[t].label}
                   </Text>
                 </TouchableOpacity>
-              );
-            })}
+              ))}
+            </View>
           </View>
-        </View>
-      </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-        {/* Amount */}
-        <View style={{ alignItems: 'center', paddingVertical: HOME_SPACE.xxl }}>
-          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
-            Amount
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 32, color: palette.textMuted, marginRight: HOME_SPACE.xs }}>{sym}</Text>
-            <TextInput
-              value={amountStr}
-              onChangeText={setAmountStr}
-              keyboardType="decimal-pad"
-              placeholder="0"
-              placeholderTextColor={palette.textMuted}
-              style={{
-                fontSize: 40,
-                fontWeight: '700',
-                color: activeConfig.color,
-                minWidth: 80,
-                textAlign: 'center',
-              }}
-              autoFocus={!isEditing}
+          {type === 'out' ? (
+            <SectionCard>
+              <InlinePickerRow
+                label="Date"
+                value={formatDateTime12(date)}
+                onPress={() => undefined}
+                icon="calendar-outline"
+                showChevron={false}
+                valueStyle={{ color: '#0A0A0A' }}
+              />
+            <AmountRow
+              sym={sym}
+              activeConfig={activeConfig}
+              amountStr={amountStr}
+              setAmountStr={setAmountStr}
+              onOpenCalculator={handleOpenCalculator}
+              isEditing={isEditing}
             />
-          </View>
-        </View>
-
-        <View
-          style={{
-            backgroundColor: palette.surface,
-            borderRadius: HOME_RADIUS.large,
-            marginHorizontal: HOME_SPACE.screen,
-            overflow: 'hidden',
-          }}
-        >
-          {type === 'transfer' ? (
-            <>
-              <FieldRow label="From account" palette={palette}>
+              <PickerRow
+                label="Account"
+                value={getAccountName(accounts, accountId)}
+                placeholder={!accountId}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setTimeout(() => {
+                    setShowAccountSheet(true);
+                  }, 50);
+                }}
+              />
+              <PickerRow
+                label="Category"
+                value={getCategoryName(categories, categoryId)}
+                placeholder={!categoryId}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setTimeout(() => {
+                    setDraftCategoryId(categoryId);
+                    router.push({
+                      pathname: '/modals/select-category',
+                      params: { type },
+                    });
+                  }, 50);
+                }}
+              />
+              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" />
+              <SplitSection
+                amount={amount}
+                amountStr={amountStr}
+                currencySymbol={sym}
+                splitRows={splitRows}
+                splitTotal={splitTotal}
+                categories={categories}
+                type={type}
+                onAddSplit={addSplitRow}
+                onChangeSplit={updateSplitRow}
+                onRemoveSplit={removeSplitRow}
+              />
+              <ReceiptSection />
+              <PickerRow
+                label="Tag"
+                value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
+                placeholder={!selectedTagIds.length}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setTimeout(() => {
+                    setShowTagSheet(true);
+                  }, 50);
+                }}
+              />
+              <NotesSection note={note} onChangeNote={setNote} />
+            </SectionCard>
+          ) : type === 'transfer' ? (
+            <SectionCard>
+              <FieldRow label="From account">
                 <AccountPicker
                   accounts={accounts}
                   selectedId={accountId}
                   onSelect={setAccountId}
                   excludeId={linkedAccountId}
-                  palette={palette}
                 />
               </FieldRow>
-              <View style={{ alignItems: 'center', paddingVertical: HOME_SPACE.xs }}>
+              <View style={{ alignItems: 'center', paddingVertical: 2 }}>
                 <TouchableOpacity
                   onPress={() => {
                     const tmp = accountId;
@@ -265,62 +415,72 @@ export default function AddTransactionModal() {
                     setLinkedAccountId(tmp);
                   }}
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: HOME_COLORS.inputBg,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    backgroundColor: '#F3F4F6',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Ionicons name="swap-vertical" size={16} color={HOME_COLORS.textSecondary} />
+                  <Ionicons name="swap-vertical" size={16} color="#6B7280" />
                 </TouchableOpacity>
               </View>
-              <FieldRow label="To account" palette={palette}>
+              <FieldRow label="To account">
                 <AccountPicker
                   accounts={accounts}
                   selectedId={linkedAccountId}
                   onSelect={setLinkedAccountId}
                   excludeId={accountId}
-                  palette={palette}
                 />
               </FieldRow>
-            </>
-          ) : type === 'loan' ? (
-            <>
-              <FieldRow label="Account" palette={palette}>
-                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} palette={palette} />
+              <DateTimeRow date={date} />
+              <FieldRow label="Notes" noBorder>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder="Add a note..."
+                  placeholderTextColor="#9CA3AF"
+                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
+                  multiline
+                />
               </FieldRow>
-              <FieldRow label="Person" palette={palette}>
+            </SectionCard>
+          ) : (
+            <SectionCard>
+              <FieldRow label="Account">
+                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} />
+              </FieldRow>
+              <FieldRow label="Person">
                 <TextInput
                   value={personName}
                   onChangeText={setPersonName}
                   placeholder="Name"
-                  placeholderTextColor={palette.textMuted}
-                  style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, flex: 1 }}
+                  placeholderTextColor="#9CA3AF"
+                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
                 />
               </FieldRow>
-              <FieldRow label="Direction" palette={palette}>
-                <View style={{ flexDirection: 'row', gap: HOME_SPACE.sm }}>
+              <FieldRow label="Direction">
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                   {(['lent', 'borrowed'] as const).map((d) => (
                     <TouchableOpacity
                       key={d}
                       onPress={() => setLoanDirection(d)}
                       style={{
                         flex: 1,
-                        paddingVertical: HOME_SPACE.md,
-                        borderRadius: HOME_RADIUS.small,
+                        paddingVertical: 11,
+                        borderRadius: 14,
                         alignItems: 'center',
                         borderWidth: 1.5,
-                        borderColor: loanDirection === d ? HOME_COLORS.active : HOME_COLORS.divider,
-                        backgroundColor: loanDirection === d ? HOME_COLORS.inBg : palette.surface,
+                        borderColor: loanDirection === d ? '#1B4332' : '#E5E7EB',
+                        backgroundColor: loanDirection === d ? '#DCFCE7' : '#fff',
                       }}
                     >
                       <Text
                         style={{
-                          fontSize: HOME_TEXT.bodySmall,
+                          fontSize: 13,
                           fontWeight: '600',
-                          color: loanDirection === d ? HOME_COLORS.active : HOME_COLORS.textSecondary,
+                          color: loanDirection === d ? '#1B4332' : '#6B7280',
                         }}
                       >
                         {d === 'lent' ? 'I lent' : 'I borrowed'}
@@ -329,171 +489,654 @@ export default function AddTransactionModal() {
                   ))}
                 </View>
               </FieldRow>
-            </>
-          ) : (
-            <>
-              <FieldRow label="Category" palette={palette}>
-                <CategoryPicker
-                  categories={categories.filter((c) => !c.parentId)}
-                  allCategories={categories}
-                  selectedId={categoryId}
-                  onSelect={setCategoryId}
-                  type={type}
-                  palette={palette}
+              <DateTimeRow date={date} />
+              <FieldRow label="Notes" noBorder>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder="Add a note..."
+                  placeholderTextColor="#9CA3AF"
+                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
+                  multiline
                 />
               </FieldRow>
-              <FieldRow label="Account" palette={palette}>
-                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} palette={palette} />
-              </FieldRow>
-            </>
+            </SectionCard>
           )}
 
-          <FieldRow label="Date" palette={palette} onPress={openDatePicker}>
-            <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{formatDate(date)}</Text>
-            <Ionicons name="calendar-outline" size={18} color={palette.textMuted} />
-          </FieldRow>
-
-          {Platform.OS === 'ios' && showIosDatePicker ? (
-            <View style={{ borderTopWidth: 1, borderTopColor: palette.divider }}>
-              <DateTimePicker
-                value={new Date(date)}
-                mode="date"
-                display="spinner"
-                onChange={(_event: unknown, selected?: Date) => {
-                  setShowIosDatePicker(false);
-                  if (selected) setDate(toUTCMidnight(selected));
-                }}
-              />
-            </View>
-          ) : null}
-
-          <FieldRow label="Note" noBorder palette={palette}>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              placeholder="Add a note..."
-              placeholderTextColor={palette.textMuted}
-              style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, flex: 1 }}
-            />
-          </FieldRow>
         </View>
       </ScrollView>
 
-      {/* Bottom buttons */}
       <View
         style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          paddingHorizontal: HOME_SPACE.screen,
-          paddingBottom: insets.bottom + HOME_SPACE.xl,
-          paddingTop: HOME_SPACE.md,
-          backgroundColor: palette.background,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingBottom: insets.bottom + 14,
+          paddingTop: 12,
+          backgroundColor: '#F0F0F5',
         }}
       >
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!isValid || loading}
           style={{
-            backgroundColor: isValid ? activeConfig.color : palette.textMuted,
-            borderRadius: HOME_RADIUS.card,
-            paddingVertical: HOME_SPACE.xl,
+            backgroundColor: isValid ? activeConfig.color : '#9CA3AF',
+            borderRadius: 18,
+            paddingVertical: 16,
             alignItems: 'center',
-            marginBottom: HOME_SPACE.md,
+            marginBottom: 12,
           }}
         >
-          <Text style={{ color: HOME_COLORS.surface, fontSize: HOME_TEXT.heroLabel, fontWeight: '600' }}>
-            {isEditing ? 'Save changes' : 'Add'}
-          </Text>
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{actionLabel}</Text>
         </TouchableOpacity>
         {isEditing && (
           <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
-            <Text style={{ color: HOME_COLORS.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>
+            <Text style={{ color: '#DC2626', fontSize: 15, fontWeight: '500' }}>
               Delete transaction
             </Text>
           </TouchableOpacity>
         )}
       </View>
+
+      {showAccountSheet ? (
+        <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)}>
+          {accounts.length === 0 ? (
+            <Text style={{ color: '#9CA3AF', fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+          ) : (
+            accounts
+              .slice()
+              .sort((left, right) => (left.id === accountId ? -1 : right.id === accountId ? 1 : 0))
+              .map((account, index) => {
+                return (
+                  <ChoiceRow
+                    key={account.id}
+                    title={account.name}
+                    subtitle={account.type}
+                    selected={account.id === accountId}
+                    palette={palette}
+                    onPress={() => {
+                      setAccountId(account.id);
+                      setShowAccountSheet(false);
+                    }}
+                    noBorder={index === accounts.length - 1}
+                  />
+                );
+              })
+          )}
+        </BottomSheet>
+      ) : null}
+
+      {showTagSheet ? (
+        <BottomSheet title="Select tags" subtitle="Select one or more" palette={palette} onClose={() => setShowTagSheet(false)}>
+          {tags.length === 0 ? (
+            <Text style={{ color: '#9CA3AF', fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
+          ) : (
+            tags.map((tag, index) => {
+              return (
+                <ChoiceRow
+                  key={tag.id}
+                  title={tag.name}
+                  selected={selectedTagIds.includes(tag.id)}
+                  palette={palette}
+                  leftElement={<View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />}
+                  onPress={() => toggleTag(tag.id)}
+                  noBorder={index === tags.length - 1}
+                />
+              );
+            })
+          )}
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 18, paddingBottom: 6 }}>
+            <RnghTouchableOpacity
+              onPress={() => setShowTagSheet(false)}
+              style={{
+                backgroundColor: palette.tabActive,
+                borderRadius: 18,
+                minHeight: 54,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Done</Text>
+            </RnghTouchableOpacity>
+          </View>
+        </BottomSheet>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
 
-// ─── FieldRow ─────────────────────────────────────────────────────────────────
-
-import type { AppThemePalette } from '../../lib/theme';
+function SectionCard({ children }: { children: React.ReactNode }) {
+  return (
+    <View
+      style={{
+        backgroundColor: '#fff',
+        borderRadius: 24,
+        marginHorizontal: SCREEN_GUTTER,
+        borderWidth: 1,
+        borderColor: '#E8EBF0',
+        overflow: 'hidden',
+      }}
+    >
+      {children}
+    </View>
+  );
+}
 
 function FieldRow({
   label,
   children,
   noBorder,
-  onPress,
-  palette,
 }: {
   label: string;
-  children: ReactNode;
+  children: React.ReactNode;
   noBorder?: boolean;
-  onPress?: () => void;
-  palette: AppThemePalette;
 }) {
-  const Container = onPress ? TouchableOpacity : View;
   return (
-    <Container
-      onPress={onPress}
+    <View
       style={{
-        paddingHorizontal: HOME_SPACE.xl,
-        paddingVertical: HOME_SPACE.lg,
+        paddingHorizontal: SCREEN_GUTTER,
+        paddingVertical: 14,
         borderBottomWidth: noBorder ? 0 : 1,
-        borderBottomColor: HOME_COLORS.inputBg,
+        borderBottomColor: '#F3F4F6',
       }}
     >
-      <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
+      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', marginBottom: 10 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         {children}
       </View>
-    </Container>
+    </View>
   );
 }
 
-// ─── AccountPicker ────────────────────────────────────────────────────────────
+function InlinePickerRow({
+  label,
+  value,
+  onPress,
+  placeholder,
+  icon,
+  showChevron = true,
+  noBorder,
+  valueStyle,
+}: {
+  label: string;
+  value: string;
+  onPress: () => void;
+  placeholder?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
+  showChevron?: boolean;
+  noBorder?: boolean;
+  valueStyle?: object;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#6B7280',
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottomWidth: noBorder ? 0 : 1,
+          borderBottomColor: '#F3F4F6',
+          paddingLeft: ROW_COLUMN_GAP,
+        }}
+      >
+        <Text
+          style={[
+            {
+              fontSize: 15,
+              fontWeight: '500',
+              color: placeholder ? '#9CA3AF' : '#0A0A0A',
+              textAlign: 'left',
+              flexShrink: 1,
+            },
+            valueStyle,
+          ]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {icon ? (
+            <View style={{ width: 32, alignItems: 'flex-end', justifyContent: 'center' }}>
+              <View style={{ width: 32, height: 32, borderRadius: RADIUS.sm, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={icon} size={16} color="#4B5563" />
+              </View>
+            </View>
+          ) : null}
+          {showChevron ? (
+            <View style={{ width: 24, alignItems: 'flex-end', justifyContent: 'center' }}>
+              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function PickerRow({
+  label,
+  value,
+  placeholder,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  placeholder?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#6B7280',
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          borderBottomWidth: 1,
+          borderBottomColor: '#F3F4F6',
+          paddingLeft: ROW_COLUMN_GAP,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 15,
+            fontWeight: '500',
+            color: placeholder ? '#9CA3AF' : '#0A0A0A',
+            textAlign: 'left',
+            flexShrink: 1,
+          }}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+        <View style={{ width: 24, alignItems: 'flex-end', justifyContent: 'center' }}>
+          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function DateTimeRow({ date }: { date: string }) {
+  return (
+    <InlinePickerRow
+      label="Date"
+      value={formatDateTime12(date)}
+      onPress={() => undefined}
+      icon="calendar-outline"
+      noBorder={false}
+      valueStyle={{ color: '#0A0A0A' }}
+    />
+  );
+}
+
+function AmountRow({
+  sym,
+  activeConfig,
+  amountStr,
+  setAmountStr,
+  onOpenCalculator,
+  isEditing,
+}: {
+  sym: string;
+  activeConfig: (typeof TYPE_CONFIG)[TransactionType];
+  amountStr: string;
+  setAmountStr: (value: string) => void;
+  onOpenCalculator: () => void;
+  isEditing: boolean;
+}) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#6B7280',
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        Amount ({sym})
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottomWidth: 1,
+          borderBottomColor: '#F3F4F6',
+          paddingLeft: ROW_COLUMN_GAP,
+        }}
+      >
+        <TextInput
+          value={amountStr}
+          onChangeText={(value) => setAmountStr(sanitizeDecimalInput(value))}
+          keyboardType="decimal-pad"
+          placeholder="0"
+          placeholderTextColor="#C1C7D0"
+          style={{
+            flex: 1,
+            fontSize: 18,
+            fontWeight: '700',
+            color: activeConfig.color,
+            paddingVertical: 0,
+            textAlign: 'left',
+          }}
+          autoFocus={!isEditing}
+        />
+        <TouchableOpacity
+          onPress={onOpenCalculator}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          style={{
+            width: 44,
+            height: ROW_MIN_HEIGHT,
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+        >
+          <View style={{ width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="calculator-outline" size={18} color="#4B5563" />
+          </View>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function InlineInputRow({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#6B7280',
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderBottomWidth: 1,
+          borderBottomColor: '#F3F4F6',
+          paddingLeft: ROW_COLUMN_GAP,
+        }}
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#9CA3AF"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontSize: 15,
+            fontWeight: '500',
+            color: '#0A0A0A',
+            paddingVertical: 0,
+            textAlign: 'left',
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+function SplitSection({
+  amount,
+  amountStr,
+  currencySymbol,
+  splitRows,
+  splitTotal,
+  categories,
+  type,
+  onAddSplit,
+  onChangeSplit,
+  onRemoveSplit,
+}: {
+  amount: number;
+  amountStr: string;
+  currencySymbol: string;
+  splitRows: SplitDraft[];
+  splitTotal: number;
+  categories: Category[];
+  type: TransactionType;
+  onAddSplit: () => void;
+  onChangeSplit: (id: string, patch: Partial<SplitDraft>) => void;
+  onRemoveSplit: (id: string) => void;
+}) {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF' }}>
+          Split
+        </Text>
+        <TouchableOpacity onPress={onAddSplit}>
+          <Text style={{ fontSize: 13, color: '#17673B', fontWeight: '600' }}>+ Add split</Text>
+        </TouchableOpacity>
+      </View>
+      {splitRows.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          {splitRows.map((row, index) => (
+            <SplitRowEditor
+              key={row.id}
+              row={row}
+              index={index}
+              categories={categories}
+              type={type}
+              onChange={onChangeSplit}
+              onRemove={onRemoveSplit}
+            />
+          ))}
+          <Text style={{ fontSize: 12, color: Math.abs(splitTotal - amount) < 0.01 ? '#6B7280' : '#DC2626' }}>
+            Total {formatCurrency(splitTotal, currencySymbol)} / {formatCurrency(amount, currencySymbol)}
+          </Text>
+        </View>
+      ) : (
+        <Text style={{ fontSize: 13, color: '#9CA3AF' }}>Split this transaction across categories.</Text>
+      )}
+    </View>
+  );
+}
+
+function ReceiptSection() {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF', marginBottom: 10 }}>
+        Receipt
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+        <TouchableOpacity
+          onPress={() => Alert.alert('Receipt capture', 'Receipt capture is coming next.')}
+          style={{
+            width: 58,
+            height: 58,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#D1D5DB',
+            backgroundColor: '#F8FAFC',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="camera-outline" size={22} color="#17673B" />
+        </TouchableOpacity>
+        <View
+          style={{
+            width: 58,
+            height: 58,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#E5E7EB',
+            backgroundColor: '#FFFFFF',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="receipt-outline" size={22} color="#9CA3AF" />
+        </View>
+        <View style={{ justifyContent: 'center' }}>
+          <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>Captured receipts</Text>
+          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Thumbnails appear here</Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function NotesSection({
+  note,
+  onChangeNote,
+}: {
+  note: string;
+  onChangeNote: (value: string) => void;
+}) {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF', marginBottom: 10 }}>
+        Notes
+      </Text>
+      <TextInput
+        value={note}
+        onChangeText={onChangeNote}
+        placeholder="Add a note..."
+        placeholderTextColor="#9CA3AF"
+        style={{ minHeight: 72, fontSize: 15, color: '#0A0A0A', paddingVertical: 0, textAlignVertical: 'top' }}
+        multiline
+      />
+    </View>
+  );
+}
 
 function AccountPicker({
   accounts,
   selectedId,
   onSelect,
   excludeId,
-  palette,
 }: {
   accounts: Account[];
   selectedId: string;
   onSelect: (id: string) => void;
   excludeId?: string;
-  palette: AppThemePalette;
 }) {
   const filtered = accounts.filter((a) => a.id !== excludeId);
+  const ordered = [
+    ...filtered.filter((a) => a.id === selectedId),
+    ...filtered.filter((a) => a.id !== selectedId),
+  ];
+
+  if (ordered.length === 0) {
+    return <Text style={{ fontSize: 13, color: '#9CA3AF' }}>No account available</Text>;
+  }
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      {filtered.map((acc) => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+      {ordered.map((acc) => (
         <TouchableOpacity
           key={acc.id}
           onPress={() => onSelect(acc.id)}
           style={{
-            paddingHorizontal: HOME_SPACE.md,
-            paddingVertical: HOME_SPACE.sm,
-            borderRadius: HOME_RADIUS.small,
-            marginRight: HOME_SPACE.sm,
-            backgroundColor: selectedId === acc.id ? HOME_COLORS.active : HOME_COLORS.inputBg,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 12,
+            marginRight: 8,
+            backgroundColor: selectedId === acc.id ? '#1B4332' : '#F3F4F6',
+            borderWidth: 1,
+            borderColor: selectedId === acc.id ? '#1B4332' : '#F3F4F6',
           }}
         >
           <Text
             style={{
-              fontSize: HOME_TEXT.bodySmall,
-              fontWeight: '500',
-              color: selectedId === acc.id ? HOME_COLORS.surface : HOME_COLORS.textSecondary,
+              fontSize: 13,
+              fontWeight: '600',
+              color: selectedId === acc.id ? '#fff' : '#6B7280',
             }}
+            numberOfLines={1}
           >
             {acc.name}
           </Text>
@@ -503,64 +1146,204 @@ function AccountPicker({
   );
 }
 
-// ─── CategoryPicker ───────────────────────────────────────────────────────────
-
 function CategoryPicker({
   categories,
-  allCategories,
   selectedId,
   onSelect,
   type,
-  palette,
 }: {
   categories: Category[];
-  allCategories: Category[];
   selectedId: string;
   onSelect: (id: string) => void;
   type: TransactionType;
-  palette: AppThemePalette;
 }) {
-  const { getCategoryDisplayName } = useCategoriesStore();
-  const relevantParents = categories.filter((c) => c.type === type || c.type === 'both');
+  const options = getRelevantCategoryOptions(categories, type);
 
-  if (selectedId) {
-    const cat = allCategories.find((c) => c.id === selectedId);
-    return (
-      <TouchableOpacity
-        onPress={() => onSelect('')}
-        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-      >
-        <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, flex: 1 }}>
-          {cat ? getCategoryDisplayName(selectedId) : 'Choose category...'}
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+      {options.map((option) => (
+        <TouchableOpacity
+          key={option.id}
+          onPress={() => onSelect(option.id)}
+          style={{
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 12,
+            marginRight: 8,
+            backgroundColor: selectedId === option.id ? '#17673B' : '#F3F4F6',
+            borderWidth: 1,
+            borderColor: selectedId === option.id ? '#17673B' : '#F3F4F6',
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: '600',
+              color: selectedId === option.id ? '#fff' : '#6B7280',
+            }}
+            numberOfLines={1}
+          >
+            {option.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
+
+function SplitRowEditor({
+  row,
+  index,
+  categories,
+  type,
+  onChange,
+  onRemove,
+}: {
+  row: SplitDraft;
+  index: number;
+  categories: Category[];
+  type: TransactionType;
+  onChange: (id: string, patch: Partial<SplitDraft>) => void;
+  onRemove: (id: string) => void;
+}) {
+  const options = getRelevantCategoryOptions(categories, type);
+
+  return (
+    <View style={{ borderRadius: 16, backgroundColor: '#F9FAFB', padding: 12, borderWidth: 1, borderColor: '#EEF2F7' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.6, color: '#9CA3AF' }}>
+          Split {index + 1}
         </Text>
-        <Ionicons name="chevron-forward" size={16} color={palette.textMuted} />
-      </TouchableOpacity>
-    );
+        <TouchableOpacity onPress={() => onRemove(row.id)}>
+          <Ionicons name="close" size={18} color="#9CA3AF" />
+        </TouchableOpacity>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+        {options.map((option) => (
+          <TouchableOpacity
+            key={option.id}
+            onPress={() => onChange(row.id, { categoryId: option.id })}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 12,
+              marginRight: 8,
+              backgroundColor: row.categoryId === option.id ? '#17673B' : '#fff',
+              borderWidth: 1,
+              borderColor: row.categoryId === option.id ? '#17673B' : '#E5E7EB',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: row.categoryId === option.id ? '#fff' : '#6B7280',
+              }}
+            >
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      <TextInput
+        value={row.amountStr}
+        onChangeText={(value) => onChange(row.id, { amountStr: sanitizeDecimalInput(value) })}
+        keyboardType="decimal-pad"
+        placeholder="Split amount"
+        placeholderTextColor="#9CA3AF"
+        style={{
+          minHeight: 42,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: '#E5E7EB',
+          backgroundColor: '#fff',
+          paddingHorizontal: 12,
+          color: '#0A0A0A',
+          fontSize: 14,
+        }}
+      />
+    </View>
+  );
+}
+
+function TagPicker({
+  tags,
+  selectedIds,
+  onToggle,
+}: {
+  tags: Tag[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+}) {
+  if (tags.length === 0) {
+    return <Text style={{ fontSize: 13, color: '#9CA3AF' }}>No tags yet</Text>;
   }
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      {relevantParents.map((parent) => {
-        const children = allCategories.filter((c) => c.parentId === parent.id);
-        const toShow = children.length > 0 ? children : [parent];
-        return toShow.map((cat) => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+      {tags.map((tag) => {
+        const selected = selectedIds.includes(tag.id);
+        return (
           <TouchableOpacity
-            key={cat.id}
-            onPress={() => onSelect(cat.id)}
+            key={tag.id}
+            onPress={() => onToggle(tag.id)}
             style={{
-              paddingHorizontal: HOME_SPACE.md,
-              paddingVertical: HOME_SPACE.sm,
-              borderRadius: HOME_RADIUS.small,
-              marginRight: HOME_SPACE.sm,
-              backgroundColor: HOME_COLORS.inputBg,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 12,
+              marginRight: 8,
+              backgroundColor: selected ? tag.color : '#F3F4F6',
+              borderWidth: 1,
+              borderColor: selected ? tag.color : '#F3F4F6',
             }}
           >
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: HOME_COLORS.textSecondary }}>
-              {children.length > 0 ? `${parent.name} › ${cat.name}` : cat.name}
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: selected ? '#fff' : '#6B7280',
+              }}
+            >
+              {tag.name}
             </Text>
           </TouchableOpacity>
-        ));
+        );
       })}
     </ScrollView>
   );
+}
+
+function tagSummary(tags: Tag[], selectedIds: string[]) {
+  const names = selectedIds
+    .map((id) => tags.find((tag) => tag.id === id)?.name)
+    .filter((value): value is string => !!value);
+  if (names.length === 0) return 'Add tag';
+  if (names.length <= 2) return names.join(', ');
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+}
+
+function getAccountName(accounts: Account[], accountId: string) {
+  return accounts.find((account) => account.id === accountId)?.name ?? 'Select account';
+}
+
+function getCategoryName(categories: Category[], categoryId: string) {
+  const category = categories.find((item) => item.id === categoryId);
+  if (!category) return 'Select category';
+  return category.parentId
+    ? `${categories.find((item) => item.id === category.parentId)?.name ?? 'Category'} › ${category.name}`
+    : category.name;
+}
+
+function getRelevantCategoryOptions(categories: Category[], type: TransactionType) {
+  const relevantParents = categories.filter((category) => category.type === type || category.type === 'both');
+  return relevantParents.flatMap((parent) => {
+    const children = categories.filter((category) => category.parentId === parent.id);
+    if (children.length > 0) {
+      return children.map((child) => ({
+        id: child.id,
+        label: `${parent.name} › ${child.name}`,
+      }));
+    }
+    return [{ id: parent.id, label: parent.name }];
+  });
 }

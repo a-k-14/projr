@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { TAG_COLORS, SettingsScreenShell } from '../../lib/settings-shared';
 import {
   ActionButton,
@@ -12,6 +13,7 @@ import {
   InputField,
   SectionLabel,
   SettingsRow,
+  ColorGrid,
 } from '../../components/settings-ui';
 
 type Draft = {
@@ -106,7 +108,7 @@ export default function TagsScreen() {
 
   return (
     <SettingsScreenShell palette={palette}>
-      <SectionLabel label="Tags help you filter and group transactions" palette={palette} />
+      <SectionLabel label="Transaction Tags" palette={palette} />
       <CardSection palette={palette}>
         {tags.map((tag, index) => {
           const selected = selectedId === tag.id && !creating;
@@ -115,7 +117,6 @@ export default function TagsScreen() {
               key={tag.id}
               icon="tag"
               label={tag.name}
-              value={selected ? undefined : 'Tag'}
               palette={palette}
               onPress={() => {
                 setCreating(false);
@@ -123,39 +124,37 @@ export default function TagsScreen() {
               }}
               noBorder={index === tags.length - 1}
               rightElement={
-                selected ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: 6,
-                        backgroundColor: tag.color,
-                      }}
-                    />
-                    <Text style={{ color: palette.textMuted, fontSize: 13 }}>Tag</Text>
-                    <Feather name="check" size={18} color={palette.tabActive} />
-                  </View>
-                ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View
                     style={{
                       width: 12,
                       height: 12,
                       borderRadius: 6,
                       backgroundColor: tag.color,
-                      marginRight: 2,
                     }}
                   />
-                )
+                  {selected ? (
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: palette.tabActive, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="check" size={12} color="#FFFFFF" />
+                    </View>
+                  ) : (
+                    <Feather name="chevron-right" size={18} color={palette.divider} />
+                  )}
+                </View>
               }
             />
           );
         })}
+        {!tags.length ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: palette.textMuted, fontSize: 14 }}>No tags created yet.</Text>
+          </View>
+        ) : null}
       </CardSection>
 
-      <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+      <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: 24 }}>
         <ActionButton
-          label="Add new tag"
+          label="Add New Tag"
           variant="secondary"
           palette={palette}
           onPress={() => {
@@ -165,39 +164,38 @@ export default function TagsScreen() {
         />
       </View>
 
-      <SectionLabel label={creating ? 'NEW TAG' : 'EDIT TAG'} palette={palette} />
+      <SectionLabel label={creating ? 'CREATE NEW TAG' : 'EDIT TAG'} palette={palette} />
       <CardSection palette={palette}>
-        <View style={{ padding: 16 }}>
-          <FieldLabel label="Name" palette={palette} />
-          <InputField
-            palette={palette}
-            value={draft.name}
-            onChangeText={(value) => setDraft((state) => ({ ...state, name: value }))}
-            placeholder="Groceries"
-          />
-
-          <FieldLabel label="Color" palette={palette} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {TAG_COLORS.map((color) => (
-              <TouchableOpacity
-                key={color}
-                onPress={() => setDraft((state) => ({ ...state, color }))}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  backgroundColor: color,
-                  borderWidth: draft.color === color ? 3 : 1,
-                  borderColor: draft.color === color ? palette.text : palette.border,
-                }}
-              />
-            ))}
+        <View style={{ padding: SCREEN_GUTTER }}>
+          <View style={{ marginBottom: 20 }}>
+            <FieldLabel label="Tag Name" palette={palette} />
+            <InputField
+              palette={palette}
+              value={draft.name}
+              onChangeText={(value) => setDraft((state) => ({ ...state, name: value }))}
+              placeholder="e.g. Travel"
+            />
           </View>
 
-          <View style={{ marginTop: 16, gap: 10 }}>
-            <ActionButton label="Save tag" variant="primary" palette={palette} onPress={onSave} />
+          <View style={{ marginBottom: 24 }}>
+            <FieldLabel label="Select Tag Color" palette={palette} />
+            <ColorGrid
+              colors={TAG_COLORS}
+              selectedColor={draft.color}
+              onSelect={(color) => setDraft((state) => ({ ...state, color }))}
+              palette={palette}
+            />
+          </View>
+
+          <View style={{ gap: 12 }}>
+            <ActionButton
+              label={creating ? 'Create Tag' : 'Update Tag'}
+              variant="primary"
+              palette={palette}
+              onPress={onSave}
+            />
             {selectedId && !creating ? (
-              <ActionButton label="Delete tag" variant="danger" palette={palette} onPress={onDelete} />
+              <ActionButton label="Remove Tag" variant="danger" palette={palette} onPress={onDelete} />
             ) : null}
           </View>
         </View>

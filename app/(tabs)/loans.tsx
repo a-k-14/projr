@@ -14,9 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
 import {
   HOME_COLORS,
   HOME_RADIUS,
@@ -26,6 +26,8 @@ import {
 } from '../../lib/homeTokens';
 import type { LoanWithSummary, LoanStatus } from '../../types';
 import type { AppThemePalette } from '../../lib/theme';
+
+import { ScreenTitle } from '../../components/settings-ui';
 
 export default function LoansScreen() {
   const { loans, load, filters } = useLoansStore();
@@ -48,6 +50,10 @@ export default function LoansScreen() {
     setRefreshing(false);
   };
 
+  const scheme = useColorScheme();
+  const theme = useUIStore((s) => s.settings.theme);
+  const palette = getThemePalette(resolveTheme(theme, scheme));
+
   const summary = getLoanSummary(loans);
   const net = summary.net;
   const netPositive = net >= 0;
@@ -58,7 +64,7 @@ export default function LoansScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
       <FlatList
         data={loans}
         keyExtractor={(item) => item.id}
@@ -161,7 +167,6 @@ export default function LoansScreen() {
                 Net position
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: HOME_SPACE.sm }}>
-                {/* Colored pill showing net direction */}
                 <View
                   style={{
                     paddingHorizontal: HOME_SPACE.md,
@@ -242,7 +247,8 @@ export default function LoansScreen() {
               })}
             </View>
           </View>
-        }
+        </View>
+      }
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
             <Ionicons name="people-outline" size={48} color={palette.textMuted} />

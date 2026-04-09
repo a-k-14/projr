@@ -1,10 +1,43 @@
 import { eq, and, gte, lte, desc, like } from 'drizzle-orm';
 import { db } from '../db/client';
 import { transactions } from '../db/schema';
-import type { Transaction, CreateTransactionInput, TransactionFilters } from '../types';
+import type {
+  Transaction,
+  TransactionSplit,
+  CreateTransactionInput,
+  TransactionFilters,
+} from '../types';
 import { generateId } from '../lib/ids';
-import { todayUTC } from '../lib/dateUtils';
+import { nowUTC } from '../lib/dateUtils';
 import { updateAccountBalance } from './accounts';
+
+function parseSplits(raw: string | null | undefined): TransactionSplit[] {
+  if (!raw) return [];
+  try {
+    const value = JSON.parse(raw);
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((item) => ({
+        categoryId: String(item?.categoryId ?? ''),
+        amount: Number(item?.amount ?? 0),
+      }))
+      .filter((item) => item.categoryId && item.amount > 0);
+  } catch {
+    return [];
+  }
+}
+
+function serializeSplits(splits?: TransactionSplit[]): string {
+  if (!splits || splits.length === 0) return '[]';
+  return JSON.stringify(
+    splits
+      .map((item) => ({
+        categoryId: item.categoryId,
+        amount: Number(item.amount),
+      }))
+      .filter((item) => item.categoryId && item.amount > 0)
+  );
+}
 
 function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
   return {
@@ -15,7 +48,9 @@ function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
     linkedAccountId: row.linkedAccountId ?? undefined,
     loanId: row.loanId ?? undefined,
     categoryId: row.categoryId ?? undefined,
+    payee: row.payee ?? undefined,
     tags: JSON.parse(row.tags),
+    splits: parseSplits(row.splitData),
     note: row.note ?? undefined,
     date: row.date,
     transferPairId: row.transferPairId ?? undefined,
@@ -57,7 +92,7 @@ export async function getTransactionById(id: string): Promise<Transaction | null
 }
 
 export async function createTransaction(data: CreateTransactionInput): Promise<Transaction> {
-  const now = todayUTC();
+  const now = nowUTC();
 
   if (data.type === 'transfer') {
     const transferPairId = generateId();
@@ -72,7 +107,9 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       linkedAccountId: data.linkedAccountId ?? null,
       loanId: null,
       categoryId: null,
+      payee: data.payee ?? null,
       tags: '[]',
+      splitData: '[]',
       note: data.note ?? null,
       date: data.date,
       transferPairId,
@@ -86,7 +123,9 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       linkedAccountId: data.accountId,
       loanId: null,
       categoryId: null,
+      payee: data.payee ?? null,
       tags: '[]',
+      splitData: '[]',
       note: data.note ?? null,
       date: data.date,
       transferPairId,
@@ -108,7 +147,9 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     linkedAccountId: data.linkedAccountId ?? null,
     loanId: data.loanId ?? null,
     categoryId: data.categoryId ?? null,
+    payee: data.payee ?? null,
     tags: JSON.stringify(data.tags ?? []),
+    splitData: serializeSplits(data.splits),
     note: data.note ?? null,
     date: data.date,
     transferPairId: null,
@@ -137,7 +178,9 @@ export async function updateTransaction(
   const updateData: Record<string, any> = {};
   if (data.amount !== undefined) updateData.amount = data.amount;
   if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+  if (data.payee !== undefined) updateData.payee = data.payee;
   if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);
+  if (data.splits !== undefined) updateData.splitData = serializeSplits(data.splits);
   if (data.note !== undefined) updateData.note = data.note;
   if (data.date !== undefined) updateData.date = data.date;
   if (data.accountId !== undefined) updateData.accountId = data.accountId;

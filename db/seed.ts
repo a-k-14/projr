@@ -1,6 +1,6 @@
 import { toUTCMidnight } from '../lib/dateUtils';
 import { db } from './client';
-import { accounts, categories, tags, transactions, loans, budgets, settings } from './schema';
+import { accounts, categories, tags, transactions, loans, budget, settings } from './schema';
 import * as accountsService from '../services/accounts';
 import * as categoriesService from '../services/categories';
 import * as tagsService from '../services/tags';
@@ -16,7 +16,7 @@ function daysAgo(n: number): string {
 async function clearDemoData(): Promise<void> {
   await db.delete(transactions);
   await db.delete(loans);
-  await db.delete(budgets);
+  await db.delete(budget);
   await db.delete(tags);
   await db.delete(categories);
   await db.delete(settings);

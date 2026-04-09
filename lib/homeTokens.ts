@@ -1,3 +1,5 @@
+import { SCREEN_GUTTER } from './design';
+
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 // Used by main-app screens (Home, Activity, Budgets, Loans, modals).
 // Settings screens use AppThemePalette from lib/theme.ts instead.
@@ -87,7 +89,7 @@ export const HOME_RADIUS = {
 // Note: xs/sm/md match SPACING in design.ts. lg/xl differ intentionally —
 // home screens use tighter spacing (lg=14) than settings screens (SPACING.lg=16).
 export const HOME_SPACE = {
-  screen: 16,
+  screen: SCREEN_GUTTER,
   xs: 4,   // == SPACING.xs
   sm: 8,   // == SPACING.sm
   md: 12,  // == SPACING.md
@@ -104,7 +106,7 @@ export const HOME_SPACE = {
 export const HOME_TEXT = {
   screenTitle: 28,
   heroLabel: 16,
-  heroValue: 24,
+  heroValue: 22,
   sectionTitle: 15,
   body: 14,
   bodySmall: 13,

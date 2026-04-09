@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Modal, ScrollView, Switch, Text, useColorScheme } from 'react-native';
+import { ScrollView, Switch, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
@@ -7,11 +7,11 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { CardSection, ScreenTitle, SectionLabel, SettingsRow, ChoiceRow } from '../../components/settings-ui';
+import { BottomSheet } from '../../components/ui/BottomSheet';
 import {
   CURRENCIES,
   MONTHS,
   THEMES,
-  PickerSheetShell,
   formatDisplayCurrency,
   symbolFor,
 } from '../../lib/settings-shared';
@@ -33,96 +33,108 @@ export default function SettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 120 }} // Increased for seamless scroll behind navbar
+        showsVerticalScrollIndicator={false}
+      >
         <ScreenTitle title="Settings" palette={palette} />
 
-        <SectionLabel label="GENERAL" palette={palette} />
-        <CardSection palette={palette}>
-          <SettingsRow
-            icon="calendar"
-            label="Year Start"
-            value={MONTHS[settings.yearStart]}
-            palette={palette}
-            onPress={() => setPicker('year-start')}
-          />
-          <SettingsRow
-            icon="credit-card"
-            label="Default Account"
-            value={selectedAccount?.name ?? 'None'}
-            palette={palette}
-            onPress={() => setPicker('default-account')}
-          />
-          <SettingsRow
-            icon="dollar-sign"
-            label="Currency"
-            value={`${settings.currency} ${settings.currencySymbol}`}
-            palette={palette}
-            onPress={() => setPicker('currency')}
-          />
-          <SettingsRow
-            icon="sun"
-            label="Theme"
-            value={capitalize(settings.theme)}
-            palette={palette}
-            onPress={() => setPicker('theme')}
-            noBorder
-          />
-        </CardSection>
+        <View>
+          <SectionLabel label="GENERAL" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow
+              icon="calendar"
+              label="Year Start"
+              value={MONTHS[settings.yearStart]}
+              palette={palette}
+              onPress={() => setPicker('year-start')}
+            />
+            <SettingsRow
+              icon="credit-card"
+              label="Default Account"
+              value={selectedAccount?.name ?? 'None'}
+              palette={palette}
+              onPress={() => setPicker('default-account')}
+            />
+            <SettingsRow
+              icon="dollar-sign"
+              label="Currency"
+              value={`${settings.currency} ${settings.currencySymbol}`}
+              palette={palette}
+              onPress={() => setPicker('currency')}
+            />
+            <SettingsRow
+              icon="sun"
+              label="Theme"
+              value={capitalize(settings.theme)}
+              palette={palette}
+              onPress={() => setPicker('theme')}
+              noBorder
+            />
+          </CardSection>
+        </View>
 
-        <SectionLabel label="MANAGE" palette={palette} />
-        <CardSection palette={palette}>
-          <SettingsRow
-            icon="layers"
-            label="Accounts"
-            value={String(accounts.length)}
-            palette={palette}
-            onPress={() => router.push('/settings/accounts')}
-          />
-          <SettingsRow
-            icon="grid"
-            label="Categories"
-            value={String(categories.length)}
-            palette={palette}
-            onPress={() => router.push('/settings/categories')}
-          />
-          <SettingsRow
-            icon="tag"
-            label="Tags"
-            value={String(tags.length)}
-            palette={palette}
-            onPress={() => router.push('/settings/tags')}
-            noBorder
-          />
-        </CardSection>
+        <View>
+          <SectionLabel label="MANAGE" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow
+              icon="layers"
+              label="Accounts"
+              value={String(accounts.length)}
+              palette={palette}
+              onPress={() => router.push('/settings/accounts')}
+            />
+            <SettingsRow
+              icon="grid"
+              label="Categories"
+              value={String(categories.length)}
+              palette={palette}
+              onPress={() => router.push('/settings/categories')}
+            />
+            <SettingsRow
+              icon="tag"
+              label="Tags"
+              value={String(tags.length)}
+              palette={palette}
+              onPress={() => router.push('/settings/tags')}
+              noBorder
+            />
+          </CardSection>
+        </View>
 
-        <SectionLabel label="DATA" palette={palette} />
-        <CardSection palette={palette}>
-          <SettingsRow
-            icon="cloud"
-            label="Cloud Backup"
-            value={settings.cloudBackupEnabled ? 'On' : 'Off'}
-            palette={palette}
-            rightElement={
-              <Switch
-                value={settings.cloudBackupEnabled}
-                onValueChange={(value) => updateSettings({ cloudBackupEnabled: value })}
-                trackColor={{ false: palette.border, true: palette.tabActive }}
-                thumbColor={settings.cloudBackupEnabled ? '#FFFFFF' : '#F3F4F6'}
-              />
-            }
-            noBorder
-          />
-        </CardSection>
+        <View>
+          <SectionLabel label="DATA" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow
+              icon="cloud"
+              label="Cloud Backup"
+              value={settings.cloudBackupEnabled ? 'On' : 'Off'}
+              palette={palette}
+              rightElement={
+                <Switch
+                  value={settings.cloudBackupEnabled}
+                  onValueChange={(value) => updateSettings({ cloudBackupEnabled: value })}
+                  trackColor={{ false: palette.border, true: palette.tabActive }}
+                  thumbColor={settings.cloudBackupEnabled ? '#FFFFFF' : '#F3F4F6'}
+                />
+              }
+              noBorder
+            />
+          </CardSection>
+        </View>
 
-        <SectionLabel label="ABOUT" palette={palette} />
-        <CardSection palette={palette}>
-          <SettingsRow icon="info" label="Version" value="1.0.0" palette={palette} noBorder />
-        </CardSection>
+        <View>
+          <SectionLabel label="ABOUT" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow icon="info" label="Version" value="1.0.0" palette={palette} noBorder />
+          </CardSection>
+        </View>
       </ScrollView>
 
-      <Modal visible={!!picker} transparent animationType="none" statusBarTranslucent>
-        <PickerSheetShell
+      {picker ? (
+        <BottomSheet
           title={pickerTitle(picker)}
           subtitle={pickerSubtitle(picker)}
           palette={palette}
@@ -170,6 +182,7 @@ export default function SettingsScreen() {
                   <ChoiceRow
                     key={account.id}
                     title={account.name}
+<<<<<<< HEAD
                     subtitle={`${capitalize(account.type)} · ${formatDisplayCurrency(account.balance, symbolFor(account.currency))}`}
                     selected={settings.defaultAccountId === account.id}
                     palette={palette}
@@ -222,8 +235,8 @@ export default function SettingsScreen() {
                 />
               ))
             : null}
-        </PickerSheetShell>
-      </Modal>
+        </BottomSheet>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -246,7 +259,7 @@ function pickerTitle(kind: PickerKind) {
 function pickerSubtitle(kind: PickerKind) {
   switch (kind) {
     case 'year-start':
-      return 'Choose the first month of your financial year';
+      return 'Choose the first month of your year';
     case 'default-account':
       return 'Choose the default account for new transactions';
     case 'currency':

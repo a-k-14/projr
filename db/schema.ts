@@ -34,7 +34,9 @@ export const transactions = sqliteTable('transactions', {
   linkedAccountId: text('linked_account_id'),
   loanId: text('loan_id'),
   categoryId: text('category_id'),
+  payee: text('payee'),
   tags: text('tags').notNull().default('[]'),
+  splitData: text('split_data').notNull().default('[]'),
   note: text('note'),
   date: text('date').notNull(),
   transferPairId: text('transfer_pair_id'),
@@ -54,11 +56,13 @@ export const loans = sqliteTable('loans', {
   createdAt: text('created_at').notNull(),
 });
 
-export const budgets = sqliteTable('budgets', {
+export const budget = sqliteTable('budget', {
   id: text('id').primaryKey(),
-  categoryId: text('category_id').notNull().references(() => categories.id),
+  categoryId: text('category_id')
+    .notNull()
+    .references(() => categories.id),
   amount: real('amount').notNull(),
-  period: text('period').notNull().default('month'),
+  period: text('period').notNull(), // 'month' | 'year'
   startDate: text('start_date').notNull(),
   createdAt: text('created_at').notNull(),
 });

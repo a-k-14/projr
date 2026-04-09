@@ -25,6 +25,7 @@ import {
   HOME_SPACE,
   HOME_TEXT,
 } from '../../lib/homeTokens';
+import type { LoanWithSummary } from '../../types';
 
 export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
