@@ -18,7 +18,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { formatDateTime12, nowUTC } from '../../lib/dateUtils';
-import { formatCurrency } from '../../lib/derived';
+import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { RADIUS, SCREEN_GUTTER } from '../../lib/design';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getTransactionById } from '../../services/transactions';
@@ -102,6 +103,8 @@ export default function AddTransactionModal() {
   const [loading, setLoading] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const splitIdSeed = useRef(0);
 
   const sym = settings.currencySymbol;
@@ -156,12 +159,12 @@ export default function AddTransactionModal() {
     });
   }, [editId, isEditing]);
 
-  const amount = parseFloat(amountStr) || 0;
+  const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
-  const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(row.amountStr) || 0), 0);
+  const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
   const splitValid =
     splitRows.length === 0 ||
-    (splitRows.every((row) => row.categoryId && (parseFloat(row.amountStr) || 0) > 0) &&
+    (splitRows.every((row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0) &&
       Math.abs(splitTotal - amount) < 0.01);
 
   const isValid =
@@ -199,7 +202,7 @@ export default function AddTransactionModal() {
             ? splitRows.length > 0
               ? splitRows.map((row) => ({
                 categoryId: row.categoryId,
-                amount: parseFloat(row.amountStr) || 0,
+                amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0,
               }))
               : []
             : undefined,
@@ -277,9 +280,31 @@ export default function AddTransactionModal() {
     Keyboard.dismiss();
     setTimeout(() => {
       setCalculatorOpen(true);
-      setCalculatorValue(amountStr || '0');
+      setCalculatorValue(parseFormattedNumber(amountStr) || '0');
       router.push('/modals/calculator');
     }, 50);
+  };
+
+  const handleOpenDatePicker = () => {
+    Keyboard.dismiss();
+    setPickerMode('date');
+    setShowDatePicker(true);
+  };
+
+  const onDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+
+    if (selectedDate) {
+      if (pickerMode === 'date' && Platform.OS === 'android') {
+        // On Android, after picking date, we usually want time too if we desire full precision,
+        // but user asked for 'standard date and time picker'. I'll stick to date for now or sequence them.
+        setDate(selectedDate.toISOString());
+      } else {
+        setDate(selectedDate.toISOString());
+      }
+    }
   };
 
   return (
@@ -338,12 +363,12 @@ export default function AddTransactionModal() {
             </View>
           </View>
 
-          {type === 'out' ? (
+          {type === 'in' || type === 'out' ? (
             <SectionCard palette={palette}>
               <InlinePickerRow
                 label="Date"
                 value={formatDateTime12(date)}
-                onPress={() => undefined}
+                onPress={handleOpenDatePicker}
                 icon="calendar-outline"
                 showChevron={false}
                 valueStyle={{ color: palette.text }}
@@ -521,6 +546,15 @@ export default function AddTransactionModal() {
                 />
               </FieldRow>
             </SectionCard>
+          )}
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={new Date(date)}
+              mode={pickerMode}
+              display="default"
+              onChange={onDateChange}
+            />
           )}
 
         </View>
@@ -727,7 +761,7 @@ function InlinePickerRow({
           justifyContent: 'space-between',
           borderBottomWidth: noBorder ? 0 : 1,
           borderBottomColor: palette.border,
-          paddingLeft: ROW_COLUMN_GAP,
+          paddingLeft: 4,
         }}
       >
         <Text
@@ -747,15 +781,15 @@ function InlinePickerRow({
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {icon ? (
-            <View style={{ width: 32, alignItems: 'flex-end', justifyContent: 'center' }}>
-              <View style={{ width: 32, height: 32, borderRadius: RADIUS.sm, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={icon} size={16} color={palette.textMuted} />
+            <View style={{ width: ROW_TRAILING_WIDTH + 8, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={icon} size={15} color={palette.textMuted} />
               </View>
             </View>
           ) : null}
           {showChevron ? (
-            <View style={{ width: 24, alignItems: 'flex-end', justifyContent: 'center' }}>
-              <Ionicons name="chevron-forward" size={16} color={palette.textMuted} />
+            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end', justifyContent: 'center' }}>
+              <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
             </View>
           ) : null}
         </View>
@@ -799,7 +833,7 @@ function PickerRow({
       >
         {label}
       </Text>
-      <View
+        <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -809,7 +843,7 @@ function PickerRow({
           minHeight: ROW_MIN_HEIGHT,
           borderBottomWidth: 1,
           borderBottomColor: palette.border,
-          paddingLeft: ROW_COLUMN_GAP,
+          paddingLeft: 4,
         }}
       >
         <Text
@@ -824,8 +858,8 @@ function PickerRow({
         >
           {value}
         </Text>
-        <View style={{ width: 24, alignItems: 'flex-end', justifyContent: 'center' }}>
-          <Ionicons name="chevron-forward" size={16} color={palette.textMuted} />
+        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end', justifyContent: 'center' }}>
+          <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
         </View>
       </View>
     </TouchableOpacity>
@@ -894,18 +928,18 @@ function AmountRow({
           justifyContent: 'space-between',
           borderBottomWidth: 1,
           borderBottomColor: palette.border,
-          paddingLeft: ROW_COLUMN_GAP,
+          paddingLeft: 4,
         }}
       >
         <TextInput
           value={amountStr}
-          onChangeText={(value) => setAmountStr(sanitizeDecimalInput(value))}
+          onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
           keyboardType="decimal-pad"
           placeholder="0"
-          placeholderTextColor={palette.textMuted}
+          placeholderTextColor={palette.textSoft}
           style={{
             flex: 1,
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: '700',
             color: activeConfig.color,
             paddingVertical: 0,
@@ -917,14 +951,14 @@ function AmountRow({
           onPress={onOpenCalculator}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           style={{
-            width: 44,
+            width: ROW_TRAILING_WIDTH + 8,
             height: ROW_MIN_HEIGHT,
-            alignItems: 'flex-end',
+            alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <View style={{ width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="calculator-outline" size={18} color={palette.textMuted} />
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="calculator-outline" size={16} color={palette.textMuted} />
           </View>
         </TouchableOpacity>
       </View>
@@ -975,7 +1009,7 @@ function InlineInputRow({
           alignItems: 'center',
           borderBottomWidth: 1,
           borderBottomColor: palette.border,
-          paddingLeft: ROW_COLUMN_GAP,
+          paddingLeft: 4,
         }}
       >
         <TextInput
@@ -1238,6 +1272,7 @@ function SplitRowEditor({
   type,
   onChange,
   onRemove,
+  palette,
 }: {
   row: SplitDraft;
   index: number;
@@ -1288,7 +1323,7 @@ function SplitRowEditor({
       </ScrollView>
       <TextInput
         value={row.amountStr}
-        onChangeText={(value) => onChange(row.id, { amountStr: sanitizeDecimalInput(value) })}
+        onChangeText={(value) => onChange(row.id, { amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })}
         keyboardType="decimal-pad"
         placeholder="Split amount"
         placeholderTextColor={palette.textMuted}
@@ -1311,6 +1346,7 @@ function TagPicker({
   tags,
   selectedIds,
   onToggle,
+  palette,
 }: {
   tags: Tag[];
   selectedIds: string[];

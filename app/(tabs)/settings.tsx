@@ -139,15 +139,6 @@ export default function SettingsScreen() {
           subtitle={pickerSubtitle(picker)}
           palette={palette}
           onClose={() => setPicker(null)}
-          itemCount={
-            picker === 'year-start'
-              ? 12
-              : picker === 'currency'
-                ? 4
-                : picker === 'theme'
-                  ? 3
-                  : accounts.length + 1
-          }
         >
           {picker === 'year-start'
             ? MONTHS.map((month, index) => (

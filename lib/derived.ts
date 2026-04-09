@@ -71,6 +71,26 @@ export function formatCurrency(amount: number, symbol: string = '₹'): string {
   return `${symbol}${formatted}`;
 }
 
+/** Formats a numeric string with Indian-style commas (##,##,###) */
+export function formatIndianNumberStr(val: string): string {
+  if (!val) return '';
+  const parts = val.split('.');
+  const intPart = parts[0].replace(/,/g, '');
+  const decPart = parts.length > 1 ? '.' + parts[1] : '';
+
+  const lastThree = intPart.substring(intPart.length - 3);
+  const other = intPart.substring(0, intPart.length - 3);
+  const formattedInt = other !== ''
+    ? other.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + lastThree
+    : lastThree;
+  return formattedInt + decPart;
+}
+
+/** Strips commas from a formatted numeric string */
+export function parseFormattedNumber(val: string): string {
+  return val.replace(/,/g, '');
+}
+
 export interface SpendingChartPoint {
   label: string;
   amount: number;

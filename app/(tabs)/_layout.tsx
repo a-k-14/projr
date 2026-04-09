@@ -19,7 +19,7 @@ function TabIcon({
   inactive: string;
 }) {
   return (
-      <View
+    <View
       style={{
         alignItems: 'center',
         justifyContent: 'center',
@@ -27,12 +27,12 @@ function TabIcon({
         width: 74,
       }}
     >
-      <Feather name={name} size={22} color={focused ? active : inactive} />
+      <Feather name={name} size={20} color={focused ? active : inactive} />
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 12,
-          lineHeight: 14,
+          fontSize: 11,
+          lineHeight: 13,
           marginTop: 4,
           color: focused ? active : inactive,
           fontWeight: '500',
@@ -52,7 +52,7 @@ export default function TabLayout() {
   const theme = useUIStore((s) => s.settings.theme);
   const palette = getThemePalette(resolveTheme(theme, scheme));
 
-  const TAB_HEIGHT = 64;
+  const TAB_HEIGHT = 60;
 
   return (
     <Tabs
@@ -68,7 +68,7 @@ export default function TabLayout() {
           borderTopWidth: 1,
           height: TAB_HEIGHT + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 10,
+          paddingTop: 8,
           elevation: 0,
           shadowOpacity: 0,
         },

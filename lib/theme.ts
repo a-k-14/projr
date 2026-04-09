@@ -17,6 +17,8 @@ export interface AppThemePalette {
   iconTint: string;
   statusBarStyle: 'light' | 'dark';
   navigationButtonStyle: 'light' | 'dark';
+  positive: string;
+  negative: string;
 }
 
 export function resolveTheme(theme: Theme, systemScheme: ColorSchemeName): AppThemeMode {
@@ -43,6 +45,8 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       iconTint: '#888888',
       statusBarStyle: 'light',
       navigationButtonStyle: 'light',
+      positive: '#4ADE80',
+      negative: '#F87171',
     };
   }
 
@@ -60,5 +64,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     iconTint: '#8C94AF',
     statusBarStyle: 'dark',
     navigationButtonStyle: 'dark',
+    positive: '#166534',
+    negative: '#991B1B',
   };
 }
