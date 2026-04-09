@@ -17,7 +17,7 @@ import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-h
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
-import { formatDateTime12, nowUTC } from '../../lib/dateUtils';
+import { formatDate, formatDateTime12, nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import DateTimePicker, { DateTimePickerAndroid, DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { RADIUS, SCREEN_GUTTER } from '../../lib/design';
@@ -287,40 +287,50 @@ export default function AddTransactionModal() {
     }, 50);
   };
 
-  const handleOpenDatePicker = () => {
+  const openDate = () => {
     Keyboard.dismiss();
     const current = new Date(date);
 
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
         value: current,
-        onValueChange: (_event, selectedDate) => {
+        mode: 'date',
+        display: 'calendar',
+        onChange: (_event, selectedDate) => {
           if (selectedDate && _event.type === 'set') {
-            const nextDate = new Date(selectedDate);
-            // After date, open time
-            DateTimePickerAndroid.open({
-              value: nextDate,
-              mode: 'time',
-              is24Hour: false,
-              display: 'clock', // Material 3 Clock face
-              onValueChange: (timeEvent, selectedTime) => {
-                if (selectedTime && timeEvent.type === 'set') {
-                  const final = new Date(nextDate);
-                  final.setHours(selectedTime.getHours());
-                  final.setMinutes(selectedTime.getMinutes());
-                  setDate(final.toISOString());
-                }
-              },
-              onDismiss: () => {},
-            });
+            const final = new Date(date);
+            final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+            setDate(final.toISOString());
           }
         },
-        onDismiss: () => {},
-        mode: 'date',
-        display: 'calendar', // Material 3 Calendar
       });
     } else {
-      setPickerMode('datetime');
+      setPickerMode('date');
+      setShowDatePicker(true);
+    }
+  };
+
+  const openTime = () => {
+    Keyboard.dismiss();
+    const current = new Date(date);
+
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: current,
+        mode: 'time',
+        display: 'clock',
+        is24Hour: false,
+        onChange: (event, selectedTime) => {
+          if (selectedTime && event.type === 'set') {
+            const final = new Date(date);
+            final.setHours(selectedTime.getHours());
+            final.setMinutes(selectedTime.getMinutes());
+            setDate(final.toISOString());
+          }
+        },
+      });
+    } else {
+      setPickerMode('time');
       setShowDatePicker(true);
     }
   };
@@ -389,13 +399,10 @@ export default function AddTransactionModal() {
 
           {type === 'in' || type === 'out' ? (
             <SectionCard palette={palette}>
-              <InlinePickerRow
-                label="Date"
-                value={formatDateTime12(date)}
-                onPress={handleOpenDatePicker}
-                icon="calendar-outline"
-                showChevron={false}
-                valueStyle={{ color: palette.text }}
+              <InteractiveDateTimeRow
+                date={date}
+                onOpenDate={openDate}
+                onOpenTime={openTime}
                 palette={palette}
               />
             <AmountRow
@@ -503,7 +510,7 @@ export default function AddTransactionModal() {
                   palette={palette}
                 />
               </FieldRow>
-              <DateTimeRow date={date} palette={palette} onOpen={handleOpenDatePicker} />
+              <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
               <FieldRow label="Notes" noBorder palette={palette}>
                 <TextInput
                   value={note}
@@ -558,7 +565,7 @@ export default function AddTransactionModal() {
                   ))}
                 </View>
               </FieldRow>
-              <DateTimeRow date={date} palette={palette} onOpen={handleOpenDatePicker} />
+              <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
               <FieldRow label="Notes" noBorder palette={palette}>
                 <TextInput
                   value={note}
@@ -575,7 +582,7 @@ export default function AddTransactionModal() {
           {showDatePicker && Platform.OS === 'ios' && (
             <DateTimePicker
               value={new Date(date)}
-              mode="datetime"
+              mode={pickerMode}
               display="default"
               onValueChange={onDateChange}
               onDismiss={() => setShowDatePicker(false)}
@@ -809,8 +816,8 @@ function InlinePickerRow({
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {icon ? (
             <View style={{ width: ROW_TRAILING_WIDTH + 14, alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.borderSoft, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={icon} size={15} color={palette.textMuted} />
+              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={icon} size={15} color={palette.text} />
               </View>
             </View>
           ) : null}
@@ -893,17 +900,94 @@ function PickerRow({
   );
 }
 
-function DateTimeRow({ date, palette, onOpen }: { date: string; palette: any; onOpen: () => void }) {
+function InteractiveDateTimeRow({
+  date,
+  palette,
+  onOpenDate,
+  onOpenTime,
+}: {
+  date: string;
+  palette: any;
+  onOpenDate: () => void;
+  onOpenTime: () => void;
+}) {
+  const dt = new Date(date);
+  const dateStr = formatDate(date);
+  const timeStr = dt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+
   return (
-    <InlinePickerRow
-      label="Date"
-      value={formatDateTime12(date)}
-      onPress={onOpen}
-      icon="calendar-outline"
-      noBorder={false}
-      valueStyle={{ color: palette.text }}
-      palette={palette}
-    />
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        Date
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottomWidth: 1,
+          borderBottomColor: palette.border,
+          minHeight: ROW_MIN_HEIGHT,
+          paddingLeft: 4,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            onPress={onOpenDate}
+            style={{
+              backgroundColor: palette.inputBg,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onOpenTime}
+            style={{
+              backgroundColor: palette.inputBg,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ width: ROW_TRAILING_WIDTH + 14, alignItems: 'center', justifyContent: 'center' }}>
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              backgroundColor: palette.inputBg,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="calendar-outline" size={15} color={palette.text} />
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -984,8 +1068,8 @@ function AmountRow({
             justifyContent: 'center',
           }}
         >
-          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.borderSoft, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="calculator-outline" size={16} color={palette.textMuted} />
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="calculator-outline" size={16} color={palette.text} />
           </View>
         </TouchableOpacity>
       </View>

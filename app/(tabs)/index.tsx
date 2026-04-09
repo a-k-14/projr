@@ -126,7 +126,7 @@ export default function HomeScreen() {
         mode: 'date',
         display: 'calendar', // Material 3 Calendar
         minimumDate: minDate,
-        onValueChange: (_event, selected) => {
+        onChange: (_event, selected) => {
           if (!selected) return;
           if (stage === 'from') {
             setCustomDraftFrom(selected);
