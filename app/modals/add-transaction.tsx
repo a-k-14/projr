@@ -549,15 +549,7 @@ export default function AddTransactionModal() {
               <FieldRow label="Account" palette={palette}>
                 <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} palette={palette} />
               </FieldRow>
-              <FieldRow label="Person" palette={palette}>
-                <TextInput
-                  value={personName}
-                  onChangeText={setPersonName}
-                  placeholder="Name"
-                  placeholderTextColor={palette.textMuted}
-                  style={{ flex: 1, fontSize: 15, color: palette.text, paddingVertical: 0 }}
-                />
-              </FieldRow>
+              <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} />
               <FieldRow label="Direction" palette={palette}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {(['lent', 'borrowed'] as const).map((d) => (
@@ -750,7 +742,7 @@ function FieldRow({
       style={{
         paddingHorizontal: SCREEN_GUTTER,
         paddingVertical: 14,
-        borderBottomWidth: noBorder ? 0 : 1,
+        borderBottomWidth: noBorder === false ? 1 : 0,
         borderBottomColor: palette.border,
       }}
     >
@@ -815,7 +807,7 @@ function InlinePickerRow({
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottomWidth: noBorder ? 0 : 1,
+          borderBottomWidth: noBorder === false ? 1 : 0,
           borderBottomColor: palette.border,
           paddingLeft: 4,
         }}
@@ -897,7 +889,7 @@ function PickerRow({
           flex: 1,
           minWidth: 0,
           minHeight: ROW_MIN_HEIGHT,
-          borderBottomWidth: 1,
+          borderBottomWidth: 0,
           borderBottomColor: palette.border,
           paddingLeft: 4,
         }}
@@ -962,7 +954,7 @@ function InteractiveDateTimeRow({
           flex: 1,
           flexDirection: 'row',
           alignItems: 'center',
-          borderBottomWidth: 1,
+          borderBottomWidth: 0,
           borderBottomColor: palette.border,
           minHeight: ROW_MIN_HEIGHT,
           paddingLeft: 4,
@@ -1017,6 +1009,7 @@ function AmountRow({
   isEditing: boolean;
   palette: any;
 }) {
+  const [isFocused, setIsFocused] = useState(false);
   return (
     <View
       style={{
@@ -1044,11 +1037,12 @@ function AmountRow({
           minWidth: 0,
           minHeight: ROW_MIN_HEIGHT,
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           justifyContent: 'space-between',
-          borderBottomWidth: 1,
-          borderBottomColor: palette.border,
+          borderBottomWidth: isFocused ? 1.5 : 1,
+          borderBottomColor: isFocused ? palette.active : palette.borderSoft,
           paddingLeft: 4,
+          paddingBottom: 6,
         }}
       >
         <TextInput
@@ -1066,13 +1060,15 @@ function AmountRow({
             textAlign: 'left',
           }}
           autoFocus={!isEditing}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
         <TouchableOpacity
           onPress={onOpenCalculator}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           style={{
             width: ROW_TRAILING_WIDTH + 14,
-            height: ROW_MIN_HEIGHT,
+            height: 38, // Reduced from ROW_MIN_HEIGHT to stay aligned with bottom-aligned text
             alignItems: 'center',
             justifyContent: 'center',
           }}
@@ -1099,6 +1095,7 @@ function InlineInputRow({
   placeholder: string;
   palette: any;
 }) {
+  const [isFocused, setIsFocused] = useState(false);
   return (
     <View
       style={{
@@ -1126,10 +1123,11 @@ function InlineInputRow({
           minWidth: 0,
           minHeight: ROW_MIN_HEIGHT,
           flexDirection: 'row',
-          alignItems: 'center',
-          borderBottomWidth: 1,
-          borderBottomColor: palette.border,
+          alignItems: 'flex-end',
+          borderBottomWidth: isFocused ? 1.5 : 1,
+          borderBottomColor: isFocused ? palette.active : palette.borderSoft,
           paddingLeft: 4,
+          paddingBottom: 6,
         }}
       >
         <TextInput
@@ -1146,6 +1144,8 @@ function InlineInputRow({
             paddingVertical: 0,
             textAlign: 'left',
           }}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
       </View>
     </View>
