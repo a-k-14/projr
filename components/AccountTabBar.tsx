@@ -18,9 +18,9 @@ type Props = {
   selectedId: string | 'all';
   onSelect: (id: string | 'all') => void;
   /**
-   * Pass the pager's Animated.Value here (Home screen) so tab animations
-   * track the swipe in real-time. When omitted (Activity screen), the component
-   * drives its own internal Animated.Value via Animated.timing on tap.
+   * Pass the pager's Animated.Value here so tab animations track the swipe
+   * in real-time (used by both Home and Activity screens). When omitted, the
+   * component drives its own internal Animated.Value via Animated.timing on tap.
    */
   externalScrollX?: Animated.Value;
 };

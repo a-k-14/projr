@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  useColorScheme,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { formatCurrency } from '../../lib/derived';
-import { todayUTC, formatDate } from '../../lib/dateUtils';
+import { useLoansStore } from '../../stores/useLoansStore';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { todayUTC, formatDate, toUTCMidnight } from '../../lib/dateUtils';
 import type { TransactionType, CreateTransactionInput, Account, Category } from '../../types';
 import { getTransactionById } from '../../services/transactions';
 
@@ -33,9 +36,12 @@ export default function AddTransactionModal() {
   const isEditing = !!editId;
 
   const { add, update, remove } = useTransactionsStore();
+  const { add: addLoan } = useLoansStore();
   const { accounts, refresh: refreshAccounts } = useAccountsStore();
   const { categories, getCategoryDisplayName } = useCategoriesStore();
   const { settings } = useUIStore();
+  const systemScheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, systemScheme));
 
   const [type, setType] = useState<TransactionType>('out');
   const [amountStr, setAmountStr] = useState('');
@@ -47,6 +53,7 @@ export default function AddTransactionModal() {
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loading, setLoading] = useState(false);
+  const [showIosDatePicker, setShowIosDatePicker] = useState(false);
   const insets = useSafeAreaInsets();
 
   const sym = settings.currencySymbol;
@@ -74,26 +81,57 @@ export default function AddTransactionModal() {
   }, [editId]);
 
   const amount = parseFloat(amountStr) || 0;
-  const isValid = amount > 0 && accountId;
+  const isValid =
+    amount > 0 &&
+    accountId.length > 0 &&
+    (type !== 'loan' || personName.trim().length > 0);
+
+  const openDatePicker = () => {
+    const current = new Date(date);
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: current,
+        mode: 'date',
+        display: 'calendar',
+        onChange: (_event: unknown, selected?: Date) => {
+          if (selected) setDate(toUTCMidnight(selected));
+        },
+      });
+    } else {
+      setShowIosDatePicker(true);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
     try {
-      const data: CreateTransactionInput = {
-        type,
-        amount,
-        accountId,
-        date,
-        note: note || undefined,
-        categoryId: categoryId || undefined,
-        linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
-      };
-
-      if (isEditing && editId) {
-        await update(editId, data);
+      if (!isEditing && type === 'loan') {
+        // Loan creation must go through the loan service to create a proper
+        // loan record with personName/direction and a linked transaction.
+        await addLoan({
+          personName: personName.trim(),
+          direction: loanDirection,
+          accountId,
+          givenAmount: amount,
+          note: note || undefined,
+          date,
+        });
       } else {
-        await add(data);
+        const data: CreateTransactionInput = {
+          type,
+          amount,
+          accountId,
+          date,
+          note: note || undefined,
+          categoryId: categoryId || undefined,
+          linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
+        };
+        if (isEditing && editId) {
+          await update(editId, data);
+        } else {
+          await add(data);
+        }
       }
       await refreshAccounts();
       router.back();
@@ -120,15 +158,13 @@ export default function AddTransactionModal() {
   };
 
   const activeConfig = TYPE_CONFIG[type];
-  const outlineCategories = categories.filter((c) => !c.parentId && c.type !== 'in');
-  const inlineCategories = categories.filter((c) => !c.parentId && c.type !== 'out');
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#F0F0F5' }}
+      style={{ flex: 1, backgroundColor: palette.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         {/* Header type selector */}
         <ScrollView
           horizontal
@@ -142,7 +178,7 @@ export default function AddTransactionModal() {
           }}
         >
           <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16, padding: 4 }}>
-            <Ionicons name="close" size={24} color="#0A0A0A" />
+            <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
           {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
             <TouchableOpacity
@@ -154,15 +190,15 @@ export default function AddTransactionModal() {
                 borderRadius: 20,
                 marginRight: 8,
                 borderWidth: 1.5,
-                borderColor: type === t ? TYPE_CONFIG[t].borderColor : '#E5E7EB',
-                backgroundColor: type === t ? TYPE_CONFIG[t].bg : '#fff',
+                borderColor: type === t ? TYPE_CONFIG[t].borderColor : palette.border,
+                backgroundColor: type === t ? TYPE_CONFIG[t].bg : palette.surface,
               }}
             >
               <Text
                 style={{
                   fontSize: 13,
                   fontWeight: '600',
-                  color: type === t ? TYPE_CONFIG[t].color : '#6B7280',
+                  color: type === t ? TYPE_CONFIG[t].color : palette.textMuted,
                 }}
               >
                 {TYPE_CONFIG[t].label}
@@ -175,15 +211,15 @@ export default function AddTransactionModal() {
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Amount */}
         <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-          <Text style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 8 }}>Amount</Text>
+          <Text style={{ fontSize: 13, color: palette.textSoft, marginBottom: 8 }}>Amount</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 32, color: '#9CA3AF', marginRight: 4 }}>{sym}</Text>
+            <Text style={{ fontSize: 32, color: palette.textSoft, marginRight: 4 }}>{sym}</Text>
             <TextInput
               value={amountStr}
               onChangeText={setAmountStr}
               keyboardType="decimal-pad"
               placeholder="0"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={palette.textSoft}
               style={{
                 fontSize: 40,
                 fontWeight: '700',
@@ -198,7 +234,7 @@ export default function AddTransactionModal() {
 
         <View
           style={{
-            backgroundColor: '#fff',
+            backgroundColor: palette.surface,
             borderRadius: 20,
             marginHorizontal: 16,
             overflow: 'hidden',
@@ -207,12 +243,13 @@ export default function AddTransactionModal() {
           {/* Transfer: From/To accounts */}
           {type === 'transfer' ? (
             <>
-              <FieldRow label="From account">
+              <FieldRow label="From account" palette={palette}>
                 <AccountPicker
                   accounts={accounts}
                   selectedId={accountId}
                   onSelect={setAccountId}
                   excludeId={linkedAccountId}
+                  palette={palette}
                 />
               </FieldRow>
               <View style={{ alignItems: 'center', paddingVertical: 4 }}>
@@ -226,38 +263,39 @@ export default function AddTransactionModal() {
                     width: 32,
                     height: 32,
                     borderRadius: 16,
-                    backgroundColor: '#F3F4F6',
+                    backgroundColor: palette.divider,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Ionicons name="swap-vertical" size={16} color="#6B7280" />
+                  <Ionicons name="swap-vertical" size={16} color={palette.textMuted} />
                 </TouchableOpacity>
               </View>
-              <FieldRow label="To account">
+              <FieldRow label="To account" palette={palette}>
                 <AccountPicker
                   accounts={accounts}
                   selectedId={linkedAccountId}
                   onSelect={setLinkedAccountId}
                   excludeId={accountId}
+                  palette={palette}
                 />
               </FieldRow>
             </>
           ) : type === 'loan' ? (
             <>
-              <FieldRow label="Account">
-                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} />
+              <FieldRow label="Account" palette={palette}>
+                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} palette={palette} />
               </FieldRow>
-              <FieldRow label="Person">
+              <FieldRow label="Person" palette={palette}>
                 <TextInput
                   value={personName}
                   onChangeText={setPersonName}
                   placeholder="Name"
-                  placeholderTextColor="#9CA3AF"
-                  style={{ fontSize: 15, color: '#0A0A0A', flex: 1 }}
+                  placeholderTextColor={palette.textSoft}
+                  style={{ fontSize: 15, color: palette.text, flex: 1 }}
                 />
               </FieldRow>
-              <FieldRow label="Direction">
+              <FieldRow label="Direction" palette={palette}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {(['lent', 'borrowed'] as const).map((d) => (
                     <TouchableOpacity
@@ -269,15 +307,15 @@ export default function AddTransactionModal() {
                         borderRadius: 12,
                         alignItems: 'center',
                         borderWidth: 1.5,
-                        borderColor: loanDirection === d ? '#1B4332' : '#E5E7EB',
-                        backgroundColor: loanDirection === d ? '#DCFCE7' : '#fff',
+                        borderColor: loanDirection === d ? '#1B4332' : palette.border,
+                        backgroundColor: loanDirection === d ? '#DCFCE7' : palette.surface,
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 13,
                           fontWeight: '600',
-                          color: loanDirection === d ? '#1B4332' : '#6B7280',
+                          color: loanDirection === d ? '#1B4332' : palette.textMuted,
                         }}
                       >
                         {d === 'lent' ? 'I lent' : 'I borrowed'}
@@ -289,33 +327,48 @@ export default function AddTransactionModal() {
             </>
           ) : (
             <>
-              <FieldRow label="Category">
+              <FieldRow label="Category" palette={palette}>
                 <CategoryPicker
                   categories={categories.filter((c) => !c.parentId)}
                   allCategories={categories}
                   selectedId={categoryId}
                   onSelect={setCategoryId}
                   type={type}
+                  palette={palette}
                 />
               </FieldRow>
-              <FieldRow label="Account">
-                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} />
+              <FieldRow label="Account" palette={palette}>
+                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} palette={palette} />
               </FieldRow>
             </>
           )}
 
-          <FieldRow label="Date">
-            <Text style={{ fontSize: 15, color: '#0A0A0A' }}>{formatDate(date)}</Text>
-            <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+          <FieldRow label="Date" palette={palette} onPress={openDatePicker}>
+            <Text style={{ fontSize: 15, color: palette.text }}>{formatDate(date)}</Text>
+            <Ionicons name="calendar-outline" size={18} color={palette.textSoft} />
           </FieldRow>
 
-          <FieldRow label="Note" noBorder>
+          {Platform.OS === 'ios' && showIosDatePicker ? (
+            <View style={{ borderTopWidth: 1, borderTopColor: palette.divider }}>
+              <DateTimePicker
+                value={new Date(date)}
+                mode="date"
+                display="spinner"
+                onChange={(_event: unknown, selected?: Date) => {
+                  setShowIosDatePicker(false);
+                  if (selected) setDate(toUTCMidnight(selected));
+                }}
+              />
+            </View>
+          ) : null}
+
+          <FieldRow label="Note" noBorder palette={palette}>
             <TextInput
               value={note}
               onChangeText={setNote}
               placeholder="Add a note..."
-              placeholderTextColor="#9CA3AF"
-              style={{ fontSize: 15, color: '#0A0A0A', flex: 1 }}
+              placeholderTextColor={palette.textSoft}
+              style={{ fontSize: 15, color: palette.text, flex: 1 }}
             />
           </FieldRow>
         </View>
@@ -331,14 +384,14 @@ export default function AddTransactionModal() {
           paddingHorizontal: 16,
           paddingBottom: insets.bottom + 16,
           paddingTop: 12,
-          backgroundColor: '#F0F0F5',
+          backgroundColor: palette.background,
         }}
       >
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!isValid || loading}
           style={{
-            backgroundColor: isValid ? activeConfig.color : '#9CA3AF',
+            backgroundColor: isValid ? activeConfig.color : palette.textSoft,
             borderRadius: 16,
             paddingVertical: 16,
             alignItems: 'center',
@@ -365,25 +418,31 @@ function FieldRow({
   label,
   children,
   noBorder,
+  onPress,
+  palette,
 }: {
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
   noBorder?: boolean;
+  onPress?: () => void;
+  palette: ReturnType<typeof getThemePalette>;
 }) {
+  const Container = onPress ? TouchableOpacity : View;
   return (
-    <View
+    <Container
+      onPress={onPress}
       style={{
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: noBorder ? 0 : 1,
-        borderBottomColor: '#F3F4F6',
+        borderBottomColor: palette.divider,
       }}
     >
-      <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 6 }}>{label}</Text>
+      <Text style={{ fontSize: 12, color: palette.textSoft, marginBottom: 6 }}>{label}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         {children}
       </View>
-    </View>
+    </Container>
   );
 }
 
@@ -392,14 +451,15 @@ function AccountPicker({
   selectedId,
   onSelect,
   excludeId,
+  palette,
 }: {
   accounts: Account[];
   selectedId: string;
   onSelect: (id: string) => void;
   excludeId?: string;
+  palette: ReturnType<typeof getThemePalette>;
 }) {
   const filtered = accounts.filter((a) => a.id !== excludeId);
-  const selected = filtered.find((a) => a.id === selectedId);
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -412,14 +472,14 @@ function AccountPicker({
             paddingVertical: 6,
             borderRadius: 8,
             marginRight: 8,
-            backgroundColor: selectedId === acc.id ? '#1B4332' : '#F3F4F6',
+            backgroundColor: selectedId === acc.id ? palette.tabActive : palette.divider,
           }}
         >
           <Text
             style={{
               fontSize: 13,
               fontWeight: '500',
-              color: selectedId === acc.id ? '#fff' : '#6B7280',
+              color: selectedId === acc.id ? '#fff' : palette.textMuted,
             }}
           >
             {acc.name}
@@ -436,12 +496,14 @@ function CategoryPicker({
   selectedId,
   onSelect,
   type,
+  palette,
 }: {
   categories: Category[];
   allCategories: Category[];
   selectedId: string;
   onSelect: (id: string) => void;
   type: TransactionType;
+  palette: ReturnType<typeof getThemePalette>;
 }) {
   const { getCategoryDisplayName } = useCategoriesStore();
   const relevantParents = categories.filter(
@@ -455,10 +517,10 @@ function CategoryPicker({
         onPress={() => onSelect('')}
         style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
       >
-        <Text style={{ fontSize: 15, color: '#0A0A0A', flex: 1 }}>
+        <Text style={{ fontSize: 15, color: palette.text, flex: 1 }}>
           {cat ? getCategoryDisplayName(selectedId) : 'Choose category...'}
         </Text>
-        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+        <Ionicons name="chevron-forward" size={16} color={palette.textSoft} />
       </TouchableOpacity>
     );
   }
@@ -477,10 +539,10 @@ function CategoryPicker({
               paddingVertical: 6,
               borderRadius: 8,
               marginRight: 8,
-              backgroundColor: '#F3F4F6',
+              backgroundColor: palette.divider,
             }}
           >
-            <Text style={{ fontSize: 13, color: '#6B7280' }}>
+            <Text style={{ fontSize: 13, color: palette.textMuted }}>
               {children.length > 0 ? `${parent.name} › ${cat.name}` : cat.name}
             </Text>
           </TouchableOpacity>

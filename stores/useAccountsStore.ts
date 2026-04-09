@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Account, CreateAccountInput } from '../types';
 import * as accountsService from '../services/accounts';
+import { useUIStore } from './useUIStore';
 
 interface AccountsStore {
   accounts: Account[];
@@ -42,6 +43,11 @@ export const useAccountsStore = create<AccountsStore>((set, get) => ({
 
   remove: async (id) => {
     await accountsService.deleteAccount(id);
+    // Clear the default account setting if it pointed to the deleted account
+    const { settings, updateSettings } = useUIStore.getState();
+    if (settings.defaultAccountId === id) {
+      await updateSettings({ defaultAccountId: '' });
+    }
     set((state) => ({ accounts: state.accounts.filter((a) => a.id !== id) }));
   },
 

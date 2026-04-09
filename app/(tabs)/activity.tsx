@@ -139,7 +139,7 @@ function ActivityAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const loadingRef = useRef(false);
 
   const PAGE_SIZE = 40;
@@ -152,7 +152,7 @@ function ActivityAccountPage({
     loadingRef.current = true;
 
     try {
-      const currentOffset = isInitial ? 0 : offset;
+      const currentOffset = isInitial ? 0 : offsetRef.current;
       const filterParams = {
         accountId: accountId === 'all' ? undefined : accountId,
         type: typeFilter === 'all' ? undefined : typeFilter,
@@ -165,7 +165,7 @@ function ActivityAccountPage({
 
       if (isInitial) {
         setTransactions(results);
-        setOffset(PAGE_SIZE);
+        offsetRef.current = PAGE_SIZE;
         setHasMore(results.length === PAGE_SIZE);
       } else {
         setTransactions((prev) => {
@@ -174,19 +174,19 @@ function ActivityAccountPage({
           const newTxs = results.filter(t => !existingIds.has(t.id));
           return [...prev, ...newTxs];
         });
-        setOffset((prev) => prev + PAGE_SIZE);
+        offsetRef.current += PAGE_SIZE;
         setHasMore(results.length === PAGE_SIZE);
       }
     } finally {
       loadingRef.current = false;
     }
-  }, [accountId, typeFilter, search, offset]);
+  }, [accountId, typeFilter, search]);
 
   useEffect(() => {
     if (isSelected) {
       loadData(true);
     }
-  }, [isSelected, typeFilter, search]);
+  }, [isSelected, typeFilter, search, loadData]);
 
   const onRefresh = async () => {
     if (loadingRef.current) return;

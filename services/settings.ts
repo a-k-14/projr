@@ -3,7 +3,7 @@ import { settings } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import type { Settings } from '../types';
 
-const DEFAULTS: Settings = {
+export const DEFAULT_SETTINGS: Settings = {
   defaultAccountId: '',
   currency: 'INR',
   currencySymbol: '₹',
@@ -16,11 +16,11 @@ export async function getSettings(): Promise<Settings> {
   const rows = await db.select().from(settings);
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   return {
-    defaultAccountId: map['defaultAccountId'] ?? DEFAULTS.defaultAccountId,
-    currency: map['currency'] ?? DEFAULTS.currency,
-    currencySymbol: map['currencySymbol'] ?? DEFAULTS.currencySymbol,
-    theme: (map['theme'] as Settings['theme']) ?? DEFAULTS.theme,
-    yearStart: map['yearStart'] ? parseInt(map['yearStart']) : DEFAULTS.yearStart,
+    defaultAccountId: map['defaultAccountId'] ?? DEFAULT_SETTINGS.defaultAccountId,
+    currency: map['currency'] ?? DEFAULT_SETTINGS.currency,
+    currencySymbol: map['currencySymbol'] ?? DEFAULT_SETTINGS.currencySymbol,
+    theme: (map['theme'] as Settings['theme']) ?? DEFAULT_SETTINGS.theme,
+    yearStart: map['yearStart'] ? parseInt(map['yearStart']) : DEFAULT_SETTINGS.yearStart,
     cloudBackupEnabled: map['cloudBackupEnabled'] === 'true',
     supabaseUserId: map['supabaseUserId'],
   };

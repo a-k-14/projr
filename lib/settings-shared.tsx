@@ -62,7 +62,8 @@ export const ACCOUNT_ICONS = [
   'archive',
 ] as const;
 
-export const ACCOUNT_COLORS = [
+// Single palette shared by accounts, categories, and tags.
+export const ENTITY_COLORS = [
   '#17673B',
   '#0F4C81',
   '#8B5CF6',
@@ -72,6 +73,9 @@ export const ACCOUNT_COLORS = [
   '#7C3AED',
   '#0F766E',
 ] as const;
+
+/** @deprecated use ENTITY_COLORS */
+export const ACCOUNT_COLORS = ENTITY_COLORS;
 
 export const CATEGORY_ICONS = [
   'shopping-cart',
@@ -86,27 +90,16 @@ export const CATEGORY_ICONS = [
   'archive',
 ] as const;
 
-export const CATEGORY_COLORS = [
-  '#17673B',
-  '#0F4C81',
-  '#8B5CF6',
-  '#CC3B2D',
-  '#B45309',
-  '#2563EB',
-  '#7C3AED',
-  '#0F766E',
-] as const;
+/** @deprecated use ENTITY_COLORS */
+export const CATEGORY_COLORS = ENTITY_COLORS;
 
-export const TAG_COLORS = [
-  '#17673B',
-  '#0F4C81',
-  '#8B5CF6',
-  '#CC3B2D',
-  '#B45309',
-  '#2563EB',
-  '#7C3AED',
-  '#0F766E',
-] as const;
+/** @deprecated use ENTITY_COLORS */
+export const TAG_COLORS = ENTITY_COLORS;
+
+/** Returns the currency symbol for a known currency code, defaulting to the code itself. */
+export function symbolFor(currencyCode: string): string {
+  return CURRENCIES.find((c) => c.code === currencyCode)?.symbol ?? currencyCode;
+}
 
 export function formatDisplayCurrency(amount: number, symbol: string) {
   return formatCurrency(amount, symbol);

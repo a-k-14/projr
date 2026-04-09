@@ -30,12 +30,14 @@ export const HOME_RADIUS = {
   full: 999,
 } as const;
 
+// Note: xs/sm/md match SPACING in design.ts. lg/xl differ intentionally —
+// home screens use tighter spacing (lg=14) than settings screens (SPACING.lg=16).
 export const HOME_SPACE = {
   screen: 16,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 14,
+  xs: 4,   // == SPACING.xs
+  sm: 8,   // == SPACING.sm
+  md: 12,  // == SPACING.md
+  lg: 14,  // home-specific tight spacing (settings uses SPACING.lg = 16)
   xl: 16,
   xxl: 18,
   xxxl: 20,
