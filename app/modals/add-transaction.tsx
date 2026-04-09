@@ -51,12 +51,24 @@ const ROW_COLUMN_GAP = 16;
 const ROW_TRAILING_WIDTH = 24;
 
 function sanitizeDecimalInput(value: string): string {
-  const cleaned = value.replace(/[^0-9.]/g, '');
+  // Remove any character that isn't a digit or a period
+  let cleaned = value.replace(/[^0-9.]/g, '');
+  
+  // Handle empty input
   if (!cleaned) return '';
-  const [head, ...rest] = cleaned.split('.');
-  const normalizedHead = head === '' ? '0' : head;
-  if (rest.length === 0) return normalizedHead;
-  return `${normalizedHead}.${rest.join('').replace(/\./g, '')}`;
+
+  // If we have multiple dots, keep only the first one
+  const parts = cleaned.split('.');
+  if (parts.length > 2) {
+    cleaned = parts[0] + '.' + parts.slice(1).join('');
+  }
+
+  // Handle leading zeros (e.g., "05" -> "5", but "0.5" remains "0.5")
+  if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') {
+    cleaned = cleaned.substring(1);
+  }
+
+  return cleaned;
 }
 
 export default function AddTransactionModal() {
@@ -130,10 +142,18 @@ export default function AddTransactionModal() {
     if (categoryId !== draftCategoryId) setDraftCategoryId(categoryId);
   }, [categoryId, draftCategoryId, setDraftCategoryId]);
 
+  // Only sync calculator value to amountStr when the calculator is closed
+  // This prevents incomplete expressions like "94+" from appearing in the main form
+  const prevCalculatorOpen = useRef(calculatorOpen);
   useEffect(() => {
-    if (calculatorOpen) {
-      setAmountStr(calculatorValue);
+    if (prevCalculatorOpen.current === true && calculatorOpen === false) {
+      if (calculatorValue && calculatorValue !== '0') {
+        // Strict sanitization: remove anything that isn't a number or period
+        const clean = calculatorValue.replace(/[^0-9.]/g, '');
+        setAmountStr(formatIndianNumberStr(clean));
+      }
     }
+    prevCalculatorOpen.current = calculatorOpen;
   }, [calculatorOpen, calculatorValue]);
 
   useEffect(() => {
@@ -282,7 +302,7 @@ export default function AddTransactionModal() {
     Keyboard.dismiss();
     setTimeout(() => {
       setCalculatorOpen(true);
-      setCalculatorValue(parseFormattedNumber(amountStr) || '0');
+      setCalculatorValue(parseFormattedNumber(amountStr) || '');
       router.push('/modals/calculator');
     }, 50);
   };
@@ -296,13 +316,14 @@ export default function AddTransactionModal() {
         value: current,
         mode: 'date',
         display: 'calendar',
-        onChange: (_event, selectedDate) => {
-          if (selectedDate && _event.type === 'set') {
+        onValueChange: (_event, selectedDate) => {
+          if (selectedDate) {
             const final = new Date(date);
             final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
             setDate(final.toISOString());
           }
         },
+        onDismiss: () => {},
       });
     } else {
       setPickerMode('date');
@@ -320,14 +341,15 @@ export default function AddTransactionModal() {
         mode: 'time',
         display: 'clock',
         is24Hour: false,
-        onChange: (event, selectedTime) => {
-          if (selectedTime && event.type === 'set') {
+        onValueChange: (event, selectedTime) => {
+          if (selectedTime) {
             const final = new Date(date);
             final.setHours(selectedTime.getHours());
             final.setMinutes(selectedTime.getMinutes());
             setDate(final.toISOString());
           }
         },
+        onDismiss: () => {},
       });
     } else {
       setPickerMode('time');
@@ -675,7 +697,7 @@ export default function AddTransactionModal() {
               );
             })
           )}
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 18, paddingBottom: 6 }}>
+          <View style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: insets.bottom + 40 }}>
             <RnghTouchableOpacity
               onPress={() => setShowTagSheet(false)}
               style={{
@@ -940,52 +962,39 @@ function InteractiveDateTimeRow({
           flex: 1,
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
           borderBottomWidth: 1,
           borderBottomColor: palette.border,
           minHeight: ROW_MIN_HEIGHT,
           paddingLeft: 4,
+          gap: 8,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity
-            onPress={onOpenDate}
-            style={{
-              backgroundColor: palette.inputBg,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: 8,
-            }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onOpenTime}
-            style={{
-              backgroundColor: palette.inputBg,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: 8,
-            }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ width: ROW_TRAILING_WIDTH + 14, alignItems: 'center', justifyContent: 'center' }}>
-          <View
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              backgroundColor: palette.inputBg,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="calendar-outline" size={15} color={palette.text} />
-          </View>
-        </View>
+        <TouchableOpacity
+          onPress={onOpenDate}
+          style={{
+            flex: 1.5, // Priority to date
+            backgroundColor: palette.inputBg,
+            paddingVertical: 9,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onOpenTime}
+          style={{
+            flex: 0.9, // Slightly expanded time
+            backgroundColor: palette.inputBg,
+            paddingVertical: 9,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

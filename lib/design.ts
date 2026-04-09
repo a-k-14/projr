@@ -10,6 +10,7 @@ export const SPACING = {
 } as const;
 
 export const SCREEN_GUTTER = SPACING.lg - 2;
+export const SHEET_GUTTER = 20;
 
 export const RADIUS = {
   sm: 12,

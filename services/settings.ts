@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultAccountId: '',
   currency: 'INR',
   currencySymbol: '₹',
-  theme: 'auto',
+  theme: 'light',
   yearStart: 3,
   cloudBackupEnabled: false,
 };

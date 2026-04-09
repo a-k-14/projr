@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { ReactNode } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
+import { RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
 
 export function ScreenTitle({
@@ -138,6 +138,7 @@ export function ChoiceRow({
   onPress,
   noBorder,
   leftElement,
+  horizontalPadding = SHEET_GUTTER,
 }: {
   title: string;
   subtitle?: string;
@@ -146,7 +147,10 @@ export function ChoiceRow({
   onPress: () => void;
   noBorder?: boolean;
   leftElement?: ReactNode;
+  horizontalPadding?: number;
 }) {
+  const isDarkMode = palette.statusBarStyle === 'light';
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -154,13 +158,13 @@ export function ChoiceRow({
       delayPressIn={0}
       style={{
         minHeight: 68,
-        paddingHorizontal: SCREEN_GUTTER,
+        paddingHorizontal: horizontalPadding,
         paddingVertical: 14,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: selected
-          ? palette.background === '#11161F'
-            ? 'rgba(37, 99, 235, 0.1)'
+          ? isDarkMode
+            ? 'rgba(255, 255, 255, 0.06)'
             : 'rgba(23, 103, 59, 0.05)'
           : 'transparent',
         borderBottomWidth: noBorder ? 0 : 1,
@@ -221,6 +225,8 @@ export function PickerChip({
   palette: AppThemePalette;
   onPress: () => void;
 }) {
+  const isDarkMode = palette.statusBarStyle === 'light';
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -229,7 +235,7 @@ export function PickerChip({
         borderRadius: RADIUS.md,
         borderWidth: 1,
         borderColor: selected ? palette.tabActive : palette.border,
-        backgroundColor: selected ? (palette.background === '#11161F' ? '#182131' : '#E8F3EC') : palette.surface,
+        backgroundColor: selected ? (isDarkMode ? 'rgba(255, 255, 255, 0.06)' : '#E8F3EC') : palette.surface,
         paddingHorizontal: SPACING.lg,
         justifyContent: 'center',
       }}

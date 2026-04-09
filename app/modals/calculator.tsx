@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -20,7 +21,24 @@ export default function CalculatorModal() {
   const scheme = useColorScheme();
   const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const { calculatorValue, setCalculatorValue, setCalculatorOpen } = useTransactionDraftStore();
-  const [display, setDisplay] = useState(calculatorValue || '0');
+  
+  // Keep display always in "pretty" format (÷, ×, −) with commas
+  const pretty = (val: string) => {
+    if (!val) return '';
+    // Split by operators but keep them in the result to reconstruct
+    const segments = val.split(/([+−×÷%*\/%-])/);
+    return segments
+      .map((seg) => {
+        if (/^[0-9.]+$/.test(seg)) {
+          return formatIndianNumberStr(seg);
+        }
+        return seg.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−');
+      })
+      .join('');
+  };
+  const raw = (val: string) => val.replace(/[×]/g, '*').replace(/[÷]/g, '/').replace(/[−]/g, '-').replace(/,/g, '');
+  
+  const [display, setDisplay] = useState(pretty(calculatorValue) || '0');
 
   useEffect(() => {
     setCalculatorOpen(true);
@@ -30,51 +48,103 @@ export default function CalculatorModal() {
   }, [setCalculatorOpen]);
 
   useEffect(() => {
-    setDisplay(calculatorValue || '0');
+    setDisplay(pretty(calculatorValue) || '0');
   }, [calculatorValue]);
 
   const commit = (value: string) => {
-    const next = value || '0';
-    setDisplay(next);
-    setCalculatorValue(next);
+    const next = value || '';
+    setDisplay(pretty(next) || '0');
+    setCalculatorValue(raw(next));
   };
 
   const appendToken = (token: string) => {
     setDisplay((current) => {
-      const next = token === '×' ? '*' : token === '÷' ? '/' : token === '−' ? '-' : token;
-      const base = current === '0' && /[0-9.]/.test(token) ? '' : current;
-      const updated = `${base}${next}`;
-      setCalculatorValue(updated);
+      const operators = ['+', '−', '×', '÷', '%'];
+      const isNewTokenOperator = operators.includes(token);
+      const lastChar = current.slice(-1);
+      const isLastCharOperator = operators.includes(lastChar);
+      
+      let base = current;
+
+      if (isNewTokenOperator) {
+        // Replace last operator with new one
+        if (isLastCharOperator) {
+            base = current.slice(0, -1);
+        } else if (lastChar === '.') {
+            // If dot is at end, remove it before adding operator
+            base = current.slice(0, -1);
+        }
+      } else if (token === '.') {
+        // Prevent double decimals in the same number segment
+        const parts = current.split(/[+−×÷%]/);
+        const lastPart = parts[parts.length - 1];
+        if (lastPart.includes('.')) return current;
+        
+        // If last char is operator, append '0.'
+        if (isLastCharOperator || !current || current === '0') {
+            base = (current === '0') ? '' : current;
+            const updated = `${base}0.`;
+            setCalculatorValue(raw(updated));
+            return updated;
+        }
+      }
+      
+      // Handle leading zero replacement
+      if (base === '0' && /[0-9.]/.test(token)) {
+        base = '';
+      }
+
+      const updated = `${base}${token}`;
+      setCalculatorValue(raw(updated));
       return updated;
     });
   };
 
   const backspace = () => {
     setDisplay((current) => {
-      const next = current.length <= 1 ? '0' : current.slice(0, -1);
-      setCalculatorValue(next);
+      let next = current.slice(0, -1);
+      if (!next) next = '0';
+      setCalculatorValue(raw(next));
       return next;
     });
   };
 
-  const clearAll = () => commit('0');
+  const clearAll = () => commit('');
 
   const evaluate = () => {
-    const expr = display.trim();
-    if (!expr) return;
+    let expr = display.trim();
+    if (!expr || expr === '0') return;
+
+    // Strip trailing operators (e.g., "94++" -> "94")
+    expr = expr.replace(/[+−×÷%]+$/, '');
+    
+    // Safety check after stripping
+    if (!expr) {
+      commit('');
+      return;
+    }
+
     try {
-      const transformed = expr.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
-      const normalized = transformed.replace(/[×]/g, '*').replace(/[÷]/g, '/').replace(/[−]/g, '-');
+      // Normalize for math engine
+      const normalized = raw(expr).replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+      
+      // Final security check for JS Function eval
       const safe = normalized.replace(/[^0-9+\-*/().\s]/g, '');
       const result = Function(`"use strict"; return (${safe});`)();
-      const next = Number.isFinite(result) ? String(Number.parseFloat(Number(result).toFixed(8))) : expr;
-      commit(next);
+      
+      // Round to avoid floating point issues, limit decimals
+      const finalResult = Number.isFinite(result) 
+        ? String(Number.parseFloat(Number(result).toFixed(10))) 
+        : raw(expr);
+        
+      commit(finalResult);
     } catch {
-      commit(expr);
+      commit(raw(expr)); // Fallback to raw sanitized string
     }
   };
 
   const handleClose = () => {
+    evaluate(); // Auto-evaluate expression before closing
     setCalculatorOpen(false);
     router.back();
   };

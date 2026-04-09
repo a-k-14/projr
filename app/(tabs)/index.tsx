@@ -22,6 +22,7 @@ import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { InlineDot } from '../../components/ui/InlineDot';
+import { ChoiceRow } from '../../components/settings-ui';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
 import { buildSpendingChartData, buildCashflowChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
 import { useColorScheme } from 'react-native';
@@ -126,7 +127,7 @@ export default function HomeScreen() {
         mode: 'date',
         display: 'calendar', // Material 3 Calendar
         minimumDate: minDate,
-        onChange: (_event, selected) => {
+        onValueChange: (_event, selected) => {
           if (!selected) return;
           if (stage === 'from') {
             setCustomDraftFrom(selected);
@@ -371,6 +372,7 @@ function HomeAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showViewPicker, setShowViewPicker] = useState(false);
+  const isDarkMode = palette.statusBarStyle === 'light';
 
   const { from, to } = getDateRange(
     period,
@@ -481,7 +483,11 @@ function HomeAccountPage({
                     paddingHorizontal: 12,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: period === value ? palette.heroBar : palette.surface,
+                    backgroundColor: period === value
+                      ? isDarkMode
+                        ? palette.heroBar
+                        : palette.active
+                      : palette.surface,
                     borderLeftWidth: value === 'week' ? 0 : 1,
                     borderLeftColor: palette.divider,
                   }}
@@ -493,7 +499,11 @@ function HomeAccountPage({
                       lineHeight: 13,
                       textAlignVertical: 'center',
                       includeFontPadding: false,
-                      color: period === value ? palette.surface : palette.textMuted,
+                      color: period === value
+                        ? isDarkMode
+                          ? palette.neutral
+                          : palette.surface
+                        : palette.textMuted,
                     }}
                   >
                     {PERIOD_LABELS[value]}
@@ -647,37 +657,26 @@ function HomeAccountPage({
           palette={palette}
           onClose={() => setShowViewPicker(false)}
         >
-          <View style={{ paddingBottom: 20 }}>
-            {(['out', 'in', 'table'] as const).map((view) => (
-              <TouchableOpacity
-                key={view}
-                onPress={() => {
-                  setActiveView(view);
-                  setShowViewPicker(false);
-                }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingVertical: 16,
-                  paddingHorizontal: 22,
-                  borderBottomWidth: view === 'table' ? 0 : 1,
-                  borderBottomColor: palette.borderSoft,
-                }}
-              >
-                <Text style={{
-                  fontSize: 16,
-                  fontWeight: activeView === view ? '600' : '400',
-                  color: activeView === view ? palette.active : palette.text
-                }}>
-                  {view === 'out' ? 'Out Chart' : view === 'in' ? 'In Chart' : 'Cashflow Table'}
-                </Text>
-                {activeView === view && (
-                  <Ionicons name="checkmark" size={20} color={palette.active} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+          {(['out', 'in', 'table'] as const).map((view, index) => (
+            <ChoiceRow
+              key={view}
+              title={view === 'out' ? 'Out Chart' : view === 'in' ? 'In Chart' : 'Cashflow Table'}
+              subtitle={
+                view === 'out'
+                  ? 'Shows spending by category'
+                  : view === 'in'
+                    ? 'Shows inflow by category'
+                    : 'Shows a table summary'
+              }
+              selected={activeView === view}
+              palette={palette}
+              onPress={() => {
+                setActiveView(view);
+                setShowViewPicker(false);
+              }}
+              noBorder={index === 2}
+            />
+          ))}
         </BottomSheet>
       )}
     </View>

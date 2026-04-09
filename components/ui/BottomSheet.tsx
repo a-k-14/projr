@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SCREEN_GUTTER, SHEET_GUTTER } from '../../lib/design';
 import type { AppThemePalette } from '../../lib/theme';
 
 /**
@@ -30,12 +31,14 @@ export function BottomSheet({
   palette,
   onClose,
   children,
+  horizontalPadding = SHEET_GUTTER,
 }: {
   title: string;
   subtitle?: string;
   palette: AppThemePalette;
   onClose: () => void;
   children: ReactNode;
+  horizontalPadding?: number;
 }) {
   const { height: screenHeight } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
@@ -171,19 +174,19 @@ export function BottomSheet({
             {/* Header — ONLY this area has panHandlers */}
             <View {...panResponder.panHandlers}>
               {/* Drag handle */}
-              <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 6 }}>
+              <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
                 <View
                   style={{
-                    width: 36,
-                    height: 4,
-                    borderRadius: 2,
+                    width: 42,
+                    height: 5,
+                    borderRadius: 999,
                     backgroundColor: palette.divider,
-                    opacity: 0.5,
+                    opacity: 0.65,
                   }}
                 />
               </View>
               {/* Title */}
-              <View style={{ paddingHorizontal: 22, paddingBottom: 12 }}>
+              <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: 12 }}>
                 <Text
                   style={{ fontSize: 20, fontWeight: '600', color: palette.text, letterSpacing: -0.3 }}
                 >
@@ -226,4 +229,3 @@ export function BottomSheet({
     </View>
   );
 }
-
