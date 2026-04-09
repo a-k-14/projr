@@ -46,7 +46,7 @@ export async function createAccount(data: CreateAccountInput): Promise<Account> 
 }
 
 export async function updateAccount(id: string, data: Partial<Account>): Promise<Account> {
-  await db.update(accounts).set(data as any).where(eq(accounts.id, id));
+  await db.update(accounts).set(data as Partial<typeof accounts.$inferInsert>).where(eq(accounts.id, id));
   return (await getAccountById(id))!;
 }
 

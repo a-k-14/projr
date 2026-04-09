@@ -13,6 +13,7 @@ import {
   THEMES,
   PickerSheetShell,
   formatDisplayCurrency,
+  symbolFor,
 } from '../../lib/settings-shared';
 
 type PickerKind = 'year-start' | 'default-account' | 'currency' | 'theme' | null;
@@ -160,7 +161,7 @@ export default function SettingsScreen() {
                   <ChoiceRow
                     key={account.id}
                     title={account.name}
-                    subtitle={`${capitalize(account.type)} · ${formatDisplayCurrency(account.balance, account.currency === 'INR' ? '₹' : account.currency === 'USD' ? '$' : account.currency === 'EUR' ? '€' : '£')}`}
+                    subtitle={`${capitalize(account.type)} · ${formatDisplayCurrency(account.balance, symbolFor(account.currency))}`}
                     selected={settings.defaultAccountId === account.id}
                     palette={palette}
                     onPress={() => {
