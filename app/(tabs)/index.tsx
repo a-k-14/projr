@@ -19,7 +19,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { SummaryCard } from '../../components/SummaryCard';
-import { TransactionItem as TransactionRow } from '../../components/TransactionItem';
+import { TransactionListItem } from '../../components/TransactionListItem';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
 import { buildSpendingChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
@@ -27,6 +27,7 @@ import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TE
 import { getCashflowSummary, getDailySpending } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type {
   CashflowSummary,

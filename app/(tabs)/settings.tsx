@@ -182,7 +182,6 @@ export default function SettingsScreen() {
                   <ChoiceRow
                     key={account.id}
                     title={account.name}
-<<<<<<< HEAD
                     subtitle={`${capitalize(account.type)} · ${formatDisplayCurrency(account.balance, symbolFor(account.currency))}`}
                     selected={settings.defaultAccountId === account.id}
                     palette={palette}

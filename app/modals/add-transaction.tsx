@@ -26,6 +26,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type {
   Account,
@@ -67,6 +68,7 @@ export default function AddTransactionModal() {
   const isEditing = !!editId;
 
   const { add, update, remove } = useTransactionsStore();
+  const loanStore = useLoansStore();
   const { accounts, refresh: refreshAccounts } = useAccountsStore();
   const { categories, tags } = useCategoriesStore();
   const { settings } = useUIStore();
@@ -204,7 +206,17 @@ export default function AddTransactionModal() {
         linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
       };
 
-      if (isEditing && editId) {
+      if (type === 'loan') {
+        await loanStore.add({
+          personName,
+          direction: loanDirection,
+          accountId,
+          givenAmount: amount,
+          note: note || undefined,
+          tags: selectedTagIds,
+          date,
+        });
+      } else if (isEditing && editId) {
         await update(editId, data);
       } else {
         await add(data);
@@ -272,10 +284,10 @@ export default function AddTransactionModal() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#F0F0F5' }}
+      style={{ flex: 1, backgroundColor: palette.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View
           style={{
             flexDirection: 'row',
@@ -286,9 +298,9 @@ export default function AddTransactionModal() {
           }}
         >
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
-            <Ionicons name="close" size={24} color="#0A0A0A" />
+            <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: '#0A0A0A' }}>
+          <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: palette.text }}>
             {isEditing ? 'Edit transaction' : 'New transaction'}
           </Text>
         </View>
@@ -308,8 +320,8 @@ export default function AddTransactionModal() {
                     borderRadius: 20,
                     borderWidth: 1.5,
                     alignItems: 'center',
-                    borderColor: type === t ? TYPE_CONFIG[t].borderColor : '#E5E7EB',
-                    backgroundColor: type === t ? TYPE_CONFIG[t].bg : '#fff',
+                    borderColor: type === t ? TYPE_CONFIG[t].borderColor : palette.border,
+                    backgroundColor: type === t ? TYPE_CONFIG[t].bg : palette.surface,
                   }}
                 >
                   <Text
@@ -327,14 +339,15 @@ export default function AddTransactionModal() {
           </View>
 
           {type === 'out' ? (
-            <SectionCard>
+            <SectionCard palette={palette}>
               <InlinePickerRow
                 label="Date"
                 value={formatDateTime12(date)}
                 onPress={() => undefined}
                 icon="calendar-outline"
                 showChevron={false}
-                valueStyle={{ color: '#0A0A0A' }}
+                valueStyle={{ color: palette.text }}
+                palette={palette}
               />
             <AmountRow
               sym={sym}
@@ -343,11 +356,13 @@ export default function AddTransactionModal() {
               setAmountStr={setAmountStr}
               onOpenCalculator={handleOpenCalculator}
               isEditing={isEditing}
+              palette={palette}
             />
               <PickerRow
                 label="Account"
                 value={getAccountName(accounts, accountId)}
                 placeholder={!accountId}
+                palette={palette}
                 onPress={() => {
                   Keyboard.dismiss();
                   setTimeout(() => {
@@ -359,6 +374,7 @@ export default function AddTransactionModal() {
                 label="Category"
                 value={getCategoryName(categories, categoryId)}
                 placeholder={!categoryId}
+                palette={palette}
                 onPress={() => {
                   Keyboard.dismiss();
                   setTimeout(() => {
@@ -370,7 +386,7 @@ export default function AddTransactionModal() {
                   }, 50);
                 }}
               />
-              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" />
+              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" palette={palette} />
               <SplitSection
                 amount={amount}
                 amountStr={amountStr}
@@ -382,12 +398,14 @@ export default function AddTransactionModal() {
                 onAddSplit={addSplitRow}
                 onChangeSplit={updateSplitRow}
                 onRemoveSplit={removeSplitRow}
+                palette={palette}
               />
-              <ReceiptSection />
+              <ReceiptSection palette={palette} />
               <PickerRow
                 label="Tag"
                 value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
                 placeholder={!selectedTagIds.length}
+                palette={palette}
                 onPress={() => {
                   Keyboard.dismiss();
                   setTimeout(() => {
@@ -395,16 +413,17 @@ export default function AddTransactionModal() {
                   }, 50);
                 }}
               />
-              <NotesSection note={note} onChangeNote={setNote} />
+              <NotesSection note={note} onChangeNote={setNote} palette={palette} />
             </SectionCard>
           ) : type === 'transfer' ? (
-            <SectionCard>
-              <FieldRow label="From account">
+            <SectionCard palette={palette}>
+              <FieldRow label="From account" palette={palette}>
                 <AccountPicker
                   accounts={accounts}
                   selectedId={accountId}
                   onSelect={setAccountId}
                   excludeId={linkedAccountId}
+                  palette={palette}
                 />
               </FieldRow>
               <View style={{ alignItems: 'center', paddingVertical: 2 }}>
@@ -418,49 +437,50 @@ export default function AddTransactionModal() {
                     width: 34,
                     height: 34,
                     borderRadius: 17,
-                    backgroundColor: '#F3F4F6',
+                    backgroundColor: palette.surface,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Ionicons name="swap-vertical" size={16} color="#6B7280" />
+                  <Ionicons name="swap-vertical" size={16} color={palette.textMuted} />
                 </TouchableOpacity>
               </View>
-              <FieldRow label="To account">
+              <FieldRow label="To account" palette={palette}>
                 <AccountPicker
                   accounts={accounts}
                   selectedId={linkedAccountId}
                   onSelect={setLinkedAccountId}
                   excludeId={accountId}
+                  palette={palette}
                 />
               </FieldRow>
-              <DateTimeRow date={date} />
-              <FieldRow label="Notes" noBorder>
+              <DateTimeRow date={date} palette={palette} />
+              <FieldRow label="Notes" noBorder palette={palette}>
                 <TextInput
                   value={note}
                   onChangeText={setNote}
                   placeholder="Add a note..."
-                  placeholderTextColor="#9CA3AF"
-                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
+                  placeholderTextColor={palette.textMuted}
+                  style={{ flex: 1, fontSize: 15, color: palette.text, paddingVertical: 0 }}
                   multiline
                 />
               </FieldRow>
             </SectionCard>
           ) : (
-            <SectionCard>
-              <FieldRow label="Account">
-                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} />
+            <SectionCard palette={palette}>
+              <FieldRow label="Account" palette={palette}>
+                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} palette={palette} />
               </FieldRow>
-              <FieldRow label="Person">
+              <FieldRow label="Person" palette={palette}>
                 <TextInput
                   value={personName}
                   onChangeText={setPersonName}
                   placeholder="Name"
-                  placeholderTextColor="#9CA3AF"
-                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
+                  placeholderTextColor={palette.textMuted}
+                  style={{ flex: 1, fontSize: 15, color: palette.text, paddingVertical: 0 }}
                 />
               </FieldRow>
-              <FieldRow label="Direction">
+              <FieldRow label="Direction" palette={palette}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {(['lent', 'borrowed'] as const).map((d) => (
                     <TouchableOpacity
@@ -472,15 +492,15 @@ export default function AddTransactionModal() {
                         borderRadius: 14,
                         alignItems: 'center',
                         borderWidth: 1.5,
-                        borderColor: loanDirection === d ? '#1B4332' : '#E5E7EB',
-                        backgroundColor: loanDirection === d ? '#DCFCE7' : '#fff',
+                        borderColor: loanDirection === d ? palette.tabActive : palette.border,
+                        backgroundColor: loanDirection === d ? (palette.background === '#111111' ? '#1B4332' : '#DCFCE7') : palette.surface,
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 13,
                           fontWeight: '600',
-                          color: loanDirection === d ? '#1B4332' : '#6B7280',
+                          color: loanDirection === d ? (palette.background === '#111111' ? '#fff' : '#1B4332') : palette.textMuted,
                         }}
                       >
                         {d === 'lent' ? 'I lent' : 'I borrowed'}
@@ -489,14 +509,14 @@ export default function AddTransactionModal() {
                   ))}
                 </View>
               </FieldRow>
-              <DateTimeRow date={date} />
-              <FieldRow label="Notes" noBorder>
+              <DateTimeRow date={date} palette={palette} />
+              <FieldRow label="Notes" noBorder palette={palette}>
                 <TextInput
                   value={note}
                   onChangeText={setNote}
                   placeholder="Add a note..."
-                  placeholderTextColor="#9CA3AF"
-                  style={{ flex: 1, fontSize: 15, color: '#0A0A0A', paddingVertical: 0 }}
+                  placeholderTextColor={palette.textMuted}
+                  style={{ flex: 1, fontSize: 15, color: palette.text, paddingVertical: 0 }}
                   multiline
                 />
               </FieldRow>
@@ -515,14 +535,14 @@ export default function AddTransactionModal() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingBottom: insets.bottom + 14,
           paddingTop: 12,
-          backgroundColor: '#F0F0F5',
+          backgroundColor: palette.background,
         }}
       >
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!isValid || loading}
           style={{
-            backgroundColor: isValid ? activeConfig.color : '#9CA3AF',
+            backgroundColor: isValid ? activeConfig.color : palette.textSoft,
             borderRadius: 18,
             paddingVertical: 16,
             alignItems: 'center',
@@ -533,7 +553,7 @@ export default function AddTransactionModal() {
         </TouchableOpacity>
         {isEditing && (
           <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
-            <Text style={{ color: '#DC2626', fontSize: 15, fontWeight: '500' }}>
+            <Text style={{ color: palette.negative, fontSize: 15, fontWeight: '500' }}>
               Delete transaction
             </Text>
           </TouchableOpacity>
@@ -543,7 +563,7 @@ export default function AddTransactionModal() {
       {showAccountSheet ? (
         <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)}>
           {accounts.length === 0 ? (
-            <Text style={{ color: '#9CA3AF', fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+            <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
             accounts
               .slice()
@@ -571,7 +591,7 @@ export default function AddTransactionModal() {
       {showTagSheet ? (
         <BottomSheet title="Select tags" subtitle="Select one or more" palette={palette} onClose={() => setShowTagSheet(false)}>
           {tags.length === 0 ? (
-            <Text style={{ color: '#9CA3AF', fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
+            <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
           ) : (
             tags.map((tag, index) => {
               return (
@@ -607,15 +627,15 @@ export default function AddTransactionModal() {
   );
 }
 
-function SectionCard({ children }: { children: React.ReactNode }) {
+function SectionCard({ children, palette }: { children: React.ReactNode; palette: any }) {
   return (
     <View
       style={{
-        backgroundColor: '#fff',
+        backgroundColor: palette.surface,
         borderRadius: 24,
         marginHorizontal: SCREEN_GUTTER,
         borderWidth: 1,
-        borderColor: '#E8EBF0',
+        borderColor: palette.border,
         overflow: 'hidden',
       }}
     >
@@ -628,10 +648,12 @@ function FieldRow({
   label,
   children,
   noBorder,
+  palette,
 }: {
   label: string;
   children: React.ReactNode;
   noBorder?: boolean;
+  palette: any;
 }) {
   return (
     <View
@@ -639,10 +661,10 @@ function FieldRow({
         paddingHorizontal: SCREEN_GUTTER,
         paddingVertical: 14,
         borderBottomWidth: noBorder ? 0 : 1,
-        borderBottomColor: '#F3F4F6',
+        borderBottomColor: palette.border,
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '500', color: '#6B7280', marginBottom: 10 }}>
+      <Text style={{ fontSize: 15, fontWeight: '500', color: palette.textMuted, marginBottom: 10 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -661,6 +683,7 @@ function InlinePickerRow({
   showChevron = true,
   noBorder,
   valueStyle,
+  palette,
 }: {
   label: string;
   value: string;
@@ -670,6 +693,7 @@ function InlinePickerRow({
   showChevron?: boolean;
   noBorder?: boolean;
   valueStyle?: object;
+  palette: any;
 }) {
   return (
     <TouchableOpacity
@@ -686,7 +710,7 @@ function InlinePickerRow({
         style={{
           fontSize: 15,
           fontWeight: '500',
-          color: '#6B7280',
+          color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
         }}
@@ -702,7 +726,7 @@ function InlinePickerRow({
           alignItems: 'center',
           justifyContent: 'space-between',
           borderBottomWidth: noBorder ? 0 : 1,
-          borderBottomColor: '#F3F4F6',
+          borderBottomColor: palette.border,
           paddingLeft: ROW_COLUMN_GAP,
         }}
       >
@@ -711,7 +735,7 @@ function InlinePickerRow({
             {
               fontSize: 15,
               fontWeight: '500',
-              color: placeholder ? '#9CA3AF' : '#0A0A0A',
+              color: placeholder ? palette.textMuted : palette.text,
               textAlign: 'left',
               flexShrink: 1,
             },
@@ -724,14 +748,14 @@ function InlinePickerRow({
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {icon ? (
             <View style={{ width: 32, alignItems: 'flex-end', justifyContent: 'center' }}>
-              <View style={{ width: 32, height: 32, borderRadius: RADIUS.sm, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={icon} size={16} color="#4B5563" />
+              <View style={{ width: 32, height: 32, borderRadius: RADIUS.sm, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={icon} size={16} color={palette.textMuted} />
               </View>
             </View>
           ) : null}
           {showChevron ? (
             <View style={{ width: 24, alignItems: 'flex-end', justifyContent: 'center' }}>
-              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              <Ionicons name="chevron-forward" size={16} color={palette.textMuted} />
             </View>
           ) : null}
         </View>
@@ -745,11 +769,13 @@ function PickerRow({
   value,
   placeholder,
   onPress,
+  palette,
 }: {
   label: string;
   value: string;
   placeholder?: boolean;
   onPress: () => void;
+  palette: any;
 }) {
   return (
     <TouchableOpacity
@@ -766,7 +792,7 @@ function PickerRow({
         style={{
           fontSize: 15,
           fontWeight: '500',
-          color: '#6B7280',
+          color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
         }}
@@ -782,7 +808,7 @@ function PickerRow({
           minWidth: 0,
           minHeight: ROW_MIN_HEIGHT,
           borderBottomWidth: 1,
-          borderBottomColor: '#F3F4F6',
+          borderBottomColor: palette.border,
           paddingLeft: ROW_COLUMN_GAP,
         }}
       >
@@ -790,7 +816,7 @@ function PickerRow({
           style={{
             fontSize: 15,
             fontWeight: '500',
-            color: placeholder ? '#9CA3AF' : '#0A0A0A',
+            color: placeholder ? palette.textMuted : palette.text,
             textAlign: 'left',
             flexShrink: 1,
           }}
@@ -799,14 +825,14 @@ function PickerRow({
           {value}
         </Text>
         <View style={{ width: 24, alignItems: 'flex-end', justifyContent: 'center' }}>
-          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={16} color={palette.textMuted} />
         </View>
       </View>
     </TouchableOpacity>
   );
 }
 
-function DateTimeRow({ date }: { date: string }) {
+function DateTimeRow({ date, palette }: { date: string; palette: any }) {
   return (
     <InlinePickerRow
       label="Date"
@@ -814,7 +840,8 @@ function DateTimeRow({ date }: { date: string }) {
       onPress={() => undefined}
       icon="calendar-outline"
       noBorder={false}
-      valueStyle={{ color: '#0A0A0A' }}
+      valueStyle={{ color: palette.text }}
+      palette={palette}
     />
   );
 }
@@ -826,6 +853,7 @@ function AmountRow({
   setAmountStr,
   onOpenCalculator,
   isEditing,
+  palette,
 }: {
   sym: string;
   activeConfig: (typeof TYPE_CONFIG)[TransactionType];
@@ -833,6 +861,7 @@ function AmountRow({
   setAmountStr: (value: string) => void;
   onOpenCalculator: () => void;
   isEditing: boolean;
+  palette: any;
 }) {
   return (
     <View
@@ -848,7 +877,7 @@ function AmountRow({
         style={{
           fontSize: 15,
           fontWeight: '500',
-          color: '#6B7280',
+          color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
         }}
@@ -864,7 +893,7 @@ function AmountRow({
           alignItems: 'center',
           justifyContent: 'space-between',
           borderBottomWidth: 1,
-          borderBottomColor: '#F3F4F6',
+          borderBottomColor: palette.border,
           paddingLeft: ROW_COLUMN_GAP,
         }}
       >
@@ -873,7 +902,7 @@ function AmountRow({
           onChangeText={(value) => setAmountStr(sanitizeDecimalInput(value))}
           keyboardType="decimal-pad"
           placeholder="0"
-          placeholderTextColor="#C1C7D0"
+          placeholderTextColor={palette.textMuted}
           style={{
             flex: 1,
             fontSize: 18,
@@ -894,8 +923,8 @@ function AmountRow({
             justifyContent: 'center',
           }}
         >
-          <View style={{ width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="calculator-outline" size={18} color="#4B5563" />
+          <View style={{ width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="calculator-outline" size={18} color={palette.textMuted} />
           </View>
         </TouchableOpacity>
       </View>
@@ -908,11 +937,13 @@ function InlineInputRow({
   value,
   onChangeText,
   placeholder,
+  palette,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
+  palette: any;
 }) {
   return (
     <View
@@ -928,7 +959,7 @@ function InlineInputRow({
         style={{
           fontSize: 15,
           fontWeight: '500',
-          color: '#6B7280',
+          color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
         }}
@@ -943,7 +974,7 @@ function InlineInputRow({
           flexDirection: 'row',
           alignItems: 'center',
           borderBottomWidth: 1,
-          borderBottomColor: '#F3F4F6',
+          borderBottomColor: palette.border,
           paddingLeft: ROW_COLUMN_GAP,
         }}
       >
@@ -951,13 +982,13 @@ function InlineInputRow({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={palette.textMuted}
           style={{
             flex: 1,
             minWidth: 0,
             fontSize: 15,
             fontWeight: '500',
-            color: '#0A0A0A',
+            color: palette.text,
             paddingVertical: 0,
             textAlign: 'left',
           }}
@@ -978,6 +1009,7 @@ function SplitSection({
   onAddSplit,
   onChangeSplit,
   onRemoveSplit,
+  palette,
 }: {
   amount: number;
   amountStr: string;
@@ -989,15 +1021,16 @@ function SplitSection({
   onAddSplit: () => void;
   onChangeSplit: (id: string, patch: Partial<SplitDraft>) => void;
   onRemoveSplit: (id: string) => void;
+  palette: any;
 }) {
   return (
-    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF' }}>
+        <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted }}>
           Split
         </Text>
         <TouchableOpacity onPress={onAddSplit}>
-          <Text style={{ fontSize: 13, color: '#17673B', fontWeight: '600' }}>+ Add split</Text>
+          <Text style={{ fontSize: 13, color: palette.tabActive, fontWeight: '600' }}>+ Add split</Text>
         </TouchableOpacity>
       </View>
       {splitRows.length > 0 ? (
@@ -1011,23 +1044,24 @@ function SplitSection({
               type={type}
               onChange={onChangeSplit}
               onRemove={onRemoveSplit}
+              palette={palette}
             />
           ))}
-          <Text style={{ fontSize: 12, color: Math.abs(splitTotal - amount) < 0.01 ? '#6B7280' : '#DC2626' }}>
+          <Text style={{ fontSize: 12, color: Math.abs(splitTotal - amount) < 0.01 ? palette.textMuted : palette.negative }}>
             Total {formatCurrency(splitTotal, currencySymbol)} / {formatCurrency(amount, currencySymbol)}
           </Text>
         </View>
       ) : (
-        <Text style={{ fontSize: 13, color: '#9CA3AF' }}>Split this transaction across categories.</Text>
+        <Text style={{ fontSize: 13, color: palette.textMuted }}>Split this transaction across categories.</Text>
       )}
     </View>
   );
 }
 
-function ReceiptSection() {
+function ReceiptSection({ palette }: { palette: any }) {
   return (
-    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF', marginBottom: 10 }}>
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
         Receipt
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
@@ -1038,13 +1072,13 @@ function ReceiptSection() {
             height: 58,
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: '#D1D5DB',
-            backgroundColor: '#F8FAFC',
+            borderColor: palette.border,
+            backgroundColor: palette.surface,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="camera-outline" size={22} color="#17673B" />
+          <Ionicons name="camera-outline" size={22} color={palette.tabActive} />
         </TouchableOpacity>
         <View
           style={{
@@ -1052,17 +1086,17 @@ function ReceiptSection() {
             height: 58,
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: '#E5E7EB',
-            backgroundColor: '#FFFFFF',
+            borderColor: palette.border,
+            backgroundColor: palette.surface,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="receipt-outline" size={22} color="#9CA3AF" />
+          <Ionicons name="receipt-outline" size={22} color={palette.textMuted} />
         </View>
         <View style={{ justifyContent: 'center' }}>
-          <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>Captured receipts</Text>
-          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Thumbnails appear here</Text>
+          <Text style={{ fontSize: 13, color: palette.text, fontWeight: '500' }}>Captured receipts</Text>
+          <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>Thumbnails appear here</Text>
         </View>
       </ScrollView>
     </View>
@@ -1072,21 +1106,23 @@ function ReceiptSection() {
 function NotesSection({
   note,
   onChangeNote,
+  palette,
 }: {
   note: string;
   onChangeNote: (value: string) => void;
+  palette: any;
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: '#9CA3AF', marginBottom: 10 }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
         Notes
       </Text>
       <TextInput
         value={note}
         onChangeText={onChangeNote}
         placeholder="Add a note..."
-        placeholderTextColor="#9CA3AF"
-        style={{ minHeight: 72, fontSize: 15, color: '#0A0A0A', paddingVertical: 0, textAlignVertical: 'top' }}
+        placeholderTextColor={palette.textMuted}
+        style={{ minHeight: 72, fontSize: 15, color: palette.text, paddingVertical: 0, textAlignVertical: 'top' }}
         multiline
       />
     </View>
@@ -1098,11 +1134,13 @@ function AccountPicker({
   selectedId,
   onSelect,
   excludeId,
+  palette,
 }: {
   accounts: Account[];
   selectedId: string;
   onSelect: (id: string) => void;
   excludeId?: string;
+  palette: any;
 }) {
   const filtered = accounts.filter((a) => a.id !== excludeId);
   const ordered = [
@@ -1111,7 +1149,7 @@ function AccountPicker({
   ];
 
   if (ordered.length === 0) {
-    return <Text style={{ fontSize: 13, color: '#9CA3AF' }}>No account available</Text>;
+    return <Text style={{ fontSize: 13, color: palette.textMuted }}>No account available</Text>;
   }
 
   return (
@@ -1125,16 +1163,16 @@ function AccountPicker({
             paddingVertical: 8,
             borderRadius: 12,
             marginRight: 8,
-            backgroundColor: selectedId === acc.id ? '#1B4332' : '#F3F4F6',
+            backgroundColor: selectedId === acc.id ? palette.tabActive : palette.surface,
             borderWidth: 1,
-            borderColor: selectedId === acc.id ? '#1B4332' : '#F3F4F6',
+            borderColor: selectedId === acc.id ? palette.tabActive : palette.border,
           }}
         >
           <Text
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: selectedId === acc.id ? '#fff' : '#6B7280',
+              color: selectedId === acc.id ? '#fff' : palette.textMuted,
             }}
             numberOfLines={1}
           >
@@ -1151,11 +1189,13 @@ function CategoryPicker({
   selectedId,
   onSelect,
   type,
+  palette,
 }: {
   categories: Category[];
   selectedId: string;
   onSelect: (id: string) => void;
   type: TransactionType;
+  palette: any;
 }) {
   const options = getRelevantCategoryOptions(categories, type);
 
@@ -1170,16 +1210,16 @@ function CategoryPicker({
             paddingVertical: 8,
             borderRadius: 12,
             marginRight: 8,
-            backgroundColor: selectedId === option.id ? '#17673B' : '#F3F4F6',
+            backgroundColor: selectedId === option.id ? palette.tabActive : palette.surface,
             borderWidth: 1,
-            borderColor: selectedId === option.id ? '#17673B' : '#F3F4F6',
+            borderColor: selectedId === option.id ? palette.tabActive : palette.border,
           }}
         >
           <Text
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: selectedId === option.id ? '#fff' : '#6B7280',
+              color: selectedId === option.id ? '#fff' : palette.textMuted,
             }}
             numberOfLines={1}
           >
@@ -1205,17 +1245,18 @@ function SplitRowEditor({
   type: TransactionType;
   onChange: (id: string, patch: Partial<SplitDraft>) => void;
   onRemove: (id: string) => void;
+  palette: any;
 }) {
   const options = getRelevantCategoryOptions(categories, type);
 
   return (
-    <View style={{ borderRadius: 16, backgroundColor: '#F9FAFB', padding: 12, borderWidth: 1, borderColor: '#EEF2F7' }}>
+    <View style={{ borderRadius: 16, backgroundColor: palette.surface, padding: 12, borderWidth: 1, borderColor: palette.border }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.6, color: '#9CA3AF' }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.6, color: palette.textMuted }}>
           Split {index + 1}
         </Text>
         <TouchableOpacity onPress={() => onRemove(row.id)}>
-          <Ionicons name="close" size={18} color="#9CA3AF" />
+          <Ionicons name="close" size={18} color={palette.textMuted} />
         </TouchableOpacity>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
@@ -1228,16 +1269,16 @@ function SplitRowEditor({
               paddingVertical: 7,
               borderRadius: 12,
               marginRight: 8,
-              backgroundColor: row.categoryId === option.id ? '#17673B' : '#fff',
+              backgroundColor: row.categoryId === option.id ? palette.tabActive : palette.surface,
               borderWidth: 1,
-              borderColor: row.categoryId === option.id ? '#17673B' : '#E5E7EB',
+              borderColor: row.categoryId === option.id ? palette.tabActive : palette.border,
             }}
           >
             <Text
               style={{
                 fontSize: 12,
                 fontWeight: '600',
-                color: row.categoryId === option.id ? '#fff' : '#6B7280',
+                color: row.categoryId === option.id ? '#fff' : palette.textMuted,
               }}
             >
               {option.label}
@@ -1250,15 +1291,15 @@ function SplitRowEditor({
         onChangeText={(value) => onChange(row.id, { amountStr: sanitizeDecimalInput(value) })}
         keyboardType="decimal-pad"
         placeholder="Split amount"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={palette.textMuted}
         style={{
           minHeight: 42,
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: '#E5E7EB',
-          backgroundColor: '#fff',
+          borderColor: palette.border,
+          backgroundColor: palette.surface,
           paddingHorizontal: 12,
-          color: '#0A0A0A',
+          color: palette.text,
           fontSize: 14,
         }}
       />
@@ -1274,9 +1315,10 @@ function TagPicker({
   tags: Tag[];
   selectedIds: string[];
   onToggle: (id: string) => void;
+  palette: any;
 }) {
   if (tags.length === 0) {
-    return <Text style={{ fontSize: 13, color: '#9CA3AF' }}>No tags yet</Text>;
+    return <Text style={{ fontSize: 13, color: palette.textSoft }}>No tags yet</Text>;
   }
 
   return (
@@ -1292,16 +1334,16 @@ function TagPicker({
               paddingVertical: 8,
               borderRadius: 12,
               marginRight: 8,
-              backgroundColor: selected ? tag.color : '#F3F4F6',
+              backgroundColor: selected ? tag.color : palette.surface,
               borderWidth: 1,
-              borderColor: selected ? tag.color : '#F3F4F6',
+              borderColor: selected ? tag.color : palette.border,
             }}
           >
             <Text
               style={{
                 fontSize: 13,
                 fontWeight: '600',
-                color: selected ? '#fff' : '#6B7280',
+                color: selected ? '#fff' : palette.textMuted,
               }}
             >
               {tag.name}

@@ -50,10 +50,6 @@ export default function LoansScreen() {
     setRefreshing(false);
   };
 
-  const scheme = useColorScheme();
-  const theme = useUIStore((s) => s.settings.theme);
-  const palette = getThemePalette(resolveTheme(theme, scheme));
-
   const summary = getLoanSummary(loans);
   const net = summary.net;
   const netPositive = net >= 0;
@@ -247,8 +243,7 @@ export default function LoansScreen() {
               })}
             </View>
           </View>
-        </View>
-      }
+        }
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
             <Ionicons name="people-outline" size={48} color={palette.textMuted} />
