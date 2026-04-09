@@ -2,32 +2,39 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CashflowSummary } from '../types';
 import { formatCurrency } from '../lib/derived';
-import { HOME_COLORS, HOME_RADIUS, HOME_TEXT } from '../lib/homeTokens';
+import { HOME_RADIUS, HOME_TEXT } from '../lib/homeTokens';
+import { AppThemePalette } from '../lib/theme';
 
 interface SummaryCardProps {
   cashflow: CashflowSummary;
   sym: string;
+  palette: AppThemePalette;
 }
 
-export function SummaryCard({ cashflow, sym }: SummaryCardProps) {
+export function SummaryCard({ cashflow, sym, palette }: SummaryCardProps) {
   const categories = [
-    { key: 'in', label: 'In', color: HOME_COLORS.active },
-    { key: 'out', label: 'Out', color: HOME_COLORS.negative },
-    { key: 'net', label: 'Net', color: HOME_COLORS.active },
+    { key: 'in', label: 'In', color: palette.active },
+    { key: 'out', label: 'Out', color: palette.negative },
+    { key: 'net', label: 'Net', color: palette.active },
   ] as const;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: palette.surface }]}>
       {categories.map((category, index) => (
         <View
           key={category.key}
           style={[
             styles.column,
-            { borderLeftWidth: index === 0 ? 0 : 1 },
+            { 
+              borderLeftWidth: index === 0 ? 0 : 1,
+              borderLeftColor: palette.divider 
+            },
           ]}
         >
-          <Text style={styles.label}>{category.label}</Text>
+          <Text style={[styles.label, { color: palette.textMuted }]}>{category.label}</Text>
           <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
             style={[
               styles.value,
               { color: category.color },
@@ -44,7 +51,6 @@ export function SummaryCard({ cashflow, sym }: SummaryCardProps) {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: HOME_COLORS.surface,
     borderRadius: HOME_RADIUS.card,
     overflow: 'hidden',
     marginBottom: 18,
@@ -54,11 +60,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 8,
     alignItems: 'center',
-    borderLeftColor: HOME_COLORS.divider,
   },
   label: {
     fontSize: HOME_TEXT.caption,
-    color: HOME_COLORS.textMuted,
     marginBottom: 6,
   },
   value: {

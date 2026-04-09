@@ -45,7 +45,9 @@ export function BottomSheet({
 
   // translateY: native driver, used for open/close animation & downward drag dismiss
   const translateY = useRef(new Animated.Value(screenHeight)).current;
-  // sheetHeight: JS driver, used for upward expansion drag tracking
+  // sheetHeight: JS driver, used for expansion drag tracking and capping
+  // We initialize to MAX_HEIGHT to allow small content to fit naturally, 
+  // but the animation logic will snap it to appropriate points.
   const sheetHeight = useRef(new Animated.Value(MIN_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -65,8 +67,8 @@ export function BottomSheet({
 
   const closeSheet = useCallback(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: screenHeight, duration: 160, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0, duration: 100, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: screenHeight, duration: 140, useNativeDriver: true }),
     ]).start(({ finished }) => {
       if (finished) onClose();
     });
@@ -74,8 +76,8 @@ export function BottomSheet({
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 120, friction: 14 }),
+      Animated.timing(opacity, { toValue: 1, duration: 150, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 160, friction: 16 }),
     ]).start();
   }, [translateY, opacity]);
 
@@ -112,22 +114,22 @@ export function BottomSheet({
           } else if (gs.dy > 0 && isExpanded.current) {
             // Dragged down while expanded — collapse back to 50%
             isExpanded.current = false;
-            Animated.spring(sheetHeight, { toValue: MIN_HEIGHT, useNativeDriver: false, tension: 70, friction: 13 }).start();
-            Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 70, friction: 13 }).start();
+            Animated.spring(sheetHeight, { toValue: MIN_HEIGHT, useNativeDriver: false, tension: 100, friction: 14 }).start();
+            Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 100, friction: 14 }).start();
           } else if (gs.dy < -40 && contentHeight.current > MIN_HEIGHT) {
             // Dragged up enough — snap to expanded
             isExpanded.current = true;
-            Animated.spring(sheetHeight, { toValue: MAX_HEIGHT, useNativeDriver: false, tension: 70, friction: 13 }).start();
+            Animated.spring(sheetHeight, { toValue: MAX_HEIGHT, useNativeDriver: false, tension: 100, friction: 14 }).start();
             translateY.setValue(0);
           } else {
             // Snap back to current state
             Animated.spring(sheetHeight, {
               toValue: isExpanded.current ? MAX_HEIGHT : MIN_HEIGHT,
               useNativeDriver: false,
-              tension: 70,
-              friction: 13,
+              tension: 100,
+              friction: 14,
             }).start();
-            Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 70, friction: 13 }).start();
+            Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 100, friction: 14 }).start();
           }
         },
       }),
@@ -199,14 +201,21 @@ export function BottomSheet({
 
             {/* Scrollable content — no panHandlers, taps are instant */}
             <ScrollView
-              style={{ flexShrink: 1 }}
-              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) }}
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-              overScrollMode="never"
+              style={{ flexShrink: 1, flexGrow: 0 }}
+              contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+              showsVerticalScrollIndicator={true}
               keyboardShouldPersistTaps="handled"
               onContentSizeChange={(_, h) => {
-                contentHeight.current = h;
+                const headerH = subtitle ? 84 : 64; 
+                const totalH = h + headerH + insets.bottom + 20;
+                contentHeight.current = totalH;
+                
+                // Collapsed state: height is capped at content-size OR 50% screen, whichever is lower.
+                // This ensures "hugging" for small lists while maintaining the 50% cap for long ones.
+                if (!isExpanded.current) {
+                  const targetSnap = Math.min(totalH, MIN_HEIGHT);
+                  sheetHeight.setValue(targetSnap);
+                }
               }}
             >
               {children}

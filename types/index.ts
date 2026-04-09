@@ -112,6 +112,12 @@ export interface DailySpending {
   amount: number;
 }
 
+export interface DailyCashflow {
+  date: string;
+  in: number;
+  out: number;
+}
+
 export interface CategoryBreakdown {
   categoryId: string;
   categoryName: string;

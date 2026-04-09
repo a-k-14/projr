@@ -1,7 +1,7 @@
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { db } from '../db/client';
 import { transactions } from '../db/schema';
-import type { CashflowSummary, DailySpending, CategoryBreakdown } from '../types';
+import type { CashflowSummary, DailySpending, CategoryBreakdown, DailyCashflow } from '../types';
 import { getCategories } from './categories';
 
 export async function getCashflowSummary(
@@ -48,6 +48,33 @@ export async function getDailySpending(
 
   return Object.entries(byDate)
     .map(([date, amount]) => ({ date, amount }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export async function getDailyCashflow(
+  accountId: string | 'all',
+  fromDate: string,
+  toDate: string
+): Promise<DailyCashflow[]> {
+  const conditions: ReturnType<typeof eq>[] = [
+    gte(transactions.date, fromDate),
+    lte(transactions.date, toDate),
+  ];
+  if (accountId !== 'all') conditions.push(eq(transactions.accountId, accountId));
+
+  const rows = await db.select().from(transactions).where(and(...conditions));
+
+  const byDate: Record<string, { in: number; out: number }> = {};
+  for (const row of rows) {
+    const dateKey = row.date.split('T')[0];
+    if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
+    if (row.type === 'in') byDate[dateKey].in += row.amount;
+    else if (row.type === 'out') byDate[dateKey].out += row.amount;
+  }
+
+  // Ensure all dates in range are represented? (Actually chart builder does that)
+  return Object.entries(byDate)
+    .map(([date, totals]) => ({ date, ...totals }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 

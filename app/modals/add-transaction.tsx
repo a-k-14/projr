@@ -19,7 +19,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { formatDateTime12, nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid, DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { RADIUS, SCREEN_GUTTER } from '../../lib/design';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getTransactionById } from '../../services/transactions';
@@ -37,12 +37,7 @@ import type {
   TransactionType,
 } from '../../types';
 
-const TYPE_CONFIG = {
-  in: { label: 'In', color: '#16A34A', borderColor: '#16A34A', bg: '#DCFCE7' },
-  out: { label: 'Out', color: '#DC2626', borderColor: '#DC2626', bg: '#FEE2E2' },
-  transfer: { label: 'Transfer', color: '#1E293B', borderColor: '#1E293B', bg: '#F1F5F9' },
-  loan: { label: 'Loan', color: '#B45309', borderColor: '#B45309', bg: '#FEF3C7' },
-};
+// We compute TYPE_CONFIG dynamically inside the component to use the derived palette
 
 type SplitDraft = {
   id: string;
@@ -104,10 +99,17 @@ export default function AddTransactionModal() {
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const [pickerMode, setPickerMode] = useState<'date' | 'time' | 'datetime'>('date');
   const splitIdSeed = useRef(0);
 
   const sym = settings.currencySymbol;
+
+  const TYPE_CONFIG = {
+    in: { label: 'In', color: palette.positive, borderColor: palette.positive, bg: palette.inBg },
+    out: { label: 'Out', color: palette.negative, borderColor: palette.negative, bg: palette.outBg },
+    transfer: { label: 'Transfer', color: palette.transferText, borderColor: palette.transferText, bg: palette.transferBg },
+    loan: { label: 'Loan', color: palette.loan, borderColor: palette.loan, bg: palette.loanBg },
+  };
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
@@ -287,23 +289,45 @@ export default function AddTransactionModal() {
 
   const handleOpenDatePicker = () => {
     Keyboard.dismiss();
-    setPickerMode('date');
-    setShowDatePicker(true);
+    const current = new Date(date);
+
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: current,
+        onValueChange: (_event, selectedDate) => {
+          if (selectedDate && _event.type === 'set') {
+            const nextDate = new Date(selectedDate);
+            // After date, open time
+            DateTimePickerAndroid.open({
+              value: nextDate,
+              mode: 'time',
+              is24Hour: false,
+              display: 'clock', // Material 3 Clock face
+              onValueChange: (timeEvent, selectedTime) => {
+                if (selectedTime && timeEvent.type === 'set') {
+                  const final = new Date(nextDate);
+                  final.setHours(selectedTime.getHours());
+                  final.setMinutes(selectedTime.getMinutes());
+                  setDate(final.toISOString());
+                }
+              },
+              onDismiss: () => {},
+            });
+          }
+        },
+        onDismiss: () => {},
+        mode: 'date',
+        display: 'calendar', // Material 3 Calendar
+      });
+    } else {
+      setPickerMode('datetime');
+      setShowDatePicker(true);
+    }
   };
 
-  const onDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-
-    if (selectedDate) {
-      if (pickerMode === 'date' && Platform.OS === 'android') {
-        // On Android, after picking date, we usually want time too if we desire full precision,
-        // but user asked for 'standard date and time picker'. I'll stick to date for now or sequence them.
-        setDate(selectedDate.toISOString());
-      } else {
-        setDate(selectedDate.toISOString());
-      }
+  const onDateChange = (_event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'ios' && selectedDate) {
+      setDate(selectedDate.toISOString());
     }
   };
 
@@ -479,7 +503,7 @@ export default function AddTransactionModal() {
                   palette={palette}
                 />
               </FieldRow>
-              <DateTimeRow date={date} palette={palette} />
+              <DateTimeRow date={date} palette={palette} onOpen={handleOpenDatePicker} />
               <FieldRow label="Notes" noBorder palette={palette}>
                 <TextInput
                   value={note}
@@ -534,7 +558,7 @@ export default function AddTransactionModal() {
                   ))}
                 </View>
               </FieldRow>
-              <DateTimeRow date={date} palette={palette} />
+              <DateTimeRow date={date} palette={palette} onOpen={handleOpenDatePicker} />
               <FieldRow label="Notes" noBorder palette={palette}>
                 <TextInput
                   value={note}
@@ -548,12 +572,15 @@ export default function AddTransactionModal() {
             </SectionCard>
           )}
 
-          {showDatePicker && (
+          {showDatePicker && Platform.OS === 'ios' && (
             <DateTimePicker
               value={new Date(date)}
-              mode={pickerMode}
+              mode="datetime"
               display="default"
-              onChange={onDateChange}
+              onValueChange={onDateChange}
+              onDismiss={() => setShowDatePicker(false)}
+              textColor={palette.text}
+              accentColor={palette.tabActive}
             />
           )}
 
@@ -607,8 +634,8 @@ export default function AddTransactionModal() {
                   <ChoiceRow
                     key={account.id}
                     title={account.name}
-                    subtitle={account.type}
-                    selected={account.id === accountId}
+                    subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatIndianNumberStr(String(account.balance))} ${sym}`}
+                    selected={accountId === account.id}
                     palette={palette}
                     onPress={() => {
                       setAccountId(account.id);
@@ -781,14 +808,14 @@ function InlinePickerRow({
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {icon ? (
-            <View style={{ width: ROW_TRAILING_WIDTH + 8, alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: ROW_TRAILING_WIDTH + 14, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.borderSoft, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name={icon} size={15} color={palette.textMuted} />
               </View>
             </View>
           ) : null}
           {showChevron ? (
-            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end', justifyContent: 'center' }}>
+            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
               <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
             </View>
           ) : null}
@@ -858,7 +885,7 @@ function PickerRow({
         >
           {value}
         </Text>
-        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end', justifyContent: 'center' }}>
+        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
           <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
         </View>
       </View>
@@ -866,12 +893,12 @@ function PickerRow({
   );
 }
 
-function DateTimeRow({ date, palette }: { date: string; palette: any }) {
+function DateTimeRow({ date, palette, onOpen }: { date: string; palette: any; onOpen: () => void }) {
   return (
     <InlinePickerRow
       label="Date"
       value={formatDateTime12(date)}
-      onPress={() => undefined}
+      onPress={onOpen}
       icon="calendar-outline"
       noBorder={false}
       valueStyle={{ color: palette.text }}
@@ -890,7 +917,7 @@ function AmountRow({
   palette,
 }: {
   sym: string;
-  activeConfig: (typeof TYPE_CONFIG)[TransactionType];
+  activeConfig: any;
   amountStr: string;
   setAmountStr: (value: string) => void;
   onOpenCalculator: () => void;
@@ -940,7 +967,7 @@ function AmountRow({
           style={{
             flex: 1,
             fontSize: 20,
-            fontWeight: '700',
+            fontWeight: '600',
             color: activeConfig.color,
             paddingVertical: 0,
             textAlign: 'left',
@@ -951,13 +978,13 @@ function AmountRow({
           onPress={onOpenCalculator}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           style={{
-            width: ROW_TRAILING_WIDTH + 8,
+            width: ROW_TRAILING_WIDTH + 14,
             height: ROW_MIN_HEIGHT,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.borderSoft, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="calculator-outline" size={16} color={palette.textMuted} />
           </View>
         </TouchableOpacity>

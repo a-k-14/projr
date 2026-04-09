@@ -20,7 +20,6 @@ import { useUIStore } from '../../stores/useUIStore';
 import { todayUTC, formatDate } from '../../lib/dateUtils';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import {
-  HOME_COLORS,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
@@ -116,7 +115,7 @@ export default function AddLoanModal() {
               style={{
                 fontSize: 40,
                 fontWeight: '700',
-                color: HOME_COLORS.loan,
+                color: palette.loan,
                 minWidth: 80,
                 textAlign: 'center',
               }}
@@ -139,7 +138,7 @@ export default function AddLoanModal() {
               paddingHorizontal: HOME_SPACE.xl,
               paddingVertical: HOME_SPACE.lg,
               borderBottomWidth: 1,
-              borderBottomColor: HOME_COLORS.inputBg,
+              borderBottomColor: palette.inputBg,
             }}
           >
             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
@@ -155,14 +154,14 @@ export default function AddLoanModal() {
                     paddingVertical: HOME_SPACE.sm,
                     borderRadius: HOME_RADIUS.small,
                     marginRight: HOME_SPACE.sm,
-                    backgroundColor: accountId === acc.id ? HOME_COLORS.active : HOME_COLORS.inputBg,
+                    backgroundColor: accountId === acc.id ? palette.active : palette.inputBg,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.body,
                       fontWeight: '500',
-                      color: accountId === acc.id ? HOME_COLORS.surface : HOME_COLORS.textSecondary,
+                      color: accountId === acc.id ? palette.surface : palette.textSecondary,
                     }}
                   >
                     {acc.name}
@@ -178,7 +177,7 @@ export default function AddLoanModal() {
               paddingHorizontal: HOME_SPACE.xl,
               paddingVertical: HOME_SPACE.lg,
               borderBottomWidth: 1,
-              borderBottomColor: HOME_COLORS.inputBg,
+              borderBottomColor: palette.inputBg,
             }}
           >
             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
@@ -199,7 +198,7 @@ export default function AddLoanModal() {
               paddingHorizontal: HOME_SPACE.xl,
               paddingVertical: HOME_SPACE.lg,
               borderBottomWidth: 1,
-              borderBottomColor: HOME_COLORS.inputBg,
+              borderBottomColor: palette.inputBg,
             }}
           >
             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
@@ -218,15 +217,15 @@ export default function AddLoanModal() {
                       borderRadius: HOME_RADIUS.small,
                       alignItems: 'center',
                       borderWidth: 1.5,
-                      borderColor: active ? HOME_COLORS.active : HOME_COLORS.divider,
-                      backgroundColor: active ? HOME_COLORS.inBg : palette.surface,
+                      borderColor: active ? palette.active : palette.divider,
+                      backgroundColor: active ? palette.inBg : palette.surface,
                     }}
                   >
                     <Text
                       style={{
                         fontSize: HOME_TEXT.body,
                         fontWeight: '600',
-                        color: active ? HOME_COLORS.active : HOME_COLORS.textSecondary,
+                        color: active ? palette.active : palette.textSecondary,
                       }}
                     >
                       {d === 'lent' ? 'I lent' : 'I borrowed'}
@@ -243,7 +242,7 @@ export default function AddLoanModal() {
               paddingHorizontal: HOME_SPACE.xl,
               paddingVertical: HOME_SPACE.lg,
               borderBottomWidth: 1,
-              borderBottomColor: HOME_COLORS.inputBg,
+              borderBottomColor: palette.inputBg,
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -288,13 +287,13 @@ export default function AddLoanModal() {
           onPress={handleSubmit}
           disabled={!isValid || loading}
           style={{
-            backgroundColor: isValid ? HOME_COLORS.loan : palette.textMuted,
+            backgroundColor: isValid ? palette.loan : palette.textMuted,
             borderRadius: HOME_RADIUS.card,
             paddingVertical: HOME_SPACE.xl,
             alignItems: 'center',
           }}
         >
-          <Text style={{ color: HOME_COLORS.surface, fontSize: HOME_TEXT.heroLabel, fontWeight: '600' }}>
+          <Text style={{ color: palette.surface, fontSize: HOME_TEXT.heroLabel, fontWeight: '600' }}>
             Add
           </Text>
         </TouchableOpacity>

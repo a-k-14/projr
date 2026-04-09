@@ -6,7 +6,8 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/homeTokens';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/homeTokens';
+import { AppThemePalette } from '../lib/theme';
 
 export type AccountTab = {
   id: string | 'all';
@@ -23,9 +24,10 @@ type Props = {
    * component drives its own internal Animated.Value via Animated.timing on tap.
    */
   externalScrollX?: Animated.Value;
+  palette: AppThemePalette;
 };
 
-export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX }: Props) {
+export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX, palette }: Props) {
   const { width } = useWindowDimensions();
   const tabStripRef = useRef<ScrollView>(null);
   const internalScrollX = useRef(new Animated.Value(0)).current;
@@ -86,9 +88,9 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX 
       horizontal
       showsHorizontalScrollIndicator={false}
       style={{
-        backgroundColor: HOME_COLORS.surface,
+        backgroundColor: palette.surface,
         borderBottomWidth: 1,
-        borderBottomColor: HOME_COLORS.divider,
+        borderBottomColor: palette.divider,
         maxHeight: HOME_LAYOUT.tabHeight,
       }}
       contentContainerStyle={{ paddingHorizontal: 12 }}
@@ -102,7 +104,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX 
           bottom: 0,
           height: 3,
           borderRadius: HOME_RADIUS.full,
-          backgroundColor: HOME_COLORS.active,
+          backgroundColor: palette.active,
           width: underlineWidth,
           transform: [{ translateX: underlineTranslateX }],
         }}
@@ -115,7 +117,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX 
 
         if (!hasMultipleAccounts) {
           textInputRange = [0, width];
-          textOutputRange = [HOME_COLORS.active, HOME_COLORS.active];
+          textOutputRange = [palette.active, palette.active];
         } else {
           textInputRange =
             index === 0
@@ -123,8 +125,8 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX 
               : [Math.max(0, (index - 1) * width), index * width, (index + 1) * width];
           textOutputRange =
             index === 0
-              ? [HOME_COLORS.active, HOME_COLORS.active, HOME_COLORS.inactive]
-              : [HOME_COLORS.inactive, HOME_COLORS.active, HOME_COLORS.inactive];
+              ? [palette.active, palette.active, palette.inactive]
+              : [palette.inactive, palette.active, palette.inactive];
         }
 
         return (

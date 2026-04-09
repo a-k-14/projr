@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +20,8 @@ import { useUIStore } from '../../stores/useUIStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { groupTransactionsByDate } from '../../lib/derived';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
-import { HOME_COLORS, HOME_RADIUS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/homeTokens';
+import { HOME_RADIUS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/homeTokens';
+import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { InlineDot } from '../../components/ui/InlineDot';
@@ -42,6 +44,10 @@ export default function ActivityScreen() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined);
+
+  const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
 
   const pagerRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -83,11 +89,12 @@ export default function ActivityScreen() {
   }, [selectedIndex, width]);
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: HOME_COLORS.background }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <AccountTabBar
         accounts={displayAccounts}
         selectedId={selectedAccountId}
         externalScrollX={scrollX}
+        palette={palette}
         onSelect={(id) => {
           const index = displayAccounts.findIndex((a) => a.id === id);
           handleTabPress(index);
@@ -119,6 +126,7 @@ export default function ActivityScreen() {
               onTypeFilterChange={setTypeFilter}
               categoryFilter={categoryFilter}
               onCategoryFilterChange={setCategoryFilter}
+              palette={palette}
             />
           </View>
         ))}
@@ -136,6 +144,7 @@ function ActivityAccountPage({
   onTypeFilterChange,
   categoryFilter,
   onCategoryFilterChange,
+  palette,
 }: {
   accountId: string | 'all';
   isSelected: boolean;
@@ -145,6 +154,7 @@ function ActivityAccountPage({
   onTypeFilterChange: (t: TransactionType | 'all') => void;
   categoryFilter?: string;
   onCategoryFilterChange: (id: string | undefined) => void;
+  palette: AppThemePalette;
 }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -219,7 +229,7 @@ function ActivityAccountPage({
     <FlatList
       data={grouped}
       keyExtractor={(item) => item.dateKey}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={HOME_COLORS.active} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.active} />}
       onEndReached={onLoadMore}
       onEndReachedThreshold={0.4}
       contentContainerStyle={{ paddingBottom: 100 }}
@@ -230,22 +240,22 @@ function ActivityAccountPage({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: HOME_COLORS.surface,
+              backgroundColor: palette.surface,
               borderRadius: HOME_RADIUS.card,
               paddingHorizontal: 12,
               paddingVertical: 10,
               marginBottom: 12,
               borderWidth: 1,
-              borderColor: HOME_COLORS.divider,
+              borderColor: palette.divider,
             }}
           >
-            <Ionicons name="search" size={16} color={HOME_COLORS.textSoft} style={{ marginRight: 8 }} />
+            <Ionicons name="search" size={16} color={palette.textSoft} style={{ marginRight: 8 }} />
             <TextInput
               placeholder="Search transactions..."
-              placeholderTextColor={HOME_COLORS.textSoft}
+              placeholderTextColor={palette.textSoft}
               value={search}
               onChangeText={onSearchChange}
-              style={{ flex: 1, fontSize: 14, color: HOME_COLORS.text, padding: 0 }}
+              style={{ flex: 1, fontSize: 14, color: palette.text, padding: 0 }}
               returnKeyType="search"
             />
           </View>
@@ -262,16 +272,16 @@ function ActivityAccountPage({
                     paddingVertical: 8,
                     borderRadius: HOME_RADIUS.tab,
                     marginRight: 8,
-                    backgroundColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.surface,
+                    backgroundColor: typeFilter === f.value ? palette.active : palette.surface,
                     borderWidth: 1,
-                    borderColor: typeFilter === f.value ? HOME_COLORS.active : HOME_COLORS.divider,
+                    borderColor: typeFilter === f.value ? palette.active : palette.divider,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '500',
-                      color: typeFilter === f.value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                      color: typeFilter === f.value ? palette.surface : palette.textMuted,
                     }}
                   >
                     {f.label}
@@ -288,8 +298,8 @@ function ActivityAccountPage({
                 borderRadius: HOME_RADIUS.tab,
                 borderWidth: 1,
                 marginLeft: 8,
-                borderColor: (showCategoryFilter || categoryFilter) ? HOME_COLORS.active : HOME_COLORS.divider,
-                backgroundColor: (showCategoryFilter || categoryFilter) ? HOME_COLORS.active : HOME_COLORS.surface,
+                borderColor: (showCategoryFilter || categoryFilter) ? palette.active : palette.divider,
+                backgroundColor: (showCategoryFilter || categoryFilter) ? palette.active : palette.surface,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
@@ -298,10 +308,10 @@ function ActivityAccountPage({
               <Ionicons
                 name="options-outline"
                 size={14}
-                color={(showCategoryFilter || categoryFilter) ? HOME_COLORS.surface : HOME_COLORS.textMuted}
+                color={(showCategoryFilter || categoryFilter) ? palette.surface : palette.textMuted}
               />
               {categoryFilter ? (
-                <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: HOME_COLORS.surface }}>
+                <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.surface }}>
                   1
                 </Text>
               ) : null}
@@ -319,16 +329,16 @@ function ActivityAccountPage({
                     paddingVertical: 6,
                     borderRadius: HOME_RADIUS.tab,
                     marginRight: 8,
-                    backgroundColor: !categoryFilter ? HOME_COLORS.active : HOME_COLORS.surface,
+                    backgroundColor: !categoryFilter ? palette.active : palette.surface,
                     borderWidth: 1,
-                    borderColor: !categoryFilter ? HOME_COLORS.active : HOME_COLORS.divider,
+                    borderColor: !categoryFilter ? palette.active : palette.divider,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.caption,
                       fontWeight: '500',
-                      color: !categoryFilter ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                      color: !categoryFilter ? palette.surface : palette.textMuted,
                     }}
                   >
                     All categories
@@ -343,9 +353,9 @@ function ActivityAccountPage({
                       paddingVertical: 6,
                       borderRadius: HOME_RADIUS.tab,
                       marginRight: 8,
-                      backgroundColor: categoryFilter === cat.id ? HOME_COLORS.active : HOME_COLORS.surface,
+                      backgroundColor: categoryFilter === cat.id ? palette.active : palette.surface,
                       borderWidth: 1,
-                      borderColor: categoryFilter === cat.id ? HOME_COLORS.active : HOME_COLORS.divider,
+                      borderColor: categoryFilter === cat.id ? palette.active : palette.divider,
                       flexDirection: 'row',
                       alignItems: 'center',
                       gap: 4,
@@ -356,14 +366,14 @@ function ActivityAccountPage({
                         width: 8,
                         height: 8,
                         borderRadius: 4,
-                        backgroundColor: categoryFilter === cat.id ? HOME_COLORS.surface : cat.color,
+                        backgroundColor: categoryFilter === cat.id ? palette.surface : cat.color,
                       }}
                     />
                     <Text
                       style={{
                         fontSize: HOME_TEXT.caption,
                         fontWeight: '500',
-                        color: categoryFilter === cat.id ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                        color: categoryFilter === cat.id ? palette.surface : palette.textMuted,
                       }}
                     >
                       {cat.name}
@@ -380,26 +390,26 @@ function ActivityAccountPage({
         return (
           <View style={{ marginBottom: 16 }}>
             <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: HOME_COLORS.textSoft }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textSoft }}>
                 {date}
               </Text>
               {label ? (
                 <>
-                  <InlineDot size={3} color={HOME_COLORS.textSoft} />
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: HOME_COLORS.textSoft }}>
+                  <InlineDot size={3} color={palette.textSoft} />
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textSoft }}>
                     {label}
                   </Text>
                 </>
               ) : null}
             </View>
-            <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: SCREEN_GUTTER, overflow: 'hidden' }}>
+            <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: SCREEN_GUTTER, overflow: 'hidden' }}>
               {item.items.map((tx, idx) => (
                 <TransactionListItem
-                  key={tx.id}
                   tx={tx}
                   sym={sym}
                   isLast={idx === item.items.length - 1}
                   categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
+                  palette={palette}
                 />
               ))}
             </View>

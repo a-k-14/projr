@@ -2,7 +2,8 @@ import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { formatCurrency } from '../lib/derived';
-import { HOME_COLORS, HOME_RADIUS, HOME_TEXT, TX_TYPE_CONFIG } from '../lib/homeTokens';
+import { HOME_RADIUS, HOME_TEXT, getTxTypeConfig } from '../lib/homeTokens';
+import { AppThemePalette } from '../lib/theme';
 import type { Transaction } from '../types';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
   padding?: number;
   /** Icon box size — defaults to 40 */
   iconSize?: number;
+  palette: AppThemePalette;
 }
 
 export function TransactionListItem({
@@ -23,10 +25,11 @@ export function TransactionListItem({
   categoryName,
   padding = 12,
   iconSize = 40,
+  palette,
 }: Props) {
   const { getById } = useAccountsStore();
   const account = getById(tx.accountId);
-  const cfg = TX_TYPE_CONFIG[tx.type] ?? TX_TYPE_CONFIG.out;
+  const cfg = getTxTypeConfig(palette)[tx.type] ?? getTxTypeConfig(palette).out;
 
   const subtitle = [categoryName, account?.name].filter(Boolean).join(' · ');
 
@@ -37,7 +40,7 @@ export function TransactionListItem({
         alignItems: 'center',
         padding,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: HOME_COLORS.divider,
+        borderBottomColor: palette.divider,
       }}
     >
       <View
@@ -54,30 +57,16 @@ export function TransactionListItem({
         <Ionicons name={cfg.iconName as never} size={Math.round(iconSize * 0.45)} color={cfg.color} />
       </View>
 
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: HOME_COLORS.neutral }}
-          numberOfLines={1}
-        >
-          {tx.note ?? tx.type}
+      <View style={{ flex: 1, paddingRight: 10 }}>
+        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, marginBottom: 2 }}>
+          {tx.payee || cfg.label}
         </Text>
-        {subtitle ? (
-          <Text
-            style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textSoft, marginTop: 1 }}
-            numberOfLines={1}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
+        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+          {subtitle}
+        </Text>
       </View>
 
-      <Text
-        style={{
-          fontSize: HOME_TEXT.body,
-          fontWeight: '600',
-          color: tx.type === 'in' ? HOME_COLORS.positive : HOME_COLORS.neutral,
-        }}
-      >
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: tx.type === 'in' ? palette.active : palette.text }}>
         {formatCurrency(tx.amount, sym)}
       </Text>
     </View>

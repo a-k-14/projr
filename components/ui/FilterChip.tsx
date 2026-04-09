@@ -1,26 +1,21 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { HOME_COLORS, HOME_RADIUS } from '../../lib/homeTokens';
+import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import { HOME_RADIUS } from '../../lib/homeTokens';
+import { AppThemePalette } from '../../lib/theme';
 
 interface FilterChipProps {
+  palette: AppThemePalette;
   label: string;
   isActive: boolean;
   onPress: () => void;
-  activeColor?: string;
-  inactiveColor?: string;
-  activeTextColor?: string;
-  inactiveTextColor?: string;
   style?: ViewStyle;
 }
 
 export function FilterChip({
+  palette,
   label,
   isActive,
   onPress,
-  activeColor = HOME_COLORS.active,
-  inactiveColor = HOME_COLORS.surface,
-  activeTextColor = HOME_COLORS.surface,
-  inactiveTextColor = HOME_COLORS.textMuted,
   style,
 }: FilterChipProps) {
   return (
@@ -29,8 +24,8 @@ export function FilterChip({
       style={[
         styles.chip,
         {
-          backgroundColor: isActive ? activeColor : inactiveColor,
-          borderColor: isActive ? activeColor : HOME_COLORS.divider,
+          backgroundColor: isActive ? palette.active : palette.inputBg,
+          borderColor: isActive ? palette.active : palette.borderSoft,
         },
         style,
       ]}
@@ -38,9 +33,7 @@ export function FilterChip({
       <Text
         style={[
           styles.text,
-          {
-            color: isActive ? activeTextColor : inactiveTextColor,
-          },
+          { color: isActive ? palette.surface : palette.text },
         ]}
       >
         {label}
@@ -53,12 +46,14 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: HOME_RADIUS.tab,
+    borderRadius: HOME_RADIUS.pill,
     borderWidth: 1,
     marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   text: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

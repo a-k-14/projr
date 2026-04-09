@@ -20,11 +20,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
+import { BottomSheet } from '../../components/ui/BottomSheet';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
-import { buildSpendingChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
-import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
-import { getCashflowSummary, getDailySpending } from '../../services/analytics';
+import { buildSpendingChartData, buildCashflowChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
+import { useColorScheme } from 'react-native';
+import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
+import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -32,6 +35,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import type {
   CashflowSummary,
   DailySpending,
+  DailyCashflow,
   PeriodType,
   Transaction,
 } from '../../types';
@@ -55,6 +59,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const pagerRef = useRef<any>(null);
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const scrollX = useRef(new Animated.Value(0)).current;
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => todayUTC());
@@ -118,7 +124,7 @@ export default function HomeScreen() {
       DateTimePickerAndroid.open({
         value,
         mode: 'date',
-        display: 'calendar',
+        display: 'calendar', // Material 3 Calendar
         minimumDate: minDate,
         onValueChange: (_event, selected) => {
           if (!selected) return;
@@ -150,16 +156,20 @@ export default function HomeScreen() {
   return (
     <SafeAreaView
       edges={['top']}
-      style={{ flex: 1, backgroundColor: HOME_COLORS.background }}
+      style={{ flex: 1, backgroundColor: palette.background }}
     >
       <AccountTabBar
         accounts={displayAccounts}
         selectedId={selectedAccountId}
-        externalScrollX={scrollX}
         onSelect={(id) => {
-          const index = displayAccounts.findIndex((a) => a.id === id);
-          handleTabPress(index);
+          setSelectedAccountId(id);
+          const i = displayAccounts.findIndex((a) => a.id === id);
+          if (i !== -1) {
+            pagerRef.current?.scrollTo({ x: i * width, animated: true });
+          }
         }}
+        externalScrollX={scrollX}
+        palette={palette}
       />
 
       <View
@@ -201,6 +211,7 @@ export default function HomeScreen() {
                 }
                 onRefresh={refreshAccounts}
                 isSelected={account.id === selectedAccountId}
+                palette={palette}
               />
             </View>
           ))}
@@ -221,13 +232,13 @@ export default function HomeScreen() {
           width: HOME_LAYOUT.fabSize,
           height: HOME_LAYOUT.fabSize,
           borderRadius: HOME_RADIUS.fab,
-          backgroundColor: HOME_COLORS.active,
+          backgroundColor: palette.active,
           alignItems: 'center',
           justifyContent: 'center',
           ...HOME_SHADOW.card,
         }}
       >
-        <Ionicons name="add" size={28} color={HOME_COLORS.surface} />
+        <Ionicons name="add" size={28} color={palette.surface} />
       </TouchableOpacity>
 
       <Modal
@@ -248,15 +259,15 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => { }}
             style={{
-              backgroundColor: HOME_COLORS.surface,
+              backgroundColor: palette.surface,
               borderRadius: HOME_RADIUS.large,
               padding: HOME_SPACE.xxl,
             }}
           >
-            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: HOME_COLORS.text, marginBottom: 8 }}>
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginBottom: 8 }}>
               Custom range
             </Text>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: HOME_COLORS.textMuted, marginBottom: 16 }}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: 16 }}>
               Pick the from and to dates for this range.
             </Text>
             <View style={{ gap: HOME_SPACE.md, marginBottom: HOME_SPACE.lg }}>
@@ -264,14 +275,14 @@ export default function HomeScreen() {
                 onPress={() => openDatePicker('from')}
                 style={{
                   borderWidth: 1,
-                  borderColor: HOME_COLORS.divider,
+                  borderColor: palette.divider,
                   borderRadius: HOME_RADIUS.card,
                   paddingHorizontal: HOME_SPACE.lg,
                   paddingVertical: 12,
                 }}
               >
-                <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginBottom: 4 }}>From</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: HOME_COLORS.text }}>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
                   {formatDate(customDraftFrom.toISOString())}
                 </Text>
               </TouchableOpacity>
@@ -279,14 +290,14 @@ export default function HomeScreen() {
                 onPress={() => openDatePicker('to')}
                 style={{
                   borderWidth: 1,
-                  borderColor: HOME_COLORS.divider,
+                  borderColor: palette.divider,
                   borderRadius: HOME_RADIUS.card,
                   paddingHorizontal: HOME_SPACE.lg,
                   paddingVertical: 12,
                 }}
               >
-                <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginBottom: 4 }}>To</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: HOME_COLORS.text }}>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
                   {formatDate(customDraftTo.toISOString())}
                 </Text>
               </TouchableOpacity>
@@ -298,12 +309,12 @@ export default function HomeScreen() {
                   flex: 1,
                   minHeight: 48,
                   borderRadius: HOME_RADIUS.tab,
-                  backgroundColor: HOME_COLORS.divider,
+                  backgroundColor: palette.divider,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: HOME_COLORS.text }}>Cancel</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleCustomRangeDone}
@@ -311,12 +322,12 @@ export default function HomeScreen() {
                   flex: 1,
                   minHeight: 48,
                   borderRadius: HOME_RADIUS.tab,
-                  backgroundColor: HOME_COLORS.active,
+                  backgroundColor: palette.active,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: HOME_COLORS.surface }}>Done</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.surface }}>Done</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -337,6 +348,7 @@ function HomeAccountPage({
   totalBalance,
   onRefresh,
   isSelected,
+  palette,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -348,14 +360,17 @@ function HomeAccountPage({
   totalBalance: number;
   onRefresh: () => Promise<void>;
   isSelected: boolean;
+  palette: AppThemePalette;
 }) {
   const { getCategoryDisplayName } = useCategoriesStore();
   const [period, setPeriod] = useState<PeriodType>('week');
+  const [activeView, setActiveView] = useState<'out' | 'in' | 'table'>('out');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [todayCashflow, setTodayCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
-  const [dailyData, setDailyData] = useState<DailySpending[]>([]);
+  const [dailyData, setDailyData] = useState<DailyCashflow[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [showViewPicker, setShowViewPicker] = useState(false);
 
   const { from, to } = getDateRange(
     period,
@@ -369,7 +384,7 @@ function HomeAccountPage({
     const accountFilter = accountId === 'all' ? undefined : accountId;
     const [periodSummary, dailySummary, recentTransactions, todaySummary] = await Promise.all([
       getCashflowSummary(accountId, from, to),
-      getDailySpending(accountId, from, to),
+      getDailyCashflow(accountId, from, to),
       getTransactions({ accountId: accountFilter, limit: 5 }),
       getCashflowSummary(accountId, today, today),
     ]);
@@ -392,8 +407,8 @@ function HomeAccountPage({
     setRefreshing(false);
   }, [loadPageData, onRefresh]);
 
-  const chartPoints = buildSpendingChartData(period, dailyData, from, to, settingsYearStart);
-  const maxSpend = Math.max(...chartPoints.map((entry) => entry.amount), 1);
+  const viewData = buildCashflowChartData(period, dailyData, from, to, settingsYearStart);
+  const maxVal = Math.max(...viewData.map((entry) => activeView === 'in' ? entry.in : entry.out), 1);
 
   return (
     <View style={{ flex: 1, height: pageHeight }}>
@@ -405,17 +420,17 @@ function HomeAccountPage({
         <View style={{ paddingHorizontal: HOME_SPACE.screen, paddingTop: 14, paddingBottom: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: 18 }}>
-              <Text style={{ fontSize: HOME_TEXT.heroLabel, color: HOME_COLORS.text, fontWeight: '700' }}>
+              <Text style={{ fontSize: HOME_TEXT.heroLabel, color: palette.text, fontWeight: '700' }}>
                 {accountId === 'all' ? 'All Accounts' : accountName}
               </Text>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginTop: 2 }}>Current Balance</Text>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>Current Balance</Text>
             </View>
             <Text
               style={{
                 fontSize: HOME_TEXT.heroValue,
                 lineHeight: 36,
                 fontWeight: '700',
-                color: HOME_COLORS.text,
+                color: palette.text,
                 textAlign: 'right',
                 flexShrink: 1,
               }}
@@ -423,28 +438,28 @@ function HomeAccountPage({
               {formatCurrency(totalBalance, currencySymbol)}
             </Text>
           </View>
-          <View style={{ height: 1, backgroundColor: HOME_COLORS.borderSoft, marginTop: 18, marginBottom: 14 }} />
+          <View style={{ height: 1, backgroundColor: palette.borderSoft, marginTop: 18, marginBottom: 14 }} />
         </View>
 
         <View style={{ paddingHorizontal: HOME_SPACE.screen }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text }}>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>
               {formatDate(today)}
             </Text>
-            <InlineDot size={3} color={HOME_COLORS.todayDot} />
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text }}>Today</Text>
+            <InlineDot size={3} color={palette.todayDot} />
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>Today</Text>
           </View>
-          <SummaryCard cashflow={todayCashflow} sym={currencySymbol} />
+          <SummaryCard cashflow={todayCashflow} sym={currencySymbol} palette={palette} />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 6 }}>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: HOME_COLORS.text, marginRight: 12 }}>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginRight: 12 }}>
               This
             </Text>
             <View
               style={{
                 flex: 1,
                 flexDirection: 'row',
-                backgroundColor: HOME_COLORS.surface,
+                backgroundColor: palette.surface,
                 borderRadius: HOME_RADIUS.tab,
                 overflow: 'hidden',
               }}
@@ -466,9 +481,9 @@ function HomeAccountPage({
                     paddingHorizontal: 12,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: period === value ? HOME_COLORS.heroBar : HOME_COLORS.surface,
+                    backgroundColor: period === value ? palette.heroBar : palette.surface,
                     borderLeftWidth: value === 'week' ? 0 : 1,
-                    borderLeftColor: HOME_COLORS.divider,
+                    borderLeftColor: palette.divider,
                   }}
                 >
                   <Text
@@ -478,7 +493,7 @@ function HomeAccountPage({
                       lineHeight: 13,
                       textAlignVertical: 'center',
                       includeFontPadding: false,
-                      color: period === value ? HOME_COLORS.surface : HOME_COLORS.textMuted,
+                      color: period === value ? palette.surface : palette.textMuted,
                     }}
                   >
                     {PERIOD_LABELS[value]}
@@ -488,15 +503,13 @@ function HomeAccountPage({
             </View>
           </View>
 
-          <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textMuted, marginBottom: 10 }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 10 }}>
             {formatDate(from)} — {formatDate(to)}
           </Text>
 
-          <SummaryCard cashflow={cashflow} sym={currencySymbol} />
-
           <View
             style={{
-              backgroundColor: HOME_COLORS.surface,
+              backgroundColor: palette.surface,
               borderRadius: HOME_RADIUS.card,
               paddingHorizontal: 16,
               paddingTop: 14,
@@ -504,53 +517,87 @@ function HomeAccountPage({
               marginBottom: 14,
             }}
           >
-            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: HOME_COLORS.text, marginBottom: 18 }}>
-              Spending
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: HOME_LAYOUT.chartHeight, paddingHorizontal: 2 }}>
-              {chartPoints.length > 0
-                ? chartPoints.map((entry, index) => (
-                  <View key={`${entry.label}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
-                    <View
-                      style={{
-                        width: 14,
-                        backgroundColor: HOME_COLORS.chartBar,
-                        borderRadius: HOME_RADIUS.chartBar,
-                        opacity: entry.amount > 0 ? 0.88 : 0.2,
-                        height: Math.max(4, (entry.amount / maxSpend) * HOME_LAYOUT.chartBarHeight),
-                      }}
-                    />
-                    <Text style={{ fontSize: HOME_TEXT.tiny, color: HOME_COLORS.textSoft, marginTop: 8 }}>
-                      {entry.label}
-                    </Text>
-                  </View>
-                ))
-                : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-                  <View key={`${day}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
-                    <View
-                      style={{
-                        width: 10,
-                        height: 4,
-                        backgroundColor: index === 0 ? HOME_COLORS.heroBar : HOME_COLORS.chartBarMuted,
-                        borderRadius: HOME_RADIUS.full,
-                      }}
-                    />
-                    <Text
-                      style={{
-                        fontSize: HOME_TEXT.tiny,
-                        color: index === 0 ? HOME_COLORS.text : HOME_COLORS.textMuted,
-                        marginTop: 8,
-                        fontWeight: index === 0 ? '700' : '500',
-                      }}
-                    >
-                      {day}
-                    </Text>
+            <TouchableOpacity
+              onPress={() => setShowViewPicker(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 18,
+                gap: 6,
+              }}
+            >
+              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
+                {activeView === 'out' ? 'Out Chart' : activeView === 'in' ? 'In Chart' : 'Cashflow'}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={palette.textMuted} />
+            </TouchableOpacity>
+
+            {activeView === 'table' ? (
+              <View>
+                <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: palette.divider, paddingBottom: 8, marginBottom: 8 }}>
+                  <Text style={{ flex: 1.2, fontSize: 13, fontWeight: '600', color: palette.textMuted }}>Period</Text>
+                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: palette.active, textAlign: 'right' }}>In</Text>
+                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: palette.negative, textAlign: 'right' }}>Out</Text>
+                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: palette.text, textAlign: 'right' }}>Net</Text>
+                </View>
+                {viewData.map((row, i) => (
+                  <View key={i} style={{ flexDirection: 'row', paddingVertical: 8, borderBottomWidth: i === viewData.length - 1 ? 0 : 1, borderBottomColor: palette.borderSoft }}>
+                    <Text style={{ flex: 1.2, fontSize: 14, color: palette.text }}>{row.label}</Text>
+                    <Text style={{ flex: 1, fontSize: 14, color: palette.active, textAlign: 'right' }}>{row.in > 0 ? formatCurrency(row.in, currencySymbol) : '-'}</Text>
+                    <Text style={{ flex: 1, fontSize: 14, color: palette.negative, textAlign: 'right' }}>{row.out > 0 ? formatCurrency(row.out, currencySymbol) : '-'}</Text>
+                    <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: row.net >= 0 ? palette.active : palette.negative, textAlign: 'right' }}>{formatCurrency(row.net, currencySymbol)}</Text>
                   </View>
                 ))}
-            </View>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: HOME_LAYOUT.chartHeight, paddingHorizontal: 2 }}>
+                {viewData.length > 0
+                  ? viewData.map((entry, index) => {
+                    const amount = activeView === 'in' ? entry.in : entry.out;
+                    return (
+                      <View key={`${entry.label}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
+                        <View
+                          style={{
+                            width: 14,
+                            backgroundColor: activeView === 'in' ? palette.active : palette.negative,
+                            borderRadius: HOME_RADIUS.chartBar,
+                            opacity: amount > 0 ? 0.88 : 0.2,
+                            height: Math.max(4, (amount / maxVal) * HOME_LAYOUT.chartBarHeight),
+                          }}
+                        />
+                        <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textSoft, marginTop: 8 }}>
+                          {entry.label}
+                        </Text>
+                      </View>
+                    );
+                  })
+                  : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
+                    <View key={`${day}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
+                      <View
+                        style={{
+                          width: 10,
+                          height: 4,
+                          backgroundColor: index === 0 ? palette.heroBar : palette.chartBarMuted,
+                          borderRadius: HOME_RADIUS.full,
+                        }}
+                      />
+                      <Text
+                        style={{
+                          fontSize: HOME_TEXT.tiny,
+                          color: index === 0 ? palette.text : palette.textMuted,
+                          marginTop: 8,
+                          fontWeight: index === 0 ? '700' : '500',
+                        }}
+                      >
+                        {day}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            )}
           </View>
 
-          <View style={{ backgroundColor: HOME_COLORS.surface, borderRadius: HOME_RADIUS.card, paddingTop: 14, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
+          <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, paddingTop: 14, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
             <View
               style={{
                 flexDirection: 'row',
@@ -560,9 +607,9 @@ function HomeAccountPage({
                 paddingHorizontal: 16,
               }}
             >
-              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: HOME_COLORS.text }}>Recent</Text>
+              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
               <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
-                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: HOME_COLORS.active, fontWeight: '600' }}>View all</Text>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.active, fontWeight: '600' }}>View all</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -572,7 +619,7 @@ function HomeAccountPage({
               contentContainerStyle={{ paddingBottom: 4 }}
             >
               {transactions.length === 0 ? (
-                <Text style={{ color: HOME_COLORS.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
+                <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
                   No transactions yet
                 </Text>
               ) : (
@@ -585,6 +632,7 @@ function HomeAccountPage({
                     padding={10}
                     iconSize={36}
                     categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
+                    palette={palette}
                   />
                 ))
               )}
@@ -593,6 +641,45 @@ function HomeAccountPage({
         </View>
       </ScrollView>
 
+      {showViewPicker && (
+        <BottomSheet
+          title="Select View"
+          palette={palette}
+          onClose={() => setShowViewPicker(false)}
+        >
+          <View style={{ paddingBottom: 20 }}>
+            {(['out', 'in', 'table'] as const).map((view) => (
+              <TouchableOpacity
+                key={view}
+                onPress={() => {
+                  setActiveView(view);
+                  setShowViewPicker(false);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 16,
+                  paddingHorizontal: 22,
+                  borderBottomWidth: view === 'table' ? 0 : 1,
+                  borderBottomColor: palette.borderSoft,
+                }}
+              >
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: activeView === view ? '600' : '400',
+                  color: activeView === view ? palette.active : palette.text
+                }}>
+                  {view === 'out' ? 'Out Chart' : view === 'in' ? 'In Chart' : 'Cashflow Table'}
+                </Text>
+                {activeView === view && (
+                  <Ionicons name="checkmark" size={20} color={palette.active} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </BottomSheet>
+      )}
     </View>
   );
 }

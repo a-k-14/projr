@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, ViewStyle } from 'react-native';
-import { HOME_COLORS } from '../../lib/homeTokens';
 
 interface InlineDotProps {
   size?: number;
@@ -10,7 +9,7 @@ interface InlineDotProps {
 
 export function InlineDot({ 
   size = 4, 
-  color = HOME_COLORS.textSoft, 
+  color = '#9CA3AF', 
   style 
 }: InlineDotProps) {
   return (

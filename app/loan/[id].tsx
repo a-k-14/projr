@@ -20,7 +20,6 @@ import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
 import { formatDate, formatDateShort, todayUTC } from '../../lib/dateUtils';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import {
-  HOME_COLORS,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
@@ -63,7 +62,7 @@ export default function LoanDetailScreen() {
 
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const progressColor = isLent ? HOME_COLORS.positive : HOME_COLORS.negative;
+  const progressColor = isLent ? palette.positive : palette.negative;
   const grouped = groupTransactionsByDate(loan.transactions);
 
   const handleRecordPayment = async () => {
@@ -111,7 +110,7 @@ export default function LoanDetailScreen() {
           {loan.personName}
         </Text>
         <TouchableOpacity>
-          <Text style={{ color: HOME_COLORS.active, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+          <Text style={{ color: palette.active, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
             Edit
           </Text>
         </TouchableOpacity>
@@ -149,14 +148,14 @@ export default function LoanDetailScreen() {
                     paddingHorizontal: HOME_SPACE.md,
                     paddingVertical: HOME_SPACE.xs,
                     borderRadius: HOME_RADIUS.small,
-                    backgroundColor: loan.status === 'open' ? HOME_COLORS.loanBg : HOME_COLORS.inputBg,
+                    backgroundColor: loan.status === 'open' ? palette.loanBg : palette.inputBg,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '600',
-                      color: loan.status === 'open' ? HOME_COLORS.loan : HOME_COLORS.textSecondary,
+                      color: loan.status === 'open' ? palette.loan : palette.textSecondary,
                     }}
                   >
                     {loan.status === 'open' ? 'Open' : 'Closed'}
@@ -180,8 +179,8 @@ export default function LoanDetailScreen() {
               <View style={{ flexDirection: 'row' }}>
                 {[
                   { label: 'GIVEN', value: loan.givenAmount, color: palette.text },
-                  { label: 'SETTLED', value: loan.settledAmount, color: HOME_COLORS.positive },
-                  { label: 'PENDING', value: loan.pendingAmount, color: isLent ? HOME_COLORS.loan : HOME_COLORS.negative },
+                  { label: 'SETTLED', value: loan.settledAmount, color: palette.positive },
+                  { label: 'PENDING', value: loan.pendingAmount, color: isLent ? palette.loan : palette.negative },
                 ].map((item, i) => (
                   <View
                     key={item.label}
@@ -189,7 +188,7 @@ export default function LoanDetailScreen() {
                       flex: 1,
                       alignItems: 'center',
                       borderRightWidth: i < 2 ? 1 : 0,
-                      borderRightColor: HOME_COLORS.inputBg,
+                      borderRightColor: palette.inputBg,
                     }}
                   >
                     <Text
@@ -220,7 +219,7 @@ export default function LoanDetailScreen() {
                 <View
                   style={{
                     height: 4,
-                    backgroundColor: HOME_COLORS.divider,
+                    backgroundColor: palette.divider,
                     borderRadius: 2,
                     overflow: 'hidden',
                   }}
@@ -288,7 +287,7 @@ export default function LoanDetailScreen() {
                         alignItems: 'center',
                         padding: HOME_SPACE.lg,
                         borderBottomWidth: i < items.length - 1 ? 1 : 0,
-                        borderBottomColor: HOME_COLORS.inputBg,
+                        borderBottomColor: palette.inputBg,
                       }}
                     >
                       <View
@@ -296,13 +295,13 @@ export default function LoanDetailScreen() {
                           width: 32,
                           height: 32,
                           borderRadius: HOME_RADIUS.small,
-                          backgroundColor: HOME_COLORS.loanBg,
+                          backgroundColor: palette.loanBg,
                           alignItems: 'center',
                           justifyContent: 'center',
                           marginRight: HOME_SPACE.md,
                         }}
                       >
-                        <Ionicons name="cash" size={14} color={HOME_COLORS.loan} />
+                        <Ionicons name="cash" size={14} color={palette.loan} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text }}>
@@ -360,20 +359,20 @@ export default function LoanDetailScreen() {
                   onPress={handleRecordPayment}
                   disabled={loading}
                   style={{
-                    backgroundColor: HOME_COLORS.active,
+                    backgroundColor: palette.active,
                     borderRadius: HOME_RADIUS.pill,
                     paddingHorizontal: HOME_SPACE.xxxl,
                     justifyContent: 'center',
                   }}
                 >
-                  <Text style={{ color: HOME_COLORS.surface, fontWeight: '600' }}>Save</Text>
+                  <Text style={{ color: palette.surface, fontWeight: '600' }}>Save</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
                 onPress={() => setShowPaymentInput(true)}
                 style={{
-                  backgroundColor: HOME_COLORS.active,
+                  backgroundColor: palette.active,
                   borderRadius: HOME_RADIUS.card,
                   paddingVertical: HOME_SPACE.xl,
                   flexDirection: 'row',
@@ -382,8 +381,8 @@ export default function LoanDetailScreen() {
                   gap: HOME_SPACE.sm,
                 }}
               >
-                <Ionicons name="arrow-down" size={18} color={HOME_COLORS.surface} />
-                <Text style={{ color: HOME_COLORS.surface, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+                <Ionicons name="arrow-down" size={18} color={palette.surface} />
+                <Text style={{ color: palette.surface, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
                   Record payment · {formatCurrency(loan.pendingAmount, sym)} pending
                 </Text>
               </TouchableOpacity>

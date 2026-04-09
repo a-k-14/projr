@@ -1,76 +1,46 @@
 import { SCREEN_GUTTER } from './design';
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
-// Used by main-app screens (Home, Activity, Budgets, Loans, modals).
-// Settings screens use AppThemePalette from lib/theme.ts instead.
-export const HOME_COLORS = {
-  background: '#F0F0F5',
-  surface: '#FFFFFF',
-  surfaceRaised: '#202845',
-  text: '#1F2A44',
-  textMuted: '#8C94AF',
-  textSoft: '#9CA3AF',
-  textSecondary: '#6B7280',
-  divider: '#E5E7EB',
-  borderSoft: '#D8DDE8',
-  active: '#17673B',
-  inactive: '#B2B8C2',
-  positive: '#16A34A',
-  // Keep in sync with tailwind.config.js expense & ActionButton danger in settings-ui.tsx
-  negative: '#DC2626',
-  neutral: '#0A0A0A',
-  chartBar: '#17673B',
-  chartBarMuted: '#D9DDE7',
-  heroBar: '#202845',
-  todayDot: '#1F2A44',
-  // Loan accent
-  loan: '#B45309',
-  // Transaction-type icon backgrounds
-  inBg: '#DCFCE7',
-  outBg: '#FEE2E2',
-  transferBg: '#F1F5F9',
-  loanBg: '#FEF3C7',
-  // Transfer foreground (dark slate, not green/red)
-  transferText: '#1E293B',
-  // Inner picker / input backgrounds
-  inputBg: '#F3F4F6',
-} as const;
+// Previously HOME_COLORS. Now unified into AppThemePalette in lib/theme.ts.
 
 // ─── Transaction-type config (single source of truth) ─────────────────────────
-// Import this everywhere instead of repeating inline.
-export const TX_TYPE_CONFIG: Record<
+import { AppThemePalette } from './theme';
+
+export function getTxTypeConfig(palette: AppThemePalette): Record<
   'in' | 'out' | 'transfer' | 'loan',
   { label: string; color: string; bg: string; borderColor: string; iconName: string }
-> = {
-  in: {
-    label: 'In',
-    color: HOME_COLORS.positive,
-    bg: HOME_COLORS.inBg,
-    borderColor: HOME_COLORS.positive,
-    iconName: 'arrow-down',
-  },
-  out: {
-    label: 'Out',
-    color: HOME_COLORS.negative,
-    bg: HOME_COLORS.outBg,
-    borderColor: HOME_COLORS.negative,
-    iconName: 'arrow-up',
-  },
-  transfer: {
-    label: 'Transfer',
-    color: HOME_COLORS.transferText,
-    bg: HOME_COLORS.transferBg,
-    borderColor: HOME_COLORS.transferText,
-    iconName: 'swap-horizontal',
-  },
-  loan: {
-    label: 'Loan',
-    color: HOME_COLORS.loan,
-    bg: HOME_COLORS.loanBg,
-    borderColor: HOME_COLORS.loan,
-    iconName: 'cash',
-  },
-};
+> {
+  return {
+    in: {
+      label: 'In',
+      color: palette.positive,
+      bg: palette.inBg,
+      borderColor: palette.positive,
+      iconName: 'arrow-down',
+    },
+    out: {
+      label: 'Out',
+      color: palette.negative,
+      bg: palette.outBg,
+      borderColor: palette.negative,
+      iconName: 'arrow-up',
+    },
+    transfer: {
+      label: 'Transfer',
+      color: palette.transferText,
+      bg: palette.transferBg,
+      borderColor: palette.transferText,
+      iconName: 'swap-horizontal',
+    },
+    loan: {
+      label: 'Loan',
+      color: palette.loan,
+      bg: palette.loanBg,
+      borderColor: palette.loan,
+      iconName: 'cash',
+    },
+  };
+}
 
 // ─── Border-radius tokens ──────────────────────────────────────────────────────
 export const HOME_RADIUS = {

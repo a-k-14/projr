@@ -18,7 +18,6 @@ import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency } from '../../lib/derived';
 import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
 import {
-  HOME_COLORS,
   HOME_RADIUS,
   HOME_SHADOW,
   HOME_SPACE,
@@ -57,7 +56,7 @@ export default function BudgetScreen() {
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={HOME_COLORS.active} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.active} />}
       >
         {/* Header */}
         <ScreenTitle title="Budgets" palette={palette} />
@@ -82,7 +81,7 @@ export default function BudgetScreen() {
                   style={{
                     fontSize: 20,
                     fontWeight: '700',
-                    color: totalSpent > totalBudgeted ? HOME_COLORS.negative : palette.text,
+                    color: totalSpent > totalBudgeted ? palette.negative : palette.text,
                     marginTop: HOME_SPACE.xs,
                   }}
                 >
@@ -97,7 +96,7 @@ export default function BudgetScreen() {
                   style={{
                     fontSize: 20,
                     fontWeight: '700',
-                    color: totalRemaining < 0 ? HOME_COLORS.negative : HOME_COLORS.positive,
+                    color: totalRemaining < 0 ? palette.negative : palette.positive,
                     marginTop: HOME_SPACE.xs,
                   }}
                 >
@@ -109,7 +108,7 @@ export default function BudgetScreen() {
             {overBudgetCount > 0 && (
               <View
                 style={{
-                  backgroundColor: HOME_COLORS.outBg,
+                  backgroundColor: palette.outBg,
                   borderRadius: HOME_RADIUS.small,
                   padding: HOME_SPACE.md,
                   marginTop: HOME_SPACE.md,
@@ -118,8 +117,8 @@ export default function BudgetScreen() {
                   gap: HOME_SPACE.sm,
                 }}
               >
-                <Ionicons name="warning" size={16} color={HOME_COLORS.negative} />
-                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: HOME_COLORS.negative, fontWeight: '500' }}>
+                <Ionicons name="warning" size={16} color={palette.negative} />
+                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.negative, fontWeight: '500' }}>
                   {overBudgetCount} {overBudgetCount === 1 ? 'category' : 'categories'} over budget
                 </Text>
               </View>
@@ -175,13 +174,13 @@ export default function BudgetScreen() {
           width: 56,
           height: 56,
           borderRadius: HOME_RADIUS.fab,
-          backgroundColor: HOME_COLORS.active,
+          backgroundColor: palette.active,
           alignItems: 'center',
           justifyContent: 'center',
           ...HOME_SHADOW.card,
         }}
       >
-        <Ionicons name="add" size={28} color={HOME_COLORS.surface} />
+        <Ionicons name="add" size={28} color={palette.surface} />
       </TouchableOpacity>
 
       <AddBudgetModal
@@ -216,10 +215,10 @@ function BudgetCard({
 }) {
   const isOver = budget.spent > budget.amount;
   const barColor = isOver
-    ? HOME_COLORS.negative
+    ? palette.negative
     : budget.percent > 75
-      ? HOME_COLORS.loan
-      : HOME_COLORS.active;
+      ? palette.loan
+      : palette.active;
 
   return (
     <TouchableOpacity
@@ -254,7 +253,7 @@ function BudgetCard({
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: isOver ? HOME_COLORS.negative : palette.text }}>
+          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: isOver ? palette.negative : palette.text }}>
             {formatCurrency(budget.spent, sym)}
           </Text>
           <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
@@ -264,7 +263,7 @@ function BudgetCard({
       </View>
 
       {/* Progress bar with ghost track */}
-      <View style={{ height: 6, backgroundColor: HOME_COLORS.divider, borderRadius: 3, overflow: 'hidden' }}>
+      <View style={{ height: 6, backgroundColor: palette.divider, borderRadius: 3, overflow: 'hidden' }}>
         <View
           style={{
             height: 6,
@@ -276,12 +275,12 @@ function BudgetCard({
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
-        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? HOME_COLORS.negative : palette.textMuted }}>
+        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
           {isOver
             ? `${formatCurrency(budget.spent - budget.amount, sym)} over`
             : `${formatCurrency(budget.remaining, sym)} left`}
         </Text>
-        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? HOME_COLORS.negative : palette.textMuted }}>
+        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
           {budget.percent}%
         </Text>
       </View>
@@ -375,7 +374,7 @@ function AddBudgetModal({
                 placeholder="0"
                 placeholderTextColor={palette.textMuted}
                 autoFocus
-                style={{ fontSize: 24, fontWeight: '700', color: HOME_COLORS.active, flex: 1 }}
+                style={{ fontSize: 24, fontWeight: '700', color: palette.active, flex: 1 }}
               />
             </View>
           </View>
@@ -395,15 +394,15 @@ function AddBudgetModal({
                     paddingVertical: HOME_SPACE.sm,
                     borderRadius: HOME_RADIUS.small,
                     marginRight: HOME_SPACE.sm,
-                    backgroundColor: categoryId === cat.id ? HOME_COLORS.active : palette.surface,
+                    backgroundColor: categoryId === cat.id ? palette.active : palette.surface,
                     borderWidth: 1,
-                    borderColor: categoryId === cat.id ? HOME_COLORS.active : HOME_COLORS.divider,
+                    borderColor: categoryId === cat.id ? palette.active : palette.divider,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
-                      color: categoryId === cat.id ? HOME_COLORS.surface : HOME_COLORS.textSecondary,
+                      color: categoryId === cat.id ? palette.surface : palette.textSecondary,
                     }}
                   >
                     {cat.name}
@@ -424,16 +423,16 @@ function AddBudgetModal({
                   paddingVertical: HOME_SPACE.md,
                   borderRadius: HOME_RADIUS.small,
                   alignItems: 'center',
-                  backgroundColor: period === p ? HOME_COLORS.active : palette.surface,
+                  backgroundColor: period === p ? palette.active : palette.surface,
                   borderWidth: 1,
-                  borderColor: period === p ? HOME_COLORS.active : HOME_COLORS.divider,
+                  borderColor: period === p ? palette.active : palette.divider,
                 }}
               >
                 <Text
                   style={{
                     fontSize: HOME_TEXT.body,
                     fontWeight: '500',
-                    color: period === p ? HOME_COLORS.surface : HOME_COLORS.textSecondary,
+                    color: period === p ? palette.surface : palette.textSecondary,
                   }}
                 >
                   {p === 'month' ? 'Monthly' : 'Yearly'}
@@ -446,13 +445,13 @@ function AddBudgetModal({
             onPress={handleSave}
             disabled={!isReady || loading}
             style={{
-              backgroundColor: isReady ? HOME_COLORS.active : palette.textMuted,
+              backgroundColor: isReady ? palette.active : palette.textMuted,
               borderRadius: HOME_RADIUS.pill,
               paddingVertical: HOME_SPACE.xl,
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: HOME_COLORS.surface, fontSize: HOME_TEXT.heroLabel, fontWeight: '600' }}>
+            <Text style={{ color: palette.surface, fontSize: HOME_TEXT.heroLabel, fontWeight: '600' }}>
               Add Budget
             </Text>
           </TouchableOpacity>

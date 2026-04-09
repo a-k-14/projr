@@ -18,7 +18,6 @@ import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
 import {
-  HOME_COLORS,
   HOME_RADIUS,
   HOME_SHADOW,
   HOME_SPACE,
@@ -65,7 +64,7 @@ export default function LoansScreen() {
         data={loans}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={HOME_COLORS.active} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.active} />
         }
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
@@ -101,7 +100,7 @@ export default function LoansScreen() {
                   style={{
                     fontSize: 20,
                     fontWeight: '700',
-                    color: HOME_COLORS.positive,
+                    color: palette.positive,
                     marginTop: HOME_SPACE.xs,
                   }}
                 >
@@ -134,7 +133,7 @@ export default function LoansScreen() {
                   style={{
                     fontSize: 20,
                     fontWeight: '700',
-                    color: HOME_COLORS.negative,
+                    color: palette.negative,
                     marginTop: HOME_SPACE.xs,
                   }}
                 >
@@ -168,14 +167,14 @@ export default function LoansScreen() {
                     paddingHorizontal: HOME_SPACE.md,
                     paddingVertical: 3,
                     borderRadius: HOME_RADIUS.full,
-                    backgroundColor: netPositive ? HOME_COLORS.inBg : HOME_COLORS.outBg,
+                    backgroundColor: netPositive ? palette.inBg : palette.outBg,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.caption,
                       fontWeight: '600',
-                      color: netPositive ? HOME_COLORS.positive : HOME_COLORS.negative,
+                      color: netPositive ? palette.positive : palette.negative,
                     }}
                   >
                     {netPositive ? 'NET LENDER' : 'NET BORROWER'}
@@ -185,7 +184,7 @@ export default function LoansScreen() {
                   style={{
                     fontSize: HOME_TEXT.heroLabel,
                     fontWeight: '700',
-                    color: netPositive ? HOME_COLORS.positive : HOME_COLORS.negative,
+                    color: netPositive ? palette.positive : palette.negative,
                   }}
                 >
                   {netPositive ? '+' : ''}{formatCurrency(net, sym)}
@@ -207,12 +206,12 @@ export default function LoansScreen() {
                         paddingVertical: HOME_SPACE.sm,
                         borderRadius: HOME_RADIUS.small,
                         marginRight: HOME_SPACE.sm,
-                        backgroundColor: active ? HOME_COLORS.active : palette.surface,
+                        backgroundColor: active ? palette.active : palette.surface,
                         borderWidth: 1,
-                        borderColor: active ? HOME_COLORS.active : HOME_COLORS.divider,
+                        borderColor: active ? palette.active : palette.divider,
                       }}
                     >
-                      <Text style={{ fontSize: HOME_TEXT.bodySmall, color: active ? HOME_COLORS.surface : HOME_COLORS.textSecondary }}>
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, color: active ? palette.surface : palette.textSecondary }}>
                         {acc.name}
                       </Text>
                     </TouchableOpacity>
@@ -230,12 +229,12 @@ export default function LoansScreen() {
                       paddingHorizontal: HOME_SPACE.lg,
                       paddingVertical: HOME_SPACE.sm,
                       borderRadius: HOME_RADIUS.small,
-                      backgroundColor: active ? HOME_COLORS.active : palette.surface,
+                      backgroundColor: active ? palette.active : palette.surface,
                       borderWidth: 1,
-                      borderColor: active ? HOME_COLORS.active : HOME_COLORS.divider,
+                      borderColor: active ? palette.active : palette.divider,
                     }}
                   >
-                    <Text style={{ fontSize: HOME_TEXT.bodySmall, color: active ? HOME_COLORS.surface : HOME_COLORS.textSecondary }}>
+                    <Text style={{ fontSize: HOME_TEXT.bodySmall, color: active ? palette.surface : palette.textSecondary }}>
                       {s === undefined ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
                     </Text>
                   </TouchableOpacity>
@@ -274,13 +273,13 @@ export default function LoansScreen() {
           width: 56,
           height: 56,
           borderRadius: HOME_RADIUS.fab,
-          backgroundColor: HOME_COLORS.active,
+          backgroundColor: palette.active,
           alignItems: 'center',
           justifyContent: 'center',
           ...HOME_SHADOW.card,
         }}
       >
-        <Ionicons name="add" size={28} color={HOME_COLORS.surface} />
+        <Ionicons name="add" size={28} color={palette.surface} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -304,8 +303,8 @@ function LoanRow({
   const { accounts } = useAccountsStore();
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const dirColor = isLent ? HOME_COLORS.positive : HOME_COLORS.negative;
-  const dirBg = isLent ? HOME_COLORS.inBg : HOME_COLORS.outBg;
+  const dirColor = isLent ? palette.positive : palette.negative;
+  const dirBg = isLent ? palette.inBg : palette.outBg;
 
   return (
     <TouchableOpacity
@@ -348,7 +347,7 @@ function LoanRow({
           <View
             style={{
               height: 3,
-              backgroundColor: HOME_COLORS.divider,
+              backgroundColor: palette.divider,
               borderRadius: 2,
               marginTop: HOME_SPACE.sm,
               overflow: 'hidden',

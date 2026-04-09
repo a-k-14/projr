@@ -2,6 +2,7 @@ import type {
   Account,
   CashflowSummary,
   DailySpending,
+  DailyCashflow,
   Loan,
   LoanWithSummary,
   PeriodType,
@@ -131,6 +132,130 @@ function getDaysBetween(from: string, to: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
+export interface CashflowChartPoint {
+  label: string;
+  in: number;
+  out: number;
+  net: number;
+}
+
+export function buildCashflowChartData(
+  period: PeriodType,
+  entries: DailyCashflow[],
+  from: string,
+  to: string,
+  yearStart: number = 3
+): CashflowChartPoint[] {
+  const dailyMap = new Map(entries.map((entry) => [toDateKey(entry.date), { in: entry.in, out: entry.out }]));
+
+  const getDayValues = (key: string) => dailyMap.get(key) ?? { in: 0, out: 0 };
+
+  if (period === 'week') {
+    const start = new Date(from);
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = addDays(start, index);
+      const key = toDateKey(date.toISOString());
+      const vals = getDayValues(key);
+      return {
+        label: date
+          .toLocaleDateString('en-IN', { weekday: 'short' })
+          .charAt(0)
+          .toUpperCase(),
+        ...vals,
+        net: vals.in - vals.out,
+      };
+    });
+  }
+
+  if (period === 'month') {
+    const start = startOfMonth(new Date(from));
+    const inBuckets = Array.from({ length: 5 }, () => 0);
+    const outBuckets = Array.from({ length: 5 }, () => 0);
+
+    for (let offset = 0; offset < 35; offset += 1) {
+      const date = addDays(start, offset);
+      if (date > new Date(to)) break;
+      const bucketIndex = Math.min(4, Math.floor(date.getDate() / 7));
+      const vals = getDayValues(toDateKey(date.toISOString()));
+      inBuckets[bucketIndex] += vals.in;
+      outBuckets[bucketIndex] += vals.out;
+    }
+    return inBuckets.map((inVal, index) => ({
+      label: weekLabel(index),
+      in: inVal,
+      out: outBuckets[index],
+      net: inVal - outBuckets[index],
+    }));
+  }
+
+  if (period === 'year') {
+    const start = startOfYear(new Date(from), yearStart);
+    return Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(start.getFullYear(), start.getMonth() + index, 1);
+      let inVal = 0;
+      let outVal = 0;
+      const monthStart = startOfMonth(date);
+      for (let day = 0; day < 32; day += 1) {
+        const current = addDays(monthStart, day);
+        if (current.getMonth() !== monthStart.getMonth()) break;
+        const vals = getDayValues(toDateKey(current.toISOString()));
+        inVal += vals.in;
+        outVal += vals.out;
+      }
+      return {
+        label: monthLabel(date),
+        in: inVal,
+        out: outVal,
+        net: inVal - outVal,
+      };
+    });
+  }
+
+  const totalDays = getDaysBetween(from, to) + 1;
+  const start = new Date(from);
+
+  if (totalDays <= 14) {
+    return Array.from({ length: totalDays }, (_, index) => {
+      const date = addDays(start, index);
+      const vals = getDayValues(toDateKey(date.toISOString()));
+      return {
+        label: date
+          .toLocaleDateString('en-IN', { weekday: 'short' })
+          .charAt(0)
+          .toUpperCase(),
+        ...vals,
+        net: vals.in - vals.out,
+      };
+    });
+  }
+
+  // Generic bucketing for custom range based on totalDays
+  const bucketsCount = totalDays <= 60 ? Math.min(5, Math.ceil(totalDays / 7)) : 12;
+  const step = totalDays <= 60 ? 7 : 30; // Not exact for months but fallback
+
+  return Array.from({ length: bucketsCount }, (_, index) => {
+    let inVal = 0;
+    let outVal = 0;
+    const bucketStart = addDays(start, index * step);
+
+    for (let i = 0; i < step; i++) {
+      const current = addDays(bucketStart, i);
+      if (current > new Date(to)) break;
+      const vals = getDayValues(toDateKey(current.toISOString()));
+      inVal += vals.in;
+      outVal += vals.out;
+    }
+
+    return {
+      label: totalDays <= 60 ? weekLabel(index) : monthLabel(bucketStart),
+      in: inVal,
+      out: outVal,
+      net: inVal - outVal,
+    };
+  });
+}
+
+/** Legacy support for spending chart while we migrate usage */
 export function buildSpendingChartData(
   period: PeriodType,
   entries: DailySpending[],
