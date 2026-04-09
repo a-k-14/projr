@@ -11,6 +11,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
+  useColorScheme,
   useWindowDimensions,
   View,
   type NativeScrollEvent,
@@ -18,16 +19,15 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
+import { ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { InlineDot } from '../../components/ui/InlineDot';
-import { ChoiceRow } from '../../components/settings-ui';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
-import { buildSpendingChartData, buildCashflowChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
-import { useColorScheme } from 'react-native';
-import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
+import { buildCashflowChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
+import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
 import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -35,10 +35,9 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type {
   CashflowSummary,
-  DailySpending,
   DailyCashflow,
   PeriodType,
-  Transaction,
+  Transaction
 } from '../../types';
 
 const PERIODS: PeriodType[] = ['week', 'month', 'year', 'custom'];
@@ -485,8 +484,8 @@ function HomeAccountPage({
                     justifyContent: 'center',
                     backgroundColor: period === value
                       ? isDarkMode
-                        ? palette.heroBar
-                        : palette.active
+                        ? 'rgba(255, 255, 255, 0.12)'
+                        : '#202845'
                       : palette.surface,
                     borderLeftWidth: value === 'week' ? 0 : 1,
                     borderLeftColor: palette.divider,
@@ -513,7 +512,7 @@ function HomeAccountPage({
             </View>
           </View>
 
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 10 }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 14 }}>
             {formatDate(from)} — {formatDate(to)}
           </Text>
 
@@ -539,7 +538,7 @@ function HomeAccountPage({
               }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
-                {activeView === 'out' ? 'Out Chart' : activeView === 'in' ? 'In Chart' : 'Cashflow'}
+                {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow Table'}
               </Text>
               <Ionicons name="chevron-down" size={16} color={palette.textMuted} />
             </TouchableOpacity>
@@ -655,20 +654,20 @@ function HomeAccountPage({
 
       {showViewPicker && (
         <BottomSheet
-          title="Select View"
+          title="Select Chart"
           palette={palette}
           onClose={() => setShowViewPicker(false)}
         >
-          {(['out', 'in', 'table'] as const).map((view, index) => (
+          {(['in', 'out', 'table'] as const).map((view, index) => (
             <ChoiceRow
               key={view}
-              title={view === 'out' ? 'Out Chart' : view === 'in' ? 'In Chart' : 'Cashflow Table'}
+              title={view === 'in' ? 'Inflows' : view === 'out' ? 'Outflows' : 'Cashflow Table'}
               subtitle={
-                view === 'out'
-                  ? 'Shows spending by category'
-                  : view === 'in'
-                    ? 'Shows inflow by category'
-                    : 'Shows a table summary'
+                view === 'in'
+                  ? 'Money coming in by category'
+                  : view === 'out'
+                    ? 'Money going out by category'
+                    : 'Summary table of cashflow'
               }
               selected={activeView === view}
               palette={palette}
