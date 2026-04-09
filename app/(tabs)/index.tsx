@@ -17,6 +17,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { ChoiceRow } from '../../components/settings-ui';
@@ -25,7 +26,7 @@ import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
-import { buildCashflowChartData, formatCurrency, getTotalBalance } from '../../lib/derived';
+import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
 import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
 import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
@@ -460,7 +461,7 @@ function HomeAccountPage({
               style={{
                 flex: 1,
                 flexDirection: 'row',
-                backgroundColor: palette.surface,
+                backgroundColor: palette.card,
                 borderRadius: HOME_RADIUS.tab,
                 overflow: 'hidden',
               }}
@@ -518,7 +519,7 @@ function HomeAccountPage({
 
           <View
             style={{
-              backgroundColor: palette.surface,
+              backgroundColor: palette.card,
               borderRadius: HOME_RADIUS.card,
               paddingHorizontal: 16,
               paddingTop: 14,
@@ -543,20 +544,78 @@ function HomeAccountPage({
 
             {activeView === 'table' ? (
               <View>
-                <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: palette.divider, paddingBottom: 8, marginBottom: 8 }}>
-                  <Text style={{ flex: 1.2, fontSize: 13, fontWeight: '600', color: palette.textMuted }}>Period</Text>
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: palette.active, textAlign: 'right' }}>In</Text>
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: palette.negative, textAlign: 'right' }}>Out</Text>
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: palette.text, textAlign: 'right' }}>Net</Text>
-                </View>
-                {viewData.map((row, i) => (
-                  <View key={i} style={{ flexDirection: 'row', paddingVertical: 8, borderBottomWidth: i === viewData.length - 1 ? 0 : 1, borderBottomColor: palette.borderSoft }}>
-                    <Text style={{ flex: 1.2, fontSize: 14, color: palette.text }}>{row.label}</Text>
-                    <Text style={{ flex: 1, fontSize: 14, color: palette.active, textAlign: 'right' }}>{row.in > 0 ? formatCurrency(row.in, currencySymbol) : '-'}</Text>
-                    <Text style={{ flex: 1, fontSize: 14, color: palette.negative, textAlign: 'right' }}>{row.out > 0 ? formatCurrency(row.out, currencySymbol) : '-'}</Text>
-                    <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: row.net >= 0 ? palette.active : palette.negative, textAlign: 'right' }}>{formatCurrency(row.net, currencySymbol)}</Text>
+                <GestureScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  disallowInterruption={true}
+                >
+                  <View style={{ paddingRight: 20 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        borderBottomWidth: 1,
+                        borderBottomColor: palette.borderSoft,
+                        paddingBottom: 10,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Text style={{ width: 45, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center' }}>Period</Text>
+                      <Text style={{ minWidth: 80, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 16 }}>Inflow</Text>
+                      <Text style={{ minWidth: 80, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 16 }}>Outflow</Text>
+                      <Text style={{ minWidth: 90, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 16 }}>Net</Text>
+                    </View>
+                    <ScrollView
+                      style={{ maxHeight: 310 }}
+                      nestedScrollEnabled
+                      showsVerticalScrollIndicator={false}
+                    >
+                      {viewData.map((row, i) => (
+                        <View
+                          key={i}
+                          style={{
+                            flexDirection: 'row',
+                            paddingVertical: 14,
+                            borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
+                            borderBottomColor: palette.borderSoft,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text 
+                            numberOfLines={1} 
+                            style={{ width: 45, fontSize: 14, fontWeight: '600', color: palette.text }}
+                          >
+                            {row.label}
+                          </Text>
+                          <Text 
+                            numberOfLines={1} 
+                            style={{ minWidth: 80, fontSize: 14, color: palette.active, textAlign: 'right', marginLeft: 16 }}
+                          >
+                            {row.in > 0 ? formatIndianNumberStr(String(row.in)) : '-'}
+                          </Text>
+                          <Text 
+                            numberOfLines={1} 
+                            style={{ minWidth: 80, fontSize: 14, color: palette.negative, textAlign: 'right', marginLeft: 16 }}
+                          >
+                            {row.out > 0 ? formatIndianNumberStr(String(row.out)) : '-'}
+                          </Text>
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              minWidth: 90,
+                              fontSize: 14,
+                              fontWeight: '600',
+                              color: row.net > 0 ? palette.active : row.net < 0 ? palette.negative : palette.textMuted,
+                              textAlign: 'right',
+                              marginLeft: 16
+                            }}
+                          >
+                            {row.net !== 0 ? formatIndianNumberStr(String(row.net)) : '-'}
+                          </Text>
+                        </View>
+                      ))}
+                    </ScrollView>
                   </View>
-                ))}
+                </GestureScrollView>
               </View>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: HOME_LAYOUT.chartHeight, paddingHorizontal: 2 }}>
@@ -606,7 +665,7 @@ function HomeAccountPage({
             )}
           </View>
 
-          <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, paddingTop: 14, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
+          <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, paddingTop: 14, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
             <View
               style={{
                 flexDirection: 'row',

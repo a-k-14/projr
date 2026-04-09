@@ -157,10 +157,7 @@ export function buildCashflowChartData(
       const key = toDateKey(date.toISOString());
       const vals = getDayValues(key);
       return {
-        label: date
-          .toLocaleDateString('en-IN', { weekday: 'short' })
-          .charAt(0)
-          .toUpperCase(),
+        label: date.toLocaleDateString('en-IN', { weekday: 'short' }),
         ...vals,
         net: vals.in - vals.out,
       };
@@ -219,10 +216,7 @@ export function buildCashflowChartData(
       const date = addDays(start, index);
       const vals = getDayValues(toDateKey(date.toISOString()));
       return {
-        label: date
-          .toLocaleDateString('en-IN', { weekday: 'short' })
-          .charAt(0)
-          .toUpperCase(),
+        label: date.toLocaleDateString('en-IN', { weekday: 'short' }),
         ...vals,
         net: vals.in - vals.out,
       };

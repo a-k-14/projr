@@ -19,7 +19,7 @@ export function SummaryCard({ cashflow, sym, palette }: SummaryCardProps) {
   ] as const;
 
   return (
-    <View style={[styles.card, { backgroundColor: palette.surface }]}>
+    <View style={[styles.card, { backgroundColor: palette.card }]}>
       {categories.map((category, index) => (
         <View
           key={category.key}

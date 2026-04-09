@@ -55,7 +55,7 @@ export function CardSection({
   return (
     <View
       style={{
-        backgroundColor: palette.surface,
+        backgroundColor: palette.card,
         borderRadius: RADIUS.lg,
         marginHorizontal: SCREEN_GUTTER,
         overflow: 'hidden',
@@ -164,7 +164,7 @@ export function ChoiceRow({
         alignItems: 'center',
         backgroundColor: selected
           ? isDarkMode
-            ? 'rgba(255, 255, 255, 0.06)'
+            ? palette.surfaceRaised
             : 'rgba(23, 103, 59, 0.05)'
           : 'transparent',
         borderBottomWidth: noBorder ? 0 : 1,
@@ -353,9 +353,7 @@ export function IconGrid({
               borderWidth: 1,
               borderColor: isSelected ? palette.tabActive : palette.border,
               backgroundColor: isSelected
-                ? palette.background === '#11161F'
-                  ? 'rgba(37, 99, 235, 0.1)'
-                  : 'rgba(23, 103, 59, 0.08)'
+                ? palette.surfaceRaised
                 : palette.surface,
               alignItems: 'center',
               justifyContent: 'center',
@@ -387,7 +385,7 @@ export function ActionButton({
   const styles = {
     primary: { backgroundColor: palette.tabActive, color: '#FFFFFF' },
     danger: { backgroundColor: 'rgba(204, 59, 45, 0.1)', color: '#CC3B2D' },
-    secondary: { backgroundColor: palette.surface, color: palette.text },
+    secondary: { backgroundColor: palette.card, color: palette.text },
   } as const;
   const picked = styles[variant];
   return (

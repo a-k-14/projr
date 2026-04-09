@@ -175,7 +175,7 @@ export function BottomSheet({
           <Animated.View
             style={{
               maxHeight: sheetHeight,
-              backgroundColor: palette.surface,
+              backgroundColor: palette.card,
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               overflow: 'hidden',

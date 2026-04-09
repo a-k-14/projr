@@ -50,10 +50,10 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
   if (mode === 'dark') {
     return {
       background: '#000000',
-      surface: '#1C1C1C',
-      card: '#1F1F1F',
-      border: '#2A2A2A',
-      divider: '#2A2A2A',
+      surface: '#121214',
+      card: '#18181A',
+      border: '#232327',
+      divider: '#1F1F23',
       text: '#F5F5F7',
       textMuted: '#A1A1A6',
       textSoft: '#6E6E73',
@@ -64,7 +64,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       navigationButtonStyle: 'light',
       positive: '#17673B',
       negative: '#8A2424',
-      surfaceRaised: '#242426',
+      surfaceRaised: '#202024',
       textSecondary: '#A1A1A6',
       borderSoft: '#303033',
       active: '#17673B',
