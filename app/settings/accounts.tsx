@@ -105,30 +105,35 @@ export default function AccountsScreen() {
       return;
     }
 
-    await update(selectedId, payload as any);
+    await update(selectedId, payload);
   }
 
   async function onDelete() {
     if (!selectedId) return;
-    Alert.alert('Delete account?', 'This will remove the account from the app.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await remove(selectedId);
-            setSelectedId(accounts[1]?.id ?? null);
-            setCreating(!accounts[1]);
-          } catch (error) {
-            Alert.alert(
-              'Unable to delete',
-              error instanceof Error ? error.message : 'This account could not be deleted.'
-            );
-          }
+    const account = accounts.find((a) => a.id === selectedId);
+    Alert.alert(
+      'Delete account?',
+      `"${account?.name}" and all its transaction history will be permanently removed. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await remove(selectedId);
+              setSelectedId(accounts[1]?.id ?? null);
+              setCreating(!accounts[1]);
+            } catch (error) {
+              Alert.alert(
+                'Unable to delete',
+                error instanceof Error ? error.message : 'This account could not be deleted.'
+              );
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   }
 
   return (

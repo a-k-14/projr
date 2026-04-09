@@ -70,8 +70,8 @@ export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
   return rowToBudget(row);
 }
 
-export async function updateBudget(id: string, data: Partial<Budget>): Promise<Budget> {
-  await db.update(budgets).set(data as any).where(eq(budgets.id, id));
+export async function updateBudget(id: string, data: Partial<Omit<Budget, 'id' | 'createdAt'>>): Promise<Budget> {
+  await db.update(budgets).set(data).where(eq(budgets.id, id));
   const rows = await db.select().from(budgets).where(eq(budgets.id, id));
   return rowToBudget(rows[0]);
 }

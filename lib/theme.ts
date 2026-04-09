@@ -30,17 +30,17 @@ export function resolveTheme(theme: Theme, systemScheme: ColorSchemeName): AppTh
 export function getThemePalette(mode: AppThemeMode): AppThemePalette {
   if (mode === 'dark') {
     return {
-      background: '#11161F',
-      surface: '#161D28',
-      card: '#19212E',
-      border: '#263042',
-      divider: '#232D3E',
-      text: '#F9FAFB',
-      textMuted: '#B6C0D4',
-      textSoft: '#7F8AA3',
-      tabActive: '#4ADE80',
-      tabInactive: '#8A94AA',
-      iconTint: '#A7B0C3',
+      background: '#111111',
+      surface: '#1C1C1C',
+      card: '#222222',
+      border: '#2C2C2C',
+      divider: '#282828',
+      text: '#F2F2F2',
+      textMuted: '#A0A0A0',
+      textSoft: '#666666',
+      tabActive: '#17673B',
+      tabInactive: '#555555',
+      iconTint: '#888888',
       statusBarStyle: 'light',
       navigationButtonStyle: 'light',
     };

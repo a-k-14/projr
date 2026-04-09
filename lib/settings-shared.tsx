@@ -127,15 +127,19 @@ export function PickerSheetShell({
   palette,
   onClose,
   children,
+  itemCount,
 }: {
   title: string;
   subtitle?: string;
   palette: AppThemePalette;
   onClose: () => void;
   children: ReactNode;
+  itemCount?: number;
 }) {
   const { height } = Dimensions.get('window');
-  const sheetHeight = Math.min(Math.round(height * 0.78), 560);
+  const sheetHeight = itemCount
+    ? Math.min(itemCount * 56 + 120, Math.round(height * 0.78), 560)
+    : Math.min(Math.round(height * 0.78), 560);
   const translateY = useRef(new Animated.Value(42)).current;
 
   useEffect(() => {
@@ -208,27 +212,29 @@ export function PickerSheetShell({
             width: '100%',
           }}
         >
-          <View {...panResponder.panHandlers} style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 4 }}>
-            <View
-              style={{
-                width: 38,
-                height: 3,
-                borderRadius: 2,
-                backgroundColor: palette.divider,
-              }}
-            />
-          </View>
-          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-            <Text style={{ fontSize: 20, fontWeight: '600', color: palette.text }}>{title}</Text>
-            {subtitle ? (
-              <Text style={{ fontSize: 12, lineHeight: 16, color: palette.textMuted, marginTop: 2 }}>
-                {subtitle}
-              </Text>
-            ) : null}
-          </View>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
-            {children}
-          </ScrollView>
+          <Pressable onPress={() => {}} style={{ flex: 1 }}>
+            <View {...panResponder.panHandlers} style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 4 }}>
+              <View
+                style={{
+                  width: 38,
+                  height: 3,
+                  borderRadius: 2,
+                  backgroundColor: palette.divider,
+                }}
+              />
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <Text style={{ fontSize: 20, fontWeight: '600', color: palette.text }}>{title}</Text>
+              {subtitle ? (
+                <Text style={{ fontSize: 12, lineHeight: 16, color: palette.textMuted, marginTop: 2 }}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+              {children}
+            </ScrollView>
+          </Pressable>
         </Animated.View>
       </View>
     </SafeAreaView>

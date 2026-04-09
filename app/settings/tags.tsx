@@ -77,12 +77,13 @@ export default function TagsScreen() {
       return;
     }
 
-    await updateTag(selectedId, payload as any);
+    await updateTag(selectedId, payload);
   }
 
   async function onDelete() {
     if (!selectedId) return;
-    Alert.alert('Delete tag?', 'This will remove the tag from the app.', [
+    const tag = tags.find((t) => t.id === selectedId);
+    Alert.alert('Delete tag?', `"${tag?.name}" will be removed from all transactions. This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',

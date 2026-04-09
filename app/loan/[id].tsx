@@ -8,6 +8,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -17,13 +18,21 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
 import { formatDate, formatDateShort, todayUTC } from '../../lib/dateUtils';
-import type { LoanWithSummary } from '../../types';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import {
+  HOME_COLORS,
+  HOME_RADIUS,
+  HOME_SPACE,
+  HOME_TEXT,
+} from '../../lib/homeTokens';
 
 export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { loans, recordPayment, update, load } = useLoansStore();
+  const { loans, isLoaded, recordPayment, update, load } = useLoansStore();
   const { accounts } = useAccountsStore();
   const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
 
   const [paymentAmount, setPaymentAmount] = useState('');
   const [showPaymentInput, setShowPaymentInput] = useState(false);
@@ -36,17 +45,24 @@ export default function LoanDetailScreen() {
     if (!loan) load();
   }, [id]);
 
+  // 404 guard: store is loaded but loan still not found — navigate back
+  useEffect(() => {
+    if (isLoaded && !loan) {
+      router.back();
+    }
+  }, [isLoaded, loan]);
+
   if (!loan) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#9CA3AF' }}>Loading...</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: palette.textMuted }}>Loading…</Text>
       </SafeAreaView>
     );
   }
 
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const progressColor = isLent ? '#16A34A' : '#DC2626';
+  const progressColor = isLent ? HOME_COLORS.positive : HOME_COLORS.negative;
   const grouped = groupTransactionsByDate(loan.transactions);
 
   const handleRecordPayment = async () => {
@@ -69,36 +85,34 @@ export default function LoanDetailScreen() {
 
   const handleToggleStatus = () => {
     const newStatus = loan.status === 'open' ? 'closed' : 'open';
-    Alert.alert(
-      `Mark as ${newStatus}?`,
-      `This loan will be marked as ${newStatus}.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Confirm', onPress: () => update(loan.id, { status: newStatus }) },
-      ]
-    );
+    Alert.alert(`Mark as ${newStatus}?`, `This loan will be marked as ${newStatus}.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Confirm', onPress: () => update(loan.id, { status: newStatus }) },
+    ]);
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       {/* Header */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          backgroundColor: '#F0F0F5',
+          paddingHorizontal: HOME_SPACE.screen,
+          paddingVertical: HOME_SPACE.md,
+          backgroundColor: palette.background,
         }}
       >
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
-          <Ionicons name="chevron-back" size={24} color="#0A0A0A" />
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: HOME_SPACE.md }}>
+          <Ionicons name="chevron-back" size={24} color={palette.text} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: '#0A0A0A', flex: 1 }}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: palette.text, flex: 1 }}>
           {loan.personName}
         </Text>
         <TouchableOpacity>
-          <Text style={{ color: '#1B4332', fontSize: 15, fontWeight: '600' }}>Edit</Text>
+          <Text style={{ color: HOME_COLORS.active, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+            Edit
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -107,59 +121,66 @@ export default function LoanDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-          <View style={{ paddingHorizontal: 16 }}>
-            {/* Person header */}
+          <View style={{ paddingHorizontal: HOME_SPACE.screen }}>
+            {/* Person card */}
             <View
               style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                padding: 16,
-                marginBottom: 12,
+                backgroundColor: palette.surface,
+                borderRadius: HOME_RADIUS.card,
+                padding: HOME_SPACE.xl,
+                marginBottom: HOME_SPACE.md,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <Text style={{ fontSize: 22, fontWeight: '700', color: '#0A0A0A' }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: HOME_SPACE.xs,
+                }}
+              >
+                <Text style={{ fontSize: 22, fontWeight: '700', color: palette.text }}>
                   {loan.personName}
                 </Text>
                 <TouchableOpacity
                   onPress={handleToggleStatus}
                   style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 4,
-                    borderRadius: 12,
-                    backgroundColor: loan.status === 'open' ? '#FEF3C7' : '#F3F4F6',
+                    paddingHorizontal: HOME_SPACE.md,
+                    paddingVertical: HOME_SPACE.xs,
+                    borderRadius: HOME_RADIUS.small,
+                    backgroundColor: loan.status === 'open' ? HOME_COLORS.loanBg : HOME_COLORS.inputBg,
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: 13,
+                      fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '600',
-                      color: loan.status === 'open' ? '#B45309' : '#6B7280',
+                      color: loan.status === 'open' ? HOME_COLORS.loan : HOME_COLORS.textSecondary,
                     }}
                   >
                     {loan.status === 'open' ? 'Open' : 'Closed'}
                   </Text>
                 </TouchableOpacity>
               </View>
-              <Text style={{ fontSize: 13, color: '#6B7280' }}>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>
                 {isLent ? 'You lent' : 'You borrowed'} · {account?.name} · {formatDateShort(loan.date)}
               </Text>
             </View>
 
-            {/* Summary */}
+            {/* Summary card */}
             <View
               style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                padding: 16,
-                marginBottom: 12,
+                backgroundColor: palette.surface,
+                borderRadius: HOME_RADIUS.card,
+                padding: HOME_SPACE.xl,
+                marginBottom: HOME_SPACE.md,
               }}
             >
               <View style={{ flexDirection: 'row' }}>
                 {[
-                  { label: 'GIVEN', value: loan.givenAmount, color: '#0A0A0A' },
-                  { label: 'SETTLED', value: loan.settledAmount, color: '#16A34A' },
-                  { label: 'PENDING', value: loan.pendingAmount, color: isLent ? '#B45309' : '#DC2626' },
+                  { label: 'GIVEN', value: loan.givenAmount, color: palette.text },
+                  { label: 'SETTLED', value: loan.settledAmount, color: HOME_COLORS.positive },
+                  { label: 'PENDING', value: loan.pendingAmount, color: isLent ? HOME_COLORS.loan : HOME_COLORS.negative },
                 ].map((item, i) => (
                   <View
                     key={item.label}
@@ -167,25 +188,42 @@ export default function LoanDetailScreen() {
                       flex: 1,
                       alignItems: 'center',
                       borderRightWidth: i < 2 ? 1 : 0,
-                      borderRightColor: '#F3F4F6',
+                      borderRightColor: HOME_COLORS.inputBg,
                     }}
                   >
-                    <Text style={{ fontSize: 10, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 }}>
+                    <Text
+                      style={{
+                        fontSize: HOME_TEXT.tiny,
+                        color: palette.textMuted,
+                        fontWeight: '600',
+                        letterSpacing: 0.5,
+                      }}
+                    >
                       {item.label}
                     </Text>
-                    <Text style={{ fontSize: 16, fontWeight: '700', color: item.color, marginTop: 4 }}>
+                    <Text style={{ fontSize: HOME_TEXT.heroLabel, fontWeight: '700', color: item.color, marginTop: HOME_SPACE.xs }}>
                       {formatCurrency(item.value, sym)}
                     </Text>
                   </View>
                 ))}
               </View>
 
-              <View style={{ marginTop: 12 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: '#9CA3AF' }}>Repaid</Text>
-                  <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{loan.repaidPercent}%</Text>
+              {/* Progress bar with ghost track */}
+              <View style={{ marginTop: HOME_SPACE.md }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: HOME_SPACE.xs }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Repaid</Text>
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+                    {loan.repaidPercent}%
+                  </Text>
                 </View>
-                <View style={{ height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, overflow: 'hidden' }}>
+                <View
+                  style={{
+                    height: 4,
+                    backgroundColor: HOME_COLORS.divider,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                  }}
+                >
                   <View
                     style={{
                       height: 4,
@@ -199,65 +237,81 @@ export default function LoanDetailScreen() {
             </View>
 
             {/* Note */}
-            {loan.note && (
+            {loan.note ? (
               <View
                 style={{
-                  backgroundColor: '#fff',
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 12,
+                  backgroundColor: palette.surface,
+                  borderRadius: HOME_RADIUS.card,
+                  padding: HOME_SPACE.xl,
+                  marginBottom: HOME_SPACE.md,
                 }}
               >
-                <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5, marginBottom: 6 }}>
+                <Text
+                  style={{
+                    fontSize: HOME_TEXT.tiny + 1,
+                    color: palette.textMuted,
+                    fontWeight: '600',
+                    letterSpacing: 0.5,
+                    marginBottom: HOME_SPACE.sm,
+                  }}
+                >
                   NOTE
                 </Text>
-                <Text style={{ fontSize: 15, color: '#0A0A0A' }}>{loan.note}</Text>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{loan.note}</Text>
               </View>
-            )}
+            ) : null}
 
-            {/* Transactions */}
-            <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5, marginBottom: 8 }}>
+            {/* Transaction history */}
+            <Text
+              style={{
+                fontSize: HOME_TEXT.tiny + 1,
+                color: palette.textMuted,
+                fontWeight: '600',
+                letterSpacing: 0.5,
+                marginBottom: HOME_SPACE.sm,
+              }}
+            >
               TRANSACTIONS
             </Text>
             {grouped.map(({ dateKey, items }) => (
-              <View key={dateKey} style={{ marginBottom: 8 }}>
-                <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>
+              <View key={dateKey} style={{ marginBottom: HOME_SPACE.sm }}>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
                   {formatDate(dateKey + 'T00:00:00.000Z')}
                 </Text>
-                <View style={{ backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden' }}>
+                <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, overflow: 'hidden' }}>
                   {items.map((tx, i) => (
                     <View
                       key={tx.id}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
-                        padding: 14,
+                        padding: HOME_SPACE.lg,
                         borderBottomWidth: i < items.length - 1 ? 1 : 0,
-                        borderBottomColor: '#F3F4F6',
+                        borderBottomColor: HOME_COLORS.inputBg,
                       }}
                     >
                       <View
                         style={{
                           width: 32,
                           height: 32,
-                          borderRadius: 8,
-                          backgroundColor: '#FEF3C7',
+                          borderRadius: HOME_RADIUS.small,
+                          backgroundColor: HOME_COLORS.loanBg,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          marginRight: 10,
+                          marginRight: HOME_SPACE.md,
                         }}
                       >
-                        <Ionicons name="cash" size={14} color="#B45309" />
+                        <Ionicons name="cash" size={14} color={HOME_COLORS.loan} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '500', color: '#0A0A0A' }}>
+                        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text }}>
                           {tx.note ?? 'Loan'}
                         </Text>
-                        <Text style={{ fontSize: 12, color: '#9CA3AF' }}>
+                        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
                           Loan · {account?.name}
                         </Text>
                       </View>
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#0A0A0A' }}>
+                      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
                         {formatCurrency(tx.amount, sym)}
                       </Text>
                     </View>
@@ -276,59 +330,59 @@ export default function LoanDetailScreen() {
               bottom: 0,
               left: 0,
               right: 0,
-              paddingHorizontal: 16,
+              paddingHorizontal: HOME_SPACE.screen,
               paddingBottom: 28,
-              paddingTop: 12,
-              backgroundColor: '#F0F0F5',
+              paddingTop: HOME_SPACE.md,
+              backgroundColor: palette.background,
             }}
           >
             {showPaymentInput ? (
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flexDirection: 'row', gap: HOME_SPACE.md }}>
                 <TextInput
                   value={paymentAmount}
                   onChangeText={setPaymentAmount}
                   placeholder={`Amount (max ${formatCurrency(loan.pendingAmount, sym)})`}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={palette.textMuted}
                   keyboardType="decimal-pad"
                   autoFocus
                   style={{
                     flex: 1,
-                    backgroundColor: '#fff',
-                    borderRadius: 14,
-                    paddingHorizontal: 16,
-                    paddingVertical: 14,
-                    fontSize: 15,
-                    color: '#0A0A0A',
+                    backgroundColor: palette.surface,
+                    borderRadius: HOME_RADIUS.pill,
+                    paddingHorizontal: HOME_SPACE.xl,
+                    paddingVertical: HOME_SPACE.lg,
+                    fontSize: HOME_TEXT.sectionTitle,
+                    color: palette.text,
                   }}
                 />
                 <TouchableOpacity
                   onPress={handleRecordPayment}
                   disabled={loading}
                   style={{
-                    backgroundColor: '#1B4332',
-                    borderRadius: 14,
-                    paddingHorizontal: 20,
+                    backgroundColor: HOME_COLORS.active,
+                    borderRadius: HOME_RADIUS.pill,
+                    paddingHorizontal: HOME_SPACE.xxxl,
                     justifyContent: 'center',
                   }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '600' }}>Save</Text>
+                  <Text style={{ color: HOME_COLORS.surface, fontWeight: '600' }}>Save</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
                 onPress={() => setShowPaymentInput(true)}
                 style={{
-                  backgroundColor: '#1B4332',
-                  borderRadius: 16,
-                  paddingVertical: 16,
+                  backgroundColor: HOME_COLORS.active,
+                  borderRadius: HOME_RADIUS.card,
+                  paddingVertical: HOME_SPACE.xl,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 8,
+                  gap: HOME_SPACE.sm,
                 }}
               >
-                <Ionicons name="arrow-down" size={18} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
+                <Ionicons name="arrow-down" size={18} color={HOME_COLORS.surface} />
+                <Text style={{ color: HOME_COLORS.surface, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
                   Record payment · {formatCurrency(loan.pendingAmount, sym)} pending
                 </Text>
               </TouchableOpacity>

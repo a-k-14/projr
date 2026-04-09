@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import type { Transaction, CreateTransactionInput, TransactionFilters } from '../types';
 import * as transactionsService from '../services/transactions';
-
-const PAGE_SIZE = 50;
+import { TRANSACTIONS_PAGE_SIZE as PAGE_SIZE } from '../lib/homeTokens';
 
 interface TransactionsStore {
   transactions: Transaction[];

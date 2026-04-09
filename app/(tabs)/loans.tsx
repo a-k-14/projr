@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   RefreshControl,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -15,12 +16,23 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import {
+  HOME_COLORS,
+  HOME_RADIUS,
+  HOME_SHADOW,
+  HOME_SPACE,
+  HOME_TEXT,
+} from '../../lib/homeTokens';
 import type { LoanWithSummary, LoanStatus } from '../../types';
+import type { AppThemePalette } from '../../lib/theme';
 
 export default function LoansScreen() {
-  const { loans, load, filters, setFilters } = useLoansStore();
+  const { loans, load, filters } = useLoansStore();
   const { accounts } = useAccountsStore();
   const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -37,6 +49,8 @@ export default function LoansScreen() {
   };
 
   const summary = getLoanSummary(loans);
+  const net = summary.net;
+  const netPositive = net >= 0;
 
   const displayAccounts = [
     { id: 'all', name: 'All accounts' },
@@ -44,143 +58,204 @@ export default function LoansScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <FlatList
         data={loans}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={HOME_COLORS.active} />
+        }
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
-          <View style={{ padding: 16 }}>
-            <View style={{ paddingTop: 4, paddingBottom: 12 }}>
-              <Text style={{ fontSize: 28, fontWeight: '700', color: '#0A0A0A' }}>Loans</Text>
-            </View>
-            {/* Summary cards */}
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#fff',
-                  borderRadius: 16,
-                  padding: 16,
-                }}
-              >
-                <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 }}>
-                  YOU LENT
-                </Text>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: '#16A34A', marginTop: 4 }}>
-                  {formatCurrency(summary.youLent, sym)}
-                </Text>
-                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>to be received</Text>
-              </View>
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#fff',
-                  borderRadius: 16,
-                  padding: 16,
-                }}
-              >
-                <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 }}>
-                  YOU OWE
-                </Text>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: '#DC2626', marginTop: 4 }}>
-                  {formatCurrency(summary.youOwe, sym)}
-                </Text>
-                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>to be paid back</Text>
-              </View>
-            </View>
-
-            {/* Net */}
-            <View
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 16,
-              }}
-            >
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#0A0A0A' }}>Net position</Text>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: '700',
-                  color: summary.net >= 0 ? '#16A34A' : '#DC2626',
-                }}
-              >
-                {summary.net >= 0 ? '+' : ''}{formatCurrency(summary.net, sym)}
+          <View style={{ padding: HOME_SPACE.screen }}>
+            {/* Title */}
+            <View style={{ paddingTop: HOME_SPACE.xs, paddingBottom: HOME_SPACE.md }}>
+              <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '700', color: palette.text }}>
+                Loans
               </Text>
             </View>
 
-            {/* Filters */}
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 4 }}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-                {displayAccounts.map((acc) => (
-                  <TouchableOpacity
-                    key={acc.id}
-                    onPress={() => load({ accountId: acc.id === 'all' ? undefined : acc.id, status: filters.status })}
-                    style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 10,
-                      marginRight: 8,
-                      backgroundColor: (filters.accountId ?? 'all') === acc.id ? '#1B4332' : '#fff',
-                      borderWidth: 1,
-                      borderColor: (filters.accountId ?? 'all') === acc.id ? '#1B4332' : '#E5E7EB',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        color: (filters.accountId ?? 'all') === acc.id ? '#fff' : '#6B7280',
-                      }}
-                    >
-                      {acc.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              {(['open', 'closed', undefined] as (LoanStatus | undefined)[]).map((s) => (
-                <TouchableOpacity
-                  key={String(s)}
-                  onPress={() => load({ ...filters, status: s })}
+            {/* Summary cards: Lent / Owe */}
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginBottom: HOME_SPACE.md }}>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: palette.surface,
+                  borderRadius: HOME_RADIUS.card,
+                  padding: HOME_SPACE.xl,
+                }}
+              >
+                <Text
                   style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    backgroundColor: filters.status === s ? '#1B4332' : '#fff',
-                    borderWidth: 1,
-                    borderColor: filters.status === s ? '#1B4332' : '#E5E7EB',
+                    fontSize: HOME_TEXT.tiny + 1,
+                    color: palette.textMuted,
+                    fontWeight: '600',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  YOU LENT
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: HOME_COLORS.positive,
+                    marginTop: HOME_SPACE.xs,
+                  }}
+                >
+                  {formatCurrency(summary.youLent, sym)}
+                </Text>
+                <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, marginTop: 2 }}>
+                  to be received
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: palette.surface,
+                  borderRadius: HOME_RADIUS.card,
+                  padding: HOME_SPACE.xl,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: HOME_TEXT.tiny + 1,
+                    color: palette.textMuted,
+                    fontWeight: '600',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  YOU OWE
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: HOME_COLORS.negative,
+                    marginTop: HOME_SPACE.xs,
+                  }}
+                >
+                  {formatCurrency(summary.youOwe, sym)}
+                </Text>
+                <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, marginTop: 2 }}>
+                  to be paid back
+                </Text>
+              </View>
+            </View>
+
+            {/* Net position */}
+            <View
+              style={{
+                backgroundColor: palette.surface,
+                borderRadius: HOME_RADIUS.card,
+                paddingHorizontal: HOME_SPACE.xl,
+                paddingVertical: HOME_SPACE.lg,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: HOME_SPACE.xl,
+              }}
+            >
+              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>
+                Net position
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: HOME_SPACE.sm }}>
+                {/* Colored pill showing net direction */}
+                <View
+                  style={{
+                    paddingHorizontal: HOME_SPACE.md,
+                    paddingVertical: 3,
+                    borderRadius: HOME_RADIUS.full,
+                    backgroundColor: netPositive ? HOME_COLORS.inBg : HOME_COLORS.outBg,
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: 13,
-                      color: filters.status === s ? '#fff' : '#6B7280',
+                      fontSize: HOME_TEXT.caption,
+                      fontWeight: '600',
+                      color: netPositive ? HOME_COLORS.positive : HOME_COLORS.negative,
                     }}
                   >
-                    {s === undefined ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                    {netPositive ? 'NET LENDER' : 'NET BORROWER'}
                   </Text>
-                </TouchableOpacity>
-              ))}
+                </View>
+                <Text
+                  style={{
+                    fontSize: HOME_TEXT.heroLabel,
+                    fontWeight: '700',
+                    color: netPositive ? HOME_COLORS.positive : HOME_COLORS.negative,
+                  }}
+                >
+                  {netPositive ? '+' : ''}{formatCurrency(net, sym)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Account filter */}
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginBottom: HOME_SPACE.xs }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+                {displayAccounts.map((acc) => {
+                  const active = (filters.accountId ?? 'all') === acc.id;
+                  return (
+                    <TouchableOpacity
+                      key={acc.id}
+                      onPress={() => load({ accountId: acc.id === 'all' ? undefined : acc.id, status: filters.status })}
+                      style={{
+                        paddingHorizontal: HOME_SPACE.lg,
+                        paddingVertical: HOME_SPACE.sm,
+                        borderRadius: HOME_RADIUS.small,
+                        marginRight: HOME_SPACE.sm,
+                        backgroundColor: active ? HOME_COLORS.active : palette.surface,
+                        borderWidth: 1,
+                        borderColor: active ? HOME_COLORS.active : HOME_COLORS.divider,
+                      }}
+                    >
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, color: active ? HOME_COLORS.surface : HOME_COLORS.textSecondary }}>
+                        {acc.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {(['open', 'closed', undefined] as (LoanStatus | undefined)[]).map((s) => {
+                const active = filters.status === s;
+                return (
+                  <TouchableOpacity
+                    key={String(s)}
+                    onPress={() => load({ ...filters, status: s })}
+                    style={{
+                      paddingHorizontal: HOME_SPACE.lg,
+                      paddingVertical: HOME_SPACE.sm,
+                      borderRadius: HOME_RADIUS.small,
+                      backgroundColor: active ? HOME_COLORS.active : palette.surface,
+                      borderWidth: 1,
+                      borderColor: active ? HOME_COLORS.active : HOME_COLORS.divider,
+                    }}
+                  >
+                    <Text style={{ fontSize: HOME_TEXT.bodySmall, color: active ? HOME_COLORS.surface : HOME_COLORS.textSecondary }}>
+                      {s === undefined ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         }
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
-            <Ionicons name="people-outline" size={48} color="#D1D5DB" />
-            <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 12 }}>No loans found</Text>
+            <Ionicons name="people-outline" size={48} color={palette.textMuted} />
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, marginTop: HOME_SPACE.md }}>
+              No loans found
+            </Text>
           </View>
         }
         renderItem={({ item, index }) => (
           <LoanRow
             loan={item}
             sym={sym}
+            palette={palette}
             isLast={index === loans.length - 1}
             onPress={() => router.push(`/loan/${item.id}`)}
           />
@@ -197,100 +272,106 @@ export default function LoansScreen() {
           right: 24,
           width: 56,
           height: 56,
-          borderRadius: 28,
-          backgroundColor: '#1B4332',
+          borderRadius: HOME_RADIUS.fab,
+          backgroundColor: HOME_COLORS.active,
           alignItems: 'center',
           justifyContent: 'center',
-          shadowColor: '#000',
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
-          elevation: 6,
+          ...HOME_SHADOW.card,
         }}
       >
-        <Ionicons name="add" size={28} color="white" />
+        <Ionicons name="add" size={28} color={HOME_COLORS.surface} />
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
+// ─── LoanRow ──────────────────────────────────────────────────────────────────
+
 function LoanRow({
   loan,
   sym,
+  palette,
   isLast,
   onPress,
 }: {
   loan: LoanWithSummary;
   sym: string;
+  palette: AppThemePalette;
   isLast: boolean;
   onPress: () => void;
 }) {
   const { accounts } = useAccountsStore();
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
+  const dirColor = isLent ? HOME_COLORS.positive : HOME_COLORS.negative;
+  const dirBg = isLent ? HOME_COLORS.inBg : HOME_COLORS.outBg;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       style={{
-        backgroundColor: '#fff',
-        marginHorizontal: 16,
+        backgroundColor: palette.surface,
+        marginHorizontal: HOME_SPACE.screen,
         marginBottom: 2,
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: HOME_RADIUS.card,
+        padding: HOME_SPACE.xl,
         flexDirection: 'row',
         alignItems: 'center',
       }}
     >
+      {/* Direction icon */}
       <View
         style={{
           width: 36,
           height: 36,
           borderRadius: 18,
-          backgroundColor: isLent ? '#DCFCE7' : '#FEE2E2',
+          backgroundColor: dirBg,
           alignItems: 'center',
           justifyContent: 'center',
-          marginRight: 12,
+          marginRight: HOME_SPACE.md,
         }}
       >
-        <Ionicons
-          name={isLent ? 'arrow-down' : 'arrow-up'}
-          size={18}
-          color={isLent ? '#16A34A' : '#DC2626'}
-        />
+        <Ionicons name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={dirColor} />
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: '#0A0A0A' }}>{loan.personName}</Text>
-        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+        <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>
+          {loan.personName}
+        </Text>
+        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>
           {isLent ? 'Lent' : 'Borrowed'} · {account?.name} · {formatDateShort(loan.date)}
         </Text>
-        {loan.repaidPercent > 0 && loan.repaidPercent < 100 && (
+
+        {/* Ghost progress bar — visible even at 0% */}
+        {loan.repaidPercent < 100 && (
           <View
             style={{
               height: 3,
-              backgroundColor: '#E5E7EB',
+              backgroundColor: HOME_COLORS.divider,
               borderRadius: 2,
-              marginTop: 6,
+              marginTop: HOME_SPACE.sm,
               overflow: 'hidden',
             }}
           >
-            <View
-              style={{
-                height: 3,
-                width: `${loan.repaidPercent}%`,
-                backgroundColor: isLent ? '#16A34A' : '#DC2626',
-                borderRadius: 2,
-              }}
-            />
+            {loan.repaidPercent > 0 && (
+              <View
+                style={{
+                  height: 3,
+                  width: `${loan.repaidPercent}%`,
+                  backgroundColor: dirColor,
+                  borderRadius: 2,
+                }}
+              />
+            )}
           </View>
         )}
       </View>
 
-      <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: isLent ? '#16A34A' : '#DC2626' }}>
+      <View style={{ alignItems: 'flex-end', marginLeft: HOME_SPACE.md }}>
+        <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: dirColor }}>
           {formatCurrency(loan.pendingAmount, sym)}
         </Text>
-        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+        <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, marginTop: 2 }}>
           of {formatCurrency(loan.givenAmount, sym)}
         </Text>
       </View>

@@ -24,8 +24,9 @@ import { buildSpendingChartData, getTotalBalance, formatCurrency } from '../../l
 import { getDateRange, todayUTC, formatDate } from '../../lib/dateUtils';
 import { getCashflowSummary, getDailySpending } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
-import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
+import { HOME_COLORS, HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
 import { AccountTabBar } from '../../components/AccountTabBar';
+import { TransactionListItem } from '../../components/TransactionListItem';
 import type {
   PeriodType,
   Transaction,
@@ -216,10 +217,7 @@ export default function HomeScreen() {
           backgroundColor: HOME_COLORS.active,
           alignItems: 'center',
           justifyContent: 'center',
-          shadowColor: '#000000',
-          shadowOpacity: 0.18,
-          shadowRadius: 10,
-          elevation: 6,
+          ...HOME_SHADOW.card,
         }}
       >
         <Ionicons name="add" size={28} color={HOME_COLORS.surface} />
@@ -344,6 +342,7 @@ function HomeAccountPage({
   onRefresh: () => Promise<void>;
   isSelected: boolean;
 }) {
+  const { getCategoryDisplayName } = useCategoriesStore();
   const [period, setPeriod] = useState<PeriodType>('week');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [todayCashflow, setTodayCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
@@ -570,11 +569,14 @@ function HomeAccountPage({
                 </Text>
               ) : (
                 transactions.map((transaction, index) => (
-                  <TransactionRow
+                  <TransactionListItem
                     key={transaction.id}
                     tx={transaction}
                     sym={currencySymbol}
                     isLast={index === transactions.length - 1}
+                    padding={10}
+                    iconSize={36}
+                    categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
                   />
                 ))
               )}
@@ -652,94 +654,5 @@ function InlineDot({ size = 8, color = '#8C94AF' }: { size?: number; color?: str
         marginHorizontal: 6,
       }}
     />
-  );
-}
-
-function TransactionRow({
-  tx,
-  sym,
-  isLast,
-}: {
-  tx: Transaction;
-  sym: string;
-  isLast: boolean;
-}) {
-  const { getById } = useAccountsStore();
-  const { getCategoryDisplayName } = useCategoriesStore();
-  const account = getById(tx.accountId);
-
-  const iconName =
-    tx.type === 'in'
-      ? 'arrow-down'
-      : tx.type === 'out'
-        ? 'arrow-up'
-        : tx.type === 'transfer'
-          ? 'swap-horizontal'
-          : 'cash';
-
-  const iconBg =
-    tx.type === 'in'
-      ? '#DCFCE7'
-      : tx.type === 'out'
-        ? '#FEE2E2'
-        : '#F1F5F9';
-
-  const iconColor =
-    tx.type === 'in'
-      ? HOME_COLORS.positive
-      : tx.type === 'out'
-        ? '#DC2626'
-        : '#1E293B';
-
-  const subtitle = [
-    tx.categoryId ? getCategoryDisplayName(tx.categoryId) : null,
-    account?.name,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: HOME_COLORS.divider,
-      }}
-    >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: HOME_RADIUS.small,
-          backgroundColor: iconBg,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 12,
-        }}
-      >
-        <Ionicons name={iconName as never} size={16} color={iconColor} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: HOME_COLORS.neutral }} numberOfLines={1}>
-          {tx.note ?? tx.type}
-        </Text>
-        {subtitle ? (
-          <Text style={{ fontSize: HOME_TEXT.caption, color: HOME_COLORS.textSoft, marginTop: 1 }} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
-      <Text
-        style={{
-          fontSize: HOME_TEXT.body,
-          fontWeight: '600',
-          color: tx.type === 'in' ? HOME_COLORS.positive : HOME_COLORS.neutral,
-        }}
-      >
-        {formatCurrency(tx.amount, sym)}
-      </Text>
-    </View>
   );
 }
