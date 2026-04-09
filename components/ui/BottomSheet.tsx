@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
+  BackHandler,
   Dimensions,
   PanResponder,
   Pressable,
@@ -83,6 +84,15 @@ export function BottomSheet({
       Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 160, friction: 16 }),
     ]).start();
   }, [translateY, opacity]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeSheet();
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [closeSheet]);
 
   const panResponder = useMemo(
     () =>

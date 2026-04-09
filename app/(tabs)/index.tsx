@@ -517,6 +517,8 @@ function HomeAccountPage({
             {formatDate(from)} — {formatDate(to)}
           </Text>
 
+          <SummaryCard cashflow={cashflow} sym={currencySymbol} palette={palette} />
+
           <View
             style={{
               backgroundColor: palette.surface,

@@ -405,6 +405,7 @@ function ActivityAccountPage({
             <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: SCREEN_GUTTER, overflow: 'hidden' }}>
               {item.items.map((tx, idx) => (
                 <TransactionListItem
+                  key={tx.id}
                   tx={tx}
                   sym={sym}
                   isLast={idx === item.items.length - 1}
