@@ -7,53 +7,44 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { SCREEN_GUTTER, CARD_PADDING, RADIUS, SPACING } from '../../lib/design';
-import {
-  ACCOUNT_TYPES,
-  ACCOUNT_ICONS,
-  ENTITY_COLORS,
-  symbolFor,
-} from '../../lib/settings-shared';
-import {
-  ActionButton,
-  ChoiceRow,
-  ColorGrid,
-  FieldLabel,
-  IconGrid,
-  InputField,
-} from '../../components/settings-ui';
+import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
+import { ActionButton, ChoiceRow, FieldLabel, InputField } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+
+/** Auto-derives a sensible Feather icon name from the account type. */
+const TYPE_ICON: Record<string, string> = {
+  savings: 'layers',
+  credit: 'credit-card',
+  cash: 'dollar-sign',
+  wallet: 'briefcase',
+};
 
 type Draft = {
   name: string;
   type: (typeof ACCOUNT_TYPES)[number]['key'];
   balance: string;
   currency: string;
-  color: string;
-  icon: string;
-};
-
-const EMPTY_DRAFT: Draft = {
-  name: '',
-  type: 'savings',
-  balance: '0',
-  currency: 'INR',
-  color: ENTITY_COLORS[0],
-  icon: ACCOUNT_ICONS[0],
 };
 
 export default function AccountFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
   const { accounts, load, isLoaded, add, update, remove } = useAccountsStore();
+  const { settings } = useUIStore();
   const scheme = useColorScheme();
-  const theme = useUIStore((s) => s.settings.theme);
-  const palette = getThemePalette(resolveTheme(theme, scheme));
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<Draft>({
+    name: '',
+    type: 'savings',
+    balance: '0',
+    currency: settings.currency ?? 'INR',
+  });
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) load().catch(() => undefined);
@@ -68,14 +59,12 @@ export default function AccountFormScreen() {
           type: account.type,
           balance: String(account.balance),
           currency: account.currency,
-          color: account.color,
-          icon: account.icon,
         });
       }
     } else {
-      setDraft(EMPTY_DRAFT);
+      setDraft({ name: '', type: 'savings', balance: '0', currency: settings.currency ?? 'INR' });
     }
-  }, [id, accounts]);
+  }, [id, accounts, settings.currency]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -93,9 +82,9 @@ export default function AccountFormScreen() {
       name,
       type: draft.type,
       balance: Number.parseFloat(draft.balance || '0') || 0,
-      currency: draft.currency.trim() || 'INR',
-      color: draft.color,
-      icon: draft.icon,
+      currency: draft.currency,
+      color: ENTITY_COLORS[0],
+      icon: TYPE_ICON[draft.type] ?? 'credit-card',
     };
     if (isEditing && id) {
       await update(id, payload);
@@ -133,6 +122,7 @@ export default function AccountFormScreen() {
   }
 
   const selectedType = ACCOUNT_TYPES.find((t) => t.key === draft.type);
+  const selectedCurrency = CURRENCIES.find((c) => c.code === draft.currency) ?? CURRENCIES[0];
 
   return (
     <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: palette.background }}>
@@ -141,6 +131,7 @@ export default function AccountFormScreen() {
         contentContainerStyle={{ padding: SCREEN_GUTTER, paddingBottom: SPACING.xl }}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Name */}
         <View style={{ marginBottom: SPACING.lg }}>
           <FieldLabel label="Account Name" palette={palette} />
           <InputField
@@ -152,31 +143,21 @@ export default function AccountFormScreen() {
           />
         </View>
 
+        {/* Account Type */}
         <View style={{ marginBottom: SPACING.lg }}>
           <FieldLabel label="Account Type" palette={palette} />
           <TouchableOpacity
             onPress={() => setShowTypePicker(true)}
             activeOpacity={0.7}
-            style={{
-              minHeight: 46,
-              borderRadius: RADIUS.md,
-              borderWidth: 1,
-              borderColor: palette.border,
-              backgroundColor: palette.surface,
-              paddingHorizontal: CARD_PADDING,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
+            style={pickerRowStyle(palette)}
           >
-            <Text style={{ color: palette.text, fontSize: 15 }}>
-              {selectedType?.label ?? ''}
-            </Text>
+            <Text style={{ color: palette.text, fontSize: 15 }}>{selectedType?.label ?? ''}</Text>
             <Feather name="chevron-right" size={16} color={palette.textSoft} />
           </TouchableOpacity>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: SPACING.lg, marginBottom: SPACING.lg }}>
+        {/* Balance + Currency side by side */}
+        <View style={{ flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.lg }}>
           <View style={{ flex: 1 }}>
             <FieldLabel label="Balance" palette={palette} />
             <InputField
@@ -187,37 +168,19 @@ export default function AccountFormScreen() {
               keyboardType="numeric"
             />
           </View>
-          <View style={{ width: 90 }}>
+          <View style={{ width: 110 }}>
             <FieldLabel label="Currency" palette={palette} />
-            <InputField
-              palette={palette}
-              value={draft.currency}
-              onChangeText={(v) => setDraft((s) => ({ ...s, currency: v.toUpperCase() }))}
-              placeholder="INR"
-              autoCapitalize="characters"
-              maxLength={3}
-            />
+            <TouchableOpacity
+              onPress={() => setShowCurrencyPicker(true)}
+              activeOpacity={0.7}
+              style={pickerRowStyle(palette)}
+            >
+              <Text style={{ color: palette.text, fontSize: 15 }}>
+                {selectedCurrency.symbol} {selectedCurrency.code}
+              </Text>
+              <Feather name="chevron-right" size={16} color={palette.textSoft} />
+            </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Icon" palette={palette} />
-          <IconGrid
-            icons={ACCOUNT_ICONS}
-            selectedIcon={draft.icon}
-            onSelect={(icon) => setDraft((s) => ({ ...s, icon }))}
-            palette={palette}
-          />
-        </View>
-
-        <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Color" palette={palette} />
-          <ColorGrid
-            colors={ENTITY_COLORS}
-            selectedColor={draft.color}
-            onSelect={(color) => setDraft((s) => ({ ...s, color }))}
-            palette={palette}
-          />
         </View>
       </ScrollView>
 
@@ -249,6 +212,7 @@ export default function AccountFormScreen() {
         )}
       </View>
 
+      {/* Account Type picker */}
       {showTypePicker && (
         <BottomSheet
           title="Account Type"
@@ -271,6 +235,46 @@ export default function AccountFormScreen() {
           ))}
         </BottomSheet>
       )}
+
+      {/* Currency picker */}
+      {showCurrencyPicker && (
+        <BottomSheet
+          title="Currency"
+          subtitle="Pick the currency for this account"
+          palette={palette}
+          onClose={() => setShowCurrencyPicker(false)}
+          hasNavBar
+        >
+          {CURRENCIES.map((c, i) => (
+            <ChoiceRow
+              key={c.code}
+              title={`${c.symbol} ${c.code}`}
+              subtitle={c.name}
+              selected={draft.currency === c.code}
+              palette={palette}
+              noBorder={i === CURRENCIES.length - 1}
+              onPress={() => {
+                setDraft((s) => ({ ...s, currency: c.code }));
+                setShowCurrencyPicker(false);
+              }}
+            />
+          ))}
+        </BottomSheet>
+      )}
     </SafeAreaView>
   );
+}
+
+function pickerRowStyle(palette: { border: string; surface: string }) {
+  return {
+    minHeight: 46,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
+    paddingHorizontal: CARD_PADDING,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+  };
 }
