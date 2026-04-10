@@ -264,7 +264,8 @@ export function BottomSheet({
                 const headerH = headerHeightRef.current > 0
                   ? headerHeightRef.current
                   : subtitle ? 84 : 64;
-                const totalH = h + headerH + insets.bottom + 20;
+                // h already includes contentContainerStyle paddingBottom (insets.bottom + 20)
+                const totalH = h + headerH;
                 contentHeight.current = totalH;
 
                 if (!isExpanded.current) {
