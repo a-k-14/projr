@@ -139,6 +139,7 @@ export default function SettingsScreen() {
           subtitle={pickerSubtitle(picker)}
           palette={palette}
           onClose={() => setPicker(null)}
+          hasNavBar
         >
           {picker === 'year-start'
             ? MONTHS.map((month, index) => (

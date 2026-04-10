@@ -752,6 +752,7 @@ function HomeAccountPage({
           title="Select Chart"
           palette={palette}
           onClose={() => setShowViewPicker(false)}
+          hasNavBar
         >
           {(['in', 'out', 'table'] as const).map((view, index) => (
             <ChoiceRow
