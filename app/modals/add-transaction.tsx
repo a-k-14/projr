@@ -689,7 +689,7 @@ export default function AddTransactionModal() {
               );
             })
           )}
-          <View style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 20 }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 18, paddingBottom: insets.bottom + 40 }}>
             <RnghTouchableOpacity
               onPress={() => setShowTagSheet(false)}
               style={{
@@ -1335,7 +1335,7 @@ function AccountPicker({
           key={acc.id}
           onPress={() => onSelect(acc.id)}
           style={{
-            paddingHorizontal: 14,
+            paddingHorizontal: SCREEN_GUTTER,
             paddingVertical: 8,
             borderRadius: 12,
             marginRight: 8,
@@ -1382,7 +1382,7 @@ function CategoryPicker({
           key={option.id}
           onPress={() => onSelect(option.id)}
           style={{
-            paddingHorizontal: 14,
+            paddingHorizontal: SCREEN_GUTTER,
             paddingVertical: 8,
             borderRadius: 12,
             marginRight: 8,

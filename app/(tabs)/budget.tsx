@@ -18,6 +18,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency } from '../../lib/derived';
 import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
+import { SCREEN_GUTTER } from '../../lib/design';
 import {
   HOME_RADIUS,
   HOME_SHADOW,
@@ -65,7 +66,7 @@ export default function BudgetScreen() {
 
         {/* Summary */}
         {budgets.length > 0 && (
-          <View style={{ paddingHorizontal: HOME_SPACE.screen, marginBottom: HOME_SPACE.xl }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.xl }}>
             <View style={{ flexDirection: 'row', gap: HOME_SPACE.md }}>
               <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: HOME_SPACE.xl }}>
                 <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
@@ -129,7 +130,7 @@ export default function BudgetScreen() {
         )}
 
         {/* Budget list */}
-        <View style={{ paddingHorizontal: HOME_SPACE.screen }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
           {budgets.length === 0 ? (
             <View
               style={{

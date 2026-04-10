@@ -6,6 +6,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { SCREEN_GUTTER } from '../lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/homeTokens';
 import { AppThemePalette } from '../lib/theme';
 
@@ -93,7 +94,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
         borderBottomColor: palette.divider,
         maxHeight: HOME_LAYOUT.tabHeight,
       }}
-      contentContainerStyle={{ paddingHorizontal: 12 }}
+      contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER }}
     >
       {/* Animated sliding underline pill */}
       <Animated.View

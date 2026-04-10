@@ -109,7 +109,7 @@ export default function AddLoanModal() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: HOME_SPACE.screen,
+            paddingHorizontal: SCREEN_GUTTER,
             paddingTop: HOME_SPACE.sm,
             paddingBottom: HOME_SPACE.xl,
           }}
@@ -151,7 +151,7 @@ export default function AddLoanModal() {
           style={{
             backgroundColor: palette.surface,
             borderRadius: HOME_RADIUS.large,
-            marginHorizontal: HOME_SPACE.screen,
+            marginHorizontal: SCREEN_GUTTER,
             overflow: 'hidden',
           }}
         >
@@ -315,7 +315,7 @@ export default function AddLoanModal() {
           bottom: 0,
           left: 0,
           right: 0,
-          paddingHorizontal: HOME_SPACE.screen,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingBottom: insets.bottom + HOME_SPACE.xl,
           paddingTop: HOME_SPACE.md,
           backgroundColor: palette.background,

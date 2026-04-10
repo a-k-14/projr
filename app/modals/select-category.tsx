@@ -55,7 +55,7 @@ export default function SelectCategoryScreen() {
               alignItems: 'center',
               backgroundColor: palette.surface,
               borderRadius: 16,
-              paddingHorizontal: 10,
+              paddingHorizontal: SCREEN_GUTTER,
               borderWidth: 1,
               borderColor: palette.divider,
             }}
@@ -66,7 +66,7 @@ export default function SelectCategoryScreen() {
               onChangeText={setSearch}
               placeholder="Search subcategories"
               placeholderTextColor={palette.textMuted}
-              style={{ flex: 1, paddingHorizontal: 10, paddingVertical: 12, fontSize: 15, color: palette.text }}
+              style={{ flex: 1, paddingHorizontal: SCREEN_GUTTER, paddingVertical: 12, fontSize: 15, color: palette.text }}
             />
           </View>
         </View>
@@ -75,7 +75,7 @@ export default function SelectCategoryScreen() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: insets.bottom + 24 }}>
         {sections.map(({ parent, options }) => (
           <View key={parent.id} style={{ marginBottom: 18 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
               {parent.name}
             </Text>
             <View

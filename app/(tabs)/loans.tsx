@@ -17,6 +17,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
+import { SCREEN_GUTTER } from '../../lib/design';
 import {
   HOME_RADIUS,
   HOME_SHADOW,
@@ -68,7 +69,7 @@ export default function LoansScreen() {
         }
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
-          <View style={{ padding: HOME_SPACE.screen }}>
+          <View style={{ padding: SCREEN_GUTTER }}>
             {/* Title */}
             <View style={{ paddingTop: HOME_SPACE.xs, paddingBottom: HOME_SPACE.md }}>
               <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '700', color: palette.text }}>
@@ -311,7 +312,7 @@ function LoanRow({
       onPress={onPress}
       style={{
         backgroundColor: palette.surface,
-        marginHorizontal: HOME_SPACE.screen,
+        marginHorizontal: SCREEN_GUTTER,
         marginBottom: 2,
         borderRadius: HOME_RADIUS.card,
         padding: HOME_SPACE.xl,

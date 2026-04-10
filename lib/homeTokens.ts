@@ -1,4 +1,4 @@
-import { SCREEN_GUTTER } from './design';
+import { SCREEN_GUTTER, SHEET_GUTTER, SPACING } from './design';
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 // Previously HOME_COLORS. Now unified into AppThemePalette in lib/theme.ts.
@@ -56,19 +56,18 @@ export const HOME_RADIUS = {
 } as const;
 
 // ─── Spacing tokens ────────────────────────────────────────────────────────────
-// Note: xs/sm/md match SPACING in design.ts. lg/xl differ intentionally —
-// home screens use tighter spacing (lg=14) than settings screens (SPACING.lg=16).
 export const HOME_SPACE = {
   screen: SCREEN_GUTTER,
-  xs: 4,   // == SPACING.xs
-  sm: 8,   // == SPACING.sm
-  md: 12,  // == SPACING.md
-  lg: 14,  // home-specific tight spacing (settings uses SPACING.lg = 16)
-  xl: 16,
-  xxl: 18,
-  xxxl: 20,
-  sectionGap: 14,
-  cardGap: 18,
+  sheet: SHEET_GUTTER,
+  xs: SPACING.xs,
+  sm: SPACING.sm,
+  md: SPACING.md,
+  lg: SPACING.lg,
+  xl: SPACING.xl,
+  xxl: SPACING.xxl,
+  xxxl: SPACING.xxl + 4, // 28
+  sectionGap: SPACING.lg,
+  cardGap: SPACING.xl,
   pageBottom: 32,
 } as const;
 

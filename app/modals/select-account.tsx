@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Pressable, useColorScheme } f
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER, SHEET_GUTTER, RADIUS, SPACING } from '../../lib/design';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -31,11 +31,11 @@ export default function SelectAccountSheet() {
       <View
         style={{
           backgroundColor: palette.card,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
+          borderTopLeftRadius: RADIUS.xl,
+          borderTopRightRadius: RADIUS.xl,
           paddingTop: 12,
           paddingBottom: insets.bottom + 14,
-          paddingHorizontal: SCREEN_GUTTER,
+          paddingHorizontal: SHEET_GUTTER,
         }}
       >
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
@@ -69,7 +69,7 @@ export default function SelectAccountSheet() {
                 }}
                 style={{
                   paddingVertical: 14,
-                  paddingHorizontal: SCREEN_GUTTER,
+                  paddingHorizontal: SHEET_GUTTER,
                   borderRadius: 16,
                   borderWidth: 1,
                   borderColor: selected ? palette.active : palette.divider,

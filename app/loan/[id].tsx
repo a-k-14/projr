@@ -19,6 +19,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
 import { formatDate, formatDateShort, todayUTC } from '../../lib/dateUtils';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { SCREEN_GUTTER } from '../../lib/design';
 import {
   HOME_RADIUS,
   HOME_SPACE,
@@ -98,7 +99,7 @@ export default function LoanDetailScreen() {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: HOME_SPACE.screen,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingVertical: HOME_SPACE.md,
           backgroundColor: palette.background,
         }}
@@ -121,7 +122,7 @@ export default function LoanDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-          <View style={{ paddingHorizontal: HOME_SPACE.screen }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             {/* Person card */}
             <View
               style={{
@@ -330,7 +331,7 @@ export default function LoanDetailScreen() {
               bottom: 0,
               left: 0,
               right: 0,
-              paddingHorizontal: HOME_SPACE.screen,
+              paddingHorizontal: SCREEN_GUTTER,
               paddingBottom: 28,
               paddingTop: HOME_SPACE.md,
               backgroundColor: palette.background,

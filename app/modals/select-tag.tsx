@@ -3,13 +3,19 @@ import { View, Text, TouchableOpacity, ScrollView, Pressable } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER, SHEET_GUTTER, RADIUS, SPACING } from '../../lib/design';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import { useUIStore } from '../../stores/useUIStore';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useColorScheme } from 'react-native';
 
 export default function SelectTagSheet() {
   const { tags } = useCategoriesStore();
   const { tagIds, setTagIds } = useTransactionDraftStore();
+  const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const insets = useSafeAreaInsets();
 
   const [selectedIds, setSelectedIds] = useState<string[]>(tagIds);
@@ -19,25 +25,25 @@ export default function SelectTagSheet() {
   }, [tagIds]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.32)' }}>
+    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}>
       <Pressable style={{ flex: 1 }} onPress={() => router.back()} />
       <View
         style={{
-          backgroundColor: '#fff',
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
+          backgroundColor: palette.card,
+          borderTopLeftRadius: RADIUS.xl,
+          borderTopRightRadius: RADIUS.xl,
           paddingTop: 12,
           paddingBottom: insets.bottom + 14,
-          paddingHorizontal: SCREEN_GUTTER,
+          paddingHorizontal: SHEET_GUTTER,
         }}
       >
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
-          <View style={{ width: 42, height: 5, borderRadius: 999, backgroundColor: '#E5E7EB' }} />
+          <View style={{ width: 42, height: 5, borderRadius: 999, backgroundColor: palette.divider, opacity: 0.65 }} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#0A0A0A', flex: 1 }}>Select tags</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: palette.text, flex: 1 }}>Select tags</Text>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-            <Ionicons name="close" size={22} color="#0A0A0A" />
+            <Ionicons name="close" size={22} color={palette.textMuted} />
           </TouchableOpacity>
         </View>
         <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
@@ -55,11 +61,11 @@ export default function SelectTagSheet() {
                 }
                 style={{
                   paddingVertical: 14,
-                  paddingHorizontal: SCREEN_GUTTER,
-                  borderRadius: 16,
+                  paddingHorizontal: SHEET_GUTTER,
+                  borderRadius: RADIUS.lg,
                   borderWidth: 1,
-                  borderColor: selected ? tag.color : '#E5E7EB',
-                  backgroundColor: selected ? '#F8FAFC' : '#fff',
+                  borderColor: selected ? tag.color : palette.divider,
+                  backgroundColor: selected ? palette.surfaceRaised : palette.surface,
                   marginBottom: 10,
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -68,9 +74,9 @@ export default function SelectTagSheet() {
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#0A0A0A' }}>{tag.name}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>{tag.name}</Text>
                 </View>
-                {selected ? <Ionicons name="checkmark" size={18} color={tag.color} /> : null}
+                {selected ? <Ionicons name="checkmark" size={18} color={palette.active} /> : null}
               </TouchableOpacity>
             );
           })}

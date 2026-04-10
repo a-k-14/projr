@@ -27,6 +27,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
+import { SCREEN_GUTTER } from '../../lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
 import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
 import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
@@ -427,7 +428,7 @@ function HomeAccountPage({
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        <View style={{ paddingHorizontal: HOME_SPACE.screen, paddingTop: 14, paddingBottom: 2 }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 14, paddingBottom: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: 18 }}>
               <Text style={{ fontSize: HOME_TEXT.heroLabel, color: palette.text, fontWeight: '700' }}>
@@ -451,7 +452,7 @@ function HomeAccountPage({
           <View style={{ height: 1, backgroundColor: palette.borderSoft, marginTop: 18, marginBottom: 14 }} />
         </View>
 
-        <View style={{ paddingHorizontal: HOME_SPACE.screen }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>
               {formatDate(today)}
