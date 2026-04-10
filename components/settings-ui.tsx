@@ -112,7 +112,7 @@ export function SettingsRow({
 
   const style = {
     minHeight: 62,
-    paddingHorizontal: CARD_PADDING + 2,
+    paddingHorizontal: CARD_PADDING,
     paddingVertical: 12,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,

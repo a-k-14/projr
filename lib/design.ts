@@ -9,9 +9,9 @@ export const SPACING = {
   xxl: 24,
 } as const;
 
-export const SCREEN_GUTTER = SPACING.lg - 6;
-export const SHEET_GUTTER = SPACING.lg + 2;
-export const CARD_PADDING = SPACING.md;
+export const SCREEN_GUTTER = SPACING.lg - 6; // 10
+export const SHEET_GUTTER = SPACING.lg + 2; // 18
+export const CARD_PADDING = 16;
 
 export const RADIUS = {
   sm: 12,

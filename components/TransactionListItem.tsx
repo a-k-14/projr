@@ -6,12 +6,14 @@ import { HOME_RADIUS, HOME_TEXT, getTxTypeConfig } from '../lib/homeTokens';
 import { AppThemePalette } from '../lib/theme';
 import type { Transaction } from '../types';
 
+import { CARD_PADDING } from '../lib/design';
+
 interface Props {
   tx: Transaction;
   sym: string;
   isLast: boolean;
   categoryName?: string;
-  /** Padding applied to each row — defaults to 12 */
+  /** Padding applied to each row — defaults to global CARD_PADDING */
   padding?: number;
   /** Icon box size — defaults to 40 */
   iconSize?: number;
@@ -23,7 +25,7 @@ export function TransactionListItem({
   sym,
   isLast,
   categoryName,
-  padding = 12,
+  padding = CARD_PADDING,
   iconSize = 40,
   palette,
 }: Props) {
