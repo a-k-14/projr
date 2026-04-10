@@ -6,16 +6,10 @@ import { useRouter } from 'expo-router';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { SCREEN_GUTTER, SPACING, RADIUS } from '../../lib/design';
+import { SCREEN_GUTTER, SPACING } from '../../lib/design';
 import { CardSection, SettingsRow } from '../../components/settings-ui';
 
-type Tab = 'all' | 'in' | 'out';
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'in', label: 'In' },
-  { key: 'out', label: 'Out' },
-];
+type Tab = 'in' | 'out';
 
 export default function CategoriesScreen() {
   const { categories, load, isLoaded } = useCategoriesStore();
@@ -24,64 +18,53 @@ export default function CategoriesScreen() {
   const palette = getThemePalette(resolveTheme(theme, scheme));
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<Tab>('all');
+  const [tab, setTab] = useState<Tab>('in');
 
   useEffect(() => {
     if (!isLoaded) load().catch(() => undefined);
   }, [isLoaded, load]);
 
   const topLevel = categories.filter((c) => !c.parentId);
-  const visible =
-    tab === 'all'
-      ? topLevel
-      : topLevel.filter((c) => c.type === tab || c.type === 'both');
-
-  function typeLabel(type: string) {
-    if (type === 'in') return 'Income';
-    if (type === 'out') return 'Expense';
-    return 'Both';
-  }
+  const visible = topLevel.filter((c) => c.type === tab || c.type === 'both');
 
   return (
     <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: palette.background }}>
-      {/* Tab pills */}
+      {/* Full-width underline tabs */}
       <View
         style={{
           flexDirection: 'row',
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: SPACING.md,
-          paddingBottom: SPACING.sm,
-          gap: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: palette.divider,
         }}
       >
-        {TABS.map((t) => (
+        {(['in', 'out'] as const).map((t) => (
           <TouchableOpacity
-            key={t.key}
-            onPress={() => setTab(t.key)}
+            key={t}
+            onPress={() => setTab(t)}
             activeOpacity={0.7}
             style={{
-              paddingHorizontal: SPACING.lg,
-              paddingVertical: 6,
-              borderRadius: RADIUS.sm,
-              borderWidth: 1,
-              borderColor: tab === t.key ? palette.active : palette.divider,
-              backgroundColor: tab === t.key ? palette.active : palette.surface,
+              flex: 1,
+              paddingVertical: 14,
+              alignItems: 'center',
+              borderBottomWidth: 2,
+              borderBottomColor: tab === t ? palette.active : 'transparent',
+              marginBottom: -1,
             }}
           >
             <Text
               style={{
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: '600',
-                color: tab === t.key ? '#FFFFFF' : palette.textMuted,
+                color: tab === t ? palette.active : palette.textMuted,
               }}
             >
-              {t.label}
+              {t === 'in' ? 'Income' : 'Expense'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 8 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: 8 }}>
         <CardSection palette={palette}>
           {visible.map((cat, index) => (
             <SettingsRow
@@ -93,19 +76,14 @@ export default function CategoriesScreen() {
                 router.push({ pathname: '/settings/category-form', params: { id: cat.id } })
               }
               noBorder={index === visible.length - 1}
-              rightElement={
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: palette.textMuted, fontSize: 13, fontWeight: '500' }}>
-                    {typeLabel(cat.type)}
-                  </Text>
-                  <Feather name="chevron-right" size={18} color={palette.textSoft} />
-                </View>
-              }
+              rightElement={<Feather name="chevron-right" size={18} color={palette.textSoft} />}
             />
           ))}
           {visible.length === 0 && (
             <View style={{ padding: 24, alignItems: 'center' }}>
-              <Text style={{ color: palette.textMuted, fontSize: 14 }}>No categories yet.</Text>
+              <Text style={{ color: palette.textMuted, fontSize: 14 }}>
+                No {tab === 'in' ? 'income' : 'expense'} categories yet.
+              </Text>
             </View>
           )}
         </CardSection>
@@ -124,10 +102,7 @@ export default function CategoriesScreen() {
       >
         <TouchableOpacity
           onPress={() =>
-            router.push({
-              pathname: '/settings/category-form',
-              params: { type: tab === 'all' ? 'both' : tab },
-            })
+            router.push({ pathname: '/settings/category-form', params: { type: tab } })
           }
           activeOpacity={0.7}
           style={{
@@ -140,7 +115,7 @@ export default function CategoriesScreen() {
           }}
         >
           <Text style={{ fontSize: 15, fontWeight: '600', color: palette.active }}>
-            + Add Category
+            + Add {tab === 'in' ? 'Income' : 'Expense'} Category
           </Text>
         </TouchableOpacity>
       </View>
