@@ -187,7 +187,7 @@ export default function AddTransactionModal() {
   const splitValid =
     splitRows.length === 0 ||
     (splitRows.every((row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0) &&
-      Math.abs(splitTotal - amount) < 0.01);
+      Math.abs(splitTotal - amount) / Math.max(amount, 1) < 0.001);
 
   const isValid =
     type === 'transfer'
@@ -563,14 +563,14 @@ export default function AddTransactionModal() {
                         alignItems: 'center',
                         borderWidth: 1.5,
                         borderColor: loanDirection === d ? palette.tabActive : palette.border,
-                        backgroundColor: loanDirection === d ? (palette.background === '#111111' ? '#1B4332' : '#DCFCE7') : palette.surface,
+                        backgroundColor: loanDirection === d ? palette.inBg : palette.surface,
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 13,
                           fontWeight: '600',
-                          color: loanDirection === d ? (palette.background === '#111111' ? '#fff' : '#1B4332') : palette.textMuted,
+                          color: loanDirection === d ? palette.active : palette.textMuted,
                         }}
                       >
                         {d === 'lent' ? 'I lent' : 'I borrowed'}
@@ -1201,7 +1201,7 @@ function SplitSection({
               palette={palette}
             />
           ))}
-          <Text style={{ fontSize: 12, color: Math.abs(splitTotal - amount) < 0.01 ? palette.textMuted : palette.negative }}>
+          <Text style={{ fontSize: 12, color: Math.abs(splitTotal - amount) / Math.max(amount, 1) < 0.001 ? palette.textMuted : palette.negative }}>
             Total {formatCurrency(splitTotal, currencySymbol)} / {formatCurrency(amount, currencySymbol)}
           </Text>
         </View>

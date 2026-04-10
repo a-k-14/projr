@@ -10,6 +10,7 @@ import {
   Alert,
   useColorScheme,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +39,7 @@ export default function AddLoanModal() {
   const [direction, setDirection] = useState<'lent' | 'borrowed'>('lent');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(todayUTC());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -70,6 +72,27 @@ export default function AddLoanModal() {
       Alert.alert('Error', String(e));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openDate = () => {
+    const current = new Date(date);
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: current,
+        mode: 'date',
+        display: 'calendar',
+        onValueChange: (_event, selectedDate) => {
+          if (selectedDate) {
+            const final = new Date(date);
+            final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+            setDate(final.toISOString());
+          }
+        },
+        onDismiss: () => {},
+      });
+    } else {
+      setShowDatePicker(true);
     }
   };
 
@@ -237,7 +260,8 @@ export default function AddLoanModal() {
           </View>
 
           {/* Date */}
-          <View
+          <TouchableOpacity
+            onPress={openDate}
             style={{
               paddingHorizontal: HOME_SPACE.xl,
               paddingVertical: HOME_SPACE.lg,
@@ -253,7 +277,21 @@ export default function AddLoanModal() {
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{formatDate(date)}</Text>
               <Ionicons name="calendar-outline" size={18} color={palette.textMuted} />
             </View>
-          </View>
+          </TouchableOpacity>
+
+          {showDatePicker && Platform.OS === 'ios' && (
+            <DateTimePicker
+              value={new Date(date)}
+              mode="date"
+              display="default"
+              onValueChange={(_event, selectedDate) => {
+                if (selectedDate) setDate(selectedDate.toISOString());
+              }}
+              onDismiss={() => setShowDatePicker(false)}
+              textColor={palette.text}
+              accentColor={palette.active}
+            />
+          )}
 
           {/* Note */}
           <View style={{ paddingHorizontal: HOME_SPACE.xl, paddingVertical: HOME_SPACE.lg }}>

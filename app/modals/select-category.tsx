@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,11 +7,16 @@ import { SCREEN_GUTTER } from '../../lib/design';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import type { TransactionType } from '../../types';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import { useUIStore } from '../../stores/useUIStore';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
 
 export default function SelectCategoryScreen() {
   const { type } = useLocalSearchParams<{ type?: TransactionType }>();
   const { categories } = useCategoriesStore();
   const { categoryId, setCategoryId } = useTransactionDraftStore();
+  const { settings } = useUIStore();
+  const scheme = useColorScheme();
+  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
 
@@ -33,13 +38,13 @@ export default function SelectCategoryScreen() {
   }, [categories, search, type]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
-      <SafeAreaView edges={['top']} style={{ backgroundColor: '#F0F0F5' }}>
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
-            <Ionicons name="arrow-back" size={24} color="#0A0A0A" />
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#0A0A0A', flex: 1 }}>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: palette.text, flex: 1 }}>
             Select category
           </Text>
         </View>
@@ -48,20 +53,20 @@ export default function SelectCategoryScreen() {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#fff',
+              backgroundColor: palette.surface,
               borderRadius: 16,
               paddingHorizontal: 10,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: palette.divider,
             }}
           >
-            <Ionicons name="search" size={16} color="#9CA3AF" />
+            <Ionicons name="search" size={16} color={palette.textMuted} />
             <TextInput
               value={search}
               onChangeText={setSearch}
               placeholder="Search subcategories"
-              placeholderTextColor="#9CA3AF"
-              style={{ flex: 1, paddingHorizontal: 10, paddingVertical: 12, fontSize: 15, color: '#0A0A0A' }}
+              placeholderTextColor={palette.textMuted}
+              style={{ flex: 1, paddingHorizontal: 10, paddingVertical: 12, fontSize: 15, color: palette.text }}
             />
           </View>
         </View>
@@ -70,10 +75,18 @@ export default function SelectCategoryScreen() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: insets.bottom + 24 }}>
         {sections.map(({ parent, options }) => (
           <View key={parent.id} style={{ marginBottom: 18 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#9CA3AF', marginBottom: 10 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
               {parent.name}
             </Text>
-            <View style={{ backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: '#E8EBF0', overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: palette.surface,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: palette.divider,
+                overflow: 'hidden',
+              }}
+            >
               {options.map((category, index) => {
                 const selected = category.id === categoryId;
                 return (
@@ -87,17 +100,17 @@ export default function SelectCategoryScreen() {
                       paddingHorizontal: SCREEN_GUTTER,
                       paddingVertical: 14,
                       borderBottomWidth: index === options.length - 1 ? 0 : 1,
-                      borderBottomColor: '#F3F4F6',
+                      borderBottomColor: palette.divider,
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      backgroundColor: selected ? '#F0FAF4' : '#fff',
+                      backgroundColor: selected ? palette.inBg : palette.surface,
                     }}
                   >
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#0A0A0A' }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
                       {category.name}
                     </Text>
-                    {selected ? <Ionicons name="checkmark" size={18} color="#17673B" /> : null}
+                    {selected ? <Ionicons name="checkmark" size={18} color={palette.active} /> : null}
                   </TouchableOpacity>
                 );
               })}
@@ -106,7 +119,7 @@ export default function SelectCategoryScreen() {
         ))}
         {!sections.length ? (
           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-            <Text style={{ fontSize: 14, color: '#9CA3AF' }}>No subcategories found</Text>
+            <Text style={{ fontSize: 14, color: palette.textMuted }}>No subcategories found</Text>
           </View>
         ) : null}
       </ScrollView>

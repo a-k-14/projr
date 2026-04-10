@@ -312,7 +312,7 @@ function ActivityAccountPage({
               />
               {categoryFilter ? (
                 <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.surface }}>
-                  1
+                  {topCategories.find((c) => c.id === categoryFilter)?.name ?? '1'}
                 </Text>
               ) : null}
             </TouchableOpacity>
