@@ -464,7 +464,6 @@ export default function AddTransactionModal() {
                   }, 50);
                 }}
               />
-              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" palette={palette} />
               <SplitSection
                 amount={amount}
                 amountStr={amountStr}
@@ -478,6 +477,7 @@ export default function AddTransactionModal() {
                 onRemoveSplit={removeSplitRow}
                 palette={palette}
               />
+              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" palette={palette} />
               <ReceiptSection palette={palette} />
               <PickerRow
                 label="Tag"
@@ -816,7 +816,7 @@ function InlinePickerRow({
           style={[
             {
               fontSize: 15,
-              fontWeight: '500',
+              fontWeight: '400',
               color: placeholder ? palette.textMuted : palette.text,
               textAlign: 'left',
               flexShrink: 1,
@@ -897,7 +897,7 @@ function PickerRow({
         <Text
           style={{
             fontSize: 15,
-            fontWeight: '500',
+            fontWeight: '400',
             color: placeholder ? palette.textMuted : palette.text,
             textAlign: 'left',
             flexShrink: 1,
@@ -1042,7 +1042,7 @@ function AmountRow({
           borderBottomWidth: isFocused ? 1.5 : 1,
           borderBottomColor: isFocused ? palette.active : palette.borderSoft,
           paddingLeft: 4,
-          paddingBottom: 6,
+          paddingBottom: 4.8, // Final baseline match for 20pt vs 15pt
         }}
       >
         <TextInput
@@ -1054,10 +1054,11 @@ function AmountRow({
           style={{
             flex: 1,
             fontSize: 20,
-            fontWeight: '600',
+            fontWeight: '400',
             color: activeConfig.color,
             paddingVertical: 0,
             textAlign: 'left',
+            lineHeight: 24, // Consistent baseline
           }}
           autoFocus={!isEditing}
           onFocus={() => setIsFocused(true)}
@@ -1127,7 +1128,7 @@ function InlineInputRow({
           borderBottomWidth: isFocused ? 1.5 : 1,
           borderBottomColor: isFocused ? palette.active : palette.borderSoft,
           paddingLeft: 4,
-          paddingBottom: 6,
+          paddingBottom: 5.5, // Micro-adjusted for baseline
         }}
       >
         <TextInput
@@ -1139,10 +1140,11 @@ function InlineInputRow({
             flex: 1,
             minWidth: 0,
             fontSize: 15,
-            fontWeight: '500',
+            fontWeight: '400',
             color: palette.text,
             paddingVertical: 0,
             textAlign: 'left',
+            lineHeight: 20,
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -1177,18 +1179,31 @@ function SplitSection({
   onRemoveSplit: (id: string) => void;
   palette: any;
 }) {
+  const diff = amount - splitTotal;
+  const isBalanced = Math.abs(diff) < 0.01;
+
   return (
-    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted }}>
-          Split
+    <View style={{ marginVertical: 4 }}>
+      <View style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        height: 32,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: palette.surfaceAlt,
+        marginTop: 4,
+      }}>
+        <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textSoft, textTransform: 'uppercase' }}>
+          Splits
         </Text>
-        <TouchableOpacity onPress={onAddSplit}>
-          <Text style={{ fontSize: 13, color: palette.tabActive, fontWeight: '600' }}>+ Add split</Text>
+        <TouchableOpacity onPress={onAddSplit} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="add" size={14} color={palette.tabActive} />
+          <Text style={{ fontSize: 12, color: palette.tabActive, fontWeight: '600', marginLeft: 2 }}>Add Split</Text>
         </TouchableOpacity>
       </View>
+
       {splitRows.length > 0 ? (
-        <View style={{ gap: 12 }}>
+        <View>
           {splitRows.map((row, index) => (
             <SplitRowEditor
               key={row.id}
@@ -1201,12 +1216,33 @@ function SplitSection({
               palette={palette}
             />
           ))}
-          <Text style={{ fontSize: 12, color: Math.abs(splitTotal - amount) / Math.max(amount, 1) < 0.001 ? palette.textMuted : palette.negative }}>
-            Total {formatCurrency(splitTotal, currencySymbol)} / {formatCurrency(amount, currencySymbol)}
-          </Text>
+          
+          {!isBalanced && (
+            <View style={{
+              paddingHorizontal: SCREEN_GUTTER,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              justifyContent: 'flex-end',
+              backgroundColor: palette.negative + '08'
+            }}>
+              <Text style={{ fontSize: 13, color: palette.negative, fontWeight: '500' }}>
+                Remaining: {formatCurrency(diff, currencySymbol)}
+              </Text>
+            </View>
+          )}
         </View>
       ) : (
-        <Text style={{ fontSize: 13, color: palette.textMuted }}>Split this transaction across categories.</Text>
+        <TouchableOpacity
+          onPress={onAddSplit}
+          style={{
+            paddingHorizontal: SCREEN_GUTTER,
+            paddingVertical: 16,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Text style={{ fontSize: 13, color: palette.textSoft }}>This transaction is in one category. Tap to split it.</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -1234,23 +1270,9 @@ function ReceiptSection({ palette }: { palette: any }) {
         >
           <Ionicons name="camera-outline" size={22} color={palette.tabActive} />
         </TouchableOpacity>
-        <View
-          style={{
-            width: 58,
-            height: 58,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: palette.border,
-            backgroundColor: palette.surface,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name="receipt-outline" size={22} color={palette.textMuted} />
-        </View>
         <View style={{ justifyContent: 'center' }}>
-          <Text style={{ fontSize: 13, color: palette.text, fontWeight: '500' }}>Captured receipts</Text>
-          <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>Thumbnails appear here</Text>
+          <Text style={{ fontSize: 13, color: palette.text, fontWeight: '400' }}>Add receipt</Text>
+          <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>Tap camera to scan</Text>
         </View>
       </ScrollView>
     </View>
@@ -1402,62 +1424,63 @@ function SplitRowEditor({
   onRemove: (id: string) => void;
   palette: any;
 }) {
-  const options = getRelevantCategoryOptions(categories, type);
+  const categoryName = categories.find(c => c.id === row.categoryId)?.label || 'Select Category';
+  const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <View style={{ borderRadius: 16, backgroundColor: palette.surface, padding: 12, borderWidth: 1, borderColor: palette.border }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.6, color: palette.textMuted }}>
-          Split {index + 1}
+    <View style={{
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      minHeight: ROW_MIN_HEIGHT,
+      paddingHorizontal: SCREEN_GUTTER,
+      paddingBottom: 6,
+    }}>
+      <TouchableOpacity
+        onPress={() => {
+          // Open category selector logic (ideally a custom small bottom sheet for speed)
+        }}
+        style={{
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+          paddingBottom: 6,
+        }}
+      >
+        <Text numberOfLines={1} style={{ fontSize: 13, color: row.categoryId ? palette.text : palette.textSoft, fontWeight: '500' }}>
+          {categoryName}
         </Text>
-        <TouchableOpacity onPress={() => onRemove(row.id)}>
-          <Ionicons name="close" size={18} color={palette.textMuted} />
+      </TouchableOpacity>
+
+      <View style={{
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        borderBottomWidth: isFocused ? 1.5 : 1,
+        borderBottomColor: isFocused ? palette.active : palette.borderSoft,
+        paddingBottom: 5.5,
+      }}>
+        <TextInput
+          value={row.amountStr}
+          onChangeText={(value) => onChange(row.id, { amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })}
+          keyboardType="decimal-pad"
+          placeholder="0"
+          placeholderTextColor={palette.textSoft}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          style={{
+            flex: 1,
+            fontSize: 15,
+            color: palette.text,
+            paddingVertical: 0,
+            lineHeight: 20,
+          }}
+        />
+        <TouchableOpacity
+          onPress={() => onRemove(row.id)}
+          style={{ paddingLeft: 12, paddingBottom: 2 }}
+        >
+          <Ionicons name="trash-outline" size={16} color={palette.negative} />
         </TouchableOpacity>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
-        {options.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            onPress={() => onChange(row.id, { categoryId: option.id })}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 7,
-              borderRadius: 12,
-              marginRight: 8,
-              backgroundColor: row.categoryId === option.id ? palette.tabActive : palette.surface,
-              borderWidth: 1,
-              borderColor: row.categoryId === option.id ? palette.tabActive : palette.border,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: '600',
-                color: row.categoryId === option.id ? '#fff' : palette.textMuted,
-              }}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <TextInput
-        value={row.amountStr}
-        onChangeText={(value) => onChange(row.id, { amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })}
-        keyboardType="decimal-pad"
-        placeholder="Split amount"
-        placeholderTextColor={palette.textMuted}
-        style={{
-          minHeight: 42,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: palette.border,
-          backgroundColor: palette.surface,
-          paddingHorizontal: 12,
-          color: palette.text,
-          fontSize: 14,
-        }}
-      />
     </View>
   );
 }
