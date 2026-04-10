@@ -11,6 +11,7 @@ export const SPACING = {
 
 export const SCREEN_GUTTER = SPACING.lg - 6;
 export const SHEET_GUTTER = SPACING.lg + 2;
+export const CARD_PADDING = SPACING.md;
 
 export const RADIUS = {
   sm: 12,

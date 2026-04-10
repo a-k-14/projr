@@ -489,7 +489,7 @@ function HomeAccountPage({
                   style={{
                     flex: 1,
                     height: HOME_LAYOUT.periodHeight,
-                    paddingHorizontal: 12,
+                    paddingHorizontal: CARD_PADDING,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: period === value
@@ -526,7 +526,7 @@ function HomeAccountPage({
             style={{
               backgroundColor: palette.card,
               borderRadius: HOME_RADIUS.card,
-              paddingHorizontal: 16,
+              paddingHorizontal: CARD_PADDING,
               paddingTop: 14,
               paddingBottom: 10,
               marginBottom: 14,
@@ -711,7 +711,7 @@ function HomeAccountPage({
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: 8,
-                paddingHorizontal: 16,
+                paddingHorizontal: CARD_PADDING,
               }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>

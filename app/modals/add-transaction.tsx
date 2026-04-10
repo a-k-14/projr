@@ -1509,7 +1509,7 @@ function TagPicker({
             key={tag.id}
             onPress={() => onToggle(tag.id)}
             style={{
-              paddingHorizontal: 14,
+              paddingHorizontal: SCREEN_GUTTER,
               paddingVertical: 8,
               borderRadius: 12,
               marginRight: 8,

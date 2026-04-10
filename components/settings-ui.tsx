@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { ReactNode } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
+import { RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE, CARD_PADDING } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
 
 export function ScreenTitle({
@@ -112,7 +112,7 @@ export function SettingsRow({
 
   const style = {
     minHeight: 62,
-    paddingHorizontal: SCREEN_GUTTER,
+    paddingHorizontal: CARD_PADDING,
     paddingVertical: 12,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,

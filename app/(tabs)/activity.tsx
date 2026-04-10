@@ -242,7 +242,7 @@ function ActivityAccountPage({
               alignItems: 'center',
               backgroundColor: palette.surface,
               borderRadius: HOME_RADIUS.card,
-              paddingHorizontal: 12,
+              paddingHorizontal: CARD_PADDING,
               paddingVertical: 10,
               marginBottom: SCREEN_GUTTER,
               borderWidth: 1,
@@ -268,7 +268,7 @@ function ActivityAccountPage({
                   key={f.value}
                   onPress={() => onTypeFilterChange(f.value)}
                   style={{
-                    paddingHorizontal: 16,
+                    paddingHorizontal: CARD_PADDING,
                     paddingVertical: 8,
                     borderRadius: HOME_RADIUS.tab,
                     marginRight: 8,
@@ -293,7 +293,7 @@ function ActivityAccountPage({
             <TouchableOpacity
               onPress={() => setShowCategoryFilter((v) => !v)}
               style={{
-                paddingHorizontal: 12,
+                paddingHorizontal: CARD_PADDING,
                 paddingVertical: 8,
                 borderRadius: HOME_RADIUS.tab,
                 borderWidth: 1,
@@ -325,7 +325,7 @@ function ActivityAccountPage({
                 <TouchableOpacity
                   onPress={() => onCategoryFilterChange(undefined)}
                   style={{
-                    paddingHorizontal: 14,
+                    paddingHorizontal: CARD_PADDING,
                     paddingVertical: 6,
                     borderRadius: HOME_RADIUS.tab,
                     marginRight: 8,
@@ -349,7 +349,7 @@ function ActivityAccountPage({
                     key={cat.id}
                     onPress={() => onCategoryFilterChange(categoryFilter === cat.id ? undefined : cat.id)}
                     style={{
-                      paddingHorizontal: 14,
+                      paddingHorizontal: CARD_PADDING,
                       paddingVertical: 6,
                       borderRadius: HOME_RADIUS.tab,
                       marginRight: 8,
