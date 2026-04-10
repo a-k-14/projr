@@ -689,7 +689,7 @@ export default function AddTransactionModal() {
               );
             })
           )}
-          <View style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: insets.bottom + 40 }}>
+          <View style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 20 }}>
             <RnghTouchableOpacity
               onPress={() => setShowTagSheet(false)}
               style={{
