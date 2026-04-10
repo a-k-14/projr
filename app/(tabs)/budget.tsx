@@ -10,6 +10,7 @@ import {
   RefreshControl,
   useColorScheme,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useBudgetStore } from '../../stores/useBudgetStore';
@@ -36,6 +37,7 @@ export default function BudgetScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const sym = settings.currencySymbol;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     load(settings.yearStart);
@@ -169,7 +171,7 @@ export default function BudgetScreen() {
         onPress={() => setShowAddModal(true)}
         style={{
           position: 'absolute',
-          bottom: 24,
+          bottom: Math.max(24, insets.bottom + 12),
           right: 24,
           width: 56,
           height: 56,
@@ -214,11 +216,9 @@ function BudgetCard({
   onDelete: () => void;
 }) {
   const isOver = budget.spent > budget.amount;
-  const barColor = isOver
-    ? palette.negative
-    : budget.percent > 75
-      ? palette.loan
-      : palette.active;
+  const isWarning = !isOver && budget.percent > 75;
+  const barColor = isOver ? palette.negative : isWarning ? palette.negative : palette.active;
+  const barOpacity = isWarning ? 0.55 : 1;
 
   return (
     <TouchableOpacity
@@ -269,6 +269,7 @@ function BudgetCard({
             height: 6,
             width: `${Math.min(budget.percent, 100)}%`,
             backgroundColor: barColor,
+            opacity: barOpacity,
             borderRadius: 3,
           }}
         />
@@ -280,8 +281,8 @@ function BudgetCard({
             ? `${formatCurrency(budget.spent - budget.amount, sym)} over`
             : `${formatCurrency(budget.remaining, sym)} left`}
         </Text>
-        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
-          {budget.percent}%
+        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : isWarning ? palette.negative : palette.textMuted }}>
+          {Math.round(budget.percent)}%
         </Text>
       </View>
     </TouchableOpacity>
