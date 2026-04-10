@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Keyboard, ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { SCREEN_GUTTER, CARD_PADDING, RADIUS, SPACING } from '../../lib/design';
 import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
@@ -45,6 +47,30 @@ export default function AccountFormScreen() {
   });
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+
+  const { calculatorValue, calculatorOpen, setCalculatorValue, setCalculatorOpen } =
+    useTransactionDraftStore();
+  const prevCalculatorOpen = useRef(calculatorOpen);
+
+  // Sync calculator result back to balance field when calculator closes
+  useEffect(() => {
+    if (prevCalculatorOpen.current === true && calculatorOpen === false) {
+      if (calculatorValue && calculatorValue !== '0') {
+        const clean = calculatorValue.replace(/[^0-9.]/g, '');
+        if (clean) setDraft((s) => ({ ...s, balance: clean }));
+      }
+    }
+    prevCalculatorOpen.current = calculatorOpen;
+  }, [calculatorOpen, calculatorValue]);
+
+  function handleOpenCalculator() {
+    Keyboard.dismiss();
+    setTimeout(() => {
+      setCalculatorOpen(true);
+      setCalculatorValue(draft.balance || '');
+      router.push('/modals/calculator');
+    }, 50);
+  }
 
   useEffect(() => {
     if (!isLoaded) load().catch(() => undefined);
@@ -156,31 +182,51 @@ export default function AccountFormScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Balance + Currency side by side */}
-        <View style={{ flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.lg }}>
-          <View style={{ flex: 1 }}>
-            <FieldLabel label="Balance" palette={palette} />
-            <InputField
-              palette={palette}
-              value={draft.balance}
-              onChangeText={(v) => setDraft((s) => ({ ...s, balance: v }))}
-              placeholder="0.00"
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={{ width: 110 }}>
-            <FieldLabel label="Currency" palette={palette} />
+        {/* Balance */}
+        <View style={{ marginBottom: SPACING.lg }}>
+          <FieldLabel label="Opening Balance" palette={palette} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm }}>
+            <View style={{ flex: 1 }}>
+              <InputField
+                palette={palette}
+                value={draft.balance}
+                onChangeText={(v) => setDraft((s) => ({ ...s, balance: v }))}
+                placeholder="0.00"
+                keyboardType="numeric"
+              />
+            </View>
             <TouchableOpacity
-              onPress={() => setShowCurrencyPicker(true)}
-              activeOpacity={0.7}
-              style={pickerRowStyle(palette)}
+              onPress={handleOpenCalculator}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: RADIUS.md,
+                borderWidth: 1,
+                borderColor: palette.border,
+                backgroundColor: palette.surface,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <Text style={{ color: palette.text, fontSize: 15 }}>
-                {selectedCurrency.symbol} {selectedCurrency.code}
-              </Text>
-              <Feather name="chevron-right" size={16} color={palette.textSoft} />
+              <Ionicons name="calculator-outline" size={20} color={palette.text} />
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Currency */}
+        <View style={{ marginBottom: SPACING.lg }}>
+          <FieldLabel label="Currency" palette={palette} />
+          <TouchableOpacity
+            onPress={() => setShowCurrencyPicker(true)}
+            activeOpacity={0.7}
+            style={pickerRowStyle(palette)}
+          >
+            <Text style={{ color: palette.text, fontSize: 15 }}>
+              {selectedCurrency.symbol} {selectedCurrency.code}
+            </Text>
+            <Feather name="chevron-right" size={16} color={palette.textSoft} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
