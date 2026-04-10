@@ -15,7 +15,7 @@ export function ScreenTitle({
   palette: AppThemePalette;
 }) {
   return (
-    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: SPACING.md }}>
+    <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: SPACING.md }}>
       <Text style={{ fontSize: 26, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>{title}</Text>
       {subtitle ? (
         <Text style={{ fontSize: TYPE.caption, color: palette.textMuted, marginTop: 2, lineHeight: 17 }}>
@@ -34,7 +34,7 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
         fontWeight: '600',
         letterSpacing: 1.2,
         color: palette.textMuted,
-        marginHorizontal: SCREEN_GUTTER,
+        marginHorizontal: 14,
         marginBottom: 6,
         marginTop: 4,
         textTransform: 'uppercase',

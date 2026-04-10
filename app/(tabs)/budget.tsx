@@ -18,7 +18,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency } from '../../lib/derived';
 import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER, CARD_PADDING } from '../../lib/design';
 import {
   HOME_RADIUS,
   HOME_SHADOW,
@@ -66,9 +66,9 @@ export default function BudgetScreen() {
 
         {/* Summary */}
         {budgets.length > 0 && (
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.xl }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: SCREEN_GUTTER }}>
             <View style={{ flexDirection: 'row', gap: HOME_SPACE.md }}>
-              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: HOME_SPACE.xl }}>
+              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: CARD_PADDING }}>
                 <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
                   BUDGETED
                 </Text>
@@ -76,7 +76,7 @@ export default function BudgetScreen() {
                   {formatCurrency(totalBudgeted, sym)}
                 </Text>
               </View>
-              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: HOME_SPACE.xl }}>
+              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: CARD_PADDING }}>
                 <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
                   SPENT
                 </Text>
@@ -91,7 +91,7 @@ export default function BudgetScreen() {
                   {formatCurrency(totalSpent, sym)}
                 </Text>
               </View>
-              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: HOME_SPACE.xl }}>
+              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: CARD_PADDING }}>
                 <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
                   LEFT
                 </Text>

@@ -389,7 +389,7 @@ function ActivityAccountPage({
         const { date, label } = getRelativeDateLabel(item.dateKey);
         return (
           <View style={{ marginBottom: 16 }}>
-            <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.sm + 2, flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: SCREEN_GUTTER, flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textSoft }}>
                 {date}
               </Text>

@@ -17,7 +17,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER, CARD_PADDING } from '../../lib/design';
 import {
   HOME_RADIUS,
   HOME_SHADOW,
@@ -78,13 +78,13 @@ export default function LoansScreen() {
             </View>
 
             {/* Summary cards: Lent / Owe */}
-            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginBottom: HOME_SPACE.md }}>
+            <View style={{ flexDirection: 'row', gap: SCREEN_GUTTER, marginBottom: SCREEN_GUTTER }}>
               <View
                 style={{
                   flex: 1,
                   backgroundColor: palette.surface,
                   borderRadius: HOME_RADIUS.card,
-                  padding: HOME_SPACE.xl,
+                  padding: CARD_PADDING,
                 }}
               >
                 <Text
