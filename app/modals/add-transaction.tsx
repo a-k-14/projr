@@ -45,12 +45,10 @@ type SplitDraft = {
   amountStr: string;
 };
 
-const ROW_LABEL_WIDTH = 88;
-const ROW_MIN_HEIGHT = 60;
-const ROW_COLUMN_GAP = 12;
+const ROW_LABEL_WIDTH = 92;
+const ROW_MIN_HEIGHT = 62;
+const ROW_COLUMN_GAP = 16;
 const ROW_TRAILING_WIDTH = 24;
-const FIELD_RADIUS = 14;
-const FIELD_HEIGHT = 44;
 
 function sanitizeDecimalInput(value: string): string {
   // Remove any character that isn't a digit or a period
@@ -743,27 +741,16 @@ function FieldRow({
     <View
       style={{
         paddingHorizontal: SCREEN_GUTTER,
-        paddingVertical: 12,
-        borderBottomWidth: noBorder ? 0 : 1,
+        paddingVertical: 14,
+        borderBottomWidth: noBorder === false ? 1 : 0,
         borderBottomColor: palette.border,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: ROW_MIN_HEIGHT }}>
-        <Text
-          numberOfLines={1}
-          style={{
-            width: ROW_LABEL_WIDTH,
-            paddingRight: ROW_COLUMN_GAP,
-            fontSize: 15,
-            fontWeight: '500',
-            color: palette.textMuted,
-          }}
-        >
-          {label}
-        </Text>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          {children}
-        </View>
+      <Text style={{ fontSize: 15, fontWeight: '500', color: palette.textMuted, marginBottom: 10 }}>
+        {label}
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        {children}
       </View>
     </View>
   );
@@ -873,38 +860,57 @@ function PickerRow({
   palette: any;
 }) {
   return (
-    <FieldRow label={label} palette={palette}>
-      <TouchableOpacity
-        onPress={onPress}
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
         style={{
-          minHeight: FIELD_HEIGHT,
-          borderRadius: FIELD_RADIUS,
-          borderWidth: 1,
-          borderColor: palette.borderSoft,
-          backgroundColor: palette.inputBg,
-          paddingLeft: 14,
-          paddingRight: 10,
+          fontSize: 15,
+          fontWeight: '500',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
+        <View
+        style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          borderBottomWidth: 0,
+          borderBottomColor: palette.border,
+          paddingLeft: 4,
         }}
       >
         <Text
           style={{
             fontSize: 15,
-            fontWeight: '500',
+            fontWeight: '400',
             color: placeholder ? palette.textMuted : palette.text,
+            textAlign: 'left',
             flexShrink: 1,
           }}
           numberOfLines={1}
         >
           {value}
         </Text>
-        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-end', justifyContent: 'center' }}>
+        <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
           <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
         </View>
-      </TouchableOpacity>
-    </FieldRow>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -924,46 +930,65 @@ function InteractiveDateTimeRow({
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
 
   return (
-    <FieldRow label="Date" palette={palette}>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        Date
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderBottomWidth: 0,
+          borderBottomColor: palette.border,
+          minHeight: ROW_MIN_HEIGHT,
+          paddingLeft: 4,
+          gap: 8,
+        }}
+      >
         <TouchableOpacity
           onPress={onOpenDate}
           style={{
-            flex: 1.35,
-            minHeight: FIELD_HEIGHT,
-            borderRadius: FIELD_RADIUS,
-            borderWidth: 1,
-            borderColor: palette.borderSoft,
+            flex: 1.5, // Priority to date
             backgroundColor: palette.inputBg,
-            paddingHorizontal: 14,
+            paddingVertical: 9,
+            borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: palette.text }} numberOfLines={1}>
-            {dateStr}
-          </Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onOpenTime}
           style={{
-            flex: 0.9,
-            minHeight: FIELD_HEIGHT,
-            borderRadius: FIELD_RADIUS,
-            borderWidth: 1,
-            borderColor: palette.borderSoft,
+            flex: 0.9, // Slightly expanded time
             backgroundColor: palette.inputBg,
-            paddingHorizontal: 14,
+            paddingVertical: 9,
+            borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: palette.text }} numberOfLines={1}>
-            {timeStr}
-          </Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
         </TouchableOpacity>
       </View>
-    </FieldRow>
+    </View>
   );
 }
 
@@ -986,21 +1011,40 @@ function AmountRow({
 }) {
   const [isFocused, setIsFocused] = useState(false);
   return (
-    <FieldRow label={`Amount (${sym})`} palette={palette}>
-      <View
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
         style={{
-          minHeight: FIELD_HEIGHT,
-          borderRadius: FIELD_RADIUS,
-          borderWidth: 1,
-          borderColor: isFocused ? palette.active : palette.borderSoft,
-          backgroundColor: palette.inputBg,
-          paddingLeft: 14,
-          paddingRight: 10,
-          flexDirection: 'row',
-          alignItems: 'center',
+          fontSize: 15,
+          fontWeight: '500',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
         }}
       >
-        <Text style={{ fontSize: 14, fontWeight: '700', color: palette.textMuted, marginRight: 8 }}>{sym}</Text>
+        Amount ({sym})
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          borderBottomWidth: isFocused ? 1.5 : 1,
+          borderBottomColor: isFocused ? palette.active : palette.borderSoft,
+          paddingLeft: 4,
+          paddingBottom: 4.8, // Final baseline match for 20pt vs 15pt
+        }}
+      >
         <TextInput
           value={amountStr}
           onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
@@ -1009,11 +1053,12 @@ function AmountRow({
           placeholderTextColor={palette.textSoft}
           style={{
             flex: 1,
-            minWidth: 0,
             fontSize: 20,
-            fontWeight: '600',
+            fontWeight: '400',
             color: activeConfig.color,
             paddingVertical: 0,
+            textAlign: 'left',
+            lineHeight: 24, // Consistent baseline
           }}
           autoFocus={!isEditing}
           onFocus={() => setIsFocused(true)}
@@ -1023,18 +1068,18 @@ function AmountRow({
           onPress={onOpenCalculator}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: 10,
-            backgroundColor: palette.surface,
+            width: ROW_TRAILING_WIDTH + 14,
+            height: 38, // Reduced from ROW_MIN_HEIGHT to stay aligned with bottom-aligned text
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="calculator-outline" size={16} color={palette.text} />
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="calculator-outline" size={16} color={palette.text} />
+          </View>
         </TouchableOpacity>
       </View>
-    </FieldRow>
+    </View>
   );
 }
 
@@ -1053,17 +1098,37 @@ function InlineInputRow({
 }) {
   const [isFocused, setIsFocused] = useState(false);
   return (
-    <FieldRow label={label} palette={palette}>
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '500',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
       <View
         style={{
-          minHeight: FIELD_HEIGHT,
-          borderRadius: FIELD_RADIUS,
-          borderWidth: 1,
-          borderColor: isFocused ? palette.active : palette.borderSoft,
-          backgroundColor: palette.inputBg,
-          paddingHorizontal: 14,
-          alignItems: 'center',
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
           flexDirection: 'row',
+          alignItems: 'flex-end',
+          borderBottomWidth: isFocused ? 1.5 : 1,
+          borderBottomColor: isFocused ? palette.active : palette.borderSoft,
+          paddingLeft: 4,
+          paddingBottom: 5.5, // Micro-adjusted for baseline
         }}
       >
         <TextInput
@@ -1079,12 +1144,13 @@ function InlineInputRow({
             color: palette.text,
             paddingVertical: 0,
             textAlign: 'left',
+            lineHeight: 20,
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
       </View>
-    </FieldRow>
+    </View>
   );
 }
 
@@ -1184,42 +1250,32 @@ function SplitSection({
 
 function ReceiptSection({ palette }: { palette: any }) {
   return (
-    <FieldRow label="Receipt" palette={palette}>
-      <TouchableOpacity
-        onPress={() => Alert.alert('Receipt capture', 'Receipt capture is coming next.')}
-        style={{
-          minHeight: FIELD_HEIGHT,
-          borderRadius: FIELD_RADIUS,
-          borderWidth: 1,
-          borderColor: palette.borderSoft,
-          backgroundColor: palette.inputBg,
-          paddingHorizontal: 14,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
-          <View
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 9,
-              backgroundColor: palette.surface,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="camera-outline" size={18} color={palette.tabActive} />
-          </View>
-          <View>
-            <Text style={{ fontSize: 14, color: palette.text, fontWeight: '600' }}>Add receipt</Text>
-            <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>Tap to scan or attach</Text>
-          </View>
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
+        Receipt
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+        <TouchableOpacity
+          onPress={() => Alert.alert('Receipt capture', 'Receipt capture is coming next.')}
+          style={{
+            width: 58,
+            height: 58,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            backgroundColor: palette.surface,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="camera-outline" size={22} color={palette.tabActive} />
+        </TouchableOpacity>
+        <View style={{ justifyContent: 'center' }}>
+          <Text style={{ fontSize: 13, color: palette.text, fontWeight: '400' }}>Add receipt</Text>
+          <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>Tap camera to scan</Text>
         </View>
-        <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
-      </TouchableOpacity>
-    </FieldRow>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -1233,35 +1289,19 @@ function NotesSection({
   palette: any;
 }) {
   return (
-    <FieldRow label="Notes" noBorder palette={palette}>
-      <View
-        style={{
-          minHeight: 78,
-          borderRadius: FIELD_RADIUS,
-          borderWidth: 1,
-          borderColor: palette.borderSoft,
-          backgroundColor: palette.inputBg,
-          paddingHorizontal: 14,
-          paddingTop: 12,
-          paddingBottom: 12,
-        }}
-      >
-        <TextInput
-          value={note}
-          onChangeText={onChangeNote}
-          placeholder="Add a note..."
-          placeholderTextColor={palette.textMuted}
-          style={{
-            minHeight: 54,
-            fontSize: 15,
-            color: palette.text,
-            paddingVertical: 0,
-            textAlignVertical: 'top',
-          }}
-          multiline
-        />
-      </View>
-    </FieldRow>
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
+        Notes
+      </Text>
+      <TextInput
+        value={note}
+        onChangeText={onChangeNote}
+        placeholder="Add a note..."
+        placeholderTextColor={palette.textMuted}
+        style={{ minHeight: 72, fontSize: 15, color: palette.text, paddingVertical: 0, textAlignVertical: 'top' }}
+        multiline
+      />
+    </View>
   );
 }
 

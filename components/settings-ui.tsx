@@ -30,7 +30,7 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
   return (
     <Text
       style={{
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '600',
         letterSpacing: 1.2,
         color: palette.textMuted,
