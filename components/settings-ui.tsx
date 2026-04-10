@@ -347,21 +347,19 @@ export function IconGrid({
             activeOpacity={0.7}
             onPress={() => onSelect(icon)}
             style={{
-              width: '18%',
-              aspectRatio: 1,
-              borderRadius: 16,
-              borderWidth: 1,
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              borderWidth: isSelected ? 2 : 1,
               borderColor: isSelected ? palette.tabActive : palette.border,
-              backgroundColor: isSelected
-                ? palette.surfaceRaised
-                : palette.surface,
+              backgroundColor: isSelected ? palette.surfaceRaised : palette.surface,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             <Feather
               name={icon as any}
-              size={20}
+              size={24}
               color={isSelected ? palette.tabActive : palette.iconTint}
             />
           </TouchableOpacity>
