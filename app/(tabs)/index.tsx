@@ -35,6 +35,7 @@ import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { formatAccountDisplayName } from '../../lib/account-utils';
 import type {
   CashflowSummary,
   DailyCashflow,
@@ -70,7 +71,10 @@ export default function HomeScreen() {
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
 
-  const displayAccounts: AccountTab[] = [{ id: 'all', name: 'All' }, ...accounts.map((a) => ({ id: a.id, name: a.name }))];
+  const displayAccounts: AccountTab[] = [
+    { id: 'all', name: 'All' },
+    ...accounts.map((a) => ({ id: a.id, name: formatAccountDisplayName(a.name, a.accountNumber) })),
+  ];
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
 

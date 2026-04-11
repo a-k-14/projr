@@ -89,4 +89,6 @@ export async function runMigrations() {
 
   await ensureColumn('transactions', 'split_data', "TEXT NOT NULL DEFAULT '[]'");
   await ensureColumn('transactions', 'payee', 'TEXT');
+  await ensureColumn('accounts', 'account_number', 'TEXT');
+  await ensureColumn('accounts', 'initial_balance', 'REAL');
 }

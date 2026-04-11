@@ -1,4 +1,4 @@
-export type AccountType = 'savings' | 'credit' | 'cash' | 'wallet';
+export type AccountType = 'savings' | 'credit' | 'cash' | 'wallet' | 'other';
 export type TransactionType = 'in' | 'out' | 'transfer' | 'loan';
 export type LoanDirection = 'lent' | 'borrowed';
 export type LoanStatus = 'open' | 'closed';
@@ -13,6 +13,8 @@ export interface Account {
   currency: string;
   color: string;
   icon: string;
+  accountNumber?: string;
+  initialBalance: number;
   createdAt: string;
 }
 
@@ -150,6 +152,8 @@ export interface CreateAccountInput {
   currency?: string;
   color: string;
   icon: string;
+  accountNumber?: string;
+  initialBalance: number;
 }
 
 export interface CreateTransactionInput {

@@ -9,6 +9,7 @@ import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { SCREEN_GUTTER, SPACING } from '../../lib/design';
 import { symbolFor, formatDisplayCurrency } from '../../lib/settings-shared';
 import { CardSection, SettingsRow } from '../../components/settings-ui';
+import { formatAccountDisplayName } from '../../lib/account-utils';
 
 export default function AccountsScreen() {
   const { accounts, load, isLoaded } = useAccountsStore();
@@ -23,27 +24,19 @@ export default function AccountsScreen() {
   }, [isLoaded, load]);
 
   return (
-    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACING.lg, paddingBottom: 8 }}>
         <CardSection palette={palette}>
           {accounts.map((account, index) => (
             <SettingsRow
               key={account.id}
-              icon={(account.icon as keyof typeof Feather.glyphMap) ?? 'credit-card'}
-              label={account.name}
+              label={formatAccountDisplayName(account.name, account.accountNumber)}
+              subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatDisplayCurrency(account.initialBalance, symbolFor(account.currency))}`}
               palette={palette}
               onPress={() =>
                 router.push({ pathname: '/settings/account-form', params: { id: account.id } })
               }
               noBorder={index === accounts.length - 1}
-              rightElement={
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: palette.textMuted, fontSize: 13, fontWeight: '500' }}>
-                    {`${account.type} · ${formatDisplayCurrency(account.balance, symbolFor(account.currency))}`}
-                  </Text>
-                  <Feather name="chevron-right" size={18} color={palette.textSoft} />
-                </View>
-              }
             />
           ))}
           {accounts.length === 0 && (
@@ -61,7 +54,7 @@ export default function AccountsScreen() {
           borderTopColor: palette.divider,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: SPACING.md,
-          paddingBottom: insets.bottom + SPACING.md,
+          paddingBottom: (insets.bottom || 16) + 2,
           backgroundColor: palette.background,
         }}
       >

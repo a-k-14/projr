@@ -10,19 +10,15 @@ import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore'
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { SCREEN_GUTTER, CARD_PADDING, RADIUS, SPACING } from '../../lib/design';
 import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
+import { formatAccountDisplayName } from '../../lib/account-utils';
+import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { ActionButton, ChoiceRow, FieldLabel, InputField } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 
-/** Auto-derives a sensible Feather icon name from the account type. */
-const TYPE_ICON: Record<string, string> = {
-  savings: 'archive',
-  credit: 'credit-card',
-  cash: 'dollar-sign',
-  wallet: 'briefcase',
-};
 
 type Draft = {
   name: string;
+  accountNumber: string;
   type: (typeof ACCOUNT_TYPES)[number]['key'];
   balance: string;
   currency: string;
@@ -41,8 +37,9 @@ export default function AccountFormScreen() {
 
   const [draft, setDraft] = useState<Draft>({
     name: '',
+    accountNumber: '',
     type: 'savings',
-    balance: '0',
+    balance: '',
     currency: settings.currency ?? 'INR',
   });
   const [showTypePicker, setShowTypePicker] = useState(false);
@@ -69,7 +66,14 @@ export default function AccountFormScreen() {
       setCalculatorOpen(true);
       setCalculatorValue(draft.balance || '');
       router.push('/modals/calculator');
-    }, 50);
+    }, 150);
+  }
+
+  function handlePickerOpen(showSetter: (v: boolean) => void) {
+    Keyboard.dismiss();
+    setTimeout(() => {
+      showSetter(true);
+    }, 150);
   }
 
   useEffect(() => {
@@ -82,21 +86,28 @@ export default function AccountFormScreen() {
       if (account) {
         setDraft({
           name: account.name,
+          accountNumber: account.accountNumber ?? '',
           type: account.type,
           balance: String(account.balance),
           currency: account.currency,
         });
       }
     } else {
-      setDraft({ name: '', type: 'savings', balance: '0', currency: settings.currency ?? 'INR' });
+      setDraft({
+        name: '',
+        accountNumber: '',
+        type: 'savings',
+        balance: '',
+        currency: settings.currency ?? 'INR',
+      });
     }
   }, [id, accounts, settings.currency]);
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? (draft.name || 'Edit Account') : 'New Account',
+      title: isEditing ? 'Edit Account' : 'New Account',
     });
-  }, [draft.name, isEditing, navigation]);
+  }, [isEditing, navigation]);
 
   async function onSave() {
     const name = draft.name.trim();
@@ -106,11 +117,13 @@ export default function AccountFormScreen() {
     }
     const payload = {
       name,
+      accountNumber: draft.accountNumber.trim() || undefined,
       type: draft.type,
       balance: Number.parseFloat(draft.balance || '0') || 0,
+      initialBalance: Number.parseFloat(draft.balance || '0') || 0,
       currency: draft.currency,
       color: ENTITY_COLORS[0],
-      icon: TYPE_ICON[draft.type] ?? 'credit-card',
+      icon: 'wallet', // Default dummy icon, no longer managed by user
     };
     if (isEditing && id) {
       await update(id, payload);
@@ -151,7 +164,7 @@ export default function AccountFormScreen() {
   const selectedCurrency = CURRENCIES.find((c) => c.code === draft.currency) ?? CURRENCIES[0];
 
   return (
-    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: SCREEN_GUTTER, paddingBottom: SPACING.xl }}
@@ -169,38 +182,54 @@ export default function AccountFormScreen() {
           />
         </View>
 
-        {/* Account Type */}
+        {/* Account Number */}
         <View style={{ marginBottom: SPACING.lg }}>
+          <FieldLabel label="Account Number" palette={palette} />
+          <InputField
+            palette={palette}
+            value={draft.accountNumber}
+            onChangeText={(v) => setDraft((s) => ({ ...s, accountNumber: v }))}
+            placeholder="e.g. 1234 5678 1234"
+            keyboardType="numeric"
+          />
+        </View>
+
+        {/* Account Type */}
+        <View style={{ marginBottom: SPACING.xl }}>
           <FieldLabel label="Account Type" palette={palette} />
           <TouchableOpacity
-            onPress={() => setShowTypePicker(true)}
+            onPress={() => handlePickerOpen(setShowTypePicker)}
             activeOpacity={0.7}
             style={pickerRowStyle(palette)}
           >
-            <Text style={{ color: palette.text, fontSize: 15 }}>{selectedType?.label ?? ''}</Text>
-            <Feather name="chevron-right" size={16} color={palette.textSoft} />
+            <Text style={{ color: palette.text, fontSize: 16 }}>{selectedType?.label ?? ''}</Text>
+            <Feather name="chevron-down" size={20} color={palette.textSoft} />
           </TouchableOpacity>
         </View>
 
         {/* Balance */}
         <View style={{ marginBottom: SPACING.lg }}>
           <FieldLabel label="Opening Balance" palette={palette} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SCREEN_GUTTER }}>
             <View style={{ flex: 1 }}>
               <InputField
                 palette={palette}
                 value={draft.balance}
-                onChangeText={(v) => setDraft((s) => ({ ...s, balance: v }))}
+                onChangeText={(v) => {
+                  const clean = v.replace(/[^0-9.]/g, '');
+                  setDraft((s) => ({ ...s, balance: clean }));
+                }}
                 placeholder="0.00"
+                placeholderTextColor={palette.textSoft}
                 keyboardType="numeric"
               />
             </View>
             <TouchableOpacity
               onPress={handleOpenCalculator}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
               style={{
-                width: 46,
-                height: 46,
+                width: 56,
+                height: 56,
                 borderRadius: RADIUS.md,
                 borderWidth: 1,
                 borderColor: palette.border,
@@ -209,23 +238,23 @@ export default function AccountFormScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="calculator-outline" size={20} color={palette.text} />
+              <Ionicons name="calculator-outline" size={24} color={palette.text} />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Currency */}
-        <View style={{ marginBottom: SPACING.lg }}>
+        <View style={{ marginBottom: SPACING.xl }}>
           <FieldLabel label="Currency" palette={palette} />
           <TouchableOpacity
-            onPress={() => setShowCurrencyPicker(true)}
+            onPress={() => handlePickerOpen(setShowCurrencyPicker)}
             activeOpacity={0.7}
             style={pickerRowStyle(palette)}
           >
-            <Text style={{ color: palette.text, fontSize: 15 }}>
+            <Text style={{ color: palette.text, fontSize: 16 }}>
               {selectedCurrency.symbol} {selectedCurrency.code}
             </Text>
-            <Feather name="chevron-right" size={16} color={palette.textSoft} />
+            <Feather name="chevron-down" size={20} color={palette.textSoft} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -237,7 +266,7 @@ export default function AccountFormScreen() {
           borderTopColor: palette.divider,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: SPACING.md,
-          paddingBottom: insets.bottom + SPACING.md,
+          paddingBottom: (insets.bottom || 16) + 2,
           backgroundColor: palette.background,
           gap: SPACING.sm,
         }}
@@ -265,6 +294,7 @@ export default function AccountFormScreen() {
           palette={palette}
           onClose={() => setShowTypePicker(false)}
           hasNavBar
+          extraBottomPadding={10}
         >
           {ACCOUNT_TYPES.map((t, i) => (
             <ChoiceRow
@@ -290,6 +320,7 @@ export default function AccountFormScreen() {
           palette={palette}
           onClose={() => setShowCurrencyPicker(false)}
           hasNavBar
+          extraBottomPadding={10}
         >
           {CURRENCIES.map((c, i) => (
             <ChoiceRow
@@ -313,7 +344,7 @@ export default function AccountFormScreen() {
 
 function pickerRowStyle(palette: { border: string; surface: string }) {
   return {
-    minHeight: 46,
+    minHeight: 52,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: palette.border,

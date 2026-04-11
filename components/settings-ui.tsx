@@ -30,14 +30,12 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
   return (
     <Text
       style={{
-        fontSize: 11,
-        fontWeight: '600',
-        letterSpacing: 1.2,
+        fontSize: 13,
+        fontWeight: '700',
         color: palette.textMuted,
         marginHorizontal: 14,
         marginBottom: 6,
         marginTop: 4,
-        textTransform: 'uppercase',
       }}
     >
       {label}
@@ -77,29 +75,49 @@ export function SettingsRow({
   onPress,
   noBorder,
   rightElement,
+  subtitle,
+  leftElement,
 }: {
-  icon: keyof typeof Feather.glyphMap;
+  icon?: keyof typeof Feather.glyphMap;
   label: string;
+  subtitle?: string;
   value?: string;
   palette: AppThemePalette;
   onPress?: () => void;
   noBorder?: boolean;
   rightElement?: ReactNode;
+  leftElement?: ReactNode;
 }) {
   const content = (
     <>
-      <Feather name={icon} size={18} color={palette.iconTint} />
-      <Text
-        style={{
-          flex: 1,
-          fontSize: 15,
-          fontWeight: '400',
-          color: palette.text,
-          marginLeft: 14,
-        }}
-      >
-        {label}
-      </Text>
+      {leftElement ? (
+        leftElement
+      ) : icon ? (
+        <Feather name={icon} size={18} color={palette.iconTint} />
+      ) : null}
+      <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
+        <Text
+          style={{
+            fontSize: 15,
+            fontWeight: '500',
+            color: palette.text,
+          }}
+        >
+          {label}
+        </Text>
+        {subtitle ? (
+          <Text
+            style={{
+              fontSize: 13,
+              color: palette.textMuted,
+              marginTop: 2,
+              fontWeight: '400',
+            }}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
       {rightElement ? rightElement : null}
       {!rightElement && value ? (
         <Text style={{ fontSize: 13, color: palette.textMuted, marginRight: 10 }} numberOfLines={1}>
@@ -111,9 +129,9 @@ export function SettingsRow({
   );
 
   const style = {
-    minHeight: 62,
+    minHeight: 72,
     paddingHorizontal: CARD_PADDING,
-    paddingVertical: 12,
+    paddingVertical: 16,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     borderBottomWidth: noBorder ? 0 : 1,
@@ -138,7 +156,7 @@ export function ChoiceRow({
   onPress,
   noBorder,
   leftElement,
-  horizontalPadding = SHEET_GUTTER,
+  horizontalPadding = CARD_PADDING,
 }: {
   title: string;
   subtitle?: string;
@@ -247,7 +265,14 @@ export function PickerChip({
 
 export function FieldLabel({ label, palette }: { label: string; palette: AppThemePalette }) {
   return (
-    <Text style={{ fontSize: 11, fontWeight: '500', color: palette.textMuted, marginBottom: 4 }}>
+    <Text
+      style={{
+        fontSize: 13,
+        fontWeight: '700',
+        color: palette.textMuted,
+        marginBottom: 8,
+      }}
+    >
       {label}
     </Text>
   );
@@ -262,14 +287,15 @@ export function InputField({
       {...props}
       style={[
         {
-          minHeight: 46,
+          minHeight: 56,
           borderRadius: RADIUS.md,
           borderWidth: 1,
           borderColor: palette.border,
           backgroundColor: palette.surface,
-          paddingHorizontal: SPACING.lg,
+          paddingHorizontal: CARD_PADDING,
+          paddingVertical: 12,
           color: palette.text,
-          fontSize: 15,
+          fontSize: 16,
         },
         props.style as any,
       ]}

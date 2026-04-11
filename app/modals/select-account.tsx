@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SCREEN_GUTTER, SHEET_GUTTER, RADIUS, SPACING } from '../../lib/design';
+import { formatAccountDisplayName } from '../../lib/account-utils';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -81,8 +82,8 @@ export default function SelectAccountSheet() {
                 }}
               >
                 <View>
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
-                    {account.name}
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: palette.text }}>
+                    {formatAccountDisplayName(account.name, account.accountNumber)}
                   </Text>
                   <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>
                     {account.type}

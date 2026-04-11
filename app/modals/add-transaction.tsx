@@ -22,6 +22,7 @@ import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../
 import DateTimePicker, { DateTimePickerAndroid, DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { RADIUS, SCREEN_GUTTER } from '../../lib/design';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { formatAccountDisplayName } from '../../lib/account-utils';
 import { getTransactionById } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -532,13 +533,22 @@ export default function AddTransactionModal() {
                   palette={palette}
                 />
               </FieldRow>
+              <AmountRow
+                sym={sym}
+                activeConfig={activeConfig}
+                amountStr={amountStr}
+                setAmountStr={setAmountStr}
+                onOpenCalculator={handleOpenCalculator}
+                isEditing={isEditing}
+                palette={palette}
+              />
               <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
               <FieldRow label="Notes" noBorder palette={palette}>
                 <TextInput
                   value={note}
                   onChangeText={setNote}
                   placeholder="Add a note..."
-                  placeholderTextColor={palette.textMuted}
+                  placeholderTextColor={palette.textSoft}
                   style={{ flex: 1, fontSize: 15, color: palette.text, paddingVertical: 0 }}
                   multiline
                 />
@@ -550,6 +560,15 @@ export default function AddTransactionModal() {
                 <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} palette={palette} />
               </FieldRow>
               <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} />
+              <AmountRow
+                sym={sym}
+                activeConfig={activeConfig}
+                amountStr={amountStr}
+                setAmountStr={setAmountStr}
+                onOpenCalculator={handleOpenCalculator}
+                isEditing={isEditing}
+                palette={palette}
+              />
               <FieldRow label="Direction" palette={palette}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {(['lent', 'borrowed'] as const).map((d) => (
@@ -569,7 +588,7 @@ export default function AddTransactionModal() {
                       <Text
                         style={{
                           fontSize: 13,
-                          fontWeight: '600',
+                          fontWeight: '700',
                           color: loanDirection === d ? palette.active : palette.textMuted,
                         }}
                       >
@@ -585,7 +604,7 @@ export default function AddTransactionModal() {
                   value={note}
                   onChangeText={setNote}
                   placeholder="Add a note..."
-                  placeholderTextColor={palette.textMuted}
+                  placeholderTextColor={palette.textSoft}
                   style={{ flex: 1, fontSize: 15, color: palette.text, paddingVertical: 0 }}
                   multiline
                 />
@@ -615,7 +634,7 @@ export default function AddTransactionModal() {
           left: 0,
           right: 0,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingBottom: insets.bottom + 14,
+          paddingBottom: (insets.bottom || 16) + 4,
           paddingTop: 12,
           backgroundColor: palette.background,
         }}
@@ -654,7 +673,7 @@ export default function AddTransactionModal() {
                 return (
                   <ChoiceRow
                     key={account.id}
-                    title={account.name}
+                    title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
                     subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatIndianNumberStr(String(account.balance))} ${sym}`}
                     selected={accountId === account.id}
                     palette={palette}
@@ -746,7 +765,7 @@ function FieldRow({
         borderBottomColor: palette.border,
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '500', color: palette.textMuted, marginBottom: 10 }}>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -790,8 +809,8 @@ function InlinePickerRow({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 15,
-          fontWeight: '500',
+          fontSize: 13,
+          fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
@@ -940,8 +959,8 @@ function InteractiveDateTimeRow({
     >
       <Text
         style={{
-          fontSize: 15,
-          fontWeight: '500',
+          fontSize: 13,
+          fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
@@ -1022,8 +1041,8 @@ function AmountRow({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 15,
-          fontWeight: '500',
+          fontSize: 13,
+          fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
@@ -1042,7 +1061,8 @@ function AmountRow({
           borderBottomWidth: isFocused ? 1.5 : 1,
           borderBottomColor: isFocused ? palette.active : palette.borderSoft,
           paddingLeft: 4,
-          paddingBottom: 4.8, // Final baseline match for 20pt vs 15pt
+          paddingBottom: 4.8,
+          gap: SCREEN_GUTTER,
         }}
       >
         <TextInput
@@ -1109,8 +1129,8 @@ function InlineInputRow({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 15,
-          fontWeight: '500',
+          fontSize: 13,
+          fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
@@ -1128,14 +1148,15 @@ function InlineInputRow({
           borderBottomWidth: isFocused ? 1.5 : 1,
           borderBottomColor: isFocused ? palette.active : palette.borderSoft,
           paddingLeft: 4,
-          paddingBottom: 5.5, // Micro-adjusted for baseline
+          paddingBottom: 5.5,
         }}
       >
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={palette.textMuted}
+          placeholderTextColor={palette.textSoft}
+          placeholderTextColor={palette.textSoft}
           style={{
             flex: 1,
             minWidth: 0,
@@ -1290,14 +1311,14 @@ function NotesSection({
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
         Notes
       </Text>
       <TextInput
         value={note}
         onChangeText={onChangeNote}
         placeholder="Add a note..."
-        placeholderTextColor={palette.textMuted}
+        placeholderTextColor={palette.textSoft}
         style={{ minHeight: 72, fontSize: 15, color: palette.text, paddingVertical: 0, textAlignVertical: 'top' }}
         multiline
       />
