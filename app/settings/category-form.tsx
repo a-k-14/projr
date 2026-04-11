@@ -5,6 +5,7 @@ import { Alert, Text, TouchableOpacity, View, useColorScheme } from 'react-nativ
 import {
   ActionButton,
   FixedBottomActions,
+  IconBtn,
   InputField,
   SectionLabel,
   SettingsFormLayout,
@@ -240,7 +241,7 @@ export default function CategoryFormScreen() {
     >
       <View style={{ gap: SPACING.md }}>
         <SectionLabel label="General Info" palette={palette} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <IconBadge
             icon={icon}
             size={22}
@@ -258,22 +259,14 @@ export default function CategoryFormScreen() {
             />
           </View>
           {isEditing && (
-            <TouchableOpacity
+            <IconBtn
               onPress={onDelete}
+              variant="danger"
+              palette={palette}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-              style={{
-                width: 46,
-                height: 56,
-                borderRadius: 10,
-                backgroundColor: palette.inputBg,
-                borderWidth: 1,
-                borderColor: palette.border,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
             >
               <Feather name="trash-2" size={18} color={palette.negative} />
-            </TouchableOpacity>
+            </IconBtn>
           )}
         </View>
 
@@ -324,9 +317,8 @@ export default function CategoryFormScreen() {
                 </Text>
               )}
               {visibleSubs.map((sub, renderIdx) => (
-                <View
-                  key={sub.id ?? `new-${sub.originalIdx}`}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                  <View key={sub.id ?? `new-${sub.originalIdx}`}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
                 >
                   <View style={{ flex: 1 }}>
                     <InputField
@@ -337,22 +329,14 @@ export default function CategoryFormScreen() {
                       autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
                     />
                   </View>
-                  <TouchableOpacity
-                    onPress={() => deleteSub(sub.originalIdx)}
-                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                    style={{
-                      width: 46,
-                      height: 56,
-                      borderRadius: 10,
-                      backgroundColor: palette.inputBg,
-                      borderWidth: 1,
-                      borderColor: palette.border,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Feather name="trash-2" size={18} color={palette.negative} />
-                  </TouchableOpacity>
+                    <IconBtn
+                      onPress={() => deleteSub(sub.originalIdx)}
+                      variant="danger"
+                      palette={palette}
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                    >
+                      <Feather name="trash-2" size={18} color={palette.negative} />
+                    </IconBtn>
                 </View>
               ))}
             </View>

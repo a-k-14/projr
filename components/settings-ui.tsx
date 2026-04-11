@@ -279,6 +279,44 @@ export function FieldLabel({ label, palette }: { label: string; palette: AppThem
   );
 }
 
+/**
+ * Square icon button used alongside InputField rows (e.g. calculator, trash).
+ * Matches InputField height (56) and border radius (RADIUS.md) exactly.
+ */
+export function IconBtn({
+  onPress,
+  children,
+  variant = 'default',
+  palette,
+  hitSlop,
+}: {
+  onPress: () => void;
+  children: ReactNode;
+  variant?: 'default' | 'danger';
+  palette: AppThemePalette;
+  hitSlop?: { top: number; bottom: number; left: number; right: number };
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      hitSlop={hitSlop}
+      style={{
+        width: 52,
+        height: 56,
+        borderRadius: RADIUS.md,
+        backgroundColor: palette.inputBg,
+        borderWidth: 1,
+        borderColor: palette.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {children}
+    </TouchableOpacity>
+  );
+}
+
 export function InputField({
   palette,
   isNumeric,

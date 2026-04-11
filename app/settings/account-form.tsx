@@ -7,6 +7,7 @@ import {
   ChoiceRow,
   FieldLabel,
   FixedBottomActions,
+  IconBtn,
   InputField,
   SettingsFormLayout,
 } from '../../components/settings-ui';
@@ -226,35 +227,25 @@ export default function AccountFormScreen() {
       {/* Balance */}
       <View style={{ marginBottom: SPACING.lg }}>
         <FieldLabel label="Opening Balance" palette={palette} />
-        <InputField
-          palette={palette}
-          isNumeric
-          value={draft.balance}
-          onChangeText={(v) => {
-            const clean = v.replace(/[^0-9.]/g, '');
-            // Apply real-time formatting if it's not a trailing decimal point
-            const formatted = v.endsWith('.') ? clean + '.' : formatIndianNumberStr(clean);
-            setDraft((s) => ({ ...s, balance: formatted }));
-          }}
-          placeholder="0.00"
-          rightElement={
-            <TouchableOpacity
-              onPress={handleOpenCalculator}
-              activeOpacity={0.7}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                backgroundColor: palette.inputBg,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginLeft: 8,
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flex: 1 }}>
+            <InputField
+              palette={palette}
+              isNumeric
+              value={draft.balance}
+              onChangeText={(v) => {
+                const clean = v.replace(/[^0-9.]/g, '');
+                // Apply real-time formatting if it's not a trailing decimal point
+                const formatted = v.endsWith('.') ? clean + '.' : formatIndianNumberStr(clean);
+                setDraft((s) => ({ ...s, balance: formatted }));
               }}
-            >
-              <Ionicons name="calculator-outline" size={20} color={palette.text} />
-            </TouchableOpacity>
-          }
-        />
+              placeholder="0.00"
+            />
+          </View>
+          <IconBtn onPress={handleOpenCalculator} palette={palette}>
+            <Ionicons name="calculator-outline" size={20} color={palette.text} />
+          </IconBtn>
+        </View>
       </View>
 
       {/* Currency */}
