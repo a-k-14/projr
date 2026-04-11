@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Account, CreateAccountInput } from '../types';
 import * as accountsService from '../services/accounts';
+import { countByAccount } from '../services/transactions';
 import { useUIStore } from './useUIStore';
 
 interface AccountsStore {
@@ -42,6 +43,12 @@ export const useAccountsStore = create<AccountsStore>((set, get) => ({
   },
 
   remove: async (id) => {
+    const count = await countByAccount(id);
+    if (count > 0) {
+      throw new Error(
+        `This account has ${count} transaction${count === 1 ? '' : 's'} and cannot be deleted.`
+      );
+    }
     await accountsService.deleteAccount(id);
     // Clear the default account setting if it pointed to the deleted account
     const { settings, updateSettings } = useUIStore.getState();

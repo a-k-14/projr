@@ -70,16 +70,73 @@ export const ENTITY_COLORS = [
 export const ACCOUNT_COLORS = ENTITY_COLORS;
 
 export const CATEGORY_ICONS = [
+  // Shopping & retail
   'shopping-cart',
-  'coffee',
-  'truck',
-  'home',
-  'briefcase',
-  'smartphone',
-  'credit-card',
+  'shopping-bag',
+  'tag',
   'gift',
+  'package',
+  'box',
+  // Food & drink
+  'coffee',
+  'feather',
+  'thermometer',
+  'star',
+  // Home & utilities
+  'home',
+  'zap',
+  'droplet',
+  'wifi',
+  'phone',
+  'tv',
+  'tool',
+  'settings',
+  // Transport
+  'truck',
+  'navigation',
   'map-pin',
+  'map',
+  'anchor',
+  // Finance
+  'credit-card',
+  'dollar-sign',
+  'briefcase',
+  'trending-up',
+  'trending-down',
+  'bar-chart-2',
+  'pie-chart',
+  // Health & wellness
+  'heart',
+  'activity',
+  'shield',
+  'plus-circle',
+  'user',
+  // Entertainment & lifestyle
+  'music',
+  'film',
+  'camera',
+  'headphones',
+  'book',
+  'book-open',
+  'globe',
+  'monitor',
+  'smartphone',
+  // Travel
+  'compass',
+  'umbrella',
+  'sun',
+  'cloud',
+  'wind',
+  // Education
+  'edit',
+  'clipboard',
+  'award',
+  // Misc
   'archive',
+  'inbox',
+  'layers',
+  'grid',
+  'more-horizontal',
 ] as const;
 
 /** @deprecated use ENTITY_COLORS */

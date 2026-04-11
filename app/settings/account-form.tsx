@@ -226,37 +226,35 @@ export default function AccountFormScreen() {
       {/* Balance */}
       <View style={{ marginBottom: SPACING.lg }}>
         <FieldLabel label="Opening Balance" palette={palette} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SCREEN_GUTTER }}>
-          <View style={{ flex: 1 }}>
-            <InputField
-              palette={palette}
-              value={draft.balance}
-              onChangeText={(v) => {
-                const clean = v.replace(/[^0-9.]/g, '');
-                setDraft((s) => ({ ...s, balance: clean }));
+        <InputField
+          palette={palette}
+          isNumeric
+          value={draft.balance}
+          onChangeText={(v) => {
+            const clean = v.replace(/[^0-9.]/g, '');
+            // Apply real-time formatting if it's not a trailing decimal point
+            const formatted = v.endsWith('.') ? clean + '.' : formatIndianNumberStr(clean);
+            setDraft((s) => ({ ...s, balance: formatted }));
+          }}
+          placeholder="0.00"
+          rightElement={
+            <TouchableOpacity
+              onPress={handleOpenCalculator}
+              activeOpacity={0.7}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                backgroundColor: palette.inputBg,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: 8,
               }}
-              placeholder="0.00"
-              placeholderTextColor={palette.textSoft}
-              keyboardType="numeric"
-            />
-          </View>
-          <TouchableOpacity
-            onPress={handleOpenCalculator}
-            activeOpacity={0.7}
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: RADIUS.md,
-              borderWidth: 1,
-              borderColor: palette.border,
-              backgroundColor: palette.surface,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="calculator-outline" size={24} color={palette.text} />
-          </TouchableOpacity>
-        </View>
+            >
+              <Ionicons name="calculator-outline" size={20} color={palette.text} />
+            </TouchableOpacity>
+          }
+        />
       </View>
 
       {/* Currency */}

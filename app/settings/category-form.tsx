@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import {
+  ActionButton,
+  FixedBottomActions,
+  InputField,
+  SectionLabel,
+  SettingsFormLayout,
+} from '../../components/settings-ui';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { CARD_PADDING, SPACING } from '../../lib/design';
+import { CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { CARD_PADDING, SCREEN_GUTTER, SPACING } from '../../lib/design';
-import { CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
-import { ActionButton, SectionLabel } from '../../components/settings-ui';
-import { BottomSheet } from '../../components/ui/BottomSheet';
 
-/** Feather icon names are lowercase ASCII + hyphens only. */
 function isEmoji(icon: string) {
   return !/^[a-z-]+$/.test(icon);
 }
@@ -69,14 +73,19 @@ export default function CategoryFormScreen() {
   const { id, type: typeParam } = useLocalSearchParams<{ id?: string; type?: string }>();
   const isEditing = !!id;
 
-  const { categories, load, isLoaded, addCategory, updateCategory, removeCategory } =
-    useCategoriesStore();
+  const {
+    categories,
+    load,
+    isLoaded,
+    addCategory,
+    updateCategory,
+    removeCategory,
+  } = useCategoriesStore();
   const scheme = useColorScheme();
   const theme = useUIStore((s) => s.settings.theme);
   const palette = getThemePalette(resolveTheme(theme, scheme));
   const router = useRouter();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<string>(CATEGORY_ICONS[0]);
@@ -152,7 +161,6 @@ export default function CategoryFormScreen() {
       parentCategoryId = created.id;
     }
 
-    // Apply subcategory changes (parent categories only)
     if (!isSubcategory && parentCategoryId) {
       for (const sub of subs) {
         if (sub.deleted && sub.id) {
@@ -212,30 +220,37 @@ export default function CategoryFormScreen() {
     );
   }
 
-  // Keep original index so we can update/delete correctly even after filtering
   const visibleSubs = subs
     .map((sub, originalIdx) => ({ ...sub, originalIdx }))
     .filter((sub) => !sub.deleted);
 
   return (
-    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: SPACING.xl }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Icon + name header row */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: SPACING.md,
-            paddingHorizontal: SCREEN_GUTTER,
-            paddingVertical: SPACING.lg,
-            borderBottomWidth: 1,
-            borderBottomColor: palette.divider,
-          }}
-        >
+    <SettingsFormLayout
+      palette={palette}
+      bottomAction={
+        <FixedBottomActions palette={palette}>
+          <View style={{ gap: SPACING.sm }}>
+            <ActionButton
+              label={isEditing ? 'Save' : 'Create Category'}
+              variant="primary"
+              palette={palette}
+              onPress={onSave}
+            />
+            {isEditing && (
+              <ActionButton
+                label="Delete Category"
+                variant="danger"
+                palette={palette}
+                onPress={onDelete}
+              />
+            )}
+          </View>
+        </FixedBottomActions>
+      }
+    >
+      <View style={{ gap: SPACING.md }}>
+        <SectionLabel label="General Info" palette={palette} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.md }}>
           <IconBadge
             icon={icon}
             size={22}
@@ -243,130 +258,86 @@ export default function CategoryFormScreen() {
             palette={palette}
             onPress={() => setShowIconPicker(true)}
           />
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Category name"
-            placeholderTextColor={palette.textSoft}
-            autoFocus={!isEditing}
-            style={{
-              flex: 1,
-              fontSize: 18,
-              fontWeight: '600',
-              color: palette.text,
-              padding: 0,
-            }}
-          />
+          <View style={{ flex: 1 }}>
+            <InputField
+              palette={palette}
+              value={name}
+              onChangeText={setName}
+              placeholder="Category name"
+              autoFocus={!isEditing}
+            />
+          </View>
         </View>
 
-        {/* Subcategories — only for parent categories */}
         {!isSubcategory && (
-          <View style={{ marginTop: SPACING.lg }}>
-            <SectionLabel label="Subcategories" palette={palette} />
+          <View style={{ marginTop: SPACING.md, gap: SPACING.sm }}>
+            {/* Section header row: label on left, "+ Add" button on right */}
             <View
               style={{
-                backgroundColor: palette.card,
-                marginHorizontal: SCREEN_GUTTER,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: palette.border,
-                overflow: 'hidden',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 2,
               }}
             >
-              {visibleSubs.map((sub, renderIdx) => (
-                <View
-                  key={sub.id ?? `new-${sub.originalIdx}`}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: CARD_PADDING,
-                    paddingVertical: SPACING.sm,
-                    borderBottomWidth: renderIdx < visibleSubs.length - 1 ? 1 : 0,
-                    borderBottomColor: palette.divider,
-                    gap: SPACING.sm,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: 4,
-                      backgroundColor: palette.active,
-                      opacity: 0.5,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <TextInput
-                    value={sub.name}
-                    onChangeText={(v) => updateSubName(sub.originalIdx, v)}
-                    placeholder="Subcategory name"
-                    placeholderTextColor={palette.textSoft}
-                    style={{ flex: 1, fontSize: 15, color: palette.text, padding: 0 }}
-                    autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
-                  />
-                  <TouchableOpacity
-                    onPress={() => deleteSub(sub.originalIdx)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    style={{ flexShrink: 0 }}
-                  >
-                    <Feather name="trash-2" size={17} color={palette.negative} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-
-              {/* Add subcategory row */}
+              <SectionLabel label="Subcategories" palette={palette} />
               <TouchableOpacity
                 onPress={addSub}
                 activeOpacity={0.7}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: CARD_PADDING,
-                  minHeight: 52,
-                  gap: SPACING.sm,
-                  borderTopWidth: visibleSubs.length > 0 ? 1 : 0,
-                  borderTopColor: palette.divider,
-                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
               >
-                <Feather name="plus" size={16} color={palette.active} />
-                <Text style={{ fontSize: 15, fontWeight: '600', color: palette.active }}>
-                  Add Subcategory
+                <Feather name="plus" size={14} color={palette.active} />
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: palette.active,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  Add
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
-        )}
-      </ScrollView>
 
-      {/* Fixed bottom actions */}
-      <View
-        style={{
-          borderTopWidth: 1,
-          borderTopColor: palette.divider,
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: SPACING.md,
-          paddingBottom: insets.bottom + SPACING.md,
-          backgroundColor: palette.background,
-          gap: SPACING.sm,
-        }}
-      >
-        <ActionButton
-          label={isEditing ? 'Save' : 'Create Category'}
-          variant="primary"
-          palette={palette}
-          onPress={onSave}
-        />
-        {isEditing && (
-          <ActionButton
-            label="Delete Category"
-            variant="danger"
-            palette={palette}
-            onPress={onDelete}
-          />
+            {/* Subcategory rows */}
+            <View style={{ gap: 8 }}>
+              {visibleSubs.length === 0 && (
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: palette.secondaryText,
+                    paddingHorizontal: CARD_PADDING,
+                    paddingVertical: 12,
+                    fontStyle: 'italic',
+                  }}
+                >
+                  No subcategories yet. Tap Add to create one.
+                </Text>
+              )}
+              {visibleSubs.map((sub, renderIdx) => (
+                <InputField
+                  key={sub.id ?? `new-${sub.originalIdx}`}
+                  palette={palette}
+                  value={sub.name}
+                  onChangeText={(v) => updateSubName(sub.originalIdx, v)}
+                  placeholder={`Subcategory ${renderIdx + 1}`}
+                  autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
+                  rightElement={
+                    <TouchableOpacity
+                      onPress={() => deleteSub(sub.originalIdx)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Feather name="trash-2" size={17} color={palette.negative} />
+                    </TouchableOpacity>
+                  }
+                />
+              ))}
+            </View>
+          </View>
         )}
       </View>
 
-      {/* Icon + emoji picker sheet */}
       {showIconPicker && (
         <BottomSheet
           title="Choose Icon"
@@ -374,12 +345,15 @@ export default function CategoryFormScreen() {
           onClose={() => setShowIconPicker(false)}
           hasNavBar
         >
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: SPACING.sm }}>
+          <View style={{ padding: SPACING.md }}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {CATEGORY_ICONS.map((ic) => (
                 <TouchableOpacity
                   key={ic}
-                  onPress={() => { setIcon(ic); setShowIconPicker(false); }}
+                  onPress={() => {
+                    setIcon(ic);
+                    setShowIconPicker(false);
+                  }}
                   style={{
                     width: 52,
                     height: 52,
@@ -402,6 +376,6 @@ export default function CategoryFormScreen() {
           </View>
         </BottomSheet>
       )}
-    </SafeAreaView>
+    </SettingsFormLayout>
   );
 }

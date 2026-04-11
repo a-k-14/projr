@@ -281,27 +281,43 @@ export function FieldLabel({ label, palette }: { label: string; palette: AppThem
 
 export function InputField({
   palette,
+  isNumeric,
+  rightElement,
   ...props
-}: React.ComponentProps<typeof TextInput> & { palette: AppThemePalette }) {
+}: React.ComponentProps<typeof TextInput> & {
+  palette: AppThemePalette;
+  isNumeric?: boolean;
+  rightElement?: ReactNode;
+}) {
   return (
-    <TextInput
-      {...props}
-      style={[
-        {
-          minHeight: 56,
-          borderRadius: RADIUS.md,
-          borderWidth: 1,
-          borderColor: palette.border,
-          backgroundColor: palette.surface,
-          paddingHorizontal: CARD_PADDING,
-          paddingVertical: 12,
-          color: palette.text,
-          fontSize: 16,
-        },
-        props.style as any,
-      ]}
-      placeholderTextColor={palette.textSoft}
-    />
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        minHeight: 56,
+        borderRadius: RADIUS.md,
+        borderWidth: 1,
+        borderColor: palette.border,
+        backgroundColor: palette.surface,
+        paddingHorizontal: CARD_PADDING,
+      }}
+    >
+      <TextInput
+        {...props}
+        style={[
+          {
+            flex: 1,
+            color: palette.text,
+            fontSize: 16,
+            paddingVertical: 12,
+          },
+          props.style as any,
+        ]}
+        placeholderTextColor={palette.textSoft}
+        keyboardType={isNumeric ? (Platform.OS === 'ios' ? 'decimal-pad' : 'numeric') : props.keyboardType}
+      />
+      {rightElement}
+    </View>
   );
 }
 

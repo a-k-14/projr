@@ -99,7 +99,7 @@ export default function TagFormScreen() {
   return (
     <SettingsFormLayout
       palette={palette}
-      bottomActions={
+      bottomAction={
         <FixedBottomActions palette={palette}>
           <ActionButton
             label={isEditing ? 'Save Tag' : 'Create Tag'}
