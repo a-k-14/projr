@@ -212,40 +212,49 @@ export default function CategoriesScreen() {
                   style={{
                     borderBottomWidth: isLast ? 0 : 1,
                     borderBottomColor: palette.divider,
+                    backgroundColor: palette.inputBg,
                   }}
                 >
-                  {subs.map((sub, subIdx) => (
+                  {subs.map((sub) => (
                     <View
                       key={sub.id}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
-                        paddingLeft: CARD_PADDING + 52,
+                        paddingLeft: CARD_PADDING + 40,
                         paddingRight: CARD_PADDING,
-                        paddingVertical: 10,
-                        minHeight: 44,
+                        paddingVertical: 12,
+                        minHeight: 48,
                         gap: 10,
-                        backgroundColor: palette.surface,
+                        borderTopWidth: 1,
+                        borderTopColor: palette.divider,
                       }}
                     >
                       <View
                         style={{
-                          width: 6,
-                          height: 6,
+                          width: 5,
+                          height: 5,
                           borderRadius: 3,
                           backgroundColor: palette.active,
                           opacity: 0.5,
                         }}
                       />
-                      <Text style={{ fontSize: 14, color: palette.textMuted }}>{sub.name}</Text>
+                      <Text
+                        style={{ flex: 1, fontSize: 14, color: palette.textMuted }}
+                        numberOfLines={1}
+                      >
+                        {sub.name}
+                      </Text>
                     </View>
                   ))}
                   {subs.length === 0 && (
                     <View
                       style={{
-                        paddingLeft: CARD_PADDING + 52,
-                        paddingVertical: 10,
-                        backgroundColor: palette.surface,
+                        paddingLeft: CARD_PADDING + 40,
+                        paddingRight: CARD_PADDING,
+                        paddingVertical: 12,
+                        borderTopWidth: 1,
+                        borderTopColor: palette.divider,
                       }}
                     >
                       <Text style={{ fontSize: 13, color: palette.textSoft }}>No subcategories</Text>

@@ -45,7 +45,7 @@ function IconBadge({
         width: bgSize,
         height: bgSize,
         borderRadius: bgSize * 0.28,
-        backgroundColor: palette.inputBg,
+        backgroundColor: palette.surface,
         borderWidth: 1,
         borderColor: palette.border,
         alignItems: 'center',
@@ -229,28 +229,18 @@ export default function CategoryFormScreen() {
       palette={palette}
       bottomAction={
         <FixedBottomActions palette={palette}>
-          <View style={{ gap: SPACING.sm }}>
-            <ActionButton
-              label={isEditing ? 'Save' : 'Create Category'}
-              variant="primary"
-              palette={palette}
-              onPress={onSave}
-            />
-            {isEditing && (
-              <ActionButton
-                label="Delete Category"
-                variant="danger"
-                palette={palette}
-                onPress={onDelete}
-              />
-            )}
-          </View>
+          <ActionButton
+            label={isEditing ? 'Save' : 'Create Category'}
+            variant="primary"
+            palette={palette}
+            onPress={onSave}
+          />
         </FixedBottomActions>
       }
     >
       <View style={{ gap: SPACING.md }}>
         <SectionLabel label="General Info" palette={palette} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <IconBadge
             icon={icon}
             size={22}
@@ -267,6 +257,24 @@ export default function CategoryFormScreen() {
               autoFocus={!isEditing}
             />
           </View>
+          {isEditing && (
+            <TouchableOpacity
+              onPress={onDelete}
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              style={{
+                width: 46,
+                height: 56,
+                borderRadius: 10,
+                backgroundColor: palette.inputBg,
+                borderWidth: 1,
+                borderColor: palette.border,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Feather name="trash-2" size={18} color={palette.negative} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {!isSubcategory && (
@@ -316,22 +324,36 @@ export default function CategoryFormScreen() {
                 </Text>
               )}
               {visibleSubs.map((sub, renderIdx) => (
-                <InputField
+                <View
                   key={sub.id ?? `new-${sub.originalIdx}`}
-                  palette={palette}
-                  value={sub.name}
-                  onChangeText={(v) => updateSubName(sub.originalIdx, v)}
-                  placeholder={`Subcategory ${renderIdx + 1}`}
-                  autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
-                  rightElement={
-                    <TouchableOpacity
-                      onPress={() => deleteSub(sub.originalIdx)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Feather name="trash-2" size={17} color={palette.negative} />
-                    </TouchableOpacity>
-                  }
-                />
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <InputField
+                      palette={palette}
+                      value={sub.name}
+                      onChangeText={(v) => updateSubName(sub.originalIdx, v)}
+                      placeholder={`Subcategory ${renderIdx + 1}`}
+                      autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
+                    />
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => deleteSub(sub.originalIdx)}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                    style={{
+                      width: 46,
+                      height: 56,
+                      borderRadius: 10,
+                      backgroundColor: palette.inputBg,
+                      borderWidth: 1,
+                      borderColor: palette.border,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Feather name="trash-2" size={18} color={palette.negative} />
+                  </TouchableOpacity>
+                </View>
               ))}
             </View>
           </View>
