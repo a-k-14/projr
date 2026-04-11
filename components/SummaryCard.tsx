@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { CashflowSummary } from '../types';
+import { StyleSheet, Text, View } from 'react-native';
 import { formatCurrency } from '../lib/derived';
 import { HOME_RADIUS, HOME_TEXT } from '../lib/homeTokens';
 import { AppThemePalette } from '../lib/theme';
+import { CashflowSummary } from '../types';
 
 interface SummaryCardProps {
   cashflow: CashflowSummary;
@@ -25,13 +25,13 @@ export function SummaryCard({ cashflow, sym, palette }: SummaryCardProps) {
           key={category.key}
           style={[
             styles.column,
-            { 
+            {
               borderLeftWidth: index === 0 ? 0 : 1,
-              borderLeftColor: palette.divider 
+              borderLeftColor: palette.divider
             },
           ]}
         >
-          <Text style={[styles.label, { color: palette.textMuted }]}>{category.label}</Text>
+          <Text style={[styles.label, { color: palette.textMuted, fontWeight: '700' }]}>{category.label}</Text>
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit={true}
