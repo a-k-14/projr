@@ -12,8 +12,11 @@ export default function SettingsLayout() {
       }}
     >
       <Stack.Screen name="accounts" options={{ title: 'Accounts' }} />
+      <Stack.Screen name="account-form" options={{ title: 'Account' }} />
       <Stack.Screen name="categories" options={{ title: 'Categories' }} />
+      <Stack.Screen name="category-form" options={{ title: 'Category' }} />
       <Stack.Screen name="tags" options={{ title: 'Tags' }} />
+      <Stack.Screen name="tag-form" options={{ title: 'Tag' }} />
     </Stack>
   );
 }

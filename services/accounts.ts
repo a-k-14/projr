@@ -14,6 +14,8 @@ function rowToAccount(row: typeof accounts.$inferSelect): Account {
     currency: row.currency,
     color: row.color,
     icon: row.icon,
+    accountNumber: row.accountNumber ?? undefined,
+    initialBalance: row.initialBalance,
     createdAt: row.createdAt,
   };
 }
@@ -39,6 +41,8 @@ export async function createAccount(data: CreateAccountInput): Promise<Account> 
     currency: data.currency ?? 'INR',
     color: data.color,
     icon: data.icon,
+    accountNumber: data.accountNumber ?? null,
+    initialBalance: data.initialBalance,
     createdAt: now,
   };
   await db.insert(accounts).values(row);

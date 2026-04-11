@@ -18,14 +18,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { groupTransactionsByDate } from '../../lib/derived';
+import { groupTransactionsByDate, formatCurrency } from '../../lib/derived';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
-import { HOME_RADIUS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, HOME_SPACE } from '../../lib/homeTokens';
+import { HOME_RADIUS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/homeTokens';
 import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
 import { SCREEN_GUTTER, CARD_PADDING } from '../../lib/design';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { TransactionListItem } from '../../components/TransactionListItem';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { ChoiceRow } from '../../components/settings-ui';
 import * as transactionsService from '../../services/transactions';
 import type { TransactionType, Transaction } from '../../types';
 
@@ -36,6 +38,15 @@ const FILTERS: { label: string; value: TransactionType | 'all' }[] = [
   { label: 'Transfer', value: 'transfer' },
   { label: 'Loan', value: 'loan' },
 ];
+
+/** Net of in/out for a day group. Transfers and loans are neutral. */
+function calcDayNet(txs: Transaction[]): number {
+  return txs.reduce((sum, tx) => {
+    if (tx.type === 'in') return sum + tx.amount;
+    if (tx.type === 'out') return sum - tx.amount;
+    return sum;
+  }, 0);
+}
 
 export default function ActivityScreen() {
   const { accounts } = useAccountsStore();
@@ -83,7 +94,6 @@ export default function ActivityScreen() {
     [displayAccounts, selectedAccountId, width],
   );
 
-  // Sync pager when selectedAccountId changes (e.g. from external sources)
   useEffect(() => {
     pagerRef.current?.scrollTo({ x: selectedIndex * width, animated: false });
   }, [selectedIndex, width]);
@@ -159,14 +169,13 @@ function ActivityAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [showCategorySheet, setShowCategorySheet] = useState(false);
   const offsetRef = useRef(0);
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const loadingRef = useRef(false);
 
   const { settings } = useUIStore();
   const { categories, getCategoryDisplayName } = useCategoriesStore();
   const sym = settings.currencySymbol;
-  // Top-level categories only for the filter chips
   const topCategories = categories.filter((c) => !c.parentId);
 
   const loadData = useCallback(async (isInitial = true) => {
@@ -175,16 +184,14 @@ function ActivityAccountPage({
 
     try {
       const currentOffset = isInitial ? 0 : offsetRef.current;
-      const filterParams = {
+      const results = await transactionsService.getTransactions({
         accountId: accountId === 'all' ? undefined : accountId,
         type: typeFilter === 'all' ? undefined : typeFilter,
         categoryId: categoryFilter || undefined,
         search: search || undefined,
         limit: TRANSACTIONS_PAGE_SIZE,
         offset: currentOffset,
-      };
-
-      const results = await transactionsService.getTransactions(filterParams);
+      });
 
       if (isInitial) {
         setTransactions(results);
@@ -192,10 +199,8 @@ function ActivityAccountPage({
         setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
       } else {
         setTransactions((prev) => {
-          // Deduplicate by ID to prevent key collisions
-          const existingIds = new Set(prev.map(t => t.id));
-          const newTxs = results.filter(t => !existingIds.has(t.id));
-          return [...prev, ...newTxs];
+          const existingIds = new Set(prev.map((t) => t.id));
+          return [...prev, ...results.filter((t) => !existingIds.has(t.id))];
         });
         offsetRef.current += TRANSACTIONS_PAGE_SIZE;
         setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
@@ -206,9 +211,7 @@ function ActivityAccountPage({
   }, [accountId, typeFilter, categoryFilter, search]);
 
   useEffect(() => {
-    if (isSelected) {
-      loadData(true);
-    }
+    if (isSelected) loadData(true);
   }, [isSelected, typeFilter, categoryFilter, search, loadData]);
 
   const onRefresh = async () => {
@@ -224,199 +227,212 @@ function ActivityAccountPage({
   };
 
   const grouped = groupTransactionsByDate(transactions);
+  const activeCategoryName = categoryFilter
+    ? topCategories.find((c) => c.id === categoryFilter)?.name
+    : undefined;
 
   return (
-    <FlatList
-      data={grouped}
-      keyExtractor={(item) => item.dateKey}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.active} />}
-      onEndReached={onLoadMore}
-      onEndReachedThreshold={0.4}
-      contentContainerStyle={{ paddingBottom: 100 }}
-      ListHeaderComponent={
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 16, paddingBottom: 8 }}>
-          {/* Search */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: palette.surface,
-              borderRadius: HOME_RADIUS.card,
-              paddingHorizontal: CARD_PADDING,
-              paddingVertical: 10,
-              marginBottom: SCREEN_GUTTER,
-              borderWidth: 1,
-              borderColor: palette.divider,
-            }}
-          >
-            <Ionicons name="search" size={16} color={palette.textSoft} style={{ marginRight: 8 }} />
-            <TextInput
-              placeholder="Search transactions..."
-              placeholderTextColor={palette.textSoft}
-              value={search}
-              onChangeText={onSearchChange}
-              style={{ flex: 1, fontSize: 14, color: palette.text, padding: 0 }}
-              returnKeyType="search"
-            />
-          </View>
-
-          {/* Type filter row + Category toggle */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-              {FILTERS.map((f) => (
-                <TouchableOpacity
-                  key={f.value}
-                  onPress={() => onTypeFilterChange(f.value)}
-                  style={{
-                    paddingHorizontal: CARD_PADDING,
-                    paddingVertical: 8,
-                    borderRadius: HOME_RADIUS.tab,
-                    marginRight: 8,
-                    backgroundColor: typeFilter === f.value ? palette.active : palette.surface,
-                    borderWidth: 1,
-                    borderColor: typeFilter === f.value ? palette.active : palette.divider,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: HOME_TEXT.bodySmall,
-                      fontWeight: '500',
-                      color: typeFilter === f.value ? palette.surface : palette.textMuted,
-                    }}
-                  >
-                    {f.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            {/* Category filter toggle button */}
-            <TouchableOpacity
-              onPress={() => setShowCategoryFilter((v) => !v)}
+    <>
+      <FlatList
+        data={grouped}
+        keyExtractor={(item) => item.dateKey}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.active} />}
+        onEndReached={onLoadMore}
+        onEndReachedThreshold={0.4}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        ListHeaderComponent={
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 16, paddingBottom: 8 }}>
+            {/* Search */}
+            <View
               style={{
-                paddingHorizontal: CARD_PADDING,
-                paddingVertical: 8,
-                borderRadius: HOME_RADIUS.tab,
-                borderWidth: 1,
-                marginLeft: 8,
-                borderColor: (showCategoryFilter || categoryFilter) ? palette.active : palette.divider,
-                backgroundColor: (showCategoryFilter || categoryFilter) ? palette.active : palette.surface,
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 4,
+                backgroundColor: palette.surface,
+                borderRadius: HOME_RADIUS.card,
+                paddingHorizontal: CARD_PADDING,
+                paddingVertical: 10,
+                marginBottom: SCREEN_GUTTER,
+                borderWidth: 1,
+                borderColor: palette.divider,
               }}
             >
-              <Ionicons
-                name="options-outline"
-                size={14}
-                color={(showCategoryFilter || categoryFilter) ? palette.surface : palette.textMuted}
+              <Ionicons name="search" size={16} color={palette.textSoft} style={{ marginRight: 8 }} />
+              <TextInput
+                placeholder="Search transactions..."
+                placeholderTextColor={palette.textSoft}
+                value={search}
+                onChangeText={onSearchChange}
+                style={{ flex: 1, fontSize: 14, color: palette.text, padding: 0 }}
+                returnKeyType="search"
               />
-              {categoryFilter ? (
-                <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.surface }}>
-                  {topCategories.find((c) => c.id === categoryFilter)?.name ?? '1'}
-                </Text>
-              ) : null}
-            </TouchableOpacity>
-          </View>
+            </View>
 
-          {/* Collapsible category filter */}
-          {showCategoryFilter && (
-            <View style={{ marginTop: 8, marginBottom: 4 }}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <TouchableOpacity
-                  onPress={() => onCategoryFilterChange(undefined)}
-                  style={{
-                    paddingHorizontal: CARD_PADDING,
-                    paddingVertical: 6,
-                    borderRadius: HOME_RADIUS.tab,
-                    marginRight: 8,
-                    backgroundColor: !categoryFilter ? palette.active : palette.surface,
-                    borderWidth: 1,
-                    borderColor: !categoryFilter ? palette.active : palette.divider,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: HOME_TEXT.caption,
-                      fontWeight: '500',
-                      color: !categoryFilter ? palette.surface : palette.textMuted,
-                    }}
-                  >
-                    All categories
-                  </Text>
-                </TouchableOpacity>
-                {topCategories.map((cat) => (
+            {/* Type filter pills + category filter button */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+                {FILTERS.map((f) => (
                   <TouchableOpacity
-                    key={cat.id}
-                    onPress={() => onCategoryFilterChange(categoryFilter === cat.id ? undefined : cat.id)}
+                    key={f.value}
+                    onPress={() => onTypeFilterChange(f.value)}
                     style={{
                       paddingHorizontal: CARD_PADDING,
                       paddingVertical: 6,
                       borderRadius: HOME_RADIUS.tab,
                       marginRight: 8,
-                      backgroundColor: categoryFilter === cat.id ? palette.active : palette.surface,
+                      backgroundColor: typeFilter === f.value ? palette.active : palette.surface,
                       borderWidth: 1,
-                      borderColor: categoryFilter === cat.id ? palette.active : palette.divider,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4,
+                      borderColor: typeFilter === f.value ? palette.active : palette.divider,
                     }}
                   >
-                    <View
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        backgroundColor: categoryFilter === cat.id ? palette.surface : cat.color,
-                      }}
-                    />
                     <Text
                       style={{
-                        fontSize: HOME_TEXT.caption,
+                        fontSize: HOME_TEXT.bodySmall,
                         fontWeight: '500',
-                        color: categoryFilter === cat.id ? palette.surface : palette.textMuted,
+                        color: typeFilter === f.value ? palette.surface : palette.textMuted,
                       }}
                     >
-                      {cat.name}
+                      {f.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
-          )}
-        </View>
-      }
-      renderItem={({ item }) => {
-        const { date, label } = getRelativeDateLabel(item.dateKey);
-        return (
-          <View style={{ marginBottom: 16 }}>
-            <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: SCREEN_GUTTER, flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textSoft }}>
-                {date}
-              </Text>
-              {label ? (
-                <>
-                  <InlineDot size={3} color={palette.textSoft} />
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textSoft }}>
-                    {label}
-                  </Text>
-                </>
-              ) : null}
-            </View>
-            <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, marginHorizontal: SCREEN_GUTTER, overflow: 'hidden' }}>
-              {item.items.map((tx, idx) => (
-                <TransactionListItem
-                  key={tx.id}
-                  tx={tx}
-                  sym={sym}
-                  isLast={idx === item.items.length - 1}
-                  categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
-                  palette={palette}
+
+              {/* Category filter — opens BottomSheet */}
+              <TouchableOpacity
+                onPress={() => setShowCategorySheet(true)}
+                style={{
+                  paddingHorizontal: CARD_PADDING,
+                  paddingVertical: 6,
+                  borderRadius: HOME_RADIUS.tab,
+                  borderWidth: 1,
+                  marginLeft: 8,
+                  borderColor: categoryFilter ? palette.active : palette.divider,
+                  backgroundColor: categoryFilter ? palette.active : palette.surface,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <Ionicons
+                  name="options-outline"
+                  size={14}
+                  color={categoryFilter ? palette.surface : palette.textMuted}
                 />
-              ))}
+                {activeCategoryName ? (
+                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.surface }}>
+                    {activeCategoryName}
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
             </View>
           </View>
-        );
-      }}
-    />
+        }
+        renderItem={({ item }) => {
+          const { date, label } = getRelativeDateLabel(item.dateKey);
+          const net = calcDayNet(item.items);
+          const hasNet = net !== 0;
+          return (
+            <View style={{ marginBottom: 16 }}>
+              {/* Date header with day net */}
+              <View
+                style={{
+                  paddingHorizontal: SCREEN_GUTTER,
+                  marginBottom: SCREEN_GUTTER,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textSoft }}>
+                  {date}
+                </Text>
+                {label ? (
+                  <>
+                    <InlineDot size={3} color={palette.textSoft} />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textSoft }}>
+                      {label}
+                    </Text>
+                  </>
+                ) : null}
+                {hasNet && (
+                  <Text
+                    style={{
+                      marginLeft: 'auto',
+                      fontSize: 13,
+                      fontWeight: '600',
+                      color: net > 0 ? palette.positive : palette.negative,
+                    }}
+                  >
+                    {net > 0 ? '+' : '−'}{formatCurrency(Math.abs(net), sym)}
+                  </Text>
+                )}
+              </View>
+
+              {/* Transaction card */}
+              <View
+                style={{
+                  backgroundColor: palette.surface,
+                  borderRadius: HOME_RADIUS.card,
+                  marginHorizontal: SCREEN_GUTTER,
+                  overflow: 'hidden',
+                }}
+              >
+                {item.items.map((tx, idx) => (
+                  <TransactionListItem
+                    key={tx.id}
+                    tx={tx}
+                    sym={sym}
+                    isLast={idx === item.items.length - 1}
+                    categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
+                    palette={palette}
+                  />
+                ))}
+              </View>
+            </View>
+          );
+        }}
+      />
+
+      {/* Category filter sheet */}
+      {showCategorySheet && (
+        <BottomSheet
+          title="Filter by category"
+          palette={palette}
+          onClose={() => setShowCategorySheet(false)}
+        >
+          <ChoiceRow
+            title="All categories"
+            selected={!categoryFilter}
+            palette={palette}
+            onPress={() => {
+              onCategoryFilterChange(undefined);
+              setShowCategorySheet(false);
+            }}
+          />
+          {topCategories.map((cat, index) => (
+            <ChoiceRow
+              key={cat.id}
+              title={cat.name}
+              selected={categoryFilter === cat.id}
+              palette={palette}
+              leftElement={
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    backgroundColor: cat.color,
+                  }}
+                />
+              }
+              noBorder={index === topCategories.length - 1}
+              onPress={() => {
+                onCategoryFilterChange(categoryFilter === cat.id ? undefined : cat.id);
+                setShowCategorySheet(false);
+              }}
+            />
+          ))}
+        </BottomSheet>
+      )}
+    </>
   );
 }

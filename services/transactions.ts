@@ -196,6 +196,36 @@ export async function updateTransaction(
   return updated!;
 }
 
+export async function countByAccount(accountId: string): Promise<number> {
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.accountId, accountId));
+  return rows.length;
+}
+
+export async function countByCategory(categoryId: string): Promise<number> {
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.categoryId, categoryId));
+  return rows.length;
+}
+
+export async function countByTag(tagId: string): Promise<number> {
+  const rows = await db.select().from(transactions);
+  let count = 0;
+  for (const row of rows) {
+    try {
+      const tags: string[] = JSON.parse(row.tags);
+      if (tags.includes(tagId)) count++;
+    } catch {
+      // ignore malformed json
+    }
+  }
+  return count;
+}
+
 export async function deleteTransaction(id: string): Promise<void> {
   const existing = await getTransactionById(id);
   if (!existing) return;

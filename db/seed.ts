@@ -41,45 +41,45 @@ export async function seedDatabase(): Promise<void> {
     type: 'savings',
     balance: 0,
     color: '#1B4332',
-    icon: 'business',
+    icon: 'briefcase',
   });
   const cash = await accountsService.createAccount({
     name: 'Cash',
     type: 'cash',
     balance: 0,
     color: '#B45309',
-    icon: 'cash',
+    icon: 'dollar-sign',
   });
   const hdfc = await accountsService.createAccount({
     name: 'HDFC Credit Card',
     type: 'credit',
     balance: 0,
     color: '#DC2626',
-    icon: 'card',
+    icon: 'credit-card',
   });
 
   // Categories
   const food = await categoriesService.createCategory({
     name: 'Food',
-    icon: 'restaurant',
+    icon: 'coffee',
     color: '#F59E0B',
     type: 'out',
   });
   const transport = await categoriesService.createCategory({
     name: 'Transport',
-    icon: 'car',
+    icon: 'truck',
     color: '#3B82F6',
     type: 'out',
   });
   const shopping = await categoriesService.createCategory({
     name: 'Shopping',
-    icon: 'bag',
+    icon: 'shopping-cart',
     color: '#8B5CF6',
     type: 'out',
   });
   const bills = await categoriesService.createCategory({
     name: 'Bills',
-    icon: 'receipt',
+    icon: 'archive',
     color: '#EF4444',
     type: 'out',
   });
@@ -92,21 +92,21 @@ export async function seedDatabase(): Promise<void> {
 
   const groceries = await categoriesService.createCategory({
     name: 'Groceries',
-    icon: 'cart',
+    icon: 'shopping-cart',
     color: '#F59E0B',
     type: 'out',
     parentId: food.id,
   });
   const restaurants = await categoriesService.createCategory({
     name: 'Restaurants',
-    icon: 'restaurant',
+    icon: 'coffee',
     color: '#F59E0B',
     type: 'out',
     parentId: food.id,
   });
   const cab = await categoriesService.createCategory({
     name: 'Cab',
-    icon: 'car',
+    icon: 'truck',
     color: '#3B82F6',
     type: 'out',
     parentId: transport.id,
@@ -120,7 +120,7 @@ export async function seedDatabase(): Promise<void> {
   });
   const electricity = await categoriesService.createCategory({
     name: 'Electricity',
-    icon: 'flash',
+    icon: 'zap',
     color: '#EF4444',
     type: 'out',
     parentId: bills.id,

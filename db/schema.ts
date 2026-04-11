@@ -8,6 +8,8 @@ export const accounts = sqliteTable('accounts', {
   currency: text('currency').notNull().default('INR'),
   color: text('color').notNull().default('#1B4332'),
   icon: text('icon').notNull().default('wallet'),
+  accountNumber: text('account_number'),
+  initialBalance: real('initial_balance').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
 

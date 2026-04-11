@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { ReactNode } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
@@ -30,14 +31,12 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
   return (
     <Text
       style={{
-        fontSize: 11,
-        fontWeight: '600',
-        letterSpacing: 1.2,
+        fontSize: 13,
+        fontWeight: '700',
         color: palette.textMuted,
         marginHorizontal: 14,
         marginBottom: 6,
         marginTop: 4,
-        textTransform: 'uppercase',
       }}
     >
       {label}
@@ -77,29 +76,49 @@ export function SettingsRow({
   onPress,
   noBorder,
   rightElement,
+  subtitle,
+  leftElement,
 }: {
-  icon: keyof typeof Feather.glyphMap;
+  icon?: keyof typeof Feather.glyphMap;
   label: string;
+  subtitle?: string;
   value?: string;
   palette: AppThemePalette;
   onPress?: () => void;
   noBorder?: boolean;
   rightElement?: ReactNode;
+  leftElement?: ReactNode;
 }) {
   const content = (
     <>
-      <Feather name={icon} size={18} color={palette.iconTint} />
-      <Text
-        style={{
-          flex: 1,
-          fontSize: 15,
-          fontWeight: '400',
-          color: palette.text,
-          marginLeft: 14,
-        }}
-      >
-        {label}
-      </Text>
+      {leftElement ? (
+        leftElement
+      ) : icon ? (
+        <Feather name={icon} size={18} color={palette.iconTint} />
+      ) : null}
+      <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
+        <Text
+          style={{
+            fontSize: 15,
+            fontWeight: '500',
+            color: palette.text,
+          }}
+        >
+          {label}
+        </Text>
+        {subtitle ? (
+          <Text
+            style={{
+              fontSize: 13,
+              color: palette.textMuted,
+              marginTop: 2,
+              fontWeight: '400',
+            }}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
       {rightElement ? rightElement : null}
       {!rightElement && value ? (
         <Text style={{ fontSize: 13, color: palette.textMuted, marginRight: 10 }} numberOfLines={1}>
@@ -111,9 +130,9 @@ export function SettingsRow({
   );
 
   const style = {
-    minHeight: 62,
+    minHeight: 72,
     paddingHorizontal: CARD_PADDING,
-    paddingVertical: 12,
+    paddingVertical: 16,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     borderBottomWidth: noBorder ? 0 : 1,
@@ -138,7 +157,7 @@ export function ChoiceRow({
   onPress,
   noBorder,
   leftElement,
-  horizontalPadding = SHEET_GUTTER,
+  horizontalPadding = CARD_PADDING,
 }: {
   title: string;
   subtitle?: string;
@@ -247,34 +266,96 @@ export function PickerChip({
 
 export function FieldLabel({ label, palette }: { label: string; palette: AppThemePalette }) {
   return (
-    <Text style={{ fontSize: 11, fontWeight: '500', color: palette.textMuted, marginBottom: 4 }}>
+    <Text
+      style={{
+        fontSize: 13,
+        fontWeight: '700',
+        color: palette.textMuted,
+        marginBottom: 8,
+      }}
+    >
       {label}
     </Text>
   );
 }
 
+/**
+ * Square icon button used alongside InputField rows (e.g. calculator, trash).
+ * Matches InputField height (56) and border radius (RADIUS.md) exactly.
+ */
+export function IconBtn({
+  onPress,
+  children,
+  variant = 'default',
+  palette,
+  hitSlop,
+}: {
+  onPress: () => void;
+  children: ReactNode;
+  variant?: 'default' | 'danger';
+  palette: AppThemePalette;
+  hitSlop?: { top: number; bottom: number; left: number; right: number };
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      hitSlop={hitSlop}
+      style={{
+        width: 52,
+        height: 56,
+        borderRadius: RADIUS.md,
+        backgroundColor: palette.inputBg,
+        borderWidth: 1,
+        borderColor: palette.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {children}
+    </TouchableOpacity>
+  );
+}
+
 export function InputField({
   palette,
+  isNumeric,
+  rightElement,
   ...props
-}: React.ComponentProps<typeof TextInput> & { palette: AppThemePalette }) {
+}: React.ComponentProps<typeof TextInput> & {
+  palette: AppThemePalette;
+  isNumeric?: boolean;
+  rightElement?: ReactNode;
+}) {
   return (
-    <TextInput
-      {...props}
-      style={[
-        {
-          minHeight: 46,
-          borderRadius: RADIUS.md,
-          borderWidth: 1,
-          borderColor: palette.border,
-          backgroundColor: palette.surface,
-          paddingHorizontal: SPACING.lg,
-          color: palette.text,
-          fontSize: 15,
-        },
-        props.style as any,
-      ]}
-      placeholderTextColor={palette.textSoft}
-    />
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        minHeight: 56,
+        borderRadius: RADIUS.md,
+        borderWidth: 1,
+        borderColor: palette.border,
+        backgroundColor: palette.surface,
+        paddingHorizontal: CARD_PADDING,
+      }}
+    >
+      <TextInput
+        {...props}
+        style={[
+          {
+            flex: 1,
+            color: palette.text,
+            fontSize: 16,
+            paddingVertical: 12,
+          },
+          props.style as any,
+        ]}
+        placeholderTextColor={palette.textSoft}
+        keyboardType={isNumeric ? (Platform.OS === 'ios' ? 'decimal-pad' : 'numeric') : props.keyboardType}
+      />
+      {rightElement}
+    </View>
   );
 }
 
@@ -347,21 +428,19 @@ export function IconGrid({
             activeOpacity={0.7}
             onPress={() => onSelect(icon)}
             style={{
-              width: '18%',
-              aspectRatio: 1,
-              borderRadius: 16,
-              borderWidth: 1,
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              borderWidth: isSelected ? 2 : 1,
               borderColor: isSelected ? palette.tabActive : palette.border,
-              backgroundColor: isSelected
-                ? palette.surfaceRaised
-                : palette.surface,
+              backgroundColor: isSelected ? palette.surfaceRaised : palette.surface,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             <Feather
               name={icon as any}
-              size={20}
+              size={24}
               color={isSelected ? palette.tabActive : palette.iconTint}
             />
           </TouchableOpacity>
@@ -405,5 +484,89 @@ export function ActionButton({
     >
       <Text style={{ fontSize: 15, fontWeight: '700', color: picked.color }}>{label}</Text>
     </TouchableOpacity>
+  );
+}
+
+/**
+ * Layout components for Settings Screens
+ */
+
+export function FixedBottomActions({
+  children,
+  palette,
+}: {
+  children: ReactNode;
+  palette: AppThemePalette;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={{
+        borderTopWidth: 1,
+        borderTopColor: palette.divider,
+        paddingHorizontal: SCREEN_GUTTER,
+        paddingTop: SPACING.md,
+        paddingBottom: (insets.bottom || 16) + 2,
+        backgroundColor: palette.background,
+        gap: SPACING.sm,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+export function SettingsScreenLayout({
+  children,
+  palette,
+  bottomAction,
+}: {
+  children: ReactNode;
+  palette: AppThemePalette;
+  bottomAction?: ReactNode;
+}) {
+  return (
+    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: 8 }}
+      >
+        {children}
+      </ScrollView>
+      {bottomAction}
+    </SafeAreaView>
+  );
+}
+
+export function SettingsFormLayout({
+  children,
+  palette,
+  bottomActions,
+}: {
+  children: ReactNode;
+  palette: AppThemePalette;
+  bottomActions?: ReactNode;
+}) {
+  return (
+    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: SCREEN_GUTTER,
+            paddingTop: SPACING.md,
+            paddingBottom: SPACING.xl,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
+        {bottomActions}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

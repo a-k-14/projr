@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Category, Tag } from '../types';
 import * as categoriesService from '../services/categories';
 import * as tagsService from '../services/tags';
+import { countByCategory, countByTag } from '../services/transactions';
 
 interface CategoriesStore {
   categories: Category[];
@@ -46,8 +47,26 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
   },
 
   removeCategory: async (id) => {
+    // Check if this category (or any of its subcategories) has linked transactions
+    const { categories } = get();
+    const idsToCheck = [id, ...categories.filter((c) => c.parentId === id).map((c) => c.id)];
+    let totalCount = 0;
+    for (const cid of idsToCheck) {
+      totalCount += await countByCategory(cid);
+    }
+    if (totalCount > 0) {
+      throw new Error(
+        `This category has ${totalCount} transaction${totalCount === 1 ? '' : 's'} and cannot be deleted.`
+      );
+    }
+    // Delete subcategories first, then the parent
+    for (const cid of idsToCheck.filter((cid) => cid !== id)) {
+      await categoriesService.deleteCategory(cid);
+    }
     await categoriesService.deleteCategory(id);
-    set((state) => ({ categories: state.categories.filter((c) => c.id !== id) }));
+    set((state) => ({
+      categories: state.categories.filter((c) => c.id !== id && c.parentId !== id),
+    }));
   },
 
   addTag: async (data) => {
@@ -64,6 +83,12 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
   },
 
   removeTag: async (id) => {
+    const count = await countByTag(id);
+    if (count > 0) {
+      throw new Error(
+        `This tag is used in ${count} transaction${count === 1 ? '' : 's'} and cannot be deleted.`
+      );
+    }
     await tagsService.deleteTag(id);
     set((state) => ({ tags: state.tags.filter((t) => t.id !== id) }));
   },
