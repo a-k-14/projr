@@ -14,19 +14,39 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER } from '../../lib/design';
 import type { AppThemePalette } from '../../lib/theme';
 
+const MAX_HEIGHT_RATIO = 0.75;
+const OPEN_ANIMATION_DURATION_MS = 150;
+const CLOSE_ANIMATION_DURATION_MS = 140;
+const BACKDROP_COLOR = 'rgb(0,0,0)';
+const BACKDROP_OPACITY = 0.4;
+const HEADER_HANDLE_WIDTH = 42;
+const HEADER_HANDLE_HEIGHT = 5;
+const HEADER_HANDLE_TOP_PADDING = 12;
+const HEADER_HANDLE_BOTTOM_PADDING = 8;
+const HEADER_TITLE_PADDING_BOTTOM = 12;
+const CONTENT_PADDING_BOTTOM = 8;
+const SHADOW_OFFSET_Y = -2;
+const SHADOW_OPACITY = 0.08;
+const SHADOW_RADIUS = 8;
+const ELEVATION = 20;
+const SHEET_RADIUS = 24;
+const SWIPE_ACTIVATION_THRESHOLD = 8;
+const SWIPE_DISMISS_DISTANCE = 80;
+const SWIPE_DISMISS_VELOCITY = 0.5;
+const HEADER_TITLE_SIZE = 20;
+const HEADER_SUBTITLE_SIZE = 13;
+const HEADER_TITLE_TRACKING = -0.3;
+const HEADER_SUBTITLE_MARGIN = 3;
+const SHADOW_COLOR = '#000';
+const MODAL_HEIGHT_BOOST = 72;
+
 /**
  * BottomSheet — Centralised bottom sheet for any picker/selection UI.
  *
  * Behaviour:
- * - Opens at natural content height, capped at 50% of screen.
- * - Swipe UP on header → smoothly expands to 75% (only if content is taller than 50%).
+ * - Opens at natural content height, capped at 75% of screen.
  * - Swipe DOWN on header → dismisses.
  * - Tap backdrop → dismisses.
- *
- * hasNavBar: pass true when the sheet is rendered inside a tab screen.
- * The tab bar already lifts the sheet, so only a small bottom gap is needed.
- * Without a navbar (modals) the sheet sits at the device edge and needs the
- * full safe-area inset to clear the OS gesture bar.
  */
 export function BottomSheet({
   title,
@@ -50,38 +70,40 @@ export function BottomSheet({
   const { height: screenHeight } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
 
-  const MIN_HEIGHT = screenHeight * 0.5;
-  const MAX_HEIGHT = screenHeight * 0.75;
+  const maxSheetHeight = screenHeight * MAX_HEIGHT_RATIO;
+  const bottomInset = hasNavBar ? 0 : insets.bottom;
+  const bottomOffset = extraBottomPadding + bottomInset;
+  const modalHeightBoost = hasNavBar ? 0 : bottomInset + MODAL_HEIGHT_BOOST;
 
-  // translateY: native driver — slide in/out & dismiss drag
   const translateY = useRef(new Animated.Value(screenHeight)).current;
-  // sheetHeight: JS driver — snapped to content size, animated during expand gesture
-  const sheetHeight = useRef(new Animated.Value(MIN_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
-
+  const sheetHeight = useRef(new Animated.Value(0)).current;
   const contentHeight = useRef(0);
-  const isExpanded = useRef(false);
-  const collapsedHeight = useRef(MIN_HEIGHT);
+  const headerHeight = useRef(0);
 
-  // Open animation starts immediately. onContentSizeChange fires within the first
-  // frame (~16 ms), which is long before the spring reaches the visible area
-  // (~200 ms), so sheetHeight is always correct before the sheet appears.
+  const commitHeight = useCallback(() => {
+    const nextHeight = Math.min(headerHeight.current + contentHeight.current + modalHeightBoost, maxSheetHeight);
+    if (nextHeight > 0) {
+      sheetHeight.setValue(nextHeight);
+    }
+  }, [maxSheetHeight, modalHeightBoost, sheetHeight]);
+
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 150, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: BACKDROP_OPACITY, duration: OPEN_ANIMATION_DURATION_MS, useNativeDriver: true }),
       Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 160, friction: 16 }),
     ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const closeSheet = useCallback(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 0, duration: 100, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: screenHeight, duration: 140, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0, duration: CLOSE_ANIMATION_DURATION_MS, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: screenHeight, duration: CLOSE_ANIMATION_DURATION_MS, useNativeDriver: true }),
     ]).start(({ finished }) => {
       if (finished) onClose();
     });
-  }, [screenHeight, onClose, translateY, opacity]);
+  }, [opacity, onClose, screenHeight, translateY]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -96,155 +118,102 @@ export function BottomSheet({
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_, gs) =>
-          Math.abs(gs.dy) > 8 && Math.abs(gs.dy) > Math.abs(gs.dx),
+          Math.abs(gs.dy) > SWIPE_ACTIVATION_THRESHOLD && Math.abs(gs.dy) > Math.abs(gs.dx),
         onPanResponderMove: (_, gs) => {
-          if (gs.dy > 0) {
-            // Dragging DOWN — follow finger; shrink if expanded
-            translateY.setValue(gs.dy);
-            if (isExpanded.current) {
-              sheetHeight.setValue(Math.max(collapsedHeight.current, MAX_HEIGHT - gs.dy));
-            }
-          } else {
-            // Dragging UP — only expand when content exceeds 50%
-            if (contentHeight.current > MIN_HEIGHT) {
-              const base = isExpanded.current ? MAX_HEIGHT : MIN_HEIGHT;
-              sheetHeight.setValue(Math.min(MAX_HEIGHT, base + -gs.dy));
-            }
-            translateY.setValue(0);
-          }
+          translateY.setValue(gs.dy > 0 ? gs.dy : 0);
         },
         onPanResponderRelease: (_, gs) => {
-          if (gs.dy > 80 || gs.vy > 0.5) {
+          if (gs.dy > SWIPE_DISMISS_DISTANCE || gs.vy > SWIPE_DISMISS_VELOCITY) {
             closeSheet();
-          } else if (gs.dy > 0 && isExpanded.current) {
-            isExpanded.current = false;
-            Animated.spring(sheetHeight, {
-              toValue: collapsedHeight.current,
-              useNativeDriver: false,
-              tension: 100,
-              friction: 14,
-            }).start();
-            Animated.spring(translateY, {
-              toValue: 0,
-              useNativeDriver: true,
-              tension: 100,
-              friction: 14,
-            }).start();
-          } else if (gs.dy < -40 && contentHeight.current > MIN_HEIGHT) {
-            isExpanded.current = true;
-            Animated.spring(sheetHeight, {
-              toValue: MAX_HEIGHT,
-              useNativeDriver: false,
-              tension: 100,
-              friction: 14,
-            }).start();
-            translateY.setValue(0);
-          } else {
-            // Snap back
-            Animated.spring(sheetHeight, {
-              toValue: isExpanded.current ? MAX_HEIGHT : collapsedHeight.current,
-              useNativeDriver: false,
-              tension: 100,
-              friction: 14,
-            }).start();
-            Animated.spring(translateY, {
-              toValue: 0,
-              useNativeDriver: true,
-              tension: 100,
-              friction: 14,
-            }).start();
+            return;
           }
+
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 14,
+          }).start();
         },
       }),
-    [closeSheet, translateY, sheetHeight, MIN_HEIGHT, MAX_HEIGHT],
+    [closeSheet, translateY],
   );
-
-  // Detached/Floating Tray style: sheet sits above the bottom edges (Home Indicator)
-  const bottomMargin = insets.bottom + 14 + extraBottomPadding;
-  const horizontalMargin = 12;
-
-  // Approximate header height used for total-height calculation in onContentSizeChange.
-  // Drag handle = 25 px, title row ≈ 40 px, subtitle row ≈ 21 px when present.
-  const headerH = subtitle ? 86 : 65;
 
   return (
     <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 1000 }}>
-      {/* Dimmed backdrop */}
       <Animated.View
-        style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', opacity }}
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: BACKDROP_COLOR,
+          opacity,
+          bottom: bottomInset,
+        }}
       >
         <Pressable style={{ flex: 1 }} onPress={closeSheet} />
       </Animated.View>
 
-      {/* Sheet anchored to bottom */}
       <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
-        {/* Outer: native driver — slide & dismiss */}
         <Animated.View
           style={{
             transform: [{ translateY }],
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 12,
-            elevation: 24,
+            shadowColor: SHADOW_COLOR,
+            shadowOffset: { width: 0, height: SHADOW_OFFSET_Y },
+            shadowOpacity: SHADOW_OPACITY,
+            shadowRadius: SHADOW_RADIUS,
+            elevation: ELEVATION,
+            marginBottom: bottomOffset,
           }}
         >
-          {/* Inner: JS driver — exact content height, capped at 50% */}
           <Animated.View
             style={{
               height: sheetHeight,
               backgroundColor: palette.card,
-              borderRadius: 24,
-              marginHorizontal: horizontalMargin,
-              marginBottom: bottomMargin,
+              borderTopLeftRadius: SHEET_RADIUS,
+              borderTopRightRadius: SHEET_RADIUS,
               overflow: 'hidden',
             }}
           >
-            {/* Header — only this area handles pan gestures */}
-            <View {...panResponder.panHandlers}>
-              <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+            <View
+              {...panResponder.panHandlers}
+              onLayout={(event) => {
+                const next = Math.round(event.nativeEvent.layout.height);
+                if (next !== headerHeight.current) {
+                  headerHeight.current = next;
+                  commitHeight();
+                }
+              }}
+            >
+              <View style={{ alignItems: 'center', paddingTop: HEADER_HANDLE_TOP_PADDING, paddingBottom: HEADER_HANDLE_BOTTOM_PADDING }}>
                 <View
                   style={{
-                    width: 42,
-                    height: 5,
+                    width: HEADER_HANDLE_WIDTH,
+                    height: HEADER_HANDLE_HEIGHT,
                     borderRadius: 999,
                     backgroundColor: palette.divider,
                     opacity: 0.65,
                   }}
                 />
               </View>
-              <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: 12 }}>
-                <Text
-                  style={{ fontSize: 20, fontWeight: '600', color: palette.text, letterSpacing: -0.3 }}
-                >
+              <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
+                <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: '600', color: palette.text, letterSpacing: HEADER_TITLE_TRACKING }}>
                   {title}
                 </Text>
                 {subtitle ? (
-                  <Text
-                    style={{ fontSize: 13, color: palette.textMuted, marginTop: 3, fontWeight: '400' }}
-                  >
+                  <Text style={{ fontSize: HEADER_SUBTITLE_SIZE, color: palette.textMuted, marginTop: HEADER_SUBTITLE_MARGIN, fontWeight: '400' }}>
                     {subtitle}
                   </Text>
                 ) : null}
               </View>
             </View>
 
-            {/* Scrollable content */}
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ paddingBottom: 16 }}
-              showsVerticalScrollIndicator={true}
+              contentContainerStyle={{ paddingBottom: CONTENT_PADDING_BOTTOM }}
+              showsVerticalScrollIndicator
               keyboardShouldPersistTaps="handled"
               onContentSizeChange={(_, h) => {
-                // h includes contentContainerStyle paddingBottom — no need to add it again
-                const totalH = h + headerH;
-                contentHeight.current = totalH;
-
-                if (!isExpanded.current) {
-                  const target = Math.min(totalH, MIN_HEIGHT);
-                  collapsedHeight.current = target;
-                  sheetHeight.setValue(target);
-                }
+                contentHeight.current = h;
+                commitHeight();
               }}
             >
               {children}
