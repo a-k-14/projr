@@ -16,18 +16,6 @@ function isEmoji(icon: string) {
   return !/^[a-z-]+$/.test(icon);
 }
 
-const EMOJIS = [
-  '🍕','🍔','🍜','🍣','☕','🥗','🍷','🛒','🍱','🥤','🍦','🎂',
-  '🚗','✈️','🚂','🚌','🚲','🛵','⛽','🚕',
-  '🏠','🔧','💡','📦','🧹','🪴','🛋️','🔑',
-  '💊','🏥','🧘','🏃','💪','🦷',
-  '💼','💻','📊','📝','🤝','📞',
-  '👗','👟','🎁','🛍️','💄','⌚','📱',
-  '💰','💳','💵','📈','🏦','💹','🪙','💸',
-  '🎬','🎵','🎮','📚','🎭','⚽','🎨',
-  '🎓','❤️','🎉','🙏',
-];
-
 type SubDraft = {
   id?: string;
   name: string;
@@ -53,7 +41,7 @@ function IconBadge({
         width: bgSize,
         height: bgSize,
         borderRadius: bgSize * 0.28,
-        backgroundColor: palette.surfaceRaised,
+        backgroundColor: palette.inputBg,
         borderWidth: 1,
         borderColor: palette.border,
         alignItems: 'center',
@@ -292,10 +280,10 @@ export default function CategoryFormScreen() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     paddingHorizontal: CARD_PADDING,
-                    minHeight: 52,
+                    paddingVertical: SPACING.sm,
                     borderBottomWidth: renderIdx < visibleSubs.length - 1 ? 1 : 0,
                     borderBottomColor: palette.divider,
-                    gap: SPACING.md,
+                    gap: SPACING.sm,
                   }}
                 >
                   <View
@@ -305,6 +293,7 @@ export default function CategoryFormScreen() {
                       borderRadius: 4,
                       backgroundColor: palette.active,
                       opacity: 0.5,
+                      flexShrink: 0,
                     }}
                   />
                   <TextInput
@@ -318,6 +307,7 @@ export default function CategoryFormScreen() {
                   <TouchableOpacity
                     onPress={() => deleteSub(sub.originalIdx)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{ flexShrink: 0 }}
                   >
                     <Feather name="trash-2" size={17} color={palette.negative} />
                   </TouchableOpacity>
@@ -384,72 +374,19 @@ export default function CategoryFormScreen() {
           onClose={() => setShowIconPicker(false)}
           hasNavBar
         >
-          {/* Emoji section */}
           <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: SPACING.sm }}>
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '600',
-                letterSpacing: 1,
-                color: palette.textMuted,
-                marginBottom: SPACING.sm,
-              }}
-            >
-              EMOJI
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {EMOJIS.map((em) => (
-                <TouchableOpacity
-                  key={em}
-                  onPress={() => { setIcon(em); setShowIconPicker(false); }}
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 13,
-                    borderWidth: icon === em ? 2 : 1,
-                    borderColor: icon === em ? palette.tabActive : palette.border,
-                    backgroundColor: icon === em ? palette.surfaceRaised : palette.surface,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Text style={{ fontSize: 24 }}>{em}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Feather icons section */}
-          <View
-            style={{
-              paddingHorizontal: SCREEN_GUTTER,
-              paddingTop: SPACING.lg,
-              paddingBottom: SPACING.sm,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '600',
-                letterSpacing: 1,
-                color: palette.textMuted,
-                marginBottom: SPACING.sm,
-              }}
-            >
-              ICONS
-            </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {CATEGORY_ICONS.map((ic) => (
                 <TouchableOpacity
                   key={ic}
                   onPress={() => { setIcon(ic); setShowIconPicker(false); }}
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 13,
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
                     borderWidth: icon === ic ? 2 : 1,
                     borderColor: icon === ic ? palette.tabActive : palette.border,
-                    backgroundColor: icon === ic ? palette.surfaceRaised : palette.surface,
+                    backgroundColor: icon === ic ? palette.inputBg : palette.surface,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}

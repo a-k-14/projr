@@ -32,7 +32,7 @@ function CategoryIconBadge({
         width: bgSize,
         height: bgSize,
         borderRadius: bgSize * 0.28,
-        backgroundColor: palette.surfaceRaised,
+        backgroundColor: palette.inputBg,
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -179,7 +179,7 @@ export default function CategoriesScreen() {
                       width: 32,
                       height: 32,
                       borderRadius: 8,
-                      backgroundColor: palette.surfaceRaised,
+                      backgroundColor: palette.inputBg,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}

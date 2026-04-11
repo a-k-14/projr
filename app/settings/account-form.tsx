@@ -15,7 +15,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 
 /** Auto-derives a sensible Feather icon name from the account type. */
 const TYPE_ICON: Record<string, string> = {
-  savings: 'layers',
+  savings: 'archive',
   credit: 'credit-card',
   cash: 'dollar-sign',
   wallet: 'briefcase',

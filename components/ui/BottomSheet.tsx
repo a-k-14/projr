@@ -36,6 +36,7 @@ export function BottomSheet({
   children,
   horizontalPadding = SHEET_GUTTER,
   hasNavBar = false,
+  extraBottomPadding = 0,
 }: {
   title: string;
   subtitle?: string;
@@ -44,6 +45,7 @@ export function BottomSheet({
   children: ReactNode;
   horizontalPadding?: number;
   hasNavBar?: boolean;
+  extraBottomPadding?: number;
 }) {
   const { height: screenHeight } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
@@ -159,7 +161,7 @@ export function BottomSheet({
 
   // Tab screens: sheet sits above the navbar, just needs a small visual gap.
   // Modal screens: sheet reaches the device edge, needs full safe-area clearance.
-  const bottomPad = hasNavBar ? 20 : insets.bottom + 20;
+  const bottomPad = (hasNavBar ? 20 : insets.bottom + 20) + extraBottomPadding;
 
   // Approximate header height used for total-height calculation in onContentSizeChange.
   // Drag handle = 25 px, title row ≈ 40 px, subtitle row ≈ 21 px when present.
