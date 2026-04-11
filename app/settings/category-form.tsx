@@ -16,18 +16,6 @@ function isEmoji(icon: string) {
   return !/^[a-z-]+$/.test(icon);
 }
 
-const EMOJIS = [
-  '🍕','🍔','🍜','🍣','☕','🥗','🍷','🛒','🍱','🥤','🍦','🎂',
-  '✈️','🚂','🚌','🚲','🛵','⛽','🚕',
-  '🏠','🔧','💡','📦','🧹','🪴','🛋️','🔑',
-  '💊','🏥','🧘','🏃','💪','🦷',
-  '💼','💻','📊','📝','🤝','📞',
-  '👗','👟','🎁','🛍️','💄','⌚','📱',
-  '💰','💳','💵','📈','🏦','💹','🪙','💸',
-  '🎬','🎵','🎮','📚','🎭','⚽','🎨',
-  '🎓','❤️','🎉','🙏',
-];
-
 type SubDraft = {
   id?: string;
   name: string;
@@ -313,18 +301,7 @@ export default function CategoryFormScreen() {
                     onChangeText={(v) => updateSubName(sub.originalIdx, v)}
                     placeholder="Subcategory name"
                     placeholderTextColor={palette.textSoft}
-                    style={{
-                      flex: 1,
-                      fontSize: 15,
-                      color: palette.text,
-                      minHeight: 40,
-                      borderRadius: 10,
-                      borderWidth: 1,
-                      borderColor: palette.border,
-                      backgroundColor: palette.inputBg,
-                      paddingHorizontal: SPACING.md,
-                      paddingVertical: 0,
-                    }}
+                    style={{ flex: 1, fontSize: 15, color: palette.text, padding: 0 }}
                     autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
                   />
                   <TouchableOpacity
@@ -396,30 +373,17 @@ export default function CategoryFormScreen() {
           palette={palette}
           onClose={() => setShowIconPicker(false)}
           hasNavBar
-          extraBottomPadding={20}
         >
-          {/* Icons section — shown first */}
           <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: SPACING.sm }}>
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '600',
-                letterSpacing: 1,
-                color: palette.textMuted,
-                marginBottom: SPACING.sm,
-              }}
-            >
-              ICONS
-            </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {CATEGORY_ICONS.map((ic) => (
                 <TouchableOpacity
                   key={ic}
                   onPress={() => { setIcon(ic); setShowIconPicker(false); }}
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 13,
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
                     borderWidth: icon === ic ? 2 : 1,
                     borderColor: icon === ic ? palette.tabActive : palette.border,
                     backgroundColor: icon === ic ? palette.inputBg : palette.surface,
@@ -432,47 +396,6 @@ export default function CategoryFormScreen() {
                     size={22}
                     color={icon === ic ? palette.tabActive : palette.iconTint}
                   />
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Emoji section — shown second */}
-          <View
-            style={{
-              paddingHorizontal: SCREEN_GUTTER,
-              paddingTop: SPACING.lg,
-              paddingBottom: SPACING.sm,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '600',
-                letterSpacing: 1,
-                color: palette.textMuted,
-                marginBottom: SPACING.sm,
-              }}
-            >
-              EMOJI
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {EMOJIS.map((em) => (
-                <TouchableOpacity
-                  key={em}
-                  onPress={() => { setIcon(em); setShowIconPicker(false); }}
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 13,
-                    borderWidth: icon === em ? 2 : 1,
-                    borderColor: icon === em ? palette.tabActive : palette.border,
-                    backgroundColor: icon === em ? palette.inputBg : palette.surface,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Text style={{ fontSize: 24 }}>{em}</Text>
                 </TouchableOpacity>
               ))}
             </View>
