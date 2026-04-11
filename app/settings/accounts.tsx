@@ -1,15 +1,14 @@
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { SCREEN_GUTTER, SPACING } from '../../lib/design';
-import { symbolFor, formatDisplayCurrency } from '../../lib/settings-shared';
 import { CardSection, SettingsRow } from '../../components/settings-ui';
 import { formatAccountDisplayName } from '../../lib/account-utils';
+import { SCREEN_GUTTER, SPACING } from '../../lib/design';
+import { formatDisplayCurrency, symbolFor } from '../../lib/settings-shared';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 export default function AccountsScreen() {
   const { accounts, load, isLoaded } = useAccountsStore();
@@ -25,7 +24,7 @@ export default function AccountsScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACING.lg, paddingBottom: 8 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: 8 }}>
         <CardSection palette={palette}>
           {accounts.map((account, index) => (
             <SettingsRow
@@ -53,7 +52,7 @@ export default function AccountsScreen() {
           borderTopWidth: 1,
           borderTopColor: palette.divider,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: SPACING.md,
+          paddingTop: SPACING.sm,
           paddingBottom: (insets.bottom || 16) + 2,
           backgroundColor: palette.background,
         }}

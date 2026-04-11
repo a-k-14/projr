@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -15,20 +16,19 @@ import {
 } from 'react-native';
 import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
-import { ChoiceRow, SectionLabel } from '../../components/settings-ui';
-import { formatDate, formatDateTime12, nowUTC } from '../../lib/dateUtils';
-import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
-import DateTimePicker, { DateTimePickerAndroid, DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { RADIUS, SCREEN_GUTTER } from '../../lib/design';
-import { AppThemePalette, getThemePalette, resolveTheme } from '../../lib/theme';
 import { formatAccountDisplayName } from '../../lib/account-utils';
+import { formatDate, nowUTC } from '../../lib/dateUtils';
+import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
+import { SCREEN_GUTTER } from '../../lib/design';
+import { AppThemePalette, getThemePalette, resolveTheme } from '../../lib/theme';
 import { getTransactionById } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
-import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type {
   Account,
@@ -55,7 +55,7 @@ const ROW_TRAILING_WIDTH = 24;
 function sanitizeDecimalInput(value: string): string {
   // Remove any character that isn't a digit or a period
   let cleaned = value.replace(/[^0-9.]/g, '');
-  
+
   // Handle empty input
   if (!cleaned) return '';
 
@@ -898,7 +898,7 @@ function PickerRow({
       >
         {label}
       </Text>
-        <View
+      <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -1234,7 +1234,7 @@ function SplitSection({
               palette={palette}
             />
           ))}
-          
+
           {!isBalanced && (
             <View style={{
               paddingHorizontal: SCREEN_GUTTER,

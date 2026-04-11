@@ -1,19 +1,17 @@
+import { Feather, Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Keyboard, ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useUIStore } from '../../stores/useUIStore';
-import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { SCREEN_GUTTER, CARD_PADDING, RADIUS, SPACING } from '../../lib/design';
-import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
-import { formatAccountDisplayName } from '../../lib/account-utils';
-import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { ActionButton, ChoiceRow, FieldLabel, InputField } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { formatIndianNumberStr } from '../../lib/derived';
+import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING } from '../../lib/design';
+import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 
 type Draft = {
@@ -88,7 +86,7 @@ export default function AccountFormScreen() {
           name: account.name,
           accountNumber: account.accountNumber ?? '',
           type: account.type,
-          balance: String(account.balance),
+          balance: formatIndianNumberStr(String(account.balance)),
           currency: account.currency,
         });
       }
@@ -164,10 +162,10 @@ export default function AccountFormScreen() {
   const selectedCurrency = CURRENCIES.find((c) => c.code === draft.currency) ?? CURRENCIES[0];
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: SCREEN_GUTTER, paddingBottom: SPACING.xl }}
+        contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: SPACING.md, paddingBottom: SPACING.xl }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Name */}
