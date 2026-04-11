@@ -1,13 +1,13 @@
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, View, useColorScheme } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { ActionButton, ColorGrid, FieldLabel, InputField } from '../../components/settings-ui';
 import { SCREEN_GUTTER, SPACING } from '../../lib/design';
 import { ENTITY_COLORS } from '../../lib/settings-shared';
-import { ActionButton, ColorGrid, FieldLabel, InputField } from '../../components/settings-ui';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 type Draft = {
   name: string;
@@ -93,7 +93,7 @@ export default function TagFormScreen() {
   }
 
   return (
-    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: SCREEN_GUTTER, paddingBottom: SPACING.xl }}
@@ -128,7 +128,7 @@ export default function TagFormScreen() {
           borderTopColor: palette.divider,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: SPACING.md,
-          paddingBottom: insets.bottom + SPACING.md,
+          paddingBottom: (insets.bottom || 16) + 2,
           backgroundColor: palette.background,
           gap: SPACING.sm,
         }}

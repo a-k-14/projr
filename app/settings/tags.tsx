@@ -1,12 +1,12 @@
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { CardSection, SettingsRow } from '../../components/settings-ui';
+import { SCREEN_GUTTER, SPACING } from '../../lib/design';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { SCREEN_GUTTER, SPACING } from '../../lib/design';
-import { CardSection, SettingsRow } from '../../components/settings-ui';
 
 export default function TagsScreen() {
   const { tags, load, isLoaded } = useCategoriesStore();
@@ -21,7 +21,7 @@ export default function TagsScreen() {
   }, [isLoaded, load]);
 
   return (
-    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACING.lg, paddingBottom: 8 }}>
         <CardSection palette={palette}>
           {tags.map((tag, index) => (
@@ -63,7 +63,7 @@ export default function TagsScreen() {
           borderTopColor: palette.divider,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: SPACING.md,
-          paddingBottom: insets.bottom + SPACING.md,
+          paddingBottom: (insets.bottom || 16) + 2,
           backgroundColor: palette.background,
         }}
       >
