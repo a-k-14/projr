@@ -1,300 +1,285 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { useEffect, useState, useColorScheme } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { SCREEN_GUTTER } from '../../lib/design';
-import {
-  CATEGORY_COLORS,
-  CATEGORY_ICONS,
-  SettingsScreenShell,
-} from '../../lib/settings-shared';
-import {
-  ActionButton,
-  CardSection,
-  FieldLabel,
-  InputField,
-  PickerChip,
-  SectionLabel,
-  SettingsRow,
-  IconGrid,
-  ColorGrid,
-} from '../../components/settings-ui';
+import { CARD_PADDING, SCREEN_GUTTER, SPACING } from '../../lib/design';
 
-type Draft = {
-  name: string;
-  parentId: string;
-  type: 'in' | 'out' | 'both';
+type Tab = 'in' | 'out';
+
+/** Feather icon names are lowercase ASCII + hyphens. Anything else is an emoji. */
+function isEmoji(icon: string) {
+  return !/^[a-z-]+$/.test(icon);
+}
+
+function CategoryIconBadge({
+  icon,
+  size,
+  bgSize,
+  palette,
+}: {
   icon: string;
-  color: string;
-};
-
-const EMPTY_DRAFT: Draft = {
-  name: '',
-  parentId: '',
-  type: 'both',
-  icon: CATEGORY_ICONS[0],
-  color: CATEGORY_COLORS[0],
-};
-
-const CATEGORY_TYPES: Array<{ key: Draft['type']; label: string }> = [
-  { key: 'in', label: 'Income' },
-  { key: 'out', label: 'Expense' },
-  { key: 'both', label: 'Both' },
-];
-
-export default function CategoriesScreen() {
-  const { categories, load, isLoaded, addCategory, updateCategory, removeCategory } =
-    useCategoriesStore();
-  const theme = useUIStore((s) => s.settings.theme);
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(theme, scheme));
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-
-  useEffect(() => {
-    if (!isLoaded) {
-      load().catch(() => undefined);
-    }
-  }, [isLoaded, load]);
-
-  useEffect(() => {
-    if (!creating && !selectedId && categories[0]) {
-      setSelectedId(categories[0].id);
-    }
-  }, [categories, creating, selectedId]);
-
-  useEffect(() => {
-    if (creating || !selectedId) {
-      setDraft(EMPTY_DRAFT);
-      return;
-    }
-    const category = categories.find((item) => item.id === selectedId);
-    if (!category) return;
-    setDraft({
-      name: category.name,
-      parentId: category.parentId ?? '',
-      type: category.type,
-      icon: category.icon,
-      color: category.color,
-    });
-  }, [categories, creating, selectedId]);
-
-  const topLevelCategories = useMemo(
-    () => categories.filter((item) => !item.parentId),
-    [categories]
-  );
-
-  async function onSave() {
-    const name = draft.name.trim();
-    if (!name) {
-      Alert.alert('Missing name', 'Please enter a category name.');
-      return;
-    }
-
-    const payload = {
-      name,
-      parentId: draft.parentId || undefined,
-      type: draft.type,
-      icon: draft.icon,
-      color: draft.color,
-    };
-
-    if (creating || !selectedId) {
-      const created = await addCategory(payload);
-      setCreating(false);
-      setSelectedId(created.id);
-      return;
-    }
-
-    await updateCategory(selectedId, payload);
-  }
-
-  async function onDelete() {
-    if (!selectedId) return;
-    const category = categories.find((c) => c.id === selectedId);
-    const childCount = categories.filter((c) => c.parentId === selectedId).length;
-    const childNote = childCount > 0 ? ` It has ${childCount} subcategor${childCount === 1 ? 'y' : 'ies'} that will also be removed.` : '';
-    Alert.alert(
-      'Delete category?',
-      `"${category?.name}" will be permanently removed from all transactions.${childNote} This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await removeCategory(selectedId);
-              setSelectedId(categories[0]?.id ?? null);
-              setCreating(!categories[0]);
-            } catch (error) {
-              Alert.alert(
-                'Unable to delete',
-                error instanceof Error ? error.message : 'This category could not be deleted.'
-              );
-            }
-          },
-        },
-      ]
-    );
-  }
-
-  const rows = useMemo(() => {
-    return [...topLevelCategories, ...categories.filter((item) => item.parentId)];
-  }, [categories, topLevelCategories]);
-
+  size: number;
+  bgSize: number;
+  palette: any;
+}) {
   return (
-    <SettingsScreenShell palette={palette}>
-      <SectionLabel label="Transaction Categories" palette={palette} />
-      <CardSection palette={palette}>
-        {rows.map((category, index) => {
-          const selected = selectedId === category.id && !creating;
-          const isSub = !!category.parentId;
-          const display = isSub
-            ? `${parentName(category.parentId!, categories)} › ${category.name}`
-            : category.name;
-          return (
-            <SettingsRow
-              key={category.id}
-              icon={(category.icon as keyof typeof Feather.glyphMap) ?? 'tag'}
-              label={display}
-              palette={palette}
-              onPress={() => {
-                setCreating(false);
-                setSelectedId(category.id);
-              }}
-              noBorder={index === rows.length - 1}
-              rightElement={
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  {!selected && (
-                    <Text style={{ color: palette.textMuted, fontSize: 13, fontWeight: '500' }}>
-                      {category.type === 'both' ? 'Both' : category.type === 'in' ? 'Income' : 'Expense'}
-                    </Text>
-                  )}
-                  {selected ? (
-                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: palette.tabActive, alignItems: 'center', justifyContent: 'center' }}>
-                      <Feather name="check" size={12} color="#FFFFFF" />
-                    </View>
-                  ) : (
-                    <Feather name="chevron-right" size={18} color={palette.divider} />
-                  )}
-                </View>
-              }
-            />
-          );
-        })}
-        {!rows.length ? (
-          <View style={{ padding: 20, alignItems: 'center' }}>
-            <Text style={{ color: palette.textMuted, fontSize: 14 }}>No categories yet.</Text>
-          </View>
-        ) : null}
-      </CardSection>
-
-      <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: 24 }}>
-        <ActionButton
-          label="Add New Category"
-          variant="secondary"
-          palette={palette}
-          onPress={() => {
-            setSelectedId(null);
-            setCreating(true);
-          }}
-        />
-      </View>
-
-      <SectionLabel label={creating ? 'CREATE NEW CATEGORY' : 'EDIT CATEGORY'} palette={palette} />
-      <CardSection palette={palette}>
-        <View style={{ padding: SCREEN_GUTTER }}>
-          <View style={{ marginBottom: 20 }}>
-            <FieldLabel label="Category Name" palette={palette} />
-            <InputField
-              palette={palette}
-              value={draft.name}
-              onChangeText={(value) => setDraft((state) => ({ ...state, name: value }))}
-              placeholder="e.g. Groceries"
-            />
-          </View>
-
-          <View style={{ marginBottom: 20 }}>
-            <FieldLabel label="Parent Category (Optional)" palette={palette} />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              <View style={{ width: '48%' }}>
-                <PickerChip
-                  label="None (Top Level)"
-                  selected={!draft.parentId}
-                  palette={palette}
-                  onPress={() => setDraft((state) => ({ ...state, parentId: '' }))}
-                />
-              </View>
-              {topLevelCategories.filter(c => c.id !== selectedId).map((category) => (
-                <View key={category.id} style={{ width: '48%' }}>
-                  <PickerChip
-                    label={category.name}
-                    selected={draft.parentId === category.id}
-                    palette={palette}
-                    onPress={() => setDraft((state) => ({ ...state, parentId: category.id }))}
-                  />
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={{ marginBottom: 20 }}>
-            <FieldLabel label="Transaction Type" palette={palette} />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {CATEGORY_TYPES.map((item) => (
-                <View key={item.key} style={{ width: '31%' }}>
-                  <PickerChip
-                    label={item.label}
-                    selected={draft.type === item.key}
-                    palette={palette}
-                    onPress={() => setDraft((state) => ({ ...state, type: item.key }))}
-                  />
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={{ marginBottom: 20 }}>
-            <FieldLabel label="Choose Icon" palette={palette} />
-            <IconGrid
-              icons={CATEGORY_ICONS}
-              selectedIcon={draft.icon}
-              onSelect={(icon) => setDraft((state) => ({ ...state, icon }))}
-              palette={palette}
-            />
-          </View>
-
-          <View style={{ marginBottom: 24 }}>
-            <FieldLabel label="Select Color Theme" palette={palette} />
-            <ColorGrid
-              colors={CATEGORY_COLORS}
-              selectedColor={draft.color}
-              onSelect={(color) => setDraft((state) => ({ ...state, color }))}
-              palette={palette}
-            />
-          </View>
-
-          <View style={{ gap: 12 }}>
-            <ActionButton
-              label={creating ? 'Create Category' : 'Update Category'}
-              variant="primary"
-              palette={palette}
-              onPress={onSave}
-            />
-            {selectedId && !creating ? (
-              <ActionButton label="Remove Category" variant="danger" palette={palette} onPress={onDelete} />
-            ) : null}
-          </View>
-        </View>
-      </CardSection>
-    </SettingsScreenShell>
+    <View
+      style={{
+        width: bgSize,
+        height: bgSize,
+        borderRadius: bgSize * 0.28,
+        backgroundColor: palette.inputBg,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {isEmoji(icon) ? (
+        <Text style={{ fontSize: size }}>{icon}</Text>
+      ) : (
+        <Feather name={icon as any} size={size} color={palette.iconTint} />
+      )}
+    </View>
   );
 }
 
-function parentName(parentId: string, categories: Array<{ id: string; name: string }>) {
-  return categories.find((item) => item.id === parentId)?.name ?? 'Parent';
+export default function CategoriesScreen() {
+  const { categories, load, isLoaded } = useCategoriesStore();
+  const scheme = useColorScheme();
+  const theme = useUIStore((s) => s.settings.theme);
+  const palette = getThemePalette(resolveTheme(theme, scheme));
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [tab, setTab] = useState<Tab>('in');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isLoaded) load().catch(() => undefined);
+  }, [isLoaded, load]);
+
+  const topLevel = categories.filter((c) => !c.parentId);
+  const visible = topLevel.filter((c) => c.type === tab || c.type === 'both');
+
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function subsOf(parentId: string) {
+    return categories.filter((c) => c.parentId === parentId);
+  }
+
+  return (
+    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: palette.background }}>
+      {/* Full-width underline tabs */}
+      <View
+        style={{
+          flexDirection: 'row',
+          borderBottomWidth: 1,
+          borderBottomColor: palette.divider,
+        }}
+      >
+        {(['in', 'out'] as const).map((t) => (
+          <TouchableOpacity
+            key={t}
+            onPress={() => setTab(t)}
+            activeOpacity={0.7}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              alignItems: 'center',
+              borderBottomWidth: 2,
+              borderBottomColor: tab === t ? palette.active : 'transparent',
+              marginBottom: -1,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: tab === t ? palette.active : palette.textMuted,
+              }}
+            >
+              {t === 'in' ? 'Income' : 'Expense'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: 8 }}
+      >
+        <View
+          style={{
+            backgroundColor: palette.card,
+            borderRadius: 20,
+            marginHorizontal: SCREEN_GUTTER,
+            borderWidth: 1,
+            borderColor: palette.border,
+            overflow: 'hidden',
+          }}
+        >
+          {visible.length === 0 && (
+            <View style={{ padding: 24, alignItems: 'center' }}>
+              <Text style={{ color: palette.textMuted, fontSize: 14 }}>
+                No {tab === 'in' ? 'income' : 'expense'} categories yet.
+              </Text>
+            </View>
+          )}
+
+          {visible.map((cat, catIdx) => {
+            const subs = subsOf(cat.id);
+            const isOpen = expanded.has(cat.id);
+            const isLast = catIdx === visible.length - 1;
+
+            return (
+              <View key={cat.id}>
+                {/* Parent row */}
+                <TouchableOpacity
+                  onPress={() => toggleExpand(cat.id)}
+                  activeOpacity={0.6}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: CARD_PADDING,
+                    paddingVertical: 12,
+                    minHeight: 62,
+                    borderBottomWidth: isLast && !isOpen ? 0 : 1,
+                    borderBottomColor: palette.divider,
+                    gap: 12,
+                  }}
+                >
+                  <CategoryIconBadge icon={cat.icon ?? 'tag'} size={20} bgSize={40} palette={palette} />
+                  <Text
+                    style={{ flex: 1, fontSize: 15, fontWeight: '500', color: palette.text }}
+                    numberOfLines={1}
+                  >
+                    {cat.name}
+                  </Text>
+                  {subs.length > 0 && (
+                    <Text style={{ fontSize: 12, color: palette.textMuted, marginRight: 4 }}>
+                      {subs.length}
+                    </Text>
+                  )}
+                  {/* Edit button */}
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({ pathname: '/settings/category-form', params: { id: cat.id } })
+                    }
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 4 }}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      backgroundColor: palette.inputBg,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Feather name="edit-2" size={14} color={palette.iconTint} />
+                  </TouchableOpacity>
+                  {/* Expand toggle */}
+                  <Feather
+                    name={isOpen ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={palette.textSoft}
+                  />
+                </TouchableOpacity>
+
+                {/* Expanded subcategories */}
+                {isOpen && (
+                  <View
+                    style={{
+                      borderBottomWidth: isLast ? 0 : 1,
+                      borderBottomColor: palette.divider,
+                    }}
+                  >
+                    {subs.map((sub, subIdx) => (
+                      <View
+                        key={sub.id}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingLeft: CARD_PADDING + 52,
+                          paddingRight: CARD_PADDING,
+                          paddingVertical: 10,
+                          minHeight: 44,
+                          borderTopWidth: subIdx === 0 ? 0 : 0,
+                          gap: 10,
+                          backgroundColor: palette.surface,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: 3,
+                            backgroundColor: palette.active,
+                            opacity: 0.5,
+                          }}
+                        />
+                        <Text style={{ fontSize: 14, color: palette.textMuted }}>{sub.name}</Text>
+                      </View>
+                    ))}
+                    {subs.length === 0 && (
+                      <View
+                        style={{
+                          paddingLeft: CARD_PADDING + 52,
+                          paddingVertical: 10,
+                          backgroundColor: palette.surface,
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, color: palette.textSoft }}>
+                          No subcategories
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      {/* Fixed bottom add button */}
+      <View
+        style={{
+          borderTopWidth: 1,
+          borderTopColor: palette.divider,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: SPACING.md,
+          paddingBottom: insets.bottom + SPACING.md,
+          backgroundColor: palette.background,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() =>
+            router.push({ pathname: '/settings/category-form', params: { type: tab } })
+          }
+          activeOpacity={0.7}
+          style={{
+            minHeight: 48,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: palette.active,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '600', color: palette.active }}>
+            + Add {tab === 'in' ? 'Income' : 'Expense'} Category
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
 }
