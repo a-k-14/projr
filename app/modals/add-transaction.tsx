@@ -21,7 +21,7 @@ import { formatDate, formatDateTime12, nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import DateTimePicker, { DateTimePickerAndroid, DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { RADIUS, SCREEN_GUTTER } from '../../lib/design';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { AppThemePalette, getThemePalette, resolveTheme } from '../../lib/theme';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { getTransactionById } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -44,6 +44,7 @@ type SplitDraft = {
   id: string;
   categoryId: string;
   amountStr: string;
+  openCategoryPicker?: boolean;
 };
 
 const ROW_LABEL_WIDTH = 92;
@@ -317,14 +318,13 @@ export default function AddTransactionModal() {
         value: current,
         mode: 'date',
         display: 'calendar',
-        onValueChange: (_event, selectedDate) => {
+        onChange: (_event, selectedDate) => {
           if (selectedDate) {
             const final = new Date(date);
             final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
             setDate(final.toISOString());
           }
         },
-        onDismiss: () => {},
       });
     } else {
       setPickerMode('date');
@@ -342,7 +342,7 @@ export default function AddTransactionModal() {
         mode: 'time',
         display: 'clock',
         is24Hour: false,
-        onValueChange: (event, selectedTime) => {
+        onChange: (event, selectedTime) => {
           if (selectedTime) {
             const final = new Date(date);
             final.setHours(selectedTime.getHours());
@@ -350,7 +350,6 @@ export default function AddTransactionModal() {
             setDate(final.toISOString());
           }
         },
-        onDismiss: () => {},
       });
     } else {
       setPickerMode('time');
@@ -428,15 +427,15 @@ export default function AddTransactionModal() {
                 onOpenTime={openTime}
                 palette={palette}
               />
-            <AmountRow
-              sym={sym}
-              activeConfig={activeConfig}
-              amountStr={amountStr}
-              setAmountStr={setAmountStr}
-              onOpenCalculator={handleOpenCalculator}
-              isEditing={isEditing}
-              palette={palette}
-            />
+              <AmountRow
+                sym={sym}
+                activeConfig={activeConfig}
+                amountStr={amountStr}
+                setAmountStr={setAmountStr}
+                onOpenCalculator={handleOpenCalculator}
+                isEditing={isEditing}
+                palette={palette}
+              />
               <PickerRow
                 label="Account"
                 value={getAccountName(accounts, accountId)}
@@ -617,8 +616,7 @@ export default function AddTransactionModal() {
               value={new Date(date)}
               mode={pickerMode}
               display="default"
-              onValueChange={onDateChange}
-              onDismiss={() => setShowDatePicker(false)}
+              onChange={onDateChange}
               textColor={palette.text}
               accentColor={palette.tabActive}
             />
@@ -728,7 +726,7 @@ export default function AddTransactionModal() {
   );
 }
 
-function SectionCard({ children, palette }: { children: React.ReactNode; palette: any }) {
+function SectionCard({ children, palette }: { children: React.ReactNode; palette: AppThemePalette }) {
   return (
     <View
       style={{
@@ -754,7 +752,7 @@ function FieldRow({
   label: string;
   children: React.ReactNode;
   noBorder?: boolean;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   return (
     <View
@@ -794,7 +792,7 @@ function InlinePickerRow({
   showChevron?: boolean;
   noBorder?: boolean;
   valueStyle?: object;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   return (
     <TouchableOpacity
@@ -876,7 +874,7 @@ function PickerRow({
   value: string;
   placeholder?: boolean;
   onPress: () => void;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   return (
     <TouchableOpacity
@@ -891,8 +889,8 @@ function PickerRow({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 15,
-          fontWeight: '500',
+          fontSize: 13,
+          fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
@@ -940,7 +938,7 @@ function InteractiveDateTimeRow({
   onOpenTime,
 }: {
   date: string;
-  palette: any;
+  palette: AppThemePalette;
   onOpenDate: () => void;
   onOpenTime: () => void;
 }) {
@@ -1026,7 +1024,7 @@ function AmountRow({
   setAmountStr: (value: string) => void;
   onOpenCalculator: () => void;
   isEditing: boolean;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   const [isFocused, setIsFocused] = useState(false);
   return (
@@ -1113,8 +1111,8 @@ function InlineInputRow({
   label: string;
   value: string;
   onChangeText: (value: string) => void;
-  placeholder: string;
-  palette: any;
+  palette: AppThemePalette;
+  placeholder?: string;
 }) {
   const [isFocused, setIsFocused] = useState(false);
   return (
@@ -1155,7 +1153,6 @@ function InlineInputRow({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={palette.textSoft}
           placeholderTextColor={palette.textSoft}
           style={{
             flex: 1,
@@ -1198,7 +1195,7 @@ function SplitSection({
   onAddSplit: () => void;
   onChangeSplit: (id: string, patch: Partial<SplitDraft>) => void;
   onRemoveSplit: (id: string) => void;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   const diff = amount - splitTotal;
   const isBalanced = Math.abs(diff) < 0.01;
@@ -1211,7 +1208,7 @@ function SplitSection({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: palette.surfaceAlt,
+        backgroundColor: palette.surface,
         marginTop: 4,
       }}>
         <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textSoft, textTransform: 'uppercase' }}>
@@ -1269,7 +1266,7 @@ function SplitSection({
   );
 }
 
-function ReceiptSection({ palette }: { palette: any }) {
+function ReceiptSection({ palette }: { palette: AppThemePalette }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
       <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
@@ -1307,7 +1304,7 @@ function NotesSection({
 }: {
   note: string;
   onChangeNote: (value: string) => void;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
@@ -1337,7 +1334,7 @@ function AccountPicker({
   selectedId: string;
   onSelect: (id: string) => void;
   excludeId?: string;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   const filtered = accounts.filter((a) => a.id !== excludeId);
   const ordered = [
@@ -1392,7 +1389,7 @@ function CategoryPicker({
   selectedId: string;
   onSelect: (id: string) => void;
   type: TransactionType;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   const options = getRelevantCategoryOptions(categories, type);
 
@@ -1443,9 +1440,9 @@ function SplitRowEditor({
   type: TransactionType;
   onChange: (id: string, patch: Partial<SplitDraft>) => void;
   onRemove: (id: string) => void;
-  palette: any;
+  palette: AppThemePalette;
 }) {
-  const categoryName = categories.find(c => c.id === row.categoryId)?.label || 'Select Category';
+  const categoryName = categories.find(c => c.id === row.categoryId)?.name || 'Select Category';
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -1458,7 +1455,10 @@ function SplitRowEditor({
     }}>
       <TouchableOpacity
         onPress={() => {
-          // Open category selector logic (ideally a custom small bottom sheet for speed)
+          Keyboard.dismiss();
+          setTimeout(() => {
+            onChange(row.id, { id: row.id, openCategoryPicker: true });
+          }, 50);
         }}
         style={{
           width: ROW_LABEL_WIDTH,
@@ -1515,7 +1515,7 @@ function TagPicker({
   tags: Tag[];
   selectedIds: string[];
   onToggle: (id: string) => void;
-  palette: any;
+  palette: AppThemePalette;
 }) {
   if (tags.length === 0) {
     return <Text style={{ fontSize: 13, color: palette.textSoft }}>No tags yet</Text>;
