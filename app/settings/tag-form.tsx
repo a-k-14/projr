@@ -1,9 +1,14 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, View, useColorScheme } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ActionButton, ColorGrid, FieldLabel, InputField } from '../../components/settings-ui';
-import { SCREEN_GUTTER, SPACING } from '../../lib/design';
+import { Alert, View, useColorScheme } from 'react-native';
+import {
+  ActionButton,
+  ColorGrid,
+  FieldLabel,
+  FixedBottomActions,
+  InputField,
+  SettingsFormLayout,
+} from '../../components/settings-ui';
 import { ENTITY_COLORS } from '../../lib/settings-shared';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -28,7 +33,6 @@ export default function TagFormScreen() {
   const palette = getThemePalette(resolveTheme(theme, scheme));
   const router = useRouter();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
 
@@ -93,61 +97,47 @@ export default function TagFormScreen() {
   }
 
   return (
-    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: SCREEN_GUTTER, paddingBottom: SPACING.xl }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Tag Name" palette={palette} />
-          <InputField
-            palette={palette}
-            value={draft.name}
-            onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
-            placeholder="e.g. Travel"
-            autoFocus={!isEditing}
-          />
-        </View>
-
-        <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Color" palette={palette} />
-          <ColorGrid
-            colors={ENTITY_COLORS}
-            selectedColor={draft.color}
-            onSelect={(color) => setDraft((s) => ({ ...s, color }))}
-            palette={palette}
-          />
-        </View>
-      </ScrollView>
-
-      {/* Fixed bottom actions */}
-      <View
-        style={{
-          borderTopWidth: 1,
-          borderTopColor: palette.divider,
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: SPACING.md,
-          paddingBottom: (insets.bottom || 16) + 2,
-          backgroundColor: palette.background,
-          gap: SPACING.sm,
-        }}
-      >
-        <ActionButton
-          label={isEditing ? 'Save Tag' : 'Create Tag'}
-          variant="primary"
-          palette={palette}
-          onPress={onSave}
-        />
-        {isEditing && (
+    <SettingsFormLayout
+      palette={palette}
+      bottomActions={
+        <FixedBottomActions palette={palette}>
           <ActionButton
-            label="Delete Tag"
-            variant="danger"
+            label={isEditing ? 'Save Tag' : 'Create Tag'}
+            variant="primary"
             palette={palette}
-            onPress={onDelete}
+            onPress={onSave}
           />
-        )}
+          {isEditing && (
+            <ActionButton
+              label="Delete Tag"
+              variant="danger"
+              palette={palette}
+              onPress={onDelete}
+            />
+          )}
+        </FixedBottomActions>
+      }
+    >
+      <View style={{ marginBottom: 16 }}>
+        <FieldLabel label="Tag Name" palette={palette} />
+        <InputField
+          palette={palette}
+          value={draft.name}
+          onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
+          placeholder="e.g. Travel"
+          autoFocus={!isEditing}
+        />
       </View>
-    </SafeAreaView>
+
+      <View style={{ marginBottom: 16 }}>
+        <FieldLabel label="Color" palette={palette} />
+        <ColorGrid
+          colors={ENTITY_COLORS}
+          selectedColor={draft.color}
+          onSelect={(color) => setDraft((s) => ({ ...s, color }))}
+          palette={palette}
+        />
+      </View>
+    </SettingsFormLayout>
   );
 }

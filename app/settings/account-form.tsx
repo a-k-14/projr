@@ -1,18 +1,23 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Keyboard, ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ActionButton, ChoiceRow, FieldLabel, InputField } from '../../components/settings-ui';
+import { Alert, Keyboard, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import {
+  ActionButton,
+  ChoiceRow,
+  FieldLabel,
+  FixedBottomActions,
+  InputField,
+  SettingsFormLayout,
+} from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { formatIndianNumberStr } from '../../lib/derived';
-import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING } from '../../lib/design';
+import { RADIUS, SCREEN_GUTTER, SPACING } from '../../lib/design';
 import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
-
 
 type Draft = {
   name: string;
@@ -31,7 +36,6 @@ export default function AccountFormScreen() {
   const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const router = useRouter();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
 
   const [draft, setDraft] = useState<Draft>({
     name: '',
@@ -47,7 +51,6 @@ export default function AccountFormScreen() {
     useTransactionDraftStore();
   const prevCalculatorOpen = useRef(calculatorOpen);
 
-  // Sync calculator result back to balance field when calculator closes
   useEffect(() => {
     if (prevCalculatorOpen.current === true && calculatorOpen === false) {
       if (calculatorValue && calculatorValue !== '0') {
@@ -121,7 +124,7 @@ export default function AccountFormScreen() {
       initialBalance: Number.parseFloat(draft.balance || '0') || 0,
       currency: draft.currency,
       color: ENTITY_COLORS[0],
-      icon: 'wallet', // Default dummy icon, no longer managed by user
+      icon: 'wallet',
     };
     if (isEditing && id) {
       await update(id, payload);
@@ -162,127 +165,113 @@ export default function AccountFormScreen() {
   const selectedCurrency = CURRENCIES.find((c) => c.code === draft.currency) ?? CURRENCIES[0];
 
   return (
-    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: SPACING.md, paddingBottom: SPACING.xl }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Name */}
-        <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Account Name" palette={palette} />
-          <InputField
-            palette={palette}
-            value={draft.name}
-            onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
-            placeholder="e.g. HDFC Bank"
-            autoFocus={!isEditing}
-          />
-        </View>
-
-        {/* Account Number */}
-        <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Account Number" palette={palette} />
-          <InputField
-            palette={palette}
-            value={draft.accountNumber}
-            onChangeText={(v) => setDraft((s) => ({ ...s, accountNumber: v }))}
-            placeholder="e.g. 1234 5678 1234"
-            keyboardType="numeric"
-          />
-        </View>
-
-        {/* Account Type */}
-        <View style={{ marginBottom: SPACING.xl }}>
-          <FieldLabel label="Account Type" palette={palette} />
-          <TouchableOpacity
-            onPress={() => handlePickerOpen(setShowTypePicker)}
-            activeOpacity={0.7}
-            style={pickerRowStyle(palette)}
-          >
-            <Text style={{ color: palette.text, fontSize: 16 }}>{selectedType?.label ?? ''}</Text>
-            <Feather name="chevron-down" size={20} color={palette.textSoft} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Balance */}
-        <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Opening Balance" palette={palette} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SCREEN_GUTTER }}>
-            <View style={{ flex: 1 }}>
-              <InputField
-                palette={palette}
-                value={draft.balance}
-                onChangeText={(v) => {
-                  const clean = v.replace(/[^0-9.]/g, '');
-                  setDraft((s) => ({ ...s, balance: clean }));
-                }}
-                placeholder="0.00"
-                placeholderTextColor={palette.textSoft}
-                keyboardType="numeric"
-              />
-            </View>
-            <TouchableOpacity
-              onPress={handleOpenCalculator}
-              activeOpacity={0.7}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: RADIUS.md,
-                borderWidth: 1,
-                borderColor: palette.border,
-                backgroundColor: palette.surface,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Ionicons name="calculator-outline" size={24} color={palette.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Currency */}
-        <View style={{ marginBottom: SPACING.xl }}>
-          <FieldLabel label="Currency" palette={palette} />
-          <TouchableOpacity
-            onPress={() => handlePickerOpen(setShowCurrencyPicker)}
-            activeOpacity={0.7}
-            style={pickerRowStyle(palette)}
-          >
-            <Text style={{ color: palette.text, fontSize: 16 }}>
-              {selectedCurrency.symbol} {selectedCurrency.code}
-            </Text>
-            <Feather name="chevron-down" size={20} color={palette.textSoft} />
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Fixed bottom actions */}
-      <View
-        style={{
-          borderTopWidth: 1,
-          borderTopColor: palette.divider,
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: SPACING.md,
-          paddingBottom: (insets.bottom || 16) + 2,
-          backgroundColor: palette.background,
-          gap: SPACING.sm,
-        }}
-      >
-        <ActionButton
-          label={isEditing ? 'Save Account' : 'Create Account'}
-          variant="primary"
-          palette={palette}
-          onPress={onSave}
-        />
-        {isEditing && (
+    <SettingsFormLayout
+      palette={palette}
+      bottomActions={
+        <FixedBottomActions palette={palette}>
           <ActionButton
-            label="Delete Account"
-            variant="danger"
+            label={isEditing ? 'Save Account' : 'Create Account'}
+            variant="primary"
             palette={palette}
-            onPress={onDelete}
+            onPress={onSave}
           />
-        )}
+          {isEditing && (
+            <ActionButton
+              label="Delete Account"
+              variant="danger"
+              palette={palette}
+              onPress={onDelete}
+            />
+          )}
+        </FixedBottomActions>
+      }
+    >
+      {/* Name */}
+      <View style={{ marginBottom: SPACING.lg }}>
+        <FieldLabel label="Account Name" palette={palette} />
+        <InputField
+          palette={palette}
+          value={draft.name}
+          onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
+          placeholder="e.g. HDFC Bank"
+          autoFocus={!isEditing}
+        />
+      </View>
+
+      {/* Account Number */}
+      <View style={{ marginBottom: SPACING.lg }}>
+        <FieldLabel label="Account Number" palette={palette} />
+        <InputField
+          palette={palette}
+          value={draft.accountNumber}
+          onChangeText={(v) => setDraft((s) => ({ ...s, accountNumber: v }))}
+          placeholder="e.g. 1234 5678 1234"
+          keyboardType="numeric"
+        />
+      </View>
+
+      {/* Account Type */}
+      <View style={{ marginBottom: SPACING.xl }}>
+        <FieldLabel label="Account Type" palette={palette} />
+        <TouchableOpacity
+          onPress={() => handlePickerOpen(setShowTypePicker)}
+          activeOpacity={0.7}
+          style={pickerRowStyle(palette)}
+        >
+          <Text style={{ color: palette.text, fontSize: 16 }}>{selectedType?.label ?? ''}</Text>
+          <Feather name="chevron-down" size={20} color={palette.textSoft} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Balance */}
+      <View style={{ marginBottom: SPACING.lg }}>
+        <FieldLabel label="Opening Balance" palette={palette} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SCREEN_GUTTER }}>
+          <View style={{ flex: 1 }}>
+            <InputField
+              palette={palette}
+              value={draft.balance}
+              onChangeText={(v) => {
+                const clean = v.replace(/[^0-9.]/g, '');
+                setDraft((s) => ({ ...s, balance: clean }));
+              }}
+              placeholder="0.00"
+              placeholderTextColor={palette.textSoft}
+              keyboardType="numeric"
+            />
+          </View>
+          <TouchableOpacity
+            onPress={handleOpenCalculator}
+            activeOpacity={0.7}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: RADIUS.md,
+              borderWidth: 1,
+              borderColor: palette.border,
+              backgroundColor: palette.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="calculator-outline" size={24} color={palette.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Currency */}
+      <View style={{ marginBottom: SPACING.xl }}>
+        <FieldLabel label="Currency" palette={palette} />
+        <TouchableOpacity
+          onPress={() => handlePickerOpen(setShowCurrencyPicker)}
+          activeOpacity={0.7}
+          style={pickerRowStyle(palette)}
+        >
+          <Text style={{ color: palette.text, fontSize: 16 }}>
+            {selectedCurrency.symbol} {selectedCurrency.code}
+          </Text>
+          <Feather name="chevron-down" size={20} color={palette.textSoft} />
+        </TouchableOpacity>
       </View>
 
       {/* Account Type picker */}
@@ -336,18 +325,18 @@ export default function AccountFormScreen() {
           ))}
         </BottomSheet>
       )}
-    </SafeAreaView>
+    </SettingsFormLayout>
   );
 }
 
 function pickerRowStyle(palette: { border: string; surface: string }) {
   return {
-    minHeight: 52,
+    minHeight: 56,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: palette.border,
     backgroundColor: palette.surface,
-    paddingHorizontal: CARD_PADDING,
+    paddingHorizontal: 16,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'space-between' as const,

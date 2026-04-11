@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { ReactNode } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
@@ -429,5 +430,89 @@ export function ActionButton({
     >
       <Text style={{ fontSize: 15, fontWeight: '700', color: picked.color }}>{label}</Text>
     </TouchableOpacity>
+  );
+}
+
+/**
+ * Layout components for Settings Screens
+ */
+
+export function FixedBottomActions({
+  children,
+  palette,
+}: {
+  children: ReactNode;
+  palette: AppThemePalette;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={{
+        borderTopWidth: 1,
+        borderTopColor: palette.divider,
+        paddingHorizontal: SCREEN_GUTTER,
+        paddingTop: SPACING.md,
+        paddingBottom: (insets.bottom || 16) + 2,
+        backgroundColor: palette.background,
+        gap: SPACING.sm,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+export function SettingsScreenLayout({
+  children,
+  palette,
+  bottomAction,
+}: {
+  children: ReactNode;
+  palette: AppThemePalette;
+  bottomAction?: ReactNode;
+}) {
+  return (
+    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: 8 }}
+      >
+        {children}
+      </ScrollView>
+      {bottomAction}
+    </SafeAreaView>
+  );
+}
+
+export function SettingsFormLayout({
+  children,
+  palette,
+  bottomActions,
+}: {
+  children: ReactNode;
+  palette: AppThemePalette;
+  bottomActions?: ReactNode;
+}) {
+  return (
+    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: SCREEN_GUTTER,
+            paddingTop: SPACING.md,
+            paddingBottom: SPACING.xl,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
+        {bottomActions}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
