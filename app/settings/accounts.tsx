@@ -23,7 +23,7 @@ export default function AccountsScreen() {
   }, [isLoaded, load]);
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: 8 }}>
         <CardSection palette={palette}>
           {accounts.map((account, index) => (
