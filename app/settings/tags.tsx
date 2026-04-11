@@ -1,5 +1,5 @@
-import { useEffect, useColorScheme } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect } from 'react';
+import { ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
