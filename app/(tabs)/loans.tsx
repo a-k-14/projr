@@ -1,33 +1,33 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
   FlatList,
   RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
   useColorScheme,
+  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useLoansStore } from '../../stores/useLoansStore';
-import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { getLoanSummary, formatCurrency } from '../../lib/derived';
 import { formatDateShort } from '../../lib/dateUtils';
-import { SCREEN_GUTTER, CARD_PADDING } from '../../lib/design';
+import { formatCurrency, getLoanSummary } from '../../lib/derived';
+import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
   HOME_RADIUS,
   HOME_SHADOW,
   HOME_SPACE,
   HOME_TEXT,
 } from '../../lib/homeTokens';
-import type { LoanWithSummary, LoanStatus } from '../../types';
 import type { AppThemePalette } from '../../lib/theme';
+import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useLoansStore } from '../../stores/useLoansStore';
+import { useUIStore } from '../../stores/useUIStore';
+import { FabButton } from '../../components/ui/FabButton';
+import type { LoanStatus, LoanWithSummary } from '../../types';
 
-import { ScreenTitle } from '../../components/settings-ui';
 
 export default function LoansScreen() {
   const { loans, load, filters } = useLoansStore();
@@ -265,23 +265,11 @@ export default function LoansScreen() {
       />
 
       {/* FAB */}
-      <TouchableOpacity
+      <FabButton
+        bottom={Math.max(0, insets.bottom - 24)}
+        palette={palette}
         onPress={() => router.push('/modals/add-loan')}
-        style={{
-          position: 'absolute',
-          bottom: Math.max(insets.bottom + 12, 24),
-          right: 24,
-          width: 56,
-          height: 56,
-          borderRadius: HOME_RADIUS.fab,
-          backgroundColor: palette.active,
-          alignItems: 'center',
-          justifyContent: 'center',
-          ...HOME_SHADOW.card,
-        }}
-      >
-        <Ionicons name="add" size={28} color={palette.surface} />
-      </TouchableOpacity>
+      />
     </SafeAreaView>
   );
 }

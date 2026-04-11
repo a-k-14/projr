@@ -1,32 +1,32 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Modal,
   Alert,
+  Modal,
   RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
   useColorScheme,
+  View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useBudgetStore } from '../../stores/useBudgetStore';
-import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useUIStore } from '../../stores/useUIStore';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScreenTitle } from '../../components/settings-ui';
+import { FabButton } from '../../components/ui/FabButton';
 import { formatCurrency } from '../../lib/derived';
-import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
-import { SCREEN_GUTTER, CARD_PADDING } from '../../lib/design';
+import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
   HOME_RADIUS,
   HOME_SHADOW,
   HOME_SPACE,
   HOME_TEXT,
 } from '../../lib/homeTokens';
+import { AppThemePalette, getThemePalette, resolveTheme } from '../../lib/theme';
+import { useBudgetStore } from '../../stores/useBudgetStore';
+import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useUIStore } from '../../stores/useUIStore';
 import type { BudgetWithSpent, CreateBudgetInput } from '../../types';
-import { ScreenTitle } from '../../components/settings-ui';
 
 export default function BudgetScreen() {
   const { budgets, load, add, remove } = useBudgetStore();
@@ -168,23 +168,11 @@ export default function BudgetScreen() {
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity
+      <FabButton
+        bottom={Math.max(0, insets.bottom - 24)}
+        palette={palette}
         onPress={() => setShowAddModal(true)}
-        style={{
-          position: 'absolute',
-          bottom: Math.max(24, insets.bottom + 12),
-          right: 24,
-          width: 56,
-          height: 56,
-          borderRadius: HOME_RADIUS.fab,
-          backgroundColor: palette.active,
-          alignItems: 'center',
-          justifyContent: 'center',
-          ...HOME_SHADOW.card,
-        }}
-      >
-        <Ionicons name="add" size={28} color={palette.surface} />
-      </TouchableOpacity>
+      />
 
       <AddBudgetModal
         visible={showAddModal}

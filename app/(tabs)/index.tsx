@@ -23,11 +23,13 @@ import { AccountTabBar } from '../../components/AccountTabBar';
 import { ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
+import { FabButton } from '../../components/ui/FabButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { InlineDot } from '../../components/ui/InlineDot';
+import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
-import { SCREEN_GUTTER, CARD_PADDING } from '../../lib/design';
+import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
 import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
 import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
@@ -35,7 +37,6 @@ import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { formatAccountDisplayName } from '../../lib/account-utils';
 import type {
   CashflowSummary,
   DailyCashflow,
@@ -224,28 +225,16 @@ export default function HomeScreen() {
         </Animated.ScrollView>
       </View>
 
-      <TouchableOpacity
+      <FabButton
+        bottom={Math.max(0, insets.bottom - 24)}
+        palette={palette}
         onPress={() =>
           router.push({
             pathname: '/modals/add-transaction',
             params: selectedAccountId === 'all' ? undefined : { accountId: selectedAccountId },
           })
         }
-        style={{
-          position: 'absolute',
-          bottom: Math.max(0, insets.bottom - 24),
-          right: 24,
-          width: HOME_LAYOUT.fabSize,
-          height: HOME_LAYOUT.fabSize,
-          borderRadius: HOME_RADIUS.fab,
-          backgroundColor: palette.active,
-          alignItems: 'center',
-          justifyContent: 'center',
-          ...HOME_SHADOW.card,
-        }}
-      >
-        <Ionicons name="add" size={28} color={palette.surface} />
-      </TouchableOpacity>
+      />
 
       <Modal
         visible={customRangeOpen}
@@ -576,8 +565,8 @@ function HomeAccountPage({
                           borderBottomColor: palette.borderSoft,
                         }}
                       >
-                        <Text 
-                          numberOfLines={1} 
+                        <Text
+                          numberOfLines={1}
                           style={{ width: 45, fontSize: 14, fontWeight: '600', color: palette.text, opacity: 0.85, textAlign: 'center' }}
                         >
                           {row.label}
@@ -588,8 +577,8 @@ function HomeAccountPage({
                 </View>
 
                 {/* Right Scrollable Data: Inflow, Outflow, Net */}
-                <GestureScrollView 
-                  horizontal 
+                <GestureScrollView
+                  horizontal
                   showsHorizontalScrollIndicator={false}
                   disallowInterruption={true}
                   style={{ flex: 1 }}
@@ -628,14 +617,14 @@ function HomeAccountPage({
                             alignItems: 'center',
                           }}
                         >
-                          <Text 
-                            numberOfLines={1} 
+                          <Text
+                            numberOfLines={1}
                             style={{ width: 95, fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right', marginLeft: 12 }}
                           >
                             {row.in > 0 ? formatIndianNumberStr(String(row.in)) : '-'}
                           </Text>
-                          <Text 
-                            numberOfLines={1} 
+                          <Text
+                            numberOfLines={1}
                             style={{ width: 95, fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right', marginLeft: 12 }}
                           >
                             {row.out > 0 ? formatIndianNumberStr(String(row.out)) : '-'}
