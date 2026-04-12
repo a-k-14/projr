@@ -669,7 +669,7 @@ export default function AddTransactionModal() {
                   <ChoiceRow
                     key={account.id}
                     title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                    subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatIndianNumberStr(String(account.balance))} ${sym}`}
+                    subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, sym)}`}
                     selected={accountId === account.id}
                     palette={palette}
                     onPress={() => {
