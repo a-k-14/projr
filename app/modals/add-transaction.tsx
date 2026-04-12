@@ -664,10 +664,7 @@ export default function AddTransactionModal() {
           {accounts.length === 0 ? (
             <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
-            accounts
-              .slice()
-              .sort((left, right) => (left.id === accountId ? -1 : right.id === accountId ? 1 : 0))
-              .map((account, index) => {
+            accounts.map((account, index) => {
                 return (
                   <ChoiceRow
                     key={account.id}
@@ -1337,18 +1334,13 @@ function AccountPicker({
   palette: AppThemePalette;
 }) {
   const filtered = accounts.filter((a) => a.id !== excludeId);
-  const ordered = [
-    ...filtered.filter((a) => a.id === selectedId),
-    ...filtered.filter((a) => a.id !== selectedId),
-  ];
-
-  if (ordered.length === 0) {
+  if (filtered.length === 0) {
     return <Text style={{ fontSize: 13, color: palette.textMuted }}>No account available</Text>;
   }
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-      {ordered.map((acc) => (
+      {filtered.map((acc) => (
         <TouchableOpacity
           key={acc.id}
           onPress={() => onSelect(acc.id)}

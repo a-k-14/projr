@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Pressable, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -17,14 +16,6 @@ export default function SelectAccountSheet() {
   const scheme = useColorScheme();
   const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const insets = useSafeAreaInsets();
-
-  const ordered = useMemo(
-    () => [
-      ...accounts.filter((a) => a.id === accountId),
-      ...accounts.filter((a) => a.id !== accountId),
-    ],
-    [accounts, accountId]
-  );
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.scrim }}>
@@ -59,7 +50,7 @@ export default function SelectAccountSheet() {
           </TouchableOpacity>
         </View>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {ordered.map((account) => {
+          {accounts.map((account) => {
             const selected = account.id === accountId;
             return (
               <TouchableOpacity

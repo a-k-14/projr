@@ -15,6 +15,7 @@ export interface Account {
   icon: string;
   accountNumber?: string;
   initialBalance: number;
+  sortOrder: number;
   createdAt: string;
 }
 

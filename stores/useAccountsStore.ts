@@ -10,6 +10,7 @@ interface AccountsStore {
   load: () => Promise<void>;
   add: (data: CreateAccountInput) => Promise<Account>;
   update: (id: string, data: Partial<Account>) => Promise<void>;
+  setOrder: (ids: string[]) => Promise<void>;
   remove: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
   getById: (id: string) => Account | undefined;
@@ -40,6 +41,12 @@ export const useAccountsStore = create<AccountsStore>((set, get) => ({
     set((state) => ({
       accounts: state.accounts.map((a) => (a.id === id ? updated : a)),
     }));
+  },
+
+  setOrder: async (ids) => {
+    await accountsService.setAccountOrder(ids);
+    const accounts = await accountsService.getAccounts();
+    set({ accounts });
   },
 
   remove: async (id) => {

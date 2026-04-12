@@ -5,9 +5,10 @@ async function hasColumn(table: string, column: string): Promise<boolean> {
   return rows.some((row) => row.name === column);
 }
 
-async function ensureColumn(table: string, column: string, definition: string): Promise<void> {
-  if (await hasColumn(table, column)) return;
+async function ensureColumn(table: string, column: string, definition: string): Promise<boolean> {
+  if (await hasColumn(table, column)) return false;
   await sqlite.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`);
+  return true;
 }
 
 export async function runMigrations() {
@@ -20,6 +21,7 @@ export async function runMigrations() {
       currency TEXT NOT NULL DEFAULT 'INR',
       color TEXT NOT NULL DEFAULT '#1B4332',
       icon TEXT NOT NULL DEFAULT 'wallet',
+      sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -91,4 +93,13 @@ export async function runMigrations() {
   await ensureColumn('transactions', 'payee', 'TEXT');
   await ensureColumn('accounts', 'account_number', 'TEXT');
   await ensureColumn('accounts', 'initial_balance', 'REAL');
+  const addedSortOrder = await ensureColumn('accounts', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
+
+  if (addedSortOrder) {
+    const rows = await sqlite.getAllAsync<{ id: string }>(`SELECT id FROM accounts ORDER BY created_at ASC`);
+    for (let index = 0; index < rows.length; index += 1) {
+      const row = rows[index];
+      await sqlite.execAsync(`UPDATE accounts SET sort_order = ${index} WHERE id = '${row.id}';`);
+    }
+  }
 }

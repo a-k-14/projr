@@ -10,6 +10,7 @@ export const accounts = sqliteTable('accounts', {
   icon: text('icon').notNull().default('wallet'),
   accountNumber: text('account_number'),
   initialBalance: real('initial_balance').notNull().default(0),
+  sortOrder: integer('sort_order').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
 
