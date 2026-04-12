@@ -7,7 +7,7 @@ const BRAND = '#17673B';
 const NEGATIVE = '#8A2424';
 const WHITE = '#FFFFFF';
 const ON_BUDGET = '#111827';
-const LOAN_LIGHT = '#6D5744';
+const LOAN_LIGHT = '#4E3B2F';
 const LOAN_DARK = '#6A5442';
 const BUDGET_LIGHT = '#1E293B';
 const BUDGET_DARK = '#E2E8F0';
@@ -163,7 +163,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       inBg: tint(BRAND, 0.08, 0.16, mode),
       outBg: tint(NEGATIVE, 0.08, 0.16, mode),
       transferBg: tint(TRANSFER_TEXT_DARK, 0.08, 0.14, mode),
-      loanBg: tint(LOAN_DARK, 0.08, 0.16, mode),
+      loanBg: tint(LOAN_DARK, 0.14, 0.22, mode),
       budgetBg: tint(BUDGET_DARK, 0.08, 0.16, mode),
       transferText: TRANSFER_TEXT_DARK,
       inputBg: INPUT_BG_DARK,
@@ -205,7 +205,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     inBg: tint(BRAND, 0.08, 0.16, mode),
     outBg: tint(NEGATIVE, 0.08, 0.16, mode),
     transferBg: tint(TRANSFER_TEXT_LIGHT, 0.08, 0.14, mode),
-    loanBg: tint(LOAN_LIGHT, 0.08, 0.16, mode),
+    loanBg: tint(LOAN_LIGHT, 0.14, 0.22, mode),
     budgetBg: tint(BUDGET_LIGHT, 0.08, 0.16, mode),
     transferText: TRANSFER_TEXT_LIGHT,
     inputBg: INPUT_BG_LIGHT,
