@@ -105,7 +105,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
           bottom: 0,
           height: 3,
           borderRadius: HOME_RADIUS.full,
-          backgroundColor: palette.active,
+          backgroundColor: palette.brand,
           width: underlineWidth,
           transform: [{ translateX: underlineTranslateX }],
         }}
@@ -118,7 +118,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
 
         if (!hasMultipleAccounts) {
           textInputRange = [0, width];
-          textOutputRange = [palette.active, palette.active];
+          textOutputRange = [palette.brand, palette.brand];
         } else {
           textInputRange =
             index === 0
@@ -126,8 +126,8 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
               : [Math.max(0, (index - 1) * width), index * width, (index + 1) * width];
           textOutputRange =
             index === 0
-              ? [palette.active, palette.active, palette.inactive]
-              : [palette.inactive, palette.active, palette.inactive];
+              ? [palette.brand, palette.brand, palette.inactive]
+              : [palette.inactive, palette.brand, palette.inactive];
         }
 
         return (

@@ -409,7 +409,7 @@ export default function AddTransactionModal() {
                     style={{
                       fontSize: 13,
                       fontWeight: '700',
-                      color: type === t ? TYPE_CONFIG[t].color : '#6B7280',
+                      color: type === t ? TYPE_CONFIG[t].color : palette.textMuted,
                     }}
                   >
                     {TYPE_CONFIG[t].label}
@@ -588,7 +588,7 @@ export default function AddTransactionModal() {
                         style={{
                           fontSize: 13,
                           fontWeight: '700',
-                          color: loanDirection === d ? palette.active : palette.textMuted,
+                          color: loanDirection === d ? palette.tabActive : palette.textMuted,
                         }}
                       >
                         {d === 'lent' ? 'I lent' : 'I borrowed'}
@@ -648,7 +648,7 @@ export default function AddTransactionModal() {
             marginBottom: 12,
           }}
         >
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{actionLabel}</Text>
+          <Text style={{ color: palette.onBrand, fontSize: 16, fontWeight: '600' }}>{actionLabel}</Text>
         </TouchableOpacity>
         {isEditing && (
           <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
@@ -717,7 +717,7 @@ export default function AddTransactionModal() {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Done</Text>
+              <Text style={{ color: palette.onBrand, fontSize: 16, fontWeight: '700' }}>Done</Text>
             </RnghTouchableOpacity>
           </View>
         </BottomSheet>
@@ -1057,7 +1057,7 @@ function AmountRow({
           alignItems: 'flex-end',
           justifyContent: 'space-between',
           borderBottomWidth: isFocused ? 1.5 : 1,
-          borderBottomColor: isFocused ? palette.active : palette.borderSoft,
+          borderBottomColor: isFocused ? palette.tabActive : palette.borderSoft,
           paddingLeft: 4,
           paddingBottom: 4.8,
           gap: SCREEN_GUTTER,
@@ -1144,7 +1144,7 @@ function InlineInputRow({
           flexDirection: 'row',
           alignItems: 'flex-end',
           borderBottomWidth: isFocused ? 1.5 : 1,
-          borderBottomColor: isFocused ? palette.active : palette.borderSoft,
+          borderBottomColor: isFocused ? palette.tabActive : palette.borderSoft,
           paddingLeft: 4,
           paddingBottom: 5.5,
         }}
@@ -1366,7 +1366,7 @@ function AccountPicker({
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: selectedId === acc.id ? '#fff' : palette.textMuted,
+              color: selectedId === acc.id ? palette.onBrand : palette.textMuted,
             }}
             numberOfLines={1}
           >
@@ -1413,7 +1413,7 @@ function CategoryPicker({
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: selectedId === option.id ? '#fff' : palette.textMuted,
+              color: selectedId === option.id ? palette.onBrand : palette.textMuted,
             }}
             numberOfLines={1}
           >
@@ -1476,7 +1476,7 @@ function SplitRowEditor({
         flexDirection: 'row',
         alignItems: 'flex-end',
         borderBottomWidth: isFocused ? 1.5 : 1,
-        borderBottomColor: isFocused ? palette.active : palette.borderSoft,
+        borderBottomColor: isFocused ? palette.tabActive : palette.borderSoft,
         paddingBottom: 5.5,
       }}>
         <TextInput
@@ -1543,7 +1543,7 @@ function TagPicker({
               style={{
                 fontSize: 13,
                 fontWeight: '600',
-                color: selected ? '#fff' : palette.textMuted,
+                color: selected ? palette.onBrand : palette.textMuted,
               }}
             >
               {tag.name}

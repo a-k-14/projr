@@ -11,6 +11,8 @@ export function FabButton({
   size = HOME_LAYOUT.fabSize,
   iconSize = 28,
   activeOpacity = 0.75,
+  backgroundColor = palette.brand,
+  iconColor = palette.onBrand,
   style,
 }: {
   onPress: () => void;
@@ -20,6 +22,8 @@ export function FabButton({
   size?: number;
   iconSize?: number;
   activeOpacity?: number;
+  backgroundColor?: string;
+  iconColor?: string;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
@@ -34,7 +38,7 @@ export function FabButton({
           width: size,
           height: size,
           borderRadius: HOME_RADIUS.fab,
-          backgroundColor: palette.active,
+          backgroundColor,
           alignItems: 'center',
           justifyContent: 'center',
           ...HOME_SHADOW.card,
@@ -42,7 +46,7 @@ export function FabButton({
         style,
       ]}
     >
-      <Ionicons name="add" size={iconSize} color={palette.surface} />
+      <Ionicons name="add" size={iconSize} color={iconColor} />
     </TouchableOpacity>
   );
 }

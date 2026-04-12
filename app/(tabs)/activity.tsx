@@ -236,7 +236,7 @@ function ActivityAccountPage({
       <FlatList
         data={grouped}
         keyExtractor={(item) => item.dateKey}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.active} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
         onEndReached={onLoadMore}
         onEndReachedThreshold={0.4}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -279,9 +279,9 @@ function ActivityAccountPage({
                       paddingVertical: 6,
                       borderRadius: HOME_RADIUS.tab,
                       marginRight: 8,
-                      backgroundColor: typeFilter === f.value ? palette.active : palette.surface,
+                      backgroundColor: typeFilter === f.value ? palette.brand : palette.surface,
                       borderWidth: 1,
-                      borderColor: typeFilter === f.value ? palette.active : palette.divider,
+                      borderColor: typeFilter === f.value ? palette.brand : palette.divider,
                     }}
                   >
                     <Text
@@ -306,8 +306,8 @@ function ActivityAccountPage({
                   borderRadius: HOME_RADIUS.tab,
                   borderWidth: 1,
                   marginLeft: 8,
-                  borderColor: categoryFilter ? palette.active : palette.divider,
-                  backgroundColor: categoryFilter ? palette.active : palette.surface,
+                  borderColor: categoryFilter ? palette.brand : palette.divider,
+                  backgroundColor: categoryFilter ? palette.brand : palette.surface,
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 4,
@@ -359,7 +359,7 @@ function ActivityAccountPage({
                       marginLeft: 'auto',
                       fontSize: 13,
                       fontWeight: '600',
-                      color: net > 0 ? palette.positive : palette.negative,
+                      color: net > 0 ? palette.brand : palette.negative,
                     }}
                   >
                     {net > 0 ? '+' : '−'}{formatCurrency(Math.abs(net), sym)}

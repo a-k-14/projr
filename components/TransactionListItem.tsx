@@ -68,7 +68,7 @@ export function TransactionListItem({
         </Text>
       </View>
 
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: tx.type === 'in' ? palette.active : palette.text }}>
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: tx.type === 'in' ? palette.brand : palette.text }}>
         {formatCurrency(tx.amount, sym)}
       </Text>
     </View>

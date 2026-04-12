@@ -56,7 +56,7 @@ export const ACCOUNT_ICONS = [
 
 // Single palette shared by accounts, categories, and tags.
 export const ENTITY_COLORS = [
-  '#17673B',
+  '#2DD4BF',
   '#0F4C81',
   '#8B5CF6',
   '#CC3B2D',

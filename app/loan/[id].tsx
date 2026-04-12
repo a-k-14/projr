@@ -111,7 +111,7 @@ export default function LoanDetailScreen() {
           {loan.personName}
         </Text>
         <TouchableOpacity>
-          <Text style={{ color: palette.active, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+          <Text style={{ color: palette.brand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
             Edit
           </Text>
         </TouchableOpacity>
@@ -360,7 +360,7 @@ export default function LoanDetailScreen() {
                   onPress={handleRecordPayment}
                   disabled={loading}
                   style={{
-                    backgroundColor: palette.active,
+                    backgroundColor: palette.loan,
                     borderRadius: HOME_RADIUS.pill,
                     paddingHorizontal: HOME_SPACE.xxxl,
                     justifyContent: 'center',
@@ -373,7 +373,7 @@ export default function LoanDetailScreen() {
               <TouchableOpacity
                 onPress={() => setShowPaymentInput(true)}
                 style={{
-                  backgroundColor: palette.active,
+                  backgroundColor: palette.loan,
                   borderRadius: HOME_RADIUS.card,
                   paddingVertical: HOME_SPACE.xl,
                   flexDirection: 'row',

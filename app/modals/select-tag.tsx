@@ -25,7 +25,7 @@ export default function SelectTagSheet() {
   }, [tagIds]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+    <View style={{ flex: 1, backgroundColor: palette.scrim }}>
       <Pressable style={{ flex: 1 }} onPress={() => router.back()} />
       <View
         style={{
@@ -64,8 +64,8 @@ export default function SelectTagSheet() {
                   paddingHorizontal: SHEET_GUTTER,
                   borderRadius: RADIUS.lg,
                   borderWidth: 1,
-                  borderColor: selected ? tag.color : palette.divider,
-                  backgroundColor: selected ? palette.surfaceRaised : palette.surface,
+                  borderColor: selected ? palette.tabActive : palette.divider,
+                  backgroundColor: selected ? palette.brandSoft : palette.surface,
                   marginBottom: 10,
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -76,7 +76,7 @@ export default function SelectTagSheet() {
                   <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />
                   <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>{tag.name}</Text>
                 </View>
-                {selected ? <Ionicons name="checkmark" size={18} color={palette.active} /> : null}
+                {selected ? <Ionicons name="checkmark" size={18} color={palette.tabActive} /> : null}
               </TouchableOpacity>
             );
           })}
@@ -87,14 +87,14 @@ export default function SelectTagSheet() {
             router.back();
           }}
           style={{
-            backgroundColor: '#17673B',
+            backgroundColor: palette.tabActive,
             borderRadius: 16,
             paddingVertical: 14,
             alignItems: 'center',
             marginTop: 4,
           }}
         >
-          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Done</Text>
+          <Text style={{ color: palette.onBrand, fontSize: 15, fontWeight: '700' }}>Done</Text>
         </TouchableOpacity>
       </View>
     </View>

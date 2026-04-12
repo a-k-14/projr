@@ -36,12 +36,12 @@ export default function AccountsScreen() {
               minHeight: 48,
               borderRadius: 14,
               borderWidth: 1,
-              borderColor: palette.active,
+              borderColor: palette.brand,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.active }}>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.brand }}>
               + Add Account
             </Text>
           </TouchableOpacity>

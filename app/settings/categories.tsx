@@ -92,12 +92,12 @@ export default function CategoriesScreen() {
               minHeight: 48,
               borderRadius: 14,
               borderWidth: 1,
-              borderColor: palette.active,
+              borderColor: palette.brand,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.active }}>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.brand }}>
               + Add {tab === 'in' ? 'Income' : 'Expense'} Category
             </Text>
           </TouchableOpacity>
@@ -123,7 +123,7 @@ export default function CategoriesScreen() {
               paddingVertical: 14,
               alignItems: 'center',
               borderBottomWidth: 2,
-              borderBottomColor: tab === t ? palette.active : 'transparent',
+              borderBottomColor: tab === t ? palette.brand : 'transparent',
               marginBottom: -1,
             }}
           >
@@ -131,7 +131,7 @@ export default function CategoriesScreen() {
               style={{
                 fontSize: 14,
                 fontWeight: '600',
-                color: tab === t ? palette.active : palette.textMuted,
+                color: tab === t ? palette.brand : palette.textMuted,
               }}
             >
               {t === 'in' ? 'Income' : 'Expense'}
@@ -235,7 +235,7 @@ export default function CategoriesScreen() {
                           width: 5,
                           height: 5,
                           borderRadius: 3,
-                          backgroundColor: palette.active,
+                          backgroundColor: palette.brand,
                           opacity: 0.5,
                         }}
                       />

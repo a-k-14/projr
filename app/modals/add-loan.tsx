@@ -82,14 +82,14 @@ export default function AddLoanModal() {
         value: current,
         mode: 'date',
         display: 'calendar',
-        onValueChange: (_event, selectedDate) => {
+        onChange: (_event, selectedDate) => {
           if (selectedDate) {
             const final = new Date(date);
             final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
             setDate(final.toISOString());
           }
+          setShowDatePicker(false);
         },
-        onDismiss: () => {},
       });
     } else {
       setShowDatePicker(true);
@@ -172,19 +172,19 @@ export default function AddLoanModal() {
                 <TouchableOpacity
                   key={acc.id}
                   onPress={() => setAccountId(acc.id)}
-                  style={{
-                    paddingHorizontal: HOME_SPACE.lg,
-                    paddingVertical: HOME_SPACE.sm,
-                    borderRadius: HOME_RADIUS.small,
-                    marginRight: HOME_SPACE.sm,
-                    backgroundColor: accountId === acc.id ? palette.active : palette.inputBg,
-                  }}
+                    style={{
+                      paddingHorizontal: HOME_SPACE.lg,
+                      paddingVertical: HOME_SPACE.sm,
+                      borderRadius: HOME_RADIUS.small,
+                      marginRight: HOME_SPACE.sm,
+                      backgroundColor: accountId === acc.id ? palette.loan : palette.inputBg,
+                    }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.body,
                       fontWeight: '500',
-                      color: accountId === acc.id ? palette.surface : palette.textSecondary,
+                      color: accountId === acc.id ? palette.onLoan : palette.textSecondary,
                     }}
                   >
                     {acc.name}
@@ -240,15 +240,15 @@ export default function AddLoanModal() {
                       borderRadius: HOME_RADIUS.small,
                       alignItems: 'center',
                       borderWidth: 1.5,
-                      borderColor: active ? palette.active : palette.divider,
-                      backgroundColor: active ? palette.inBg : palette.surface,
+                      borderColor: active ? palette.loan : palette.divider,
+                      backgroundColor: active ? palette.loanSoft : palette.surface,
                     }}
                   >
                     <Text
                       style={{
                         fontSize: HOME_TEXT.body,
                         fontWeight: '600',
-                        color: active ? palette.active : palette.textSecondary,
+                        color: active ? palette.loan : palette.textSecondary,
                       }}
                     >
                       {d === 'lent' ? 'I lent' : 'I borrowed'}
@@ -284,12 +284,12 @@ export default function AddLoanModal() {
               value={new Date(date)}
               mode="date"
               display="default"
-              onValueChange={(_event, selectedDate) => {
+              onChange={(_event, selectedDate) => {
                 if (selectedDate) setDate(selectedDate.toISOString());
+                setShowDatePicker(false);
               }}
-              onDismiss={() => setShowDatePicker(false)}
               textColor={palette.text}
-              accentColor={palette.active}
+              accentColor={palette.loan}
             />
           )}
 

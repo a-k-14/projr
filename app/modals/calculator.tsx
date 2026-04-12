@@ -246,7 +246,7 @@ function CalcButton({
     : isAction
       ? palette.surface
       : isOperator
-        ? 'rgba(23, 103, 59, 0.08)'
+        ? palette.brandSoft
         : palette.surface;
 
   return (
@@ -267,14 +267,14 @@ function CalcButton({
         <Ionicons
           name="backspace-outline"
           size={24}
-          color={primary ? '#fff' : palette.text}
+          color={primary ? palette.onBrand : palette.text}
         />
       ) : (
         <Text
           style={{
             fontSize: label === 'OK' ? 15 : 18,
             fontWeight: '700',
-            color: primary ? '#fff' : palette.text,
+            color: primary ? palette.onBrand : palette.text,
           }}
         >
           {label}

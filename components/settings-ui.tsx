@@ -168,8 +168,6 @@ export function ChoiceRow({
   leftElement?: ReactNode;
   horizontalPadding?: number;
 }) {
-  const isDarkMode = palette.statusBarStyle === 'light';
-
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -181,11 +179,7 @@ export function ChoiceRow({
         paddingVertical: 14,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: selected
-          ? isDarkMode
-            ? palette.surfaceRaised
-            : 'rgba(23, 103, 59, 0.05)'
-          : 'transparent',
+        backgroundColor: selected ? palette.brandSoft : 'transparent',
         borderBottomWidth: noBorder ? 0 : 1,
         borderBottomColor: palette.divider,
       }}
@@ -226,7 +220,7 @@ export function ChoiceRow({
             justifyContent: 'center',
           }}
         >
-          <Feather name="check" size={13} color="#FFFFFF" />
+          <Feather name="check" size={13} color={palette.onBrand} />
         </View>
       )}
     </TouchableOpacity>
@@ -244,8 +238,6 @@ export function PickerChip({
   palette: AppThemePalette;
   onPress: () => void;
 }) {
-  const isDarkMode = palette.statusBarStyle === 'light';
-
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -254,7 +246,7 @@ export function PickerChip({
         borderRadius: RADIUS.md,
         borderWidth: 1,
         borderColor: selected ? palette.tabActive : palette.border,
-        backgroundColor: selected ? (isDarkMode ? 'rgba(255, 255, 255, 0.06)' : '#E8F3EC') : palette.surface,
+        backgroundColor: selected ? palette.brandSoft : palette.surface,
         paddingHorizontal: SPACING.lg,
         justifyContent: 'center',
       }}
@@ -396,7 +388,7 @@ export function ColorGrid({
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: palette.onBrand,
                 }}
               />
             )}
@@ -433,7 +425,7 @@ export function IconGrid({
               borderRadius: 14,
               borderWidth: isSelected ? 2 : 1,
               borderColor: isSelected ? palette.tabActive : palette.border,
-              backgroundColor: isSelected ? palette.surfaceRaised : palette.surface,
+              backgroundColor: isSelected ? palette.brandSoft : palette.surface,
               alignItems: 'center',
               justifyContent: 'center',
             }}
@@ -462,8 +454,8 @@ export function ActionButton({
   palette: AppThemePalette;
 }) {
   const styles = {
-    primary: { backgroundColor: palette.tabActive, color: '#FFFFFF' },
-    danger: { backgroundColor: 'rgba(204, 59, 45, 0.1)', color: '#CC3B2D' },
+    primary: { backgroundColor: palette.tabActive, color: palette.onBrand },
+    danger: { backgroundColor: palette.outBg, color: palette.negative },
     secondary: { backgroundColor: palette.card, color: palette.text },
   } as const;
   const picked = styles[variant];

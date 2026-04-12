@@ -40,17 +40,21 @@ export function TransactionItem({
 
   const iconBg =
     tx.type === 'in'
-      ? '#DCFCE7'
+      ? palette.inBg
       : tx.type === 'out'
-        ? '#FEE2E2'
-        : '#F1F5F9';
+        ? palette.outBg
+        : tx.type === 'loan'
+          ? palette.loanBg
+          : palette.transferBg;
 
   const iconColor =
     tx.type === 'in'
       ? palette.positive
       : tx.type === 'out'
         ? palette.negative
-        : palette.transferText;
+        : tx.type === 'loan'
+          ? palette.loan
+          : palette.transferText;
 
   const subtitle = [splitLabel ?? categoryName, tx.payee, account?.name].filter(Boolean).join(' · ');
 

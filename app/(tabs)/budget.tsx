@@ -59,7 +59,7 @@ export default function BudgetScreen() {
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.active} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
       >
         {/* Header */}
         <ScreenTitle title="Budgets" palette={palette} />
@@ -171,6 +171,8 @@ export default function BudgetScreen() {
       <FabButton
         bottom={Math.max(0, insets.bottom - 24)}
         palette={palette}
+        backgroundColor={palette.budget}
+        iconColor={palette.onBudget}
         onPress={() => setShowAddModal(true)}
       />
 
@@ -206,7 +208,7 @@ function BudgetCard({
 }) {
   const isOver = budget.spent > budget.amount;
   const isWarning = !isOver && budget.percent > 75;
-  const barColor = isOver ? palette.negative : isWarning ? palette.negative : palette.active;
+  const barColor = isOver ? palette.negative : isWarning ? palette.negative : palette.brand;
   const barOpacity = isWarning ? 0.55 : 1;
 
   return (
@@ -326,7 +328,7 @@ function AddBudgetModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
+      <View style={{ flex: 1, backgroundColor: palette.scrim, justifyContent: 'flex-end' }}>
         <View
           style={{
             backgroundColor: palette.background,
@@ -364,7 +366,7 @@ function AddBudgetModal({
                 placeholder="0"
                 placeholderTextColor={palette.textMuted}
                 autoFocus
-                style={{ fontSize: 24, fontWeight: '700', color: palette.active, flex: 1 }}
+                style={{ fontSize: 24, fontWeight: '700', color: palette.brand, flex: 1 }}
               />
             </View>
           </View>
@@ -384,9 +386,9 @@ function AddBudgetModal({
                     paddingVertical: HOME_SPACE.sm,
                     borderRadius: HOME_RADIUS.small,
                     marginRight: HOME_SPACE.sm,
-                    backgroundColor: categoryId === cat.id ? palette.active : palette.surface,
+                    backgroundColor: categoryId === cat.id ? palette.brand : palette.surface,
                     borderWidth: 1,
-                    borderColor: categoryId === cat.id ? palette.active : palette.divider,
+                    borderColor: categoryId === cat.id ? palette.brand : palette.divider,
                   }}
                 >
                   <Text
@@ -413,9 +415,9 @@ function AddBudgetModal({
                   paddingVertical: HOME_SPACE.md,
                   borderRadius: HOME_RADIUS.small,
                   alignItems: 'center',
-                  backgroundColor: period === p ? palette.active : palette.surface,
+                  backgroundColor: period === p ? palette.brand : palette.surface,
                   borderWidth: 1,
-                  borderColor: period === p ? palette.active : palette.divider,
+                  borderColor: period === p ? palette.brand : palette.divider,
                 }}
               >
                 <Text
@@ -435,7 +437,7 @@ function AddBudgetModal({
             onPress={handleSave}
             disabled={!isReady || loading}
             style={{
-              backgroundColor: isReady ? palette.active : palette.textMuted,
+              backgroundColor: isReady ? palette.brand : palette.textMuted,
               borderRadius: HOME_RADIUS.pill,
               paddingVertical: HOME_SPACE.xl,
               alignItems: 'center',

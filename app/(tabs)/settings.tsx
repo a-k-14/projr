@@ -117,7 +117,7 @@ export default function SettingsScreen() {
                   value={settings.cloudBackupEnabled}
                   onValueChange={(value) => updateSettings({ cloudBackupEnabled: value })}
                   trackColor={{ false: palette.border, true: palette.tabActive }}
-                  thumbColor={settings.cloudBackupEnabled ? '#FFFFFF' : '#F3F4F6'}
+                  thumbColor={settings.cloudBackupEnabled ? palette.onBrand : palette.surface}
                 />
               }
               noBorder

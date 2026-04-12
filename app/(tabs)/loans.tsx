@@ -65,7 +65,7 @@ export default function LoansScreen() {
         data={loans}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.active} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />
         }
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
@@ -207,9 +207,9 @@ export default function LoansScreen() {
                         paddingVertical: HOME_SPACE.sm,
                         borderRadius: HOME_RADIUS.small,
                         marginRight: HOME_SPACE.sm,
-                        backgroundColor: active ? palette.active : palette.surface,
+                        backgroundColor: active ? palette.brand : palette.surface,
                         borderWidth: 1,
-                        borderColor: active ? palette.active : palette.divider,
+                        borderColor: active ? palette.brand : palette.divider,
                       }}
                     >
                       <Text style={{ fontSize: HOME_TEXT.bodySmall, color: active ? palette.surface : palette.textSecondary }}>
@@ -230,9 +230,9 @@ export default function LoansScreen() {
                       paddingHorizontal: HOME_SPACE.lg,
                       paddingVertical: HOME_SPACE.sm,
                       borderRadius: HOME_RADIUS.small,
-                      backgroundColor: active ? palette.active : palette.surface,
+                      backgroundColor: active ? palette.brand : palette.surface,
                       borderWidth: 1,
-                      borderColor: active ? palette.active : palette.divider,
+                      borderColor: active ? palette.brand : palette.divider,
                     }}
                   >
                     <Text style={{ fontSize: HOME_TEXT.bodySmall, color: active ? palette.surface : palette.textSecondary }}>
@@ -268,6 +268,8 @@ export default function LoansScreen() {
       <FabButton
         bottom={Math.max(0, insets.bottom - 24)}
         palette={palette}
+        backgroundColor={palette.loan}
+        iconColor={palette.onLoan}
         onPress={() => router.push('/modals/add-loan')}
       />
     </SafeAreaView>

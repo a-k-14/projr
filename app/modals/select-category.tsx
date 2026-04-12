@@ -104,13 +104,13 @@ export default function SelectCategoryScreen() {
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      backgroundColor: selected ? palette.inBg : palette.surface,
+                      backgroundColor: selected ? palette.brandSoft : palette.surface,
                     }}
                   >
                     <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
                       {category.name}
                     </Text>
-                    {selected ? <Ionicons name="checkmark" size={18} color={palette.active} /> : null}
+                    {selected ? <Ionicons name="checkmark" size={18} color={palette.tabActive} /> : null}
                   </TouchableOpacity>
                 );
               })}

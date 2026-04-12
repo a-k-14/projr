@@ -1,4 +1,5 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
+import { APP_DARK_BACKGROUND, APP_LIGHT_BACKGROUND } from '../lib/theme';
 
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
@@ -29,10 +30,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
 
 const responsiveBackground = `
 body {
-  background-color: #fff;
+  background-color: ${APP_LIGHT_BACKGROUND};
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: ${APP_DARK_BACKGROUND};
   }
 }`;

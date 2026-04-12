@@ -34,12 +34,12 @@ export default function TagsScreen() {
               minHeight: 48,
               borderRadius: 14,
               borderWidth: 1,
-              borderColor: palette.active,
+              borderColor: palette.brand,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.active }}>+ Add Tag</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.brand }}>+ Add Tag</Text>
           </TouchableOpacity>
         </FixedBottomActions>
       }

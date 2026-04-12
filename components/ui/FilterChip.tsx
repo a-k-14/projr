@@ -24,8 +24,8 @@ export function FilterChip({
       style={[
         styles.chip,
         {
-          backgroundColor: isActive ? palette.active : palette.inputBg,
-          borderColor: isActive ? palette.active : palette.borderSoft,
+          backgroundColor: isActive ? palette.brand : palette.inputBg,
+          borderColor: isActive ? palette.brand : palette.borderSoft,
         },
         style,
       ]}
@@ -33,7 +33,7 @@ export function FilterChip({
       <Text
         style={[
           styles.text,
-          { color: isActive ? palette.surface : palette.text },
+          { color: isActive ? palette.onBrand : palette.text },
         ]}
       >
         {label}

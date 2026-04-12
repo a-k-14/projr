@@ -3,6 +3,77 @@ import type { Theme } from '../types';
 
 export type AppThemeMode = 'light' | 'dark';
 
+const BRAND = '#17673B';
+const NEGATIVE = '#8A2424';
+const WHITE = '#FFFFFF';
+const ON_BUDGET = '#111827';
+const LOAN_LIGHT = '#2563EB';
+const LOAN_DARK = '#60A5FA';
+const BUDGET_LIGHT = '#F59E0B';
+const BUDGET_DARK = '#FBBF24';
+const TRANSFER_TEXT_LIGHT = '#1E293B';
+const TRANSFER_TEXT_DARK = '#E2E8F0';
+const INPUT_BG_LIGHT = '#F3F4F6';
+const INPUT_BG_DARK = '#222224';
+const SCRIM = 'rgba(0, 0, 0, 0.4)';
+const SCRIM_HEAVY = 'rgba(0, 0, 0, 0.55)';
+const PRESSED_BG_LIGHT = 'rgba(0, 0, 0, 0.04)';
+const PRESSED_BG_DARK = 'rgba(255, 255, 255, 0.06)';
+const TAB_INACTIVE_LIGHT = '#8C94AF';
+const TAB_INACTIVE_DARK = '#555555';
+const ICON_TINT_LIGHT = '#8C94AF';
+const ICON_TINT_DARK = '#8E8E93';
+const SURFACE_RAISED_LIGHT = '#202845';
+const SURFACE_RAISED_DARK = '#202024';
+const TEXT_SECONDARY_LIGHT = '#6B7280';
+const TEXT_SECONDARY_DARK = '#A1A1A6';
+const BORDER_SOFT_LIGHT = '#D8DDE8';
+const BORDER_SOFT_DARK = '#303033';
+const INACTIVE_LIGHT = '#B2B8C2';
+const INACTIVE_DARK = '#555555';
+const CHART_BAR_MUTED_LIGHT = '#D9DDE7';
+const CHART_BAR_MUTED_DARK = '#2F2F31';
+const HERO_BAR_LIGHT = '#202845';
+const HERO_BAR_DARK = '#202020';
+const TODAY_DOT_LIGHT = '#1F2A44';
+const TODAY_DOT_DARK = '#F5F5F7';
+
+function hexToRgb(hex: string) {
+  const normalized = hex.replace('#', '');
+  const value = normalized.length === 3
+    ? normalized.split('').map((part) => part + part).join('')
+    : normalized;
+  const int = Number.parseInt(value, 16);
+  return {
+    r: (int >> 16) & 255,
+    g: (int >> 8) & 255,
+    b: int & 255,
+  };
+}
+
+function rgba(hex: string, alpha: number) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function tint(hex: string, lightAlpha: number, darkAlpha: number, mode: AppThemeMode) {
+  return rgba(hex, mode === 'dark' ? darkAlpha : lightAlpha);
+}
+
+const CORE_ACCENT = {
+  brand: BRAND,
+  onBrand: WHITE,
+  positive: BRAND,
+  active: BRAND,
+  tabActive: BRAND,
+  chartBar: BRAND,
+  negative: NEGATIVE,
+} as const;
+
+export const APP_BRAND = BRAND;
+export const APP_LIGHT_BACKGROUND = '#F0F0F5';
+export const APP_DARK_BACKGROUND = '#000000';
+
 export interface AppThemePalette {
   background: string;
   surface: string;
@@ -29,13 +100,25 @@ export interface AppThemePalette {
   chartBarMuted: string;
   heroBar: string;
   todayDot: string;
+  brand: string;
+  brandSoft: string;
+  onBrand: string;
   loan: string;
+  loanSoft: string;
+  onLoan: string;
+  budget: string;
+  budgetSoft: string;
+  onBudget: string;
   inBg: string;
   outBg: string;
   transferBg: string;
   loanBg: string;
+  budgetBg: string;
   transferText: string;
   inputBg: string;
+  scrim: string;
+  scrimHeavy: string;
+  pressedBg: string;
 }
 
 export function resolveTheme(theme: Theme, systemScheme: ColorSchemeName): AppThemeMode {
@@ -57,30 +140,36 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       text: '#F5F5F7',
       textMuted: '#A1A1A6',
       textSoft: '#6E6E73',
-      tabActive: '#17673B',
-      tabInactive: '#555555',
-      iconTint: '#8E8E93',
+      ...CORE_ACCENT,
+      brandSoft: tint(BRAND, 0.12, 0.18, mode),
+      loan: LOAN_DARK,
+      loanSoft: tint(LOAN_DARK, 0.12, 0.18, mode),
+      onLoan: WHITE,
+      budget: BUDGET_DARK,
+      budgetSoft: tint(BUDGET_DARK, 0.12, 0.18, mode),
+      onBudget: ON_BUDGET,
+      tabInactive: TAB_INACTIVE_DARK,
+      iconTint: ICON_TINT_DARK,
       statusBarStyle: 'light',
       navigationButtonStyle: 'light',
-      positive: '#17673B',
-      negative: '#8A2424',
-      surfaceRaised: '#202024',
-      textSecondary: '#A1A1A6',
-      borderSoft: '#303033',
-      active: '#17673B',
-      inactive: '#555555',
+      surfaceRaised: SURFACE_RAISED_DARK,
+      textSecondary: TEXT_SECONDARY_DARK,
+      borderSoft: BORDER_SOFT_DARK,
+      inactive: INACTIVE_DARK,
       neutral: '#F5F5F7',
-      chartBar: '#22C55E',
-      chartBarMuted: '#2F2F31',
-      heroBar: '#202020',
-      todayDot: '#F5F5F7',
-      loan: '#D97706',
-      inBg: '#1B4332',
-      outBg: '#451212',
-      transferBg: '#1E293B',
-      loanBg: '#78350F',
-      transferText: '#E2E8F0',
-      inputBg: '#222224',
+      chartBarMuted: CHART_BAR_MUTED_DARK,
+      heroBar: HERO_BAR_DARK,
+      todayDot: TODAY_DOT_DARK,
+      inBg: tint(BRAND, 0.08, 0.16, mode),
+      outBg: tint(NEGATIVE, 0.08, 0.16, mode),
+      transferBg: tint(TRANSFER_TEXT_DARK, 0.08, 0.14, mode),
+      loanBg: tint(LOAN_DARK, 0.08, 0.16, mode),
+      budgetBg: tint(BUDGET_DARK, 0.08, 0.16, mode),
+      transferText: TRANSFER_TEXT_DARK,
+      inputBg: INPUT_BG_DARK,
+      scrim: SCRIM,
+      scrimHeavy: SCRIM_HEAVY,
+      pressedBg: PRESSED_BG_DARK,
     };
   }
 
@@ -93,29 +182,35 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     text: '#1F2A44',
     textMuted: '#8C94AF',
     textSoft: '#C8CDD9',
-    tabActive: '#17673B',
-    tabInactive: '#8C94AF',
-    iconTint: '#8C94AF',
+    ...CORE_ACCENT,
+    brandSoft: tint(BRAND, 0.12, 0.18, mode),
+    loan: LOAN_LIGHT,
+    loanSoft: tint(LOAN_LIGHT, 0.12, 0.18, mode),
+    onLoan: WHITE,
+    budget: BUDGET_LIGHT,
+    budgetSoft: tint(BUDGET_LIGHT, 0.12, 0.18, mode),
+    onBudget: ON_BUDGET,
+    tabInactive: TAB_INACTIVE_LIGHT,
+    iconTint: ICON_TINT_LIGHT,
     statusBarStyle: 'dark',
     navigationButtonStyle: 'dark',
-    positive: '#17673B',
-    negative: '#8A2424',
-    surfaceRaised: '#202845',
-    textSecondary: '#6B7280',
-    borderSoft: '#D8DDE8',
-    active: '#17673B',
-    inactive: '#B2B8C2',
+    surfaceRaised: SURFACE_RAISED_LIGHT,
+    textSecondary: TEXT_SECONDARY_LIGHT,
+    borderSoft: BORDER_SOFT_LIGHT,
+    inactive: INACTIVE_LIGHT,
     neutral: '#0A0A0A',
-    chartBar: '#17673B',
-    chartBarMuted: '#D9DDE7',
-    heroBar: '#202845',
-    todayDot: '#1F2A44',
-    loan: '#92400E',
-    inBg: '#DCFCE7',
-    outBg: '#FCEAEA',
-    transferBg: '#F1F5F9',
-    loanBg: '#FEF3C7',
-    transferText: '#1E293B',
-    inputBg: '#F3F4F6',
+    chartBarMuted: CHART_BAR_MUTED_LIGHT,
+    heroBar: HERO_BAR_LIGHT,
+    todayDot: TODAY_DOT_LIGHT,
+    inBg: tint(BRAND, 0.08, 0.16, mode),
+    outBg: tint(NEGATIVE, 0.08, 0.16, mode),
+    transferBg: tint(TRANSFER_TEXT_LIGHT, 0.08, 0.14, mode),
+    loanBg: tint(LOAN_LIGHT, 0.08, 0.16, mode),
+    budgetBg: tint(BUDGET_LIGHT, 0.08, 0.16, mode),
+    transferText: TRANSFER_TEXT_LIGHT,
+    inputBg: INPUT_BG_LIGHT,
+    scrim: SCRIM,
+    scrimHeavy: SCRIM_HEAVY,
+    pressedBg: PRESSED_BG_LIGHT,
   };
 }

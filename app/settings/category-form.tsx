@@ -228,7 +228,7 @@ export default function CategoryFormScreen() {
   return (
     <SettingsFormLayout
       palette={palette}
-      bottomAction={
+      bottomActions={
         <FixedBottomActions palette={palette}>
           <ActionButton
             label={isEditing ? 'Save' : 'Create Category'}
@@ -287,12 +287,12 @@ export default function CategoryFormScreen() {
                 activeOpacity={0.7}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
               >
-                <Feather name="plus" size={14} color={palette.active} />
+                <Feather name="plus" size={14} color={palette.brand} />
                 <Text
                   style={{
                     fontSize: 14,
                     fontWeight: '600',
-                    color: palette.active,
+                    color: palette.brand,
                     letterSpacing: 0.2,
                   }}
                 >
@@ -307,7 +307,7 @@ export default function CategoryFormScreen() {
                 <Text
                   style={{
                     fontSize: 14,
-                    color: palette.secondaryText,
+                    color: palette.textSecondary,
                     paddingHorizontal: CARD_PADDING,
                     paddingVertical: 12,
                     fontStyle: 'italic',

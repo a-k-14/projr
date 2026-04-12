@@ -27,7 +27,7 @@ export default function SelectAccountSheet() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+    <View style={{ flex: 1, backgroundColor: palette.scrim }}>
       <Pressable style={{ flex: 1 }} onPress={() => router.back()} />
       <View
         style={{
@@ -73,8 +73,8 @@ export default function SelectAccountSheet() {
                   paddingHorizontal: SHEET_GUTTER,
                   borderRadius: 16,
                   borderWidth: 1,
-                  borderColor: selected ? palette.active : palette.divider,
-                  backgroundColor: selected ? palette.inBg : palette.surface,
+                  borderColor: selected ? palette.tabActive : palette.divider,
+                  backgroundColor: selected ? palette.brandSoft : palette.surface,
                   marginBottom: 10,
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -89,7 +89,7 @@ export default function SelectAccountSheet() {
                     {account.type}
                   </Text>
                 </View>
-                {selected ? <Ionicons name="checkmark" size={18} color={palette.active} /> : null}
+                {selected ? <Ionicons name="checkmark" size={18} color={palette.tabActive} /> : null}
               </TouchableOpacity>
             );
           })}

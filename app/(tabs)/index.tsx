@@ -133,7 +133,7 @@ export default function HomeScreen() {
         mode: 'date',
         display: 'calendar', // Material 3 Calendar
         minimumDate: minDate,
-        onValueChange: (_event, selected) => {
+        onChange: (_event, selected) => {
           if (!selected) return;
           if (stage === 'from') {
             setCustomDraftFrom(selected);
@@ -143,8 +143,8 @@ export default function HomeScreen() {
           } else {
             setCustomDraftTo(selected < customDraftFrom ? customDraftFrom : selected);
           }
+          setCustomRangeOpen(false);
         },
-        onDismiss: () => { },
       });
     },
     [customDraftFrom, customDraftTo],
@@ -242,14 +242,14 @@ export default function HomeScreen() {
         animationType="fade"
         onRequestClose={() => setCustomRangeOpen(false)}
       >
-        <Pressable
-          onPress={() => setCustomRangeOpen(false)}
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.35)',
-            justifyContent: 'center',
-            padding: 20,
-          }}
+          <Pressable
+            onPress={() => setCustomRangeOpen(false)}
+            style={{
+              flex: 1,
+              backgroundColor: palette.scrim,
+              justifyContent: 'center',
+              padding: 20,
+            }}
         >
           <Pressable
             onPress={() => { }}
@@ -317,7 +317,7 @@ export default function HomeScreen() {
                   flex: 1,
                   minHeight: 48,
                   borderRadius: HOME_RADIUS.tab,
-                  backgroundColor: palette.active,
+                  backgroundColor: palette.brand,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -486,7 +486,7 @@ function HomeAccountPage({
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: period === value
-                      ? 'rgba(23, 103, 59, 0.15)'
+                      ? palette.brandSoft
                       : 'transparent',
                   }}
                 >
@@ -498,7 +498,7 @@ function HomeAccountPage({
                       textAlignVertical: 'center',
                       includeFontPadding: false,
                       color: period === value
-                        ? palette.active
+                        ? palette.brand
                         : palette.textMuted,
                     }}
                   >
@@ -635,7 +635,7 @@ function HomeAccountPage({
                               width: 95,
                               fontSize: 14,
                               fontWeight: '600',
-                              color: row.net > 0 ? palette.active : row.net < 0 ? palette.negative : palette.text,
+                              color: row.net > 0 ? palette.brand : row.net < 0 ? palette.negative : palette.text,
                               opacity: row.net === 0 ? 0.85 : 1,
                               textAlign: 'right',
                               marginLeft: 12
@@ -659,7 +659,7 @@ function HomeAccountPage({
                         <View
                           style={{
                             width: 14,
-                            backgroundColor: activeView === 'in' ? palette.active : palette.negative,
+                            backgroundColor: activeView === 'in' ? palette.brand : palette.negative,
                             borderRadius: HOME_RADIUS.chartBar,
                             opacity: amount > 0 ? 0.88 : 0.2,
                             height: Math.max(4, (amount / maxVal) * HOME_LAYOUT.chartBarHeight),
@@ -709,7 +709,7 @@ function HomeAccountPage({
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
               <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
-                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.active, fontWeight: '600' }}>View all</Text>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '600' }}>View all</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
