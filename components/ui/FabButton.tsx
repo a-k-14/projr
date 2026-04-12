@@ -1,13 +1,13 @@
-import { TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { HOME_RADIUS, HOME_SHADOW, HOME_LAYOUT } from '../../lib/layoutTokens';
+import { StyleProp, TouchableOpacity, ViewStyle } from 'react-native';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
 export function FabButton({
   onPress,
   palette,
   bottom,
-  right = 24,
+  right = HOME_LAYOUT.fabRightOffset,
   size = HOME_LAYOUT.fabSize,
   iconSize = 28,
   activeOpacity = 0.75,

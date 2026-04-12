@@ -20,6 +20,7 @@ import {
   HOME_SHADOW,
   HOME_SPACE,
   HOME_TEXT,
+  getFabBottomOffset,
 } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
@@ -267,7 +268,7 @@ export default function LoansScreen() {
 
       {/* FAB */}
       <FabButton
-        bottom={insets.bottom + HOME_LAYOUT.fabBottomOffset}
+        bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
         backgroundColor={palette.loan}
         iconColor={palette.onLoan}

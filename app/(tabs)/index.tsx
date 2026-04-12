@@ -30,7 +30,15 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_SURFACE, HOME_TEXT } from '../../lib/layoutTokens';
+import {
+  HOME_LAYOUT,
+  HOME_RADIUS,
+  HOME_SHADOW,
+  HOME_SPACE,
+  HOME_SURFACE,
+  HOME_TEXT,
+  getFabBottomOffset,
+} from '../../lib/layoutTokens';
 import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
 import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
@@ -226,7 +234,7 @@ export default function HomeScreen() {
       </View>
 
       <FabButton
-        bottom={insets.bottom + HOME_LAYOUT.fabBottomOffset}
+        bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
         onPress={() =>
           router.push({

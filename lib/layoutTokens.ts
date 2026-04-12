@@ -126,11 +126,15 @@ export const HOME_LAYOUT = {
   chartHeight: 116,
   chartBarHeight: 74,
   fabSize: 56,
-  fabBottomOffset: 16,
+  fabRightOffset: 20,
+  fabBottomOffset: -24,
   fabContentBottomPadding: 104,
   handleWidth: 42,
   handleHeight: 4,
 } as const;
+
+export const getFabBottomOffset = (insetsBottom: number) =>
+  insetsBottom + HOME_LAYOUT.fabBottomOffset;
 
 // ─── Shadow preset ─────────────────────────────────────────────────────────────
 // Spread this into a style object: { ...HOME_SHADOW.card }

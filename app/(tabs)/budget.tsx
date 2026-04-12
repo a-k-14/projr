@@ -22,6 +22,7 @@ import {
   HOME_SHADOW,
   HOME_SPACE,
   HOME_TEXT,
+  getFabBottomOffset,
 } from '../../lib/layoutTokens';
 import { AppThemePalette, getThemePalette, resolveTheme } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';
@@ -170,7 +171,7 @@ export default function BudgetScreen() {
 
       {/* FAB */}
       <FabButton
-        bottom={insets.bottom + HOME_LAYOUT.fabBottomOffset}
+        bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
         backgroundColor={palette.budget}
         iconColor={palette.onBudget}
