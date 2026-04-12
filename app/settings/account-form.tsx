@@ -12,7 +12,7 @@ import {
   SettingsFormLayout,
 } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
-import { formatIndianNumberStr } from '../../lib/derived';
+import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { RADIUS, SCREEN_GUTTER, SPACING } from '../../lib/design';
 import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
@@ -121,8 +121,8 @@ export default function AccountFormScreen() {
       name,
       accountNumber: draft.accountNumber.trim() || undefined,
       type: draft.type,
-      balance: Number.parseFloat(draft.balance || '0') || 0,
-      initialBalance: Number.parseFloat(draft.balance || '0') || 0,
+      balance: Number.parseFloat(parseFormattedNumber(draft.balance || '0')) || 0,
+      initialBalance: Number.parseFloat(parseFormattedNumber(draft.balance || '0')) || 0,
       currency: draft.currency,
       color: ENTITY_COLORS[0],
       icon: 'wallet',

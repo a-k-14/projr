@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
+import { formatCurrency, groupTransactionsByDate, parseFormattedNumber } from '../../lib/derived';
 import { formatDate, formatDateShort, todayUTC } from '../../lib/dateUtils';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -67,7 +67,7 @@ export default function LoanDetailScreen() {
   const grouped = groupTransactionsByDate(loan.transactions);
 
   const handleRecordPayment = async () => {
-    const amount = parseFloat(paymentAmount);
+    const amount = parseFloat(parseFormattedNumber(paymentAmount));
     if (!amount || amount <= 0) {
       Alert.alert('Invalid amount');
       return;

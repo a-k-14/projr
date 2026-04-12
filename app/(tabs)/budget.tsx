@@ -14,7 +14,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenTitle } from '../../components/settings-ui';
 import { FabButton } from '../../components/ui/FabButton';
-import { formatCurrency } from '../../lib/derived';
+import { formatCurrency, parseFormattedNumber } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
   HOME_LAYOUT,
@@ -307,7 +307,7 @@ function AddBudgetModal({
   const outCategories = categories.filter((c) => c.type !== 'in');
 
   const handleSave = async () => {
-    const amount = parseFloat(amountStr);
+    const amount = parseFloat(parseFormattedNumber(amountStr));
     if (!amount || !categoryId) return;
     setLoading(true);
     try {

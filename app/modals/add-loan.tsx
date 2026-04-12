@@ -20,6 +20,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { todayUTC, formatDate } from '../../lib/dateUtils';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { parseFormattedNumber } from '../../lib/derived';
 import {
   HOME_RADIUS,
   HOME_SPACE,
@@ -51,7 +52,7 @@ export default function AddLoanModal() {
     }
   }, [accounts]);
 
-  const amount = parseFloat(amountStr) || 0;
+  const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const isValid = amount > 0 && accountId && personName.trim();
 
   const handleSubmit = async () => {
