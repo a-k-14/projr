@@ -119,6 +119,8 @@ export const HOME_LAYOUT = {
   tabItemPaddingX: 8,
   tabItemPaddingY: 10,
   tabUnderlineHeight: 2.5,
+  tabWidthBase: 30,
+  tabWidthPerChar: 8.5,
   listRowPadding: 10,
   listIconSize: 36,
   periodHeight: 36,

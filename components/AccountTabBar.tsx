@@ -40,7 +40,13 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
   const TAB_PADDING = HOME_SPACE.sm + 4;
 
   const tabWidths = accounts.map((account) =>
-    Math.max(HOME_LAYOUT.tabMinWidth, Math.min(HOME_LAYOUT.tabMaxWidth, 22 + account.name.length * 7)),
+    Math.max(
+      HOME_LAYOUT.tabMinWidth,
+      Math.min(
+        HOME_LAYOUT.tabMaxWidth,
+        HOME_LAYOUT.tabWidthBase + account.name.length * HOME_LAYOUT.tabWidthPerChar,
+      ),
+    ),
   );
   const tabOffsets = tabWidths.map((_, i) =>
     tabWidths.slice(0, i).reduce((sum, w) => sum + w + TAB_GAP, 0),
