@@ -7,10 +7,10 @@ const BRAND = '#17673B';
 const NEGATIVE = '#8A2424';
 const WHITE = '#FFFFFF';
 const ON_BUDGET = '#111827';
-const LOAN_LIGHT = '#2563EB';
-const LOAN_DARK = '#60A5FA';
-const BUDGET_LIGHT = '#F59E0B';
-const BUDGET_DARK = '#FBBF24';
+const LOAN_LIGHT = '#6D5744';
+const LOAN_DARK = '#6A5442';
+const BUDGET_LIGHT = '#1E293B';
+const BUDGET_DARK = '#E2E8F0';
 const TRANSFER_TEXT_LIGHT = '#1E293B';
 const TRANSFER_TEXT_DARK = '#E2E8F0';
 const INPUT_BG_LIGHT = '#F3F4F6';
@@ -189,7 +189,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     onLoan: WHITE,
     budget: BUDGET_LIGHT,
     budgetSoft: tint(BUDGET_LIGHT, 0.12, 0.18, mode),
-    onBudget: ON_BUDGET,
+    onBudget: WHITE,
     tabInactive: TAB_INACTIVE_LIGHT,
     iconTint: ICON_TINT_LIGHT,
     statusBarStyle: 'dark',
