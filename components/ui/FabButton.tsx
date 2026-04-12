@@ -1,6 +1,6 @@
 import { TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { HOME_RADIUS, HOME_SHADOW, HOME_LAYOUT } from '../../lib/homeTokens';
+import { HOME_RADIUS, HOME_SHADOW, HOME_LAYOUT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
 export function FabButton({

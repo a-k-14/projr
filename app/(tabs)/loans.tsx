@@ -15,11 +15,12 @@ import { formatDateShort } from '../../lib/dateUtils';
 import { formatCurrency, getLoanSummary } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
+  HOME_LAYOUT,
   HOME_RADIUS,
   HOME_SHADOW,
   HOME_SPACE,
   HOME_TEXT,
-} from '../../lib/homeTokens';
+} from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { getThemePalette, resolveTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -67,7 +68,7 @@ export default function LoansScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />
         }
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         ListHeaderComponent={
           <View style={{ padding: SCREEN_GUTTER }}>
             {/* Title */}
@@ -266,7 +267,7 @@ export default function LoansScreen() {
 
       {/* FAB */}
       <FabButton
-        bottom={Math.max(0, insets.bottom - 24)}
+        bottom={insets.bottom + HOME_LAYOUT.fabBottomOffset}
         palette={palette}
         backgroundColor={palette.loan}
         iconColor={palette.onLoan}

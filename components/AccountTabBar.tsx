@@ -7,7 +7,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SCREEN_GUTTER } from '../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/homeTokens';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
 
 export type AccountTab = {

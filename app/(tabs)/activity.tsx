@@ -20,7 +20,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { groupTransactionsByDate, formatCurrency } from '../../lib/derived';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
-import { HOME_RADIUS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/homeTokens';
+import { HOME_RADIUS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/layoutTokens';
 import { getThemePalette, resolveTheme, AppThemePalette } from '../../lib/theme';
 import { SCREEN_GUTTER, CARD_PADDING } from '../../lib/design';
 import { AccountTabBar } from '../../components/AccountTabBar';

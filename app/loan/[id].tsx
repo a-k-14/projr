@@ -24,7 +24,7 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-} from '../../lib/homeTokens';
+} from '../../lib/layoutTokens';
 import type { LoanWithSummary } from '../../types';
 
 export default function LoanDetailScreen() {

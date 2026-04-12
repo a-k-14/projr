@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
-import { HOME_RADIUS } from '../../lib/homeTokens';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { AppThemePalette } from '../../lib/theme';
 
 interface FilterChipProps {

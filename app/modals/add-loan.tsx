@@ -24,7 +24,7 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-} from '../../lib/homeTokens';
+} from '../../lib/layoutTokens';
 
 export default function AddLoanModal() {
   const { add } = useLoansStore();

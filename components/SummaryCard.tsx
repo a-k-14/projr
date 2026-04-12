@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { formatCurrency } from '../lib/derived';
-import { HOME_RADIUS, HOME_SURFACE, HOME_TEXT } from '../lib/homeTokens';
+import { HOME_RADIUS, HOME_SURFACE, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
 import { CashflowSummary } from '../types';
 

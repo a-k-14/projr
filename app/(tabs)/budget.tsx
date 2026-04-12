@@ -17,11 +17,12 @@ import { FabButton } from '../../components/ui/FabButton';
 import { formatCurrency } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
+  HOME_LAYOUT,
   HOME_RADIUS,
   HOME_SHADOW,
   HOME_SPACE,
   HOME_TEXT,
-} from '../../lib/homeTokens';
+} from '../../lib/layoutTokens';
 import { AppThemePalette, getThemePalette, resolveTheme } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -58,7 +59,7 @@ export default function BudgetScreen() {
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
       >
         {/* Header */}
@@ -169,7 +170,7 @@ export default function BudgetScreen() {
 
       {/* FAB */}
       <FabButton
-        bottom={Math.max(0, insets.bottom - 24)}
+        bottom={insets.bottom + HOME_LAYOUT.fabBottomOffset}
         palette={palette}
         backgroundColor={palette.budget}
         iconColor={palette.onBudget}

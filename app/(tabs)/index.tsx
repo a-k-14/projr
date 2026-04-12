@@ -30,7 +30,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_SURFACE, HOME_TEXT } from '../../lib/homeTokens';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_SURFACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
 import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
@@ -226,7 +226,7 @@ export default function HomeScreen() {
       </View>
 
       <FabButton
-        bottom={Math.max(0, insets.bottom - 24)}
+        bottom={insets.bottom + HOME_LAYOUT.fabBottomOffset}
         palette={palette}
         onPress={() =>
           router.push({
@@ -418,7 +418,7 @@ function HomeAccountPage({
     <View style={{ flex: 1, height: pageHeight }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
@@ -530,7 +530,7 @@ function HomeAccountPage({
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                marginBottom: 18,
+                marginBottom: HOME_SURFACE.panelHeaderGap,
                 gap: 6,
               }}
             >
@@ -544,7 +544,7 @@ function HomeAccountPage({
               <View style={{ flexDirection: 'row' }}>
                 {/* Left Fixed Column: Period */}
                 <View style={{ width: 45 }}>
-                  <View style={{ borderBottomWidth: 1, borderBottomColor: palette.borderSoft, paddingBottom: HOME_SPACE.sm + 2, marginBottom: 4 }}>
+                  <View style={{ borderBottomWidth: 1, borderBottomColor: palette.borderSoft, paddingBottom: HOME_SURFACE.tableHeaderPaddingBottom, marginBottom: HOME_SURFACE.panelSubheaderGap }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center' }}>
                       Period
                     </Text>
@@ -559,7 +559,7 @@ function HomeAccountPage({
                       <View
                         key={i}
                         style={{
-                            height: 52,
+                            height: HOME_SURFACE.tableRowHeight,
                           justifyContent: 'center',
                           borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
                           borderBottomColor: palette.borderSoft,
@@ -589,13 +589,13 @@ function HomeAccountPage({
                         flexDirection: 'row',
                         borderBottomWidth: 1,
                         borderBottomColor: palette.borderSoft,
-                        paddingBottom: 10,
-                        marginBottom: 4,
+                        paddingBottom: HOME_SURFACE.tableHeaderPaddingBottom,
+                        marginBottom: HOME_SURFACE.panelSubheaderGap,
                       }}
                     >
-                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 12 }}>Inflow</Text>
-                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 12 }}>Outflow</Text>
-                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: 12 }}>Net</Text>
+                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Inflow</Text>
+                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Outflow</Text>
+                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Net</Text>
                     </View>
                     <ScrollView
                       ref={rightScrollRef}
@@ -611,7 +611,7 @@ function HomeAccountPage({
                         style={{
                           flexDirection: 'row',
                           paddingVertical: HOME_SURFACE.cardPaddingY,
-                          height: 52,
+                          height: HOME_SURFACE.tableRowHeight,
                           borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
                           borderBottomColor: palette.borderSoft,
                           alignItems: 'center',
@@ -703,7 +703,7 @@ function HomeAccountPage({
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 8,
+                marginBottom: HOME_SPACE.sm,
                 paddingHorizontal: CARD_PADDING,
               }}
             >
@@ -713,10 +713,10 @@ function HomeAccountPage({
               </TouchableOpacity>
             </View>
             <ScrollView
-              style={{ maxHeight: 260 }}
+              style={{ maxHeight: HOME_SURFACE.listMaxHeight }}
               nestedScrollEnabled
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 4 }}
+              contentContainerStyle={{ paddingBottom: HOME_SURFACE.cardPaddingBottom }}
             >
               {transactions.length === 0 ? (
                 <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
@@ -729,8 +729,6 @@ function HomeAccountPage({
                     tx={transaction}
                     sym={currencySymbol}
                     isLast={index === transactions.length - 1}
-                    padding={10}
-                    iconSize={36}
                     categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
                     palette={palette}
                   />

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Transaction } from '../types';
 import { formatCurrency } from '../lib/derived';
-import { HOME_RADIUS, HOME_TEXT } from '../lib/homeTokens';
+import { HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
