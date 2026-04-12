@@ -142,7 +142,7 @@ export const ACTIVITY_LAYOUT = {
   headerRowGap: 8,
   controlRadius: 22,
   controlRowGap: 6,
-  controlHeight: 38,
+  controlHeight: 40,
   controlChipPaddingX: 14,
   controlChipPaddingY: 7,
   controlChipGap: 6,

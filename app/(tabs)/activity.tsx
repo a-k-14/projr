@@ -4,7 +4,6 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
-  Dimensions,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -19,6 +18,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow } from '../../components/settings-ui';
 import { FilterChip } from '../../components/ui/FilterChip';
 import { TransactionListItem } from '../../components/TransactionListItem';
+import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/layoutTokens';
 import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
 import {
@@ -57,7 +57,6 @@ export default function ActivityScreen() {
   const scheme = useColorScheme();
   const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const insets = useSafeAreaInsets();
-  const moreSheetMinHeight = Math.round(Dimensions.get('window').height * 0.58);
   const sym = settings.currencySymbol;
 
   const [period, setPeriod] = useState<ActivityPeriod>('all');
@@ -216,6 +215,8 @@ export default function ActivityScreen() {
     selectedTagIds.length +
     (amountMinStr ? 1 : 0) +
     (amountMaxStr ? 1 : 0);
+  const moreActiveBg = palette.brandSoft;
+  const moreActiveBorder = palette.brand;
 
   const topCategories = useMemo(() => categories.filter((category) => !category.parentId), [categories]);
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
@@ -280,7 +281,7 @@ export default function ActivityScreen() {
       {isSearchActive ? (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
           <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
-            <Ionicons name="search" size={15} color={palette.textSoft} />
+            <Ionicons name="search" size={15} color={palette.textMuted} />
             <TextInput
               autoFocus
               placeholder="Search transactions…"
@@ -403,8 +404,8 @@ export default function ActivityScreen() {
                 style={[
                   styles.moreChip,
                   {
-                    backgroundColor: moreActiveCount > 0 ? palette.brandSoft : palette.surface,
-                    borderColor: moreActiveCount > 0 ? palette.brandSoft : palette.divider,
+                    backgroundColor: moreActiveCount > 0 ? moreActiveBg : palette.surface,
+                    borderColor: moreActiveCount > 0 ? moreActiveBorder : palette.divider,
                     marginLeft: ACTIVITY_LAYOUT.controlChipGap,
                   },
                 ]}
@@ -567,7 +568,7 @@ export default function ActivityScreen() {
               setShowPeriodSheet(false);
             }}
           />
-          <View style={{ backgroundColor: palette.background, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, paddingTop: 16, paddingBottom: 18 }}>
+          <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 16, paddingBottom: 18 }}>
             <Text style={{ fontSize: 11, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10 }}>
               Custom Range
             </Text>
@@ -637,6 +638,17 @@ export default function ActivityScreen() {
           palette={palette}
           onClose={() => setShowMoreSheet(false)}
           hasNavBar
+          footer={
+            <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 8, paddingBottom: 3, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
+              <TouchableOpacity
+                onPress={() => setShowMoreSheet(false)}
+                style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+                activeOpacity={0.85}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
+              </TouchableOpacity>
+            </View>
+          }
           headerRight={
             <TouchableOpacity
               onPress={() => {
@@ -651,12 +663,7 @@ export default function ActivityScreen() {
             </TouchableOpacity>
           }
         >
-          <View style={{ height: moreSheetMinHeight }}>
-            <ScrollView
-              style={{ flex: 1 }}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 16 }}
-            >
+          <View style={{ paddingBottom: 12 }}>
               <Text
                 style={{
                   fontSize: 11,
@@ -664,7 +671,7 @@ export default function ActivityScreen() {
                   letterSpacing: 0.8,
                   textTransform: 'uppercase',
                   color: palette.textMuted,
-                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+                  paddingHorizontal: CARD_PADDING,
                   paddingTop: 16,
                   paddingBottom: 8,
                 }}
@@ -677,8 +684,11 @@ export default function ActivityScreen() {
                   const children = childCategoriesByParent.get(category.id) ?? [];
                   const count = getCategoryTxCount(transactions, category.id, categories);
                   const childSelectedCount = children.filter((child) => selectedCategoryIds.includes(child.id)).length;
-                  const isSelected = selectedCategoryIds.includes(category.id);
-                  const isPartial = !isSelected && childSelectedCount > 0;
+                  const hasChildren = children.length > 0;
+                  const parentExplicitlySelected = selectedCategoryIds.includes(category.id);
+                  const allChildrenSelected = hasChildren && childSelectedCount === children.length;
+                  const isSelected = parentExplicitlySelected || allChildrenSelected;
+                  const isPartial = hasChildren && childSelectedCount > 0 && childSelectedCount < children.length && !parentExplicitlySelected;
                   const isExpanded = expandedCategoryIds.includes(category.id);
                   return (
                     <View key={category.id}>
@@ -688,7 +698,7 @@ export default function ActivityScreen() {
                         selected={isSelected}
                         partial={isPartial}
                         expanded={isExpanded}
-                        hasChildren={children.length > 0}
+                        hasChildren={hasChildren}
                         palette={palette}
                         onToggleSelected={() => toggleCategoryFamily(category.id)}
                         onToggleExpanded={() => toggleCategoryExpansion(category.id)}
@@ -700,9 +710,9 @@ export default function ActivityScreen() {
                             return (
                               <View
                                 key={child.id}
-                                style={[
-                                  styles.moreSubRow,
-                                  { borderBottomColor: palette.divider, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX + 34 },
+                                  style={[
+                                    styles.moreSubRow,
+                                  { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING + 34 },
                                 ]}
                               >
                                 <TouchableOpacity
@@ -712,14 +722,12 @@ export default function ActivityScreen() {
                                 >
                                   <Checkbox selected={childSelected} palette={palette} />
                                 </TouchableOpacity>
-                                <CategorySubIndicator palette={palette} />
-                                <View style={{ width: 10 }} />
                                 <TouchableOpacity
                                   onPress={() => toggleCategoryId(child.id)}
                                   activeOpacity={0.75}
                                   style={{ flex: 1, minWidth: 0 }}
                                 >
-                                  <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '600', color: palette.textMuted }}>
+                                  <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '400', color: palette.text }}>
                                     {child.name}
                                   </Text>
                                 </TouchableOpacity>
@@ -744,7 +752,7 @@ export default function ActivityScreen() {
                   letterSpacing: 0.8,
                   textTransform: 'uppercase',
                   color: palette.textMuted,
-                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+                  paddingHorizontal: CARD_PADDING,
                   paddingTop: 16,
                   paddingBottom: 8,
                 }}
@@ -753,7 +761,7 @@ export default function ActivityScreen() {
               </Text>
 
               {tags.length === 0 ? (
-                <Text style={{ color: palette.textMuted, fontSize: 13, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, paddingVertical: 12 }}>
+                <Text style={{ color: palette.textMuted, fontSize: 13, paddingHorizontal: CARD_PADDING, paddingVertical: 12 }}>
                   No tags yet
                 </Text>
               ) : (
@@ -782,14 +790,14 @@ export default function ActivityScreen() {
                   letterSpacing: 0.8,
                   textTransform: 'uppercase',
                   color: palette.textMuted,
-                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+                  paddingHorizontal: CARD_PADDING,
                   paddingTop: 16,
                   paddingBottom: 12,
                 }}
               >
                 Amount Range
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
                 <TextInput
                   value={amountMinStr}
                   onChangeText={setAmountMinStr}
@@ -808,17 +816,6 @@ export default function ActivityScreen() {
                   style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
                 />
               </View>
-            </ScrollView>
-
-            <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, paddingTop: 10, paddingBottom: 8, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
-              <TouchableOpacity
-                onPress={() => setShowMoreSheet(false)}
-                style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
-                activeOpacity={0.85}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </BottomSheet>
       ) : null}
@@ -894,18 +891,6 @@ function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, 
   return getPeriodNavLabel(period, range.from, range.to);
 }
 
-function tintColor(hex: string, alpha: number) {
-  const normalized = hex.replace('#', '');
-  const value = normalized.length === 3
-    ? normalized.split('').map((part) => part + part).join('')
-    : normalized;
-  const int = Number.parseInt(value, 16);
-  const r = (int >> 16) & 255;
-  const g = (int >> 8) & 255;
-  const b = int & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 function Checkbox({
   selected,
   partial = false,
@@ -936,45 +921,29 @@ function Checkbox({
 
 function CategoryIconBadge({
   icon,
-  color,
   palette,
 }: {
   icon: string;
-  color: string;
   palette: AppThemePalette;
 }) {
   const isEmoji = !/^[a-z-]+$/.test(icon);
   return (
     <View
       style={{
-        width: 40,
-        height: 40,
-        borderRadius: 11,
-        backgroundColor: tintColor(color, 0.2),
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: palette.inputBg,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
       {isEmoji ? (
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
+        <Text style={{ fontSize: 16 }}>{icon}</Text>
       ) : (
-        <Feather name={icon as keyof typeof Feather.glyphMap} size={18} color={palette.iconTint} />
+        <Feather name={icon as keyof typeof Feather.glyphMap} size={16} color={palette.iconTint} />
       )}
     </View>
-  );
-}
-
-function CategorySubIndicator({ palette }: { palette: AppThemePalette }) {
-  return (
-    <View
-      style={{
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: palette.brand,
-        opacity: 0.45,
-      }}
-    />
   );
 }
 
@@ -1000,14 +969,14 @@ function MoreCategoryRow({
   onToggleExpanded: () => void;
 }) {
   return (
-    <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }]}>
+    <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}>
       <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>
         <Checkbox selected={selected} partial={partial} palette={palette} />
       </TouchableOpacity>
       <TouchableOpacity onPress={hasChildren ? onToggleExpanded : onToggleSelected} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
-        <CategoryIconBadge icon={category.icon} color={category.color} palette={palette} />
+        <CategoryIconBadge icon={category.icon} palette={palette} />
         <View style={{ marginLeft: 14, flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '700', color: palette.text }}>
+          <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '500', color: palette.text }}>
             {category.name}
           </Text>
         </View>
@@ -1040,13 +1009,13 @@ function MoreTagRow({
   onToggleSelected: () => void;
 }) {
   return (
-    <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }]}>
+    <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}>
       <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>
         <Checkbox selected={selected} palette={palette} />
       </TouchableOpacity>
       <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color, marginRight: 14 }} />
       <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '700', color: palette.text }}>
+        <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '500', color: palette.text }}>
           {tag.name}
         </Text>
       </TouchableOpacity>
@@ -1186,13 +1155,13 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   moreRow: {
-    minHeight: 64,
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
   },
   moreSubRow: {
-    minHeight: 46,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,

@@ -542,16 +542,7 @@ export default function AddTransactionModal() {
                 palette={palette}
               />
               <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
-              <FieldRow label="Notes" noBorder palette={palette}>
-                <TextInput
-                  value={note}
-                  onChangeText={setNote}
-                  placeholder="Add a note..."
-                  placeholderTextColor={palette.textSoft}
-                  style={{ flex: 1, fontSize: 15, color: palette.text, paddingVertical: 0 }}
-                  multiline
-                />
-              </FieldRow>
+              <NotesSection note={note} onChangeNote={setNote} palette={palette} />
             </SectionCard>
           ) : (
             <SectionCard palette={palette}>
@@ -610,16 +601,7 @@ export default function AddTransactionModal() {
                   }, 50);
                 }}
               />
-              <FieldRow label="Notes" noBorder palette={palette}>
-                <TextInput
-                  value={note}
-                  onChangeText={setNote}
-                  placeholder="Add a note..."
-                  placeholderTextColor={palette.textSoft}
-                  style={{ flex: 1, fontSize: 15, color: palette.text, paddingVertical: 0 }}
-                  multiline
-                />
-              </FieldRow>
+              <NotesSection note={note} onChangeNote={setNote} palette={palette} />
             </SectionCard>
           )}
 
@@ -1042,33 +1024,39 @@ function AmountRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
       }}
     >
-      <Text
-        numberOfLines={1}
+      <View
         style={{
-          fontSize: 13,
-          fontWeight: '700',
-          color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
+          justifyContent: 'flex-end',
+          paddingBottom: 14,
         }}
       >
-        Amount ({sym})
-      </Text>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: 13,
+            fontWeight: '700',
+            color: palette.textMuted,
+          }}
+        >
+          Amount ({sym})
+        </Text>
+      </View>
       <View
         style={{
           flex: 1,
           minWidth: 0,
-          minHeight: ROW_MIN_HEIGHT,
           flexDirection: 'row',
           alignItems: 'flex-end',
           justifyContent: 'space-between',
           borderBottomWidth: isFocused ? 1.5 : 1,
           borderBottomColor: isFocused ? palette.tabActive : palette.borderSoft,
           paddingLeft: 4,
-          paddingBottom: 4.8,
+          paddingBottom: 8,
           gap: SCREEN_GUTTER,
         }}
       >
@@ -1130,32 +1118,38 @@ function InlineInputRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
       }}
     >
-      <Text
-        numberOfLines={1}
+      <View
         style={{
-          fontSize: 13,
-          fontWeight: '700',
-          color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
+          justifyContent: 'flex-end',
+          paddingBottom: 12,
         }}
       >
-        {label}
-      </Text>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: 13,
+            fontWeight: '700',
+            color: palette.textMuted,
+          }}
+        >
+          {label}
+        </Text>
+      </View>
       <View
         style={{
           flex: 1,
           minWidth: 0,
-          minHeight: ROW_MIN_HEIGHT,
           flexDirection: 'row',
           alignItems: 'flex-end',
           borderBottomWidth: isFocused ? 1.5 : 1,
           borderBottomColor: isFocused ? palette.tabActive : palette.borderSoft,
           paddingLeft: 4,
-          paddingBottom: 5.5,
+          paddingBottom: 8,
         }}
       >
         <TextInput

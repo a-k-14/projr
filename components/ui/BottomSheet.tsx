@@ -21,9 +21,9 @@ const BACKDROP_COLOR = 'rgb(0,0,0)';
 const BACKDROP_OPACITY = 0.4;
 const HEADER_HANDLE_WIDTH = 42;
 const HEADER_HANDLE_HEIGHT = 5;
-const HEADER_HANDLE_TOP_PADDING = 12;
-const HEADER_HANDLE_BOTTOM_PADDING = 8;
-const HEADER_TITLE_PADDING_BOTTOM = 12;
+const HEADER_HANDLE_TOP_PADDING = 8;
+const HEADER_HANDLE_BOTTOM_PADDING = 6;
+const HEADER_TITLE_PADDING_BOTTOM = 10;
 const CONTENT_PADDING_BOTTOM = 8;
 const SHADOW_OFFSET_Y = -2;
 const SHADOW_OPACITY = 0.08;
@@ -52,22 +52,26 @@ export function BottomSheet({
   title,
   subtitle,
   headerRight,
+  footer,
   palette,
   onClose,
   children,
   horizontalPadding = SHEET_GUTTER,
   hasNavBar = false,
   extraBottomPadding = 0,
+  scrollEnabled = true,
 }: {
   title: string;
   subtitle?: string;
   headerRight?: ReactNode;
+  footer?: ReactNode;
   palette: AppThemePalette;
   onClose: () => void;
   children: ReactNode;
   horizontalPadding?: number;
   hasNavBar?: boolean;
   extraBottomPadding?: number;
+  scrollEnabled?: boolean;
 }) {
   const { height: screenHeight } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
@@ -211,18 +215,35 @@ export function BottomSheet({
               </View>
             </View>
 
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ paddingBottom: CONTENT_PADDING_BOTTOM }}
-              showsVerticalScrollIndicator
-              keyboardShouldPersistTaps="handled"
-              onContentSizeChange={(_, h) => {
-                contentHeight.current = h;
-                commitHeight();
-              }}
-            >
-              {children}
-            </ScrollView>
+            {scrollEnabled ? (
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: CONTENT_PADDING_BOTTOM }}
+                showsVerticalScrollIndicator
+                keyboardShouldPersistTaps="handled"
+                onContentSizeChange={(_, h) => {
+                  contentHeight.current = h;
+                  commitHeight();
+                }}
+              >
+                {children}
+              </ScrollView>
+            ) : (
+              <View
+                style={{ width: '100%' }}
+                collapsable={false}
+                onLayout={(event) => {
+                  const next = Math.round(event.nativeEvent.layout.height);
+                  if (next !== contentHeight.current) {
+                    contentHeight.current = next;
+                    commitHeight();
+                  }
+                }}
+              >
+                {children}
+              </View>
+            )}
+            {footer ? <View>{footer}</View> : null}
           </Animated.View>
         </Animated.View>
       </View>

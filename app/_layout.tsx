@@ -80,10 +80,6 @@ export default function RootLayout() {
             options={{ presentation: 'modal', headerShown: false }}
           />
           <Stack.Screen
-            name="modals/add-loan"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
-          <Stack.Screen
             name="modals/select-account"
             options={{ presentation: 'transparentModal', headerShown: false }}
           />
