@@ -30,7 +30,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_TEXT } from '../../lib/homeTokens';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW, HOME_SPACE, HOME_SURFACE, HOME_TEXT } from '../../lib/homeTokens';
 import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
 import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
@@ -421,9 +421,9 @@ function HomeAccountPage({
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 14, paddingBottom: 2 }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1, paddingRight: 18 }}>
+            <View style={{ flex: 1, paddingRight: HOME_SPACE.lg }}>
               <Text style={{ fontSize: HOME_TEXT.heroLabel, color: palette.text, fontWeight: '700' }}>
                 {accountId === 'all' ? 'All Accounts' : accountName}
               </Text>
@@ -442,7 +442,7 @@ function HomeAccountPage({
               {formatCurrency(totalBalance, currencySymbol)}
             </Text>
           </View>
-          <View style={{ height: 1, backgroundColor: palette.borderSoft, marginTop: 18, marginBottom: 14 }} />
+          <View style={{ height: 1, backgroundColor: palette.borderSoft, marginTop: HOME_SURFACE.heroDividerTop, marginBottom: HOME_SURFACE.heroDividerBottom }} />
         </View>
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
@@ -520,9 +520,9 @@ function HomeAccountPage({
               backgroundColor: palette.card,
               borderRadius: HOME_RADIUS.card,
               paddingHorizontal: CARD_PADDING,
-              paddingTop: 14,
-              paddingBottom: 10,
-              marginBottom: 14,
+              paddingTop: HOME_SURFACE.cardPaddingY,
+              paddingBottom: HOME_SURFACE.cardPaddingBottom,
+              marginBottom: HOME_SURFACE.chartCardBottom,
             }}
           >
             <TouchableOpacity
@@ -544,7 +544,7 @@ function HomeAccountPage({
               <View style={{ flexDirection: 'row' }}>
                 {/* Left Fixed Column: Period */}
                 <View style={{ width: 45 }}>
-                  <View style={{ borderBottomWidth: 1, borderBottomColor: palette.borderSoft, paddingBottom: 10, marginBottom: 4 }}>
+                  <View style={{ borderBottomWidth: 1, borderBottomColor: palette.borderSoft, paddingBottom: HOME_SPACE.sm + 2, marginBottom: 4 }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center' }}>
                       Period
                     </Text>
@@ -559,7 +559,7 @@ function HomeAccountPage({
                       <View
                         key={i}
                         style={{
-                          height: 52, // 14*2 + fontSize + padding
+                            height: 52,
                           justifyContent: 'center',
                           borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
                           borderBottomColor: palette.borderSoft,
@@ -608,13 +608,13 @@ function HomeAccountPage({
                       {viewData.map((row, i) => (
                         <View
                           key={i}
-                          style={{
-                            flexDirection: 'row',
-                            paddingVertical: 14, // Adjusted from 18 to 14 to stabilize height
-                            height: 52,
-                            borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
-                            borderBottomColor: palette.borderSoft,
-                            alignItems: 'center',
+                        style={{
+                          flexDirection: 'row',
+                          paddingVertical: HOME_SURFACE.cardPaddingY,
+                          height: 52,
+                          borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
+                          borderBottomColor: palette.borderSoft,
+                          alignItems: 'center',
                           }}
                         >
                           <Text
@@ -697,7 +697,7 @@ function HomeAccountPage({
             )}
           </View>
 
-          <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, paddingTop: 14, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
+          <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, paddingTop: HOME_SURFACE.cardPaddingY, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
             <View
               style={{
                 flexDirection: 'row',

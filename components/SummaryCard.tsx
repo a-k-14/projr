@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { formatCurrency } from '../lib/derived';
-import { HOME_RADIUS, HOME_TEXT } from '../lib/homeTokens';
+import { HOME_RADIUS, HOME_SURFACE, HOME_TEXT } from '../lib/homeTokens';
 import { AppThemePalette } from '../lib/theme';
 import { CashflowSummary } from '../types';
 
@@ -53,12 +53,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: HOME_RADIUS.card,
     overflow: 'hidden',
-    marginBottom: 18,
+    marginBottom: HOME_SURFACE.summaryCardBottom,
   },
   column: {
     flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingVertical: HOME_SURFACE.summaryColumnPaddingY,
+    paddingHorizontal: HOME_SURFACE.summaryColumnPaddingX,
     alignItems: 'center',
   },
   label: {

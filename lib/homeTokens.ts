@@ -1,4 +1,4 @@
-import { SCREEN_GUTTER, SHEET_GUTTER, SPACING } from './design';
+import { CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING } from './design';
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 // Previously HOME_COLORS. Now unified into AppThemePalette in lib/theme.ts.
@@ -55,6 +55,26 @@ export const HOME_RADIUS = {
   full: 999,
 } as const;
 
+// ─── Home surface tokens ─────────────────────────────────────────────────────
+export const HOME_SURFACE = {
+  cardPaddingX: CARD_PADDING,
+  cardPaddingY: 14,
+  cardPaddingBottom: 10,
+  cardGap: SPACING.md,
+  sectionGap: SPACING.sm,
+  heroTop: 14,
+  heroBottom: 2,
+  heroDividerTop: 18,
+  heroDividerBottom: 14,
+  summaryColumnPaddingX: 8,
+  summaryColumnPaddingY: 16,
+  summaryCardBottom: 16,
+  recentCardBottom: 24,
+  chartCardBottom: 14,
+  listMaxHeight: 260,
+  tableMaxHeight: 310,
+} as const;
+
 // ─── Spacing tokens ────────────────────────────────────────────────────────────
 export const HOME_SPACE = {
   screen: SCREEN_GUTTER,
@@ -66,9 +86,9 @@ export const HOME_SPACE = {
   xl: SPACING.xl,
   xxl: SPACING.xxl,
   xxxl: SPACING.xxl + 4, // 28
-  sectionGap: SPACING.lg,
-  cardGap: SPACING.xl,
-  pageBottom: 32,
+  sectionGap: SPACING.md,
+  cardGap: SPACING.md,
+  pageBottom: HOME_SURFACE.recentCardBottom,
 } as const;
 
 // ─── Typography tokens ─────────────────────────────────────────────────────────
