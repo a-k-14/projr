@@ -74,7 +74,7 @@ function sanitizeDecimalInput(value: string): string {
 }
 
 export default function AddTransactionModal() {
-  const { editId, accountId: sourceAccountId } = useLocalSearchParams<{ editId?: string; accountId?: string }>();
+  const { editId, accountId: sourceAccountId, type: initialType } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string }>();
   const isEditing = !!editId;
 
   const { add, update, remove } = useTransactionsStore();
@@ -97,7 +97,7 @@ export default function AddTransactionModal() {
     setCalculatorOpen,
   } = useTransactionDraftStore();
   const insets = useSafeAreaInsets();
-  const [type, setType] = useState<TransactionType>('out');
+  const [type, setType] = useState<TransactionType>((initialType as TransactionType) || 'out');
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
   const [linkedAccountId, setLinkedAccountId] = useState('');
@@ -555,8 +555,38 @@ export default function AddTransactionModal() {
             </SectionCard>
           ) : (
             <SectionCard palette={palette}>
-              <FieldRow label="Account" palette={palette}>
-                <AccountPicker accounts={accounts} selectedId={accountId} onSelect={setAccountId} palette={palette} />
+              <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
+              <FieldRow label="Direction" palette={palette}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {(['lent', 'borrowed'] as const).map((d) => {
+                    const active = loanDirection === d;
+                    return (
+                      <TouchableOpacity
+                        key={d}
+                        onPress={() => setLoanDirection(d)}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 11,
+                          borderRadius: 14,
+                          alignItems: 'center',
+                          borderWidth: 1.5,
+                          borderColor: active ? activeConfig.borderColor : palette.border,
+                          backgroundColor: active ? activeConfig.bg : palette.surface,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: '700',
+                            color: active ? activeConfig.color : palette.textMuted,
+                          }}
+                        >
+                          {d === 'lent' ? 'I lent' : 'I borrowed'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </FieldRow>
               <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} />
               <AmountRow
@@ -568,36 +598,18 @@ export default function AddTransactionModal() {
                 isEditing={isEditing}
                 palette={palette}
               />
-              <FieldRow label="Direction" palette={palette}>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {(['lent', 'borrowed'] as const).map((d) => (
-                    <TouchableOpacity
-                      key={d}
-                      onPress={() => setLoanDirection(d)}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 11,
-                        borderRadius: 14,
-                        alignItems: 'center',
-                        borderWidth: 1.5,
-                        borderColor: loanDirection === d ? palette.tabActive : palette.border,
-                        backgroundColor: loanDirection === d ? palette.inBg : palette.surface,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 13,
-                          fontWeight: '700',
-                          color: loanDirection === d ? palette.tabActive : palette.textMuted,
-                        }}
-                      >
-                        {d === 'lent' ? 'I lent' : 'I borrowed'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </FieldRow>
-              <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
+              <PickerRow
+                label="Account"
+                value={getAccountName(accounts, accountId) || 'Select...'}
+                placeholder={!accountId}
+                palette={palette}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setTimeout(() => {
+                    setShowAccountSheet(true);
+                  }, 50);
+                }}
+              />
               <FieldRow label="Notes" noBorder palette={palette}>
                 <TextInput
                   value={note}

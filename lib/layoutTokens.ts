@@ -135,6 +135,38 @@ export const HOME_LAYOUT = {
   handleHeight: 4,
 } as const;
 
+export const ACTIVITY_LAYOUT = {
+  headerPaddingX: SCREEN_GUTTER,
+  headerPaddingTop: 4,
+  headerPaddingBottom: 10,
+  headerRowGap: 8,
+  controlRadius: 22,
+  controlRowGap: 6,
+  controlHeight: 38,
+  controlChipPaddingX: 14,
+  controlChipPaddingY: 7,
+  controlChipGap: 6,
+  chipRadius: 22,
+  accountChipMinWidth: 92,
+  accountChipMaxWidth: 148,
+  accountChipHeight: 38,
+  accountChipGap: 8,
+  accountChipHorizontalPadding: 13,
+  accountChipScrollPaddingRight: 4,
+  filterChipHeight: 38,
+  filterChipHorizontalPadding: 12,
+  filterChipVerticalPadding: 7,
+  filterChipGap: 6,
+  moreButtonGap: 8,
+  summaryPaddingTop: 6,
+  summaryPaddingBottom: 14,
+  groupHeaderBottom: 8,
+  groupCardMarginBottom: 16,
+  groupCardRadius: HOME_RADIUS.card,
+  listBottomPadding: 80,
+  periodSheetBottomOffset: -12,
+} as const;
+
 export const getFabBottomOffset = (insetsBottom: number) =>
   insetsBottom + HOME_LAYOUT.fabBottomOffset;
 

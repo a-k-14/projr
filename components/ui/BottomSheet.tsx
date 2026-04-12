@@ -51,6 +51,7 @@ const MODAL_HEIGHT_BOOST = 72;
 export function BottomSheet({
   title,
   subtitle,
+  headerRight,
   palette,
   onClose,
   children,
@@ -60,6 +61,7 @@ export function BottomSheet({
 }: {
   title: string;
   subtitle?: string;
+  headerRight?: ReactNode;
   palette: AppThemePalette;
   onClose: () => void;
   children: ReactNode;
@@ -195,9 +197,12 @@ export function BottomSheet({
                 />
               </View>
               <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
-                <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: '600', color: palette.text, letterSpacing: HEADER_TITLE_TRACKING }}>
-                  {title}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: '600', color: palette.text, letterSpacing: HEADER_TITLE_TRACKING }}>
+                    {title}
+                  </Text>
+                  {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
+                </View>
                 {subtitle ? (
                   <Text style={{ fontSize: HEADER_SUBTITLE_SIZE, color: palette.textMuted, marginTop: HEADER_SUBTITLE_MARGIN, fontWeight: '400' }}>
                     {subtitle}

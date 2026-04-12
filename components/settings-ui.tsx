@@ -157,6 +157,7 @@ export function ChoiceRow({
   onPress,
   noBorder,
   leftElement,
+  rightElement,
   horizontalPadding = CARD_PADDING,
 }: {
   title: string;
@@ -166,6 +167,7 @@ export function ChoiceRow({
   onPress: () => void;
   noBorder?: boolean;
   leftElement?: ReactNode;
+  rightElement?: ReactNode;
   horizontalPadding?: number;
 }) {
   return (
@@ -183,7 +185,7 @@ export function ChoiceRow({
         borderBottomWidth: noBorder ? 0 : 1,
         borderBottomColor: palette.divider,
       }}
-    >
+      >
       {leftElement && <View style={{ marginRight: 14 }}>{leftElement}</View>}
       <View style={{ flex: 1 }}>
         <Text
@@ -209,6 +211,7 @@ export function ChoiceRow({
           </Text>
         ) : null}
       </View>
+      {rightElement ? <View style={{ marginRight: selected ? 10 : 0 }}>{rightElement}</View> : null}
       {selected && (
         <View
           style={{

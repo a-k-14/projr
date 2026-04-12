@@ -272,7 +272,7 @@ export default function LoansScreen() {
         palette={palette}
         backgroundColor={palette.loan}
         iconColor={palette.onLoan}
-        onPress={() => router.push('/modals/add-loan')}
+        onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'loan' } })}
       />
     </SafeAreaView>
   );

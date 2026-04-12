@@ -3,1037 +3,506 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Activity Screen Mockup</title>
+<title>Activity Screen Mockup v9</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    background: #1a1a2e;
-    display: flex;
-    gap: 32px;
-    padding: 40px 32px;
-    justify-content: center;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    min-height: 100vh;
+    background: #12121F;
+    display: flex; gap: 24px;
+    padding: 48px 36px;
+    justify-content: center; align-items: flex-start;
+    flex-wrap: wrap; min-height: 100vh;
   }
-
-  /* ── Phone shell ── */
-  .phone {
-    width: 375px;
-    background: #F0F0F5;
-    border-radius: 44px;
-    overflow: hidden;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.5), inset 0 0 0 1.5px rgba(255,255,255,0.12);
-    display: flex;
-    flex-direction: column;
-  }
-  .status-bar {
-    height: 50px;
-    background: #F0F0F5;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 24px 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: #1F2A44;
-    flex-shrink: 0;
-  }
-  .status-bar .time { font-weight: 700; }
-  .status-icons { display: flex; gap: 5px; align-items: center; }
-  .status-icons svg { width: 16px; height: 16px; }
-
-  .screen-body {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: none;
-    background: #F0F0F5;
-  }
-  .screen-body::-webkit-scrollbar { display: none; }
-
-  /* ── Label above phone ── */
-  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-  .phone-label {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.45);
-  }
-
-  /* ── Colors ── */
   :root {
-    --brand: #17673B;
-    --brand-soft: #E4F0EA;
-    --brand-text: #17673B;
+    --brand: #17673B; --brand-soft: #E4F0EA; --brand-mid: #C2DCCB;
     --neg: #8A2424;
-    --neg-soft: #F5EAEA;
-    --bg: #F0F0F5;
-    --surface: #FFFFFF;
-    --divider: #E5E7EB;
-    --text: #1F2A44;
-    --text-soft: #6B7490;
-    --text-muted: #8C94AF;
-    --card-radius: 14px;
-    --pill-radius: 20px;
+    --bg: #F2F2F7; --surface: #FFFFFF;
+    --divider: #EAECF0; --div2: #E0E3EA;
+    --text: #1A2338; --ts: #5A637A; --tm: #99A0B5;
+    --r: 16px; --rp: 22px;
   }
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); text-align: center; }
+  .phone {
+    width: 375px; height: 812px; background: var(--bg); border-radius: 52px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.07), 0 20px 60px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; position: relative;
+  }
+  .sb { height: 52px; flex-shrink: 0; background: var(--bg); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 26px 10px; font-size: 14px; font-weight: 700; color: var(--text); }
+  .sb-r { display: flex; gap: 5px; align-items: center; }
+  .sb-r svg { width: 15px; height: 15px; }
+  .hdr { background: var(--bg); padding: 2px 20px 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 0 var(--divider); flex-shrink: 0; z-index: 5; }
+  .title { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
+  .ico-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--surface); border: 1.5px solid var(--div2); display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .ico-btn svg { width: 17px; height: 17px; }
+  .body { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+  .body::-webkit-scrollbar { display: none; }
+  .lh { padding: 10px 16px 0; }
 
-  /* ── Screen header ── */
-  .screen-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px 8px;
-  }
-  .screen-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--text);
-    letter-spacing: -0.3px;
-  }
-  .header-icons { display: flex; gap: 10px; }
-  .icon-btn {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: 1.5px solid var(--divider);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    position: relative;
-  }
-  .icon-btn svg { width: 17px; height: 17px; }
-  .badge {
-    position: absolute;
-    top: -4px; right: -4px;
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    background: var(--brand);
-    color: white;
-    font-size: 9px;
-    font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-    border: 1.5px solid var(--bg);
-  }
-
-  /* ── Period selector ── */
-  .period-block {
-    padding: 4px 16px 10px;
-  }
-  .period-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-  }
-  .period-this {
-    font-size: 14px;
-    font-weight: 800;
-    color: var(--text);
-    white-space: nowrap;
-  }
-  .period-tabs {
-    display: flex;
-    flex: 1;
-    background: var(--surface);
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1.5px solid var(--divider);
-  }
-  .period-tab {
-    flex: 1;
-    padding: 7px 4px;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 8px;
-    margin: 2px;
-  }
-  .period-tab.active {
-    background: var(--brand-soft);
-    color: var(--brand-text);
-    font-weight: 800;
-  }
-  .period-range {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
-  /* ── Summary bar ── */
-  .summary-bar {
-    margin: 0 10px 10px;
-    background: var(--surface);
-    border-radius: var(--card-radius);
-    display: flex;
-    overflow: hidden;
-    border: 1.5px solid var(--divider);
-  }
-  .summary-cell {
-    flex: 1;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    border-right: 1.5px solid var(--divider);
-  }
-  .summary-cell:last-child { border-right: none; }
-  .summary-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-  }
-  .summary-value {
-    font-size: 14px;
-    font-weight: 800;
-    color: var(--text);
-    letter-spacing: -0.2px;
-  }
-  .summary-value.pos { color: var(--brand); }
-  .summary-value.neg { color: var(--neg); }
-
-  /* ── Filter row ── */
-  .filter-area { padding: 0 10px 8px; }
-  .filter-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
-  }
-  .type-pills { display: flex; gap: 5px; flex: 1; overflow: hidden; }
-  .pill {
-    padding: 6px 13px;
-    border-radius: var(--pill-radius);
-    font-size: 12px;
-    font-weight: 600;
-    border: 1.5px solid var(--divider);
-    background: var(--surface);
-    color: var(--text-muted);
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  .pill.active {
-    background: var(--brand);
-    border-color: var(--brand);
-    color: white;
-    font-weight: 700;
-  }
-  .filter-btn {
-    padding: 6px 11px;
-    border-radius: var(--pill-radius);
-    border: 1.5px solid var(--divider);
-    background: var(--surface);
+  /* Row 1 */
+  .r1 { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .acc-dd {
     display: flex; align-items: center; gap: 5px;
-    cursor: pointer;
-    flex-shrink: 0;
+    background: var(--surface); border: 1.5px solid var(--div2);
+    border-radius: var(--rp); padding: 0 11px 0 13px; height: 38px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; flex-shrink: 0;
   }
-  .filter-btn svg { width: 14px; height: 14px; }
-  .filter-btn span { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-  .filter-btn.has-filters {
-    border-color: var(--brand);
-    background: var(--brand-soft);
+  .acc-dd-lbl { font-size: 13px; font-weight: 700; color: var(--ts); white-space: nowrap; }
+  .acc-dd svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .pnav {
+    flex: 1; display: flex; align-items: center; height: 38px;
+    background: var(--surface); border: 1.5px solid var(--div2);
+    border-radius: var(--rp); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
-  .filter-btn.has-filters span { color: var(--brand); }
-  .filter-btn.has-filters svg { color: var(--brand); }
+  .pa { width: 34px; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .pa.l { border-right: 1.5px solid var(--divider); }
+  .pa.r { border-left: 1.5px solid var(--divider); }
+  .pa.dim { opacity: 0.2; }
+  .pa svg { width: 13px; height: 13px; }
+  .pl { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; padding: 0 4px; height: 100%; overflow: hidden; }
+  .pl-val { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .pl-sep { font-size: 12px; color: var(--tm); flex-shrink: 0; }
 
-  /* active filter chips */
-  .active-chips { display: flex; gap: 5px; flex-wrap: wrap; }
-  .chip {
-    display: flex; align-items: center; gap: 4px;
-    background: var(--brand-soft);
-    border: 1.5px solid #C2DCCB;
-    border-radius: var(--pill-radius);
-    padding: 4px 8px 4px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--brand-text);
-    cursor: pointer;
-  }
-  .chip-x {
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: rgba(23,103,59,0.15);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px;
-    line-height: 1;
-    color: var(--brand);
-  }
+  /* Row 2 */
+  .r2 { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .tp-scroll { flex: 1; display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+  .tp-scroll::-webkit-scrollbar { display: none; }
+  .tp { padding: 6px 14px; border-radius: var(--rp); font-size: 12px; font-weight: 600; border: 1.5px solid var(--div2); background: var(--surface); color: var(--tm); white-space: nowrap; cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .tp.on { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 700; }
+  .more-btn { display: flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: var(--rp); background: var(--surface); border: 1.5px solid var(--div2); cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .more-btn svg { width: 13px; height: 13px; }
+  .more-btn .ml { font-size: 12px; font-weight: 600; color: var(--tm); }
+  .more-btn.on { background: var(--brand-soft); border-color: var(--brand-mid); }
+  .more-btn.on .ml { color: var(--brand); font-weight: 800; }
 
-  /* ── Group-by toggle ── */
-  .groupby-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 10px 10px;
-  }
-  .groupby-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  .groupby-toggle {
-    display: flex;
-    background: var(--surface);
-    border-radius: 8px;
-    border: 1.5px solid var(--divider);
-    overflow: hidden;
-  }
-  .groupby-opt {
-    padding: 5px 12px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 6px;
-    margin: 2px;
-  }
-  .groupby-opt.active {
-    background: var(--brand-soft);
-    color: var(--brand-text);
-    font-weight: 800;
-  }
+  .chips { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; }
+  .chip { display: flex; align-items: center; gap: 4px; background: var(--brand-soft); border: 1.5px solid var(--brand-mid); border-radius: var(--rp); padding: 5px 8px 5px 11px; font-size: 11px; font-weight: 700; color: var(--brand); }
+  .chip-x { width: 15px; height: 15px; border-radius: 50%; background: rgba(23,103,59,0.12); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: var(--brand); }
 
-  /* ── Divider ── */
-  .section-divider {
-    height: 1px;
-    background: var(--divider);
-    margin: 0 10px 12px;
-    opacity: 0.6;
-  }
+  .slim { font-size: 11px; font-weight: 600; color: var(--tm); padding: 4px 2px 10px; }
+  .div { height: 1px; background: var(--div2); margin: 0 0 14px; }
 
-  /* ── Date group ── */
-  .date-group { margin-bottom: 14px; }
-  .date-header {
-    display: flex;
-    align-items: center;
-    padding: 0 10px 7px;
-  }
-  .date-text { font-size: 12px; font-weight: 800; color: var(--text-soft); }
-  .date-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-soft); margin: 0 5px; opacity: 0.5; }
-  .date-label { font-size: 12px; font-weight: 800; color: var(--text-soft); }
-  .date-net {
-    margin-left: auto;
-    font-size: 12px;
-    font-weight: 700;
-  }
-  .date-net.pos { color: var(--brand); }
-  .date-net.neg { color: var(--neg); }
+  .dg { margin-bottom: 16px; }
+  .dh { display: flex; align-items: center; padding: 0 2px 8px; }
+  .dh-d { font-size: 12px; font-weight: 800; color: var(--ts); }
+  .dh-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--tm); margin: 0 5px; opacity: 0.5; }
+  .dh-l { font-size: 12px; font-weight: 800; color: var(--ts); }
+  .dh-n { margin-left: auto; font-size: 12px; font-weight: 700; }
+  .dh-n.p { color: var(--brand); }
+  .dh-n.n { color: var(--neg); }
+  .card { background: var(--surface); border-radius: var(--r); overflow: hidden; border: 1.5px solid var(--divider); box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .row { display: flex; align-items: center; padding: 12px 14px; gap: 12px; border-bottom: 1px solid var(--divider); cursor: pointer; }
+  .row:last-child { border-bottom: none; }
+  .ico { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; font-weight: 700; }
+  .ico.in  { background: #E3F0E9; color: var(--brand); }
+  .ico.out { background: #F2E8E8; color: var(--neg); }
+  .ico.tr  { background: #EAE8F5; color: #5B4FCF; }
+  .inf { flex: 1; min-width: 0; }
+  .nm { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mt { font-size: 11px; color: var(--tm); font-weight: 500; }
+  .amt { font-size: 14px; font-weight: 800; flex-shrink: 0; letter-spacing: -0.3px; }
+  .amt.in  { color: var(--brand); }
+  .amt.out { color: var(--text); }
 
-  .tx-card {
-    margin: 0 10px;
-    background: var(--surface);
-    border-radius: var(--card-radius);
-    overflow: hidden;
-    border: 1.5px solid var(--divider);
-  }
-  .tx-row {
-    display: flex;
-    align-items: center;
-    padding: 11px 14px;
-    gap: 11px;
-    border-bottom: 1px solid var(--divider);
-    cursor: pointer;
-  }
-  .tx-row:last-child { border-bottom: none; }
-  .tx-icon {
-    width: 38px; height: 38px;
-    border-radius: 11px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    font-size: 16px;
-  }
-  .tx-icon.in { background: #E4F0EA; }
-  .tx-icon.out { background: #F5EAEA; }
-  .tx-icon.transfer { background: #EAE8F5; }
-  .tx-body { flex: 1; min-width: 0; }
-  .tx-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tx-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tx-amount { font-size: 14px; font-weight: 800; flex-shrink: 0; letter-spacing: -0.2px; }
-  .tx-amount.in { color: var(--brand); }
-  .tx-amount.out { color: var(--text); }
+  .bnav { height: 78px; flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--divider); display: flex; align-items: center; justify-content: space-around; padding: 0 4px 14px; }
+  .ni { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 12px; }
+  .ni svg { width: 23px; height: 23px; }
+  .ni span { font-size: 10px; font-weight: 600; color: var(--tm); }
+  .ni.on span { color: var(--brand); }
 
-  /* ── Category group view ── */
-  .cat-group { margin-bottom: 14px; }
-  .cat-header {
-    display: flex;
-    align-items: center;
-    padding: 0 10px 7px;
-    gap: 7px;
-  }
-  .cat-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .cat-name { font-size: 12px; font-weight: 800; color: var(--text-soft); }
-  .cat-total { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--neg); }
-  .cat-total.pos { color: var(--brand); }
+  /* Overlay + sheet — tall, max 82% */
+  .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; border-radius: 52px; overflow: hidden; z-index: 10; }
+  .sheet { width: 100%; background: var(--surface); border-radius: 24px 24px 0 0; max-height: 82%; display: flex; flex-direction: column; overflow: hidden; }
+  .sheet-scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .sheet-scroll::-webkit-scrollbar { display: none; }
+  .sph { width: 36px; height: 4px; border-radius: 2px; background: var(--div2); margin: 10px auto 0; flex-shrink: 0; }
+  .shdr { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 12px; border-bottom: 1px solid var(--divider); flex-shrink: 0; }
+  .sttl { font-size: 17px; font-weight: 800; color: var(--text); }
+  .sclr { font-size: 13px; font-weight: 700; color: var(--brand); }
+  .sheet-footer { flex-shrink: 0; padding: 12px 20px 24px; background: var(--surface); border-top: 1px solid var(--divider); }
+  .apply { background: var(--brand); border-radius: 14px; padding: 15px; text-align: center; font-size: 15px; font-weight: 800; color: #fff; cursor: pointer; box-shadow: 0 4px 16px rgba(23,103,59,0.3); }
 
-  /* ── Bottom nav ── */
-  .bottom-nav {
-    height: 72px;
-    background: var(--surface);
-    border-top: 1px solid var(--divider);
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 8px 8px;
-    flex-shrink: 0;
-  }
-  .nav-item {
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 6px 12px;
-    cursor: pointer;
-  }
-  .nav-item svg { width: 22px; height: 22px; }
-  .nav-item span { font-size: 10px; font-weight: 600; color: var(--text-muted); }
-  .nav-item.active svg { color: var(--brand); }
-  .nav-item.active span { color: var(--brand); }
+  /* Section label */
+  .sec-lbl { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--tm); padding: 16px 20px 4px; display: block; }
 
-  /* ── Filter sheet overlay ── */
-  .sheet-overlay {
-    position: absolute; inset: 0;
-    background: rgba(0,0,0,0.35);
-    display: flex; align-items: flex-end;
-    border-radius: 44px;
-    overflow: hidden;
-    z-index: 10;
-  }
-  .sheet {
-    width: 100%;
-    background: var(--surface);
-    border-radius: 20px 20px 0 0;
-    padding: 0 0 24px;
-    max-height: 82%;
-    overflow-y: auto;
-    scrollbar-width: none;
-  }
-  .sheet::-webkit-scrollbar { display: none; }
-  .sheet-handle {
-    width: 36px; height: 4px;
-    background: var(--divider);
-    border-radius: 2px;
-    margin: 10px auto 0;
-  }
-  .sheet-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px 10px;
-    border-bottom: 1px solid var(--divider);
-  }
-  .sheet-title { font-size: 16px; font-weight: 800; color: var(--text); }
-  .sheet-clear { font-size: 13px; font-weight: 700; color: var(--brand); cursor: pointer; }
-  .sheet-section { padding: 14px 16px 0; }
-  .sheet-section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 9px; }
-  .sheet-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-  .sheet-chip {
-    padding: 6px 13px;
-    border-radius: var(--pill-radius);
-    border: 1.5px solid var(--divider);
-    font-size: 12px; font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .sheet-chip.active {
-    background: var(--brand-soft);
-    border-color: #C2DCCB;
-    color: var(--brand-text);
-    font-weight: 700;
-  }
-  .amount-row { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
-  .amount-input {
-    flex: 1;
-    background: var(--bg);
-    border: 1.5px solid var(--divider);
-    border-radius: 10px;
-    padding: 9px 12px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-muted);
-  }
-  .amount-sep { font-size: 13px; color: var(--text-muted); font-weight: 600; }
-  .apply-btn {
-    margin: 14px 16px 0;
-    background: var(--brand);
-    border-radius: 12px;
-    padding: 14px;
-    text-align: center;
-    font-size: 15px;
-    font-weight: 800;
-    color: white;
-    cursor: pointer;
-    letter-spacing: 0.01em;
-  }
+  /* Checkbox list rows */
+  .cbox-row { display: flex; align-items: center; gap: 12px; padding: 11px 20px; border-bottom: 1px solid var(--divider); cursor: pointer; }
+  .cbox-row:last-child { border-bottom: none; }
+  /* Sub-cat indent + grey bg */
+  .cbox-row.sub { padding-left: 44px; background: #FAFAFA; }
+  .cb { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--div2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface); }
+  .cb.on { background: var(--brand); border-color: var(--brand); }
+  .cb.on svg { display: block; }
+  .cb.part { border-color: var(--brand); background: var(--brand-soft); }
+  .cb.part .dash { display: block; }
+  .cb svg { display: none; width: 11px; height: 11px; }
+  .dash { display: none; width: 9px; height: 2px; background: var(--brand); border-radius: 1px; }
+  /* Category icon circle */
+  .cat-ico { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+  /* Tag color dot */
+  .tag-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .cbox-lbl { flex: 1; font-size: 14px; font-weight: 600; color: var(--text); }
+  .cbox-lbl.sub { font-size: 13px; color: var(--ts); font-weight: 500; }
+  .cbox-count { font-size: 12px; font-weight: 600; color: var(--tm); }
+  .cbox-chev { flex-shrink: 0; opacity: 0.35; width: 14px; height: 14px; }
 
-  /* search bar */
-  .search-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 2px 10px 10px;
-    background: var(--surface);
-    border-radius: 12px;
-    border: 1.5px solid var(--divider);
-    padding: 9px 13px;
-  }
-  .search-bar svg { width: 15px; height: 15px; color: var(--text-muted); flex-shrink: 0; }
-  .search-bar input {
-    flex: 1; border: none; background: transparent;
-    font-size: 14px; color: var(--text); outline: none;
-    font-family: inherit;
-  }
-  .search-bar input::placeholder { color: var(--text-muted); }
+  .sec-divider { height: 1px; background: var(--divider); margin: 4px 0; }
 
-  /* phone relative for sheet */
-  .phone { position: relative; }
+  /* Amount range */
+  .amt-sec { padding: 16px 20px 8px; }
+  .amtr { display: flex; gap: 8px; align-items: center; }
+  .amtb { flex: 1; background: var(--bg); border: 1.5px solid var(--div2); border-radius: 10px; padding: 10px 13px; font-size: 13px; font-weight: 600; color: var(--tm); }
+
+  /* Period sheet */
+  .period-opt { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; border-bottom: 1px solid var(--divider); cursor: pointer; }
+  .period-opt:last-child { border-bottom: none; }
+  .period-opt-lbl { font-size: 15px; font-weight: 600; color: var(--text); }
+  .period-opt-sub { font-size: 12px; color: var(--tm); font-weight: 500; margin-top: 2px; }
+  .period-opt.on .period-opt-lbl { color: var(--brand); font-weight: 700; }
+  .period-check { color: var(--brand); font-size: 18px; font-weight: 800; }
+
+  /* Custom range expand */
+  .custom-expand { background: var(--bg); border-top: 1px solid var(--divider); padding: 16px 20px 20px; }
+  .date-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .date-field { flex: 1; background: var(--surface); border: 1.5px solid var(--div2); border-radius: 12px; padding: 10px 14px; }
+  .date-field.active { border-color: var(--brand); }
+  .date-field-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tm); margin-bottom: 3px; }
+  .date-field-val { font-size: 14px; font-weight: 700; color: var(--text); }
+  .date-field-val.empty { color: var(--tm); font-weight: 500; }
+  .date-sep { font-size: 16px; color: var(--tm); flex-shrink: 0; }
+  .cal-strip { background: var(--surface); border: 1.5px solid var(--div2); border-radius: 14px; overflow: hidden; }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--divider); }
+  .cal-month { font-size: 13px; font-weight: 800; color: var(--text); }
+  .cal-arr { width: 26px; height: 26px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+  .cal-arr svg { width: 12px; height: 12px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); padding: 8px 6px; }
+  .cal-day-hd { text-align: center; font-size: 10px; font-weight: 700; color: var(--tm); padding: 4px 0; }
+  .cal-day { text-align: center; font-size: 12px; font-weight: 600; color: var(--ts); padding: 6px 2px; border-radius: 8px; cursor: pointer; }
+  .cal-day.today { color: var(--brand); font-weight: 800; }
+  .cal-day.in-range { background: var(--brand-soft); color: var(--brand); border-radius: 0; }
+  .cal-day.range-start { background: var(--brand); color: #fff; border-radius: 8px 0 0 8px; }
+  .cal-day.range-end { background: var(--brand); color: #fff; border-radius: 0 8px 8px 0; }
+  .cal-day.dim { color: var(--div2); }
+  .custom-apply { margin-top: 12px; background: var(--brand); border-radius: 12px; padding: 13px; text-align: center; font-size: 14px; font-weight: 800; color: #fff; }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════
-     SCREEN 1 — Default (Date grouping, no filters)
-     ═══════════════════════════════════════════════════════ -->
-<div class="phone-wrap">
-  <div class="phone-label">Default View · Date Grouping</div>
+<!-- ════════════════════════
+  SCREEN 1 · All Time default
+  ════════════════════════ -->
+<div class="wrap">
+  <div class="lbl">Screen 1 · All Time · default</div>
   <div class="phone">
-    <!-- Status bar -->
-    <div class="status-bar">
-      <span class="time">9:41</span>
-      <div class="status-icons">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33C16.4 22 17 21.4 17 20.67V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+    <div class="sb"><span>9:41</span><div class="sb-r"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33C16.4 22 17 21.4 17 20.67V5.33C17 4.6 16.4 4 15.67 4z"/></svg></div></div>
+    <div class="hdr"><span class="title">Activity</span><div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div></div>
+    <div class="body">
+      <div class="lh">
+        <div class="r1">
+          <div class="acc-dd">
+            <span class="acc-dd-lbl">All Accounts</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="pnav">
+            <div class="pa l dim"><svg viewBox="0 0 24 24" fill="none" stroke="#5A637A" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+            <div class="pl"><span class="pl-val">All Time</span></div>
+            <div class="pa r dim"><svg viewBox="0 0 24 24" fill="none" stroke="#5A637A" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+        </div>
+        <div class="r2">
+          <div class="tp-scroll">
+            <div class="tp on">All</div><div class="tp">In</div><div class="tp">Out</div><div class="tp">Transfer</div><div class="tp">Loan</div>
+          </div>
+          <div class="more-btn"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="16" y2="18"/></svg><span class="ml">More</span></div>
+        </div>
+        <div class="slim">12 transactions</div>
       </div>
+      <div class="div"></div>
+      <div style="padding:0 16px">
+        <div class="dg">
+          <div class="dh"><span class="dh-d">12 Apr 2026</span><span class="dh-dot"></span><span class="dh-l">Today</span><span class="dh-n p">+₹55,388</span></div>
+          <div class="card"><div class="row"><div class="ico in">↓</div><div class="inf"><div class="nm">Salary</div><div class="mt">Income · SBI Savings</div></div><span class="amt in">+₹55,388</span></div></div>
+        </div>
+        <div class="dg">
+          <div class="dh"><span class="dh-d">10 Apr 2026</span><span class="dh-n n">−₹7,310</span></div>
+          <div class="card">
+            <div class="row"><div class="ico out">↑</div><div class="inf"><div class="nm">Cab</div><div class="mt">Transport · Cash</div></div><span class="amt out">₹380</span></div>
+            <div class="row"><div class="ico out">↑</div><div class="inf"><div class="nm">Online Shopping</div><div class="mt">Shopping · HDFC Credit</div></div><span class="amt out">₹4,590</span></div>
+            <div class="row"><div class="ico out">↑</div><div class="inf"><div class="nm">Groceries</div><div class="mt">Food · SBI Savings</div></div><span class="amt out">₹2,340</span></div>
+          </div>
+        </div>
+        <div class="dg">
+          <div class="dh"><span class="dh-d">8 Apr 2026</span><span class="dh-n n">−₹1,200</span></div>
+          <div class="card">
+            <div class="row"><div class="ico out">↑</div><div class="inf"><div class="nm">Coffee</div><div class="mt">Food · Cash</div></div><span class="amt out">₹320</span></div>
+            <div class="row"><div class="ico tr">⇄</div><div class="inf"><div class="nm">Transfer to HDFC</div><div class="mt">SBI → HDFC Credit</div></div><span class="amt out">₹880</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="height:24px"></div>
     </div>
-
-    <div class="screen-body">
-      <!-- Header -->
-      <div class="screen-header">
-        <span class="screen-title">Activity</span>
-        <div class="header-icons">
-          <div class="icon-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="color:#8C94AF">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <!-- Period Selector -->
-      <div class="period-block">
-        <div class="period-row">
-          <span class="period-this">This</span>
-          <div class="period-tabs">
-            <div class="period-tab active">Week</div>
-            <div class="period-tab">Month</div>
-            <div class="period-tab">Year</div>
-            <div class="period-tab">Custom</div>
-          </div>
-        </div>
-        <div class="period-range">06 Apr 2026 — 12 Apr 2026</div>
-      </div>
-
-      <!-- Summary bar -->
-      <div class="summary-bar">
-        <div class="summary-cell">
-          <span class="summary-label">In</span>
-          <span class="summary-value pos">₹1,88,056</span>
-        </div>
-        <div class="summary-cell">
-          <span class="summary-label">Out</span>
-          <span class="summary-value neg">₹27,79,900</span>
-        </div>
-        <div class="summary-cell">
-          <span class="summary-label">Net</span>
-          <span class="summary-value neg">−₹25,91,844</span>
-        </div>
-      </div>
-
-      <!-- Filter row -->
-      <div class="filter-area">
-        <div class="filter-row">
-          <div class="type-pills">
-            <div class="pill active">All</div>
-            <div class="pill">In</div>
-            <div class="pill">Out</div>
-            <div class="pill">Transfer</div>
-          </div>
-          <div class="filter-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="4" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="16" y2="18"/>
-            </svg>
-            <span>Filter</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Group-by toggle -->
-      <div class="groupby-row">
-        <span class="groupby-label">Group by</span>
-        <div class="groupby-toggle">
-          <div class="groupby-opt active">Date</div>
-          <div class="groupby-opt">Category</div>
-        </div>
-      </div>
-
-      <div class="section-divider"></div>
-
-      <!-- Date group: Today -->
-      <div class="date-group">
-        <div class="date-header">
-          <span class="date-text">12 Apr 2026</span>
-          <span class="date-dot"></span>
-          <span class="date-label">Today</span>
-          <span class="date-net pos">+₹55,388</span>
-        </div>
-        <div class="tx-card">
-          <div class="tx-row">
-            <div class="tx-icon in">↓</div>
-            <div class="tx-body">
-              <div class="tx-title">Salary</div>
-              <div class="tx-sub">Income · Base Pay · SBI Savings</div>
-            </div>
-            <span class="tx-amount in">+₹55,388</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Date group: 10 Apr -->
-      <div class="date-group">
-        <div class="date-header">
-          <span class="date-text">10 Apr 2026</span>
-          <span class="date-net neg">−₹27,86,844</span>
-        </div>
-        <div class="tx-card">
-          <div class="tx-row">
-            <div class="tx-icon out">↑</div>
-            <div class="tx-body">
-              <div class="tx-title">Cab</div>
-              <div class="tx-sub">Transport · Cab · Cash</div>
-            </div>
-            <span class="tx-amount out">₹3,80,000</span>
-          </div>
-          <div class="tx-row">
-            <div class="tx-icon out">↑</div>
-            <div class="tx-body">
-              <div class="tx-title">Online Shopping</div>
-              <div class="tx-sub">Shopping · Online · HDFC Credit</div>
-            </div>
-            <span class="tx-amount out">₹4,59,900</span>
-          </div>
-          <div class="tx-row">
-            <div class="tx-icon out">↑</div>
-            <div class="tx-body">
-              <div class="tx-title">Groceries</div>
-              <div class="tx-sub">Food · Groceries · SBI Savings</div>
-            </div>
-            <span class="tx-amount out">₹23,40,000</span>
-          </div>
-          <div class="tx-row">
-            <div class="tx-icon in">↓</div>
-            <div class="tx-body">
-              <div class="tx-title">Base Pay</div>
-              <div class="tx-sub">Income · Base Pay · SBI Savings</div>
-            </div>
-            <span class="tx-amount in">+₹1,32,668</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- spacer -->
-      <div style="height: 24px;"></div>
-    </div>
-
-    <!-- Bottom Nav -->
-    <div class="bottom-nav">
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        <span>Home</span>
-      </div>
-      <div class="nav-item active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#17673B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span style="color:#17673B">Activity</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-        <span>Loans</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        <span>Budget</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <span>Settings</span>
-      </div>
+    <div class="bnav">
+      <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Home</span></div>
+      <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="#17673B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span style="color:var(--brand)">Activity</span></div>
+      <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Loans</span></div>
+      <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span>Budget</span></div>
+      <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>Settings</span></div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     SCREEN 2 — Active filters + Category grouping
-     ═══════════════════════════════════════════════════════ -->
-<div class="phone-wrap">
-  <div class="phone-label">Active Filters · Category Grouping</div>
+
+<!-- ════════════════════════
+  SCREEN 2 · Period sheet · Custom Range inline
+  ════════════════════════ -->
+<div class="wrap">
+  <div class="lbl">Screen 2 · Period sheet · Custom expanded</div>
   <div class="phone">
-    <div class="status-bar">
-      <span class="time">9:41</span>
-      <div class="status-icons">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33C16.4 22 17 21.4 17 20.67V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
-      </div>
-    </div>
-
-    <div class="screen-body">
-      <div class="screen-header">
-        <span class="screen-title">Activity</span>
-        <div class="header-icons">
-          <div class="icon-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="color:#8C94AF">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <!-- Period Selector -->
-      <div class="period-block">
-        <div class="period-row">
-          <span class="period-this">This</span>
-          <div class="period-tabs">
-            <div class="period-tab">Week</div>
-            <div class="period-tab active">Month</div>
-            <div class="period-tab">Year</div>
-            <div class="period-tab">Custom</div>
-          </div>
-        </div>
-        <div class="period-range">01 Apr 2026 — 12 Apr 2026</div>
-      </div>
-
-      <!-- Summary bar — filtered -->
-      <div class="summary-bar">
-        <div class="summary-cell">
-          <span class="summary-label">In</span>
-          <span class="summary-value pos">—</span>
-        </div>
-        <div class="summary-cell">
-          <span class="summary-label">Out</span>
-          <span class="summary-value neg">₹27,19,900</span>
-        </div>
-        <div class="summary-cell">
-          <span class="summary-label">Net</span>
-          <span class="summary-value neg">−₹27,19,900</span>
-        </div>
-      </div>
-
-      <!-- Filter row with active filters -->
-      <div class="filter-area">
-        <div class="filter-row">
-          <div class="type-pills">
-            <div class="pill">All</div>
-            <div class="pill active">Out</div>
-            <div class="pill">In</div>
-            <div class="pill">Transfer</div>
-          </div>
-          <div class="filter-btn has-filters">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#17673B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="4" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="16" y2="18"/>
-            </svg>
-            <span>2</span>
-          </div>
-        </div>
-        <!-- Active chips -->
-        <div class="active-chips">
-          <div class="chip">SBI Savings <span class="chip-x">✕</span></div>
-          <div class="chip">Food <span class="chip-x">✕</span></div>
-        </div>
-      </div>
-
-      <!-- Group-by: Category -->
-      <div class="groupby-row">
-        <span class="groupby-label">Group by</span>
-        <div class="groupby-toggle">
-          <div class="groupby-opt">Date</div>
-          <div class="groupby-opt active">Category</div>
-        </div>
-      </div>
-
-      <div class="section-divider"></div>
-
-      <!-- Category group: Food -->
-      <div class="cat-group">
-        <div class="cat-header">
-          <div class="cat-dot" style="background:#F59E0B;"></div>
-          <span class="cat-name">Food</span>
-          <span class="cat-total">₹23,40,000</span>
-        </div>
-        <div class="tx-card">
-          <div class="tx-row">
-            <div class="tx-icon out">↑</div>
-            <div class="tx-body">
-              <div class="tx-title">Groceries</div>
-              <div class="tx-sub">10 Apr · SBI Savings</div>
-            </div>
-            <span class="tx-amount out">₹23,40,000</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Category group: Transport -->
-      <div class="cat-group">
-        <div class="cat-header">
-          <div class="cat-dot" style="background:#3B82F6;"></div>
-          <span class="cat-name">Transport</span>
-          <span class="cat-total">₹3,80,000</span>
-        </div>
-        <div class="tx-card">
-          <div class="tx-row">
-            <div class="tx-icon out">↑</div>
-            <div class="tx-body">
-              <div class="tx-title">Cab</div>
-              <div class="tx-sub">10 Apr · Cash</div>
-            </div>
-            <span class="tx-amount out">₹3,80,000</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Category group: Shopping -->
-      <div class="cat-group">
-        <div class="cat-header">
-          <div class="cat-dot" style="background:#8B5CF6;"></div>
-          <span class="cat-name">Shopping</span>
-          <span class="cat-total">₹4,59,900</span>
-        </div>
-        <div class="tx-card">
-          <div class="tx-row">
-            <div class="tx-icon out">↑</div>
-            <div class="tx-body">
-              <div class="tx-title">Online Shopping</div>
-              <div class="tx-sub">10 Apr · HDFC Credit</div>
-            </div>
-            <span class="tx-amount out">₹4,59,900</span>
-          </div>
-        </div>
-      </div>
-
-      <div style="height: 24px;"></div>
-    </div>
-
-    <div class="bottom-nav">
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        <span>Home</span>
-      </div>
-      <div class="nav-item active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#17673B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span style="color:#17673B">Activity</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-        <span>Loans</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        <span>Budget</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <span>Settings</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════
-     SCREEN 3 — Filter sheet open
-     ═══════════════════════════════════════════════════════ -->
-<div class="phone-wrap">
-  <div class="phone-label">Filter Sheet</div>
-  <div class="phone">
-    <div class="status-bar">
-      <span class="time">9:41</span>
-      <div class="status-icons">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33C16.4 22 17 21.4 17 20.67V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
-      </div>
-    </div>
-
-    <!-- blurred bg content -->
-    <div class="screen-body" style="filter: blur(1.5px); pointer-events:none; user-select:none;">
-      <div class="screen-header">
-        <span class="screen-title">Activity</span>
-      </div>
-      <div class="period-block">
-        <div class="period-row">
-          <span class="period-this">This</span>
-          <div class="period-tabs">
-            <div class="period-tab active">Month</div>
-            <div class="period-tab">Week</div>
-            <div class="period-tab">Year</div>
-            <div class="period-tab">Custom</div>
-          </div>
-        </div>
-        <div class="period-range">01 Apr 2026 — 12 Apr 2026</div>
-      </div>
-      <div class="summary-bar">
-        <div class="summary-cell"><span class="summary-label">In</span><span class="summary-value pos">₹1,88,056</span></div>
-        <div class="summary-cell"><span class="summary-label">Out</span><span class="summary-value neg">₹27,79,900</span></div>
-        <div class="summary-cell"><span class="summary-label">Net</span><span class="summary-value neg">−₹25,91,844</span></div>
-      </div>
-      <div style="height: 200px;"></div>
-    </div>
-
-    <!-- sheet overlay -->
-    <div class="sheet-overlay">
+    <div class="sb"><span>9:41</span><div class="sb-r"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33C16.4 22 17 21.4 17 20.67V5.33C17 4.6 16.4 4 15.67 4z"/></svg></div></div>
+    <div class="hdr" style="filter:blur(2px)"><span class="title">Activity</span></div>
+    <div class="body" style="filter:blur(2px);pointer-events:none"><div style="height:500px"></div></div>
+    <div class="overlay">
       <div class="sheet">
-        <div class="sheet-handle"></div>
-        <div class="sheet-header">
-          <span class="sheet-title">Filters</span>
-          <span class="sheet-clear">Clear all</span>
-        </div>
-
-        <div class="sheet-section">
-          <div class="sheet-section-label">Account</div>
-          <div class="sheet-chips">
-            <div class="sheet-chip active">All accounts</div>
-            <div class="sheet-chip">SBI Savings</div>
-            <div class="sheet-chip">Cash</div>
-            <div class="sheet-chip">HDFC Credit</div>
+        <div class="sph"></div>
+        <div class="shdr"><span class="sttl">Period</span><span></span></div>
+        <div class="sheet-scroll">
+          <div class="period-opt"><div><div class="period-opt-lbl">All Time</div></div></div>
+          <div class="period-opt"><div><div class="period-opt-lbl">Today</div><div class="period-opt-sub">12 Apr 2026</div></div></div>
+          <div class="period-opt"><div><div class="period-opt-lbl">This Week</div><div class="period-opt-sub">7 – 12 Apr 2026</div></div></div>
+          <div class="period-opt"><div><div class="period-opt-lbl">This Month</div><div class="period-opt-sub">1 – 12 Apr 2026</div></div></div>
+          <div class="period-opt"><div><div class="period-opt-lbl">This Year</div><div class="period-opt-sub">1 Apr 2025 – 12 Apr 2026</div></div></div>
+          <div class="period-opt on" style="border-bottom:none">
+            <div><div class="period-opt-lbl">Custom Range</div></div>
+            <span class="period-check">✓</span>
+          </div>
+          <div class="custom-expand">
+            <div class="date-row">
+              <div class="date-field active">
+                <div class="date-field-lbl">From</div>
+                <div class="date-field-val">1 Mar 2026</div>
+              </div>
+              <div class="date-sep">→</div>
+              <div class="date-field">
+                <div class="date-field-lbl">To</div>
+                <div class="date-field-val empty">Select…</div>
+              </div>
+            </div>
+            <div class="cal-strip">
+              <div class="cal-nav">
+                <div class="cal-arr"><svg viewBox="0 0 24 24" fill="none" stroke="#5A637A" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+                <span class="cal-month">April 2026</span>
+                <div class="cal-arr"><svg viewBox="0 0 24 24" fill="none" stroke="#5A637A" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+              <div class="cal-grid">
+                <div class="cal-day-hd">M</div><div class="cal-day-hd">T</div><div class="cal-day-hd">W</div><div class="cal-day-hd">T</div><div class="cal-day-hd">F</div><div class="cal-day-hd">S</div><div class="cal-day-hd">S</div>
+                <div class="cal-day dim">31</div><div class="cal-day in-range">1</div><div class="cal-day in-range">2</div><div class="cal-day in-range">3</div><div class="cal-day in-range">4</div><div class="cal-day in-range">5</div><div class="cal-day in-range">6</div>
+                <div class="cal-day in-range">7</div><div class="cal-day in-range">8</div><div class="cal-day in-range">9</div><div class="cal-day in-range">10</div><div class="cal-day in-range">11</div><div class="cal-day today">12</div><div class="cal-day dim">13</div>
+                <div class="cal-day dim">14</div><div class="cal-day dim">15</div><div class="cal-day dim">16</div><div class="cal-day dim">17</div><div class="cal-day dim">18</div><div class="cal-day dim">19</div><div class="cal-day dim">20</div>
+              </div>
+            </div>
+            <div class="custom-apply">Apply</div>
           </div>
         </div>
-
-        <div class="sheet-section">
-          <div class="sheet-section-label">Category</div>
-          <div class="sheet-chips">
-            <div class="sheet-chip active">All</div>
-            <div class="sheet-chip" style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#F59E0B;display:inline-block"></span>Food</div>
-            <div class="sheet-chip" style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#3B82F6;display:inline-block"></span>Transport</div>
-            <div class="sheet-chip" style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#8B5CF6;display:inline-block"></span>Shopping</div>
-            <div class="sheet-chip" style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#EF4444;display:inline-block"></span>Bills</div>
-            <div class="sheet-chip" style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#17673B;display:inline-block"></span>Income</div>
-          </div>
-        </div>
-
-        <div class="sheet-section">
-          <div class="sheet-section-label">Tags</div>
-          <div class="sheet-chips">
-            <div class="sheet-chip active">All</div>
-            <div class="sheet-chip">Business</div>
-            <div class="sheet-chip">Personal</div>
-            <div class="sheet-chip">Reimbursable</div>
-          </div>
-        </div>
-
-        <div class="sheet-section">
-          <div class="sheet-section-label">Amount Range</div>
-          <div class="amount-row">
-            <div class="amount-input" style="color:#8C94AF">Min ₹</div>
-            <span class="amount-sep">—</span>
-            <div class="amount-input" style="color:#8C94AF">Max ₹</div>
-          </div>
-        </div>
-
-        <div class="apply-btn">Apply Filters</div>
       </div>
     </div>
-
-    <!-- bottom nav hidden under sheet, just show bar -->
-    <div class="bottom-nav" style="opacity:0.3; pointer-events:none;"></div>
+    <div class="bnav" style="opacity:0.15;pointer-events:none"></div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     SCREEN 4 — Search expanded
-     ═══════════════════════════════════════════════════════ -->
-<div class="phone-wrap">
-  <div class="phone-label">Search Expanded</div>
+
+<!-- ════════════════════════
+  SCREEN 3 · More filters — single tall sheet, chips inline scroll
+  Cat: parent chips row → sub-cat chips row when selected
+  Tags: chips row
+  Amount: inline
+  ════════════════════════ -->
+<div class="wrap">
+  <div class="lbl">Screen 3 · More filters · all in one sheet<br>Cat parent chips → sub-cat chips · Tags chips</div>
   <div class="phone">
-    <div class="status-bar">
-      <span class="time">9:41</span>
-      <div class="status-icons">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33C16.4 22 17 21.4 17 20.67V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+    <div class="sb"><span>9:41</span><div class="sb-r"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33C16.4 22 17 21.4 17 20.67V5.33C17 4.6 16.4 4 15.67 4z"/></svg></div></div>
+    <div class="hdr" style="filter:blur(2px)"><span class="title">Activity</span></div>
+    <div class="body" style="filter:blur(2px);pointer-events:none"><div style="height:500px"></div></div>
+    <div class="overlay">
+      <div class="sheet">
+        <div class="sph"></div>
+        <div class="shdr"><span class="sttl">More filters</span><span class="sclr">Clear all</span></div>
+
+        <div class="sheet-scroll">
+
+          <!-- ── Category ── -->
+          <span class="sec-lbl">Category</span>
+
+          <!-- Parent: Food & Dining — partially checked (some sub-cats on) -->
+          <div class="cbox-row">
+            <div class="cb part"><div class="dash"></div></div>
+            <div class="cat-ico" style="background:#FEF3C7">🍔</div>
+            <span class="cbox-lbl">Food &amp; Dining</span>
+            <span class="cbox-count">12</span>
+            <svg class="cbox-chev" viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="cbox-row sub">
+            <div class="cb on"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            <span class="cbox-lbl sub">Groceries</span><span class="cbox-count">7</span>
+          </div>
+          <div class="cbox-row sub">
+            <div class="cb on"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            <span class="cbox-lbl sub">Restaurants</span><span class="cbox-count">3</span>
+          </div>
+          <div class="cbox-row sub">
+            <div class="cb"></div>
+            <span class="cbox-lbl sub">Coffee &amp; Drinks</span><span class="cbox-count">2</span>
+          </div>
+
+          <!-- Parent: Transport — collapsed -->
+          <div class="cbox-row">
+            <div class="cb"></div>
+            <div class="cat-ico" style="background:#DBEAFE">🚗</div>
+            <span class="cbox-lbl">Transport</span>
+            <span class="cbox-count">5</span>
+            <svg class="cbox-chev" style="transform:rotate(-90deg)" viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+
+          <!-- Parent: Shopping — collapsed -->
+          <div class="cbox-row">
+            <div class="cb"></div>
+            <div class="cat-ico" style="background:#EDE9FE">🛍️</div>
+            <span class="cbox-lbl">Shopping</span>
+            <span class="cbox-count">8</span>
+            <svg class="cbox-chev" style="transform:rotate(-90deg)" viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+
+          <!-- Parent: Bills — collapsed -->
+          <div class="cbox-row">
+            <div class="cb"></div>
+            <div class="cat-ico" style="background:#FEE2E2">⚡</div>
+            <span class="cbox-lbl">Bills &amp; Utilities</span>
+            <span class="cbox-count">4</span>
+            <svg class="cbox-chev" style="transform:rotate(-90deg)" viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+
+          <!-- Parent: Income — no sub-cats -->
+          <div class="cbox-row">
+            <div class="cb"></div>
+            <div class="cat-ico" style="background:#D1FAE5">💰</div>
+            <span class="cbox-lbl">Income</span>
+            <span class="cbox-count">3</span>
+          </div>
+
+          <div class="sec-divider"></div>
+
+          <!-- ── Tags ── -->
+          <span class="sec-lbl">Tags</span>
+
+          <div class="cbox-row">
+            <div class="cb on"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            <div class="tag-dot" style="background:#6366F1"></div>
+            <span class="cbox-lbl">Business</span><span class="cbox-count">6</span>
+          </div>
+          <div class="cbox-row">
+            <div class="cb"></div>
+            <div class="tag-dot" style="background:#F59E0B"></div>
+            <span class="cbox-lbl">Personal</span><span class="cbox-count">14</span>
+          </div>
+          <div class="cbox-row">
+            <div class="cb"></div>
+            <div class="tag-dot" style="background:#10B981"></div>
+            <span class="cbox-lbl">Reimbursable</span><span class="cbox-count">3</span>
+          </div>
+          <div class="cbox-row">
+            <div class="cb"></div>
+            <div class="tag-dot" style="background:#EF4444"></div>
+            <span class="cbox-lbl">Tax</span><span class="cbox-count">2</span>
+          </div>
+
+          <div class="sec-divider"></div>
+
+          <!-- ── Amount Range ── -->
+          <div class="amt-sec">
+            <span class="sec-lbl" style="padding:0 0 12px;display:block">Amount Range</span>
+            <div class="amtr">
+              <div class="amtb">Min ₹</div>
+              <span style="color:var(--tm);font-size:14px">—</span>
+              <div class="amtb">Max ₹</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sticky apply -->
+        <div class="sheet-footer">
+          <div class="apply">Apply filters</div>
+        </div>
+
       </div>
     </div>
+    <div class="bnav" style="opacity:0.15;pointer-events:none"></div>
+  </div>
+</div>
 
-    <div class="screen-body">
-      <!-- Search header (expanded) -->
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 16px 8px;">
-        <div class="search-bar" style="margin:0;flex:1;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Search transactions..." value="grocer" />
+
+<!-- ════════════════════════
+  SCREEN 4 · This Month · SBI · date pills in nav
+  ════════════════════════ -->
+<div class="wrap">
+  <div class="lbl">Screen 4 · This Month · SBI · Out · filters active</div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><div class="sb-r"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33C16.4 22 17 21.4 17 20.67V5.33C17 4.6 16.4 4 15.67 4z"/></svg></div></div>
+    <div class="hdr"><span class="title">Activity</span><div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div></div>
+    <div class="body">
+      <div class="lh">
+        <div class="r1">
+          <div class="acc-dd">
+            <span class="acc-dd-lbl">SBI Savings</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="pnav">
+            <div class="pa l"><svg viewBox="0 0 24 24" fill="none" stroke="#5A637A" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+            <div class="pl">
+              <span class="pl-val">1 Apr</span>
+              <span class="pl-sep">→</span>
+              <span class="pl-val">12 Apr</span>
+            </div>
+            <div class="pa r dim"><svg viewBox="0 0 24 24" fill="none" stroke="#5A637A" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
         </div>
-        <span style="font-size:13px;font-weight:700;color:#17673B;cursor:pointer;white-space:nowrap;">Cancel</span>
+        <div class="r2">
+          <div class="tp-scroll">
+            <div class="tp">All</div><div class="tp">In</div><div class="tp on">Out</div><div class="tp">Transfer</div><div class="tp">Loan</div>
+          </div>
+          <div class="more-btn on"><svg viewBox="0 0 24 24" fill="none" stroke="#17673B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="16" y2="18"/></svg><span class="ml">2</span></div>
+        </div>
+        <div class="chips">
+          <div class="chip">Transport <span class="chip-x">✕</span></div>
+          <div class="chip">Business <span class="chip-x">✕</span></div>
+        </div>
+        <div class="slim">3 transactions · out ₹7,310</div>
       </div>
-
-      <!-- Period — compact when searching -->
-      <div class="period-block" style="padding-top:2px;">
-        <div class="period-row">
-          <span class="period-this">This</span>
-          <div class="period-tabs">
-            <div class="period-tab active">Week</div>
-            <div class="period-tab">Month</div>
-            <div class="period-tab">Year</div>
-            <div class="period-tab">Custom</div>
+      <div class="div"></div>
+      <div style="padding:0 16px">
+        <div class="dg">
+          <div class="dh"><span class="dh-d">10 Apr 2026</span><span class="dh-n n">−₹7,310</span></div>
+          <div class="card">
+            <div class="row"><div class="ico out">↑</div><div class="inf"><div class="nm">Cab</div><div class="mt">Transport · Cash</div></div><span class="amt out">₹380</span></div>
+            <div class="row"><div class="ico out">↑</div><div class="inf"><div class="nm">Online Shopping</div><div class="mt">Shopping · HDFC Credit</div></div><span class="amt out">₹4,590</span></div>
+            <div class="row"><div class="ico out">↑</div><div class="inf"><div class="nm">Groceries</div><div class="mt">Food · SBI Savings</div></div><span class="amt out">₹2,340</span></div>
+          </div>
+        </div>
+        <div class="dg">
+          <div class="dh"><span class="dh-d">8 Apr 2026</span><span class="dh-n n">−₹320</span></div>
+          <div class="card">
+            <div class="row"><div class="ico out">↑</div><div class="inf"><div class="nm">Coffee</div><div class="mt">Food · Cash</div></div><span class="amt out">₹320</span></div>
           </div>
         </div>
       </div>
-
-      <div class="section-divider" style="margin-bottom:8px;"></div>
-
-      <!-- Search results label -->
-      <div style="padding: 0 10px 8px; display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#8C94AF;">3 results</span>
-      </div>
-
-      <!-- Results — no date grouping headers, flat list -->
-      <div class="tx-card" style="margin: 0 10px 14px;">
-        <div class="tx-row">
-          <div class="tx-icon out">↑</div>
-          <div class="tx-body">
-            <div class="tx-title">Groceries</div>
-            <div class="tx-sub">10 Apr · Food · SBI Savings</div>
-          </div>
-          <span class="tx-amount out">₹23,40,000</span>
-        </div>
-        <div class="tx-row">
-          <div class="tx-icon out">↑</div>
-          <div class="tx-body">
-            <div class="tx-title">Grocery run</div>
-            <div class="tx-sub">02 Apr · Food · Cash</div>
-          </div>
-          <span class="tx-amount out">₹4,200</span>
-        </div>
-        <div class="tx-row">
-          <div class="tx-icon out">↑</div>
-          <div class="tx-body">
-            <div class="tx-title">Fresh groceries</div>
-            <div class="tx-sub">28 Mar · Food · SBI Savings</div>
-          </div>
-          <span class="tx-amount out">₹6,750</span>
-        </div>
-      </div>
-
-      <div style="height: 24px;"></div>
+      <div style="height:24px"></div>
     </div>
-
-    <div class="bottom-nav">
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        <span>Home</span>
-      </div>
-      <div class="nav-item active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#17673B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span style="color:#17673B">Activity</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-        <span>Loans</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        <span>Budget</span>
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8C94AF" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <span>Settings</span>
-      </div>
+    <div class="bnav">
+      <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Home</span></div>
+      <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="#17673B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span style="color:var(--brand)">Activity</span></div>
+      <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Loans</span></div>
+      <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span>Budget</span></div>
+      <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="#99A0B5" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>Settings</span></div>
     </div>
   </div>
 </div>

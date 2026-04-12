@@ -62,6 +62,18 @@ export function groupTransactionsByDate(
     .map(([dateKey, items]) => ({ dateKey, items }));
 }
 
+export function groupTransactionsByCategory(
+  transactions: Transaction[]
+): { groupKey: string; items: Transaction[] }[] {
+  const map = new Map<string, Transaction[]>();
+  for (const t of transactions) {
+    const key = t.categoryId ?? `type:${t.type}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(t);
+  }
+  return Array.from(map.entries()).map(([groupKey, items]) => ({ groupKey, items }));
+}
+
 export function formatCurrency(amount: number, symbol: string = '₹'): string {
   const abs = Math.abs(amount);
   const hasFraction = Math.abs(abs - Math.round(abs)) > 0.000001;

@@ -104,6 +104,91 @@ export function getDateRange(
   return { from: todayStart, to: todayEnd };
 }
 
+/**
+ * Compute the {from, to} date range for a navigable period + offset.
+ * offset 0 = current period, -1 = previous, etc.
+ */
+export function getNavigableDateRange(
+  period: 'day' | 'week' | 'month' | 'year',
+  offset: number,
+  yearStart: number = 3,
+): { from: string; to: string } {
+  const now = new Date();
+
+  if (period === 'day') {
+    const d = new Date(now);
+    d.setDate(d.getDate() + offset);
+    const from = toUTCMidnight(d);
+    const to = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
+    return { from, to };
+  }
+
+  if (period === 'week') {
+    const dayOfWeek = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7) + offset * 7);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const endOfSunday = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate(), 23, 59, 59, 999);
+    // Cap "to" at today for the current week
+    const to = offset === 0
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
+      : endOfSunday.toISOString();
+    return { from: monday.toISOString(), to };
+  }
+
+  if (period === 'month') {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const to = offset === 0
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
+      : new Date(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate(), 23, 59, 59, 999).toISOString();
+    return { from: toUTCMidnight(d), to };
+  }
+
+  // year (fiscal)
+  const currentMonth = now.getMonth();
+  const currentFYStart = currentMonth >= yearStart ? now.getFullYear() : now.getFullYear() - 1;
+  const targetFYStart = currentFYStart + offset;
+  const from = new Date(targetFYStart, yearStart, 1);
+  const lastDayOfFY = new Date(targetFYStart + 1, yearStart, 0);
+  const to = offset === 0
+    ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
+    : new Date(lastDayOfFY.getFullYear(), lastDayOfFY.getMonth(), lastDayOfFY.getDate(), 23, 59, 59, 999).toISOString();
+  return { from: toUTCMidnight(from), to };
+}
+
+/**
+ * Human-readable label for a period + its date range.
+ * e.g. "Apr 2026", "7 – 12 Apr", "12 Apr 2026", "Apr 2025 – Mar 2026"
+ */
+export function getPeriodNavLabel(
+  period: 'day' | 'week' | 'month' | 'year' | 'custom',
+  from: string,
+  to: string,
+): string {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+
+  if (period === 'day') {
+    return formatDate(from);
+  }
+  if (period === 'week') {
+    return `${formatDateShort(from)} – ${formatDateShort(to)}`;
+  }
+  if (period === 'month') {
+    return fromDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  }
+  if (period === 'year') {
+    const fromMon = fromDate.toLocaleDateString('en-IN', { month: 'short' });
+    const toMon = toDate.toLocaleDateString('en-IN', { month: 'short' });
+    return `${fromMon} ${fromDate.getFullYear()} – ${toMon} ${toDate.getFullYear()}`;
+  }
+  // custom
+  return `${formatDateShort(from)} – ${formatDateShort(to)}`;
+}
+
 export function getDayLabel(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString('en-IN', { weekday: 'short' }).charAt(0).toUpperCase();
 }
