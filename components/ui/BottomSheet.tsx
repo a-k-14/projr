@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER } from '../../lib/design';
 import type { AppThemePalette } from '../../lib/theme';
@@ -75,6 +76,7 @@ export function BottomSheet({
 }) {
   const { height: screenHeight } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
 
   const maxSheetHeight = screenHeight * MAX_HEIGHT_RATIO;
   const bottomInset = hasNavBar ? 0 : insets.bottom;
@@ -118,6 +120,12 @@ export function BottomSheet({
     });
     return () => sub.remove();
   }, [closeSheet]);
+
+  useEffect(() => {
+    if (!isFocused) {
+      closeSheet();
+    }
+  }, [closeSheet, isFocused]);
 
   const panResponder = useMemo(
     () =>

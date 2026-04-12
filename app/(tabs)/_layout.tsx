@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { View, Text, useColorScheme } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -104,6 +104,15 @@ export default function TabLayout() {
               inactive={palette.tabInactive}
             />
           ),
+        }}
+        listeners={{
+          tabPress: (event) => {
+            event.preventDefault();
+            router.push({
+              pathname: '/(tabs)/activity',
+              params: { source: 'activity-tab', ts: String(Date.now()) },
+            });
+          },
         }}
       />
       <Tabs.Screen

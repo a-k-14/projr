@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   LayoutChangeEvent,
@@ -48,6 +48,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import type {
   CashflowSummary,
   DailyCashflow,
+  TransactionType,
   PeriodType,
   Transaction
 } from '../../types';
@@ -151,7 +152,6 @@ export default function HomeScreen() {
           } else {
             setCustomDraftTo(selected < customDraftFrom ? customDraftFrom : selected);
           }
-          setCustomRangeOpen(false);
         },
       });
     },
@@ -421,6 +421,10 @@ function HomeAccountPage({
 
   const viewData = buildCashflowChartData(period, dailyData, from, to, settingsYearStart);
   const maxVal = Math.max(...viewData.map((entry) => activeView === 'in' ? entry.in : entry.out), 1);
+  const drilldownRanges = useMemo(
+    () => buildCashflowDrilldownRanges(period, from, to, settingsYearStart),
+    [from, period, settingsYearStart, to],
+  );
   const openTodayActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
       router.push({
@@ -430,6 +434,40 @@ function HomeAccountPage({
           period: 'day',
           accountId: accountId === 'all' ? 'all' : accountId,
           type: kind === 'net' ? 'all' : kind,
+          ts: String(Date.now()),
+        },
+      });
+    },
+    [accountId],
+  );
+  const openPeriodActivity = useCallback(
+    (kind: 'in' | 'out' | 'net') => {
+      router.push({
+        pathname: '/(tabs)/activity',
+        params: {
+          source: 'home-period',
+          period,
+          accountId: accountId === 'all' ? 'all' : accountId,
+          type: kind === 'net' ? 'all' : kind,
+          from,
+          to,
+          ts: String(Date.now()),
+        },
+      });
+    },
+    [accountId, from, period, to],
+  );
+  const openSliceActivity = useCallback(
+    (range: { from: string; to: string }, type: TransactionType | 'all') => {
+      router.push({
+        pathname: '/(tabs)/activity',
+        params: {
+          source: 'home-slice',
+          period: 'custom',
+          accountId: accountId === 'all' ? 'all' : accountId,
+          type,
+          from: range.from,
+          to: range.to,
           ts: String(Date.now()),
         },
       });
@@ -541,7 +579,12 @@ function HomeAccountPage({
             {formatDate(from)} — {formatDate(to)}
           </Text>
 
-          <SummaryCard cashflow={cashflow} sym={currencySymbol} palette={palette} />
+          <SummaryCard
+            cashflow={cashflow}
+            sym={currencySymbol}
+            palette={palette}
+            onPressCategory={openPeriodActivity}
+          />
 
           <View
             style={{
@@ -645,32 +688,48 @@ function HomeAccountPage({
                           alignItems: 'center',
                           }}
                         >
-                          <Text
-                            numberOfLines={1}
-                            style={{ width: 95, fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right', marginLeft: 12 }}
+                          <TouchableOpacity
+                            activeOpacity={0.75}
+                            onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'in')}
+                            style={{ width: 95, marginLeft: 12 }}
                           >
-                            {row.in > 0 ? formatIndianNumberStr(String(row.in)) : '-'}
-                          </Text>
-                          <Text
-                            numberOfLines={1}
-                            style={{ width: 95, fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right', marginLeft: 12 }}
+                            <Text
+                              numberOfLines={1}
+                              style={{ fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right' }}
+                            >
+                              {row.in > 0 ? formatIndianNumberStr(String(row.in)) : '-'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            activeOpacity={0.75}
+                            onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'out')}
+                            style={{ width: 95, marginLeft: 12 }}
                           >
-                            {row.out > 0 ? formatIndianNumberStr(String(row.out)) : '-'}
-                          </Text>
-                          <Text
-                            numberOfLines={1}
-                            style={{
-                              width: 95,
-                              fontSize: 14,
-                              fontWeight: '600',
-                              color: row.net > 0 ? palette.brand : row.net < 0 ? palette.negative : palette.text,
-                              opacity: row.net === 0 ? 0.85 : 1,
-                              textAlign: 'right',
-                              marginLeft: 12
-                            }}
+                            <Text
+                              numberOfLines={1}
+                              style={{ fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right' }}
+                            >
+                              {row.out > 0 ? formatIndianNumberStr(String(row.out)) : '-'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            activeOpacity={0.75}
+                            onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'all')}
+                            style={{ width: 95, marginLeft: 12 }}
                           >
-                            {row.net !== 0 ? formatIndianNumberStr(String(row.net)) : '-'}
-                          </Text>
+                            <Text
+                              numberOfLines={1}
+                              style={{
+                                fontSize: 14,
+                                fontWeight: '600',
+                                color: row.net > 0 ? palette.brand : row.net < 0 ? palette.negative : palette.text,
+                                opacity: row.net === 0 ? 0.85 : 1,
+                                textAlign: 'right',
+                              }}
+                            >
+                              {row.net !== 0 ? formatIndianNumberStr(String(row.net)) : '-'}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       ))}
                     </ScrollView>
@@ -683,7 +742,17 @@ function HomeAccountPage({
                   ? viewData.map((entry, index) => {
                     const amount = activeView === 'in' ? entry.in : entry.out;
                     return (
-                      <View key={`${entry.label}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
+                      <TouchableOpacity
+                        key={`${entry.label}-${index}`}
+                        activeOpacity={0.75}
+                        onPress={() =>
+                          openSliceActivity(
+                            drilldownRanges[index] ?? { from, to },
+                            activeView === 'in' ? 'in' : 'out',
+                          )
+                        }
+                        style={{ flex: 1, alignItems: 'center' }}
+                      >
                         <View
                           style={{
                             width: 14,
@@ -696,7 +765,7 @@ function HomeAccountPage({
                         <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textSoft, marginTop: 8 }}>
                           {entry.label}
                         </Text>
-                      </View>
+                      </TouchableOpacity>
                     );
                   })
                   : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
@@ -736,7 +805,14 @@ function HomeAccountPage({
               }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: '/(tabs)/activity',
+                    params: { source: 'home-view-all', ts: String(Date.now()) },
+                  })
+                }
+              >
                 <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '600' }}>View all</Text>
               </TouchableOpacity>
             </View>
@@ -798,4 +874,88 @@ function HomeAccountPage({
       )}
     </View>
   );
+}
+
+function startOfDayIso(date: Date): string {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value.toISOString();
+}
+
+function endOfDayIso(date: Date): string {
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value.toISOString();
+}
+
+function addDays(date: Date, amount: number): Date {
+  const value = new Date(date);
+  value.setDate(value.getDate() + amount);
+  return value;
+}
+
+function getDaysBetween(fromIso: string, toIso: string): number {
+  const from = new Date(fromIso);
+  const to = new Date(toIso);
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.max(0, Math.floor((to.getTime() - from.getTime()) / msPerDay));
+}
+
+function buildCashflowDrilldownRanges(
+  period: PeriodType,
+  fromIso: string,
+  toIso: string,
+  yearStart: number,
+): { from: string; to: string }[] {
+  const fromDate = new Date(fromIso);
+  const toDate = new Date(toIso);
+
+  if (period === 'week') {
+    return Array.from({ length: 7 }, (_, index) => {
+      const day = addDays(fromDate, index);
+      return { from: startOfDayIso(day), to: endOfDayIso(day) };
+    });
+  }
+
+  if (period === 'month') {
+    const monthStart = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+    return Array.from({ length: 5 }, (_, index) => {
+      const bucketStart = addDays(monthStart, index * 7);
+      const bucketEnd = addDays(bucketStart, 6);
+      const boundedStart = bucketStart < fromDate ? fromDate : bucketStart;
+      const boundedEnd = bucketEnd > toDate ? toDate : bucketEnd;
+      return { from: startOfDayIso(boundedStart), to: endOfDayIso(boundedEnd) };
+    });
+  }
+
+  if (period === 'year') {
+    const fiscalStartYear = fromDate.getMonth() >= yearStart ? fromDate.getFullYear() : fromDate.getFullYear() - 1;
+    const fiscalStart = new Date(fiscalStartYear, yearStart, 1);
+    return Array.from({ length: 12 }, (_, index) => {
+      const monthStart = new Date(fiscalStart.getFullYear(), fiscalStart.getMonth() + index, 1);
+      const monthEnd = new Date(fiscalStart.getFullYear(), fiscalStart.getMonth() + index + 1, 0);
+      const boundedStart = monthStart < fromDate ? fromDate : monthStart;
+      const boundedEnd = monthEnd > toDate ? toDate : monthEnd;
+      return { from: startOfDayIso(boundedStart), to: endOfDayIso(boundedEnd) };
+    });
+  }
+
+  const totalDays = getDaysBetween(fromIso, toIso) + 1;
+  if (totalDays <= 14) {
+    return Array.from({ length: totalDays }, (_, index) => {
+      const day = addDays(fromDate, index);
+      return { from: startOfDayIso(day), to: endOfDayIso(day) };
+    });
+  }
+
+  const bucketsCount = totalDays <= 60 ? Math.min(5, Math.ceil(totalDays / 7)) : 12;
+  const step = totalDays <= 60 ? 7 : 30;
+
+  return Array.from({ length: bucketsCount }, (_, index) => {
+    const bucketStart = addDays(fromDate, index * step);
+    const bucketEnd = addDays(bucketStart, step - 1);
+    const boundedStart = bucketStart < fromDate ? fromDate : bucketStart;
+    const boundedEnd = bucketEnd > toDate ? toDate : bucketEnd;
+    return { from: startOfDayIso(boundedStart), to: endOfDayIso(boundedEnd) };
+  });
 }

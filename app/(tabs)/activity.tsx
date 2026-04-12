@@ -57,6 +57,8 @@ export default function ActivityScreen() {
     period?: string;
     accountId?: string;
     type?: string;
+    from?: string;
+    to?: string;
     ts?: string;
   }>();
   const { accounts } = useAccountsStore();
@@ -152,15 +154,43 @@ export default function ActivityScreen() {
   useEffect(() => {
     const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
     const ts = typeof routeParams.ts === 'string' ? routeParams.ts : undefined;
-    if (source !== 'home-today' || !ts || lastAppliedRouteTsRef.current === ts) return;
+    if (!source || !ts || lastAppliedRouteTsRef.current === ts) return;
 
     const periodParam = typeof routeParams.period === 'string' ? routeParams.period : undefined;
     const accountParam = typeof routeParams.accountId === 'string' ? routeParams.accountId : undefined;
     const typeParam = typeof routeParams.type === 'string' ? routeParams.type : undefined;
+    const fromParam = typeof routeParams.from === 'string' ? routeParams.from : undefined;
+    const toParam = typeof routeParams.to === 'string' ? routeParams.to : undefined;
+
+    setPeriod('all');
+    setPeriodOffset(0);
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setSelectedAccountId('all');
+    setTypeFilter('all');
+    setSelectedCategoryIds([]);
+    setSelectedTagIds([]);
+    setAmountMinStr('');
+    setAmountMaxStr('');
+    setExpandedCategoryIds([]);
+    setSearch('');
+    setIsSearchActive(false);
+
+    if (source === 'activity-tab' || source === 'home-view-all') {
+      lastAppliedRouteTsRef.current = ts;
+      return;
+    }
 
     if (periodParam === 'day') {
       setPeriod('day');
       setPeriodOffset(0);
+    } else if (periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
+      setPeriod(periodParam);
+      setPeriodOffset(0);
+    } else if (periodParam === 'custom') {
+      setPeriod('custom');
+      setCustomFrom(fromParam);
+      setCustomTo(toParam);
     } else if (periodParam === 'all') {
       setPeriod('all');
       setPeriodOffset(0);
@@ -176,10 +206,8 @@ export default function ActivityScreen() {
       setTypeFilter(typeParam);
     }
 
-    setSearch('');
-    setIsSearchActive(false);
     lastAppliedRouteTsRef.current = ts;
-  }, [accounts, routeParams.accountId, routeParams.period, routeParams.source, routeParams.ts, routeParams.type]);
+  }, [accounts, routeParams.accountId, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -206,19 +234,31 @@ export default function ActivityScreen() {
       mode: 'date',
       onChange: (_, date) => {
         if (!date) return;
-        setCustomFrom(startOfDayIso(date));
+        const pickedFrom = startOfDayIso(date);
+        const currentTo = customTo ? new Date(customTo).toISOString() : undefined;
+        if (currentTo && pickedFrom > currentTo) {
+          setCustomTo(endOfDayIso(date));
+        }
+        setCustomFrom(pickedFrom);
         setPeriod('custom');
       },
     });
   };
 
   const openCustomToPicker = () => {
+    const minDate = customFrom ? new Date(customFrom) : undefined;
     DateTimePickerAndroid.open({
       value: customTo ? new Date(customTo) : new Date(),
       mode: 'date',
+      minimumDate: minDate,
       onChange: (_, date) => {
         if (!date) return;
-        setCustomTo(endOfDayIso(date));
+        const pickedTo = endOfDayIso(date);
+        const currentFrom = customFrom ? new Date(customFrom).toISOString() : undefined;
+        if (currentFrom && currentFrom > pickedTo) {
+          setCustomFrom(startOfDayIso(date));
+        }
+        setCustomTo(pickedTo);
         setPeriod('custom');
       },
     });
@@ -353,7 +393,7 @@ export default function ActivityScreen() {
             onPress={() => setIsSearchActive(true)}
             style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
           >
-            <Ionicons name="search" size={17} color={palette.text} />
+            <Ionicons name="search" size={17} color={palette.textMuted} />
           </TouchableOpacity>
         </View>
       )}
@@ -660,6 +700,12 @@ export default function ActivityScreen() {
             <TouchableOpacity
               onPress={() => {
                 if (customFrom && customTo) {
+                  const from = new Date(customFrom);
+                  const to = new Date(customTo);
+                  if (from > to) {
+                    setCustomFrom(startOfDayIso(to));
+                    setCustomTo(endOfDayIso(from));
+                  }
                   setPeriod('custom');
                   setShowPeriodSheet(false);
                 }

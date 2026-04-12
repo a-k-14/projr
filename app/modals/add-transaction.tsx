@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
+  LayoutAnimation,
 } from 'react-native';
 import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -111,10 +112,26 @@ export default function AddTransactionModal() {
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loading, setLoading] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
+  const [showFromAccountSheet, setShowFromAccountSheet] = useState(false);
+  const [showToAccountSheet, setShowToAccountSheet] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time' | 'datetime'>('date');
   const splitIdSeed = useRef(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setKeyboardHeight(0);
+    });
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   const sym = settings.currencySymbol;
 
@@ -371,6 +388,7 @@ export default function AddTransactionModal() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: palette.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View
@@ -391,7 +409,7 @@ export default function AddTransactionModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 132 }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollViewRef} contentContainerStyle={{ paddingBottom: 132 + keyboardHeight }} keyboardShouldPersistTaps="handled">
         <View style={{ paddingBottom: 20 }}>
           <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -481,7 +499,7 @@ export default function AddTransactionModal() {
                 onRemoveSplit={removeSplitRow}
                 palette={palette}
               />
-              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" palette={palette} />
+              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" palette={palette} activeConfig={activeConfig} />
               <ReceiptSection palette={palette} />
               <PickerRow
                 label="Tag"
@@ -495,19 +513,27 @@ export default function AddTransactionModal() {
                   }, 50);
                 }}
               />
-              <NotesSection note={note} onChangeNote={setNote} palette={palette} />
+              <NotesSection 
+                note={note} 
+                onChangeNote={setNote} 
+                palette={palette} 
+                activeConfig={activeConfig} 
+                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+              />
             </SectionCard>
           ) : type === 'transfer' ? (
             <SectionCard palette={palette}>
-              <FieldRow label="From account" palette={palette}>
-                <AccountPicker
-                  accounts={accounts}
-                  selectedId={accountId}
-                  onSelect={setAccountId}
-                  excludeId={linkedAccountId}
-                  palette={palette}
-                />
-              </FieldRow>
+              <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
+              <PickerRow
+                label="From account"
+                value={getAccountName(accounts, accountId) || 'Select...'}
+                placeholder={!accountId}
+                palette={palette}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setTimeout(() => setShowFromAccountSheet(true), 50);
+                }}
+              />
               <View style={{ alignItems: 'center', paddingVertical: 2 }}>
                 <TouchableOpacity
                   onPress={() => {
@@ -516,26 +542,27 @@ export default function AddTransactionModal() {
                     setLinkedAccountId(tmp);
                   }}
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 17,
-                    backgroundColor: palette.surface,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: activeConfig.bg,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Ionicons name="swap-vertical" size={16} color={palette.textMuted} />
+                  <Ionicons name="swap-vertical" size={16} color={activeConfig.color} />
                 </TouchableOpacity>
               </View>
-              <FieldRow label="To account" palette={palette}>
-                <AccountPicker
-                  accounts={accounts}
-                  selectedId={linkedAccountId}
-                  onSelect={setLinkedAccountId}
-                  excludeId={accountId}
-                  palette={palette}
-                />
-              </FieldRow>
+              <PickerRow
+                label="To account"
+                value={getAccountName(accounts, linkedAccountId) || 'Select...'}
+                placeholder={!linkedAccountId}
+                palette={palette}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setTimeout(() => setShowToAccountSheet(true), 50);
+                }}
+              />
               <AmountRow
                 sym={sym}
                 activeConfig={activeConfig}
@@ -545,8 +572,13 @@ export default function AddTransactionModal() {
                 isEditing={isEditing}
                 palette={palette}
               />
-              <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
-              <NotesSection note={note} onChangeNote={setNote} palette={palette} />
+              <NotesSection 
+                note={note} 
+                onChangeNote={setNote} 
+                palette={palette} 
+                activeConfig={activeConfig}
+                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+              />
             </SectionCard>
           ) : (
             <SectionCard palette={palette}>
@@ -607,7 +639,13 @@ export default function AddTransactionModal() {
                   }, 50);
                 }}
               />
-              <NotesSection note={note} onChangeNote={setNote} palette={palette} activeConfig={activeConfig} />
+              <NotesSection 
+                note={note} 
+                onChangeNote={setNote} 
+                palette={palette} 
+                activeConfig={activeConfig}
+                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+              />
             </SectionCard>
           )}
 
@@ -684,8 +722,90 @@ export default function AddTransactionModal() {
         </BottomSheet>
       ) : null}
 
+      {showFromAccountSheet ? (
+        <BottomSheet title="Transfer from" palette={palette} onClose={() => setShowFromAccountSheet(false)}>
+          {accounts.length === 0 ? (
+            <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+          ) : (
+            accounts.map((account, index) => {
+              if (account.id === linkedAccountId) return null;
+              return (
+                <ChoiceRow
+                  key={account.id}
+                  title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
+                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, sym)}`}
+                  selected={accountId === account.id}
+                  palette={palette}
+                  onPress={() => {
+                    setAccountId(account.id);
+                    setShowFromAccountSheet(false);
+                  }}
+                  noBorder={index === accounts.length - 1}
+                />
+              );
+            })
+          )}
+        </BottomSheet>
+      ) : null}
+
+      {showToAccountSheet ? (
+        <BottomSheet title="Transfer to" palette={palette} onClose={() => setShowToAccountSheet(false)}>
+          {accounts.length === 0 ? (
+            <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+          ) : (
+            accounts.map((account, index) => {
+              if (account.id === accountId) return null;
+              return (
+                <ChoiceRow
+                  key={account.id}
+                  title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
+                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, sym)}`}
+                  selected={linkedAccountId === account.id}
+                  palette={palette}
+                  onPress={() => {
+                    setLinkedAccountId(account.id);
+                    setShowToAccountSheet(false);
+                  }}
+                  noBorder={index === accounts.length - 1}
+                />
+              );
+            })
+          )}
+        </BottomSheet>
+      ) : null}
+
       {showTagSheet ? (
-        <BottomSheet title="Select tags" subtitle="Select one or more" palette={palette} onClose={() => setShowTagSheet(false)}>
+        <BottomSheet
+          title="Select tags"
+          subtitle="Select one or more"
+          palette={palette}
+          onClose={() => setShowTagSheet(false)}
+          footer={
+            <View
+              style={{
+                paddingHorizontal: SCREEN_GUTTER,
+                paddingTop: 10,
+                paddingBottom: 10,
+                borderTopWidth: 1,
+                borderTopColor: palette.divider,
+                backgroundColor: palette.surface,
+              }}
+            >
+              <RnghTouchableOpacity
+                onPress={() => setShowTagSheet(false)}
+                style={{
+                  backgroundColor: palette.tabActive,
+                  borderRadius: 18,
+                  minHeight: 54,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: palette.onBrand, fontSize: 16, fontWeight: '700' }}>Done</Text>
+              </RnghTouchableOpacity>
+            </View>
+          }
+        >
           {tags.length === 0 ? (
             <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
           ) : (
@@ -703,20 +823,6 @@ export default function AddTransactionModal() {
               );
             })
           )}
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 18, paddingBottom: insets.bottom + 40 }}>
-            <RnghTouchableOpacity
-              onPress={() => setShowTagSheet(false)}
-              style={{
-                backgroundColor: palette.tabActive,
-                borderRadius: 18,
-                minHeight: 54,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ color: palette.onBrand, fontSize: 16, fontWeight: '700' }}>Done</Text>
-            </RnghTouchableOpacity>
-          </View>
         </BottomSheet>
       ) : null}
     </KeyboardAvoidingView>
@@ -1090,8 +1196,8 @@ function AmountRow({
             justifyContent: 'center',
           }}
         >
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: activeConfig.bg, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="calculator-outline" size={22} color={activeConfig.color} />
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="calculator-outline" size={22} color={palette.text} />
           </View>
         </TouchableOpacity>
       </View>
@@ -1302,11 +1408,13 @@ function NotesSection({
   onChangeNote,
   palette,
   activeConfig,
+  onFocus,
 }: {
   note: string;
   onChangeNote: (value: string) => void;
   palette: AppThemePalette;
   activeConfig?: any;
+  onFocus?: () => void;
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
@@ -1316,6 +1424,7 @@ function NotesSection({
       <TextInput
         value={note}
         onChangeText={onChangeNote}
+        onFocus={onFocus}
         placeholder="Add a note..."
         placeholderTextColor={palette.textSoft}
         cursorColor={activeConfig?.color || palette.tabActive}

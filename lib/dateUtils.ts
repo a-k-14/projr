@@ -187,6 +187,9 @@ export function getPeriodNavLabel(
     return `${fromMon} ${fromDate.getFullYear()} – ${toMon} ${toDate.getFullYear()}`;
   }
   // custom
+  if (from.split('T')[0] === to.split('T')[0]) {
+    return fromDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
   return `${formatDateShort(from)} – ${formatDateShort(to)}`;
 }
 
