@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatCurrency } from '../lib/derived';
 import { HOME_RADIUS, HOME_SURFACE, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
@@ -9,9 +9,10 @@ interface SummaryCardProps {
   cashflow: CashflowSummary;
   sym: string;
   palette: AppThemePalette;
+  onPressCategory?: (category: 'in' | 'out' | 'net') => void;
 }
 
-export function SummaryCard({ cashflow, sym, palette }: SummaryCardProps) {
+export function SummaryCard({ cashflow, sym, palette, onPressCategory }: SummaryCardProps) {
   const categories = [
     { key: 'in', label: 'In', color: palette.brand },
     { key: 'out', label: 'Out', color: palette.negative },
@@ -21,13 +22,15 @@ export function SummaryCard({ cashflow, sym, palette }: SummaryCardProps) {
   return (
     <View style={[styles.card, { backgroundColor: palette.card }]}>
       {categories.map((category, index) => (
-        <View
+        <Pressable
           key={category.key}
+          onPress={onPressCategory ? () => onPressCategory(category.key) : undefined}
+          disabled={!onPressCategory}
           style={[
             styles.column,
             {
               borderLeftWidth: index === 0 ? 0 : 1,
-              borderLeftColor: palette.divider
+              borderLeftColor: palette.divider,
             },
           ]}
         >
@@ -42,7 +45,7 @@ export function SummaryCard({ cashflow, sym, palette }: SummaryCardProps) {
           >
             {formatCurrency(cashflow[category.key], sym)}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </View>
   );

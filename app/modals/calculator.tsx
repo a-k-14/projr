@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ export default function CalculatorModal() {
   const scheme = useColorScheme();
   const palette = getThemePalette(resolveTheme(settings.theme, scheme));
   const { calculatorValue, setCalculatorValue, setCalculatorOpen } = useTransactionDraftStore();
+  const { brandColor, brandSoft } = useLocalSearchParams<{ brandColor?: string; brandSoft?: string }>();
   
   // Keep display always in "pretty" format (÷, ×, −) with commas
   const pretty = (val: string) => {
@@ -209,6 +210,8 @@ export default function CalculatorModal() {
                       label={label}
                       onPress={() => appendToken(label)}
                       palette={palette}
+                      brandColor={brandColor}
+                      brandSoft={brandSoft}
                     />
                   ))}
                 </View>
@@ -216,10 +219,10 @@ export default function CalculatorModal() {
             </View>
 
             <View style={{ width: '100%', flexDirection: 'row', gap: 10, paddingHorizontal: 0 }}>
-              <CalcButton label="C" onPress={clearAll} palette={palette} />
-              <CalcButton label="⌫" onPress={backspace} palette={palette} />
-              <CalcButton label="=" onPress={evaluate} palette={palette} />
-              <CalcButton label="OK" onPress={handleClose} palette={palette} primary />
+              <CalcButton label="C" onPress={clearAll} palette={palette} brandColor={brandColor} brandSoft={brandSoft} />
+              <CalcButton label="⌫" onPress={backspace} palette={palette} brandColor={brandColor} brandSoft={brandSoft} />
+              <CalcButton label="=" onPress={evaluate} palette={palette} brandColor={brandColor} brandSoft={brandSoft} />
+              <CalcButton label="OK" onPress={handleClose} palette={palette} brandColor={brandColor} brandSoft={brandSoft} primary />
             </View>
           </View>
         </View>
@@ -233,20 +236,24 @@ function CalcButton({
   onPress,
   palette,
   primary,
+  brandColor,
+  brandSoft,
 }: {
   label: string;
   onPress: () => void;
   palette: ReturnType<typeof getThemePalette>;
   primary?: boolean;
+  brandColor?: string;
+  brandSoft?: string;
 }) {
   const isOperator = ['÷', '×', '−', '+', '%', '='].includes(label);
   const isAction = ['C', '⌫', 'OK'].includes(label);
   const bg = primary
-    ? palette.tabActive
+    ? (brandColor || palette.tabActive)
     : isAction
       ? palette.surface
       : isOperator
-        ? palette.brandSoft
+        ? (brandSoft || palette.brandSoft)
         : palette.surface;
 
   return (
@@ -258,7 +265,7 @@ function CalcButton({
         borderRadius: 18,
         backgroundColor: bg,
         borderWidth: 1,
-        borderColor: primary ? palette.tabActive : palette.border,
+        borderColor: primary ? (brandColor || palette.tabActive) : palette.border,
         alignItems: 'center',
         justifyContent: 'center',
       }}

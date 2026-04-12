@@ -421,6 +421,21 @@ function HomeAccountPage({
 
   const viewData = buildCashflowChartData(period, dailyData, from, to, settingsYearStart);
   const maxVal = Math.max(...viewData.map((entry) => activeView === 'in' ? entry.in : entry.out), 1);
+  const openTodayActivity = useCallback(
+    (kind: 'in' | 'out' | 'net') => {
+      router.push({
+        pathname: '/(tabs)/activity',
+        params: {
+          source: 'home-today',
+          period: 'day',
+          accountId: accountId === 'all' ? 'all' : accountId,
+          type: kind === 'net' ? 'all' : kind,
+          ts: String(Date.now()),
+        },
+      });
+    },
+    [accountId],
+  );
 
   return (
     <View style={{ flex: 1, height: pageHeight }}>
@@ -461,7 +476,12 @@ function HomeAccountPage({
             <InlineDot size={3} color={palette.todayDot} />
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>Today</Text>
           </View>
-          <SummaryCard cashflow={todayCashflow} sym={currencySymbol} palette={palette} />
+          <SummaryCard
+            cashflow={todayCashflow}
+            sym={currencySymbol}
+            palette={palette}
+            onPressCategory={openTodayActivity}
+          />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 6 }}>
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginRight: 12 }}>

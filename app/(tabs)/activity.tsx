@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -51,6 +52,13 @@ const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
 ];
 
 export default function ActivityScreen() {
+  const routeParams = useLocalSearchParams<{
+    source?: string;
+    period?: string;
+    accountId?: string;
+    type?: string;
+    ts?: string;
+  }>();
   const { accounts } = useAccountsStore();
   const { categories, tags, getCategoryDisplayName, load: loadCategories, isLoaded: categoriesLoaded } = useCategoriesStore();
   const { settings } = useUIStore();
@@ -81,6 +89,7 @@ export default function ActivityScreen() {
   const [hasMore, setHasMore] = useState(true);
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
+  const lastAppliedRouteTsRef = useRef<string | null>(null);
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
@@ -139,6 +148,38 @@ export default function ActivityScreen() {
   useEffect(() => {
     if (!categoriesLoaded) loadCategories().catch(() => undefined);
   }, [categoriesLoaded, loadCategories]);
+
+  useEffect(() => {
+    const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
+    const ts = typeof routeParams.ts === 'string' ? routeParams.ts : undefined;
+    if (source !== 'home-today' || !ts || lastAppliedRouteTsRef.current === ts) return;
+
+    const periodParam = typeof routeParams.period === 'string' ? routeParams.period : undefined;
+    const accountParam = typeof routeParams.accountId === 'string' ? routeParams.accountId : undefined;
+    const typeParam = typeof routeParams.type === 'string' ? routeParams.type : undefined;
+
+    if (periodParam === 'day') {
+      setPeriod('day');
+      setPeriodOffset(0);
+    } else if (periodParam === 'all') {
+      setPeriod('all');
+      setPeriodOffset(0);
+    }
+
+    if (accountParam === 'all') {
+      setSelectedAccountId('all');
+    } else if (accountParam && accounts.some((account) => account.id === accountParam)) {
+      setSelectedAccountId(accountParam);
+    }
+
+    if (typeParam === 'all' || typeParam === 'in' || typeParam === 'out' || typeParam === 'transfer' || typeParam === 'loan') {
+      setTypeFilter(typeParam);
+    }
+
+    setSearch('');
+    setIsSearchActive(false);
+    lastAppliedRouteTsRef.current = ts;
+  }, [accounts, routeParams.accountId, routeParams.period, routeParams.source, routeParams.ts, routeParams.type]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -310,9 +351,9 @@ export default function ActivityScreen() {
           </Text>
           <TouchableOpacity
             onPress={() => setIsSearchActive(true)}
-              style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
+            style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
           >
-            <Ionicons name="search" size={17} color={palette.textMuted} />
+            <Ionicons name="search" size={17} color={palette.text} />
           </TouchableOpacity>
         </View>
       )}
@@ -347,6 +388,7 @@ export default function ActivityScreen() {
                   onPress={goPrev}
                   disabled={period === 'custom'}
                   style={[styles.periodArrow, { borderRightColor: palette.divider }]}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons
                     name="chevron-back"
@@ -357,7 +399,12 @@ export default function ActivityScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.periodCenter}>
-                  <TouchableOpacity onPress={() => setShowPeriodSheet(true)} style={{ alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    onPress={() => setShowPeriodSheet(true)}
+                    style={styles.periodCenterTouch}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
+                  >
                     <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text }} numberOfLines={1}>
                       {periodLabel}
                     </Text>
@@ -368,6 +415,7 @@ export default function ActivityScreen() {
                   onPress={goNext}
                   disabled={!canGoNext}
                   style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons
                     name="chevron-forward"
@@ -406,7 +454,7 @@ export default function ActivityScreen() {
                   {
                     backgroundColor: moreActiveCount > 0 ? moreActiveBg : palette.surface,
                     borderColor: moreActiveCount > 0 ? moreActiveBorder : palette.divider,
-                    marginLeft: ACTIVITY_LAYOUT.controlChipGap,
+                    marginLeft: ACTIVITY_LAYOUT.moreButtonGap,
                   },
                 ]}
               >
@@ -440,7 +488,7 @@ export default function ActivityScreen() {
                     </>
                   ) : null}
                 </View>
-                {groupNet !== 0 ? (
+                {item.items.length > 1 && groupNet !== 0 ? (
                   <Text style={{ fontSize: 12, fontWeight: '700', color: groupNet > 0 ? palette.brand : palette.negative }}>
                     {signedCurrency(groupNet, sym)}
                   </Text>
@@ -658,6 +706,8 @@ export default function ActivityScreen() {
                 setAmountMaxStr('');
                 setExpandedCategoryIds([]);
               }}
+              hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+              style={styles.clearAllButton}
             >
               <Text style={{ fontSize: 13, fontWeight: '700', color: palette.brand }}>Clear all</Text>
             </TouchableOpacity>
@@ -1057,9 +1107,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1118,7 +1168,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   periodArrow: {
-    width: 34,
+    width: 38,
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1129,7 +1179,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
+  },
+  periodCenterTouch: {
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   moreBtn: {
     flexDirection: 'row',
@@ -1143,7 +1200,8 @@ const styles = StyleSheet.create({
   moreChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    minWidth: 90,
+    paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     borderWidth: 1.5,
@@ -1153,6 +1211,11 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
+  },
+  clearAllButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginRight: -4,
   },
   moreRow: {
     minHeight: 58,

@@ -302,11 +302,15 @@ export default function AddTransactionModal() {
 
   const handleOpenCalculator = () => {
     Keyboard.dismiss();
-    setTimeout(() => {
-      setCalculatorOpen(true);
-      setCalculatorValue(parseFormattedNumber(amountStr) || '');
-      router.push('/modals/calculator');
-    }, 50);
+    setCalculatorValue(amountStr);
+    setCalculatorOpen(true);
+    router.push({
+      pathname: '/modals/calculator',
+      params: { 
+        brandColor: activeConfig.color, 
+        brandSoft: activeConfig.bg 
+      }
+    });
   };
 
   const openDate = () => {
@@ -547,39 +551,41 @@ export default function AddTransactionModal() {
           ) : (
             <SectionCard palette={palette}>
               <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
-              <FieldRow label="Direction" palette={palette}>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {(['lent', 'borrowed'] as const).map((d) => {
-                    const active = loanDirection === d;
-                    return (
-                      <TouchableOpacity
-                        key={d}
-                        onPress={() => setLoanDirection(d)}
-                        style={{
-                          flex: 1,
-                          paddingVertical: 11,
-                          borderRadius: 14,
-                          alignItems: 'center',
-                          borderWidth: 1.5,
-                          borderColor: active ? activeConfig.borderColor : palette.border,
-                          backgroundColor: active ? activeConfig.bg : palette.surface,
-                        }}
-                      >
-                        <Text
+              <View style={{ marginTop: -8 }}>
+                <FieldRow label="Direction" palette={palette}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {(['lent', 'borrowed'] as const).map((d) => {
+                      const active = loanDirection === d;
+                      return (
+                        <TouchableOpacity
+                          key={d}
+                          onPress={() => setLoanDirection(d)}
                           style={{
-                            fontSize: 13,
-                            fontWeight: '700',
-                            color: active ? activeConfig.color : palette.textMuted,
+                            flex: 1,
+                            paddingVertical: 11,
+                            borderRadius: 14,
+                            alignItems: 'center',
+                            borderWidth: 1.5,
+                            borderColor: active ? activeConfig.borderColor : palette.border,
+                            backgroundColor: active ? activeConfig.bg : palette.surface,
                           }}
                         >
-                          {d === 'lent' ? 'I lent' : 'I borrowed'}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </FieldRow>
-              <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} />
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: '700',
+                              color: active ? activeConfig.color : palette.textMuted,
+                            }}
+                          >
+                            {d === 'lent' ? 'I lent' : 'I borrowed'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </FieldRow>
+              </View>
+              <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} activeConfig={activeConfig} />
               <AmountRow
                 sym={sym}
                 activeConfig={activeConfig}
@@ -601,7 +607,7 @@ export default function AddTransactionModal() {
                   }, 50);
                 }}
               />
-              <NotesSection note={note} onChangeNote={setNote} palette={palette} />
+              <NotesSection note={note} onChangeNote={setNote} palette={palette} activeConfig={activeConfig} />
             </SectionCard>
           )}
 
@@ -659,21 +665,21 @@ export default function AddTransactionModal() {
             <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
             accounts.map((account, index) => {
-                return (
-                  <ChoiceRow
-                    key={account.id}
-                    title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                    subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, sym)}`}
-                    selected={accountId === account.id}
-                    palette={palette}
-                    onPress={() => {
-                      setAccountId(account.id);
-                      setShowAccountSheet(false);
-                    }}
-                    noBorder={index === accounts.length - 1}
-                  />
-                );
-              })
+              return (
+                <ChoiceRow
+                  key={account.id}
+                  title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
+                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, sym)}`}
+                  selected={accountId === account.id}
+                  palette={palette}
+                  onPress={() => {
+                    setAccountId(account.id);
+                    setShowAccountSheet(false);
+                  }}
+                  noBorder={index === accounts.length - 1}
+                />
+              );
+            })
           )}
         </BottomSheet>
       ) : null}
@@ -1024,73 +1030,68 @@ function AmountRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'stretch',
+        alignItems: 'center',
       }}
     >
-      <View
+      <Text
+        numberOfLines={1}
         style={{
+          fontSize: 13,
+          fontWeight: '700',
+          color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
-          justifyContent: 'flex-end',
-          paddingBottom: 14,
         }}
       >
-        <Text
-          numberOfLines={1}
-          style={{
-            fontSize: 13,
-            fontWeight: '700',
-            color: palette.textMuted,
-          }}
-        >
-          Amount ({sym})
-        </Text>
-      </View>
-      <View
-        style={{
-          flex: 1,
-          minWidth: 0,
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          borderBottomWidth: isFocused ? 1.5 : 1,
-          borderBottomColor: isFocused ? palette.tabActive : palette.borderSoft,
-          paddingLeft: 4,
-          paddingBottom: 8,
-          gap: SCREEN_GUTTER,
-        }}
-      >
-        <TextInput
-          value={amountStr}
-          onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          placeholderTextColor={palette.textSoft}
+        Amount ({sym})
+      </Text>
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+        <View
           style={{
             flex: 1,
-            fontSize: 20,
-            fontWeight: '400',
-            color: activeConfig.color,
-            paddingVertical: 0,
-            textAlign: 'left',
-            lineHeight: 24, // Consistent baseline
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
           }}
-          autoFocus={!isEditing}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-        />
+        >
+          <TextInput
+            value={amountStr}
+            onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor={palette.textSoft}
+            style={{
+              flex: 1,
+              fontSize: 20,
+              fontWeight: '500',
+              color: activeConfig.color,
+              paddingBottom: 2,
+              paddingTop: 0,
+              paddingLeft: 4,
+              textAlign: 'left',
+              lineHeight: 24, // Consistent baseline
+              borderBottomWidth: isFocused ? 1.5 : 1,
+              borderBottomColor: isFocused ? activeConfig.color : palette.borderSoft,
+            }}
+            cursorColor={activeConfig.color}
+            autoFocus={!isEditing}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+          />
+        </View>
         <TouchableOpacity
           onPress={onOpenCalculator}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           style={{
-            width: ROW_TRAILING_WIDTH + 14,
-            height: 38, // Reduced from ROW_MIN_HEIGHT to stay aligned with bottom-aligned text
+            marginLeft: SCREEN_GUTTER,
+            width: ROW_TRAILING_WIDTH + 24,
+            height: 48,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="calculator-outline" size={16} color={palette.text} />
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: activeConfig.bg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="calculator-outline" size={22} color={activeConfig.color} />
           </View>
         </TouchableOpacity>
       </View>
@@ -1104,12 +1105,14 @@ function InlineInputRow({
   onChangeText,
   placeholder,
   palette,
+  activeConfig,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   palette: AppThemePalette;
   placeholder?: string;
+  activeConfig?: any;
 }) {
   const [isFocused, setIsFocused] = useState(false);
   return (
@@ -1118,38 +1121,27 @@ function InlineInputRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'stretch',
+        alignItems: 'center',
       }}
     >
-      <View
+      <Text
+        numberOfLines={1}
         style={{
+          fontSize: 13,
+          fontWeight: '700',
+          color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
-          justifyContent: 'flex-end',
-          paddingBottom: 12,
         }}
       >
-        <Text
-          numberOfLines={1}
-          style={{
-            fontSize: 13,
-            fontWeight: '700',
-            color: palette.textMuted,
-          }}
-        >
-          {label}
-        </Text>
-      </View>
+        {label}
+      </Text>
       <View
         style={{
           flex: 1,
           minWidth: 0,
           flexDirection: 'row',
-          alignItems: 'flex-end',
-          borderBottomWidth: isFocused ? 1.5 : 1,
-          borderBottomColor: isFocused ? palette.tabActive : palette.borderSoft,
-          paddingLeft: 4,
-          paddingBottom: 8,
+          alignItems: 'center',
         }}
       >
         <TextInput
@@ -1157,15 +1149,20 @@ function InlineInputRow({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={palette.textSoft}
+          cursorColor={activeConfig?.color || palette.tabActive}
           style={{
             flex: 1,
             minWidth: 0,
             fontSize: 15,
             fontWeight: '400',
             color: palette.text,
-            paddingVertical: 0,
+            paddingBottom: 2,
+            paddingTop: 0,
+            paddingLeft: 4,
             textAlign: 'left',
             lineHeight: 20,
+            borderBottomWidth: isFocused ? 1.5 : 1,
+            borderBottomColor: isFocused ? (activeConfig?.color || palette.tabActive) : palette.borderSoft,
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -1304,10 +1301,12 @@ function NotesSection({
   note,
   onChangeNote,
   palette,
+  activeConfig,
 }: {
   note: string;
   onChangeNote: (value: string) => void;
   palette: AppThemePalette;
+  activeConfig?: any;
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
@@ -1319,6 +1318,7 @@ function NotesSection({
         onChangeText={onChangeNote}
         placeholder="Add a note..."
         placeholderTextColor={palette.textSoft}
+        cursorColor={activeConfig?.color || palette.tabActive}
         style={{ minHeight: 72, fontSize: 15, color: palette.text, paddingVertical: 0, textAlignVertical: 'top' }}
         multiline
       />

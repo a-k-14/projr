@@ -34,6 +34,7 @@ export function TransactionListItem({
   const cfg = getTxTypeConfig(palette)[tx.type] ?? getTxTypeConfig(palette).out;
 
   const subtitle = [categoryName, account?.name].filter(Boolean).join(' · ');
+  const amountPrefix = tx.type === 'in' ? '+' : tx.type === 'out' || tx.type === 'loan' ? '-' : '';
 
   return (
     <View
@@ -56,7 +57,11 @@ export function TransactionListItem({
           marginRight: HOME_SPACE.sm + 2,
         }}
       >
-        <Ionicons name={cfg.iconName as never} size={Math.round(iconSize * 0.45)} color={cfg.color} />
+        <Ionicons
+          name={(tx.type === 'loan' ? 'card-outline' : cfg.iconName) as never}
+          size={Math.round(iconSize * 0.45)}
+          color={cfg.color}
+        />
       </View>
 
       <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
@@ -68,8 +73,8 @@ export function TransactionListItem({
         </Text>
       </View>
 
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: tx.type === 'in' ? palette.brand : palette.text }}>
-        {tx.type === 'in' ? '+' : ''}{formatCurrency(tx.amount, sym)}
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text }}>
+        {amountPrefix}{formatCurrency(tx.amount, sym)}
       </Text>
     </View>
   );

@@ -63,7 +63,8 @@ export function getRelativeDateLabel(isoDate: string): { date: string; label?: s
   if (days === 1) return { date: formattedDate, label: 'Yesterday' };
   if (days === -1) return { date: formattedDate, label: 'Tomorrow' };
 
-  return { date: formattedDate };
+  const weekday = date.toLocaleDateString('en-IN', { weekday: 'short' });
+  return { date: formattedDate, label: weekday };
 }
 
 export function getDateRange(
@@ -190,7 +191,7 @@ export function getPeriodNavLabel(
 }
 
 export function getDayLabel(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('en-IN', { weekday: 'short' }).charAt(0).toUpperCase();
+  return new Date(isoDate).toLocaleDateString('en-IN', { weekday: 'short' });
 }
 
 export function isSameDay(a: string, b: string): boolean {
