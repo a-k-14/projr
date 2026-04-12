@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
@@ -55,6 +56,7 @@ export default function AccountsScreen() {
             label={formatAccountDisplayName(account.name, account.accountNumber)}
             subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatDisplayCurrency(account.initialBalance, symbolFor(account.currency))}`}
             palette={palette}
+            leftElement={<Feather name="menu" size={18} color={palette.textSoft} />}
             onPress={() => router.push({ pathname: '/settings/account-form', params: { id: account.id } })}
             noBorder={index === accounts.length - 1}
           />
