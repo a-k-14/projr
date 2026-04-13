@@ -50,6 +50,8 @@ const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
   { label: 'Loan', value: 'loan' },
 ];
 
+const PERIOD_ARROW_WIDTH = 34;
+
 export default function ActivityScreen() {
   const routeParams = useLocalSearchParams<{
     source?: string;
@@ -428,19 +430,7 @@ export default function ActivityScreen() {
               Activity
             </Text>
 
-            <TouchableOpacity
-              onPress={() => setShowAccountSheet(true)}
-              style={[
-                styles.accountPicker,
-                styles.topAccountPicker,
-                { backgroundColor: palette.surface, borderColor: palette.divider },
-              ]}
-            >
-              <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: palette.text, flex: 1 }}>
-                {accountLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
-            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
 
             <TouchableOpacity
               onPress={() => setIsSearchActive(true)}
@@ -461,24 +451,54 @@ export default function ActivityScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
         ListHeaderComponent={
           <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-            <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.headerRowGap }}>
+            <View
+              style={[
+                styles.row,
+                {
+                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+                  marginBottom: ACTIVITY_LAYOUT.headerRowGap,
+                },
+              ]}
+            >
+              <TouchableOpacity
+                onPress={() => setShowAccountSheet(true)}
+                style={[
+                  styles.accountPicker,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.divider,
+                    width: '36%',
+                    marginRight: ACTIVITY_LAYOUT.controlChipGap,
+                  },
+                ]}
+              >
+                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: palette.text, flex: 1 }}>
+                  {accountLabel}
+                </Text>
+                <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
+              </TouchableOpacity>
+
               <View
                 style={[
                   styles.periodBar,
-                  { backgroundColor: palette.surface, borderColor: palette.divider },
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.divider,
+                    flex: 1,
+                  },
                 ]}
               >
                 <TouchableOpacity
                   onPress={goPrev}
-                  disabled={period === 'custom'}
+                  disabled={period === 'custom' || period === 'all'}
                   style={[styles.periodArrow, { borderRightColor: palette.divider }]}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Ionicons
                     name="chevron-back"
                     size={14}
                     color={palette.text}
-                    style={{ opacity: period === 'custom' ? 0.2 : 1 }}
+                    style={{ opacity: period === 'custom' || period === 'all' ? 0.2 : 1 }}
                   />
                 </TouchableOpacity>
 
@@ -499,7 +519,7 @@ export default function ActivityScreen() {
                   onPress={goNext}
                   disabled={!canGoNext}
                   style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Ionicons
                     name="chevron-forward"
@@ -1288,11 +1308,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
-  topAccountPicker: {
-    flex: 1,
-  },
   periodArrow: {
-    width: 38,
+    width: PERIOD_ARROW_WIDTH,
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1303,14 +1320,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: 0,
   },
   periodCenterTouch: {
     height: '100%',
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   moreBtn: {
     flexDirection: 'row',
