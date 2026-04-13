@@ -1,9 +1,10 @@
+import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { formatCurrency } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
-import { AppThemePalette } from '../lib/theme';
+import { useAppTheme } from '../lib/theme';
 import type { Transaction } from '../types';
 
 import { CARD_PADDING } from '../lib/design';
@@ -17,23 +18,22 @@ interface Props {
   padding?: number;
   /** Icon box size — defaults to the shared compact list icon size */
   iconSize?: number;
-  palette: AppThemePalette;
 }
 
-export function TransactionListItem({
+export const TransactionListItem = React.memo(function TransactionListItem({
   tx,
   sym,
   isLast,
   categoryName,
   padding = HOME_LAYOUT.listRowPadding,
   iconSize = HOME_LAYOUT.listIconSize,
-  palette,
 }: Props) {
-  const { getById } = useAccountsStore();
-  const account = getById(tx.accountId);
-  const cfg = getTxTypeConfig(palette)[tx.type] ?? getTxTypeConfig(palette).out;
+  const { palette } = useAppTheme();
+  const accountNameSelected = useAccountsStore((state) => state.accounts.find(a => a.id === tx.accountId)?.name);
+  const typeConfigs = getTxTypeConfig(palette);
+  const cfg = typeConfigs[tx.type] ?? typeConfigs.out;
 
-  const subtitle = [categoryName, account?.name].filter(Boolean).join(' · ');
+  const subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' · ');
   const amountPrefix = tx.type === 'in' ? '+' : tx.type === 'out' || tx.type === 'loan' ? '-' : '';
 
   return (
@@ -78,4 +78,4 @@ export function TransactionListItem({
       </Text>
     </View>
   );
-}
+});

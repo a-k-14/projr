@@ -214,3 +214,23 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     pressedBg: PRESSED_BG_LIGHT,
   };
 }
+
+/**
+ * A critical render-scope optimization wrapper.
+ * By globally memoizing the generated palette structure per mode string, 
+ * this perfectly stable object reference guarantees `React.memo` survival 
+ * preventing massive catastrophic DOM cascade teardowns across the application.
+ */
+import { useMemo } from 'react';
+import { useColorScheme } from 'react-native';
+import { useUIStore } from '../stores/useUIStore';
+
+export function useAppTheme(): { mode: AppThemeMode; palette: AppThemePalette } {
+  const theme = useUIStore((state) => state.settings.theme);
+  const systemScheme = useColorScheme();
+  const mode = resolveTheme(theme, systemScheme);
+  
+  const palette = useMemo(() => getThemePalette(mode), [mode]);
+
+  return { mode, palette };
+}

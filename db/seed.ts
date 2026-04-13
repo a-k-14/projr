@@ -40,6 +40,7 @@ export async function seedDatabase(): Promise<void> {
     name: 'SBI Savings Account',
     type: 'savings',
     balance: 0,
+    initialBalance: 0,
     color: '#1B4332',
     icon: 'briefcase',
   });
@@ -47,6 +48,7 @@ export async function seedDatabase(): Promise<void> {
     name: 'Cash',
     type: 'cash',
     balance: 0,
+    initialBalance: 0,
     color: '#B45309',
     icon: 'dollar-sign',
   });
@@ -54,6 +56,7 @@ export async function seedDatabase(): Promise<void> {
     name: 'HDFC Credit Card',
     type: 'credit',
     balance: 0,
+    initialBalance: 0,
     color: '#DC2626',
     icon: 'credit-card',
   });

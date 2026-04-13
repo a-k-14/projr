@@ -5,16 +5,17 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   LayoutChangeEvent,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
-  useColorScheme,
   useWindowDimensions,
   View,
 } from 'react-native';
-import Animated, { useSharedValue, useAnimatedScrollHandler, runOnJS, useAnimatedRef, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedScrollHandler, runOnJS, useAnimatedRef } from 'react-native-reanimated';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
@@ -31,13 +32,12 @@ import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
   HOME_LAYOUT,
   HOME_RADIUS,
-  HOME_SHADOW,
   HOME_SPACE,
   HOME_SURFACE,
   HOME_TEXT,
   getFabBottomOffset,
 } from '../../lib/layoutTokens';
-import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -70,8 +70,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const pagerRef = useAnimatedRef<Animated.ScrollView>();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const { palette } = useAppTheme();
   const scrollX = useSharedValue(0);
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => todayUTC());
@@ -96,23 +95,6 @@ export default function HomeScreen() {
     }
   }, [accounts, selectedAccountId]);
 
-  const selectedIndex = Math.max(
-    0,
-    displayAccounts.findIndex((account) => account.id === selectedAccountId),
-  );
-
-  const handleTabPress = useCallback(
-    (index: number) => {
-      const next = displayAccounts[index];
-      if (!next) return;
-      pagerRef.current?.scrollTo({ x: index * width, animated: true });
-      requestAnimationFrame(() => {
-        setSelectedAccountId(next.id);
-      });
-    },
-    [displayAccounts, width],
-  );
-
   const customRangeMemo = useMemo(
     () => ({ from: new Date(customRangeFrom), to: new Date(customRangeTo) }),
     [customRangeFrom, customRangeTo]
@@ -128,24 +110,11 @@ export default function HomeScreen() {
     [displayAccounts, selectedAccountId],
   );
 
-  const pagerIndex = useSharedValue(selectedIndex);
-
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollX.value = event.contentOffset.x;
       const nextIndex = Math.round(event.contentOffset.x / Math.max(width, 1));
-      if (nextIndex !== pagerIndex.value) {
-        pagerIndex.value = nextIndex;
-        runOnJS(handlePagerEnd)(nextIndex);
-      }
-    },
-    onMomentumEnd: (event) => {
-      // Fallback
-      const nextIndex = Math.round(event.contentOffset.x / Math.max(width, 1));
-      if (nextIndex !== pagerIndex.value) {
-        pagerIndex.value = nextIndex;
-        runOnJS(handlePagerEnd)(nextIndex);
-      }
+      runOnJS(handlePagerEnd)(nextIndex);
     },
   });
 
@@ -205,9 +174,7 @@ export default function HomeScreen() {
           if (i !== -1) {
             pagerRef.current?.scrollTo({ x: i * width, animated: true });
           }
-          requestAnimationFrame(() => {
-            setSelectedAccountId(id);
-          });
+          setSelectedAccountId(id);
         }}
         externalScrollX={scrollX}
         palette={palette}
@@ -249,7 +216,6 @@ export default function HomeScreen() {
                 }
                 onRefresh={refreshAccounts}
                 isSelected={account.id === selectedAccountId}
-                palette={palette}
               />
             </View>
           ))}
@@ -374,7 +340,6 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   totalBalance,
   onRefresh,
   isSelected,
-  palette,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -386,8 +351,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   totalBalance: number;
   onRefresh: () => Promise<void>;
   isSelected: boolean;
-  palette: AppThemePalette;
 }) {
+  const { palette } = useAppTheme();
   const { getCategoryDisplayName } = useCategoriesStore();
   const [period, setPeriod] = useState<PeriodType>('week');
   const [activeView, setActiveView] = useState<'out' | 'in' | 'table'>('out');
@@ -500,7 +465,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 
   return (
     <View style={{ flex: 1, height: pageHeight }}>
-      <Animated.ScrollView
+      <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -857,14 +822,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                     sym={currencySymbol}
                     isLast={index === transactions.length - 1}
                     categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
-                    palette={palette}
                   />
                 ))
               )}
             </ScrollView>
           </View>
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
 
       {showViewPicker && (
         <BottomSheet

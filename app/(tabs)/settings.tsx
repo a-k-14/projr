@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { CardSection, ScreenTitle, SectionLabel, SettingsRow, ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import {
@@ -23,8 +23,7 @@ export default function SettingsScreen() {
   const { settings, updateSettings } = useUIStore();
   const { accounts } = useAccountsStore();
   const { categories, tags } = useCategoriesStore();
-  const systemScheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, systemScheme));
+  const { palette } = useAppTheme();
   const [picker, setPicker] = useState<PickerKind>(null);
 
   const selectedAccount = useMemo(
@@ -149,10 +148,8 @@ export default function SettingsScreen() {
                   selected={settings.yearStart === index}
                   palette={palette}
                   onPress={() => {
+                    updateSettings({ yearStart: index }, 'year-start');
                     setPicker(null);
-                    requestAnimationFrame(() => {
-                      updateSettings({ yearStart: index });
-                    });
                   }}
                   noBorder={index === MONTHS.length - 1}
                 />
@@ -168,10 +165,8 @@ export default function SettingsScreen() {
                   selected={!settings.defaultAccountId}
                   palette={palette}
                   onPress={() => {
+                    updateSettings({ defaultAccountId: '' }, 'default-account-none');
                     setPicker(null);
-                    requestAnimationFrame(() => {
-                      updateSettings({ defaultAccountId: '' });
-                    });
                   }}
                 />,
                 ...accounts.map((account, index) => (
@@ -182,10 +177,8 @@ export default function SettingsScreen() {
                     selected={settings.defaultAccountId === account.id}
                     palette={palette}
                     onPress={() => {
+                      updateSettings({ defaultAccountId: account.id }, 'default-account');
                       setPicker(null);
-                      requestAnimationFrame(() => {
-                        updateSettings({ defaultAccountId: account.id });
-                      });
                     }}
                     noBorder={index === accounts.length - 1}
                   />
@@ -202,10 +195,8 @@ export default function SettingsScreen() {
                   selected={settings.currency === currency.code}
                   palette={palette}
                   onPress={() => {
+                    updateSettings({ currency: currency.code, currencySymbol: currency.symbol }, 'currency');
                     setPicker(null);
-                    requestAnimationFrame(() => {
-                      updateSettings({ currency: currency.code, currencySymbol: currency.symbol });
-                    });
                   }}
                   noBorder={index === CURRENCIES.length - 1}
                 />
@@ -227,10 +218,8 @@ export default function SettingsScreen() {
                   selected={settings.theme === theme.key}
                   palette={palette}
                   onPress={() => {
+                    updateSettings({ theme: theme.key }, 'theme');
                     setPicker(null);
-                    requestAnimationFrame(() => {
-                      updateSettings({ theme: theme.key });
-                    });
                   }}
                   noBorder={index === THEMES.length - 1}
                 />

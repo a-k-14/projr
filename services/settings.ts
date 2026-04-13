@@ -26,13 +26,16 @@ export async function getSettings(): Promise<Settings> {
   };
 }
 
-export async function updateSettings(data: Partial<Settings>): Promise<Settings> {
-  for (const [key, value] of Object.entries(data)) {
-    if (value === undefined) continue;
-    await db
-      .insert(settings)
-      .values({ key, value: String(value) })
-      .onConflictDoUpdate({ target: settings.key, set: { value: String(value) } });
-  }
-  return getSettings();
+export async function updateSettings(data: Partial<Settings>): Promise<void> {
+  const updates = Object.entries(data).filter(([, value]) => value !== undefined);
+  if (updates.length === 0) return;
+
+  await Promise.all(
+    updates.map(([key, value]) =>
+      db
+        .insert(settings)
+        .values({ key, value: String(value) })
+        .onConflictDoUpdate({ target: settings.key, set: { value: String(value) } }),
+    ),
+  );
 }

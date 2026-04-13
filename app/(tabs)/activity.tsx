@@ -26,7 +26,7 @@ import {
 import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/layoutTokens';
-import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
+import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -63,8 +63,7 @@ export default function ActivityScreen() {
   const { accounts } = useAccountsStore();
   const { categories, tags, getCategoryDisplayName, load: loadCategories, isLoaded: categoriesLoaded } = useCategoriesStore();
   const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const sym = settings.currencySymbol;
 
@@ -547,7 +546,6 @@ export default function ActivityScreen() {
                     sym={sym}
                     isLast={index === item.items.length - 1}
                     categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
-                    palette={palette}
                   />
                 ))}
               </View>
