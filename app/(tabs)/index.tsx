@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   LayoutChangeEvent,
@@ -70,16 +70,21 @@ export default function HomeScreen() {
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
 
-  const displayAccounts: AccountTab[] = [{ id: 'all', name: 'All' }, ...accounts.map((a) => ({ id: a.id, name: a.name }))];
+  const displayAccounts = useMemo<AccountTab[]>(
+    () => [{ id: 'all', name: 'All' }, ...accounts.map((a) => ({ id: a.id, name: a.name }))],
+    [accounts],
+  );
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
 
+  // If the selected account is deleted, snap back to 'all'
   useEffect(() => {
     if (
       selectedAccountId !== 'all' &&
       !accounts.some((account) => account.id === selectedAccountId)
     ) {
       setSelectedAccountId('all');
+      pagerRef.current?.scrollTo({ x: 0, animated: false });
     }
   }, [accounts, selectedAccountId]);
 
@@ -88,17 +93,18 @@ export default function HomeScreen() {
     displayAccounts.findIndex((account) => account.id === selectedAccountId),
   );
 
-  const handleTabPress = useCallback(
-    (index: number) => {
-      const next = displayAccounts[index];
-      if (!next) return;
-      setSelectedAccountId(next.id);
-      pagerRef.current?.scrollTo({ x: index * width, animated: true });
+  const handleTabSelect = useCallback(
+    (id: string | 'all') => {
+      setSelectedAccountId(id);
+      const i = displayAccounts.findIndex((a) => a.id === id);
+      if (i !== -1) pagerRef.current?.scrollTo({ x: i * width, animated: true });
     },
     [displayAccounts, width],
   );
 
-  const handlePagerEnd = useCallback(
+  // Shared handler for both swipe-end and drag-release so selectedAccountId
+  // stays in sync even when the user swipes faster than momentum fires.
+  const handleScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const nextIndex = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
       const next = displayAccounts[nextIndex];
@@ -109,9 +115,10 @@ export default function HomeScreen() {
     [displayAccounts, selectedAccountId, width],
   );
 
-  useEffect(() => {
-    pagerRef.current?.scrollTo({ x: selectedIndex * width, animated: false });
-  }, [selectedIndex, width]);
+  const customRange = useMemo(
+    () => ({ from: new Date(customRangeFrom), to: new Date(customRangeTo) }),
+    [customRangeFrom, customRangeTo],
+  );
 
   const openCustomRange = useCallback(() => {
     setCustomDraftFrom(new Date(customRangeFrom));
@@ -163,13 +170,7 @@ export default function HomeScreen() {
       <AccountTabBar
         accounts={displayAccounts}
         selectedId={selectedAccountId}
-        onSelect={(id) => {
-          setSelectedAccountId(id);
-          const i = displayAccounts.findIndex((a) => a.id === id);
-          if (i !== -1) {
-            pagerRef.current?.scrollTo({ x: i * width, animated: true });
-          }
-        }}
+        onSelect={handleTabSelect}
         externalScrollX={scrollX}
         palette={palette}
       />
@@ -186,7 +187,8 @@ export default function HomeScreen() {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           directionalLockEnabled
-          onMomentumScrollEnd={handlePagerEnd}
+          onMomentumScrollEnd={handleScrollEnd}
+          onScrollEndDrag={handleScrollEnd}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             {
@@ -204,7 +206,7 @@ export default function HomeScreen() {
                 accountName={account.name}
                 settingsYearStart={settings.yearStart}
                 currencySymbol={settings.currencySymbol}
-                customRange={{ from: new Date(customRangeFrom), to: new Date(customRangeTo) }}
+                customRange={customRange}
                 onOpenCustomRange={openCustomRange}
                 totalBalance={
                   account.id === 'all'
@@ -339,7 +341,7 @@ export default function HomeScreen() {
   );
 }
 
-function HomeAccountPage({
+const HomeAccountPage = React.memo(function HomeAccountPage({
   pageHeight,
   accountId,
   accountName,
@@ -779,4 +781,4 @@ function HomeAccountPage({
       )}
     </View>
   );
-}
+});

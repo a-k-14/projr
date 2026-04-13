@@ -26,6 +26,9 @@ export const useUIStore = create<UIStore>((set) => ({
   },
 
   updateSettings: async (data) => {
+    // Apply optimistically so the UI responds instantly
+    set((state) => ({ settings: { ...state.settings, ...data } }));
+    // Persist and reconcile (handles type coercions from DB)
     const updated = await settingsService.updateSettings(data);
     set({ settings: updated });
   },
