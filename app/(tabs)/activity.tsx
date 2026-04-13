@@ -1,7 +1,6 @@
-import { Feather } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
@@ -15,23 +14,23 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow } from '../../components/settings-ui';
-import { FilterChip } from '../../components/ui/FilterChip';
 import { TransactionListItem } from '../../components/TransactionListItem';
-import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/layoutTokens';
-import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { FilterChip } from '../../components/ui/FilterChip';
 import {
   getNavigableDateRange,
   getPeriodNavLabel,
   getRelativeDateLabel,
 } from '../../lib/dateUtils';
+import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
+import { CARD_PADDING } from '../../lib/design';
+import { ACTIVITY_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/layoutTokens';
 import { getThemePalette, resolveTheme, type AppThemePalette } from '../../lib/theme';
+import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
-import * as transactionsService from '../../services/transactions';
 import type { Category, Transaction, TransactionFilters, TransactionType } from '../../types';
 
 type ActivityPeriod = 'all' | 'day' | 'week' | 'month' | 'year' | 'custom';
@@ -760,158 +759,158 @@ export default function ActivityScreen() {
           }
         >
           <View style={{ paddingBottom: 12 }}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: '800',
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase',
-                  color: palette.textMuted,
-                  paddingHorizontal: CARD_PADDING,
-                  paddingTop: 16,
-                  paddingBottom: 8,
-                }}
-              >
-                Category
-              </Text>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '800',
+                letterSpacing: 0.8,
+                textTransform: 'uppercase',
+                color: palette.textMuted,
+                paddingHorizontal: CARD_PADDING,
+                paddingTop: 16,
+                paddingBottom: 8,
+              }}
+            >
+              Category
+            </Text>
 
-              <View style={{ paddingTop: 2 }}>
-          {topCategories.map((category) => {
-                  const children = childCategoriesByParent.get(category.id) ?? [];
-                  const count = getCategoryTxCount(transactions, category.id, categories);
-                  const childSelectedCount = children.filter((child) => selectedCategoryIds.includes(child.id)).length;
-                  const hasChildren = children.length > 0;
-                  const parentExplicitlySelected = selectedCategoryIds.includes(category.id);
-                  const allChildrenSelected = hasChildren && childSelectedCount === children.length;
-                  const isSelected = parentExplicitlySelected || allChildrenSelected;
-                  const isPartial = hasChildren && childSelectedCount > 0 && childSelectedCount < children.length && !parentExplicitlySelected;
-                  const isExpanded = expandedCategoryIds.includes(category.id);
-                  return (
-                    <View key={category.id}>
-                      <MoreCategoryRow
-                        category={category}
-                        count={count}
-                        selected={isSelected}
-                        partial={isPartial}
-                        expanded={isExpanded}
-                        hasChildren={hasChildren}
-                        palette={palette}
-                        onToggleSelected={() => toggleCategoryFamily(category.id)}
-                        onToggleExpanded={() => toggleCategoryExpansion(category.id)}
-                      />
-                      {isExpanded
-                        ? children.map((child) => {
-                            const childCount = getCategoryTxCount(transactions, child.id, categories);
-                            const childSelected = selectedCategoryIds.includes(child.id);
-                            return (
-                              <View
-                                key={child.id}
-                                  style={[
-                                    styles.moreSubRow,
-                                  { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING + 34 },
-                                ]}
-                              >
-                                <TouchableOpacity
-                                  onPress={() => toggleCategoryId(child.id)}
-                                  activeOpacity={0.75}
-                                  style={{ marginRight: 12 }}
-                                >
-                                  <Checkbox selected={childSelected} palette={palette} />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  onPress={() => toggleCategoryId(child.id)}
-                                  activeOpacity={0.75}
-                                  style={{ flex: 1, minWidth: 0 }}
-                                >
-                                  <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '400', color: palette.text }}>
-                                    {child.name}
-                                  </Text>
-                                </TouchableOpacity>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginRight: 6 }}>
-                                  {childCount}
-                                </Text>
-                              </View>
-                            );
-                          })
-                        : null}
-                    </View>
-                  );
-                })}
-              </View>
-
-              <View style={{ height: 1, backgroundColor: palette.divider }} />
-
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: '800',
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase',
-                  color: palette.textMuted,
-                  paddingHorizontal: CARD_PADDING,
-                  paddingTop: 16,
-                  paddingBottom: 8,
-                }}
-              >
-                Tags
-              </Text>
-
-              {tags.length === 0 ? (
-                <Text style={{ color: palette.textMuted, fontSize: 13, paddingHorizontal: CARD_PADDING, paddingVertical: 12 }}>
-                  No tags yet
-                </Text>
-              ) : (
-                tags.map((tag) => {
-                  const count = getTagTxCount(transactions, tag.id);
-                  const isSelected = selectedTagIds.includes(tag.id);
-                  return (
-                    <MoreTagRow
-                      key={tag.id}
-                      tag={tag}
+            <View style={{ paddingTop: 2 }}>
+              {topCategories.map((category) => {
+                const children = childCategoriesByParent.get(category.id) ?? [];
+                const count = getCategoryTxCount(transactions, category.id, categories);
+                const childSelectedCount = children.filter((child) => selectedCategoryIds.includes(child.id)).length;
+                const hasChildren = children.length > 0;
+                const parentExplicitlySelected = selectedCategoryIds.includes(category.id);
+                const allChildrenSelected = hasChildren && childSelectedCount === children.length;
+                const isSelected = parentExplicitlySelected || allChildrenSelected;
+                const isPartial = hasChildren && childSelectedCount > 0 && childSelectedCount < children.length && !parentExplicitlySelected;
+                const isExpanded = expandedCategoryIds.includes(category.id);
+                return (
+                  <View key={category.id}>
+                    <MoreCategoryRow
+                      category={category}
                       count={count}
                       selected={isSelected}
+                      partial={isPartial}
+                      expanded={isExpanded}
+                      hasChildren={hasChildren}
                       palette={palette}
-                      onToggleSelected={() => toggleTagId(tag.id)}
+                      onToggleSelected={() => toggleCategoryFamily(category.id)}
+                      onToggleExpanded={() => toggleCategoryExpansion(category.id)}
                     />
-                  );
-                })
-              )}
+                    {isExpanded
+                      ? children.map((child) => {
+                        const childCount = getCategoryTxCount(transactions, child.id, categories);
+                        const childSelected = selectedCategoryIds.includes(child.id);
+                        return (
+                          <View
+                            key={child.id}
+                            style={[
+                              styles.moreSubRow,
+                              { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING + 34 },
+                            ]}
+                          >
+                            <TouchableOpacity
+                              onPress={() => toggleCategoryId(child.id)}
+                              activeOpacity={0.75}
+                              style={{ marginRight: 12 }}
+                            >
+                              <Checkbox selected={childSelected} palette={palette} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => toggleCategoryId(child.id)}
+                              activeOpacity={0.75}
+                              style={{ flex: 1, minWidth: 0 }}
+                            >
+                              <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '400', color: palette.text }}>
+                                {child.name}
+                              </Text>
+                            </TouchableOpacity>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginRight: 6 }}>
+                              {childCount}
+                            </Text>
+                          </View>
+                        );
+                      })
+                      : null}
+                  </View>
+                );
+              })}
+            </View>
 
-              <View style={{ height: 1, backgroundColor: palette.divider }} />
+            <View style={{ height: 1, backgroundColor: palette.divider }} />
 
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: '800',
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase',
-                  color: palette.textMuted,
-                  paddingHorizontal: CARD_PADDING,
-                  paddingTop: 16,
-                  paddingBottom: 12,
-                }}
-              >
-                Amount Range
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '800',
+                letterSpacing: 0.8,
+                textTransform: 'uppercase',
+                color: palette.textMuted,
+                paddingHorizontal: CARD_PADDING,
+                paddingTop: 16,
+                paddingBottom: 8,
+              }}
+            >
+              Tags
+            </Text>
+
+            {tags.length === 0 ? (
+              <Text style={{ color: palette.textMuted, fontSize: 13, paddingHorizontal: CARD_PADDING, paddingVertical: 12 }}>
+                No tags yet
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
-                <TextInput
-                  value={amountMinStr}
-                  onChangeText={setAmountMinStr}
-                  keyboardType="numeric"
-                  placeholder="Min ₹"
-                  placeholderTextColor={palette.textMuted}
-                  style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
-                />
-                <Text style={{ color: palette.textMuted, fontSize: 18 }}>—</Text>
-                <TextInput
-                  value={amountMaxStr}
-                  onChangeText={setAmountMaxStr}
-                  keyboardType="numeric"
-                  placeholder="Max ₹"
-                  placeholderTextColor={palette.textMuted}
-                  style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
-                />
-              </View>
+            ) : (
+              tags.map((tag) => {
+                const count = getTagTxCount(transactions, tag.id);
+                const isSelected = selectedTagIds.includes(tag.id);
+                return (
+                  <MoreTagRow
+                    key={tag.id}
+                    tag={tag}
+                    count={count}
+                    selected={isSelected}
+                    palette={palette}
+                    onToggleSelected={() => toggleTagId(tag.id)}
+                  />
+                );
+              })
+            )}
+
+            <View style={{ height: 1, backgroundColor: palette.divider }} />
+
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '800',
+                letterSpacing: 0.8,
+                textTransform: 'uppercase',
+                color: palette.textMuted,
+                paddingHorizontal: CARD_PADDING,
+                paddingTop: 16,
+                paddingBottom: 12,
+              }}
+            >
+              Amount Range
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
+              <TextInput
+                value={amountMinStr}
+                onChangeText={setAmountMinStr}
+                keyboardType="numeric"
+                placeholder="Min ₹"
+                placeholderTextColor={palette.textMuted}
+                style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
+              />
+              <Text style={{ color: palette.textMuted, fontSize: 18 }}>—</Text>
+              <TextInput
+                value={amountMaxStr}
+                onChangeText={setAmountMaxStr}
+                keyboardType="numeric"
+                placeholder="Max ₹"
+                placeholderTextColor={palette.textMuted}
+                style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
+              />
+            </View>
           </View>
         </BottomSheet>
       ) : null}
@@ -1147,18 +1146,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderRadius: 13,
+    borderRadius: ACTIVITY_LAYOUT.chipRadius,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderWidth: 1.5,
   },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: ACTIVITY_LAYOUT.chipRadius,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   row: {
     flexDirection: 'row',
