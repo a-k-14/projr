@@ -1,7 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Keyboard, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Alert, Keyboard, Text, TouchableOpacity, View } from 'react-native';
 import {
   ActionButton,
   ChoiceRow,
@@ -15,7 +15,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { RADIUS, SCREEN_GUTTER, SPACING } from '../../lib/design';
 import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -31,10 +31,14 @@ type Draft = {
 export default function AccountFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
-  const { accounts, load, isLoaded, add, update, remove } = useAccountsStore();
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const accounts = useAccountsStore((s) => s.accounts);
+  const loadAccounts = useAccountsStore((s) => s.load);
+  const isAccountsLoaded = useAccountsStore((s) => s.isLoaded);
+  const addAccount = useAccountsStore((s) => s.add);
+  const updateAccount = useAccountsStore((s) => s.update);
+  const removeAccount = useAccountsStore((s) => s.remove);
+  const defaultCurrency = useUIStore((s) => s.settings.currency);
+  const { palette } = useAppTheme();
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -43,7 +47,7 @@ export default function AccountFormScreen() {
     accountNumber: '',
     type: 'savings',
     balance: '',
-    currency: settings.currency ?? 'INR',
+    currency: defaultCurrency ?? 'INR',
   });
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -79,8 +83,8 @@ export default function AccountFormScreen() {
   }
 
   useEffect(() => {
-    if (!isLoaded) load().catch(() => undefined);
-  }, [isLoaded, load]);
+    if (!isAccountsLoaded) loadAccounts().catch(() => undefined);
+  }, [isAccountsLoaded, loadAccounts]);
 
   useEffect(() => {
     if (id) {
@@ -100,10 +104,10 @@ export default function AccountFormScreen() {
         accountNumber: '',
         type: 'savings',
         balance: '',
-        currency: settings.currency ?? 'INR',
+        currency: defaultCurrency ?? 'INR',
       });
     }
-  }, [id, accounts, settings.currency]);
+  }, [id, accounts, defaultCurrency]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -128,9 +132,9 @@ export default function AccountFormScreen() {
       icon: 'wallet',
     };
     if (isEditing && id) {
-      await update(id, payload);
+      await updateAccount(id, payload);
     } else {
-      await add(payload);
+      await addAccount(payload);
     }
     router.back();
   }
@@ -148,7 +152,7 @@ export default function AccountFormScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await remove(id);
+              await removeAccount(id);
               router.back();
             } catch (error) {
               Alert.alert(

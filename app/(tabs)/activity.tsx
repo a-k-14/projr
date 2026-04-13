@@ -1,7 +1,7 @@
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
@@ -11,10 +11,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
+import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FilterChip } from '../../components/ui/FilterChip';
@@ -23,7 +23,7 @@ import {
   getPeriodNavLabel,
   getRelativeDateLabel,
 } from '../../lib/dateUtils';
-import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
+import { formatCurrency, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
@@ -56,16 +56,22 @@ export default function ActivityScreen() {
     period?: string;
     accountId?: string;
     type?: string;
+    cashflowBucket?: string;
     from?: string;
     to?: string;
     ts?: string;
   }>();
-  const { accounts } = useAccountsStore();
-  const { categories, tags, getCategoryDisplayName, load: loadCategories, isLoaded: categoriesLoaded } = useCategoriesStore();
-  const { settings } = useUIStore();
+  const accounts = useAccountsStore((s) => s.accounts);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const yearStart = useUIStore((s) => s.settings.yearStart);
+  const categories = useCategoriesStore((s) => s.categories);
+  const tags = useCategoriesStore((s) => s.tags);
+  const getCategoryDisplayName = useCategoriesStore((s) => s.getCategoryDisplayName);
+  const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
+  const loadCategories = useCategoriesStore((s) => s.load);
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const sym = settings.currencySymbol;
+  const sym = currencySymbol;
 
   const [period, setPeriod] = useState<ActivityPeriod>('all');
   const [periodOffset, setPeriodOffset] = useState(0);
@@ -73,6 +79,7 @@ export default function ActivityScreen() {
   const [customTo, setCustomTo] = useState<string | undefined>();
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
+  const [cashflowBucket, setCashflowBucket] = useState<'all' | 'in' | 'out'>('all');
   const [search, setSearch] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
@@ -89,13 +96,14 @@ export default function ActivityScreen() {
   const [hasMore, setHasMore] = useState(true);
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
+  const requestIdRef = useRef(0);
   const lastAppliedRouteTsRef = useRef<string | null>(null);
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
     if (period === 'custom') return customFrom && customTo ? { from: customFrom, to: customTo } : null;
-    return getNavigableDateRange(period, periodOffset, settings.yearStart);
-  }, [customFrom, customTo, period, periodOffset, settings.yearStart]);
+    return getNavigableDateRange(period, periodOffset, yearStart);
+  }, [customFrom, customTo, period, periodOffset, yearStart]);
 
   const canGoNext = period !== 'all' && period !== 'custom' && periodOffset < 0;
   const periodLabel = useMemo(() => {
@@ -108,13 +116,20 @@ export default function ActivityScreen() {
 
   const loadData = useMemo(
     () => async (isInitial: boolean) => {
-      if (loadingRef.current) return;
+      if (loadingRef.current && !isInitial) return;
+      const requestId = ++requestIdRef.current;
       loadingRef.current = true;
       try {
         const currentOffset = isInitial ? 0 : offsetRef.current;
+        const effectiveTypeFilter =
+          cashflowBucket !== 'all' && (typeFilter === 'in' || typeFilter === 'out')
+            ? undefined
+            : typeFilter === 'all'
+              ? undefined
+              : typeFilter;
         const filters: TransactionFilters = {
           accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
-          type: typeFilter === 'all' ? undefined : typeFilter,
+          type: effectiveTypeFilter,
           fromDate: dateRange?.from,
           toDate: dateRange?.to,
           search: search || undefined,
@@ -122,6 +137,7 @@ export default function ActivityScreen() {
           offset: period === 'all' ? currentOffset : 0,
         };
         const results = await transactionsService.getTransactions(filters);
+        if (requestId !== requestIdRef.current) return;
         if (isInitial) {
           setTransactions(results);
           offsetRef.current = results.length;
@@ -138,7 +154,7 @@ export default function ActivityScreen() {
         loadingRef.current = false;
       }
     },
-    [dateRange?.from, dateRange?.to, period, search, selectedAccountId, typeFilter],
+    [cashflowBucket, dateRange?.from, dateRange?.to, period, search, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
@@ -157,6 +173,8 @@ export default function ActivityScreen() {
     const periodParam = typeof routeParams.period === 'string' ? routeParams.period : undefined;
     const accountParam = typeof routeParams.accountId === 'string' ? routeParams.accountId : undefined;
     const typeParam = typeof routeParams.type === 'string' ? routeParams.type : undefined;
+    const cashflowBucketParam =
+      typeof routeParams.cashflowBucket === 'string' ? routeParams.cashflowBucket : undefined;
     const fromParam = typeof routeParams.from === 'string' ? routeParams.from : undefined;
     const toParam = typeof routeParams.to === 'string' ? routeParams.to : undefined;
 
@@ -166,6 +184,7 @@ export default function ActivityScreen() {
     setCustomTo(undefined);
     setSelectedAccountId('all');
     setTypeFilter('all');
+    setCashflowBucket('all');
     setSelectedCategoryIds([]);
     setSelectedTagIds([]);
     setAmountMinStr('');
@@ -175,6 +194,7 @@ export default function ActivityScreen() {
     setIsSearchActive(false);
 
     if (source === 'activity-tab' || source === 'home-view-all') {
+      requestIdRef.current += 1;
       lastAppliedRouteTsRef.current = ts;
       return;
     }
@@ -203,9 +223,16 @@ export default function ActivityScreen() {
     if (typeParam === 'all' || typeParam === 'in' || typeParam === 'out' || typeParam === 'transfer' || typeParam === 'loan') {
       setTypeFilter(typeParam);
     }
+    if (cashflowBucketParam === 'all' || cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
+      setCashflowBucket(cashflowBucketParam);
+      if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
+        setTypeFilter(cashflowBucketParam);
+      }
+    }
 
+    requestIdRef.current += 1;
     lastAppliedRouteTsRef.current = ts;
-  }, [accounts, routeParams.accountId, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
+  }, [accounts, routeParams.accountId, routeParams.cashflowBucket, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -275,6 +302,13 @@ export default function ActivityScreen() {
     });
 
     return transactions.filter((tx) => {
+      if (
+        cashflowBucket !== 'all' &&
+        (typeFilter === 'all' || typeFilter === cashflowBucket) &&
+        getTransactionCashflowImpact(tx) !== cashflowBucket
+      ) {
+        return false;
+      }
       if (selectedCategoryAndDescendants.size > 0) {
         if (!tx.categoryId || !selectedCategoryAndDescendants.has(tx.categoryId)) return false;
       }
@@ -285,8 +319,9 @@ export default function ActivityScreen() {
       if (maxAmount !== undefined && !Number.isNaN(maxAmount) && tx.amount > maxAmount) return false;
       return true;
     });
-  }, [amountMaxStr, amountMinStr, categories, selectedCategoryIds, selectedTagIds, transactions]);
+  }, [amountMaxStr, amountMinStr, cashflowBucket, categories, selectedCategoryIds, selectedTagIds, transactions]);
 
+  const periodCashflow = useMemo(() => calcCashflowSummary(filteredTransactions), [filteredTransactions]);
   const overallNet = useMemo(() => calcNet(filteredTransactions), [filteredTransactions]);
 
   const moreActiveCount =
@@ -342,6 +377,10 @@ export default function ActivityScreen() {
     setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]));
   };
 
+  const handleTransactionPress = useCallback((transaction: Transaction) => {
+    router.push({ pathname: '/modals/add-transaction', params: { editId: transaction.id } });
+  }, []);
+
   const grouped = useMemo<ActivityGroup[]>(() => {
     return groupTransactionsByDate(filteredTransactions).map((group) => {
       const { date, label } = getRelativeDateLabel(group.dateKey);
@@ -384,15 +423,32 @@ export default function ActivityScreen() {
         </View>
       ) : (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
-          <Text style={{ fontSize: 26, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>
-            Activity
-          </Text>
-          <TouchableOpacity
-            onPress={() => setIsSearchActive(true)}
-            style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
-          >
-            <Ionicons name="search" size={17} color={palette.textMuted} />
-          </TouchableOpacity>
+          <View style={styles.topBarMainRow}>
+            <Text style={{ fontSize: 26, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>
+              Activity
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setShowAccountSheet(true)}
+              style={[
+                styles.accountPicker,
+                styles.topAccountPicker,
+                { backgroundColor: palette.surface, borderColor: palette.divider },
+              ]}
+            >
+              <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: palette.text, flex: 1 }}>
+                {accountLabel}
+              </Text>
+              <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setIsSearchActive(true)}
+              style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
+            >
+              <Ionicons name="search" size={17} color={palette.textMuted} />
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -405,21 +461,11 @@ export default function ActivityScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
         ListHeaderComponent={
           <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-            <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.headerRowGap }]}>
-              <TouchableOpacity
-                onPress={() => setShowAccountSheet(true)}
-                style={[styles.accountPicker, { backgroundColor: palette.surface, borderColor: palette.divider }]}
-              >
-                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: palette.text, flex: 1 }}>
-                  {accountLabel}
-                </Text>
-                <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
-              </TouchableOpacity>
-
+            <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.headerRowGap }}>
               <View
                 style={[
                   styles.periodBar,
-                  { backgroundColor: palette.surface, borderColor: palette.divider, flex: 3, marginLeft: ACTIVITY_LAYOUT.controlChipGap },
+                  { backgroundColor: palette.surface, borderColor: palette.divider },
                 ]}
               >
                 <TouchableOpacity
@@ -478,7 +524,12 @@ export default function ActivityScreen() {
                       key={option.value}
                       label={option.label}
                       isActive={typeFilter === option.value}
-                      onPress={() => setTypeFilter(option.value)}
+                      onPress={() => {
+                        setTypeFilter(option.value);
+                        setCashflowBucket(
+                          option.value === 'in' || option.value === 'out' ? option.value : 'all',
+                        );
+                      }}
                       palette={palette}
                     />
                   ))}
@@ -503,10 +554,16 @@ export default function ActivityScreen() {
               </TouchableOpacity>
             </View>
 
+            {period !== 'all' ? (
+              <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+                <SummaryCard cashflow={periodCashflow} sym={sym} palette={palette} />
+              </View>
+            ) : null}
+
             <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
           </View>
         }
-        renderItem={({ item }) => {
+        renderItem={useCallback(({ item }: { item: ActivityGroup }) => {
           const groupNet = item.net;
           return (
             <View style={{ marginBottom: ACTIVITY_LAYOUT.groupCardMarginBottom }}>
@@ -539,19 +596,25 @@ export default function ActivityScreen() {
                 marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
                 overflow: 'hidden',
               }}>
-                {item.items.map((tx, index) => (
-                  <TransactionListItem
-                    key={tx.id}
-                    tx={tx}
-                    sym={sym}
-                    isLast={index === item.items.length - 1}
-                    categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
-                  />
-                ))}
+                {item.items.map((tx, index) => {
+                  const account = accounts.find((a) => a.id === tx.accountId);
+                  return (
+                    <TransactionListItem
+                      key={tx.id}
+                      tx={tx}
+                      sym={sym}
+                      palette={palette}
+                      isLast={index === item.items.length - 1}
+                      categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
+                      accountName={account?.name}
+                      onPress={handleTransactionPress}
+                    />
+                  );
+                })}
               </View>
             </View>
           );
-        }}
+        }, [sym, palette, getCategoryDisplayName, handleTransactionPress])}
         ListEmptyComponent={
           !refreshing ? (
             <View style={{ alignItems: 'center', paddingTop: 64 }}>
@@ -622,7 +685,7 @@ export default function ActivityScreen() {
           />
           <ChoiceRow
             title="This Week"
-            subtitle={formatRangeLabel('week', settings.yearStart, 0)}
+            subtitle={formatRangeLabel('week', yearStart, 0)}
             selected={period === 'week'}
             palette={palette}
             onPress={() => {
@@ -633,7 +696,7 @@ export default function ActivityScreen() {
           />
           <ChoiceRow
             title="This Month"
-            subtitle={formatRangeLabel('month', settings.yearStart, 0)}
+            subtitle={formatRangeLabel('month', yearStart, 0)}
             selected={period === 'month'}
             palette={palette}
             onPress={() => {
@@ -644,7 +707,7 @@ export default function ActivityScreen() {
           />
           <ChoiceRow
             title="This Year"
-            subtitle={formatRangeLabel('year', settings.yearStart, 0)}
+            subtitle={formatRangeLabel('year', yearStart, 0)}
             selected={period === 'year'}
             palette={palette}
             onPress={() => {
@@ -947,11 +1010,20 @@ function AccountChip({
 }
 
 function calcNet(txs: Transaction[]): number {
-  return txs.reduce((sum, tx) => {
-    if (tx.type === 'in') return sum + tx.amount;
-    if (tx.type === 'out') return sum - tx.amount;
-    return sum;
-  }, 0);
+  return calcCashflowSummary(txs).net;
+}
+
+function calcCashflowSummary(txs: Transaction[]) {
+  return txs.reduce(
+    (summary, tx) => {
+      const impact = getTransactionCashflowImpact(tx);
+      if (impact === 'in') summary.in += tx.amount;
+      if (impact === 'out') summary.out += tx.amount;
+      summary.net = summary.in - summary.out;
+      return summary;
+    },
+    { in: 0, out: 0, net: 0 },
+  );
 }
 
 function signedCurrency(amount: number, sym: string) {
@@ -1131,13 +1203,15 @@ function getTagTxCount(txs: Transaction[], tagId: string) {
 
 const styles = StyleSheet.create({
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
     borderBottomWidth: 1,
+  },
+  topBarMainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   searchBox: {
     flex: 1,
@@ -1200,7 +1274,6 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   accountPicker: {
-    flex: 2,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1214,6 +1287,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
+  },
+  topAccountPicker: {
+    flex: 1,
   },
   periodArrow: {
     width: 38,

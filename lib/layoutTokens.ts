@@ -67,7 +67,7 @@ export const HOME_SURFACE = {
   heroDividerTop: 18,
   heroDividerBottom: 14,
   summaryColumnPaddingX: 8,
-  summaryColumnPaddingY: 16,
+  summaryColumnPaddingY: 10,
   summaryCardBottom: 16,
   chartCardBottom: 14,
   panelHeaderGap: 14,

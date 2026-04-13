@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { formatCurrency } from '../lib/derived';
 import { HOME_RADIUS, HOME_SURFACE, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
@@ -22,10 +22,11 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
   return (
     <View style={[styles.card, { backgroundColor: palette.card }]}>
       {categories.map((category, index) => (
-        <Pressable
+        <TouchableOpacity
           key={category.key}
           onPress={onPressCategory ? () => onPressCategory(category.key) : undefined}
           disabled={!onPressCategory}
+          activeOpacity={0.75}
           style={[
             styles.column,
             {
@@ -45,7 +46,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
           >
             {formatCurrency(cashflow[category.key], sym)}
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       ))}
     </View>
   );

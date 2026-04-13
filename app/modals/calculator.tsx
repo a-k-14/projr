@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
 
@@ -17,10 +17,10 @@ const BUTTONS = [
 ] as const;
 
 export default function CalculatorModal() {
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
-  const { calculatorValue, setCalculatorValue, setCalculatorOpen } = useTransactionDraftStore();
+  const { palette } = useAppTheme();
+  const calculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
+  const setCalculatorValue = useTransactionDraftStore((s) => s.setCalculatorValue);
+  const setCalculatorOpen = useTransactionDraftStore((s) => s.setCalculatorOpen);
   const { brandColor, brandSoft } = useLocalSearchParams<{ brandColor?: string; brandSoft?: string }>();
   
   // Keep display always in "pretty" format (÷, ×, −) with commas

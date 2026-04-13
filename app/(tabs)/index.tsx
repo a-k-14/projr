@@ -15,7 +15,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Animated, { useSharedValue, useAnimatedScrollHandler, runOnJS, useAnimatedRef } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedRef } from 'react-native-reanimated';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -66,8 +66,10 @@ type AccountTab = {
 };
 
 export default function HomeScreen() {
-  const { accounts, refresh: refreshAccounts } = useAccountsStore();
-  const { settings } = useUIStore();
+  const accounts = useAccountsStore((s) => s.accounts);
+  const refreshAccounts = useAccountsStore((s) => s.refresh);
+  const settingsYearStart = useUIStore((s) => s.settings.yearStart);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const pagerRef = useAnimatedRef<Animated.ScrollView>();
@@ -85,6 +87,10 @@ export default function HomeScreen() {
   ], [accounts]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
+  const selectedAccountIndex = useMemo(
+    () => Math.max(0, displayAccounts.findIndex((account) => account.id === selectedAccountId)),
+    [displayAccounts, selectedAccountId],
+  );
 
   useEffect(() => {
     if (
@@ -111,11 +117,18 @@ export default function HomeScreen() {
     [displayAccounts, selectedAccountId],
   );
 
+  const handlePagerMomentumEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetX = event.nativeEvent.contentOffset.x;
+      const nextIndex = Math.round(offsetX / Math.max(width, 1));
+      handlePagerEnd(nextIndex);
+    },
+    [handlePagerEnd, width],
+  );
+
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollX.value = event.contentOffset.x;
-      const nextIndex = Math.round(event.contentOffset.x / Math.max(width, 1));
-      runOnJS(handlePagerEnd)(nextIndex);
     },
   });
 
@@ -197,29 +210,37 @@ export default function HomeScreen() {
           snapToInterval={width}
           decelerationRate="fast"
           onScroll={scrollHandler}
+          onMomentumScrollEnd={handlePagerMomentumEnd}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
         >
-          {displayAccounts.map((account) => (
-            <View key={account.id} style={{ width, height: pagerHeight || undefined }}>
-              <HomeAccountPage
-                pageHeight={pagerHeight}
-                accountId={account.id}
-                accountName={account.name}
-                settingsYearStart={settings.yearStart}
-                currencySymbol={settings.currencySymbol}
-                customRange={customRangeMemo}
-                onOpenCustomRange={openCustomRange}
-                totalBalance={
-                  account.id === 'all'
-                    ? getTotalBalance(accounts)
-                    : (accounts.find((item) => item.id === account.id)?.balance ?? 0)
-                }
-                onRefresh={refreshAccounts}
-                isSelected={account.id === selectedAccountId}
-              />
-            </View>
-          ))}
+          {displayAccounts.map((account, index) => {
+            const shouldRenderPage = Math.abs(index - selectedAccountIndex) <= 1;
+            return (
+              <View key={account.id} style={{ width, height: pagerHeight || undefined }}>
+                {shouldRenderPage ? (
+                  <HomeAccountPage
+                    pageHeight={pagerHeight}
+                    accountId={account.id}
+                    accountName={account.name}
+                    settingsYearStart={settingsYearStart}
+                    currencySymbol={currencySymbol}
+                    customRange={customRangeMemo}
+                    onOpenCustomRange={openCustomRange}
+                    totalBalance={
+                      account.id === 'all'
+                        ? getTotalBalance(accounts)
+                        : (accounts.find((item) => item.id === account.id)?.balance ?? 0)
+                    }
+                    onRefresh={refreshAccounts}
+                    isSelected={account.id === selectedAccountId}
+                  />
+                ) : (
+                  <View style={{ flex: 1 }} />
+                )}
+              </View>
+            );
+          })}
         </Animated.ScrollView>
       </View>
 
@@ -354,7 +375,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   isSelected: boolean;
 }) {
   const { palette } = useAppTheme();
-  const { getCategoryDisplayName } = useCategoriesStore();
+  const getCategoryDisplayName = useCategoriesStore((s) => s.getCategoryDisplayName);
   const [period, setPeriod] = useState<PeriodType>('week');
   const [activeView, setActiveView] = useState<'out' | 'in' | 'table'>('out');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
@@ -428,7 +449,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           source: 'home-today',
           period: 'day',
           accountId: accountId === 'all' ? 'all' : accountId,
-          type: kind === 'net' ? 'all' : kind,
+          type: 'all',
+          cashflowBucket: kind === 'net' ? 'all' : kind,
           ts: String(Date.now()),
         },
       });
@@ -443,7 +465,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           source: 'home-period',
           period,
           accountId: accountId === 'all' ? 'all' : accountId,
-          type: kind === 'net' ? 'all' : kind,
+          type: 'all',
+          cashflowBucket: kind === 'net' ? 'all' : kind,
           from,
           to,
           ts: String(Date.now()),
@@ -468,7 +491,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           source: 'home-slice',
           period: 'custom',
           accountId: accountId === 'all' ? 'all' : accountId,
-          type,
+          type: 'all',
+          cashflowBucket: type,
           from: range.from,
           to: range.to,
           ts: String(Date.now()),
@@ -830,16 +854,19 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                   No transactions yet
                 </Text>
               ) : (
-                transactions.map((transaction, index) => (
-                  <TransactionListItem
-                    key={transaction.id}
+                transactions.map((transaction, index) => {
+                  return (
+                    <TransactionListItem
+                      key={transaction.id}
                     tx={transaction}
                     sym={currencySymbol}
+                    palette={palette}
                     isLast={index === transactions.length - 1}
                     categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
                     onPress={handleTransactionPress}
                   />
-                ))
+                  );
+                })
               )}
             </ScrollView>
           </View>

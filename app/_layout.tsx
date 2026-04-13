@@ -19,7 +19,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
   const loadSettings = useUIStore((s) => s.load);
-  const settings = useUIStore((s) => s.settings);
+  const theme = useUIStore((s) => s.settings.theme);
   const loadCategories = useCategoriesStore((s) => s.load);
   const [ready, setReady] = useState(false);
   const colorScheme = useColorScheme();
@@ -40,7 +40,7 @@ export default function RootLayout() {
     init();
   }, []);
 
-  const themeMode = resolveTheme(settings.theme, colorScheme);
+  const themeMode = resolveTheme(theme, colorScheme);
   const palette = getThemePalette(themeMode);
 
   useEffect(() => {

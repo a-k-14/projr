@@ -12,7 +12,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
   LayoutAnimation,
 } from 'react-native';
 import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
@@ -23,7 +22,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { AppThemePalette, getThemePalette, resolveTheme } from '../../lib/theme';
+import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getTransactionById } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -78,25 +77,23 @@ export default function AddTransactionModal() {
   const { editId, accountId: sourceAccountId, type: initialType } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string }>();
   const isEditing = !!editId;
 
-  const { add, update, remove } = useTransactionsStore();
-  const loanStore = useLoansStore();
-  const { accounts, refresh: refreshAccounts } = useAccountsStore();
-  const { categories, tags } = useCategoriesStore();
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
-  const {
-    accountId: draftAccountId,
-    categoryId: draftCategoryId,
-    tagIds: draftTagIds,
-    calculatorValue,
-    calculatorOpen,
-    setAccountId: setDraftAccountId,
-    setCategoryId: setDraftCategoryId,
-    setTagIds: setDraftTagIds,
-    setCalculatorValue,
-    setCalculatorOpen,
-  } = useTransactionDraftStore();
+  const addTransaction = useTransactionsStore((s) => s.add);
+  const updateTransaction = useTransactionsStore((s) => s.update);
+  const removeTransaction = useTransactionsStore((s) => s.remove);
+  const addLoan = useLoansStore((s) => s.add);
+  const accounts = useAccountsStore((s) => s.accounts);
+  const refreshAccounts = useAccountsStore((s) => s.refresh);
+  const categories = useCategoriesStore((s) => s.categories);
+  const tags = useCategoriesStore((s) => s.tags);
+  const defaultAccountId = useUIStore((s) => s.settings.defaultAccountId);
+  const sym = useUIStore((s) => s.settings.currencySymbol);
+  const { palette } = useAppTheme();
+  const draftCategoryId = useTransactionDraftStore((s) => s.categoryId);
+  const calculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
+  const calculatorOpen = useTransactionDraftStore((s) => s.calculatorOpen);
+  const setDraftCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
+  const setCalculatorValue = useTransactionDraftStore((s) => s.setCalculatorValue);
+  const setCalculatorOpen = useTransactionDraftStore((s) => s.setCalculatorOpen);
   const insets = useSafeAreaInsets();
   const [type, setType] = useState<TransactionType>((initialType as TransactionType) || 'out');
   const [amountStr, setAmountStr] = useState('');
@@ -133,8 +130,6 @@ export default function AddTransactionModal() {
     return () => { showSub.remove(); hideSub.remove(); };
   }, []);
 
-  const sym = settings.currencySymbol;
-
   const TYPE_CONFIG = {
     in: { label: 'In', color: palette.positive, borderColor: palette.positive, bg: palette.inBg },
     out: { label: 'Out', color: palette.negative, borderColor: palette.negative, bg: palette.outBg },
@@ -147,19 +142,34 @@ export default function AddTransactionModal() {
       const preferred =
         sourceAccountId && sourceAccountId !== 'all' && accounts.some((account) => account.id === sourceAccountId)
           ? sourceAccountId
-          : settings.defaultAccountId || accounts[0].id;
+          : defaultAccountId || accounts[0].id;
       setAccountId(preferred);
       if (accounts.length > 1) setLinkedAccountId(accounts[1].id);
     }
-  }, [accounts, accountId, settings.defaultAccountId, sourceAccountId]);
+  }, [accounts, accountId, defaultAccountId, sourceAccountId]);
 
+  // One-way sync: when user picks a category in the external modal,
+  // draftCategoryId changes → pull it into local state.
+  // We guard with a ref so that our own setCategoryId calls don't re-trigger.
+  const isSyncingCategory = useRef(false);
   useEffect(() => {
-    if (draftCategoryId && draftCategoryId !== categoryId) setCategoryId(draftCategoryId);
-  }, [categoryId, draftCategoryId]);
+    if (isSyncingCategory.current) {
+      isSyncingCategory.current = false;
+      return;
+    }
+    if (draftCategoryId && draftCategoryId !== categoryId) {
+      setCategoryId(draftCategoryId);
+    }
+  }, [draftCategoryId]);
 
+  // Push local categoryId to draft store (for the category picker to read),
+  // but only when local state changes and skip the initial empty value.
   useEffect(() => {
-    if (categoryId !== draftCategoryId) setDraftCategoryId(categoryId);
-  }, [categoryId, draftCategoryId, setDraftCategoryId]);
+    if (categoryId) {
+      isSyncingCategory.current = true;
+      setDraftCategoryId(categoryId);
+    }
+  }, [categoryId, setDraftCategoryId]);
 
   // Only sync calculator value to amountStr when the calculator is closed
   // This prevents incomplete expressions like "94+" from appearing in the main form
@@ -251,7 +261,7 @@ export default function AddTransactionModal() {
       };
 
       if (type === 'loan') {
-        await loanStore.add({
+        await addLoan({
           personName,
           direction: loanDirection,
           accountId,
@@ -261,9 +271,9 @@ export default function AddTransactionModal() {
           date,
         });
       } else if (isEditing && editId) {
-        await update(editId, data);
+        await updateTransaction(editId, data);
       } else {
-        await add(data);
+        await addTransaction(data);
       }
       await refreshAccounts();
       router.back();
@@ -281,7 +291,7 @@ export default function AddTransactionModal() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          if (editId) await remove(editId);
+          if (editId) await removeTransaction(editId);
           await refreshAccounts();
           router.back();
         },

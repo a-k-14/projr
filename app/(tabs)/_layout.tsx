@@ -59,6 +59,8 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
+        lazy: true,
+        freezeOnBlur: true,
         sceneStyle: {
           backgroundColor: palette.background,
         },
@@ -108,7 +110,7 @@ export default function TabLayout() {
         listeners={{
           tabPress: (event) => {
             event.preventDefault();
-            router.push({
+            router.navigate({
               pathname: '/(tabs)/activity',
               params: { source: 'activity-tab', ts: String(Date.now()) },
             });

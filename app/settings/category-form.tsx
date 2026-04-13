@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import {
   ActionButton,
   FixedBottomActions,
@@ -13,9 +13,8 @@ import {
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CARD_PADDING, SPACING } from '../../lib/design';
 import { CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useUIStore } from '../../stores/useUIStore';
 
 function isEmoji(icon: string) {
   return !/^[a-z-]+$/.test(icon);
@@ -74,17 +73,13 @@ export default function CategoryFormScreen() {
   const { id, type: typeParam } = useLocalSearchParams<{ id?: string; type?: string }>();
   const isEditing = !!id;
 
-  const {
-    categories,
-    load,
-    isLoaded,
-    addCategory,
-    updateCategory,
-    removeCategory,
-  } = useCategoriesStore();
-  const scheme = useColorScheme();
-  const theme = useUIStore((s) => s.settings.theme);
-  const palette = getThemePalette(resolveTheme(theme, scheme));
+  const categories = useCategoriesStore((s) => s.categories);
+  const loadCategories = useCategoriesStore((s) => s.load);
+  const isCategoriesLoaded = useCategoriesStore((s) => s.isLoaded);
+  const addCategory = useCategoriesStore((s) => s.addCategory);
+  const updateCategory = useCategoriesStore((s) => s.updateCategory);
+  const removeCategory = useCategoriesStore((s) => s.removeCategory);
+  const { palette } = useAppTheme();
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -100,8 +95,8 @@ export default function CategoryFormScreen() {
   const isSubcategory = !!editingCategory?.parentId;
 
   useEffect(() => {
-    if (!isLoaded) load().catch(() => undefined);
-  }, [isLoaded, load]);
+    if (!isCategoriesLoaded) loadCategories().catch(() => undefined);
+  }, [isCategoriesLoaded, loadCategories]);
 
   useEffect(() => {
     if (id) {

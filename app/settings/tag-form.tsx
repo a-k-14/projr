@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, View, useColorScheme } from 'react-native';
+import { Alert, View } from 'react-native';
 import {
   ActionButton,
   ColorGrid,
@@ -10,9 +10,8 @@ import {
   SettingsFormLayout,
 } from '../../components/settings-ui';
 import { ENTITY_COLORS } from '../../lib/settings-shared';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useUIStore } from '../../stores/useUIStore';
 
 type Draft = {
   name: string;
@@ -27,18 +26,21 @@ const EMPTY_DRAFT: Draft = {
 export default function TagFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
-  const { tags, load, isLoaded, addTag, updateTag, removeTag } = useCategoriesStore();
-  const scheme = useColorScheme();
-  const theme = useUIStore((s) => s.settings.theme);
-  const palette = getThemePalette(resolveTheme(theme, scheme));
+  const tags = useCategoriesStore((s) => s.tags);
+  const loadCategories = useCategoriesStore((s) => s.load);
+  const isCategoriesLoaded = useCategoriesStore((s) => s.isLoaded);
+  const addTag = useCategoriesStore((s) => s.addTag);
+  const updateTag = useCategoriesStore((s) => s.updateTag);
+  const removeTag = useCategoriesStore((s) => s.removeTag);
+  const { palette } = useAppTheme();
   const router = useRouter();
   const navigation = useNavigation();
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
 
   useEffect(() => {
-    if (!isLoaded) load().catch(() => undefined);
-  }, [isLoaded, load]);
+    if (!isCategoriesLoaded) loadCategories().catch(() => undefined);
+  }, [isCategoriesLoaded, loadCategories]);
 
   useEffect(() => {
     if (id) {

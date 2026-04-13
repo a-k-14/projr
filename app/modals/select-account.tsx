@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, Pressable, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,14 +7,13 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 
 export default function SelectAccountSheet() {
-  const { accounts } = useAccountsStore();
-  const { accountId, setAccountId } = useTransactionDraftStore();
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const accounts = useAccountsStore((s) => s.accounts);
+  const accountId = useTransactionDraftStore((s) => s.accountId);
+  const setAccountId = useTransactionDraftStore((s) => s.setAccountId);
+  const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   return (

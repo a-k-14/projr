@@ -1,6 +1,7 @@
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { db } from '../db/client';
 import { transactions } from '../db/schema';
+import { getTransactionCashflowImpact } from '../lib/derived';
 import type { CashflowSummary, DailySpending, CategoryBreakdown, DailyCashflow } from '../types';
 import { getCategories } from './categories';
 
@@ -20,8 +21,9 @@ export async function getCashflowSummary(
   let inTotal = 0,
     outTotal = 0;
   for (const row of rows) {
-    if (row.type === 'in') inTotal += row.amount;
-    else if (row.type === 'out') outTotal += row.amount;
+    const impact = getTransactionCashflowImpact(row);
+    if (impact === 'in') inTotal += row.amount;
+    else if (impact === 'out') outTotal += row.amount;
   }
   return { in: inTotal, out: outTotal, net: inTotal - outTotal };
 }
@@ -68,8 +70,9 @@ export async function getDailyCashflow(
   for (const row of rows) {
     const dateKey = row.date.split('T')[0];
     if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
-    if (row.type === 'in') byDate[dateKey].in += row.amount;
-    else if (row.type === 'out') byDate[dateKey].out += row.amount;
+    const impact = getTransactionCashflowImpact(row);
+    if (impact === 'in') byDate[dateKey].in += row.amount;
+    else if (impact === 'out') byDate[dateKey].out += row.amount;
   }
 
   // Ensure all dates in range are represented? (Actually chart builder does that)

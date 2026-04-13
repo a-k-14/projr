@@ -8,7 +8,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,31 +23,33 @@ import {
   HOME_TEXT,
   getFabBottomOffset,
 } from '../../lib/layoutTokens';
-import { AppThemePalette, getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { BudgetWithSpent, CreateBudgetInput } from '../../types';
 
 export default function BudgetScreen() {
-  const { budgets, load, add, remove } = useBudgetStore();
-  const { categories } = useCategoriesStore();
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const budgets = useBudgetStore((s) => s.budgets);
+  const loadBudgets = useBudgetStore((s) => s.load);
+  const addBudget = useBudgetStore((s) => s.add);
+  const removeBudget = useBudgetStore((s) => s.remove);
+  const categories = useCategoriesStore((s) => s.categories);
+  const yearStart = useUIStore((s) => s.settings.yearStart);
+  const sym = useUIStore((s) => s.settings.currencySymbol);
+  const { palette } = useAppTheme();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const sym = settings.currencySymbol;
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    load(settings.yearStart);
-  }, [settings.yearStart]);
+    loadBudgets(yearStart);
+  }, [yearStart]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load(settings.yearStart);
+    await loadBudgets(yearStart);
     setRefreshing(false);
   };
 
@@ -182,7 +183,7 @@ export default function BudgetScreen() {
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSave={async (data) => {
-          await add(data, settings.yearStart);
+          await addBudget(data, yearStart);
           setShowAddModal(false);
         }}
         palette={palette}

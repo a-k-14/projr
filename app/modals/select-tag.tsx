@@ -7,15 +7,13 @@ import { SCREEN_GUTTER, SHEET_GUTTER, RADIUS, SPACING } from '../../lib/design';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
-import { useColorScheme } from 'react-native';
+import { useAppTheme } from '../../lib/theme';
 
 export default function SelectTagSheet() {
-  const { tags } = useCategoriesStore();
-  const { tagIds, setTagIds } = useTransactionDraftStore();
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const tags = useCategoriesStore((s) => s.tags);
+  const tagIds = useTransactionDraftStore((s) => s.tagIds);
+  const setTagIds = useTransactionDraftStore((s) => s.setTagIds);
+  const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   const [selectedIds, setSelectedIds] = useState<string[]>(tagIds);

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,15 +8,14 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import type { TransactionType } from '../../types';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 
 export default function SelectCategoryScreen() {
   const { type } = useLocalSearchParams<{ type?: TransactionType }>();
-  const { categories } = useCategoriesStore();
-  const { categoryId, setCategoryId } = useTransactionDraftStore();
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const categories = useCategoriesStore((s) => s.categories);
+  const categoryId = useTransactionDraftStore((s) => s.categoryId);
+  const setCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
+  const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
 

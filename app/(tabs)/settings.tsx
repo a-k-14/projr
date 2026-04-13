@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, Switch, Text, useColorScheme, View } from 'react-native';
+import { ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
@@ -20,9 +20,11 @@ type PickerKind = 'year-start' | 'default-account' | 'currency' | 'theme' | null
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { settings, updateSettings } = useUIStore();
-  const { accounts } = useAccountsStore();
-  const { categories, tags } = useCategoriesStore();
+  const settings = useUIStore((s) => s.settings);
+  const updateSettings = useUIStore((s) => s.updateSettings);
+  const accounts = useAccountsStore((s) => s.accounts);
+  const categories = useCategoriesStore((s) => s.categories);
+  const tags = useCategoriesStore((s) => s.tags);
   const { palette } = useAppTheme();
   const [picker, setPicker] = useState<PickerKind>(null);
 

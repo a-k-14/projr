@@ -7,7 +7,6 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,33 +21,32 @@ import {
   HOME_TEXT,
   getFabBottomOffset,
 } from '../../lib/layoutTokens';
-import type { AppThemePalette } from '../../lib/theme';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { FabButton } from '../../components/ui/FabButton';
 import type { LoanStatus, LoanWithSummary } from '../../types';
+import { useCallback } from 'react';
 
 
 export default function LoansScreen() {
-  const { loans, load, filters } = useLoansStore();
-  const { accounts } = useAccountsStore();
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const loans = useLoansStore((s) => s.loans);
+  const loadLoans = useLoansStore((s) => s.load);
+  const filters = useLoansStore((s) => s.filters);
+  const accounts = useAccountsStore((s) => s.accounts);
+  const sym = useUIStore((s) => s.settings.currencySymbol);
+  const { palette } = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const sym = settings.currencySymbol;
-
   useEffect(() => {
-    load();
+    loadLoans();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load(filters);
+    await loadLoans(filters);
     setRefreshing(false);
   };
 
@@ -203,7 +201,7 @@ export default function LoansScreen() {
                   return (
                     <TouchableOpacity
                       key={acc.id}
-                      onPress={() => load({ accountId: acc.id === 'all' ? undefined : acc.id, status: filters.status })}
+                      onPress={() => loadLoans({ accountId: acc.id === 'all' ? undefined : acc.id, status: filters.status })}
                       style={{
                         paddingHorizontal: HOME_SPACE.lg,
                         paddingVertical: HOME_SPACE.sm,
@@ -227,7 +225,7 @@ export default function LoansScreen() {
                 return (
                   <TouchableOpacity
                     key={String(s)}
-                    onPress={() => load({ ...filters, status: s })}
+                    onPress={() => loadLoans({ ...filters, status: s })}
                     style={{
                       paddingHorizontal: HOME_SPACE.lg,
                       paddingVertical: HOME_SPACE.sm,
@@ -254,15 +252,19 @@ export default function LoansScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item, index }) => (
-          <LoanRow
-            loan={item}
-            sym={sym}
-            palette={palette}
-            isLast={index === loans.length - 1}
-            onPress={() => router.push(`/loan/${item.id}`)}
-          />
-        )}
+        renderItem={useCallback(({ item, index }: { item: LoanWithSummary; index: number }) => {
+          const account = accounts.find((a) => a.id === item.accountId);
+          return (
+            <LoanRow
+              loan={item}
+              accountName={account?.name}
+              sym={sym}
+              palette={palette}
+              isLast={index === loans.length - 1}
+              onPress={() => router.push(`/loan/${item.id}`)}
+            />
+          );
+        }, [accounts, sym, palette, loans, loans.length])}
         ItemSeparatorComponent={() => null}
       />
 
@@ -282,19 +284,19 @@ export default function LoansScreen() {
 
 function LoanRow({
   loan,
+  accountName,
   sym,
   palette,
   isLast,
   onPress,
 }: {
   loan: LoanWithSummary;
+  accountName?: string;
   sym: string;
   palette: AppThemePalette;
   isLast: boolean;
   onPress: () => void;
 }) {
-  const { accounts } = useAccountsStore();
-  const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
   const dirColor = isLent ? palette.positive : palette.negative;
   const dirBg = isLent ? palette.inBg : palette.outBg;
@@ -332,7 +334,7 @@ function LoanRow({
           {loan.personName}
         </Text>
         <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>
-          {isLent ? 'Lent' : 'Borrowed'} · {account?.name} · {formatDateShort(loan.date)}
+          {isLent ? 'Lent' : 'Borrowed'} · {accountName} · {formatDateShort(loan.date)}
         </Text>
 
         {/* Ghost progress bar — visible even at 0% */}

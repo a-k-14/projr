@@ -8,7 +8,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,7 +17,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatCurrency, groupTransactionsByDate, parseFormattedNumber } from '../../lib/derived';
 import { formatDate, formatDateShort, todayUTC } from '../../lib/dateUtils';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { SCREEN_GUTTER } from '../../lib/design';
 import {
   HOME_RADIUS,
@@ -29,29 +28,23 @@ import type { LoanWithSummary } from '../../types';
 
 export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { loans, isLoaded, recordPayment, update, load } = useLoansStore();
-  const { accounts } = useAccountsStore();
-  const { settings } = useUIStore();
-  const scheme = useColorScheme();
-  const palette = getThemePalette(resolveTheme(settings.theme, scheme));
+  const loans = useLoansStore((s) => s.loans);
+  const recordPayment = useLoansStore((s) => s.recordPayment);
+  const updateLoan = useLoansStore((s) => s.update);
+  const loadLoans = useLoansStore((s) => s.load);
+  const accounts = useAccountsStore((s) => s.accounts);
+  const sym = useUIStore((s) => s.settings.currencySymbol);
+  const { palette } = useAppTheme();
 
   const [paymentAmount, setPaymentAmount] = useState('');
   const [showPaymentInput, setShowPaymentInput] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const sym = settings.currencySymbol;
   const loan = loans.find((l) => l.id === id);
 
   useEffect(() => {
-    if (!loan) load();
-  }, [id]);
-
-  // 404 guard: store is loaded but loan still not found — navigate back
-  useEffect(() => {
-    if (isLoaded && !loan) {
-      router.back();
-    }
-  }, [isLoaded, loan]);
+    loadLoans();
+  }, []);
 
   if (!loan) {
     return (
@@ -84,12 +77,10 @@ export default function LoanDetailScreen() {
     }
   };
 
-  const handleToggleStatus = () => {
-    const newStatus = loan.status === 'open' ? 'closed' : 'open';
-    Alert.alert(`Mark as ${newStatus}?`, `This loan will be marked as ${newStatus}.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Confirm', onPress: () => update(loan.id, { status: newStatus }) },
-    ]);
+  const handleToggleStatus = async () => {
+    if (!loan) return;
+    const nextStatus = loan.status === 'open' ? 'closed' : 'open';
+    await updateLoan(loan.id, { status: nextStatus });
   };
 
   return (

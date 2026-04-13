@@ -9,6 +9,17 @@ import type {
   Transaction,
 } from '../types';
 
+export function getTransactionCashflowImpact(tx: { type: string; note?: string | null }): 'in' | 'out' | 'neutral' {
+  if (tx.type === 'in') return 'in';
+  if (tx.type === 'out') return 'out';
+  if (tx.type === 'loan') {
+    const note = (tx.note ?? '').toLowerCase();
+    if (note.startsWith('borrowed from') || note.startsWith('payment from')) return 'in';
+    if (note.startsWith('lent to') || note.startsWith('payment to')) return 'out';
+  }
+  return 'neutral';
+}
+
 export function getTotalBalance(accounts: Account[]): number {
   return accounts.reduce((sum, a) => sum + a.balance, 0);
 }
@@ -42,8 +53,9 @@ export function getCashflowFromList(transactions: Transaction[]): CashflowSummar
   let inTotal = 0;
   let outTotal = 0;
   for (const t of transactions) {
-    if (t.type === 'in') inTotal += t.amount;
-    else if (t.type === 'out') outTotal += t.amount;
+    const impact = getTransactionCashflowImpact(t);
+    if (impact === 'in') inTotal += t.amount;
+    else if (impact === 'out') outTotal += t.amount;
   }
   return { in: inTotal, out: outTotal, net: inTotal - outTotal };
 }
