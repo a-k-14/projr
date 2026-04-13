@@ -3,7 +3,6 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated,
   LayoutChangeEvent,
   Modal,
   Pressable,
@@ -14,9 +13,8 @@ import {
   useColorScheme,
   useWindowDimensions,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedScrollHandler, runOnJS, useAnimatedRef } from 'react-native-reanimated';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
@@ -71,20 +69,20 @@ export default function HomeScreen() {
   const { settings } = useUIStore();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const pagerRef = useRef<any>(null);
+  const pagerRef = useAnimatedRef<Animated.ScrollView>();
   const scheme = useColorScheme();
   const palette = getThemePalette(resolveTheme(settings.theme, scheme));
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollX = useSharedValue(0);
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => todayUTC());
   const [customRangeTo, setCustomRangeTo] = useState(() => todayUTC());
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
 
-  const displayAccounts: AccountTab[] = [
+  const displayAccounts = useMemo<AccountTab[]>(() => [
     { id: 'all', name: 'All' },
     ...accounts.map((a) => ({ id: a.id, name: formatAccountDisplayName(a.name, a.accountNumber) })),
-  ];
+  ], [accounts]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
 
@@ -94,6 +92,7 @@ export default function HomeScreen() {
       !accounts.some((account) => account.id === selectedAccountId)
     ) {
       setSelectedAccountId('all');
+      pagerRef.current?.scrollTo({ x: 0, animated: true });
     }
   }, [accounts, selectedAccountId]);
 
@@ -106,26 +105,51 @@ export default function HomeScreen() {
     (index: number) => {
       const next = displayAccounts[index];
       if (!next) return;
-      setSelectedAccountId(next.id);
       pagerRef.current?.scrollTo({ x: index * width, animated: true });
+      requestAnimationFrame(() => {
+        setSelectedAccountId(next.id);
+      });
     },
     [displayAccounts, width],
   );
 
+  const customRangeMemo = useMemo(
+    () => ({ from: new Date(customRangeFrom), to: new Date(customRangeTo) }),
+    [customRangeFrom, customRangeTo]
+  );
+
   const handlePagerEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const nextIndex = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
-      const next = displayAccounts[nextIndex];
+    (index: number) => {
+      const next = displayAccounts[index];
       if (next && next.id !== selectedAccountId) {
         setSelectedAccountId(next.id);
       }
     },
-    [displayAccounts, selectedAccountId, width],
+    [displayAccounts, selectedAccountId],
   );
 
-  useEffect(() => {
-    pagerRef.current?.scrollTo({ x: selectedIndex * width, animated: false });
-  }, [selectedIndex, width]);
+  const pagerIndex = useSharedValue(selectedIndex);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+      const nextIndex = Math.round(event.contentOffset.x / Math.max(width, 1));
+      if (nextIndex !== pagerIndex.value) {
+        pagerIndex.value = nextIndex;
+        runOnJS(handlePagerEnd)(nextIndex);
+      }
+    },
+    onMomentumEnd: (event) => {
+      // Fallback
+      const nextIndex = Math.round(event.contentOffset.x / Math.max(width, 1));
+      if (nextIndex !== pagerIndex.value) {
+        pagerIndex.value = nextIndex;
+        runOnJS(handlePagerEnd)(nextIndex);
+      }
+    },
+  });
+
+
 
   const openCustomRange = useCallback(() => {
     setCustomDraftFrom(new Date(customRangeFrom));
@@ -177,11 +201,13 @@ export default function HomeScreen() {
         accounts={displayAccounts}
         selectedId={selectedAccountId}
         onSelect={(id) => {
-          setSelectedAccountId(id);
           const i = displayAccounts.findIndex((a) => a.id === id);
           if (i !== -1) {
             pagerRef.current?.scrollTo({ x: i * width, animated: true });
           }
+          requestAnimationFrame(() => {
+            setSelectedAccountId(id);
+          });
         }}
         externalScrollX={scrollX}
         palette={palette}
@@ -199,13 +225,10 @@ export default function HomeScreen() {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           directionalLockEnabled
-          onMomentumScrollEnd={handlePagerEnd}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            {
-              useNativeDriver: false,
-            },
-          )}
+          disableIntervalMomentum={true}
+          snapToInterval={width}
+          decelerationRate="fast"
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
         >
@@ -217,7 +240,7 @@ export default function HomeScreen() {
                 accountName={account.name}
                 settingsYearStart={settings.yearStart}
                 currencySymbol={settings.currencySymbol}
-                customRange={{ from: new Date(customRangeFrom), to: new Date(customRangeTo) }}
+                customRange={customRangeMemo}
                 onOpenCustomRange={openCustomRange}
                 totalBalance={
                   account.id === 'all'
@@ -340,7 +363,7 @@ export default function HomeScreen() {
   );
 }
 
-function HomeAccountPage({
+const HomeAccountPage = React.memo(function HomeAccountPage({
   pageHeight,
   accountId,
   accountName,
@@ -874,7 +897,7 @@ function HomeAccountPage({
       )}
     </View>
   );
-}
+});
 
 function startOfDayIso(date: Date): string {
   const value = new Date(date);
