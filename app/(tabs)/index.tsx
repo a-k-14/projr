@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Animated, { useSharedValue, useAnimatedScrollHandler, runOnJS, useAnimatedRef } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedScrollHandler, runOnJS, useAnimatedRef, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
@@ -500,7 +500,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 
   return (
     <View style={{ flex: 1, height: pageHeight }}>
-      <ScrollView
+      <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -864,7 +864,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             </ScrollView>
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {showViewPicker && (
         <BottomSheet

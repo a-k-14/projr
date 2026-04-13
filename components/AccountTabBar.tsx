@@ -8,6 +8,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSpring,
   useAnimatedReaction,
   useAnimatedRef,
   scrollTo,
@@ -66,8 +67,8 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
     const tx = interpolate(scrollX.value, safeInputRange, safeOffsets, Extrapolation.CLAMP);
     const tw = interpolate(scrollX.value, safeInputRange, safeWidths, Extrapolation.CLAMP);
     return {
-      width: tw,
-      transform: [{ translateX: tx }],
+      width: withSpring(tw, { damping: 20, stiffness: 300, mass: 0.5 }),
+      transform: [{ translateX: withSpring(tx, { damping: 20, stiffness: 300, mass: 0.5 }) }],
     };
   });
 

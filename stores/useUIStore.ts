@@ -26,7 +26,13 @@ export const useUIStore = create<UIStore>((set) => ({
   },
 
   updateSettings: async (data) => {
+    // Optimistic Update: instantly update the UI without waiting for DB/Disk I/O
+    set((state) => ({ settings: { ...state.settings, ...data } }));
+    
+    // Background validation and physical saving
     const updated = await settingsService.updateSettings(data);
+    
+    // Re-sync with actual saved defaults if necessary
     set({ settings: updated });
   },
 }));
