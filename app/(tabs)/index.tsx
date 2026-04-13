@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler, runOnJS, useAnimatedRef } from 'react-native-reanimated';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
+import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { ChoiceRow } from '../../components/settings-ui';
@@ -362,6 +363,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showViewPicker, setShowViewPicker] = useState(false);
+  const isScreenFocused = useIsFocused();
 
   const leftScrollRef = useRef<ScrollView>(null);
   const rightScrollRef = useRef<ScrollView>(null);
@@ -379,6 +381,11 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     customRange ? customRange.to.toISOString() : undefined,
   );
   const today = todayUTC();
+  const todayEnd = useMemo(() => {
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    return now.toISOString();
+  }, [today]);
 
   const loadPageData = useCallback(async () => {
     const accountFilter = accountId === 'all' ? undefined : accountId;
@@ -386,19 +393,19 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
       getCashflowSummary(accountId, from, to),
       getDailyCashflow(accountId, from, to),
       getTransactions({ accountId: accountFilter, limit: 5 }),
-      getCashflowSummary(accountId, today, today),
+      getCashflowSummary(accountId, today, todayEnd),
     ]);
 
     setCashflow(periodSummary);
     setDailyData(dailySummary);
     setTransactions(recentTransactions);
     setTodayCashflow(todaySummary);
-  }, [accountId, from, to, today]);
+  }, [accountId, from, to, today, todayEnd]);
 
   useEffect(() => {
-    if (!isSelected) return;
+    if (!isScreenFocused || !isSelected) return;
     loadPageData();
-  }, [isSelected, loadPageData]);
+  }, [isScreenFocused, isSelected, loadPageData]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -445,6 +452,14 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     },
     [accountId, from, period, to],
   );
+
+  const handleTransactionPress = useCallback((tx: Transaction) => {
+    router.push({
+      pathname: '/modals/add-transaction',
+      params: { editId: tx.id }
+    });
+  }, []);
+
   const openSliceActivity = useCallback(
     (range: { from: string; to: string }, type: TransactionType | 'all') => {
       router.push({
@@ -822,6 +837,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                     sym={currencySymbol}
                     isLast={index === transactions.length - 1}
                     categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
+                    onPress={handleTransactionPress}
                   />
                 ))
               )}
