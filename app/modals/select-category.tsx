@@ -58,12 +58,16 @@ export default function SelectCategoryScreen() {
   // Build hierarchical sections with strict type filtering
   const sections = useMemo(() => {
     // Filter top-level parents first based on transaction type
-    const parents = categories.filter(
-      (c) => c.parentId == null && (type === undefined || c.type === type || c.type === 'both')
-    );
+    const parents = categories
+      .filter((c) => c.parentId == null && (type === undefined || c.type === type || c.type === 'both'))
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
     return parents.map((parent) => {
-      const children = categories.filter((c) => c.parentId === parent.id);
+      const children = categories
+        .filter((c) => c.parentId === parent.id)
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
       const filteredChildren = children.filter((child) => {
         if (!search.trim()) return true;
         const haystack = `${parent.name} ${child.name}`.toLowerCase();

@@ -384,7 +384,14 @@ export default function ActivityScreen() {
   const moreActiveBg = palette.brandSoft;
   const moreActiveBorder = palette.brand;
 
-  const topCategories = useMemo(() => categories.filter((category) => !category.parentId), [categories]);
+  const topCategories = useMemo(
+    () =>
+      categories
+        .filter((category) => !category.parentId)
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' })),
+    [categories],
+  );
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
   const childCategoriesByParent = useMemo(() => {
     const map = new Map<string, Category[]>();
@@ -393,6 +400,12 @@ export default function ActivityScreen() {
       const next = map.get(category.parentId) ?? [];
       next.push(category);
       map.set(category.parentId, next);
+    });
+    map.forEach((items, key) => {
+      map.set(
+        key,
+        items.slice().sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' })),
+      );
     });
     return map;
   }, [categories]);
@@ -501,7 +514,7 @@ export default function ActivityScreen() {
                   sym={sym}
                   palette={palette}
                   isLast={index === item.items.length - 1}
-                  categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId) : undefined}
+                  categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' > ') : undefined}
                   accountName={account?.name}
                   linkedAccountName={linkedAccount?.name}
                   loanPersonName={loan?.personName}

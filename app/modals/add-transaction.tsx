@@ -1719,9 +1719,15 @@ function getCategoryName(categories: Category[], categoryId: string) {
 }
 
 function getRelevantCategoryOptions(categories: Category[], type: TransactionType) {
-  const relevantParents = categories.filter((category) => category.type === type || category.type === 'both');
+  const relevantParents = categories
+    .filter((category) => category.type === type || category.type === 'both')
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
   return relevantParents.flatMap((parent) => {
-    const children = categories.filter((category) => category.parentId === parent.id);
+    const children = categories
+      .filter((category) => category.parentId === parent.id)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
     if (children.length > 0) {
       return children.map((child) => ({
         id: child.id,

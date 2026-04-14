@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/client';
 import { loans } from '../db/schema';
 import type { Loan, LoanWithSummary, CreateLoanInput, LoanFilters } from '../types';
@@ -41,8 +41,8 @@ export async function getLoans(filters: LoanFilters = {}): Promise<LoanWithSumma
   if (filters.status) conditions.push(eq(loans.status, filters.status));
 
   const rows = conditions.length > 0
-    ? await db.select().from(loans).where(and(...conditions))
-    : await db.select().from(loans);
+    ? await db.select().from(loans).where(and(...conditions)).orderBy(desc(loans.date), desc(loans.createdAt))
+    : await db.select().from(loans).orderBy(desc(loans.date), desc(loans.createdAt));
 
   const loanList = rows.map(rowToLoan);
   return Promise.all(loanList.map(enrichLoan));

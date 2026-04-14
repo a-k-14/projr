@@ -309,7 +309,10 @@ function AddBudgetModal({
   const [period, setPeriod] = useState<'month' | 'year'>('month');
   const [loading, setLoading] = useState(false);
 
-  const outCategories = categories.filter((c) => c.type !== 'in');
+  const outCategories = categories
+    .filter((c) => c.type !== 'in')
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
   const handleSave = async () => {
     const amount = parseFloat(parseFormattedNumber(amountStr));
