@@ -514,11 +514,20 @@ export default function ActivityScreen() {
                   sym={sym}
                   palette={palette}
                   isLast={index === item.items.length - 1}
-                  categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' > ') : undefined}
+                  categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined}
                   accountName={account?.name}
                   linkedAccountName={linkedAccount?.name}
                   loanPersonName={loan?.personName}
                   loanDirection={loan?.direction}
+                  tertiaryText={
+                    selectedTagIds.length > 0
+                      ? tx.tags
+                          .filter((tagId) => selectedTagIds.includes(tagId))
+                          .map((tagId) => tags.find((tag) => tag.id === tagId)?.name)
+                          .filter((value): value is string => !!value)
+                          .join(' • ') || undefined
+                      : undefined
+                  }
                   onPress={handleTransactionPress}
                 />
               );
@@ -701,10 +710,13 @@ export default function ActivityScreen() {
                   },
                 ]}
               >
-                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
-                <Text style={{ fontSize: 13, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted, marginLeft: 4 }}>
+                <Text
+                  numberOfLines={1}
+                  style={{ flex: 1, fontSize: 13, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
+                >
                   {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
                 </Text>
+                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -1424,6 +1436,7 @@ const styles = StyleSheet.create({
   moreChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     minWidth: 90,
     paddingHorizontal: 12,
     paddingVertical: 7,

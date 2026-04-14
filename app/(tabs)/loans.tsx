@@ -280,10 +280,10 @@ export default function LoansScreen() {
                   },
                 ]}
               >
-                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
-                <Text style={{ fontSize: 13, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted, marginLeft: 4 }}>
+                <Text numberOfLines={1} style={{ flex: 1, fontSize: 13, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}>
                   {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
                 </Text>
+                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -651,6 +651,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 5,
     height: ACTIVITY_LAYOUT.controlHeight,
     paddingHorizontal: ACTIVITY_LAYOUT.accountChipHorizontalPadding,
@@ -676,7 +677,8 @@ const styles = StyleSheet.create({
   moreChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    minWidth: 90,
+    justifyContent: 'center',
+    minWidth: 0,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,

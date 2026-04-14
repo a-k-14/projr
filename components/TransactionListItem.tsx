@@ -19,6 +19,7 @@ interface Props {
   linkedAccountName?: string;
   loanPersonName?: string;
   loanDirection?: 'lent' | 'borrowed';
+  tertiaryText?: string;
   paddingX?: number;
   paddingY?: number;
   /** Icon box size — defaults to the shared compact list icon size */
@@ -37,6 +38,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   linkedAccountName,
   loanPersonName,
   loanDirection,
+  tertiaryText,
   paddingX = HOME_LAYOUT.listRowPaddingX,
   paddingY = HOME_LAYOUT.listRowPaddingY,
   iconSize = HOME_LAYOUT.listIconSize,
@@ -111,6 +113,11 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
           {subtitle}
         </Text>
+        {tertiaryText ? (
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 1 }}>
+            {tertiaryText}
+          </Text>
+        ) : null}
       </View>
 
       <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text }}>
