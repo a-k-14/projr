@@ -18,6 +18,7 @@ interface CategoriesStore {
   getCategoryById: (id: string) => Category | undefined;
   getTagById: (id: string) => Tag | undefined;
   getCategoryDisplayName: (id: string) => string;
+  getCategoryFullDisplayName: (id: string, separator?: string) => string;
 }
 
 export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
@@ -101,5 +102,16 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
     const cat = categories.find((c) => c.id === id);
     if (!cat) return 'Unknown';
     return categoriesService.getCategoryDisplayName(cat, categories);
+  },
+
+  getCategoryFullDisplayName: (id: string, separator: string = ' · ') => {
+    const { categories } = get();
+    const cat = categories.find((c) => c.id === id);
+    if (!cat) return 'Unknown';
+    if (cat.parentId) {
+      const parent = categories.find((c) => c.id === cat.parentId);
+      if (parent) return `${parent.name}${separator}${cat.name}`;
+    }
+    return cat.name;
   },
 }));

@@ -16,8 +16,11 @@ interface Props {
   isLast: boolean;
   categoryName?: string;
   accountName?: string;
-  /** Padding applied to each row — defaults to the shared compact list spacing */
-  padding?: number;
+  linkedAccountName?: string;
+  loanPersonName?: string;
+  loanDirection?: 'lent' | 'borrowed';
+  paddingX?: number;
+  paddingY?: number;
   /** Icon box size — defaults to the shared compact list icon size */
   iconSize?: number;
   /** Optional: navigate to edit screen when tapped */
@@ -31,18 +34,45 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   isLast,
   categoryName,
   accountName,
-  padding = HOME_LAYOUT.listRowPadding,
+  linkedAccountName,
+  loanPersonName,
+  loanDirection,
+  paddingX = HOME_LAYOUT.listRowPaddingX,
+  paddingY = HOME_LAYOUT.listRowPaddingY,
   iconSize = HOME_LAYOUT.listIconSize,
   onPress,
 }: Props) {
   const accountNameSelected = useAccountsStore((state) =>
     accountName ?? state.accounts.find((account) => account.id === tx.accountId)?.name,
   );
+  
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[tx.type] ?? typeConfigs.out;
-
-  const subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' · ');
   const cashflowImpact = getTransactionCashflowImpact(tx);
+
+  let title = tx.payee || cfg.label;
+  let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' · ');
+
+  // 1. Specialized Title/Subtitle based on type
+  if (tx.type === 'transfer' && linkedAccountName) {
+    title = tx.payee || 'Transfer';
+    // If we are seeing the "Outflow" side, current account is source
+    // If we are seeing the "Inflow" side, current account is destination
+    const from = cashflowImpact === 'out' ? accountNameSelected : linkedAccountName;
+    const to = cashflowImpact === 'out' ? linkedAccountName : accountNameSelected;
+    subtitle = `${from} → ${to}`;
+  } else if (tx.type === 'loan' && loanPersonName) {
+    if (loanDirection === 'lent') {
+      title = cashflowImpact === 'out' ? 'Loan - Lent' : 'Loan - Received';
+    } else {
+      title = cashflowImpact === 'in' ? 'Loan - Borrowed' : 'Loan - Paid';
+    }
+    subtitle = [loanPersonName, accountNameSelected].filter(Boolean).join(' · ');
+  } else if (tx.type === 'in' || tx.type === 'out') {
+    title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
+    subtitle = accountNameSelected || '';
+  }
+
   const amountPrefix = cashflowImpact === 'in' ? '+' : cashflowImpact === 'out' ? '-' : '';
 
   const inner = (
@@ -50,7 +80,8 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        padding,
+        paddingHorizontal: paddingX,
+        paddingVertical: paddingY,
         borderBottomWidth: isLast ? 0 : 1,
         borderBottomColor: palette.divider,
       }}
@@ -74,10 +105,10 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       </View>
 
       <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
-        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, marginBottom: 2 }}>
-          {tx.payee || cfg.label}
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, marginBottom: 2 }}>
+          {title}
         </Text>
-        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
           {subtitle}
         </Text>
       </View>

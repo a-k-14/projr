@@ -31,6 +31,7 @@ import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { Category, Transaction, TransactionFilters, TransactionType } from '../../types';
@@ -71,9 +72,14 @@ export default function ActivityScreen() {
   const yearStart = useUIStore((s) => s.settings.yearStart);
   const categories = useCategoriesStore((s) => s.categories);
   const tags = useCategoriesStore((s) => s.tags);
-  const getCategoryDisplayName = useCategoriesStore((s) => s.getCategoryDisplayName);
+  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
   const loadCategories = useCategoriesStore((s) => s.load);
+
+  const loans = useLoansStore((s) => s.loans);
+  const loansLoaded = useLoansStore((s) => s.isLoaded);
+  const loadLoans = useLoansStore((s) => s.load);
+
   const storeTransactions = useTransactionsStore((s) => s.transactions);
   const storeTransactionsLoaded = useTransactionsStore((s) => s.isLoaded);
   const storeTransactionsHasMore = useTransactionsStore((s) => s.hasMore);
@@ -200,6 +206,10 @@ export default function ActivityScreen() {
   useEffect(() => {
     if (!categoriesLoaded) loadCategories().catch(() => undefined);
   }, [categoriesLoaded, loadCategories]);
+
+  useEffect(() => {
+    if (!loansLoaded) loadLoans().catch(() => undefined);
+  }, [loansLoaded, loadLoans]);
 
   useEffect(() => {
     const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
@@ -481,6 +491,9 @@ export default function ActivityScreen() {
           >
             {item.items.map((tx, index) => {
               const account = accounts.find((a) => a.id === tx.accountId);
+              const linkedAccount = tx.linkedAccountId ? accounts.find((a) => a.id === tx.linkedAccountId) : undefined;
+              const loan = tx.loanId ? loans.find((l) => l.id === tx.loanId) : undefined;
+
               return (
                 <TransactionListItem
                   key={tx.id}
@@ -488,8 +501,11 @@ export default function ActivityScreen() {
                   sym={sym}
                   palette={palette}
                   isLast={index === item.items.length - 1}
-                  categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
+                  categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId) : undefined}
                   accountName={account?.name}
+                  linkedAccountName={linkedAccount?.name}
+                  loanPersonName={loan?.personName}
+                  loanDirection={loan?.direction}
                   onPress={handleTransactionPress}
                 />
               );
@@ -498,7 +514,7 @@ export default function ActivityScreen() {
         </View>
       );
     },
-    [accounts, getCategoryDisplayName, handleTransactionPress, palette, sym],
+    [accounts, loans, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
   );
 
   return (
