@@ -4,6 +4,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BackHandler,
   FlatList,
   RefreshControl,
   ScrollView,
@@ -14,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChoiceRow } from '../../components/settings-ui';
+import { CardSection, ChoiceRow, SectionLabel } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -26,7 +27,7 @@ import {
 } from '../../lib/dateUtils';
 import { formatCurrency, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -44,6 +45,14 @@ type ActivityGroup = {
   net: number;
   items: Transaction[];
 };
+type GroupByMode = 'date' | 'category';
+type CategoryDrilldown = {
+  parentKey: string;
+  parentLabel: string;
+  subKey: string;
+  subLabel: string;
+};
+type HierarchyFamily = 'out' | 'in' | 'loan' | 'transfer';
 
 const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -89,6 +98,7 @@ export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
+  const txTypeConfig = useMemo(() => getTxTypeConfig(palette), [palette]);
 
   const [period, setPeriod] = useState<ActivityPeriod>('all');
   const [periodOffset, setPeriodOffset] = useState(0);
@@ -107,6 +117,9 @@ export default function ActivityScreen() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [amountMinStr, setAmountMinStr] = useState('');
   const [amountMaxStr, setAmountMaxStr] = useState('');
+  const [groupByMode, setGroupByMode] = useState<GroupByMode>('date');
+  const [draftGroupByMode, setDraftGroupByMode] = useState<GroupByMode>('date');
+  const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,6 +128,21 @@ export default function ActivityScreen() {
   const loadingRef = useRef(false);
   const requestIdRef = useRef(0);
   const lastAppliedRouteTsRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isFocused || groupByMode !== 'category' || !categoryDrilldown) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setCategoryDrilldown(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, [categoryDrilldown, groupByMode, isFocused]);
+
+  useEffect(() => {
+    if (showMoreSheet) {
+      setDraftGroupByMode(groupByMode);
+    }
+  }, [groupByMode, showMoreSheet]);
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
@@ -236,6 +264,8 @@ export default function ActivityScreen() {
     setAmountMinStr('');
     setAmountMaxStr('');
     setExpandedCategoryIds([]);
+    setGroupByMode('date');
+    setCategoryDrilldown(null);
     setSearch('');
     setIsSearchActive(false);
 
@@ -375,12 +405,23 @@ export default function ActivityScreen() {
 
   const periodCashflow = useMemo(() => calcCashflowSummary(filteredTransactions), [filteredTransactions]);
   const overallNet = useMemo(() => calcNet(filteredTransactions), [filteredTransactions]);
+  const drilldownTransactions = useMemo(() => {
+    if (!categoryDrilldown) return filteredTransactions;
+    return filteredTransactions.filter((tx) => {
+      if (!tx.categoryId) {
+        return categoryDrilldown.subKey === `type:${tx.type}`;
+      }
+      return tx.categoryId === categoryDrilldown.subKey;
+    });
+  }, [categoryDrilldown, filteredTransactions]);
+  const displayedCashflow = categoryDrilldown ? calcCashflowSummary(drilldownTransactions) : periodCashflow;
 
   const moreActiveCount =
     selectedCategoryIds.length +
     selectedTagIds.length +
     (amountMinStr ? 1 : 0) +
-    (amountMaxStr ? 1 : 0);
+    (amountMaxStr ? 1 : 0) +
+    (groupByMode === 'category' ? 1 : 0);
   const moreActiveBg = palette.brandSoft;
   const moreActiveBorder = palette.brand;
 
@@ -447,7 +488,7 @@ export default function ActivityScreen() {
   }, []);
 
   const grouped = useMemo<ActivityGroup[]>(() => {
-    return groupTransactionsByDate(filteredTransactions).map((group) => {
+    return groupTransactionsByDate(categoryDrilldown ? drilldownTransactions : filteredTransactions).map((group) => {
       const { date, label } = getRelativeDateLabel(group.dateKey);
       return {
         groupKey: group.dateKey,
@@ -457,7 +498,132 @@ export default function ActivityScreen() {
         items: group.items,
       };
     });
-  }, [filteredTransactions]);
+  }, [categoryDrilldown, drilldownTransactions, filteredTransactions]);
+
+  const categoryHierarchy = useMemo(() => {
+    const parentMap = new Map<
+      string,
+      {
+        parentKey: string;
+        parentLabel: string;
+        parentIcon?: string;
+        parentSyntheticType?: HierarchyFamily;
+        familyOrder: number;
+        familyKey: HierarchyFamily;
+        transactions: Transaction[];
+        subMap: Map<string, { subKey: string; subLabel: string; transactions: Transaction[] }>;
+      }
+    >();
+
+    const getFamilyKey = (tx: Transaction): HierarchyFamily => {
+      if (tx.type === 'out') return 'out';
+      if (tx.type === 'in') return 'in';
+      if (tx.type === 'loan') return 'loan';
+      return 'transfer';
+    };
+
+    const getFamilyOrder = (familyKey: HierarchyFamily) => {
+      if (familyKey === 'out') return 0;
+      if (familyKey === 'in') return 1;
+      if (familyKey === 'loan') return 2;
+      return 3;
+    };
+
+    filteredTransactions.forEach((tx) => {
+      const category = tx.categoryId ? categoryById.get(tx.categoryId) : undefined;
+      const parent = category?.parentId ? categoryById.get(category.parentId) : undefined;
+      const familyKey = getFamilyKey(tx);
+      const parentKey = parent
+        ? parent.id
+        : category
+          ? category.id
+          : `type:${tx.type}`;
+      const parentLabel = parent
+        ? parent.name
+        : category
+          ? category.name
+          : tx.type === 'transfer'
+            ? 'Transfer'
+            : tx.type === 'loan'
+              ? 'Loan'
+              : 'Uncategorized';
+      const parentIcon = parent
+        ? parent.icon
+        : category
+          ? category.icon
+          : undefined;
+      const subKey = category?.id ?? `type:${tx.type}`;
+      const subLabel = category
+        ? parent
+          ? category.name
+          : category.name
+        : tx.type === 'transfer'
+          ? 'Transfer'
+          : tx.type === 'loan'
+            ? 'Loan'
+            : 'Uncategorized';
+
+      if (!parentMap.has(parentKey)) {
+        parentMap.set(parentKey, {
+          parentKey,
+          parentLabel,
+          parentIcon,
+          parentSyntheticType: parent || category ? undefined : familyKey,
+          familyOrder: getFamilyOrder(familyKey),
+          familyKey,
+          transactions: [],
+          subMap: new Map(),
+        });
+      }
+
+      const parentEntry = parentMap.get(parentKey)!;
+      parentEntry.transactions.push(tx);
+
+      if (!parentEntry.subMap.has(subKey)) {
+        parentEntry.subMap.set(subKey, { subKey, subLabel, transactions: [] });
+      }
+      parentEntry.subMap.get(subKey)!.transactions.push(tx);
+    });
+
+    return Array.from(parentMap.values())
+      .map((entry) => ({
+        parentKey: entry.parentKey,
+        parentLabel: entry.parentLabel,
+        parentIcon: entry.parentIcon,
+        parentSyntheticType: entry.parentSyntheticType,
+        total: calcNet(entry.transactions),
+        subcategories: Array.from(entry.subMap.values())
+          .map((sub) => ({
+            subKey: sub.subKey,
+            subLabel: sub.subLabel,
+            total: calcNet(sub.transactions),
+            transactions: sub.transactions,
+          }))
+          .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
+        familyOrder: entry.familyOrder,
+        familyKey: entry.familyKey,
+      }))
+      .sort((a, b) => {
+        if (a.familyOrder !== b.familyOrder) return a.familyOrder - b.familyOrder;
+        return a.parentLabel.localeCompare(b.parentLabel, 'en', { sensitivity: 'base' });
+      });
+  }, [categoryById, filteredTransactions]);
+
+  const hierarchySections = useMemo(
+    () =>
+      ([
+        { key: 'out', label: 'Expenses' },
+        { key: 'in', label: 'Income' },
+        { key: 'loan', label: 'Loan' },
+        { key: 'transfer', label: 'Transfer' },
+      ] as const)
+        .map((section) => ({
+          ...section,
+          items: categoryHierarchy.filter((category) => category.familyKey === section.key),
+        }))
+        .filter((section) => section.items.length > 0),
+    [categoryHierarchy],
+  );
 
   const renderGroupItem = useCallback(
     ({ item }: { item: ActivityGroup }) => {
@@ -584,14 +750,15 @@ export default function ActivityScreen() {
         </View>
       )}
 
-      <FlatList
-        data={grouped}
-        keyExtractor={(item) => item.groupKey}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-        onEndReached={onLoadMore}
-        onEndReachedThreshold={0.4}
-        contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
-        ListHeaderComponent={
+      {groupByMode === 'date' || categoryDrilldown ? (
+        <FlatList
+          data={grouped}
+          keyExtractor={(item) => item.groupKey}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
+          onEndReached={onLoadMore}
+          onEndReachedThreshold={0.4}
+          contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
+          ListHeaderComponent={
           <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
             <View
               style={[
@@ -721,24 +888,308 @@ export default function ActivityScreen() {
 
             {period !== 'all' ? (
               <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-                <SummaryCard cashflow={periodCashflow} sym={sym} palette={palette} />
+                <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
+              </View>
+            ) : null}
+
+            {groupByMode === 'category' && categoryDrilldown ? (
+              <View
+                style={{
+                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+                  marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => setCategoryDrilldown(null)}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Feather name="chevron-left" size={16} color={palette.textMuted} />
+                  <Text
+                    numberOfLines={1}
+                    style={{ flex: 1, fontSize: 14, fontWeight: '700', color: palette.text }}
+                  >
+                    {categoryDrilldown.parentLabel} › {categoryDrilldown.subLabel}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : null}
 
             <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
           </View>
-        }
-        renderItem={renderGroupItem}
-        ListEmptyComponent={
-          !refreshing ? (
-            <View style={{ alignItems: 'center', paddingTop: 64 }}>
-              <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500' }}>
-                No transactions found
-              </Text>
+          }
+          renderItem={renderGroupItem}
+          ListEmptyComponent={
+            !refreshing ? (
+              <View style={{ alignItems: 'center', paddingTop: 64 }}>
+                <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500' }}>
+                  No transactions found
+                </Text>
+              </View>
+            ) : null
+          }
+        />
+      ) : null}
+      {groupByMode === 'category' && !categoryDrilldown ? (
+        <ScrollView
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
+          contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
+        >
+          <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
+            <View
+              style={[
+                styles.row,
+                {
+                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+                  marginBottom: ACTIVITY_LAYOUT.headerRowGap,
+                },
+              ]}
+            >
+              <TouchableOpacity
+                onPress={() => setShowAccountSheet(true)}
+                style={[
+                  styles.accountPicker,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.divider,
+                    width: '36%',
+                    marginRight: ACTIVITY_LAYOUT.controlChipGap,
+                  },
+                ]}
+              >
+                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: palette.text, flex: 1 }}>
+                  {accountLabel}
+                </Text>
+                <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
+              </TouchableOpacity>
+
+              <View
+                style={[
+                  styles.periodBar,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.divider,
+                    flex: 1,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  onPress={goPrev}
+                  disabled={period === 'custom' || period === 'all'}
+                  style={[styles.periodArrow, { borderRightColor: palette.divider }]}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={14}
+                    color={palette.text}
+                    style={{ opacity: period === 'custom' || period === 'all' ? 0.2 : 1 }}
+                  />
+                </TouchableOpacity>
+
+                <View style={styles.periodCenter}>
+                  <TouchableOpacity
+                    onPress={() => setShowPeriodSheet(true)}
+                    style={styles.periodCenterTouch}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }} numberOfLines={1}>
+                      {periodLabel}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  onPress={goNext}
+                  disabled={!canGoNext}
+                  style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={14}
+                    color={palette.text}
+                    style={{ opacity: canGoNext ? 1 : 0.2 }}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          ) : null
-        }
-      />
+
+            <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }]}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingRight: ACTIVITY_LAYOUT.controlChipGap, paddingBottom: 2 }}
+              >
+                <View style={styles.chipRow}>
+                  {TYPE_OPTIONS.map((option) => (
+                    <FilterChip
+                      key={option.value}
+                      label={option.label}
+                      isActive={typeFilter === option.value}
+                      onPress={() => {
+                        setTypeFilter(option.value);
+                        setCashflowBucket(option.value === 'in' || option.value === 'out' ? option.value : 'all');
+                      }}
+                      palette={palette}
+                    />
+                  ))}
+                </View>
+              </ScrollView>
+              <TouchableOpacity
+                onPress={() => setShowMoreSheet(true)}
+                activeOpacity={0.75}
+                style={[
+                  styles.moreChip,
+                  {
+                    backgroundColor: moreActiveCount > 0 ? moreActiveBg : palette.surface,
+                    borderColor: moreActiveCount > 0 ? moreActiveBorder : palette.divider,
+                    marginLeft: ACTIVITY_LAYOUT.moreButtonGap,
+                  },
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{ flex: 1, fontSize: 13, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
+                >
+                  {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
+                </Text>
+                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {period !== 'all' ? (
+              <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+                <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
+              </View>
+            ) : null}
+
+            <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
+
+            <View>
+              {hierarchySections.map((section) => (
+                <View key={section.key}>
+                  <SectionLabel label={section.label} palette={palette} />
+                  <CardSection palette={palette}>
+                    {section.items.map((category, categoryIndex) => {
+                      const isExpanded = expandedCategoryIds.includes(category.parentKey);
+                      const isLastCategory = categoryIndex === section.items.length - 1;
+                      const syntheticCfg = category.parentSyntheticType ? txTypeConfig[category.parentSyntheticType] : undefined;
+                      return (
+                        <View key={category.parentKey}>
+                          <TouchableOpacity
+                            onPress={() => toggleCategoryExpansion(category.parentKey)}
+                            activeOpacity={0.75}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              paddingVertical: 12,
+                              paddingHorizontal: CARD_PADDING,
+                              minHeight: 62,
+                              borderBottomWidth: isLastCategory && !isExpanded ? 0 : 1,
+                              borderBottomColor: palette.divider,
+                              gap: 12,
+                            }}
+                          >
+                            <CategoryIconBadge
+                              icon={category.parentIcon}
+                              ioniconName={
+                                category.parentSyntheticType === 'loan'
+                                  ? 'card-outline'
+                                  : syntheticCfg?.iconName
+                              }
+                              palette={palette}
+                              iconColor={syntheticCfg?.color}
+                            />
+                            <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
+                              {category.parentLabel}
+                            </Text>
+                            <Text
+                              style={{
+                                fontSize: 14,
+                                fontWeight: '600',
+                                color: category.total >= 0 ? palette.brand : palette.negative,
+                                marginRight: 2,
+                              }}
+                            >
+                              {signedCurrency(category.total, sym)}
+                            </Text>
+                            <Feather
+                              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                              size={18}
+                              color={palette.textSoft}
+                            />
+                          </TouchableOpacity>
+
+                          {isExpanded ? (
+                            <View
+                              style={{
+                                backgroundColor: palette.inputBg,
+                                borderBottomWidth: isLastCategory ? 0 : 1,
+                                borderBottomColor: palette.divider,
+                              }}
+                            >
+                              {category.subcategories.map((sub, index) => (
+                                <TouchableOpacity
+                                  key={sub.subKey}
+                                  onPress={() =>
+                                    setCategoryDrilldown({
+                                      parentKey: category.parentKey,
+                                      parentLabel: category.parentLabel,
+                                      subKey: sub.subKey,
+                                      subLabel: sub.subLabel,
+                                    })
+                                  }
+                                  activeOpacity={0.75}
+                                  style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    paddingVertical: 12,
+                                    paddingLeft: CARD_PADDING + 40,
+                                    paddingRight: CARD_PADDING,
+                                    minHeight: 52,
+                                    borderTopWidth: 1,
+                                    borderTopColor: palette.divider,
+                                  }}
+                                >
+                                  <Text numberOfLines={1} style={{ flex: 1, fontSize: 15, fontWeight: '400', color: palette.text }}>
+                                    {sub.subLabel}
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      fontSize: 14,
+                                      fontWeight: '500',
+                                      color: sub.total >= 0 ? palette.brand : palette.negative,
+                                      marginRight: 10,
+                                    }}
+                                  >
+                                    {signedCurrency(sub.total, sym)}
+                                  </Text>
+                                  <Feather
+                                    name="chevron-right"
+                                    size={16}
+                                    color={palette.textSoft}
+                                  />
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          ) : null}
+                        </View>
+                      );
+                    })}
+                  </CardSection>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      ) : null}
 
       {showAccountSheet ? (
         <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
@@ -909,7 +1360,13 @@ export default function ActivityScreen() {
           footer={
             <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 8, paddingBottom: 3, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
               <TouchableOpacity
-                onPress={() => setShowMoreSheet(false)}
+                onPress={() => {
+                  setGroupByMode(draftGroupByMode);
+                  if (draftGroupByMode === 'date') {
+                    setCategoryDrilldown(null);
+                  }
+                  setShowMoreSheet(false);
+                }}
                 style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
                 activeOpacity={0.85}
               >
@@ -925,6 +1382,9 @@ export default function ActivityScreen() {
                 setAmountMinStr('');
                 setAmountMaxStr('');
                 setExpandedCategoryIds([]);
+                setGroupByMode('date');
+                setDraftGroupByMode('date');
+                setCategoryDrilldown(null);
               }}
               hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
               style={styles.clearAllButton}
@@ -946,13 +1406,45 @@ export default function ActivityScreen() {
                 paddingBottom: 8,
               }}
             >
+              Group by
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: ACTIVITY_LAYOUT.controlChipGap, paddingHorizontal: CARD_PADDING, paddingBottom: 8 }}>
+              <FilterChip
+                label="Date"
+                isActive={draftGroupByMode === 'date'}
+                onPress={() => {
+                  setDraftGroupByMode('date');
+                }}
+                palette={palette}
+              />
+              <FilterChip
+                label="Category"
+                isActive={draftGroupByMode === 'category'}
+                onPress={() => setDraftGroupByMode('category')}
+                palette={palette}
+              />
+            </View>
+
+            <View style={{ height: 1, backgroundColor: palette.divider }} />
+
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '800',
+                letterSpacing: 0.8,
+                textTransform: 'uppercase',
+                color: palette.textMuted,
+                paddingHorizontal: CARD_PADDING,
+                paddingTop: 16,
+                paddingBottom: 8,
+              }}
+            >
               Category
             </Text>
 
             <View style={{ paddingTop: 2 }}>
               {topCategories.map((category) => {
                 const children = childCategoriesByParent.get(category.id) ?? [];
-                const count = getCategoryTxCount(transactions, category.id, categories);
                 const childSelectedCount = children.filter((child) => selectedCategoryIds.includes(child.id)).length;
                 const hasChildren = children.length > 0;
                 const parentExplicitlySelected = selectedCategoryIds.includes(category.id);
@@ -964,7 +1456,6 @@ export default function ActivityScreen() {
                   <View key={category.id}>
                     <MoreCategoryRow
                       category={category}
-                      count={count}
                       selected={isSelected}
                       partial={isPartial}
                       expanded={isExpanded}
@@ -975,14 +1466,18 @@ export default function ActivityScreen() {
                     />
                     {isExpanded
                       ? children.map((child) => {
-                        const childCount = getCategoryTxCount(transactions, child.id, categories);
                         const childSelected = selectedCategoryIds.includes(child.id);
                         return (
                           <View
                             key={child.id}
                             style={[
                               styles.moreSubRow,
-                              { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING + 34 },
+                              {
+                                borderBottomColor: palette.divider,
+                                paddingHorizontal: CARD_PADDING + 34,
+                                backgroundColor: palette.inputBg,
+                                minHeight: 56,
+                              },
                             ]}
                           >
                             <TouchableOpacity
@@ -1001,9 +1496,6 @@ export default function ActivityScreen() {
                                 {child.name}
                               </Text>
                             </TouchableOpacity>
-                            <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginRight: 6 }}>
-                              {childCount}
-                            </Text>
                           </View>
                         );
                       })
@@ -1200,12 +1692,16 @@ function Checkbox({
 
 function CategoryIconBadge({
   icon,
+  ioniconName,
   palette,
+  iconColor,
 }: {
-  icon: string;
+  icon?: string;
+  ioniconName?: string;
   palette: AppThemePalette;
+  iconColor?: string;
 }) {
-  const isEmoji = !/^[a-z-]+$/.test(icon);
+  const isEmoji = icon ? !/^[a-z-]+$/.test(icon) : false;
   return (
     <View
       style={{
@@ -1217,10 +1713,12 @@ function CategoryIconBadge({
         justifyContent: 'center',
       }}
     >
-      {isEmoji ? (
+      {ioniconName ? (
+        <Ionicons name={ioniconName as never} size={16} color={iconColor ?? palette.iconTint} />
+      ) : isEmoji ? (
         <Text style={{ fontSize: 16 }}>{icon}</Text>
       ) : (
-        <Feather name={icon as keyof typeof Feather.glyphMap} size={16} color={palette.iconTint} />
+        <Feather name={(icon ?? 'tag') as keyof typeof Feather.glyphMap} size={16} color={iconColor ?? palette.iconTint} />
       )}
     </View>
   );
@@ -1228,7 +1726,6 @@ function CategoryIconBadge({
 
 function MoreCategoryRow({
   category,
-  count,
   selected,
   partial,
   expanded,
@@ -1238,7 +1735,6 @@ function MoreCategoryRow({
   onToggleExpanded,
 }: {
   category: { id: string; name: string; icon: string; color: string };
-  count: number;
   selected: boolean;
   partial: boolean;
   expanded: boolean;
@@ -1260,9 +1756,6 @@ function MoreCategoryRow({
           </Text>
         </View>
       </TouchableOpacity>
-      <Text style={{ fontSize: 14, fontWeight: '700', color: palette.textMuted, marginRight: 10 }}>
-        {count}
-      </Text>
       {hasChildren ? (
         <TouchableOpacity onPress={onToggleExpanded} activeOpacity={0.7}>
           <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} />
@@ -1304,11 +1797,6 @@ function MoreTagRow({
       <View style={{ width: 18 }} />
     </View>
   );
-}
-
-function getCategoryTxCount(txs: Transaction[], categoryId: string, categories: { id: string; parentId?: string }[]) {
-  const ids = new Set([categoryId, ...categories.filter((category) => category.parentId === categoryId).map((category) => category.id)]);
-  return txs.filter((tx) => tx.categoryId && ids.has(tx.categoryId)).length;
 }
 
 function getTagTxCount(txs: Transaction[], tagId: string) {

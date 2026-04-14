@@ -67,6 +67,7 @@ export const budget = sqliteTable('budget', {
   amount: real('amount').notNull(),
   period: text('period').notNull(), // 'month' | 'year'
   startDate: text('start_date').notNull(),
+  repeat: integer('repeat').notNull().default(1),
   createdAt: text('created_at').notNull(),
 });
 

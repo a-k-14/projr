@@ -80,6 +80,7 @@ export async function runMigrations() {
       amount REAL NOT NULL,
       period TEXT NOT NULL DEFAULT 'month',
       start_date TEXT NOT NULL,
+      repeat INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL
     );
 
@@ -93,6 +94,7 @@ export async function runMigrations() {
   await ensureColumn('transactions', 'payee', 'TEXT');
   await ensureColumn('accounts', 'account_number', 'TEXT');
   await ensureColumn('accounts', 'initial_balance', 'REAL');
+  await ensureColumn('budget', 'repeat', 'INTEGER NOT NULL DEFAULT 1');
   const addedSortOrder = await ensureColumn('accounts', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
 
   if (addedSortOrder) {

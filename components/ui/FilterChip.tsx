@@ -21,6 +21,9 @@ export function FilterChip({
   return (
     <TouchableOpacity
       onPress={onPress}
+      activeOpacity={0.75}
+      delayPressIn={0}
+      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
       style={[
         styles.chip,
         {

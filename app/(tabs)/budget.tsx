@@ -1,10 +1,11 @@
-import { Ionicons, Feather } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { Feather, Ionicons } from '@expo/vector-icons';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -15,271 +16,346 @@ import { ScreenTitle } from '../../components/settings-ui';
 import { FabButton } from '../../components/ui/FabButton';
 import { formatCurrency, parseFormattedNumber } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import {
-  HOME_LAYOUT,
-  HOME_RADIUS,
-  HOME_SHADOW,
-  HOME_SPACE,
-  HOME_TEXT,
-  getFabBottomOffset,
-} from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getFabBottomOffset } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { BudgetWithSpent, Category, CreateBudgetInput } from '../../types';
 
+function monthStartIso(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0).toISOString();
+}
+
+function shiftMonth(iso: string, delta: number) {
+  const date = new Date(iso);
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1, 0, 0, 0, 0).toISOString();
+}
+
+function formatMonthLabel(iso: string) {
+  return new Date(iso).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+}
+
+function isEmojiIcon(icon?: string) {
+  return !!icon && !/^[a-z-]+$/.test(icon);
+}
+
+function fieldLabelStyle(palette: AppThemePalette) {
+  return {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: palette.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  };
+}
+
+function iconBoxStyle(palette: AppThemePalette) {
+  return {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: palette.inputBg,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  };
+}
+
 export default function BudgetScreen() {
   const budgets = useBudgetStore((s) => s.budgets);
   const loadBudgets = useBudgetStore((s) => s.load);
   const addBudget = useBudgetStore((s) => s.add);
+  const updateBudget = useBudgetStore((s) => s.update);
   const removeBudget = useBudgetStore((s) => s.remove);
   const categories = useCategoriesStore((s) => s.categories);
-  const yearStart = useUIStore((s) => s.settings.yearStart);
+  const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
+  const loadCategories = useCategoriesStore((s) => s.load);
+  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
-
-  const [refreshing, setRefreshing] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   const insets = useSafeAreaInsets();
 
+  const [selectedMonth, setSelectedMonth] = useState(() => monthStartIso(new Date()));
+  const [refreshing, setRefreshing] = useState(false);
+  const [editorBudget, setEditorBudget] = useState<BudgetWithSpent | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+
   useEffect(() => {
-    loadBudgets(yearStart);
-  }, [yearStart]);
+    if (!categoriesLoaded) loadCategories().catch(() => undefined);
+  }, [categoriesLoaded, loadCategories]);
+
+  useEffect(() => {
+    loadBudgets(selectedMonth).catch(() => undefined);
+  }, [loadBudgets, selectedMonth]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadBudgets(yearStart);
+    await loadBudgets(selectedMonth);
     setRefreshing(false);
   };
 
-  const totalBudgeted = budgets.reduce((s, b) => s + b.amount, 0);
-  const totalSpent = budgets.reduce((s, b) => s + b.spent, 0);
+  const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+  const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
   const totalRemaining = totalBudgeted - totalSpent;
-  const overBudgetCount = budgets.filter((b) => b.spent > b.amount).length;
+  const overBudgetCount = budgets.filter((budget) => budget.remaining < 0).length;
+
+  const outSubcategories = useMemo(
+    () =>
+      categories
+        .filter((category) => category.parentId && category.type !== 'in')
+        .slice()
+        .sort((a, b) => {
+          const aLabel = getCategoryFullDisplayName(a.id, ' › ');
+          const bLabel = getCategoryFullDisplayName(b.id, ' › ');
+          return aLabel.localeCompare(bLabel, 'en', { sensitivity: 'base' });
+        }),
+    [categories, getCategoryFullDisplayName],
+  );
+
+  const handleDelete = (budgetId: string) => {
+    Alert.alert('Delete budget?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await removeBudget(budgetId);
+          if (editorBudget?.id === budgetId) {
+            setShowEditor(false);
+            setEditorBudget(null);
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
+        contentContainerStyle={{ paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
       >
-        {/* Header */}
-        <ScreenTitle title="Budgets" palette={palette} />
+        <ScreenTitle title="Budget" palette={palette} />
 
-        {/* Summary */}
-        {budgets.length > 0 && (
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: SCREEN_GUTTER }}>
-            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md }}>
-              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: CARD_PADDING }}>
-                <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
-                  BUDGETED
-                </Text>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: palette.text, marginTop: HOME_SPACE.xs }}>
-                  {formatCurrency(totalBudgeted, sym)}
-                </Text>
-              </View>
-              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: CARD_PADDING }}>
-                <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
-                  SPENT
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: '700',
-                    color: totalSpent > totalBudgeted ? palette.negative : palette.text,
-                    marginTop: HOME_SPACE.xs,
-                  }}
-                >
-                  {formatCurrency(totalSpent, sym)}
-                </Text>
-              </View>
-              <View style={{ flex: 1, backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, padding: CARD_PADDING }}>
-                <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
-                  LEFT
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: '700',
-                    color: totalRemaining < 0 ? palette.negative : palette.positive,
-                    marginTop: HOME_SPACE.xs,
-                  }}
-                >
-                  {formatCurrency(Math.abs(totalRemaining), sym)}
-                </Text>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.md }}>
+          <View style={[styles.monthBar, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
+            <TouchableOpacity
+              onPress={() => setSelectedMonth((value) => shiftMonth(value, -1))}
+              style={[styles.monthArrow, { borderRightColor: palette.divider }]}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="chevron-back" size={14} color={palette.text} />
+            </TouchableOpacity>
+            <View style={styles.monthCenter}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text }}>{formatMonthLabel(selectedMonth)}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setSelectedMonth((value) => shiftMonth(value, 1))}
+              style={[styles.monthArrow, { borderLeftColor: palette.divider }]}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="chevron-forward" size={14} color={palette.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {budgets.length > 0 ? (
+          <>
+            <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.md }}>
+              <View style={{ flexDirection: 'row', gap: HOME_SPACE.sm }}>
+                <BudgetSummaryCell label="Budgeted" value={formatCurrency(totalBudgeted, sym)} palette={palette} />
+                <BudgetSummaryCell
+                  label="Spent"
+                  value={formatCurrency(totalSpent, sym)}
+                  palette={palette}
+                  tone={totalSpent > totalBudgeted ? 'negative' : 'default'}
+                />
+                <BudgetSummaryCell
+                  label={totalRemaining < 0 ? 'Over' : 'Left'}
+                  value={formatCurrency(Math.abs(totalRemaining), sym)}
+                  palette={palette}
+                  tone={totalRemaining < 0 ? 'negative' : 'positive'}
+                />
               </View>
             </View>
 
-            {overBudgetCount > 0 && (
-              <View
-                style={{
-                  backgroundColor: palette.outBg,
-                  borderRadius: HOME_RADIUS.small,
-                  padding: HOME_SPACE.md,
-                  marginTop: HOME_SPACE.md,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: HOME_SPACE.sm,
-                }}
-              >
-                <Ionicons name="warning" size={16} color={palette.negative} />
-                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.negative, fontWeight: '500' }}>
-                  {overBudgetCount} {overBudgetCount === 1 ? 'category' : 'categories'} over budget
-                </Text>
+            {overBudgetCount > 0 ? (
+              <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.md }}>
+                <View style={[styles.warningBox, { backgroundColor: palette.outBg }]}>
+                  <Ionicons name="warning" size={16} color={palette.negative} />
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.negative, fontWeight: '500' }}>
+                    {overBudgetCount} {overBudgetCount === 1 ? 'budget' : 'budgets'} over in {formatMonthLabel(selectedMonth)}
+                  </Text>
+                </View>
               </View>
-            )}
-          </View>
-        )}
+            ) : null}
 
-        {/* Budget list */}
-        <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-          {budgets.length === 0 ? (
-            <View
-              style={{
-                backgroundColor: palette.surface,
-                borderRadius: HOME_RADIUS.card,
-                padding: 32,
-                alignItems: 'center',
-              }}
-            >
-              <Ionicons name="pricetag-outline" size={48} color={palette.textMuted} />
-              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', marginTop: HOME_SPACE.md }}>
-                No budgets yet
+            <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
+              {budgets.map((budget) => (
+                <BudgetCard
+                  key={budget.id}
+                  budget={budget}
+                  sym={sym}
+                  palette={palette}
+                  categoryLabel={getCategoryFullDisplayName(budget.categoryId, ' › ')}
+                  onPress={() => {
+                    setEditorBudget(budget);
+                    setShowEditor(true);
+                  }}
+                />
+              ))}
+            </View>
+          </>
+        ) : (
+          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
+            <View style={[styles.emptyCard, { backgroundColor: palette.surface }]}>
+              <Ionicons name="pie-chart-outline" size={48} color={palette.textMuted} />
+              <Text style={{ color: palette.text, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', marginTop: HOME_SPACE.md }}>
+                No budgets for {formatMonthLabel(selectedMonth)}
               </Text>
               <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.bodySmall, marginTop: HOME_SPACE.xs, textAlign: 'center' }}>
-                Tap + to set spending limits per category
+                Add a monthly subcategory budget and choose whether it repeats automatically.
               </Text>
             </View>
-          ) : (
-            budgets.map((budget) => (
-              <BudgetCard
-                key={budget.id}
-                budget={budget}
-                sym={sym}
-                palette={palette}
-                onDelete={() => {
-                  Alert.alert('Delete budget?', 'This cannot be undone.', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => removeBudget(budget.id) },
-                  ]);
-                }}
-              />
-            ))
-          )}
-        </View>
+          </View>
+        )}
       </ScrollView>
 
-      {/* FAB */}
       <FabButton
         bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
         backgroundColor={palette.budget}
         iconColor={palette.onBudget}
-        onPress={() => setShowAddModal(true)}
+        onPress={() => {
+          setEditorBudget(null);
+          setShowEditor(true);
+        }}
       />
 
-      <AddBudgetModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSave={async (data) => {
-          await addBudget(data, yearStart);
-          setShowAddModal(false);
-        }}
+      <BudgetEditorModal
+        visible={showEditor}
+        budget={editorBudget}
+        selectedMonth={selectedMonth}
+        categories={outSubcategories}
         palette={palette}
         sym={sym}
-        categories={categories}
+        getCategoryLabel={(id) => getCategoryFullDisplayName(id, ' › ')}
+        onClose={() => {
+          setShowEditor(false);
+          setEditorBudget(null);
+        }}
+        onDelete={editorBudget ? () => handleDelete(editorBudget.id) : undefined}
+        onSave={async (data) => {
+          if (editorBudget) {
+            await updateBudget(editorBudget.id, data, selectedMonth);
+          } else {
+            await addBudget(data, selectedMonth);
+          }
+          setShowEditor(false);
+          setEditorBudget(null);
+        }}
       />
     </SafeAreaView>
   );
 }
 
-// ─── BudgetCard ───────────────────────────────────────────────────────────────
+function BudgetSummaryCell({
+  label,
+  value,
+  palette,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  palette: AppThemePalette;
+  tone?: 'default' | 'positive' | 'negative';
+}) {
+  const color = tone === 'positive' ? palette.positive : tone === 'negative' ? palette.negative : palette.text;
+  return (
+    <View style={[styles.summaryCell, { backgroundColor: palette.surface }]}>
+      <Text style={{ fontSize: 11, color: palette.textMuted, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        {label}
+      </Text>
+      <Text style={{ fontSize: 18, fontWeight: '700', color, marginTop: HOME_SPACE.xs }}>{value}</Text>
+    </View>
+  );
+}
 
 function BudgetCard({
   budget,
   sym,
   palette,
-  onDelete,
+  categoryLabel,
+  onPress,
 }: {
   budget: BudgetWithSpent;
   sym: string;
   palette: AppThemePalette;
-  onDelete: () => void;
+  categoryLabel: string;
+  onPress: () => void;
 }) {
-  const isOver = budget.spent > budget.amount;
-  const isWarning = !isOver && budget.percent > 75;
-  const barColor = isOver ? palette.negative : isWarning ? palette.negative : palette.brand;
-  const barOpacity = isWarning ? 0.55 : 1;
+  const isOver = budget.remaining < 0;
+  const isWarning = !isOver && budget.percent >= 75;
+  const progressColor = isOver ? palette.negative : isWarning ? palette.negative : palette.brand;
 
   return (
-    <TouchableOpacity
-      onLongPress={onDelete}
-      style={{
-        backgroundColor: palette.surface,
-        borderRadius: HOME_RADIUS.card,
-        padding: HOME_SPACE.xl,
-        marginBottom: HOME_SPACE.md,
-      }}
-    >
+    <TouchableOpacity activeOpacity={0.75} onPress={onPress} style={[styles.budgetCard, { backgroundColor: palette.surface }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.md }}>
         <View
           style={{
-            width: 36,
-            height: 36,
+            width: HOME_LAYOUT.listIconSize,
+            height: HOME_LAYOUT.listIconSize,
             borderRadius: HOME_RADIUS.small,
-            backgroundColor: budget.categoryColor + '20',
+            backgroundColor: palette.inputBg,
             alignItems: 'center',
             justifyContent: 'center',
-            marginRight: HOME_SPACE.md,
+            marginRight: HOME_SPACE.sm + 2,
           }}
         >
-          {/^[a-z-]+$/.test(budget.categoryIcon) ? (
-            <Feather name={budget.categoryIcon as any} size={18} color={budget.categoryColor} />
-          ) : (
+          {isEmojiIcon(budget.categoryIcon) ? (
             <Text style={{ fontSize: 18 }}>{budget.categoryIcon}</Text>
+          ) : (
+            <Feather name={budget.categoryIcon as keyof typeof Feather.glyphMap} size={17} color={palette.iconTint} />
           )}
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>
-            {budget.categoryName}
+
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+            {categoryLabel}
           </Text>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-            {budget.period === 'month' ? 'Monthly' : 'Yearly'} budget
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginTop: 1 }}>
+            {budget.repeat ? 'Repeats monthly' : `One-time • ${formatMonthLabel(budget.startDate)}`}
           </Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: isOver ? palette.negative : palette.text }}>
-            {formatCurrency(budget.spent, sym)}
+
+        <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
+          <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>
+            {formatCurrency(budget.amount, sym)}
           </Text>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-            of {formatCurrency(budget.amount, sym)}
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginTop: 1 }}>
+            spent {formatCurrency(budget.spent, sym)}
           </Text>
         </View>
       </View>
 
-      {/* Progress bar with ghost track */}
-      <View style={{ height: 6, backgroundColor: palette.divider, borderRadius: 3, overflow: 'hidden' }}>
+      <View style={{ height: 6, backgroundColor: palette.divider, borderRadius: 999, overflow: 'hidden' }}>
         <View
           style={{
             height: 6,
-            width: `${Math.min(budget.percent, 100)}%`,
-            backgroundColor: barColor,
-            opacity: barOpacity,
-            borderRadius: 3,
+            width: `${Math.min(Math.max(budget.percent, 0), 100)}%`,
+            backgroundColor: progressColor,
+            borderRadius: 999,
           }}
         />
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
         <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
-          {isOver
-            ? `${formatCurrency(budget.spent - budget.amount, sym)} over`
-            : `${formatCurrency(budget.remaining, sym)} left`}
+          {isOver ? `${formatCurrency(Math.abs(budget.remaining), sym)} over` : `${formatCurrency(budget.remaining, sym)} left`}
         </Text>
-        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : isWarning ? palette.negative : palette.textMuted }}>
+        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
           {Math.round(budget.percent)}%
         </Text>
       </View>
@@ -287,178 +363,366 @@ function BudgetCard({
   );
 }
 
-// ─── AddBudgetModal ───────────────────────────────────────────────────────────
-
-function AddBudgetModal({
+function BudgetEditorModal({
   visible,
-  onClose,
-  onSave,
+  budget,
+  selectedMonth,
+  categories,
   palette,
   sym,
-  categories,
+  getCategoryLabel,
+  onClose,
+  onDelete,
+  onSave,
 }: {
   visible: boolean;
-  onClose: () => void;
-  onSave: (data: CreateBudgetInput) => Promise<void>;
+  budget: BudgetWithSpent | null;
+  selectedMonth: string;
+  categories: Category[];
   palette: AppThemePalette;
   sym: string;
-  categories: Category[];
+  getCategoryLabel: (id: string) => string;
+  onClose: () => void;
+  onDelete?: () => void;
+  onSave: (data: CreateBudgetInput) => Promise<void>;
 }) {
   const [amountStr, setAmountStr] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [period, setPeriod] = useState<'month' | 'year'>('month');
+  const [startMonth, setStartMonth] = useState(selectedMonth);
+  const [repeat, setRepeat] = useState(true);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const outCategories = categories
-    .filter((c) => c.type !== 'in')
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+  useEffect(() => {
+    if (!visible) return;
+    setAmountStr(budget ? String(budget.amount) : '');
+    setCategoryId(budget?.categoryId ?? '');
+    setStartMonth(budget?.startDate ?? selectedMonth);
+    setRepeat(budget?.repeat ?? true);
+    setShowCategoryPicker(false);
+  }, [budget, selectedMonth, visible]);
+
+  const selectedCategory = categories.find((category) => category.id === categoryId);
+  const canSave = !!categoryId && Number(parseFormattedNumber(amountStr || '0')) > 0;
 
   const handleSave = async () => {
-    const amount = parseFloat(parseFormattedNumber(amountStr));
-    if (!amount || !categoryId) return;
+    if (!canSave) return;
     setLoading(true);
     try {
       await onSave({
         categoryId,
-        amount,
-        period,
-        startDate: new Date().toISOString(),
+        amount: Number(parseFormattedNumber(amountStr)),
+        period: 'month',
+        startDate: startMonth,
+        repeat,
       });
-      setAmountStr('');
-      setCategoryId('');
-    } catch (e) {
-      Alert.alert('Error', String(e));
+    } catch (error) {
+      Alert.alert('Error', String(error));
     } finally {
       setLoading(false);
     }
   };
 
-  const isReady = !!amountStr && !!categoryId;
-
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: palette.scrim, justifyContent: 'flex-end' }}>
-        <View
-          style={{
-            backgroundColor: palette.background,
-            borderTopLeftRadius: HOME_RADIUS.large,
-            borderTopRightRadius: HOME_RADIUS.large,
-            padding: HOME_SPACE.xxl,
-          }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: HOME_SPACE.xxxl }}>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: palette.text }}>New Budget</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={palette.textMuted} />
+        <View style={[styles.editorShell, { backgroundColor: palette.background }]}>
+          <View style={styles.editorHeader}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: palette.text }}>
+              {budget ? 'Edit Budget' : 'New Budget'}
+            </Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close" size={22} color={palette.textMuted} />
             </TouchableOpacity>
           </View>
 
-          {/* Amount */}
-          <View
-            style={{
-              backgroundColor: palette.surface,
-              borderRadius: HOME_RADIUS.pill,
-              paddingHorizontal: HOME_SPACE.xl,
-              paddingVertical: HOME_SPACE.lg,
-              marginBottom: HOME_SPACE.md,
-            }}
-          >
-            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
-              Budget amount
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {sym ? <Text style={{ fontSize: 20, color: palette.textMuted, marginRight: HOME_SPACE.xs }}>{sym}</Text> : null}
+          {budget ? (
+            <View style={[styles.detailStrip, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  This Month
+                </Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: palette.text, marginTop: 2 }}>
+                  {formatCurrency(budget.spent, sym)} spent
+                </Text>
+              </View>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: budget.remaining < 0 ? palette.negative : palette.textSecondary }}>
+                {budget.remaining < 0
+                  ? `${formatCurrency(Math.abs(budget.remaining), sym)} over`
+                  : `${formatCurrency(budget.remaining, sym)} left`}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={{ gap: HOME_SPACE.md }}>
+            <View style={[styles.fieldCard, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
+              <Text style={fieldLabelStyle(palette)}>Budget amount</Text>
               <TextInput
                 value={amountStr}
                 onChangeText={setAmountStr}
-                keyboardType="decimal-pad"
-                placeholder="0"
+                keyboardType="numeric"
+                placeholder={`0 ${sym}`.trim()}
                 placeholderTextColor={palette.textMuted}
-                autoFocus
-                style={{ fontSize: 24, fontWeight: '700', color: palette.brand, flex: 1 }}
+                style={{ fontSize: 20, fontWeight: '700', color: palette.text, padding: 0, marginTop: 6 }}
               />
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => setShowCategoryPicker((value) => !value)}
+              style={[styles.fieldCard, { backgroundColor: palette.surface, borderColor: palette.divider }]}
+            >
+              <Text style={fieldLabelStyle(palette)}>Subcategory</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                {selectedCategory ? (
+                  <>
+                    <View style={iconBoxStyle(palette)}>
+                      {isEmojiIcon(selectedCategory.icon) ? (
+                        <Text style={{ fontSize: 16 }}>{selectedCategory.icon}</Text>
+                      ) : (
+                        <Feather name={selectedCategory.icon as keyof typeof Feather.glyphMap} size={15} color={palette.iconTint} />
+                      )}
+                    </View>
+                    <Text style={{ flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '500', color: palette.text }} numberOfLines={1}>
+                      {getCategoryLabel(selectedCategory.id)}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={{ flex: 1, fontSize: 15, color: palette.textMuted }}>Choose a subcategory</Text>
+                )}
+                <Ionicons name={showCategoryPicker ? 'chevron-up' : 'chevron-down'} size={16} color={palette.textMuted} />
+              </View>
+            </TouchableOpacity>
+
+            {showCategoryPicker ? (
+              <View style={[styles.categoryPicker, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
+                <ScrollView nestedScrollEnabled style={{ maxHeight: 260 }}>
+                  {categories.map((category, index) => (
+                    <TouchableOpacity
+                      key={category.id}
+                      onPress={() => {
+                        setCategoryId(category.id);
+                        setShowCategoryPicker(false);
+                      }}
+                      activeOpacity={0.75}
+                      style={{
+                        minHeight: 56,
+                        paddingHorizontal: CARD_PADDING,
+                        paddingVertical: 12,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        borderBottomWidth: index === categories.length - 1 ? 0 : 1,
+                        borderBottomColor: palette.divider,
+                        backgroundColor: categoryId === category.id ? palette.brandSoft : 'transparent',
+                      }}
+                    >
+                      <View style={iconBoxStyle(palette)}>
+                        {isEmojiIcon(category.icon) ? (
+                          <Text style={{ fontSize: 16 }}>{category.icon}</Text>
+                        ) : (
+                          <Feather name={category.icon as keyof typeof Feather.glyphMap} size={15} color={palette.iconTint} />
+                        )}
+                      </View>
+                      <Text style={{ flex: 1, marginLeft: 12, fontSize: 15, color: palette.text }} numberOfLines={1}>
+                        {getCategoryLabel(category.id)}
+                      </Text>
+                      {categoryId === category.id ? <Ionicons name="checkmark-circle" size={18} color={palette.brand} /> : null}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.sm }}>
+              <View style={[styles.fieldCard, { flex: 1, backgroundColor: palette.surface, borderColor: palette.divider }]}>
+                <Text style={fieldLabelStyle(palette)}>Month</Text>
+                <View style={[styles.monthBar, { marginTop: 8, backgroundColor: palette.background, borderColor: palette.divider }]}>
+                  <TouchableOpacity
+                    onPress={() => setStartMonth((value) => shiftMonth(value, -1))}
+                    style={[styles.monthArrow, { borderRightColor: palette.divider }]}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons name="chevron-back" size={14} color={palette.text} />
+                  </TouchableOpacity>
+                  <View style={styles.monthCenter}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text }}>{formatMonthLabel(startMonth)}</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setStartMonth((value) => shiftMonth(value, 1))}
+                    style={[styles.monthArrow, { borderLeftColor: palette.divider }]}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons name="chevron-forward" size={14} color={palette.text} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={[styles.fieldCard, { flex: 1, backgroundColor: palette.surface, borderColor: palette.divider }]}>
+                <Text style={fieldLabelStyle(palette)}>Repeat</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                  {[
+                    { label: 'Yes', value: true },
+                    { label: 'No', value: false },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.label}
+                      onPress={() => setRepeat(option.value)}
+                      activeOpacity={0.75}
+                      style={[
+                        styles.repeatChip,
+                        {
+                          backgroundColor: repeat === option.value ? palette.brandSoft : palette.background,
+                          borderColor: repeat === option.value ? palette.brand : palette.divider,
+                        },
+                      ]}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: repeat === option.value ? palette.brand : palette.text }}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             </View>
           </View>
 
-          {/* Category */}
-          <View style={{ marginBottom: HOME_SPACE.md }}>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
-              Category
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {outCategories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  onPress={() => setCategoryId(cat.id)}
-                  style={{
-                    paddingHorizontal: HOME_SPACE.lg,
-                    paddingVertical: HOME_SPACE.sm,
-                    borderRadius: HOME_RADIUS.small,
-                    marginRight: HOME_SPACE.sm,
-                    backgroundColor: categoryId === cat.id ? palette.brand : palette.surface,
-                    borderWidth: 1,
-                    borderColor: categoryId === cat.id ? palette.brand : palette.divider,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: HOME_TEXT.bodySmall,
-                      color: categoryId === cat.id ? palette.surface : palette.textSecondary,
-                    }}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Period */}
-          <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginBottom: HOME_SPACE.xxl }}>
-            {(['month', 'year'] as const).map((p) => (
+          <View style={{ flexDirection: 'row', gap: HOME_SPACE.sm, marginTop: HOME_SPACE.lg }}>
+            {budget && onDelete ? (
               <TouchableOpacity
-                key={p}
-                onPress={() => setPeriod(p)}
-                style={{
-                  flex: 1,
-                  paddingVertical: HOME_SPACE.md,
-                  borderRadius: HOME_RADIUS.small,
-                  alignItems: 'center',
-                  backgroundColor: period === p ? palette.brand : palette.surface,
-                  borderWidth: 1,
-                  borderColor: period === p ? palette.brand : palette.divider,
-                }}
+                onPress={onDelete}
+                activeOpacity={0.8}
+                style={[styles.secondaryAction, { borderColor: palette.divider, backgroundColor: palette.surface }]}
               >
-                <Text
-                  style={{
-                    fontSize: HOME_TEXT.body,
-                    fontWeight: '500',
-                    color: period === p ? palette.surface : palette.textSecondary,
-                  }}
-                >
-                  {p === 'month' ? 'Monthly' : 'Yearly'}
-                </Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: palette.negative }}>Delete</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            ) : null}
 
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={!isReady || loading}
-            style={{
-              backgroundColor: isReady ? palette.brand : palette.textMuted,
-              borderRadius: HOME_RADIUS.pill,
-              paddingVertical: HOME_SPACE.xl,
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ color: palette.surface, fontSize: HOME_TEXT.heroLabel, fontWeight: '600' }}>
-              Add Budget
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={!canSave || loading}
+              activeOpacity={0.8}
+              style={[
+                styles.primaryAction,
+                {
+                  flex: 1,
+                  backgroundColor: canSave ? palette.brand : palette.borderSoft,
+                },
+              ]}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '800', color: palette.onBrand }}>
+                {budget ? 'Save Changes' : 'Add Budget'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  monthBar: {
+    minHeight: 48,
+    borderRadius: ACTIVITY_LAYOUT.chipRadius,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  monthArrow: {
+    width: 40,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: 'transparent',
+  },
+  monthCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  summaryCell: {
+    flex: 1,
+    borderRadius: HOME_RADIUS.card,
+    padding: CARD_PADDING,
+  },
+  warningBox: {
+    borderRadius: HOME_RADIUS.small,
+    padding: HOME_SPACE.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: HOME_SPACE.sm,
+  },
+  emptyCard: {
+    borderRadius: HOME_RADIUS.card,
+    padding: 32,
+    alignItems: 'center',
+  },
+  budgetCard: {
+    borderRadius: HOME_RADIUS.card,
+    paddingHorizontal: CARD_PADDING,
+    paddingVertical: 14,
+    marginBottom: HOME_SPACE.md,
+  },
+  editorShell: {
+    borderTopLeftRadius: HOME_RADIUS.large,
+    borderTopRightRadius: HOME_RADIUS.large,
+    paddingHorizontal: HOME_SPACE.xxl,
+    paddingTop: HOME_SPACE.xl,
+    paddingBottom: HOME_SPACE.xxl,
+  },
+  editorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: HOME_SPACE.lg,
+  },
+  detailStrip: {
+    minHeight: 64,
+    borderRadius: HOME_RADIUS.card,
+    borderWidth: 1,
+    paddingHorizontal: CARD_PADDING,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: HOME_SPACE.md,
+  },
+  fieldCard: {
+    borderRadius: HOME_RADIUS.card,
+    borderWidth: 1,
+    paddingHorizontal: CARD_PADDING,
+    paddingVertical: 14,
+  },
+  categoryPicker: {
+    borderRadius: HOME_RADIUS.card,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginTop: -4,
+  },
+  repeatChip: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: HOME_RADIUS.pill,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  secondaryAction: {
+    minHeight: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryAction: {
+    minHeight: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+});

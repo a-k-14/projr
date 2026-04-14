@@ -80,8 +80,9 @@ export interface Budget {
   id: string;
   categoryId: string;
   amount: number;
-  period: 'month' | 'year';
+  period: 'month';
   startDate: string;
+  repeat: boolean;
   createdAt: string;
 }
 
@@ -185,6 +186,7 @@ export interface CreateLoanInput {
 export interface CreateBudgetInput {
   categoryId: string;
   amount: number;
-  period: 'month' | 'year';
+  period: 'month';
   startDate: string;
+  repeat: boolean;
 }

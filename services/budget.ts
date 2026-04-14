@@ -3,7 +3,7 @@ import { db } from '../db/client';
 import { budget, transactions } from '../db/schema';
 import type { Budget, BudgetWithSpent, CreateBudgetInput } from '../types';
 import { generateId } from '../lib/ids';
-import { todayUTC, getDateRange } from '../lib/dateUtils';
+import { todayUTC } from '../lib/dateUtils';
 import { getCategoryById } from './categories';
 
 function rowToBudget(row: typeof budget.$inferSelect): Budget {
@@ -11,10 +11,23 @@ function rowToBudget(row: typeof budget.$inferSelect): Budget {
     id: row.id,
     categoryId: row.categoryId,
     amount: row.amount,
-    period: row.period as Budget['period'],
+    period: 'month',
     startDate: row.startDate,
+    repeat: !!row.repeat,
     createdAt: row.createdAt,
   };
+}
+
+function getMonthKey(iso: string) {
+  const date = new Date(iso);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getMonthRange(iso: string) {
+  const date = new Date(iso);
+  const from = new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+  const to = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+  return { from: from.toISOString(), to: to.toISOString() };
 }
 
 export async function getBudgetList(): Promise<Budget[]> {
@@ -22,16 +35,18 @@ export async function getBudgetList(): Promise<Budget[]> {
   return rows.map(rowToBudget);
 }
 
-export async function getBudgetWithSpent(yearStart: number = 3): Promise<BudgetWithSpent[]> {
+export async function getBudgetWithSpent(selectedMonthIso: string = todayUTC()): Promise<BudgetWithSpent[]> {
   const budgetList = await getBudgetList();
   const result: BudgetWithSpent[] = [];
+  const selectedMonthKey = getMonthKey(selectedMonthIso);
+  const { from, to } = getMonthRange(selectedMonthIso);
 
   for (const b of budgetList) {
+    const budgetMonthKey = getMonthKey(b.startDate);
+    const isActive = b.repeat ? budgetMonthKey <= selectedMonthKey : budgetMonthKey === selectedMonthKey;
+    if (!isActive) continue;
+
     const category = await getCategoryById(b.categoryId);
-    const { from, to } = getDateRange(
-      b.period === 'month' ? 'month' : 'year',
-      yearStart
-    );
 
     const rows = await db
       .select()
@@ -67,7 +82,7 @@ export async function getBudgetWithSpent(yearStart: number = 3): Promise<BudgetW
       if (r.categoryId !== b.categoryId) return sum;
       return sum + r.amount;
     }, 0);
-    const remaining = Math.max(0, b.amount - spent);
+    const remaining = b.amount - spent;
     const percent = b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0;
 
     result.push({
@@ -86,13 +101,17 @@ export async function getBudgetWithSpent(yearStart: number = 3): Promise<BudgetW
 export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
   const id = generateId();
   const now = todayUTC();
-  const row = { id, ...data, createdAt: now };
+  const row = { id, ...data, repeat: data.repeat ? 1 : 0, createdAt: now };
   await db.insert(budget).values(row);
   return rowToBudget(row);
 }
 
 export async function updateBudget(id: string, data: Partial<Budget>): Promise<Budget> {
-  await db.update(budget).set(data as any).where(eq(budget.id, id));
+  const payload = {
+    ...data,
+    repeat: typeof data.repeat === 'boolean' ? (data.repeat ? 1 : 0) : undefined,
+  };
+  await db.update(budget).set(payload as any).where(eq(budget.id, id));
   const rows = await db.select().from(budget).where(eq(budget.id, id));
   return rowToBudget(rows[0]);
 }
