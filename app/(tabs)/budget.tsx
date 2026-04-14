@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -238,7 +238,11 @@ function BudgetCard({
             marginRight: HOME_SPACE.md,
           }}
         >
-          <Ionicons name={budget.categoryIcon as any} size={18} color={budget.categoryColor} />
+          {/^[a-z-]+$/.test(budget.categoryIcon) ? (
+            <Feather name={budget.categoryIcon as any} size={18} color={budget.categoryColor} />
+          ) : (
+            <Text style={{ fontSize: 18 }}>{budget.categoryIcon}</Text>
+          )}
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>

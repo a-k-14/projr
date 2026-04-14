@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -188,27 +189,30 @@ export default function AddTransactionModal() {
 
   useEffect(() => {
     if (!isEditing || !editId) return;
-    getTransactionById(editId).then((tx) => {
-      if (!tx) return;
-      setType(tx.type);
-      setAmountStr(formatIndianNumberStr(String(tx.amount)));
-      setAccountId(tx.accountId);
-      if (tx.linkedAccountId) setLinkedAccountId(tx.linkedAccountId);
-      if (tx.categoryId) setCategoryId(tx.categoryId);
-      if (tx.payee) setPayee(tx.payee);
-      if (tx.tags?.length) setSelectedTagIds(tx.tags);
-      if (tx.splits?.length) {
-        setSplitRows(
-          tx.splits.map((split) => ({
-            id: `split-${splitIdSeed.current++}`,
-            categoryId: split.categoryId,
-            amountStr: String(split.amount),
-          }))
-        );
-      }
-      setDate(tx.date);
-      if (tx.note) setNote(tx.note);
+    const task = InteractionManager.runAfterInteractions(() => {
+      getTransactionById(editId).then((tx) => {
+        if (!tx) return;
+        setType(tx.type);
+        setAmountStr(formatIndianNumberStr(String(tx.amount)));
+        setAccountId(tx.accountId);
+        if (tx.linkedAccountId) setLinkedAccountId(tx.linkedAccountId);
+        if (tx.categoryId) setCategoryId(tx.categoryId);
+        if (tx.payee) setPayee(tx.payee);
+        if (tx.tags?.length) setSelectedTagIds(tx.tags);
+        if (tx.splits?.length) {
+          setSplitRows(
+            tx.splits.map((split) => ({
+              id: `split-${splitIdSeed.current++}`,
+              categoryId: split.categoryId,
+              amountStr: String(split.amount),
+            }))
+          );
+        }
+        setDate(tx.date);
+        if (tx.note) setNote(tx.note);
+      });
     });
+    return () => task.cancel();
   }, [editId, isEditing]);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;

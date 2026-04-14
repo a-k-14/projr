@@ -52,8 +52,10 @@ export default function AccountFormScreen() {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
-  const { calculatorValue, calculatorOpen, setCalculatorValue, setCalculatorOpen } =
-    useTransactionDraftStore();
+  const calculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
+  const calculatorOpen = useTransactionDraftStore((s) => s.calculatorOpen);
+  const setCalculatorValue = useTransactionDraftStore((s) => s.setCalculatorValue);
+  const setCalculatorOpen = useTransactionDraftStore((s) => s.setCalculatorOpen);
   const prevCalculatorOpen = useRef(calculatorOpen);
 
   useEffect(() => {

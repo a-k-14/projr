@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator, useColorScheme } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -12,17 +12,16 @@ import { seedDatabase } from '../db/seed';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
-import { getThemePalette, resolveTheme } from '../lib/theme';
+import { useAppTheme } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
   const loadSettings = useUIStore((s) => s.load);
-  const theme = useUIStore((s) => s.settings.theme);
   const loadCategories = useCategoriesStore((s) => s.load);
   const [ready, setReady] = useState(false);
-  const colorScheme = useColorScheme();
+  const { palette } = useAppTheme();
 
   useEffect(() => {
     async function init() {
@@ -39,9 +38,6 @@ export default function RootLayout() {
     }
     init();
   }, []);
-
-  const themeMode = resolveTheme(theme, colorScheme);
-  const palette = getThemePalette(themeMode);
 
   useEffect(() => {
     NavigationBar.setButtonStyleAsync(palette.navigationButtonStyle).catch(() => undefined);

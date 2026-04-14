@@ -1,9 +1,8 @@
 import { Tabs, router } from 'expo-router';
-import { View, Text, useColorScheme } from 'react-native';
+import { View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useUIStore } from '../../stores/useUIStore';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 
 function TabIcon({
   name,
@@ -48,9 +47,7 @@ function TabIcon({
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const scheme = useColorScheme();
-  const theme = useUIStore((s) => s.settings.theme);
-  const palette = getThemePalette(resolveTheme(theme, scheme));
+  const { palette } = useAppTheme();
 
   const TAB_HEIGHT = 60;
 

@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import {
   CardSection,
   FixedBottomActions,
@@ -10,15 +10,12 @@ import {
 } from '../../components/settings-ui';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDisplayCurrency, symbolFor } from '../../lib/settings-shared';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useUIStore } from '../../stores/useUIStore';
 
 export default function AccountsScreen() {
   const { accounts, load, isLoaded } = useAccountsStore();
-  const scheme = useColorScheme();
-  const theme = useUIStore((s) => s.settings.theme);
-  const palette = getThemePalette(resolveTheme(theme, scheme));
+  const { palette } = useAppTheme();
   const router = useRouter();
 
   useEffect(() => {

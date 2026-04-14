@@ -1,16 +1,15 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import {
   CardSection,
   FixedBottomActions,
   SettingsScreenLayout,
 } from '../../components/settings-ui';
 import { CARD_PADDING } from '../../lib/design';
-import { getThemePalette, resolveTheme } from '../../lib/theme';
+import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useUIStore } from '../../stores/useUIStore';
 
 type Tab = 'in' | 'out';
 
@@ -51,9 +50,7 @@ function CategoryIconBadge({
 
 export default function CategoriesScreen() {
   const { categories, load, isLoaded } = useCategoriesStore();
-  const scheme = useColorScheme();
-  const theme = useUIStore((s) => s.settings.theme);
-  const palette = getThemePalette(resolveTheme(theme, scheme));
+  const { palette } = useAppTheme();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('in');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -230,17 +227,8 @@ export default function CategoriesScreen() {
                         borderTopColor: palette.divider,
                       }}
                     >
-                      <View
-                        style={{
-                          width: 5,
-                          height: 5,
-                          borderRadius: 3,
-                          backgroundColor: palette.brand,
-                          opacity: 0.5,
-                        }}
-                      />
                       <Text
-                        style={{ flex: 1, fontSize: 14, color: palette.textMuted }}
+                        style={{ flex: 1, fontSize: 14, color: palette.textMuted, fontWeight: '400' }}
                         numberOfLines={1}
                       >
                         {sub.name}

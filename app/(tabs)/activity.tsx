@@ -1,5 +1,6 @@
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -30,6 +31,7 @@ import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { Category, Transaction, TransactionFilters, TransactionType } from '../../types';
 
@@ -53,6 +55,7 @@ const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
 const PERIOD_ARROW_WIDTH = 34;
 
 export default function ActivityScreen() {
+  const isFocused = useIsFocused();
   const routeParams = useLocalSearchParams<{
     source?: string;
     period?: string;
@@ -75,6 +78,7 @@ export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
+  const transactionsVersion = useTransactionsStore((s) => s.transactionsVersion);
 
   const [period, setPeriod] = useState<ActivityPeriod>('all');
   const [periodOffset, setPeriodOffset] = useState(0);
@@ -161,8 +165,14 @@ export default function ActivityScreen() {
   );
 
   useEffect(() => {
+    if (isFocused) {
+      loadData(true);
+    }
+  }, [isFocused, loadData]);
+
+  useEffect(() => {
     loadData(true);
-  }, [loadData]);
+  }, [transactionsVersion, loadData]);
 
   useEffect(() => {
     if (!categoriesLoaded) loadCategories().catch(() => undefined);
@@ -197,7 +207,6 @@ export default function ActivityScreen() {
     setIsSearchActive(false);
 
     if (source === 'activity-tab' || source === 'home-view-all') {
-      requestIdRef.current += 1;
       lastAppliedRouteTsRef.current = ts;
       return;
     }
@@ -233,7 +242,6 @@ export default function ActivityScreen() {
       }
     }
 
-    requestIdRef.current += 1;
     lastAppliedRouteTsRef.current = ts;
   }, [accounts, routeParams.accountId, routeParams.cashflowBucket, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
 
@@ -473,7 +481,7 @@ export default function ActivityScreen() {
                   },
                 ]}
               >
-                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: palette.text, flex: 1 }}>
+                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: palette.text, flex: 1 }}>
                   {accountLabel}
                 </Text>
                 <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
@@ -510,7 +518,7 @@ export default function ActivityScreen() {
                     activeOpacity={0.7}
                     hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
                   >
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text }} numberOfLines={1}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }} numberOfLines={1}>
                       {periodLabel}
                     </Text>
                   </TouchableOpacity>
