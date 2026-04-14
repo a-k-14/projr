@@ -77,7 +77,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, marginBottom: 2 }}>
           {tx.payee || cfg.label}
         </Text>
-        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
           {subtitle}
         </Text>
       </View>

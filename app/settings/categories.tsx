@@ -221,14 +221,14 @@ export default function CategoriesScreen() {
                         paddingLeft: CARD_PADDING + 40,
                         paddingRight: CARD_PADDING,
                         paddingVertical: 12,
-                        minHeight: 48,
+                        minHeight: 52,
                         gap: 10,
                         borderTopWidth: 1,
                         borderTopColor: palette.divider,
                       }}
                     >
                       <Text
-                        style={{ flex: 1, fontSize: 14, color: palette.textMuted, fontWeight: '400' }}
+                        style={{ flex: 1, fontSize: 15, color: palette.text, fontWeight: '400' }}
                         numberOfLines={1}
                       >
                         {sub.name}

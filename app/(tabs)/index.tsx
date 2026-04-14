@@ -449,7 +449,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   );
   const openTodayActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
-      router.push({
+      router.navigate({
         pathname: '/(tabs)/activity',
         params: {
           source: 'home-today',
@@ -465,7 +465,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   );
   const openPeriodActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
-      router.push({
+      router.navigate({
         pathname: '/(tabs)/activity',
         params: {
           source: 'home-period',
@@ -491,7 +491,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const openSliceActivity = useCallback(
     (range: { from: string; to: string }, type: TransactionType | 'all') => {
-      router.push({
+      router.navigate({
         pathname: '/(tabs)/activity',
         params: {
           source: 'home-slice',
@@ -639,7 +639,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
-                {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow Table'}
+                {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow'}
               </Text>
               <Ionicons name="chevron-down" size={16} color={palette.textMuted} />
             </TouchableOpacity>
@@ -840,7 +840,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
               <TouchableOpacity
                 onPress={() =>
-                  router.push({
+                  router.navigate({
                     pathname: '/(tabs)/activity',
                     params: { source: 'home-view-all', ts: String(Date.now()) },
                   })
@@ -889,13 +889,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           {(['in', 'out', 'table'] as const).map((view, index) => (
             <ChoiceRow
               key={view}
-              title={view === 'in' ? 'Inflows' : view === 'out' ? 'Outflows' : 'Cashflow Table'}
+              title={view === 'in' ? 'Inflows' : view === 'out' ? 'Outflows' : 'Cashflow'}
               subtitle={
                 view === 'in'
                   ? 'Money coming in by category'
                   : view === 'out'
                     ? 'Money going out by category'
-                    : 'Summary table of cashflow'
+                    : 'Summary of cashflow'
               }
               selected={activeView === view}
               palette={palette}

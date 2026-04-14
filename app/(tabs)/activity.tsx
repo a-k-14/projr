@@ -74,11 +74,15 @@ export default function ActivityScreen() {
   const getCategoryDisplayName = useCategoriesStore((s) => s.getCategoryDisplayName);
   const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
   const loadCategories = useCategoriesStore((s) => s.load);
+  const storeTransactions = useTransactionsStore((s) => s.transactions);
+  const storeTransactionsLoaded = useTransactionsStore((s) => s.isLoaded);
+  const storeTransactionsHasMore = useTransactionsStore((s) => s.hasMore);
+  const loadStoreTransactions = useTransactionsStore((s) => s.load);
+  const loadMoreStoreTransactions = useTransactionsStore((s) => s.loadMore);
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
-  const transactionsVersion = useTransactionsStore((s) => s.transactionsVersion);
 
   const [period, setPeriod] = useState<ActivityPeriod>('all');
   const [periodOffset, setPeriodOffset] = useState(0);
@@ -120,6 +124,16 @@ export default function ActivityScreen() {
   const selectedAccount =
     selectedAccountId === 'all' ? null : accounts.find((account) => account.id === selectedAccountId);
   const accountLabel = selectedAccount ? selectedAccount.name : 'All Accounts';
+  const isDefaultView =
+    period === 'all' &&
+    selectedAccountId === 'all' &&
+    typeFilter === 'all' &&
+    cashflowBucket === 'all' &&
+    !search &&
+    selectedCategoryIds.length === 0 &&
+    selectedTagIds.length === 0 &&
+    !amountMinStr &&
+    !amountMaxStr;
 
   const loadData = useMemo(
     () => async (isInitial: boolean) => {
@@ -166,13 +180,22 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     if (isFocused) {
-      loadData(true);
+      if (isDefaultView) {
+        if (!storeTransactionsLoaded) {
+          loadStoreTransactions().catch(() => undefined);
+        }
+      } else {
+        loadData(true);
+      }
     }
-  }, [isFocused, loadData]);
+  }, [isDefaultView, isFocused, loadData, loadStoreTransactions, storeTransactionsLoaded]);
 
   useEffect(() => {
-    loadData(true);
-  }, [transactionsVersion, loadData]);
+    if (!isDefaultView) return;
+    setTransactions(storeTransactions);
+    setHasMore(storeTransactionsHasMore);
+    offsetRef.current = storeTransactions.length;
+  }, [isDefaultView, storeTransactions, storeTransactionsHasMore]);
 
   useEffect(() => {
     if (!categoriesLoaded) loadCategories().catch(() => undefined);
@@ -247,12 +270,20 @@ export default function ActivityScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData(true);
+    if (isDefaultView) {
+      await loadStoreTransactions();
+    } else {
+      await loadData(true);
+    }
     setRefreshing(false);
   };
 
   const onLoadMore = () => {
     if (!hasMore || loadingRef.current) return;
+    if (isDefaultView) {
+      void loadMoreStoreTransactions();
+      return;
+    }
     void loadData(false);
   };
 

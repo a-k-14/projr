@@ -8,6 +8,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
+import { CardSection, ChoiceRow } from '../../components/settings-ui';
 
 export default function SelectAccountSheet() {
   const accounts = useAccountsStore((s) => s.accounts);
@@ -26,10 +27,9 @@ export default function SelectAccountSheet() {
           borderTopRightRadius: RADIUS.xl,
           paddingTop: 12,
           paddingBottom: insets.bottom + 14,
-          paddingHorizontal: SHEET_GUTTER,
         }}
       >
-        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <View
             style={{
               width: 42,
@@ -40,7 +40,7 @@ export default function SelectAccountSheet() {
             }}
           />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, paddingHorizontal: SHEET_GUTTER }}>
           <Text style={{ fontSize: 18, fontWeight: '700', color: palette.text, flex: 1 }}>
             Select account
           </Text>
@@ -49,40 +49,26 @@ export default function SelectAccountSheet() {
           </TouchableOpacity>
         </View>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {accounts.map((account) => {
-            const selected = account.id === accountId;
-            return (
-              <TouchableOpacity
-                key={account.id}
-                onPress={() => {
-                  setAccountId(account.id);
-                  router.back();
-                }}
-                style={{
-                  paddingVertical: 14,
-                  paddingHorizontal: SHEET_GUTTER,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: selected ? palette.tabActive : palette.divider,
-                  backgroundColor: selected ? palette.brandSoft : palette.surface,
-                  marginBottom: 10,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: palette.text }}>
-                    {formatAccountDisplayName(account.name, account.accountNumber)}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>
-                    {account.type}
-                  </Text>
-                </View>
-                {selected ? <Ionicons name="checkmark" size={18} color={palette.tabActive} /> : null}
-              </TouchableOpacity>
-            );
-          })}
+          <CardSection palette={palette}>
+            {accounts.map((account, index) => {
+              const selected = account.id === accountId;
+              return (
+                <ChoiceRow
+                  key={account.id}
+                  title={formatAccountDisplayName(account.name, account.accountNumber)}
+                  subtitle={account.type.charAt(0).toUpperCase() + account.type.slice(1)}
+                  selected={selected}
+                  palette={palette}
+                  horizontalPadding={16}
+                  onPress={() => {
+                    setAccountId(account.id);
+                    router.back();
+                  }}
+                  noBorder={index === accounts.length - 1}
+                />
+              );
+            })}
+          </CardSection>
         </ScrollView>
       </View>
     </View>

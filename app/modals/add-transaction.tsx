@@ -154,6 +154,15 @@ export default function AddTransactionModal() {
   // draftCategoryId changes → pull it into local state.
   // We guard with a ref so that our own setCategoryId calls don't re-trigger.
   const isSyncingCategory = useRef(false);
+  
+  // Clear category draft on mount for new transactions
+  useEffect(() => {
+    if (!isEditing) {
+      setDraftCategoryId('');
+      setCategoryId('');
+    }
+  }, [isEditing]);
+
   useEffect(() => {
     if (isSyncingCategory.current) {
       isSyncingCategory.current = false;
@@ -172,6 +181,16 @@ export default function AddTransactionModal() {
       setDraftCategoryId(categoryId);
     }
   }, [categoryId, setDraftCategoryId]);
+
+  // Validation: Reset category if it's incompatible with the current type
+  useEffect(() => {
+    if (!categoryId || type === 'transfer' || type === 'loan') return;
+    const cat = categories.find(c => c.id === categoryId);
+    if (cat && cat.type !== 'both' && cat.type !== type) {
+      setCategoryId('');
+      setDraftCategoryId('');
+    }
+  }, [type, categoryId, categories]);
 
   // Only sync calculator value to amountStr when the calculator is closed
   // This prevents incomplete expressions like "94+" from appearing in the main form

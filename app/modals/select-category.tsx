@@ -1,14 +1,14 @@
-import { useMemo, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, LayoutAnimation, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { LayoutAnimation, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SCREEN_GUTTER, CARD_PADDING } from '../../lib/design';
-import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import type { TransactionType } from '../../types';
-import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
-import { useAppTheme } from '../../lib/theme';
 import { CardSection } from '../../components/settings-ui';
+import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
+import { useAppTheme } from '../../lib/theme';
+import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import type { TransactionType } from '../../types';
 
 function isEmoji(icon: string) {
   return !/^[a-z-]+$/.test(icon);
@@ -61,7 +61,7 @@ export default function SelectCategoryScreen() {
     const parents = categories.filter(
       (c) => c.parentId == null && (type === undefined || c.type === type || c.type === 'both')
     );
-    
+
     return parents.map((parent) => {
       const children = categories.filter((c) => c.parentId === parent.id);
       const filteredChildren = children.filter((child) => {
@@ -144,7 +144,8 @@ export default function SelectCategoryScreen() {
               const isExpanded = expandedParentIds.has(parent.id);
               const hasChildren = children.length > 0;
               const isLast = index === sections.length - 1;
-              
+              const selected = parent.id === selectedCategoryId;
+
               return (
                 <View key={parent.id}>
                   <TouchableOpacity
@@ -158,6 +159,7 @@ export default function SelectCategoryScreen() {
                       minHeight: 62,
                       borderBottomWidth: (isLast && !isExpanded) ? 0 : 1,
                       borderBottomColor: palette.divider,
+                      backgroundColor: selected ? palette.brandSoft : 'transparent',
                       gap: 12,
                     }}
                   >
@@ -165,13 +167,26 @@ export default function SelectCategoryScreen() {
                     <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text, flex: 1 }}>
                       {parent.name}
                     </Text>
-                    {hasChildren && (
-                      <Feather 
-                        name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-                        size={18} 
-                        color={palette.textSoft} 
+                    {hasChildren ? (
+                      <Feather
+                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={palette.textSoft}
                       />
-                    )}
+                    ) : selected ? (
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          backgroundColor: palette.tabActive,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Feather name="check" size={13} color={palette.onBrand} />
+                      </View>
+                    ) : null}
                   </TouchableOpacity>
 
                   {isExpanded && hasChildren && (
@@ -188,21 +203,34 @@ export default function SelectCategoryScreen() {
                               paddingVertical: 12,
                               paddingLeft: CARD_PADDING + 40,
                               paddingRight: CARD_PADDING,
-                              minHeight: 48,
+                              minHeight: 52,
                               borderTopWidth: 1,
                               borderTopColor: palette.divider,
                               backgroundColor: selected ? palette.brandSoft : 'transparent'
                             }}
                           >
-                            <Text style={{ 
-                              fontSize: 14, 
-                              fontWeight: '400', 
-                              color: selected ? palette.tabActive : palette.textMuted,
-                              flex: 1 
+                            <Text style={{
+                              fontSize: 15,
+                              fontWeight: '400',
+                              color: palette.text,
+                              flex: 1
                             }}>
                               {child.name}
                             </Text>
-                            {selected && <Feather name="check" size={16} color={palette.tabActive} />}
+                            {selected && (
+                              <View
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: 11,
+                                  backgroundColor: palette.tabActive,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Feather name="check" size={13} color={palette.onBrand} />
+                              </View>
+                            )}
                           </TouchableOpacity>
                         );
                       })}
