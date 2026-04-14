@@ -21,7 +21,7 @@ import {
   HOME_TEXT,
   getFabBottomOffset,
 } from '../../lib/layoutTokens';
-import { useAppTheme } from '../../lib/theme';
+import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -60,6 +60,23 @@ export default function LoansScreen() {
     { id: 'all', name: 'All accounts' },
     ...accounts.map((a) => ({ id: a.id, name: a.name })),
   ];
+
+  const renderLoanItem = useCallback(
+    ({ item, index }: { item: LoanWithSummary; index: number }) => {
+      const account = accounts.find((a) => a.id === item.accountId);
+      return (
+        <LoanRow
+          loan={item}
+          accountName={account?.name}
+          sym={sym}
+          palette={palette}
+          isLast={index === loans.length - 1}
+          onPress={() => router.push(`/loan/${item.id}`)}
+        />
+      );
+    },
+    [accounts, sym, palette, loans.length],
+  );
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
@@ -254,19 +271,7 @@ export default function LoansScreen() {
             </Text>
           </View>
         }
-        renderItem={useCallback(({ item, index }: { item: LoanWithSummary; index: number }) => {
-          const account = accounts.find((a) => a.id === item.accountId);
-          return (
-            <LoanRow
-              loan={item}
-              accountName={account?.name}
-              sym={sym}
-              palette={palette}
-              isLast={index === loans.length - 1}
-              onPress={() => router.push(`/loan/${item.id}`)}
-            />
-          );
-        }, [accounts, sym, palette, loans, loans.length])}
+        renderItem={renderLoanItem}
         ItemSeparatorComponent={() => null}
       />
 

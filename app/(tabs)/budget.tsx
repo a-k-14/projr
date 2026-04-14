@@ -23,11 +23,11 @@ import {
   HOME_TEXT,
   getFabBottomOffset,
 } from '../../lib/layoutTokens';
-import { useAppTheme } from '../../lib/theme';
+import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
-import type { BudgetWithSpent, CreateBudgetInput } from '../../types';
+import type { BudgetWithSpent, Category, CreateBudgetInput } from '../../types';
 
 export default function BudgetScreen() {
   const budgets = useBudgetStore((s) => s.budgets);
@@ -163,7 +163,7 @@ export default function BudgetScreen() {
                 onDelete={() => {
                   Alert.alert('Delete budget?', 'This cannot be undone.', [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => remove(budget.id) },
+                    { text: 'Delete', style: 'destructive', onPress: () => removeBudget(budget.id) },
                   ]);
                 }}
               />
@@ -197,8 +197,6 @@ export default function BudgetScreen() {
 }
 
 // ─── BudgetCard ───────────────────────────────────────────────────────────────
-
-import type { Category } from '../../types';
 
 function BudgetCard({
   budget,

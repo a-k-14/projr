@@ -436,6 +436,71 @@ export default function ActivityScreen() {
     });
   }, [filteredTransactions]);
 
+  const renderGroupItem = useCallback(
+    ({ item }: { item: ActivityGroup }) => {
+      const groupNet = item.net;
+      return (
+        <View style={{ marginBottom: ACTIVITY_LAYOUT.groupCardMarginBottom }}>
+          <View
+            style={[
+              styles.groupHeader,
+              { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom },
+            ]}
+          >
+            <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.text }}>
+                {item.title}
+              </Text>
+              {item.subtitle ? (
+                <>
+                  <Text
+                    style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.textMuted, marginHorizontal: 6 }}
+                  >
+                    •
+                  </Text>
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted }}>
+                    {item.subtitle}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+            {item.items.length > 1 && groupNet !== 0 ? (
+              <Text style={{ fontSize: 12, fontWeight: '700', color: groupNet > 0 ? palette.brand : palette.negative }}>
+                {signedCurrency(groupNet, sym)}
+              </Text>
+            ) : null}
+          </View>
+
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
+              marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+              overflow: 'hidden',
+            }}
+          >
+            {item.items.map((tx, index) => {
+              const account = accounts.find((a) => a.id === tx.accountId);
+              return (
+                <TransactionListItem
+                  key={tx.id}
+                  tx={tx}
+                  sym={sym}
+                  palette={palette}
+                  isLast={index === item.items.length - 1}
+                  categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
+                  accountName={account?.name}
+                  onPress={handleTransactionPress}
+                />
+              );
+            })}
+          </View>
+        </View>
+      );
+    },
+    [accounts, getCategoryDisplayName, handleTransactionPress, palette, sym],
+  );
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       {isSearchActive ? (
@@ -623,58 +688,7 @@ export default function ActivityScreen() {
             <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
           </View>
         }
-        renderItem={useCallback(({ item }: { item: ActivityGroup }) => {
-          const groupNet = item.net;
-          return (
-            <View style={{ marginBottom: ACTIVITY_LAYOUT.groupCardMarginBottom }}>
-              <View style={[styles.groupHeader, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom }]}>
-                <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.text }}>
-                    {item.title}
-                  </Text>
-                  {item.subtitle ? (
-                    <>
-                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.textMuted, marginHorizontal: 6 }}>
-                        •
-                      </Text>
-                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted }}>
-                        {item.subtitle}
-                      </Text>
-                    </>
-                  ) : null}
-                </View>
-                {item.items.length > 1 && groupNet !== 0 ? (
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: groupNet > 0 ? palette.brand : palette.negative }}>
-                    {signedCurrency(groupNet, sym)}
-                  </Text>
-                ) : null}
-              </View>
-
-              <View style={{
-                backgroundColor: palette.surface,
-                borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
-                marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                overflow: 'hidden',
-              }}>
-                {item.items.map((tx, index) => {
-                  const account = accounts.find((a) => a.id === tx.accountId);
-                  return (
-                    <TransactionListItem
-                      key={tx.id}
-                      tx={tx}
-                      sym={sym}
-                      palette={palette}
-                      isLast={index === item.items.length - 1}
-                      categoryName={tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined}
-                      accountName={account?.name}
-                      onPress={handleTransactionPress}
-                    />
-                  );
-                })}
-              </View>
-            </View>
-          );
-        }, [sym, palette, getCategoryDisplayName, handleTransactionPress])}
+        renderItem={renderGroupItem}
         ListEmptyComponent={
           !refreshing ? (
             <View style={{ alignItems: 'center', paddingTop: 64 }}>

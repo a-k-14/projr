@@ -14,7 +14,6 @@ interface TransactionsStore {
   update: (id: string, data: Partial<CreateTransactionInput>) => Promise<void>;
   remove: (id: string) => Promise<void>;
   setFilters: (filters: TransactionFilters) => void;
-  transactionsVersion: number;
 }
 
 export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
@@ -22,7 +21,6 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   filters: { limit: PAGE_SIZE, offset: 0 },
   isLoaded: false,
   hasMore: true,
-  transactionsVersion: 0,
 
   load: async (filters) => {
     const f = { ...get().filters, ...filters, limit: PAGE_SIZE, offset: 0 };
@@ -44,10 +42,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
   add: async (data) => {
     const tx = await transactionsService.createTransaction(data);
-    set((state) => ({ 
-      transactions: [tx, ...state.transactions],
-      transactionsVersion: state.transactionsVersion + 1 
-    }));
+    set((state) => ({ transactions: [tx, ...state.transactions] }));
     return tx;
   },
 
@@ -55,7 +50,6 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     const updated = await transactionsService.updateTransaction(id, data);
     set((state) => ({
       transactions: state.transactions.map((t) => (t.id === id ? updated : t)),
-      transactionsVersion: state.transactionsVersion + 1,
     }));
   },
 
@@ -67,13 +61,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         transactions: state.transactions.filter(
           (t) => t.transferPairId !== existing.transferPairId
         ),
-        transactionsVersion: state.transactionsVersion + 1,
       }));
     } else {
-      set((state) => ({ 
-        transactions: state.transactions.filter((t) => t.id !== id),
-        transactionsVersion: state.transactionsVersion + 1,
-      }));
+      set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) }));
     }
   },
 

@@ -5,9 +5,8 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { useAppTheme, getThemePalette, AppThemePalette } from '../../lib/theme';
+import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
-import { useUIStore } from '../../stores/useUIStore';
 
 const BUTTONS = [
   ['7', '8', '9', '÷'],

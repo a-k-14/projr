@@ -29,19 +29,19 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
   add: async (data) => {
     await loansService.createLoan(data);
     await get().load(get().filters);
-    useTransactionsStore.setState((s) => ({ transactionsVersion: s.transactionsVersion + 1 }));
+    await useTransactionsStore.getState().load();
   },
 
   update: async (id, data) => {
     await loansService.updateLoan(id, data);
     await get().load(get().filters);
-    useTransactionsStore.setState((s) => ({ transactionsVersion: s.transactionsVersion + 1 }));
+    await useTransactionsStore.getState().load();
   },
 
   recordPayment: async (loanId, amount, date) => {
     await loansService.recordLoanPayment(loanId, amount, date);
     await get().load(get().filters);
-    useTransactionsStore.setState((s) => ({ transactionsVersion: s.transactionsVersion + 1 }));
+    await useTransactionsStore.getState().load();
   },
 
   setFilters: (filters) =>
