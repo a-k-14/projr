@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAccountsStore } from '../stores/useAccountsStore';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { formatCurrency, getTransactionCashflowImpact } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
+import { useAccountsStore } from '../stores/useAccountsStore';
 import type { Transaction } from '../types';
 
 import { CARD_PADDING } from '../lib/design';
@@ -47,7 +47,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const accountNameSelected = useAccountsStore((state) =>
     accountName ?? state.accounts.find((account) => account.id === tx.accountId)?.name,
   );
-  
+
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[tx.type] ?? typeConfigs.out;
   const cashflowImpact = getTransactionCashflowImpact(tx);
@@ -107,7 +107,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       </View>
 
       <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, marginBottom: 2 }}>
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, marginBottom: 2 }}>
           {title}
         </Text>
         <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>

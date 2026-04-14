@@ -176,6 +176,7 @@ export async function updateTransaction(
   else if (existing.type === 'out') await updateAccountBalance(existing.accountId, existing.amount);
 
   const updateData: Record<string, any> = {};
+  if (data.type !== undefined) updateData.type = data.type;
   if (data.amount !== undefined) updateData.amount = data.amount;
   if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
   if (data.payee !== undefined) updateData.payee = data.payee;

@@ -520,9 +520,8 @@ export default function ActivityScreen() {
                   loanPersonName={loan?.personName}
                   loanDirection={loan?.direction}
                   tertiaryText={
-                    selectedTagIds.length > 0
+                    tx.tags.length > 0
                       ? tx.tags
-                          .filter((tagId) => selectedTagIds.includes(tagId))
                           .map((tagId) => tags.find((tag) => tag.id === tagId)?.name)
                           .filter((value): value is string => !!value)
                           .join(' • ') || undefined
@@ -1143,7 +1142,7 @@ function calcCashflowSummary(txs: Transaction[]) {
 
 function signedCurrency(amount: number, sym: string) {
   if (amount === 0) return formatCurrency(0, sym);
-  return `${amount > 0 ? '+' : '−'}${formatCurrency(Math.abs(amount), sym)}`;
+  return `${amount > 0 ? '+' : '−'} ${formatCurrency(Math.abs(amount), sym)}`;
 }
 
 function startOfDayIso(date: Date) {

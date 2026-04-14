@@ -154,6 +154,7 @@ export default function AddTransactionModal() {
   // draftCategoryId changes → pull it into local state.
   // We guard with a ref so that our own setCategoryId calls don't re-trigger.
   const isSyncingCategory = useRef(false);
+  const skipInitialDraftCategorySync = useRef(!isEditing);
   
   // Clear category draft on mount for new transactions
   useEffect(() => {
@@ -168,10 +169,14 @@ export default function AddTransactionModal() {
       isSyncingCategory.current = false;
       return;
     }
+    if (skipInitialDraftCategorySync.current) {
+      skipInitialDraftCategorySync.current = false;
+      return;
+    }
     if (draftCategoryId && draftCategoryId !== categoryId) {
       setCategoryId(draftCategoryId);
     }
-  }, [draftCategoryId]);
+  }, [categoryId, draftCategoryId]);
 
   // Push local categoryId to draft store (for the category picker to read),
   // but only when local state changes and skip the initial empty value.
