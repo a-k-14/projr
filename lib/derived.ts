@@ -8,6 +8,7 @@ import type {
   PeriodType,
   Transaction,
 } from '../types';
+import { toLocalDateKey } from './dateUtils';
 
 export function getTransactionCashflowImpact(tx: { type: string; note?: string | null }): 'in' | 'out' | 'neutral' {
   if (tx.type === 'in') return 'in';
@@ -65,7 +66,7 @@ export function groupTransactionsByDate(
 ): { dateKey: string; items: Transaction[] }[] {
   const map = new Map<string, Transaction[]>();
   for (const t of transactions) {
-    const key = t.date.split('T')[0];
+    const key = toLocalDateKey(t.date);
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(t);
   }

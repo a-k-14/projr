@@ -36,7 +36,9 @@ export default function BudgetScreen() {
   const removeBudget = useBudgetStore((s) => s.remove);
   const categories = useCategoriesStore((s) => s.categories);
   const yearStart = useUIStore((s) => s.settings.yearStart);
-  const sym = useUIStore((s) => s.settings.currencySymbol);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -361,7 +363,7 @@ function AddBudgetModal({
               Budget amount
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 20, color: palette.textMuted, marginRight: HOME_SPACE.xs }}>{sym}</Text>
+              {sym ? <Text style={{ fontSize: 20, color: palette.textMuted, marginRight: HOME_SPACE.xs }}>{sym}</Text> : null}
               <TextInput
                 value={amountStr}
                 onChangeText={setAmountStr}

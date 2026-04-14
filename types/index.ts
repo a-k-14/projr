@@ -98,6 +98,7 @@ export interface Settings {
   defaultAccountId: string;
   currency: string;
   currencySymbol: string;
+  showCurrencySymbol: boolean;
   theme: Theme;
   yearStart: number;
   cloudBackupEnabled: boolean;

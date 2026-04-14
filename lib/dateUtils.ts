@@ -14,6 +14,15 @@ export function nowUTC(): string {
   return new Date().toISOString();
 }
 
+/** Returns YYYY-MM-DD for a given ISO string in the user's local timezone */
+export function toLocalDateKey(isoDate: string): string {
+  const d = new Date(isoDate);
+  const y = d.getFullYear();
+  const m = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function formatDate(isoDate: string): string {
   const d = new Date(isoDate);
   const day = d.getDate().toString().padStart(2, '0');
@@ -119,9 +128,13 @@ export function getNavigableDateRange(
   if (period === 'day') {
     const d = new Date(now);
     d.setDate(d.getDate() + offset);
-    const from = toUTCMidnight(d);
-    const to = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
-    return { from, to };
+    
+    // Local start of day
+    const fromDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+    // Local end of day
+    const toDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+    
+    return { from: fromDate.toISOString(), to: toDate.toISOString() };
   }
 
   if (period === 'week') {
@@ -198,5 +211,5 @@ export function getDayLabel(isoDate: string): string {
 }
 
 export function isSameDay(a: string, b: string): boolean {
-  return a.split('T')[0] === b.split('T')[0];
+  return toLocalDateKey(a) === toLocalDateKey(b);
 }

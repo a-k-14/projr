@@ -35,7 +35,9 @@ export default function LoansScreen() {
   const loadLoans = useLoansStore((s) => s.load);
   const filters = useLoansStore((s) => s.filters);
   const accounts = useAccountsStore((s) => s.accounts);
-  const sym = useUIStore((s) => s.settings.currencySymbol);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();

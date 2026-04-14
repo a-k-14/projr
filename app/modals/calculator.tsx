@@ -5,7 +5,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { useAppTheme } from '../../lib/theme';
+import { useAppTheme, getThemePalette, AppThemePalette } from '../../lib/theme';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
 
@@ -241,7 +241,7 @@ function CalcButton({
 }: {
   label: string;
   onPress: () => void;
-  palette: ReturnType<typeof getThemePalette>;
+  palette: AppThemePalette;
   primary?: boolean;
   brandColor?: string;
   brandSoft?: string;

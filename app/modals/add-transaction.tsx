@@ -87,6 +87,7 @@ export default function AddTransactionModal() {
   const tags = useCategoriesStore((s) => s.tags);
   const defaultAccountId = useUIStore((s) => s.settings.defaultAccountId);
   const sym = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const { palette } = useAppTheme();
   const draftCategoryId = useTransactionDraftStore((s) => s.categoryId);
   const calculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
@@ -190,7 +191,7 @@ export default function AddTransactionModal() {
     getTransactionById(editId).then((tx) => {
       if (!tx) return;
       setType(tx.type);
-      setAmountStr(String(tx.amount));
+      setAmountStr(formatIndianNumberStr(String(tx.amount)));
       setAccountId(tx.accountId);
       if (tx.linkedAccountId) setLinkedAccountId(tx.linkedAccountId);
       if (tx.categoryId) setCategoryId(tx.categoryId);
@@ -212,6 +213,7 @@ export default function AddTransactionModal() {
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
+  const displaySym = showCurrencySymbol ? sym : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
   const splitValid =
     splitRows.length === 0 ||
@@ -460,7 +462,7 @@ export default function AddTransactionModal() {
                 palette={palette}
               />
               <AmountRow
-                sym={sym}
+                sym={displaySym}
                 activeConfig={activeConfig}
                 amountStr={amountStr}
                 setAmountStr={setAmountStr}
@@ -499,7 +501,7 @@ export default function AddTransactionModal() {
               <SplitSection
                 amount={amount}
                 amountStr={amountStr}
-                currencySymbol={sym}
+                currencySymbol={displaySym}
                 splitRows={splitRows}
                 splitTotal={splitTotal}
                 categories={categories}
@@ -574,7 +576,7 @@ export default function AddTransactionModal() {
                 }}
               />
               <AmountRow
-                sym={sym}
+                sym={displaySym}
                 activeConfig={activeConfig}
                 amountStr={amountStr}
                 setAmountStr={setAmountStr}
@@ -629,7 +631,7 @@ export default function AddTransactionModal() {
               </View>
               <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} activeConfig={activeConfig} />
               <AmountRow
-                sym={sym}
+                sym={displaySym}
                 activeConfig={activeConfig}
                 amountStr={amountStr}
                 setAmountStr={setAmountStr}
@@ -717,7 +719,7 @@ export default function AddTransactionModal() {
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, sym)}`}
+                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={accountId === account.id}
                   palette={palette}
                   onPress={() => {
@@ -743,7 +745,7 @@ export default function AddTransactionModal() {
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, sym)}`}
+                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={accountId === account.id}
                   palette={palette}
                   onPress={() => {
@@ -769,7 +771,7 @@ export default function AddTransactionModal() {
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, sym)}`}
+                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={linkedAccountId === account.id}
                   palette={palette}
                   onPress={() => {
@@ -1159,7 +1161,7 @@ function AmountRow({
           paddingRight: ROW_COLUMN_GAP,
         }}
       >
-        Amount ({sym})
+        Amount {sym ? `(${sym})` : ''}
       </Text>
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
         <View
@@ -1190,7 +1192,7 @@ function AmountRow({
               borderBottomColor: isFocused ? activeConfig.color : palette.borderSoft,
             }}
             cursorColor={activeConfig.color}
-            autoFocus={!isEditing}
+            autoFocus={true}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />

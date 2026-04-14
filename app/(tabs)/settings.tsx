@@ -67,6 +67,20 @@ export default function SettingsScreen() {
               onPress={() => setPicker('currency')}
             />
             <SettingsRow
+              icon="eye"
+              label="Show Currency Symbol"
+              value={settings.showCurrencySymbol ? 'On' : 'Off'}
+              palette={palette}
+              rightElement={
+                <Switch
+                  value={settings.showCurrencySymbol}
+                  onValueChange={(value) => updateSettings({ showCurrencySymbol: value })}
+                  trackColor={{ false: palette.border, true: palette.tabActive }}
+                  thumbColor={settings.showCurrencySymbol ? palette.onBrand : palette.surface}
+                />
+              }
+            />
+            <SettingsRow
               icon="sun"
               label="Theme"
               value={capitalize(settings.theme)}

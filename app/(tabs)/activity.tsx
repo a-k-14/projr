@@ -73,7 +73,8 @@ export default function ActivityScreen() {
   const loadCategories = useCategoriesStore((s) => s.load);
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const sym = currencySymbol;
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const sym = showCurrencySymbol ? currencySymbol : '';
 
   const [period, setPeriod] = useState<ActivityPeriod>('all');
   const [periodOffset, setPeriodOffset] = useState(0);
@@ -694,7 +695,7 @@ export default function ActivityScreen() {
           />
           <ChoiceRow
             title="Today"
-            subtitle={formatDateShortLabel(nowIso())}
+            subtitle={formatDateShortLabel(new Date().toISOString())}
             selected={period === 'day'}
             palette={palette}
             onPress={() => {

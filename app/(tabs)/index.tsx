@@ -70,6 +70,7 @@ export default function HomeScreen() {
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const pagerRef = useAnimatedRef<Animated.ScrollView>();
@@ -224,7 +225,7 @@ export default function HomeScreen() {
                     accountId={account.id}
                     accountName={account.name}
                     settingsYearStart={settingsYearStart}
-                    currencySymbol={currencySymbol}
+                    currencySymbol={showCurrencySymbol ? currencySymbol : ''}
                     customRange={customRangeMemo}
                     onOpenCustomRange={openCustomRange}
                     totalBalance={
@@ -401,12 +402,17 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     customRange ? customRange.from.toISOString() : undefined,
     customRange ? customRange.to.toISOString() : undefined,
   );
-  const today = todayUTC();
+  
+  // Use localized Today boundaries
+  const today = useMemo(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
+  }, []);
+  
   const todayEnd = useMemo(() => {
-    const now = new Date();
-    now.setHours(23, 59, 59, 999);
-    return now.toISOString();
-  }, [today]);
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
+  }, []);
 
   const loadPageData = useCallback(async () => {
     const accountFilter = accountId === 'all' ? undefined : accountId;

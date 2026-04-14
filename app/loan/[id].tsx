@@ -33,7 +33,9 @@ export default function LoanDetailScreen() {
   const updateLoan = useLoansStore((s) => s.update);
   const loadLoans = useLoansStore((s) => s.load);
   const accounts = useAccountsStore((s) => s.accounts);
-  const sym = useUIStore((s) => s.settings.currencySymbol);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
 
   const [paymentAmount, setPaymentAmount] = useState('');
