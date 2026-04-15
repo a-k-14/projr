@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BottomSheet } from './ui/BottomSheet';
+import { HOME_RADIUS } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 
 export function shiftBudgetMonth(iso: string, delta: number) {
@@ -50,7 +51,7 @@ export function BudgetMonthField({
     <View
       style={{
         minHeight: 48,
-        borderRadius: 14,
+        borderRadius: HOME_RADIUS.pill,
         borderWidth: 1.5,
         borderColor: palette.divider,
         backgroundColor: palette.surface,
@@ -63,7 +64,7 @@ export function BudgetMonthField({
         <TouchableOpacity
           onPress={onPrev}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 36, height: 36, borderRadius: HOME_RADIUS.tab, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="chevron-back" size={18} color={palette.text} />
         </TouchableOpacity>
@@ -82,13 +83,13 @@ export function BudgetMonthField({
         <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: palette.text, textAlign: 'center' }}>
           {formatBudgetMonthLabel(value)}
         </Text>
-        <Ionicons name="chevron-down" size={15} color={palette.textMuted} />
+        {!onPrev && !onNext ? <Ionicons name="chevron-down" size={15} color={palette.textMuted} /> : null}
       </TouchableOpacity>
       {onNext ? (
         <TouchableOpacity
           onPress={onNext}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 36, height: 36, borderRadius: HOME_RADIUS.tab, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="chevron-forward" size={18} color={palette.text} />
         </TouchableOpacity>
@@ -138,7 +139,7 @@ export function BudgetMonthSheet({
         <View
           style={{
             minHeight: 48,
-            borderRadius: 16,
+            borderRadius: HOME_RADIUS.card,
             backgroundColor: palette.inputBg,
             flexDirection: 'row',
             alignItems: 'center',
@@ -148,7 +149,7 @@ export function BudgetMonthSheet({
           <TouchableOpacity
             onPress={() => setSelectedYear((year) => year - 1)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 40, height: 40, borderRadius: HOME_RADIUS.tab, alignItems: 'center', justifyContent: 'center' }}
           >
             <Ionicons name="chevron-back" size={18} color={palette.text} />
           </TouchableOpacity>
@@ -156,7 +157,7 @@ export function BudgetMonthSheet({
           <TouchableOpacity
             onPress={() => setSelectedYear((year) => year + 1)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 40, height: 40, borderRadius: HOME_RADIUS.tab, alignItems: 'center', justifyContent: 'center' }}
           >
             <Ionicons name="chevron-forward" size={18} color={palette.text} />
           </TouchableOpacity>
@@ -177,7 +178,7 @@ export function BudgetMonthSheet({
               style={{
                 width: '31%',
                 minHeight: 44,
-                borderRadius: 14,
+                borderRadius: HOME_RADIUS.tab,
                 borderWidth: 1.5,
                 borderColor: isSelected ? palette.budget : palette.divider,
                 backgroundColor: isSelected ? palette.budgetSoft : palette.surface,
