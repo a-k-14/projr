@@ -61,6 +61,7 @@ export function BottomSheet({
   hasNavBar = false,
   extraBottomPadding = 0,
   scrollEnabled = true,
+  disableModalHeightBoost = false,
 }: {
   title: string;
   subtitle?: string;
@@ -73,6 +74,7 @@ export function BottomSheet({
   hasNavBar?: boolean;
   extraBottomPadding?: number;
   scrollEnabled?: boolean;
+  disableModalHeightBoost?: boolean;
 }) {
   const { height: screenHeight } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
@@ -81,7 +83,7 @@ export function BottomSheet({
   const maxSheetHeight = screenHeight * MAX_HEIGHT_RATIO;
   const bottomInset = hasNavBar ? 0 : insets.bottom;
   const bottomOffset = extraBottomPadding + bottomInset;
-  const modalHeightBoost = hasNavBar ? 0 : bottomInset + MODAL_HEIGHT_BOOST;
+  const modalHeightBoost = hasNavBar || disableModalHeightBoost ? 0 : bottomInset + MODAL_HEIGHT_BOOST;
 
   const translateY = useRef(new Animated.Value(screenHeight)).current;
   const opacity = useRef(new Animated.Value(0)).current;

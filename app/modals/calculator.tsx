@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
+import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 
 const BUTTONS = [
@@ -17,10 +18,17 @@ const BUTTONS = [
 
 export default function CalculatorModal() {
   const { palette } = useAppTheme();
-  const calculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
-  const setCalculatorValue = useTransactionDraftStore((s) => s.setCalculatorValue);
-  const setCalculatorOpen = useTransactionDraftStore((s) => s.setCalculatorOpen);
-  const { brandColor, brandSoft } = useLocalSearchParams<{ brandColor?: string; brandSoft?: string }>();
+  const txCalculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
+  const txSetCalculatorValue = useTransactionDraftStore((s) => s.setCalculatorValue);
+  const txSetCalculatorOpen = useTransactionDraftStore((s) => s.setCalculatorOpen);
+  const budgetCalculatorValue = useBudgetDraftStore((s) => s.calculatorValue);
+  const budgetSetCalculatorValue = useBudgetDraftStore((s) => s.setCalculatorValue);
+  const budgetSetCalculatorOpen = useBudgetDraftStore((s) => s.setCalculatorOpen);
+  const { brandColor, brandSoft, draft } = useLocalSearchParams<{ brandColor?: string; brandSoft?: string; draft?: string }>();
+  const useBudgetDraft = draft === 'budget';
+  const calculatorValue = useBudgetDraft ? budgetCalculatorValue : txCalculatorValue;
+  const setCalculatorValue = useBudgetDraft ? budgetSetCalculatorValue : txSetCalculatorValue;
+  const setCalculatorOpen = useBudgetDraft ? budgetSetCalculatorOpen : txSetCalculatorOpen;
   
   // Keep display always in "pretty" format (÷, ×, −) with commas
   const pretty = (val: string) => {

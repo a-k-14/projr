@@ -14,12 +14,15 @@ interface Props {
   sym: string;
   palette: AppThemePalette;
   isLast: boolean;
+  displayAmount?: number;
   categoryName?: string;
   accountName?: string;
   linkedAccountName?: string;
   loanPersonName?: string;
   loanDirection?: 'lent' | 'borrowed';
   tertiaryText?: string;
+  showAmountSign?: boolean;
+  useTypeAmountColor?: boolean;
   paddingX?: number;
   paddingY?: number;
   /** Icon box size — defaults to the shared compact list icon size */
@@ -33,12 +36,15 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   sym,
   palette,
   isLast,
+  displayAmount,
   categoryName,
   accountName,
   linkedAccountName,
   loanPersonName,
   loanDirection,
   tertiaryText,
+  showAmountSign = true,
+  useTypeAmountColor = false,
   paddingX = HOME_LAYOUT.listRowPaddingX,
   paddingY = HOME_LAYOUT.listRowPaddingY,
   iconSize = HOME_LAYOUT.listIconSize,
@@ -75,7 +81,11 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     subtitle = accountNameSelected || '';
   }
 
-  const amountPrefix = cashflowImpact === 'in' ? '+' : cashflowImpact === 'out' ? '-' : '';
+  const amountValue = displayAmount ?? tx.amount;
+  const amountPrefix = showAmountSign ? (cashflowImpact === 'in' ? '+' : cashflowImpact === 'out' ? '-' : '') : '';
+  const amountColor = useTypeAmountColor
+    ? cfg.color
+    : palette.text;
 
   const inner = (
     <View
@@ -120,8 +130,8 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         ) : null}
       </View>
 
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text }}>
-        {amountPrefix ? `${amountPrefix} ${formatCurrency(tx.amount, sym)}` : formatCurrency(tx.amount, sym)}
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: amountColor }}>
+        {amountPrefix ? `${amountPrefix} ${formatCurrency(amountValue, sym)}` : formatCurrency(amountValue, sym)}
       </Text>
     </View>
   );

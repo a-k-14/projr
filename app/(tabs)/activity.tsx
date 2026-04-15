@@ -654,7 +654,13 @@ export default function ActivityScreen() {
               ) : null}
             </View>
             {item.items.length > 1 && groupNet !== 0 ? (
-              <Text style={{ fontSize: 12, fontWeight: '700', color: groupNet > 0 ? palette.brand : palette.negative }}>
+              <Text
+                style={{
+                  fontSize: HOME_TEXT.bodySmall,
+                  fontWeight: '800',
+                  color: groupNet > 0 ? palette.brand : palette.negative,
+                }}
+              >
                 {signedCurrency(groupNet, sym)}
               </Text>
             ) : null}
@@ -693,6 +699,8 @@ export default function ActivityScreen() {
                           .join(' • ') || undefined
                       : undefined
                   }
+                  showAmountSign={false}
+                  useTypeAmountColor
                   onPress={handleTransactionPress}
                 />
               );
@@ -1633,8 +1641,7 @@ function calcCashflowSummary(txs: Transaction[]) {
 }
 
 function signedCurrency(amount: number, sym: string) {
-  if (amount === 0) return formatCurrency(0, sym);
-  return `${amount > 0 ? '+' : '−'} ${formatCurrency(Math.abs(amount), sym)}`;
+  return formatCurrency(Math.abs(amount), sym);
 }
 
 function startOfDayIso(date: Date) {

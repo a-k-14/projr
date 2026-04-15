@@ -70,6 +70,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="budget/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
           <Stack.Screen
             name="modals/add-transaction"
@@ -88,7 +89,15 @@ export default function RootLayout() {
             options={{ presentation: 'modal', headerShown: false }}
           />
           <Stack.Screen
+            name="modals/select-budget-category"
+            options={{ presentation: 'modal', headerShown: false }}
+          />
+          <Stack.Screen
             name="modals/calculator"
+            options={{ presentation: 'modal', headerShown: false }}
+          />
+          <Stack.Screen
+            name="modals/budget-form"
             options={{ presentation: 'modal', headerShown: false }}
           />
         </Stack>
