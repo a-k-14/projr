@@ -4,7 +4,7 @@ import { budget, transactions } from '../db/schema';
 import type { Budget, BudgetWithSpent, CreateBudgetInput, Transaction } from '../types';
 import { generateId } from '../lib/ids';
 import { todayUTC } from '../lib/dateUtils';
-import { getCategoryById } from './categories';
+import { getCategories } from './categories';
 
 function rowToBudget(row: typeof budget.$inferSelect): Budget {
   return {
@@ -28,6 +28,56 @@ function getMonthRange(iso: string) {
   const from = new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
   const to = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
   return { from: from.toISOString(), to: to.toISOString() };
+}
+
+function isBudgetActiveInMonth(entry: Budget, selectedMonthKey: string) {
+  const budgetMonthKey = getMonthKey(entry.startDate);
+  return entry.repeat ? budgetMonthKey <= selectedMonthKey : budgetMonthKey === selectedMonthKey;
+}
+
+function assertNoBudgetConflict(
+  budgetList: Budget[],
+  candidate: Pick<Budget, 'categoryId' | 'startDate' | 'repeat'>,
+  excludeId?: string,
+) {
+  const candidateMonthKey = getMonthKey(candidate.startDate);
+
+  for (const existing of budgetList) {
+    if (existing.id === excludeId) continue;
+    if (existing.categoryId !== candidate.categoryId) continue;
+
+    const existingMonthKey = getMonthKey(existing.startDate);
+
+    if (candidate.repeat) {
+      if (existing.repeat) {
+        throw new Error('A recurring budget already exists for this category.');
+      }
+      if (existingMonthKey >= candidateMonthKey) {
+        throw new Error('A budget already exists for this category in a month covered by this recurring budget.');
+      }
+      continue;
+    }
+
+    if (existing.repeat) {
+      if (existingMonthKey <= candidateMonthKey) {
+        throw new Error('A recurring budget already covers this category for the selected month.');
+      }
+      continue;
+    }
+
+    if (existingMonthKey === candidateMonthKey) {
+      throw new Error('A budget already exists for this category in the selected month.');
+    }
+  }
+}
+
+async function assertBudgetableCategory(categoryId: string) {
+  const categories = await getCategories();
+  const category = categories.find((entry) => entry.id === categoryId);
+  if (!category) throw new Error('Category not found.');
+  if (category.parentId === undefined || category.type !== 'out') {
+    throw new Error('Budgets can only be created for expense subcategories.');
+  }
 }
 
 export async function getBudgetList(): Promise<Budget[]> {
@@ -54,51 +104,55 @@ export async function getBudgetMarkedMonthsForYear(year: number): Promise<string
 
 export async function getBudgetWithSpent(selectedMonthIso: string = todayUTC()): Promise<BudgetWithSpent[]> {
   const budgetList = await getBudgetList();
-  const result: BudgetWithSpent[] = [];
   const selectedMonthKey = getMonthKey(selectedMonthIso);
   const { from, to } = getMonthRange(selectedMonthIso);
+  const activeBudgets = budgetList.filter((entry) => isBudgetActiveInMonth(entry, selectedMonthKey));
+  const allCategories = await getCategories();
+  const categoriesById = new Map(allCategories.map((category) => [category.id, category]));
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.type, 'out'),
+        gte(transactions.date, from),
+        lte(transactions.date, to)
+      )
+    );
+  const spentByCategory = new Map<string, number>();
 
-  for (const b of budgetList) {
-    const budgetMonthKey = getMonthKey(b.startDate);
-    const isActive = b.repeat ? budgetMonthKey <= selectedMonthKey : budgetMonthKey === selectedMonthKey;
-    if (!isActive) continue;
-
-    const category = await getCategoryById(b.categoryId);
-
-    const rows = await db
-      .select()
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.type, 'out'),
-          gte(transactions.date, from),
-          lte(transactions.date, to)
-        )
-      );
-
-    const spent = rows.reduce((sum, r) => {
-      const splits = (() => {
-        try {
-          const parsed = JSON.parse((r as any).splitData ?? '[]');
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      })();
-
-      if (splits.length > 0) {
-        return (
-          sum +
-          splits.reduce((splitSum: number, split: any) => {
-            if (split.categoryId !== b.categoryId) return splitSum;
-            return splitSum + Number(split.amount || 0);
-          }, 0)
-        );
+  rows.forEach((row) => {
+    const splits = (() => {
+      try {
+        const parsed = JSON.parse((row as any).splitData ?? '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
       }
+    })();
 
-      if (r.categoryId !== b.categoryId) return sum;
-      return sum + r.amount;
-    }, 0);
+    if (splits.length > 0) {
+      splits.forEach((split: any) => {
+        const splitCategoryId = split.categoryId;
+        if (!splitCategoryId) return;
+        spentByCategory.set(
+          splitCategoryId,
+          (spentByCategory.get(splitCategoryId) ?? 0) + Number(split.amount || 0),
+        );
+      });
+      return;
+    }
+
+    if (row.categoryId) {
+      spentByCategory.set(row.categoryId, (spentByCategory.get(row.categoryId) ?? 0) + row.amount);
+    }
+  });
+
+  const result: BudgetWithSpent[] = [];
+
+  for (const b of activeBudgets) {
+    const category = categoriesById.get(b.categoryId);
+    const spent = spentByCategory.get(b.categoryId) ?? 0;
     const remaining = b.amount - spent;
     const percent = b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0;
 
@@ -116,6 +170,13 @@ export async function getBudgetWithSpent(selectedMonthIso: string = todayUTC()):
 }
 
 export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
+  await assertBudgetableCategory(data.categoryId);
+  const budgetList = await getBudgetList();
+  assertNoBudgetConflict(budgetList, {
+    categoryId: data.categoryId,
+    startDate: data.startDate,
+    repeat: data.repeat,
+  });
   const id = generateId();
   const now = todayUTC();
   const row = { id, ...data, repeat: data.repeat ? 1 : 0, createdAt: now };
@@ -124,6 +185,25 @@ export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
 }
 
 export async function updateBudget(id: string, data: Partial<Budget>): Promise<Budget> {
+  const rowsBefore = await db.select().from(budget).where(eq(budget.id, id));
+  if (!rowsBefore[0]) throw new Error('Budget not found');
+  const existing = rowToBudget(rowsBefore[0]);
+  const next: Budget = {
+    ...existing,
+    ...data,
+    repeat: typeof data.repeat === 'boolean' ? data.repeat : existing.repeat,
+  };
+  await assertBudgetableCategory(next.categoryId);
+  const budgetList = await getBudgetList();
+  assertNoBudgetConflict(
+    budgetList,
+    {
+      categoryId: next.categoryId,
+      startDate: next.startDate,
+      repeat: next.repeat,
+    },
+    id,
+  );
   const payload = {
     ...data,
     repeat: typeof data.repeat === 'boolean' ? (data.repeat ? 1 : 0) : undefined,

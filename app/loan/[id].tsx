@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MetricProgressCard } from '../../components/ui/MetricProgressCard';
+import { TransactionListItem } from '../../components/TransactionListItem';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -216,8 +217,14 @@ export default function LoanDetailScreen() {
                 </Text>
                 <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, overflow: 'hidden' }}>
                   {items.map((tx, i) => (
-                    <TouchableOpacity
+                    <TransactionListItem
                       key={tx.id}
+                      tx={{ ...tx, payee: describeLoanDetailTransaction(loan, tx) }}
+                      sym={sym}
+                      palette={palette}
+                      isLast={i === items.length - 1}
+                      accountName={account?.name}
+                      showAmountSign={false}
                       onPress={() =>
                         router.push({
                           pathname:
@@ -227,39 +234,7 @@ export default function LoanDetailScreen() {
                           params: { editId: tx.id },
                         })
                       }
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        padding: HOME_SPACE.lg,
-                        borderBottomWidth: i < items.length - 1 ? 1 : 0,
-                        borderBottomColor: palette.inputBg,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: HOME_RADIUS.small,
-                          backgroundColor: palette.loanBg,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: HOME_SPACE.md,
-                        }}
-                      >
-                        <Ionicons name="card-outline" size={14} color={palette.loan} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '400', color: palette.text }}>
-                          {describeLoanDetailTransaction(loan, tx)}
-                        </Text>
-                        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-                          Loan · {account?.name}
-                        </Text>
-                      </View>
-                      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
-                        {formatCurrency(tx.amount, sym)}
-                      </Text>
-                    </TouchableOpacity>
+                    />
                   ))}
                 </View>
               </View>

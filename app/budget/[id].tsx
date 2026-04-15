@@ -15,6 +15,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 type BudgetEntry = Awaited<ReturnType<typeof getBudgetTransactionEntries>>[number];
 
@@ -26,6 +27,9 @@ export default function BudgetDetailScreen() {
   const accounts = useAccountsStore((s) => s.accounts);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const storeTransactions = useTransactionsStore((s) => s.transactions);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const [entries, setEntries] = useState<BudgetEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -107,14 +111,14 @@ export default function BudgetDetailScreen() {
           <MetricProgressCard
             palette={palette}
             metrics={[
-              { key: 'budgeted', label: 'BUDGETED', value: formatCurrency(budget.amount, ''), valueColor: palette.text },
-              { key: 'spent', label: 'SPENT', value: formatCurrency(budget.spent, ''), valueColor: budget.remaining < 0 ? palette.negative : palette.budget },
+              { key: 'budgeted', label: 'BUDGETED', value: formatCurrency(budget.amount, sym), valueColor: palette.text },
+              { key: 'spent', label: 'SPENT', value: formatCurrency(budget.spent, sym), valueColor: budget.remaining < 0 ? palette.negative : palette.budget },
             ]}
             progressPercent={Math.min(Math.max(budget.percent, 0), 100)}
             progressColor={budget.remaining < 0 ? palette.negative : palette.budget}
             progressLabelLeft={budget.remaining < 0 ? 'Over budget' : 'On track'}
             progressLabelRight={`${Math.round(budget.percent)}%`}
-            footerLeft={{ text: budget.remaining < 0 ? `${formatCurrency(Math.abs(budget.remaining), '')} over` : `${formatCurrency(budget.remaining, '')} left`, color: budget.remaining < 0 ? palette.negative : palette.textSecondary }}
+            footerLeft={{ text: budget.remaining < 0 ? `${formatCurrency(Math.abs(budget.remaining), sym)} over` : `${formatCurrency(budget.remaining, sym)} left`, color: budget.remaining < 0 ? palette.negative : palette.textSecondary }}
             footerRight={{ text: `${entries.length} transaction${entries.length === 1 ? '' : 's'}` }}
           />
         </View>
@@ -138,7 +142,7 @@ export default function BudgetDetailScreen() {
                     key={entry.transaction.id}
                     tx={entry.transaction}
                     displayAmount={entry.countedAmount}
-                    sym=""
+                    sym={sym}
                     palette={palette}
                     isLast={index === group.items.length - 1}
                     categoryName={entry.transaction.categoryId ? getCategoryFullDisplayName(entry.transaction.categoryId, ' › ') : undefined}

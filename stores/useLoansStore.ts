@@ -11,7 +11,6 @@ interface LoansStore {
   add: (data: CreateLoanInput) => Promise<void>;
   update: (id: string, data: Partial<LoanWithSummary>) => Promise<void>;
   updateOrigin: (id: string, data: Partial<CreateLoanInput>) => Promise<void>;
-  recordPayment: (loanId: string, amount: number, date: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
   setFilters: (filters: LoanFilters) => void;
   getById: (id: string) => LoanWithSummary | undefined;
@@ -42,12 +41,6 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
 
   updateOrigin: async (id, data) => {
     await loansService.updateLoanOrigin(id, data);
-    await get().load(get().filters);
-    await useTransactionsStore.getState().load();
-  },
-
-  recordPayment: async (loanId, amount, date) => {
-    await loansService.recordLoanPayment(loanId, amount, date);
     await get().load(get().filters);
     await useTransactionsStore.getState().load();
   },

@@ -1,0 +1,299 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { formatDate } from '../../lib/dateUtils';
+import { formatIndianNumberStr } from '../../lib/derived';
+import { SCREEN_GUTTER } from '../../lib/design';
+import type { AppThemePalette } from '../../lib/theme';
+
+export const ROW_LABEL_WIDTH = 92;
+export const ROW_MIN_HEIGHT = 62;
+export const ROW_COLUMN_GAP = 16;
+export const ROW_TRAILING_WIDTH = 24;
+
+function sanitizeDecimalInput(value: string): string {
+  let cleaned = value.replace(/[^0-9.]/g, '');
+  if (!cleaned) return '';
+  const parts = cleaned.split('.');
+  if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
+  if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') cleaned = cleaned.substring(1);
+  return cleaned;
+}
+
+export function SectionCard({
+  children,
+  palette,
+  horizontalInset = SCREEN_GUTTER,
+}: {
+  children: React.ReactNode;
+  palette: AppThemePalette;
+  horizontalInset?: number;
+}) {
+  return (
+    <View
+      style={{
+        backgroundColor: palette.surface,
+        borderRadius: 24,
+        marginHorizontal: horizontalInset,
+        borderWidth: 1,
+        borderColor: palette.border,
+        overflow: 'hidden',
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+export function PickerRow({
+  label,
+  value,
+  placeholder,
+  onPress,
+  palette,
+  custom = false,
+}: {
+  label: string;
+  value: string | React.ReactNode;
+  placeholder?: boolean;
+  onPress: () => void;
+  palette: AppThemePalette;
+  custom?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 13,
+          fontWeight: '700',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          paddingLeft: 4,
+        }}
+      >
+        {custom ? (
+          <View style={{ flex: 1 }}>{value}</View>
+        ) : (
+          <>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: '400',
+                color: placeholder ? palette.textMuted : palette.text,
+                textAlign: 'left',
+                flexShrink: 1,
+              }}
+              numberOfLines={1}
+            >
+              {value}
+            </Text>
+            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
+              <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
+            </View>
+          </>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+export function InteractiveDateTimeRow({
+  date,
+  palette,
+  onOpenDate,
+  onOpenTime,
+}: {
+  date: string;
+  palette: AppThemePalette;
+  onOpenDate: () => void;
+  onOpenTime: () => void;
+}) {
+  const dt = new Date(date);
+  const dateStr = formatDate(date);
+  const timeStr = dt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+
+  return (
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: '700',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        Date
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          minHeight: ROW_MIN_HEIGHT,
+          paddingLeft: 4,
+          gap: 8,
+        }}
+      >
+        <TouchableOpacity
+          onPress={onOpenDate}
+          style={{
+            flex: 1.5,
+            backgroundColor: palette.inputBg,
+            paddingVertical: 9,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onOpenTime}
+          style={{
+            flex: 0.9,
+            backgroundColor: palette.inputBg,
+            paddingVertical: 9,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+export function AmountRow({
+  sym,
+  amountStr,
+  setAmountStr,
+  palette,
+  accentColor,
+  onOpenCalculator,
+  autoFocus = false,
+  calculatorButtonVariant = 'compact',
+}: {
+  sym: string;
+  amountStr: string;
+  setAmountStr: (value: string) => void;
+  palette: AppThemePalette;
+  accentColor: string;
+  onOpenCalculator?: () => void;
+  autoFocus?: boolean;
+  calculatorButtonVariant?: 'compact' | 'large';
+}) {
+  const [isFocused, setIsFocused] = useState(false);
+  const isLargeButton = calculatorButtonVariant === 'large';
+
+  return (
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 13,
+          fontWeight: '700',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        Amount {sym ? `(${sym})` : ''}
+      </Text>
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+        <View
+          style={{
+            flex: 1,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+        >
+          <TextInput
+            value={amountStr}
+            onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor={palette.textSoft}
+            style={{
+              flex: 1,
+              fontSize: 20,
+              fontWeight: '500',
+              color: accentColor,
+              paddingBottom: 2,
+              paddingTop: 0,
+              paddingLeft: 4,
+              textAlign: 'left',
+              lineHeight: 24,
+              borderBottomWidth: isFocused ? 1.5 : 1,
+              borderBottomColor: isFocused ? accentColor : palette.borderSoft ?? palette.border,
+            }}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            cursorColor={accentColor}
+            autoFocus={autoFocus}
+          />
+        </View>
+        {onOpenCalculator ? (
+          <TouchableOpacity
+            onPress={onOpenCalculator}
+            style={{
+              marginLeft: isLargeButton ? SCREEN_GUTTER : 0,
+              width: isLargeButton ? ROW_TRAILING_WIDTH + 24 : ROW_TRAILING_WIDTH + 16,
+              height: isLargeButton ? 48 : undefined,
+              minHeight: ROW_MIN_HEIGHT,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {isLargeButton ? (
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="calculator-outline" size={22} color={palette.text} />
+              </View>
+            ) : (
+              <Ionicons name="calculator-outline" size={18} color={palette.textMuted} />
+            )}
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </View>
+  );
+}

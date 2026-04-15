@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Keyboard, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Keyboard, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
+import { AmountRow, PickerRow, ROW_COLUMN_GAP, ROW_LABEL_WIDTH, ROW_MIN_HEIGHT, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
@@ -13,25 +14,12 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { BudgetWithSpent } from '../../types';
 
-const ROW_LABEL_WIDTH = 92;
-const ROW_MIN_HEIGHT = 62;
-const ROW_COLUMN_GAP = 16;
-const ROW_TRAILING_WIDTH = 24;
-
-function sanitizeDecimalInput(value: string): string {
-  let cleaned = value.replace(/[^0-9.]/g, '');
-  if (!cleaned) return '';
-  const parts = cleaned.split('.');
-  if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
-  if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') cleaned = cleaned.substring(1);
-  return cleaned;
-}
-
 export default function BudgetFormModal() {
   const { budgetId, month } = useLocalSearchParams<{ budgetId?: string; month?: string }>();
   const budgets = useBudgetStore((s) => s.budgets);
   const addBudget = useBudgetStore((s) => s.add);
   const updateBudget = useBudgetStore((s) => s.update);
+  const removeBudget = useBudgetStore((s) => s.remove);
   const categories = useCategoriesStore((s) => s.categories);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
@@ -134,6 +122,22 @@ export default function BudgetFormModal() {
     }
   };
 
+  const handleDelete = () => {
+    if (!editingBudget) return;
+    Alert.alert('Delete budget', 'This budget will be removed for its covered month(s).', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await removeBudget(editingBudget.id);
+          resetDraft();
+          router.back();
+        },
+      },
+    ]);
+  };
+
   const handleOpenCalculator = () => {
     Keyboard.dismiss();
     setCalculatorValue(amountStr);
@@ -168,7 +172,7 @@ export default function BudgetFormModal() {
       </SafeAreaView>
 
       <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={{ paddingBottom: 120 }}>
-        <SectionCard palette={palette}>
+        <SectionCard palette={palette} horizontalInset={0}>
           <PickerRow
             label="Month"
             palette={palette}
@@ -189,6 +193,9 @@ export default function BudgetFormModal() {
             setAmountStr={setAmountStr}
             onOpenCalculator={handleOpenCalculator}
             palette={palette}
+            accentColor={palette.budget}
+            autoFocus
+            calculatorButtonVariant="large"
           />
           <RepeatRow repeat={repeat} setRepeat={setRepeat} palette={palette} />
         </SectionCard>
@@ -218,6 +225,11 @@ export default function BudgetFormModal() {
             {editingBudget ? 'Save changes' : 'Add budget'}
           </Text>
         </TouchableOpacity>
+        {editingBudget ? (
+          <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', marginTop: 12 }}>
+            <Text style={{ color: palette.negative, fontSize: 15, fontWeight: '500' }}>Delete budget</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       <BudgetMonthSheet
         visible={showMonthSheet}
@@ -226,164 +238,6 @@ export default function BudgetFormModal() {
         onSelect={setStartMonth}
         onClose={() => setShowMonthSheet(false)}
       />
-    </View>
-  );
-}
-
-function SectionCard({ children, palette }: { children: React.ReactNode; palette: AppThemePalette }) {
-  return (
-    <View
-      style={{
-        backgroundColor: palette.surface,
-        borderRadius: 18,
-        marginHorizontal: 0,
-        overflow: 'hidden',
-      }}
-    >
-      {children}
-    </View>
-  );
-}
-
-function PickerRow({
-  label,
-  value,
-  placeholder,
-  onPress,
-  palette,
-  custom = false,
-}: {
-  label: string;
-  value: string | React.ReactNode;
-  placeholder?: boolean;
-  onPress: () => void;
-  palette: AppThemePalette;
-  custom?: boolean;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={{
-        paddingHorizontal: SCREEN_GUTTER,
-        minHeight: ROW_MIN_HEIGHT,
-        flexDirection: 'row',
-        alignItems: 'center',
-      }}
-    >
-      <Text
-        numberOfLines={1}
-        style={{
-          fontSize: 13,
-          fontWeight: '700',
-          color: palette.textMuted,
-          width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-        }}
-      >
-        {label}
-      </Text>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flex: 1,
-          minWidth: 0,
-          minHeight: ROW_MIN_HEIGHT,
-          paddingLeft: 4,
-        }}
-      >
-        {custom ? (
-          <View style={{ flex: 1 }}>{value}</View>
-        ) : (
-          <>
-            <Text
-              style={{
-                fontSize: 15,
-                fontWeight: '400',
-                color: placeholder ? palette.textMuted : palette.text,
-                textAlign: 'left',
-                flexShrink: 1,
-              }}
-              numberOfLines={1}
-            >
-              {value}
-            </Text>
-            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-              <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
-            </View>
-          </>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function AmountRow({
-  sym,
-  amountStr,
-  setAmountStr,
-  onOpenCalculator,
-  palette,
-}: {
-  sym: string;
-  amountStr: string;
-  setAmountStr: (value: string) => void;
-  onOpenCalculator: () => void;
-  palette: AppThemePalette;
-}) {
-  const [isFocused, setIsFocused] = useState(false);
-  return (
-    <View style={{ paddingHorizontal: SCREEN_GUTTER, minHeight: ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}>
-      <Text
-        numberOfLines={1}
-        style={{
-          fontSize: 13,
-          fontWeight: '700',
-          color: palette.textMuted,
-          width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-        }}
-      >
-        Amount {sym ? `(${sym})` : ''}
-      </Text>
-      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' }}>
-          <TextInput
-            value={amountStr}
-            onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
-            keyboardType="decimal-pad"
-            placeholder="0"
-            placeholderTextColor={palette.textSoft}
-            style={{
-              flex: 1,
-              fontSize: 20,
-              fontWeight: '500',
-              color: palette.budget,
-              paddingBottom: 2,
-              paddingTop: 0,
-              paddingLeft: 4,
-              textAlign: 'left',
-              lineHeight: 24,
-              borderBottomWidth: isFocused ? 1.5 : 1,
-              borderBottomColor: isFocused ? palette.budget : palette.borderSoft,
-            }}
-            cursorColor={palette.budget}
-            autoFocus
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-          />
-        </View>
-        <TouchableOpacity
-          onPress={onOpenCalculator}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          style={{ marginLeft: SCREEN_GUTTER, width: ROW_TRAILING_WIDTH + 24, height: 48, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="calculator-outline" size={22} color={palette.text} />
-          </View>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }

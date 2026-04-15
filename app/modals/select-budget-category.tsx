@@ -45,14 +45,14 @@ export default function SelectBudgetCategoryScreen() {
 
   const sections = useMemo(() => {
     const parents = categories
-      .filter((category) => !category.parentId && category.type !== 'in')
+      .filter((category) => !category.parentId)
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
     return parents
       .map((parent) => {
         const children = categories
-          .filter((category) => category.parentId === parent.id && category.type !== 'in')
+          .filter((category) => category.parentId === parent.id && category.type === 'out')
           .slice()
           .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
         const filteredChildren = children.filter((child) => {
@@ -67,6 +67,7 @@ export default function SelectBudgetCategoryScreen() {
           hasSearchMatch: filteredChildren.length > 0 || parent.name.toLowerCase().includes(search.trim().toLowerCase()),
         };
       })
+      .filter((section) => section.children.length > 0)
       .filter((section) => search.trim() === '' || section.hasSearchMatch);
   }, [categories, search]);
 
