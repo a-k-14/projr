@@ -119,6 +119,65 @@ export function PickerRow({
   );
 }
 
+export function OptionChipRow({
+  label,
+  palette,
+  options,
+  helperText,
+}: {
+  label: string;
+  palette: AppThemePalette;
+  options: { label: string; selected: boolean; onPress: () => void; activeColor: string; activeBg: string }[];
+  helperText?: string;
+}) {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, minHeight: ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'flex-start', paddingTop: 18, paddingBottom: 14 }}>
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: '700',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+          paddingTop: 10,
+        }}
+      >
+        {label}
+      </Text>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {options.map((option) => (
+            <TouchableOpacity
+              key={option.label}
+              onPress={option.onPress}
+              style={{
+                flex: 1,
+                minHeight: 38,
+                borderRadius: 14,
+                borderWidth: 1.5,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 4,
+                backgroundColor: option.selected ? option.activeBg : palette.inputBg,
+                borderColor: option.selected ? option.activeColor : palette.divider,
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: option.selected ? option.activeColor : palette.text }}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {helperText ? (
+          <Text style={{ fontSize: 12, color: palette.textMuted }}>
+            {helperText}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 export function InteractiveDateTimeRow({
   date,
   palette,

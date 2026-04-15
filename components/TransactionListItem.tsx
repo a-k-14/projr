@@ -50,12 +50,13 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   iconSize = HOME_LAYOUT.listIconSize,
   onPress,
 }: Props) {
+  const effectiveType = tx.transferPairId ? 'transfer' : tx.type;
   const accountNameSelected = useAccountsStore((state) =>
     accountName ?? state.accounts.find((account) => account.id === tx.accountId)?.name,
   );
 
   const typeConfigs = getTxTypeConfig(palette);
-  const cfg = typeConfigs[tx.type] ?? typeConfigs.out;
+  const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;
   const cashflowImpact = getTransactionCashflowImpact(tx);
 
   let title = tx.payee || cfg.label;
@@ -63,18 +64,19 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' · ');
 
   // 1. Specialized Title/Subtitle based on type
-  if (tx.type === 'transfer' && linkedAccountName) {
-    title = tx.payee || 'Transfer';
+  if (tx.transferPairId && linkedAccountName) {
+    title = 'Transfer';
+    titleSecondaryText = tx.type === 'out' ? 'Out' : 'In';
     // If we are seeing the "Outflow" side, current account is source
     // If we are seeing the "Inflow" side, current account is destination
-    const from = cashflowImpact === 'out' ? accountNameSelected : linkedAccountName;
-    const to = cashflowImpact === 'out' ? linkedAccountName : accountNameSelected;
+    const from = tx.type === 'out' ? accountNameSelected : linkedAccountName;
+    const to = tx.type === 'out' ? linkedAccountName : accountNameSelected;
     subtitle = `${from} → ${to}`;
   } else if (tx.type === 'loan' && loanPersonName) {
-    const loanLabel = loanDirection ? getLoanDisplayLabel(loanDirection, cashflowImpact) : 'Loan';
-    title = loanLabel.replace(/^Loan - /, '');
+    const loanLabel = loanDirection ? getLoanDisplayLabel(loanDirection, cashflowImpact).replace(/^Loan - /, '') : 'Loan';
+    title = 'Loan';
     titleSecondaryText = loanPersonName;
-    subtitle = accountNameSelected || '';
+    subtitle = [loanLabel, accountNameSelected].filter(Boolean).join(' · ');
   } else if (tx.type === 'in' || tx.type === 'out') {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     subtitle = accountNameSelected || '';

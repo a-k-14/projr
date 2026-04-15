@@ -31,7 +31,7 @@ import {
 import { SCREEN_GUTTER } from '../../lib/design';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
-import { getTransactionById } from '../../services/transactions';
+import { getTransactionById, updateTransferTransaction } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
@@ -94,6 +94,7 @@ export default function AddTransactionModal() {
   const addTransaction = useTransactionsStore((s) => s.add);
   const updateTransaction = useTransactionsStore((s) => s.update);
   const removeTransaction = useTransactionsStore((s) => s.remove);
+  const reloadTransactions = useTransactionsStore((s) => s.load);
   const addLoan = useLoansStore((s) => s.add);
   const updateLoanOrigin = useLoansStore((s) => s.updateOrigin);
   const removeLoan = useLoansStore((s) => s.remove);
@@ -126,6 +127,7 @@ export default function AddTransactionModal() {
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loanEditMode, setLoanEditMode] = useState<'new' | 'origin' | 'settlement'>('new');
   const [editingLoanId, setEditingLoanId] = useState('');
+  const [isTransferEdit, setIsTransferEdit] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showFromAccountSheet, setShowFromAccountSheet] = useState(false);
@@ -233,6 +235,7 @@ export default function AddTransactionModal() {
     const task = InteractionManager.runAfterInteractions(() => {
       getTransactionById(editId).then(async (tx) => {
         if (!tx) return;
+        setIsTransferEdit(!!tx.transferPairId);
         setType(tx.type);
         setAmountStr(formatIndianNumberStr(String(tx.amount)));
         setAccountId(tx.accountId);
@@ -251,6 +254,16 @@ export default function AddTransactionModal() {
         }
         setDate(tx.date);
         if (tx.note) setNote(tx.note);
+
+        if (tx.transferPairId) {
+          setType('transfer');
+          const sourceAccountId = tx.type === 'out' ? tx.accountId : tx.linkedAccountId ?? '';
+          const destinationAccountId = tx.type === 'out' ? tx.linkedAccountId ?? '' : tx.accountId;
+          setAccountId(sourceAccountId);
+          setLinkedAccountId(destinationAccountId);
+          setCategoryId('');
+          setSelectedTagIds([]);
+        }
 
         if (tx.type === 'loan' && tx.loanId) {
           const loan = await getLoanById(tx.loanId);
@@ -294,6 +307,7 @@ export default function AddTransactionModal() {
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
+  const lockTypeSelection = isEditing && (isTransferEdit || (type === 'loan' && !!editingLoanId));
   const displaySym = showCurrencySymbol ? sym : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
   const splitValid =
@@ -385,11 +399,21 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         });
+      } else if (isEditing && editId && isTransferEdit) {
+        await updateTransferTransaction(editId, {
+          amount,
+          accountId,
+          linkedAccountId,
+          date,
+          note: note || undefined,
+          payee: payee.trim() || undefined,
+        });
       } else if (isEditing && editId) {
         await updateTransaction(editId, data);
       } else {
         await addTransaction(data);
       }
+      await reloadTransactions();
       await refreshAccounts();
       router.back();
     } catch (e) {
@@ -545,7 +569,11 @@ export default function AddTransactionModal() {
               {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
                 <TouchableOpacity
                   key={t}
-                  onPress={() => setType(t)}
+                  onPress={() => {
+                    if (lockTypeSelection && t !== type) return;
+                    setType(t);
+                  }}
+                  disabled={lockTypeSelection && t !== type}
                   style={{
                     flex: 1,
                     paddingVertical: 8,
@@ -554,6 +582,7 @@ export default function AddTransactionModal() {
                     alignItems: 'center',
                     borderColor: type === t ? TYPE_CONFIG[t].borderColor : palette.border,
                     backgroundColor: type === t ? TYPE_CONFIG[t].bg : palette.surface,
+                    opacity: lockTypeSelection && t !== type ? 0.35 : 1,
                   }}
                 >
                   <Text

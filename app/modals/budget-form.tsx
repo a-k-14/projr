@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Keyboard, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
-import { AmountRow, PickerRow, ROW_COLUMN_GAP, ROW_LABEL_WIDTH, ROW_MIN_HEIGHT, SectionCard } from '../../components/ui/transaction-form-primitives';
+import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
@@ -252,41 +252,11 @@ function RepeatRow({
   palette: AppThemePalette;
 }) {
   return (
-    <View style={{ paddingHorizontal: SCREEN_GUTTER, minHeight: 98, flexDirection: 'row', alignItems: 'flex-start', paddingTop: 18 }}>
-      <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, width: ROW_LABEL_WIDTH, paddingRight: ROW_COLUMN_GAP, paddingTop: 10 }}>
-        Repeat
-      </Text>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {[{ label: 'Yes', value: true }, { label: 'No', value: false }].map((option) => (
-            <TouchableOpacity
-              key={option.label}
-              onPress={() => {
-                Keyboard.dismiss();
-                setRepeat(option.value);
-              }}
-              style={{
-                flex: 1,
-                minHeight: 38,
-                borderRadius: 14,
-                borderWidth: 1.5,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 4,
-                backgroundColor: repeat === option.value ? palette.budgetSoft : palette.inputBg,
-                borderColor: repeat === option.value ? palette.budget : palette.divider,
-              }}
-            >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: repeat === option.value ? palette.budget : palette.text }}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <Text style={{ fontSize: 12, color: palette.textMuted }}>
-          {repeat ? 'Budget repeats every month from the selected month onward.' : 'Budget applies only to the selected month.'}
-        </Text>
-      </View>
-    </View>
+    <OptionChipRow
+      label="Repeat"
+      palette={palette}
+      options={[{ label: 'Yes', selected: repeat, onPress: () => { Keyboard.dismiss(); setRepeat(true); }, activeColor: palette.budget, activeBg: palette.budgetSoft }, { label: 'No', selected: !repeat, onPress: () => { Keyboard.dismiss(); setRepeat(false); }, activeColor: palette.budget, activeBg: palette.budgetSoft }]}
+      helperText={repeat ? 'Budget repeats every month from the selected month onward.' : 'Budget applies only to the selected month.'}
+    />
   );
 }

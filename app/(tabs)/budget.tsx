@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
 import { ScreenTitle } from '../../components/settings-ui';
 import { FabButton } from '../../components/ui/FabButton';
+import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
@@ -89,61 +90,50 @@ export default function BudgetScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
         contentContainerStyle={{ paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
       >
+        <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop, paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
+          <BudgetOverviewCard
+            palette={palette}
+            monthLabel={formatBudgetMonthLabel(selectedMonth)}
+            totalBudgeted={totalBudgeted}
+            totalSpent={totalSpent}
+            totalRemaining={totalRemaining}
+            overBudgetCount={overBudgetCount}
+            sym={sym}
+          />
+        </View>
+
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
+          <BudgetMonthField
+            value={selectedMonth}
+            palette={palette}
+            onPress={() => setShowMonthSheet(true)}
+            onPrev={() => setSelectedMonth((current) => shiftBudgetMonth(current, -1))}
+            onNext={() => setSelectedMonth((current) => shiftBudgetMonth(current, 1))}
+          />
+        </View>
+
         {monthBudgets.length > 0 ? (
-          <>
-            <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop, paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
-              <BudgetOverviewCard
-                palette={palette}
-                monthLabel={formatBudgetMonthLabel(selectedMonth)}
-                totalBudgeted={totalBudgeted}
-                totalSpent={totalSpent}
-                totalRemaining={totalRemaining}
-                overBudgetCount={overBudgetCount}
+          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
+            {monthBudgets.map((budget) => (
+              <BudgetCard
+                key={budget.id}
+                budget={budget}
                 sym={sym}
-              />
-            </View>
-
-            <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
-              <BudgetMonthField
-                value={selectedMonth}
                 palette={palette}
-                onPress={() => setShowMonthSheet(true)}
-                onPrev={() => setSelectedMonth((current) => shiftBudgetMonth(current, -1))}
-                onNext={() => setSelectedMonth((current) => shiftBudgetMonth(current, 1))}
+                categoryLabel={getCategoryFullDisplayName(budget.categoryId, ' › ')}
+                onPress={() =>
+                  router.push({
+                    pathname: '/budget/[id]',
+                    params: { id: budget.id, month: selectedMonth },
+                  })
+                }
               />
-            </View>
-
-            <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-              {monthBudgets.map((budget) => (
-                <BudgetCard
-                  key={budget.id}
-                  budget={budget}
-                  sym={sym}
-                  palette={palette}
-                  categoryLabel={getCategoryFullDisplayName(budget.categoryId, ' › ')}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/budget/[id]',
-                      params: { id: budget.id, month: selectedMonth },
-                    })
-                  }
-                />
-              ))}
-            </View>
-          </>
+            ))}
+          </View>
         ) : (
-          <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop, paddingHorizontal: SCREEN_GUTTER }}>
-            <View style={{ marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
-              <BudgetMonthField
-                value={selectedMonth}
-                palette={palette}
-                onPress={() => setShowMonthSheet(true)}
-                onPrev={() => setSelectedMonth((current) => shiftBudgetMonth(current, -1))}
-                onNext={() => setSelectedMonth((current) => shiftBudgetMonth(current, 1))}
-              />
-            </View>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             <View style={[styles.emptyCard, { backgroundColor: palette.surface }]}>
-              <Ionicons name="pie-chart-outline" size={48} color={palette.textMuted} />
+              <FinanceEmptyMascot palette={palette} variant="budget" />
               <Text style={{ color: palette.text, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', marginTop: HOME_SPACE.md }}>
                 No budgets for {formatBudgetMonthLabel(selectedMonth)}
               </Text>
@@ -198,7 +188,7 @@ function BudgetOverviewCard({
 }) {
   const isOver = totalRemaining < 0;
   const progress = totalBudgeted > 0 ? Math.min(totalSpent / totalBudgeted, 1) : 0;
-  const usageText = totalBudgeted > 0 ? `${Math.round((totalSpent / totalBudgeted) * 100)}% used` : 'No budget set';
+  const usageText = totalBudgeted > 0 ? `${Math.round((totalSpent / totalBudgeted) * 100)}% used` : 'Not set';
   const statusLabel = isOver ? 'Over budget' : 'Left to spend';
   const statusValue = formatCurrency(Math.abs(totalRemaining), sym);
 
@@ -207,7 +197,7 @@ function BudgetOverviewCard({
       palette={palette}
       eyebrow="Budget overview"
       title={monthLabel}
-      badgeLabel={monthBudgetsLabel(overBudgetCount)}
+      badgeLabel={monthBudgetsLabel(totalBudgeted, overBudgetCount)}
       badgeBg={palette.budgetSoft}
       badgeColor={palette.budget}
       metrics={[
@@ -227,7 +217,8 @@ function BudgetOverviewCard({
   );
 }
 
-function monthBudgetsLabel(overBudgetCount: number) {
+function monthBudgetsLabel(totalBudgeted: number, overBudgetCount: number) {
+  if (totalBudgeted <= 0) return 'Not set';
   return overBudgetCount > 0 ? 'Overspent' : 'On track';
 }
 
@@ -249,7 +240,7 @@ function BudgetCard({
 
   return (
     <TouchableOpacity activeOpacity={0.75} onPress={onPress} style={[styles.budgetCard, { backgroundColor: palette.surface }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.md }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
         <View
           style={{
             width: HOME_LAYOUT.listIconSize,
@@ -269,42 +260,49 @@ function BudgetCard({
         </View>
 
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
-            {categoryLabel}
-          </Text>
-          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginTop: 1 }}>
-            {budget.repeat ? 'Repeats monthly' : `One-time • ${formatBudgetMonthLabel(budget.startDate)}`}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+              {categoryLabel}
+            </Text>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, textAlign: 'right' }}>
+              {formatCurrency(budget.amount, sym)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 1 }}>
+            <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
+              {budget.repeat ? 'Repeats monthly' : `One-time • ${formatBudgetMonthLabel(budget.startDate)}`}
+            </Text>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, textAlign: 'right' }}>
+              Spent {formatCurrency(budget.spent, sym)}
+            </Text>
+          </View>
+          <View
+            style={{
+              height: PROGRESS.cardHeight,
+              backgroundColor: palette.divider,
+              borderRadius: PROGRESS.radius,
+              marginTop: 6,
+              overflow: 'hidden',
+            }}
+          >
+            <View
+              style={{
+                height: PROGRESS.cardHeight,
+                width: `${Math.min(Math.max(budget.percent, 0), 100)}%`,
+                backgroundColor: progressColor,
+                borderRadius: PROGRESS.radius,
+              }}
+            />
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
+              {Math.round(budget.percent)}%
+            </Text>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
+              {isOver ? formatCurrency(Math.abs(budget.remaining), sym) : formatCurrency(budget.remaining, sym)}
+            </Text>
+          </View>
         </View>
-
-        <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
-          <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>
-            {formatCurrency(budget.amount, sym)}
-          </Text>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginTop: 1 }}>
-            spent {formatCurrency(budget.spent, sym)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
-        <View
-          style={{
-            height: PROGRESS.cardHeight,
-            width: `${Math.min(Math.max(budget.percent, 0), 100)}%`,
-            backgroundColor: progressColor,
-            borderRadius: PROGRESS.radius,
-          }}
-        />
-      </View>
-
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
-        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
-          {Math.round(budget.percent)}%
-        </Text>
-        <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
-          {isOver ? `Left ${formatCurrency(Math.abs(budget.remaining), sym)}` : `Left ${formatCurrency(budget.remaining, sym)}`}
-        </Text>
       </View>
     </TouchableOpacity>
   );

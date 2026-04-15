@@ -197,6 +197,68 @@ export async function updateTransaction(
   return updated!;
 }
 
+export async function updateTransferTransaction(
+  id: string,
+  data: Pick<CreateTransactionInput, 'amount' | 'accountId' | 'linkedAccountId' | 'date' | 'note' | 'payee'>
+): Promise<Transaction> {
+  const existing = await getTransactionById(id);
+  if (!existing?.transferPairId) throw new Error('Transfer transaction not found');
+  if (!data.linkedAccountId) throw new Error('Transfer destination account is required');
+
+  const pair = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.transferPairId, existing.transferPairId));
+
+  const outRow = pair.find((row) => row.type === 'out');
+  const inRow = pair.find((row) => row.type === 'in');
+  if (!outRow || !inRow) throw new Error('Transfer pair is incomplete');
+
+  await updateAccountBalance(outRow.accountId, outRow.amount);
+  await updateAccountBalance(inRow.accountId, -inRow.amount);
+
+  await db
+    .update(transactions)
+    .set({
+      type: 'out',
+      amount: data.amount,
+      accountId: data.accountId,
+      linkedAccountId: data.linkedAccountId,
+      loanId: null,
+      categoryId: null,
+      payee: data.payee ?? null,
+      tags: '[]',
+      splitData: '[]',
+      note: data.note ?? null,
+      date: data.date,
+    })
+    .where(eq(transactions.id, outRow.id));
+
+  await db
+    .update(transactions)
+    .set({
+      type: 'in',
+      amount: data.amount,
+      accountId: data.linkedAccountId,
+      linkedAccountId: data.accountId,
+      loanId: null,
+      categoryId: null,
+      payee: data.payee ?? null,
+      tags: '[]',
+      splitData: '[]',
+      note: data.note ?? null,
+      date: data.date,
+    })
+    .where(eq(transactions.id, inRow.id));
+
+  await updateAccountBalance(data.accountId, -data.amount);
+  await updateAccountBalance(data.linkedAccountId, data.amount);
+
+  const updated = await getTransactionById(id);
+  if (!updated) throw new Error('Updated transfer transaction not found');
+  return updated;
+}
+
 export async function countByAccount(accountId: string): Promise<number> {
   const rows = await db
     .select()

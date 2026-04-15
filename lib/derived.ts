@@ -10,7 +10,8 @@ import type {
 } from '../types';
 import { toLocalDateKey } from './dateUtils';
 
-export function getTransactionCashflowImpact(tx: { type: string; note?: string | null }): 'in' | 'out' | 'neutral' {
+export function getTransactionCashflowImpact(tx: { type: string; note?: string | null; transferPairId?: string | null }): 'in' | 'out' | 'neutral' {
+  if (tx.transferPairId) return 'neutral';
   if (tx.type === 'in') return 'in';
   if (tx.type === 'out') return 'out';
   if (tx.type === 'loan') {

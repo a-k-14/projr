@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FabButton } from '../../components/ui/FabButton';
+import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { FilterChip } from '../../components/ui/FilterChip';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency, getLoanSummary } from '../../lib/derived';
@@ -44,6 +45,7 @@ const DIRECTION_OPTIONS = [
   { label: 'Lent', value: 'lent' },
   { label: 'Borrowed', value: 'borrowed' },
 ] as const;
+const SHOW_EMPTY_STATE_PREVIEW = false;
 
 export default function LoansScreen() {
   const loans = useLoansStore((s) => s.loans);
@@ -289,14 +291,29 @@ export default function LoansScreen() {
             </View>
 
             <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
+
+            {SHOW_EMPTY_STATE_PREVIEW ? (
+              <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 22, paddingHorizontal: 24 }}>
+                <FinanceEmptyMascot palette={palette} variant="loan" />
+                <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500', marginTop: HOME_SPACE.md }}>
+                  No loans found
+                </Text>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: HOME_SPACE.xs, textAlign: 'center' }}>
+                  Add a lent or borrowed loan to track balances, receipts, and repayments.
+                </Text>
+              </View>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
           !refreshing ? (
             <View style={{ alignItems: 'center', paddingTop: 64 }}>
-              <Ionicons name="people-outline" size={48} color={palette.textMuted} />
-              <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500', marginTop: HOME_SPACE.md }}>
-                No loans found
+                <FinanceEmptyMascot palette={palette} variant="loan" />
+                <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500', marginTop: HOME_SPACE.md }}>
+                  No loans found
+                </Text>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: HOME_SPACE.xs, textAlign: 'center', paddingHorizontal: 32 }}>
+                Add a lent or borrowed loan to track balances, receipts, and repayments.
               </Text>
             </View>
           ) : null

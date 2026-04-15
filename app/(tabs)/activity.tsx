@@ -19,6 +19,7 @@ import { CardSection, ChoiceRow, SectionLabel } from '../../components/settings-
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { FilterChip } from '../../components/ui/FilterChip';
 import {
   getNavigableDateRange,
@@ -27,7 +28,7 @@ import {
 } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_SPACE, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -99,6 +100,9 @@ export default function ActivityScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const txTypeConfig = useMemo(() => getTxTypeConfig(palette), [palette]);
+  const accountsById = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
+  const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
+  const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
 
   const [period, setPeriod] = useState<ActivityPeriod>('all');
   const [periodOffset, setPeriodOffset] = useState(0);
@@ -168,6 +172,16 @@ export default function ActivityScreen() {
     selectedTagIds.length === 0 &&
     !amountMinStr &&
     !amountMaxStr;
+  const needsFullDataset =
+    period === 'all' &&
+    (!!search.trim() ||
+      selectedCategoryIds.length > 0 ||
+      selectedTagIds.length > 0 ||
+      !!amountMinStr ||
+      !!amountMaxStr ||
+      cashflowBucket !== 'all' ||
+      groupByMode === 'category' ||
+      categoryDrilldown !== null);
 
   const loadData = useMemo(
     () => async (isInitial: boolean) => {
@@ -179,6 +193,8 @@ export default function ActivityScreen() {
         const effectiveTypeFilter =
           cashflowBucket !== 'all' && (typeFilter === 'in' || typeFilter === 'out')
             ? undefined
+            : typeFilter === 'transfer'
+              ? undefined
             : typeFilter === 'all'
               ? undefined
               : typeFilter;
@@ -187,29 +203,28 @@ export default function ActivityScreen() {
           type: effectiveTypeFilter,
           fromDate: dateRange?.from,
           toDate: dateRange?.to,
-          search: search || undefined,
-          limit: period === 'all' ? TRANSACTIONS_PAGE_SIZE : undefined,
-          offset: period === 'all' ? currentOffset : 0,
+          limit: period === 'all' && !needsFullDataset ? TRANSACTIONS_PAGE_SIZE : undefined,
+          offset: period === 'all' && !needsFullDataset ? currentOffset : 0,
         };
         const results = await transactionsService.getTransactions(filters);
         if (requestId !== requestIdRef.current) return;
         if (isInitial) {
           setTransactions(results);
           offsetRef.current = results.length;
-          setHasMore(period === 'all' && results.length === TRANSACTIONS_PAGE_SIZE);
+          setHasMore(period === 'all' && !needsFullDataset && results.length === TRANSACTIONS_PAGE_SIZE);
         } else {
           setTransactions((prev) => {
             const ids = new Set(prev.map((tx) => tx.id));
             return [...prev, ...results.filter((tx) => !ids.has(tx.id))];
           });
           offsetRef.current += results.length;
-          setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
+          setHasMore(!needsFullDataset && results.length === TRANSACTIONS_PAGE_SIZE);
         }
       } finally {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, dateRange?.from, dateRange?.to, period, search, selectedAccountId, typeFilter],
+    [cashflowBucket, dateRange?.from, dateRange?.to, needsFullDataset, period, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
@@ -270,6 +285,7 @@ export default function ActivityScreen() {
     setIsSearchActive(false);
 
     if (source === 'activity-tab' || source === 'home-view-all') {
+      void loadStoreTransactions().catch(() => undefined);
       lastAppliedRouteTsRef.current = ts;
       return;
     }
@@ -306,7 +322,7 @@ export default function ActivityScreen() {
     }
 
     lastAppliedRouteTsRef.current = ts;
-  }, [accounts, routeParams.accountId, routeParams.cashflowBucket, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
+  }, [accounts, loadStoreTransactions, routeParams.accountId, routeParams.cashflowBucket, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -376,6 +392,7 @@ export default function ActivityScreen() {
     const maxAmount = amountMaxStr ? Number(amountMaxStr) : undefined;
     const selectedTagSet = new Set(selectedTagIds);
     const selectedCategoryAndDescendants = new Set<string>();
+    const query = search.trim().toLowerCase();
     selectedCategoryIds.forEach((id) => {
       selectedCategoryAndDescendants.add(id);
       categories
@@ -384,6 +401,12 @@ export default function ActivityScreen() {
     });
 
     return transactions.filter((tx) => {
+      if (typeFilter === 'transfer') {
+        if (!tx.transferPairId) return false;
+      } else if (typeFilter !== 'all') {
+        if (tx.transferPairId) return false;
+        if (tx.type !== typeFilter) return false;
+      }
       if (
         cashflowBucket !== 'all' &&
         (typeFilter === 'all' || typeFilter === cashflowBucket) &&
@@ -399,9 +422,26 @@ export default function ActivityScreen() {
       }
       if (minAmount !== undefined && !Number.isNaN(minAmount) && tx.amount < minAmount) return false;
       if (maxAmount !== undefined && !Number.isNaN(maxAmount) && tx.amount > maxAmount) return false;
+      if (query) {
+        const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
+        const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
+        const searchable = [
+          tx.note,
+          tx.payee,
+          tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined,
+          accountsById.get(tx.accountId),
+          linkedAccountName,
+          loan?.personName,
+          tx.tags.map((tagId) => tagNamesById.get(tagId)).filter(Boolean).join(' • '),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!searchable.includes(query)) return false;
+      }
       return true;
     });
-  }, [amountMaxStr, amountMinStr, cashflowBucket, categories, selectedCategoryIds, selectedTagIds, transactions]);
+  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, transactions]);
 
   const periodCashflow = useMemo(() => calcCashflowSummary(filteredTransactions), [filteredTransactions]);
   const overallNet = useMemo(() => calcNet(filteredTransactions), [filteredTransactions]);
@@ -523,6 +563,7 @@ export default function ActivityScreen() {
     >();
 
     const getFamilyKey = (tx: Transaction): HierarchyFamily => {
+      if (tx.transferPairId) return 'transfer';
       if (tx.type === 'out') return 'out';
       if (tx.type === 'in') return 'in';
       if (tx.type === 'loan') return 'loan';
@@ -549,7 +590,9 @@ export default function ActivityScreen() {
         ? parent.name
         : category
           ? category.name
-          : tx.type === 'transfer'
+          : tx.transferPairId
+            ? 'Transfer'
+            : tx.type === 'transfer'
             ? 'Transfer'
             : tx.type === 'loan'
               ? 'Loan'
@@ -564,7 +607,9 @@ export default function ActivityScreen() {
         ? parent
           ? category.name
           : category.name
-        : tx.type === 'transfer'
+        : tx.transferPairId
+          ? 'Transfer'
+          : tx.type === 'transfer'
           ? 'Transfer'
           : tx.type === 'loan'
             ? 'Loan'
@@ -941,8 +986,12 @@ export default function ActivityScreen() {
           ListEmptyComponent={
             !refreshing ? (
               <View style={{ alignItems: 'center', paddingTop: 64 }}>
+                <FinanceEmptyMascot palette={palette} variant="activity" />
                 <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500' }}>
                   No transactions found
+                </Text>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: HOME_SPACE.xs, textAlign: 'center', paddingHorizontal: 32 }}>
+                  Add transactions or widen your filters to see activity here.
                 </Text>
               </View>
             ) : null
