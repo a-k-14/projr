@@ -35,17 +35,23 @@ export function OverviewHeroCard({
   badgeBg: string;
   badgeColor: string;
   metrics: HeroMetric[];
-  progressLabelLeft: string;
-  progressLabelRight: string;
-  progressPercent: number;
-  progressColor: string;
-  progressTrackColor: string;
+  progressLabelLeft?: string;
+  progressLabelRight?: string;
+  progressPercent?: number;
+  progressColor?: string;
+  progressTrackColor?: string;
   footerLabel: string;
   footerValue: string;
   footerValueColor: string;
   decorativeColor: string;
 }) {
-  const clampedPercent = Math.min(Math.max(progressPercent, 0), 100);
+  const showProgress =
+    progressLabelLeft !== undefined &&
+    progressLabelRight !== undefined &&
+    progressPercent !== undefined &&
+    progressColor !== undefined &&
+    progressTrackColor !== undefined;
+  const clampedPercent = progressPercent !== undefined ? Math.min(Math.max(progressPercent, 0), 100) : 0;
 
   return (
     <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
@@ -78,25 +84,27 @@ export function OverviewHeroCard({
         ))}
       </View>
 
-      <View style={{ marginTop: HOME_SPACE.lg }}>
-        <View style={styles.progressRow}>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>{progressLabelLeft}</Text>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>{progressLabelRight}</Text>
+      {showProgress ? (
+        <View style={{ marginTop: HOME_SPACE.lg }}>
+          <View style={styles.progressRow}>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>{progressLabelLeft}</Text>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>{progressLabelRight}</Text>
+          </View>
+          <View style={[styles.progressTrack, { backgroundColor: progressTrackColor }]}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${clampedPercent}%`,
+                  backgroundColor: progressColor,
+                },
+              ]}
+            />
+          </View>
         </View>
-        <View style={[styles.progressTrack, { backgroundColor: progressTrackColor }]}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${clampedPercent}%`,
-                backgroundColor: progressColor,
-              },
-            ]}
-          />
-        </View>
-      </View>
+      ) : null}
 
-      <View style={[styles.footer, { marginTop: HOME_SPACE.lg }]}>
+      <View style={[styles.footer, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
         <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
           {footerLabel}
         </Text>

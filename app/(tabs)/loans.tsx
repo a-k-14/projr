@@ -113,12 +113,6 @@ export default function LoansScreen() {
 
   const summary = useMemo(() => getLoanSummary(filteredLoans), [filteredLoans]);
   const netPositive = summary.net >= 0;
-  const openCount = filteredLoans.filter((loan) => loan.status === 'open').length;
-  const closedCount = filteredLoans.length - openCount;
-  const totalTracked = summary.youLent + summary.youOwe;
-  const recoveredAmount = filteredLoans.reduce((sum, loan) => sum + loan.settledAmount, 0);
-  const recoveredPercent = totalTracked > 0 ? Math.min((recoveredAmount / totalTracked) * 100, 100) : 0;
-
   const displayAccounts = useMemo(
     () => [{ id: 'all', name: 'All Accounts' }, ...accounts.map((a) => ({ id: a.id, name: a.name }))],
     [accounts],
@@ -239,8 +233,6 @@ export default function LoansScreen() {
                 borrowed={summary.youOwe}
                 net={summary.net}
                 netPositive={netPositive}
-                openCount={openCount}
-                closedCount={closedCount}
                 sym={sym}
                 palette={palette}
               />
@@ -476,8 +468,6 @@ function LoanSummaryCard({
   borrowed,
   net,
   netPositive,
-  openCount,
-  closedCount,
   sym,
   palette,
 }: {
@@ -485,14 +475,10 @@ function LoanSummaryCard({
   borrowed: number;
   net: number;
   netPositive: boolean;
-  openCount: number;
-  closedCount: number;
   sym: string;
   palette: AppThemePalette;
 }) {
   const badgeLabel = borrowed === 0 && lent === 0 ? 'No open loans' : borrowed === 0 ? 'Net lent' : lent === 0 ? 'Net borrowed' : netPositive ? 'Net lent' : 'Net borrowed';
-  const total = lent + borrowed;
-  const resolvedPercent = total > 0 ? Math.min((Math.max(total - Math.abs(net), 0) / total) * 100, 100) : 0;
 
   return (
     <OverviewHeroCard
@@ -500,20 +486,15 @@ function LoanSummaryCard({
       eyebrow="Loans overview"
       title="Current position"
       badgeLabel={badgeLabel}
-      badgeBg={palette.loanBg}
-      badgeColor={palette.loan}
+      badgeBg={palette.budgetSoft}
+      badgeColor={palette.budget}
       metrics={[
         { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
         { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },
       ]}
-      progressLabelLeft={total > 0 ? `${Math.round(resolvedPercent)}% settled` : 'No loan balance'}
-      progressLabelRight={total > 0 ? formatCurrency(Math.abs(net), sym) : '0'}
-      progressPercent={resolvedPercent}
-      progressColor={palette.loan}
-      progressTrackColor={palette.loanBg}
-      footerLabel="Open / Closed"
-      footerValue={`${openCount} open • ${closedCount} closed`}
-      footerValueColor={palette.loan}
+      footerLabel="Net"
+      footerValue={formatCurrency(Math.abs(net), sym)}
+      footerValueColor={netPositive ? palette.brand : palette.negative}
       decorativeColor={palette.loanBg}
     />
   );
@@ -557,7 +538,8 @@ function LoanRow({
               flexDirection: 'row',
               alignItems: 'flex-start',
               paddingHorizontal: HOME_LAYOUT.listRowPaddingX,
-              paddingVertical: HOME_LAYOUT.listRowPaddingY,
+              paddingTop: loan.status === 'closed' ? HOME_LAYOUT.listRowPaddingY + 14 : HOME_LAYOUT.listRowPaddingY,
+              paddingBottom: loan.status === 'closed' ? HOME_LAYOUT.listRowPaddingY + 2 : HOME_LAYOUT.listRowPaddingY,
               borderBottomWidth: isLast ? 0 : 0,
               position: 'relative',
             }}

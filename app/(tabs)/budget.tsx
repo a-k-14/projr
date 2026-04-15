@@ -6,8 +6,8 @@ import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
 import { ScreenTitle } from '../../components/settings-ui';
-import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { FabButton } from '../../components/ui/FabButton';
+import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS, getFabBottomOffset } from '../../lib/layoutTokens';
@@ -84,25 +84,14 @@ export default function BudgetScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
+      <ScreenTitle title="Budget" palette={palette} />
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
         contentContainerStyle={{ paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
       >
-        <ScreenTitle title="Budget" palette={palette} />
-
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.md }}>
-          <BudgetMonthField
-            value={selectedMonth}
-            palette={palette}
-            onPress={() => setShowMonthSheet(true)}
-            onPrev={() => setSelectedMonth((current) => shiftBudgetMonth(current, -1))}
-            onNext={() => setSelectedMonth((current) => shiftBudgetMonth(current, 1))}
-          />
-        </View>
-
         {monthBudgets.length > 0 ? (
           <>
-            <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.md }}>
+            <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop, paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
               <BudgetOverviewCard
                 palette={palette}
                 monthLabel={formatBudgetMonthLabel(selectedMonth)}
@@ -111,6 +100,16 @@ export default function BudgetScreen() {
                 totalRemaining={totalRemaining}
                 overBudgetCount={overBudgetCount}
                 sym={sym}
+              />
+            </View>
+
+            <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
+              <BudgetMonthField
+                value={selectedMonth}
+                palette={palette}
+                onPress={() => setShowMonthSheet(true)}
+                onPrev={() => setSelectedMonth((current) => shiftBudgetMonth(current, -1))}
+                onNext={() => setSelectedMonth((current) => shiftBudgetMonth(current, 1))}
               />
             </View>
 
@@ -133,7 +132,16 @@ export default function BudgetScreen() {
             </View>
           </>
         ) : (
-          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
+          <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop, paddingHorizontal: SCREEN_GUTTER }}>
+            <View style={{ marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
+              <BudgetMonthField
+                value={selectedMonth}
+                palette={palette}
+                onPress={() => setShowMonthSheet(true)}
+                onPrev={() => setSelectedMonth((current) => shiftBudgetMonth(current, -1))}
+                onNext={() => setSelectedMonth((current) => shiftBudgetMonth(current, 1))}
+              />
+            </View>
             <View style={[styles.emptyCard, { backgroundColor: palette.surface }]}>
               <Ionicons name="pie-chart-outline" size={48} color={palette.textMuted} />
               <Text style={{ color: palette.text, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', marginTop: HOME_SPACE.md }}>
@@ -192,7 +200,7 @@ function BudgetOverviewCard({
   const progress = totalBudgeted > 0 ? Math.min(totalSpent / totalBudgeted, 1) : 0;
   const usageText = totalBudgeted > 0 ? `${Math.round((totalSpent / totalBudgeted) * 100)}% used` : 'No budget set';
   const statusLabel = isOver ? 'Over budget' : 'Left to spend';
-  const statusValue = isOver ? `${formatCurrency(Math.abs(totalRemaining), sym)} overspent` : `${formatCurrency(totalRemaining, sym)} left`;
+  const statusValue = formatCurrency(Math.abs(totalRemaining), sym);
 
   return (
     <OverviewHeroCard
@@ -207,7 +215,7 @@ function BudgetOverviewCard({
         { key: 'spent', label: 'Spent', value: formatCurrency(totalSpent, sym), valueColor: isOver ? palette.negative : palette.text },
       ]}
       progressLabelLeft={usageText}
-      progressLabelRight={totalBudgeted > 0 ? `${Math.round(progress * 100)}%` : '0%'}
+      progressLabelRight=""
       progressPercent={progress * 100}
       progressColor={palette.budget}
       progressTrackColor={palette.budgetSoft}
@@ -292,10 +300,10 @@ function BudgetCard({
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
         <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
-          {isOver ? `${formatCurrency(Math.abs(budget.remaining), sym)} over` : `${formatCurrency(budget.remaining, sym)} left`}
+          {Math.round(budget.percent)}%
         </Text>
         <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
-          {Math.round(budget.percent)}%
+          {isOver ? `Left ${formatCurrency(Math.abs(budget.remaining), sym)}` : `Left ${formatCurrency(budget.remaining, sym)}`}
         </Text>
       </View>
     </TouchableOpacity>
