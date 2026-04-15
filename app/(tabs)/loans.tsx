@@ -16,11 +16,13 @@ import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FabButton } from '../../components/ui/FabButton';
 import { FilterChip } from '../../components/ui/FilterChip';
+import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency, getLoanSummary } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import {
   ACTIVITY_LAYOUT,
   HOME_LAYOUT,
+  PROGRESS,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
@@ -111,6 +113,11 @@ export default function LoansScreen() {
 
   const summary = useMemo(() => getLoanSummary(filteredLoans), [filteredLoans]);
   const netPositive = summary.net >= 0;
+  const openCount = filteredLoans.filter((loan) => loan.status === 'open').length;
+  const closedCount = filteredLoans.length - openCount;
+  const totalTracked = summary.youLent + summary.youOwe;
+  const recoveredAmount = filteredLoans.reduce((sum, loan) => sum + loan.settledAmount, 0);
+  const recoveredPercent = totalTracked > 0 ? Math.min((recoveredAmount / totalTracked) * 100, 100) : 0;
 
   const displayAccounts = useMemo(
     () => [{ id: 'all', name: 'All Accounts' }, ...accounts.map((a) => ({ id: a.id, name: a.name }))],
@@ -232,6 +239,8 @@ export default function LoansScreen() {
                 borrowed={summary.youOwe}
                 net={summary.net}
                 netPositive={netPositive}
+                openCount={openCount}
+                closedCount={closedCount}
                 sym={sym}
                 palette={palette}
               />
@@ -467,6 +476,8 @@ function LoanSummaryCard({
   borrowed,
   net,
   netPositive,
+  openCount,
+  closedCount,
   sym,
   palette,
 }: {
@@ -474,34 +485,37 @@ function LoanSummaryCard({
   borrowed: number;
   net: number;
   netPositive: boolean;
+  openCount: number;
+  closedCount: number;
   sym: string;
   palette: AppThemePalette;
 }) {
-  const items = [
-    { key: 'lent', label: 'Lent', value: lent, color: palette.brand },
-    { key: 'borrowed', label: 'Borrowed', value: borrowed, color: palette.negative },
-    { key: 'net', label: netPositive ? 'Net +' : 'Net -', value: Math.abs(net), color: netPositive ? palette.brand : palette.negative },
-  ] as const;
+  const badgeLabel = borrowed === 0 && lent === 0 ? 'No open loans' : borrowed === 0 ? 'Net lent' : lent === 0 ? 'Net borrowed' : netPositive ? 'Net lent' : 'Net borrowed';
+  const total = lent + borrowed;
+  const resolvedPercent = total > 0 ? Math.min((Math.max(total - Math.abs(net), 0) / total) * 100, 100) : 0;
 
   return (
-    <View style={[styles.summaryCard, { backgroundColor: palette.card }]}>
-      {items.map((item, index) => (
-        <View
-          key={item.key}
-          style={[
-            styles.summaryColumn,
-            { borderLeftWidth: index === 0 ? 0 : 1, borderLeftColor: palette.divider },
-          ]}
-        >
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: '700', marginBottom: 6 }}>
-            {item.label}
-          </Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: item.color }}>
-            {formatCurrency(item.value, sym)}
-          </Text>
-        </View>
-      ))}
-    </View>
+    <OverviewHeroCard
+      palette={palette}
+      eyebrow="Loans overview"
+      title="Current position"
+      badgeLabel={badgeLabel}
+      badgeBg={palette.loanBg}
+      badgeColor={palette.loan}
+      metrics={[
+        { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
+        { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },
+      ]}
+      progressLabelLeft={total > 0 ? `${Math.round(resolvedPercent)}% settled` : 'No loan balance'}
+      progressLabelRight={total > 0 ? formatCurrency(Math.abs(net), sym) : '0'}
+      progressPercent={resolvedPercent}
+      progressColor={palette.loan}
+      progressTrackColor={palette.loanBg}
+      footerLabel="Open / Closed"
+      footerValue={`${openCount} open • ${closedCount} closed`}
+      footerValueColor={palette.loan}
+      decorativeColor={palette.loanBg}
+    />
   );
 }
 
@@ -524,7 +538,8 @@ function LoanRow({
   const dirColor = isLent ? palette.brand : palette.negative;
   const dirBg = isLent ? palette.inBg : palette.outBg;
   const directionLabel = isLent ? 'Lent' : 'Borrowed';
-  const hasProgress = loan.repaidPercent > 0 && loan.repaidPercent < 100;
+  const progressPercent = loan.status === 'closed' ? 100 : loan.repaidPercent;
+  const balanceAmount = loan.status === 'closed' ? 0 : loan.pendingAmount;
 
   return (
     <View style={{ marginBottom: 12 }}>
@@ -540,10 +555,11 @@ function LoanRow({
           <View
             style={{
               flexDirection: 'row',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               paddingHorizontal: HOME_LAYOUT.listRowPaddingX,
               paddingVertical: HOME_LAYOUT.listRowPaddingY,
               borderBottomWidth: isLast ? 0 : 0,
+              position: 'relative',
             }}
           >
             <View
@@ -564,43 +580,62 @@ function LoanRow({
               />
             </View>
 
+            {loan.status === 'closed' ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  minHeight: 22,
+                  paddingHorizontal: 8,
+                  borderTopRightRadius: ACTIVITY_LAYOUT.groupCardRadius,
+                  borderBottomLeftRadius: HOME_RADIUS.small,
+                  backgroundColor: palette.inputBg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 2,
+                }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '700', color: palette.textSecondary }}>Closed</Text>
+              </View>
+            ) : null}
+
             <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
-              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, marginBottom: 1 }}>
-                {loan.personName}
-                <Text style={{ color: palette.textSecondary, fontWeight: '500' }}> {'\u2022'} {directionLabel}</Text>
-              </Text>
-              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
-                {formatLoanRowDate(loan.date)} {'\u2022'} {accountName}
-              </Text>
-              {hasProgress ? (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '400', color: palette.text, marginBottom: 1 }}>
+                  {loan.personName}
+                  <Text style={{ color: palette.textSecondary, fontWeight: '400' }}> {'\u2022'} {directionLabel}</Text>
+                </Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, textAlign: 'right' }}>
+                  {formatCurrency(loan.givenAmount, sym)}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 1 }}>
+                <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
+                  {formatLoanRowDate(loan.date)} {'\u2022'} {accountName}
+                </Text>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginTop: 1, textAlign: 'right' }}>
+                  Bal {formatCurrency(balanceAmount, sym)}
+                </Text>
+              </View>
+              <View
+                style={{
+                  height: PROGRESS.cardHeight,
+                  backgroundColor: palette.divider,
+                  borderRadius: PROGRESS.radius,
+                  marginTop: 6,
+                  overflow: 'hidden',
+                }}
+              >
                 <View
                   style={{
-                    height: 2,
-                    backgroundColor: palette.divider,
-                    borderRadius: 2,
-                    marginTop: 6,
-                    overflow: 'hidden',
+                    height: PROGRESS.cardHeight,
+                    width: `${progressPercent}%`,
+                    backgroundColor: dirColor,
+                    borderRadius: PROGRESS.radius,
                   }}
-                >
-                  <View
-                    style={{
-                      height: 2,
-                      width: `${loan.repaidPercent}%`,
-                      backgroundColor: dirColor,
-                      borderRadius: 2,
-                    }}
-                  />
-                </View>
-              ) : null}
-            </View>
-
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
-                {formatCurrency(loan.givenAmount, sym)}
-              </Text>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginTop: 1 }}>
-                Bal {formatCurrency(loan.pendingAmount, sym)}
-              </Text>
+                />
+              </View>
             </View>
           </View>
         </TouchableOpacity>
@@ -662,17 +697,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
-  },
-  summaryCard: {
-    flexDirection: 'row',
-    borderRadius: HOME_RADIUS.card,
-    overflow: 'hidden',
-  },
-  summaryColumn: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    alignItems: 'center',
   },
   moreChip: {
     flexDirection: 'row',

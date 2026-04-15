@@ -37,7 +37,7 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
       color: palette.loan,
       bg: palette.loanBg,
       borderColor: palette.loan,
-      iconName: 'cash',
+      iconName: 'card-outline',
     },
   };
 }
@@ -168,6 +168,12 @@ export const ACTIVITY_LAYOUT = {
   periodSheetBottomOffset: -12,
 } as const;
 
+export const PROGRESS_LAYOUT = {
+  cardHeight: 4,
+  heroHeight: 3,
+  radius: 2,
+} as const;
+
 export const getFabBottomOffset = (insetsBottom: number) =>
   insetsBottom + HOME_LAYOUT.fabBottomOffset;
 
@@ -188,6 +194,7 @@ export const SPACE = HOME_SPACE;
 export const TEXT = HOME_TEXT;
 export const LAYOUT = HOME_LAYOUT;
 export const SHADOW = HOME_SHADOW;
+export const PROGRESS = PROGRESS_LAYOUT;
 
 // ─── Shared page size ─────────────────────────────────────────────────────────
 // Used by useTransactionsStore and activity.tsx so both stay in sync.

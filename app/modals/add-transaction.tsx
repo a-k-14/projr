@@ -21,9 +21,16 @@ import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, nowUTC } from '../../lib/dateUtils';
-import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
+import {
+  formatCurrency,
+  formatIndianNumberStr,
+  getLoanSettlementLabel,
+  getLoanTransactionKind,
+  parseFormattedNumber,
+} from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
+import { getLoanById } from '../../services/loans';
 import { getTransactionById } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -75,13 +82,21 @@ function sanitizeDecimalInput(value: string): string {
 }
 
 export default function AddTransactionModal() {
-  const { editId, accountId: sourceAccountId, type: initialType } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string }>();
+  const {
+    editId,
+    accountId: sourceAccountId,
+    type: initialType,
+    loanId: routeLoanId,
+    settlement,
+  } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string }>();
   const isEditing = !!editId;
 
   const addTransaction = useTransactionsStore((s) => s.add);
   const updateTransaction = useTransactionsStore((s) => s.update);
   const removeTransaction = useTransactionsStore((s) => s.remove);
   const addLoan = useLoansStore((s) => s.add);
+  const updateLoanOrigin = useLoansStore((s) => s.updateOrigin);
+  const removeLoan = useLoansStore((s) => s.remove);
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
@@ -109,6 +124,8 @@ export default function AddTransactionModal() {
   const [note, setNote] = useState('');
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
+  const [loanEditMode, setLoanEditMode] = useState<'new' | 'origin' | 'settlement'>('new');
+  const [editingLoanId, setEditingLoanId] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showFromAccountSheet, setShowFromAccountSheet] = useState(false);
@@ -214,7 +231,7 @@ export default function AddTransactionModal() {
   useEffect(() => {
     if (!isEditing || !editId) return;
     const task = InteractionManager.runAfterInteractions(() => {
-      getTransactionById(editId).then((tx) => {
+      getTransactionById(editId).then(async (tx) => {
         if (!tx) return;
         setType(tx.type);
         setAmountStr(formatIndianNumberStr(String(tx.amount)));
@@ -234,10 +251,46 @@ export default function AddTransactionModal() {
         }
         setDate(tx.date);
         if (tx.note) setNote(tx.note);
+
+        if (tx.type === 'loan' && tx.loanId) {
+          const loan = await getLoanById(tx.loanId);
+          if (!loan) return;
+          setEditingLoanId(loan.id);
+          setPersonName(loan.personName);
+          setLoanDirection(loan.direction);
+          setSelectedTagIds(loan.tags ?? []);
+
+          const kind = getLoanTransactionKind(tx, loan.direction);
+          setLoanEditMode(kind === 'origin' ? 'origin' : 'settlement');
+
+          if (kind === 'origin') {
+            setAmountStr(formatIndianNumberStr(String(loan.givenAmount)));
+            setAccountId(loan.accountId);
+            setDate(loan.date);
+            setNote(loan.note ?? '');
+          }
+        }
       });
     });
     return () => task.cancel();
   }, [editId, isEditing]);
+
+  useEffect(() => {
+    if (isEditing || !routeLoanId || settlement !== '1') return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      getLoanById(routeLoanId).then((loan) => {
+        if (!loan) return;
+        setType('loan');
+        setLoanEditMode('settlement');
+        setEditingLoanId(loan.id);
+        setPersonName(loan.personName);
+        setLoanDirection(loan.direction);
+        setAccountId(loan.accountId);
+        setDate(nowUTC());
+      });
+    });
+    return () => task.cancel();
+  }, [isEditing, routeLoanId, settlement]);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
@@ -257,6 +310,10 @@ export default function AddTransactionModal() {
 
   const actionLabel = isEditing
     ? 'Save changes'
+    : type === 'loan' && routeLoanId && settlement === '1'
+      ? loanDirection === 'lent'
+        ? 'Add receipt'
+        : 'Add repayment'
     : type === 'in'
       ? 'Add income'
       : type === 'transfer'
@@ -290,7 +347,35 @@ export default function AddTransactionModal() {
         linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
       };
 
-      if (type === 'loan') {
+      if (type === 'loan' && isEditing && editId && loanEditMode === 'origin' && editingLoanId) {
+        await updateLoanOrigin(editingLoanId, {
+          personName,
+          direction: loanDirection,
+          accountId,
+          givenAmount: amount,
+          note: note || undefined,
+          tags: selectedTagIds,
+          date,
+        });
+      } else if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
+        await updateTransaction(editId, {
+          type: 'loan',
+          amount,
+          accountId,
+          loanId: editingLoanId,
+          note: getLoanSettlementLabel(loanDirection, personName),
+          date,
+        });
+      } else if (type === 'loan' && routeLoanId && settlement === '1') {
+        await addTransaction({
+          type: 'loan',
+          amount,
+          accountId,
+          loanId: routeLoanId,
+          note: getLoanSettlementLabel(loanDirection, personName),
+          date,
+        });
+      } else if (type === 'loan') {
         await addLoan({
           personName,
           direction: loanDirection,
@@ -321,7 +406,11 @@ export default function AddTransactionModal() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          if (editId) await removeTransaction(editId);
+          if (type === 'loan' && loanEditMode === 'origin' && editingLoanId) {
+            await removeLoan(editingLoanId);
+          } else if (editId) {
+            await removeTransaction(editId);
+          }
           await refreshAccounts();
           router.back();
         },
@@ -623,41 +712,51 @@ export default function AddTransactionModal() {
           ) : (
             <SectionCard palette={palette}>
               <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
-              <View style={{ marginTop: -8 }}>
-                <FieldRow label="Direction" palette={palette}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {(['lent', 'borrowed'] as const).map((d) => {
-                      const active = loanDirection === d;
-                      return (
-                        <TouchableOpacity
-                          key={d}
-                          onPress={() => setLoanDirection(d)}
-                          style={{
-                            flex: 1,
-                            paddingVertical: 11,
-                            borderRadius: 14,
-                            alignItems: 'center',
-                            borderWidth: 1.5,
-                            borderColor: active ? activeConfig.borderColor : palette.border,
-                            backgroundColor: active ? activeConfig.bg : palette.surface,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: '700',
-                              color: active ? activeConfig.color : palette.textMuted,
-                            }}
-                          >
-                            {d === 'lent' ? 'I lent' : 'I borrowed'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+              {loanEditMode === 'settlement' ? (
+                <FieldRow label="Loan" palette={palette}>
+                  <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text }}>
+                    {personName} {'\u2022'} {loanDirection === 'lent' ? 'Receipt' : 'Repayment'}
+                  </Text>
                 </FieldRow>
-              </View>
-              <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} activeConfig={activeConfig} />
+              ) : (
+                <>
+                  <View style={{ marginTop: -8 }}>
+                    <FieldRow label="Direction" palette={palette}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {(['lent', 'borrowed'] as const).map((d) => {
+                          const active = loanDirection === d;
+                          return (
+                            <TouchableOpacity
+                              key={d}
+                              onPress={() => setLoanDirection(d)}
+                              style={{
+                                flex: 1,
+                                paddingVertical: 11,
+                                borderRadius: 14,
+                                alignItems: 'center',
+                                borderWidth: 1.5,
+                                borderColor: active ? activeConfig.borderColor : palette.border,
+                                backgroundColor: active ? activeConfig.bg : palette.surface,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: '700',
+                                  color: active ? activeConfig.color : palette.textMuted,
+                                }}
+                              >
+                                {d === 'lent' ? 'I lent' : 'I borrowed'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </FieldRow>
+                  </View>
+                  <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} activeConfig={activeConfig} />
+                </>
+              )}
               <AmountRow
                 sym={displaySym}
                 activeConfig={activeConfig}
@@ -679,13 +778,15 @@ export default function AddTransactionModal() {
                   }, 50);
                 }}
               />
-              <NotesSection 
-                note={note} 
-                onChangeNote={setNote} 
-                palette={palette} 
-                activeConfig={activeConfig}
-                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
-              />
+              {loanEditMode !== 'settlement' ? (
+                <NotesSection 
+                  note={note} 
+                  onChangeNote={setNote} 
+                  palette={palette} 
+                  activeConfig={activeConfig}
+                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+                />
+              ) : null}
             </SectionCard>
           )}
 

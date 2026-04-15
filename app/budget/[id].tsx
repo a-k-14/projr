@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MetricProgressCard } from '../../components/ui/MetricProgressCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
@@ -103,51 +104,19 @@ export default function BudgetDetailScreen() {
 
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.budget} />} contentContainerStyle={{ paddingBottom: 48 }}>
         <View style={{ paddingHorizontal: 14, marginBottom: 14 }}>
-          <View style={{ backgroundColor: palette.surface, borderRadius: 18, padding: 16 }}>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 14 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Budgeted
-                </Text>
-                <Text style={{ fontSize: 22, fontWeight: '700', color: palette.text, marginTop: 4 }}>
-                  {formatCurrency(budget.amount, '')}
-                </Text>
-              </View>
-              <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Spent
-                </Text>
-                <Text style={{ fontSize: 22, fontWeight: '700', color: budget.remaining < 0 ? palette.negative : palette.budget, marginTop: 4 }}>
-                  {formatCurrency(budget.spent, '')}
-                </Text>
-              </View>
-            </View>
-
-            <View
-              style={{
-                height: 10,
-                borderRadius: 999,
-                backgroundColor: palette.divider,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  height: 10,
-                  width: `${Math.min(Math.max(budget.percent, 0), 100)}%`,
-                  borderRadius: 999,
-                  backgroundColor: budget.remaining < 0 ? palette.negative : palette.budget,
-                }}
-              />
-            </View>
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-              <Text style={{ fontSize: 13, color: budget.remaining < 0 ? palette.negative : palette.textSecondary }}>
-                {budget.remaining < 0 ? `${formatCurrency(Math.abs(budget.remaining), '')} over` : `${formatCurrency(budget.remaining, '')} left`}
-              </Text>
-              <Text style={{ fontSize: 13, color: palette.textSecondary }}>{Math.round(budget.percent)}%</Text>
-            </View>
-          </View>
+          <MetricProgressCard
+            palette={palette}
+            metrics={[
+              { key: 'budgeted', label: 'BUDGETED', value: formatCurrency(budget.amount, ''), valueColor: palette.text },
+              { key: 'spent', label: 'SPENT', value: formatCurrency(budget.spent, ''), valueColor: budget.remaining < 0 ? palette.negative : palette.budget },
+            ]}
+            progressPercent={Math.min(Math.max(budget.percent, 0), 100)}
+            progressColor={budget.remaining < 0 ? palette.negative : palette.budget}
+            progressLabelLeft={budget.remaining < 0 ? 'Over budget' : 'On track'}
+            progressLabelRight={`${Math.round(budget.percent)}%`}
+            footerLeft={{ text: budget.remaining < 0 ? `${formatCurrency(Math.abs(budget.remaining), '')} over` : `${formatCurrency(budget.remaining, '')} left`, color: budget.remaining < 0 ? palette.negative : palette.textSecondary }}
+            footerRight={{ text: `${entries.length} transaction${entries.length === 1 ? '' : 's'}` }}
+          />
         </View>
 
         {grouped.map((group) => (

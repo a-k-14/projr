@@ -6,10 +6,11 @@ import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
 import { ScreenTitle } from '../../components/settings-ui';
+import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { FabButton } from '../../components/ui/FabButton';
 import { formatCurrency } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getFabBottomOffset } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS, getFabBottomOffset } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -189,63 +190,32 @@ function BudgetOverviewCard({
 }) {
   const isOver = totalRemaining < 0;
   const progress = totalBudgeted > 0 ? Math.min(totalSpent / totalBudgeted, 1) : 0;
-  const progressColor = palette.budget;
   const usageText = totalBudgeted > 0 ? `${Math.round((totalSpent / totalBudgeted) * 100)}% used` : 'No budget set';
   const statusLabel = isOver ? 'Over budget' : 'Left to spend';
   const statusValue = isOver ? `${formatCurrency(Math.abs(totalRemaining), sym)} overspent` : `${formatCurrency(totalRemaining, sym)} left`;
 
   return (
-    <View style={[styles.overviewCard, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
-      <View style={[styles.overviewGlowLarge, { backgroundColor: palette.budgetSoft }]} />
-      <View style={[styles.overviewGlowSmall, { backgroundColor: palette.budgetSoft }]} />
-
-      <View style={styles.overviewHeader}>
-        <View>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: '400' }}>
-            Budget overview
-          </Text>
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginTop: HOME_SPACE.xs }}>
-            {monthLabel}
-          </Text>
-        </View>
-        <View style={[styles.overviewPill, { backgroundColor: palette.budgetSoft }]}>
-          <Text style={{ fontSize: 12, fontWeight: '700', color: palette.budget }}>
-            {monthBudgetsLabel(overBudgetCount)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.overviewMetrics}>
-        <View style={styles.overviewMetricBlock}>
-          <Text style={styles.metricLabel(palette)}>Budgeted</Text>
-          <Text style={styles.metricValue(palette, palette.text)}>{formatCurrency(totalBudgeted, sym)}</Text>
-        </View>
-        <View style={styles.overviewMetricDivider(palette)} />
-        <View style={styles.overviewMetricBlock}>
-          <Text style={styles.metricLabel(palette)}>Spent</Text>
-          <Text style={styles.metricValue(palette, isOver ? palette.negative : palette.text)}>{formatCurrency(totalSpent, sym)}</Text>
-        </View>
-      </View>
-
-      <View style={{ marginTop: HOME_SPACE.lg }}>
-        <View style={styles.progressRow}>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>{usageText}</Text>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>{totalBudgeted > 0 ? `${Math.round(progress * 100)}%` : '0%'}</Text>
-        </View>
-        <View style={[styles.progressTrack, { backgroundColor: palette.budgetSoft }]}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: progressColor }]} />
-        </View>
-      </View>
-
-      <View style={[styles.overviewFooterLine, { marginTop: HOME_SPACE.lg }]}>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
-          {statusLabel}
-        </Text>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: isOver ? palette.negative : palette.budget }}>
-          {statusValue}
-        </Text>
-      </View>
-    </View>
+    <OverviewHeroCard
+      palette={palette}
+      eyebrow="Budget overview"
+      title={monthLabel}
+      badgeLabel={monthBudgetsLabel(overBudgetCount)}
+      badgeBg={palette.budgetSoft}
+      badgeColor={palette.budget}
+      metrics={[
+        { key: 'budgeted', label: 'Budgeted', value: formatCurrency(totalBudgeted, sym), valueColor: palette.text },
+        { key: 'spent', label: 'Spent', value: formatCurrency(totalSpent, sym), valueColor: isOver ? palette.negative : palette.text },
+      ]}
+      progressLabelLeft={usageText}
+      progressLabelRight={totalBudgeted > 0 ? `${Math.round(progress * 100)}%` : '0%'}
+      progressPercent={progress * 100}
+      progressColor={palette.budget}
+      progressTrackColor={palette.budgetSoft}
+      footerLabel={statusLabel}
+      footerValue={statusValue}
+      footerValueColor={isOver ? palette.negative : palette.budget}
+      decorativeColor={palette.budgetSoft}
+    />
   );
 }
 
@@ -309,13 +279,13 @@ function BudgetCard({
         </View>
       </View>
 
-      <View style={{ height: 6, backgroundColor: palette.divider, borderRadius: 999, overflow: 'hidden' }}>
+      <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
         <View
           style={{
-            height: 6,
+            height: PROGRESS.cardHeight,
             width: `${Math.min(Math.max(budget.percent, 0), 100)}%`,
             backgroundColor: progressColor,
-            borderRadius: 999,
+            borderRadius: PROGRESS.radius,
           }}
         />
       </View>
@@ -333,80 +303,6 @@ function BudgetCard({
 }
 
 const styles = {
-  overviewCard: {
-    borderRadius: HOME_RADIUS.card,
-    padding: CARD_PADDING,
-    overflow: 'hidden' as const,
-    position: 'relative' as const,
-    borderWidth: 1,
-  },
-  overviewGlowLarge: {
-    position: 'absolute' as const,
-    width: 140,
-    height: 140,
-    borderRadius: 999,
-    top: -42,
-    right: -34,
-    opacity: 0.24,
-  },
-  overviewGlowSmall: {
-    position: 'absolute' as const,
-    width: 76,
-    height: 76,
-    borderRadius: 999,
-    bottom: -22,
-    right: 28,
-    opacity: 0.12,
-  },
-  overviewHeader: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'flex-start' as const,
-    gap: HOME_SPACE.md,
-  },
-  overviewPill: {
-    minHeight: 30,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  },
-  overviewMetrics: {
-    flexDirection: 'row' as const,
-    alignItems: 'stretch' as const,
-    marginTop: HOME_SPACE.lg,
-    borderRadius: HOME_RADIUS.small,
-    overflow: 'hidden' as const,
-  },
-  overviewMetricBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  overviewMetricDivider: (palette: AppThemePalette) => ({
-    width: 1,
-    backgroundColor: palette.divider,
-    marginHorizontal: HOME_SPACE.md,
-  }),
-  progressRow: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    marginBottom: HOME_SPACE.xs + 2,
-  },
-  progressTrack: {
-    height: 10,
-    borderRadius: 999,
-    overflow: 'hidden' as const,
-  },
-  progressFill: {
-    height: 10,
-    borderRadius: 999,
-  },
-  overviewFooterLine: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-  },
   emptyCard: {
     borderRadius: HOME_RADIUS.card,
     padding: 32,
@@ -418,18 +314,4 @@ const styles = {
     paddingVertical: 14,
     marginBottom: HOME_SPACE.md,
   },
-  metricLabel: (palette: AppThemePalette) => ({
-    fontSize: 11,
-    color: palette.textMuted,
-    fontWeight: '700' as const,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
-  }),
-  metricValue: (palette: AppThemePalette, color: string) => ({
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '800' as const,
-    color,
-    marginTop: HOME_SPACE.xs + 2,
-  }),
 };

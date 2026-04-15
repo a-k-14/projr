@@ -15,10 +15,48 @@ export function getTransactionCashflowImpact(tx: { type: string; note?: string |
   if (tx.type === 'out') return 'out';
   if (tx.type === 'loan') {
     const note = (tx.note ?? '').toLowerCase();
-    if (note.startsWith('borrowed from') || note.startsWith('payment from')) return 'in';
-    if (note.startsWith('lent to') || note.startsWith('payment to')) return 'out';
+    if (note.startsWith('borrowed from') || note.startsWith('payment from') || note.startsWith('receipt from')) return 'in';
+    if (note.startsWith('lent to') || note.startsWith('payment to') || note.startsWith('repayment to')) return 'out';
   }
   return 'neutral';
+}
+
+export function getLoanSettlementImpact(direction: Loan['direction']): 'in' | 'out' {
+  return direction === 'lent' ? 'in' : 'out';
+}
+
+export function getLoanOriginImpact(direction: Loan['direction']): 'in' | 'out' {
+  return direction === 'lent' ? 'out' : 'in';
+}
+
+export function getLoanOriginLabel(direction: Loan['direction'], personName: string) {
+  return direction === 'lent' ? `Lent to ${personName}` : `Borrowed from ${personName}`;
+}
+
+export function getLoanSettlementLabel(direction: Loan['direction'], personName: string) {
+  return direction === 'lent' ? `Receipt from ${personName}` : `Repayment to ${personName}`;
+}
+
+export function getLoanTransactionKind(
+  tx: { type: string; note?: string | null },
+  direction: Loan['direction']
+): 'origin' | 'settlement' | 'other' {
+  if (tx.type !== 'loan') return 'other';
+  const impact = getTransactionCashflowImpact(tx);
+  if (impact === getLoanOriginImpact(direction)) return 'origin';
+  if (impact === getLoanSettlementImpact(direction)) return 'settlement';
+  return 'other';
+}
+
+export function getLoanDisplayLabel(direction: Loan['direction'], impact: 'in' | 'out' | 'neutral') {
+  if (direction === 'lent') {
+    if (impact === 'out') return 'Loan - Lent';
+    if (impact === 'in') return 'Loan - Receipt';
+  } else {
+    if (impact === 'in') return 'Loan - Borrowed';
+    if (impact === 'out') return 'Loan - Repaid';
+  }
+  return 'Loan';
 }
 
 export function getTotalBalance(accounts: Account[]): number {

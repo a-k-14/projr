@@ -100,6 +100,10 @@ export default function RootLayout() {
             name="modals/budget-form"
             options={{ presentation: 'modal', headerShown: false }}
           />
+          <Stack.Screen
+            name="modals/loan-settlement"
+            options={{ presentation: 'modal', headerShown: false }}
+          />
         </Stack>
         <StatusBar
           style={palette.statusBarStyle}

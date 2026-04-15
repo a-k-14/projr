@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BottomSheet } from './ui/BottomSheet';
-import { HOME_RADIUS } from '../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_RADIUS } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 
 export function shiftBudgetMonth(iso: string, delta: number) {
@@ -51,7 +51,7 @@ export function BudgetMonthField({
     <View
       style={{
         minHeight: 48,
-        borderRadius: HOME_RADIUS.pill,
+        borderRadius: ACTIVITY_LAYOUT.controlRadius,
         borderWidth: 1.5,
         borderColor: palette.divider,
         backgroundColor: palette.surface,

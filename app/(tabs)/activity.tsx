@@ -25,7 +25,7 @@ import {
   getPeriodNavLabel,
   getRelativeDateLabel,
 } from '../../lib/dateUtils';
-import { formatCurrency, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
+import { formatCurrency, getLoanTransactionKind, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
@@ -484,8 +484,15 @@ export default function ActivityScreen() {
   };
 
   const handleTransactionPress = useCallback((transaction: Transaction) => {
+    if (transaction.type === 'loan' && transaction.loanId) {
+      const loan = loans.find((item) => item.id === transaction.loanId);
+      if (loan && getLoanTransactionKind(transaction, loan.direction) === 'settlement') {
+        router.push({ pathname: '/modals/loan-settlement', params: { editId: transaction.id } });
+        return;
+      }
+    }
     router.push({ pathname: '/modals/add-transaction', params: { editId: transaction.id } });
-  }, []);
+  }, [loans]);
 
   const grouped = useMemo<ActivityGroup[]>(() => {
     return groupTransactionsByDate(categoryDrilldown ? drilldownTransactions : filteredTransactions).map((group) => {
