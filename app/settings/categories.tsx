@@ -7,7 +7,7 @@ import {
   CardSection,
   FixedBottomActions,
 } from '../../components/settings-ui';
-import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
+import { CategoryIconBadge, CATEGORY_TREE_ROW } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING } from '../../lib/design';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -89,10 +89,10 @@ export default function CategoriesScreen() {
                     alignItems: 'center',
                     paddingHorizontal: CARD_PADDING,
                     paddingVertical: 12,
-                    minHeight: 62,
+                    minHeight: CATEGORY_TREE_ROW.parentMinHeight,
                     borderBottomWidth: isLast && !isOpen ? 0 : 1,
                     borderBottomColor: palette.divider,
-                    gap: 12,
+                    gap: CATEGORY_TREE_ROW.rowGap,
                   }}
                 >
                   <CategoryIconBadge icon={cat.icon ?? 'tag'} size={20} bgSize={40} palette={palette} />
@@ -144,7 +144,7 @@ export default function CategoriesScreen() {
                         style={{
                           flexDirection: 'row',
                           alignItems: 'center',
-                          paddingLeft: CARD_PADDING + 40,
+                          paddingLeft: CATEGORY_TREE_ROW.childIndent,
                           paddingRight: CARD_PADDING,
                           paddingVertical: 12,
                           minHeight: 56,
@@ -164,7 +164,7 @@ export default function CategoriesScreen() {
                     {subs.length === 0 && (
                       <View
                         style={{
-                          paddingLeft: CARD_PADDING + 40,
+                          paddingLeft: CATEGORY_TREE_ROW.childIndent,
                           paddingRight: CARD_PADDING,
                           paddingVertical: 12,
                           borderTopWidth: 1,

@@ -1,4 +1,4 @@
-import { CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING } from './design';
+import { CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING, RADIUS as DESIGN_RADIUS } from './design';
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 // Previously HOME_COLORS. Now unified into AppThemePalette in lib/theme.ts.
@@ -44,14 +44,14 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
 
 // ─── Border-radius tokens ──────────────────────────────────────────────────────
 export const HOME_RADIUS = {
-  card: 16,
-  pill: 14,
-  tab: 14,
-  fab: 28,
+  card: DESIGN_RADIUS.md,
+  pill: DESIGN_RADIUS.md - 2,
+  tab: DESIGN_RADIUS.md - 2,
+  fab: DESIGN_RADIUS.xl + 4,
   chartBar: 6,
-  small: 10,
-  large: 24,
-  xl: 28,
+  small: DESIGN_RADIUS.sm - 2,
+  large: DESIGN_RADIUS.xl,
+  xl: DESIGN_RADIUS.xl + 4,
   full: 999,
 } as const;
 

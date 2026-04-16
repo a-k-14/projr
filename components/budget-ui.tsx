@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BottomSheet } from './ui/BottomSheet';
 import { ACTIVITY_LAYOUT, HOME_RADIUS } from '../lib/layoutTokens';
+import { formatMonthYear } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
 
 export function shiftBudgetMonth(iso: string, delta: number) {
@@ -11,7 +12,7 @@ export function shiftBudgetMonth(iso: string, delta: number) {
 }
 
 export function formatBudgetMonthLabel(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  return formatMonthYear(iso);
 }
 
 export function buildBudgetMonthOptions(centerIso: string, before = 12, after = 12) {

@@ -15,12 +15,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CardSection, ChoiceRow, SectionLabel } from '../../components/settings-ui';
+import { CardSection, ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { FilterChip } from '../../components/ui/FilterChip';
+import { ListHeading } from '../../components/ui/ListHeading';
 import {
   getNavigableDateRange,
   getPeriodNavLabel,
@@ -29,6 +31,7 @@ import {
 import { formatCurrency, getLoanTransactionKind, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_SPACE, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { formatDateFull } from '../../lib/ui-format';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -988,14 +991,13 @@ export default function ActivityScreen() {
           renderItem={renderGroupItem}
           ListEmptyComponent={
             !refreshing ? (
-              <View style={{ alignItems: 'center', paddingTop: 64 }}>
-                <FinanceEmptyMascot palette={palette} variant="activity" />
-                <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500' }}>
-                  No transactions found
-                </Text>
-                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: HOME_SPACE.xs, textAlign: 'center', paddingHorizontal: 32 }}>
-                  Add transactions or widen your filters to see activity here.
-                </Text>
+              <View style={{ paddingTop: 64, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+                <EmptyStateCard
+                  palette={palette}
+                  title="No transactions found"
+                  subtitle="Add transactions or widen your filters to see activity here."
+                  illustration={<FinanceEmptyMascot palette={palette} variant="activity" />}
+                />
               </View>
             ) : null
           }
@@ -1142,7 +1144,7 @@ export default function ActivityScreen() {
             <View>
               {hierarchySections.map((section) => (
                 <View key={section.key}>
-                  <SectionLabel label={section.label} palette={palette} />
+                  <ListHeading label={section.label} palette={palette} paddingHorizontal={CARD_PADDING} paddingTop={16} paddingBottom={10} />
                   <CardSection palette={palette}>
                     {section.items.map((category, categoryIndex) => {
                       const isExpanded = expandedCategoryIds.includes(category.parentKey);
@@ -1306,7 +1308,7 @@ export default function ActivityScreen() {
           />
           <ChoiceRow
             title="Today"
-            subtitle={formatDateShortLabel(new Date().toISOString())}
+            subtitle={formatDateFull(new Date().toISOString())}
             selected={period === 'day'}
             palette={palette}
             onPress={() => {
@@ -1349,9 +1351,7 @@ export default function ActivityScreen() {
             }}
           />
           <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 16, paddingBottom: 18 }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10 }}>
-              Custom Range
-            </Text>
+            <ListHeading label="Custom Range" palette={palette} paddingHorizontal={0} paddingTop={0} paddingBottom={10} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <TouchableOpacity
                 onPress={openCustomFromPicker}
@@ -1367,7 +1367,7 @@ export default function ActivityScreen() {
                   FROM
                 </Text>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text, marginTop: 2 }}>
-                  {customFrom ? formatDateShortLabel(customFrom) : 'Select...'}
+                  {customFrom ? formatDateFull(customFrom) : 'Select...'}
                 </Text>
               </TouchableOpacity>
               <Ionicons name="arrow-forward" size={18} color={palette.textSoft} />
@@ -1385,7 +1385,7 @@ export default function ActivityScreen() {
                   TO
                 </Text>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text, marginTop: 2 }}>
-                  {customTo ? formatDateShortLabel(customTo) : 'Select...'}
+                  {customTo ? formatDateFull(customTo) : 'Select...'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1461,20 +1461,7 @@ export default function ActivityScreen() {
           }
         >
           <View style={{ paddingBottom: 12 }}>
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '800',
-                letterSpacing: 0.8,
-                textTransform: 'uppercase',
-                color: palette.textMuted,
-                paddingHorizontal: CARD_PADDING,
-                paddingTop: 16,
-                paddingBottom: 8,
-              }}
-            >
-              Group by
-            </Text>
+            <ListHeading label="Group by" palette={palette} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: ACTIVITY_LAYOUT.controlChipGap, paddingHorizontal: CARD_PADDING, paddingBottom: 8 }}>
               <FilterChip
                 label="Date"
@@ -1494,20 +1481,7 @@ export default function ActivityScreen() {
 
             <View style={{ height: 1, backgroundColor: palette.divider }} />
 
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '800',
-                letterSpacing: 0.8,
-                textTransform: 'uppercase',
-                color: palette.textMuted,
-                paddingHorizontal: CARD_PADDING,
-                paddingTop: 16,
-                paddingBottom: 8,
-              }}
-            >
-              Category
-            </Text>
+            <ListHeading label="Category" palette={palette} />
 
             <View style={{ paddingTop: 2 }}>
               {topCategories.map((category) => {
@@ -1574,20 +1548,7 @@ export default function ActivityScreen() {
 
             <View style={{ height: 1, backgroundColor: palette.divider }} />
 
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '800',
-                letterSpacing: 0.8,
-                textTransform: 'uppercase',
-                color: palette.textMuted,
-                paddingHorizontal: CARD_PADDING,
-                paddingTop: 16,
-                paddingBottom: 8,
-              }}
-            >
-              Tags
-            </Text>
+            <ListHeading label="Tags" palette={palette} />
 
             {tags.length === 0 ? (
               <Text style={{ color: palette.textMuted, fontSize: 13, paddingHorizontal: CARD_PADDING, paddingVertical: 12 }}>
@@ -1612,20 +1573,7 @@ export default function ActivityScreen() {
 
             <View style={{ height: 1, backgroundColor: palette.divider }} />
 
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '800',
-                letterSpacing: 0.8,
-                textTransform: 'uppercase',
-                color: palette.textMuted,
-                paddingHorizontal: CARD_PADDING,
-                paddingTop: 16,
-                paddingBottom: 12,
-              }}
-            >
-              Amount Range
-            </Text>
+            <ListHeading label="Amount Range" palette={palette} paddingBottom={12} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
               <TextInput
                 value={amountMinStr}
@@ -1717,10 +1665,6 @@ function endOfDayIso(date: Date) {
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function formatDateShortLabel(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {

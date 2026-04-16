@@ -14,9 +14,11 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FabButton } from '../../components/ui/FabButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { FilterChip } from '../../components/ui/FilterChip';
+import { ListHeading } from '../../components/ui/ListHeading';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency, getLoanSummary } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
@@ -29,6 +31,7 @@ import {
   HOME_TEXT,
   getFabBottomOffset,
 } from '../../lib/layoutTokens';
+import { formatDateFull } from '../../lib/ui-format';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
@@ -293,28 +296,26 @@ export default function LoansScreen() {
             <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
 
             {SHOW_EMPTY_STATE_PREVIEW ? (
-              <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 22, paddingHorizontal: 24 }}>
-                <FinanceEmptyMascot palette={palette} variant="loan" />
-                <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500', marginTop: HOME_SPACE.md }}>
-                  No loans found
-                </Text>
-                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: HOME_SPACE.xs, textAlign: 'center' }}>
-                  Add a lent or borrowed loan to track balances, receipts, and repayments.
-                </Text>
+              <View style={{ paddingTop: 8, paddingBottom: 22, paddingHorizontal: 24 }}>
+                <EmptyStateCard
+                  palette={palette}
+                  title="No loans found"
+                  subtitle="Add a lent or borrowed loan to track balances, receipts, and repayments."
+                  illustration={<FinanceEmptyMascot palette={palette} variant="loan" />}
+                />
               </View>
             ) : null}
           </View>
         }
         ListEmptyComponent={
           !refreshing ? (
-            <View style={{ alignItems: 'center', paddingTop: 64 }}>
-                <FinanceEmptyMascot palette={palette} variant="loan" />
-                <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '500', marginTop: HOME_SPACE.md }}>
-                  No loans found
-                </Text>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: HOME_SPACE.xs, textAlign: 'center', paddingHorizontal: 32 }}>
-                Add a lent or borrowed loan to track balances, receipts, and repayments.
-              </Text>
+            <View style={{ paddingTop: 64, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+              <EmptyStateCard
+                palette={palette}
+                title="No loans found"
+                subtitle="Add a lent or borrowed loan to track balances, receipts, and repayments."
+                illustration={<FinanceEmptyMascot palette={palette} variant="loan" />}
+              />
             </View>
           ) : null
         }
@@ -392,9 +393,7 @@ export default function LoansScreen() {
           }
         >
           <View style={{ paddingBottom: 12 }}>
-            <Text style={sectionLabelStyle(palette)}>
-              Direction
-            </Text>
+            <ListHeading label="Direction" palette={palette} />
             <View style={styles.sheetChipRow}>
               {DIRECTION_OPTIONS.map((option) => (
                 <FilterChip
@@ -407,9 +406,7 @@ export default function LoansScreen() {
               ))}
             </View>
 
-            <Text style={sectionLabelStyle(palette)}>
-              Status
-            </Text>
+            <ListHeading label="Status" palette={palette} />
             <View style={styles.sheetChipRow}>
               {STATUS_OPTIONS.map((option) => (
                 <FilterChip
@@ -422,9 +419,7 @@ export default function LoansScreen() {
               ))}
             </View>
 
-            <Text style={sectionLabelStyle(palette)}>
-              Date Range
-            </Text>
+            <ListHeading label="Date Range" palette={palette} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
               <TouchableOpacity
                 onPress={openFromDatePicker}
@@ -434,7 +429,7 @@ export default function LoansScreen() {
                   FROM
                 </Text>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text, marginTop: 2 }}>
-                  {fromDate ? formatDateShortLabel(fromDate) : 'Select...'}
+                  {fromDate ? formatDateFull(fromDate) : 'Select...'}
                 </Text>
               </TouchableOpacity>
               <Ionicons name="arrow-forward" size={18} color={palette.textSoft} />
@@ -446,14 +441,12 @@ export default function LoansScreen() {
                   TO
                 </Text>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text, marginTop: 2 }}>
-                  {toDate ? formatDateShortLabel(toDate) : 'Select...'}
+                  {toDate ? formatDateFull(toDate) : 'Select...'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={sectionLabelStyle(palette)}>
-              Amount Range
-            </Text>
+            <ListHeading label="Amount Range" palette={palette} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
               <TextInput
                 value={amountMinStr}
@@ -743,19 +736,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function sectionLabelStyle(palette: AppThemePalette) {
-  return {
-    fontSize: 11,
-    fontWeight: '800' as const,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase' as const,
-    color: palette.textMuted,
-    paddingHorizontal: CARD_PADDING,
-    paddingTop: 16,
-    paddingBottom: 12,
-  };
-}
-
 function startOfDayIso(date: Date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -766,10 +746,6 @@ function endOfDayIso(date: Date) {
   const next = new Date(date);
   next.setHours(23, 59, 59, 999);
   return next.toISOString();
-}
-
-function formatDateShortLabel(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function formatLoanRowDate(iso: string) {

@@ -3,6 +3,7 @@ import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { formatCurrency, getLoanDisplayLabel, getTransactionCashflowImpact } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
+import { isEmojiIcon } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
@@ -63,10 +64,6 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;
   const cashflowImpact = getTransactionCashflowImpact(tx);
 
-  function isEmoji(icon: string) {
-    return !/^[a-z-]+$/.test(icon);
-  }
-
   function isKnownFeatherIcon(icon: string) {
     return Object.prototype.hasOwnProperty.call(Feather.glyphMap, icon);
   }
@@ -74,6 +71,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   let title = tx.payee || cfg.label;
   let titleSecondaryText: string | undefined;
   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' · ');
+  let noteLine: string | undefined;
 
   // 1. Specialized Title/Subtitle based on type
   if (tx.transferPairId && linkedAccountName) {
@@ -87,11 +85,12 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   } else if (tx.type === 'loan' && loanPersonName) {
     const loanLabel = loanDirection ? getLoanDisplayLabel(loanDirection, cashflowImpact).replace(/^Loan - /, '') : 'Loan';
     title = 'Loan';
-    titleSecondaryText = loanPersonName;
-    subtitle = [loanLabel, accountNameSelected].filter(Boolean).join(' · ');
+    titleSecondaryText = loanLabel;
+    subtitle = [loanPersonName, accountNameSelected].filter(Boolean).join(' · ');
   } else if (tx.type === 'in' || tx.type === 'out') {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
-    subtitle = accountNameSelected || '';
+    subtitle = [tx.payee, accountNameSelected].filter(Boolean).join(' · ');
+    noteLine = tx.note?.trim() || undefined;
   }
 
   const amountValue = displayAmount ?? tx.amount;
@@ -103,10 +102,9 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const iconName =
     tx.type === 'loan'
       ? 'card-outline'
-      : inOutCategoryIcon && !isEmoji(inOutCategoryIcon) && isKnownFeatherIcon(inOutCategoryIcon)
+      : inOutCategoryIcon && !isEmojiIcon(inOutCategoryIcon) && isKnownFeatherIcon(inOutCategoryIcon)
         ? inOutCategoryIcon
         : cfg.iconName;
-
   const inner = (
     <View
       style={{
@@ -129,7 +127,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           marginRight: HOME_SPACE.sm + 2,
         }}
       >
-        {inOutCategoryIcon && isEmoji(inOutCategoryIcon) ? (
+        {inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
           <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
         ) : inOutCategoryIcon && isKnownFeatherIcon(inOutCategoryIcon) ? (
           <Feather
@@ -159,6 +157,11 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
           {subtitle}
         </Text>
+        {noteLine ? (
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 1 }}>
+            {noteLine}
+          </Text>
+        ) : null}
         {tertiaryText ? (
           <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 1 }}>
             {tertiaryText}

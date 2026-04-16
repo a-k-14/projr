@@ -12,63 +12,17 @@ import {
   SettingsFormLayout,
 } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING } from '../../lib/design';
 import { CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
-
-function isEmoji(icon: string) {
-  return !/^[a-z-]+$/.test(icon);
-}
 
 type SubDraft = {
   id?: string;
   name: string;
   deleted: boolean;
 };
-
-function IconBadge({
-  icon,
-  size,
-  bgSize,
-  palette,
-  onPress,
-}: {
-  icon: string;
-  size: number;
-  bgSize: number;
-  palette: any;
-  onPress?: () => void;
-}) {
-  const inner = (
-    <View
-      style={{
-        width: bgSize,
-        height: bgSize,
-        borderRadius: bgSize * 0.28,
-        backgroundColor: palette.surface,
-        borderWidth: 1,
-        borderColor: palette.border,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {isEmoji(icon) ? (
-        <Text style={{ fontSize: size * 0.9 }}>{icon}</Text>
-      ) : (
-        <Feather name={icon as any} size={size} color={palette.iconTint} />
-      )}
-    </View>
-  );
-  if (onPress) {
-    return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        {inner}
-      </TouchableOpacity>
-    );
-  }
-  return inner;
-}
 
 export default function CategoryFormScreen() {
   const { id, type: typeParam } = useLocalSearchParams<{ id?: string; type?: string }>();
@@ -126,6 +80,9 @@ export default function CategoryFormScreen() {
 
   function addSub() {
     setSubs((s) => [...s, { name: '', deleted: false }]);
+    requestAnimationFrame(() => {
+      formScrollRef.current?.scrollToEnd({ animated: true });
+    });
   }
 
   function updateSubName(idx: number, value: string) {
@@ -241,13 +198,17 @@ export default function CategoryFormScreen() {
         <View style={{ gap: SPACING.md }}>
         <SectionLabel label="General Info" palette={palette} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <IconBadge
-            icon={icon}
-            size={22}
-            bgSize={52}
-            palette={palette}
-            onPress={() => setShowIconPicker(true)}
-          />
+          <TouchableOpacity onPress={() => setShowIconPicker(true)} activeOpacity={0.7}>
+            <CategoryIconBadge
+              icon={icon}
+              size={22}
+              bgSize={52}
+              palette={palette}
+              backgroundColor={palette.surface}
+              borderColor={palette.border}
+              showBorder
+            />
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <InputField
               palette={palette}
@@ -326,6 +287,7 @@ export default function CategoryFormScreen() {
                       onChangeText={(v) => updateSubName(sub.originalIdx, v)}
                       placeholder={`Subcategory ${renderIdx + 1}`}
                       autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
+                      onFocus={() => requestAnimationFrame(() => formScrollRef.current?.scrollToEnd({ animated: true }))}
                     />
                   </View>
                   <IconBtn

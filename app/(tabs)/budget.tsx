@@ -6,12 +6,14 @@ import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
 import { ScreenTitle } from '../../components/settings-ui';
+import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FabButton } from '../../components/ui/FabButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS, getFabBottomOffset } from '../../lib/layoutTokens';
+import { isEmojiIcon } from '../../lib/ui-format';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -21,10 +23,6 @@ import type { BudgetWithSpent } from '../../types';
 
 function monthStartIso(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0).toISOString();
-}
-
-function isEmojiIcon(icon?: string) {
-  return !!icon && !/^[a-z-]+$/.test(icon);
 }
 
 export default function BudgetScreen() {
@@ -132,15 +130,12 @@ export default function BudgetScreen() {
           </View>
         ) : (
           <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-            <View style={[styles.emptyCard, { backgroundColor: palette.surface }]}>
-              <FinanceEmptyMascot palette={palette} variant="budget" />
-              <Text style={{ color: palette.text, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', marginTop: HOME_SPACE.md }}>
-                No budgets for {formatBudgetMonthLabel(selectedMonth)}
-              </Text>
-              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.bodySmall, marginTop: HOME_SPACE.xs, textAlign: 'center' }}>
-                Add a monthly subcategory budget and choose whether it repeats automatically.
-              </Text>
-            </View>
+            <EmptyStateCard
+              palette={palette}
+              title={`No budgets for ${formatBudgetMonthLabel(selectedMonth)}`}
+              subtitle="Add a monthly subcategory budget and choose whether it repeats automatically."
+              illustration={<FinanceEmptyMascot palette={palette} variant="budget" />}
+            />
           </View>
         )}
       </ScrollView>
@@ -312,11 +307,6 @@ function BudgetCard({
 }
 
 const styles = {
-  emptyCard: {
-    borderRadius: HOME_RADIUS.card,
-    padding: 32,
-    alignItems: 'center' as const,
-  },
   budgetCard: {
     borderRadius: HOME_RADIUS.card,
     paddingHorizontal: CARD_PADDING,

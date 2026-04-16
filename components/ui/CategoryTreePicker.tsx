@@ -3,6 +3,7 @@ import { LayoutAnimation, ScrollView, Text, TextInput, TouchableOpacity, View } 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
+import { isEmojiIcon } from '../../lib/ui-format';
 import type { AppThemePalette } from '../../lib/theme';
 
 type PickerCategory = {
@@ -17,20 +18,31 @@ type PickerSection = {
   filteredChildren: PickerCategory[];
 };
 
-function isEmoji(icon: string) {
-  return !/^[a-z-]+$/.test(icon);
-}
+export const CATEGORY_TREE_ROW = {
+  parentMinHeight: 62,
+  childMinHeight: 52,
+  rowGap: 12,
+  childIndent: CARD_PADDING + 40,
+} as const;
 
 export function CategoryIconBadge({
   icon,
   size = 20,
   bgSize = 40,
   palette,
+  backgroundColor,
+  borderColor,
+  iconColor,
+  showBorder = false,
 }: {
   icon: string;
   size?: number;
   bgSize?: number;
   palette: AppThemePalette;
+  backgroundColor?: string;
+  borderColor?: string;
+  iconColor?: string;
+  showBorder?: boolean;
 }) {
   return (
     <View
@@ -38,15 +50,17 @@ export function CategoryIconBadge({
         width: bgSize,
         height: bgSize,
         borderRadius: bgSize * 0.28,
-        backgroundColor: palette.inputBg,
+        backgroundColor: backgroundColor ?? palette.inputBg,
+        borderWidth: showBorder ? 1 : 0,
+        borderColor: borderColor ?? palette.border,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      {isEmoji(icon) ? (
+      {isEmojiIcon(icon) ? (
         <Text style={{ fontSize: size }}>{icon}</Text>
       ) : (
-        <Feather name={icon as any} size={size} color={palette.iconTint} />
+        <Feather name={icon as any} size={size} color={iconColor ?? palette.iconTint} />
       )}
     </View>
   );
@@ -143,11 +157,11 @@ export function CategoryTreePicker({
                       alignItems: 'center',
                       paddingVertical: 12,
                       paddingHorizontal: CARD_PADDING,
-                      minHeight: 62,
+                      minHeight: CATEGORY_TREE_ROW.parentMinHeight,
                       borderBottomWidth: isLast && !isExpanded ? 0 : 1,
                       borderBottomColor: palette.divider,
                       backgroundColor: selected ? palette.brandSoft : 'transparent',
-                      gap: 12,
+                      gap: CATEGORY_TREE_ROW.rowGap,
                     }}
                   >
                     <CategoryIconBadge icon={parent.icon || 'tag'} palette={palette} />
@@ -188,9 +202,9 @@ export function CategoryTreePicker({
                               flexDirection: 'row',
                               alignItems: 'center',
                               paddingVertical: 12,
-                              paddingLeft: CARD_PADDING + 40,
+                              paddingLeft: CATEGORY_TREE_ROW.childIndent,
                               paddingRight: CARD_PADDING,
-                              minHeight: 52,
+                              minHeight: CATEGORY_TREE_ROW.childMinHeight,
                               borderTopWidth: 1,
                               borderTopColor: palette.divider,
                               backgroundColor: childSelected ? palette.brandSoft : 'transparent',
