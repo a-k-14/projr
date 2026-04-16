@@ -74,20 +74,24 @@ export async function updateAccount(id: string, data: Partial<Account>): Promise
 }
 
 export async function updateAccountBalance(id: string, delta: number): Promise<void> {
-  const account = await getAccountById(id);
-  if (!account) return;
-  await db
-    .update(accounts)
-    .set({ balance: account.balance + delta })
-    .where(eq(accounts.id, id));
+  if (!delta) return;
+  await db.transaction(async (tx) => {
+    const rows = await tx.select().from(accounts).where(eq(accounts.id, id));
+    const account = rows[0];
+    if (!account) return;
+    await tx
+      .update(accounts)
+      .set({ balance: account.balance + delta })
+      .where(eq(accounts.id, id));
+  });
 }
 
 export async function setAccountOrder(accountIds: string[]): Promise<void> {
-  await Promise.all(
-    accountIds.map((id, sortOrder) =>
-      db.update(accounts).set({ sortOrder }).where(eq(accounts.id, id)),
-    ),
-  );
+  await db.transaction(async (tx) => {
+    for (let sortOrder = 0; sortOrder < accountIds.length; sortOrder += 1) {
+      await tx.update(accounts).set({ sortOrder }).where(eq(accounts.id, accountIds[sortOrder]));
+    }
+  });
 }
 
 export async function deleteAccount(id: string): Promise<void> {

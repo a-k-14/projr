@@ -25,10 +25,14 @@ export async function createTag(data: Omit<Tag, 'id'>): Promise<Tag> {
 }
 
 export async function updateTag(id: string, data: Partial<Tag>): Promise<Tag> {
+  const existing = await getTagById(id);
+  if (!existing) throw new Error('Tag not found.');
   await db.update(tags).set(data).where(eq(tags.id, id));
   return (await getTagById(id))!;
 }
 
 export async function deleteTag(id: string): Promise<void> {
+  const existing = await getTagById(id);
+  if (!existing) throw new Error('Tag not found.');
   await db.delete(tags).where(eq(tags.id, id));
 }

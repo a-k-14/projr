@@ -42,37 +42,34 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
   add: async (data) => {
     const tx = await transactionsService.createTransaction(data);
-    set((state) => ({ transactions: [tx, ...state.transactions] }));
+    if (get().isLoaded) {
+      await get().load(get().filters);
+    } else {
+      set((state) => ({ transactions: [tx, ...state.transactions] }));
+    }
     return tx;
   },
 
   update: async (id, data) => {
-    const updated = await transactionsService.updateTransaction(id, data);
+    await transactionsService.updateTransaction(id, data);
+    if (get().isLoaded) {
+      await get().load(get().filters);
+      return;
+    }
+    const updated = await transactionsService.getTransactionById(id);
+    if (!updated) return;
     set((state) => ({
       transactions: state.transactions.map((t) => (t.id === id ? updated : t)),
     }));
   },
 
   remove: async (id) => {
-    const existing = get().transactions.find((t) => t.id === id);
     await transactionsService.deleteTransaction(id);
-    if (existing?.splitGroupId) {
-      set((state) => ({
-        transactions: state.transactions.filter(
-          (t) => t.splitGroupId !== existing.splitGroupId
-        ),
-      }));
+    if (get().isLoaded) {
+      await get().load(get().filters);
       return;
     }
-    if (existing?.transferPairId) {
-      set((state) => ({
-        transactions: state.transactions.filter(
-          (t) => t.transferPairId !== existing.transferPairId
-        ),
-      }));
-    } else {
-      set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) }));
-    }
+    set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) }));
   },
 
   setFilters: (filters) =>

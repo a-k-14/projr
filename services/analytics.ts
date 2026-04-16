@@ -15,6 +15,19 @@ function safeLocalDateKey(value: string | null | undefined): string {
   }
 }
 
+async function getTransactionsInRange(
+  accountId: string | 'all',
+  fromDate: string,
+  toDate: string,
+) {
+  const conditions: ReturnType<typeof eq>[] = [
+    gte(transactions.date, fromDate),
+    lte(transactions.date, toDate),
+  ];
+  if (accountId !== 'all') conditions.push(eq(transactions.accountId, accountId));
+  return db.select().from(transactions).where(and(...conditions));
+}
+
 export async function getCashflowSummary(
   accountId: string | 'all',
   fromDate: string,
@@ -29,13 +42,7 @@ export async function getCashflowSnapshot(
   fromDate: string,
   toDate: string
 ): Promise<{ summary: CashflowSummary; daily: DailyCashflow[] }> {
-  const conditions: ReturnType<typeof eq>[] = [
-    gte(transactions.date, fromDate),
-    lte(transactions.date, toDate),
-  ];
-  if (accountId !== 'all') conditions.push(eq(transactions.accountId, accountId));
-
-  const rows = await db.select().from(transactions).where(and(...conditions));
+  const rows = await getTransactionsInRange(accountId, fromDate, toDate);
 
   let inTotal = 0,
     outTotal = 0;
@@ -66,17 +73,11 @@ export async function getDailySpending(
   fromDate: string,
   toDate: string
 ): Promise<DailySpending[]> {
-  const conditions: ReturnType<typeof eq>[] = [
-    gte(transactions.date, fromDate),
-    lte(transactions.date, toDate),
-    eq(transactions.type, 'out'),
-  ];
-  if (accountId !== 'all') conditions.push(eq(transactions.accountId, accountId));
-
-  const rows = await db.select().from(transactions).where(and(...conditions));
+  const rows = await getTransactionsInRange(accountId, fromDate, toDate);
 
   const byDate: Record<string, number> = {};
   for (const row of rows) {
+    if (getTransactionCashflowImpact(row) !== 'out') continue;
     const dateKey = safeLocalDateKey(row.date);
     if (!dateKey) continue;
     byDate[dateKey] = (byDate[dateKey] ?? 0) + row.amount;
@@ -101,19 +102,13 @@ export async function getCategoryBreakdown(
   fromDate: string,
   toDate: string
 ): Promise<CategoryBreakdown[]> {
-  const conditions: ReturnType<typeof eq>[] = [
-    gte(transactions.date, fromDate),
-    lte(transactions.date, toDate),
-    eq(transactions.type, 'out'),
-  ];
-  if (accountId !== 'all') conditions.push(eq(transactions.accountId, accountId));
-
-  const rows = await db.select().from(transactions).where(and(...conditions));
+  const rows = await getTransactionsInRange(accountId, fromDate, toDate);
   const allCategories = await getCategories();
   const catMap = Object.fromEntries(allCategories.map((c) => [c.id, c]));
 
   const byCat: Record<string, number> = {};
   for (const row of rows) {
+    if (getTransactionCashflowImpact(row) !== 'out') continue;
     if (!row.categoryId) continue;
     byCat[row.categoryId] = (byCat[row.categoryId] ?? 0) + row.amount;
   }

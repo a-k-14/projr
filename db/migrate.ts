@@ -78,6 +78,9 @@ async function dropLegacySplitDataColumn() {
     CREATE INDEX IF NOT EXISTS idx_transactions_split_group ON transactions(split_group_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_transfer_pair ON transactions(transfer_pair_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, date);
+    CREATE INDEX IF NOT EXISTS idx_budget_category_start ON budget(category_id, start_date);
+    CREATE INDEX IF NOT EXISTS idx_loans_account_status_date ON loans(account_id, status, date);
+    CREATE INDEX IF NOT EXISTS idx_categories_parent_type ON categories(parent_id, type);
 
     COMMIT;
   `);
@@ -136,6 +139,9 @@ export async function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_transactions_split_group ON transactions(split_group_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_transfer_pair ON transactions(transfer_pair_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, date);
+    CREATE INDEX IF NOT EXISTS idx_budget_category_start ON budget(category_id, start_date);
+    CREATE INDEX IF NOT EXISTS idx_loans_account_status_date ON loans(account_id, status, date);
+    CREATE INDEX IF NOT EXISTS idx_categories_parent_type ON categories(parent_id, type);
 
     CREATE TABLE IF NOT EXISTS loans (
       id TEXT PRIMARY KEY,
@@ -177,6 +183,9 @@ export async function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_transactions_split_group ON transactions(split_group_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_transfer_pair ON transactions(transfer_pair_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, date);
+    CREATE INDEX IF NOT EXISTS idx_budget_category_start ON budget(category_id, start_date);
+    CREATE INDEX IF NOT EXISTS idx_loans_account_status_date ON loans(account_id, status, date);
+    CREATE INDEX IF NOT EXISTS idx_categories_parent_type ON categories(parent_id, type);
   `);
   const addedSortOrder = await ensureColumn('accounts', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
 
