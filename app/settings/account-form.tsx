@@ -1,7 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Keyboard, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, InteractionManager, Keyboard, Text, TouchableOpacity, View } from 'react-native';
 import {
   ActionButton,
   ChoiceRow,
@@ -70,18 +70,18 @@ export default function AccountFormScreen() {
 
   function handleOpenCalculator() {
     Keyboard.dismiss();
-    setTimeout(() => {
+    InteractionManager.runAfterInteractions(() => {
       setCalculatorOpen(true);
       setCalculatorValue(draft.balance || '');
       router.push('/modals/calculator');
-    }, 150);
+    });
   }
 
   function handlePickerOpen(showSetter: (v: boolean) => void) {
     Keyboard.dismiss();
-    setTimeout(() => {
+    InteractionManager.runAfterInteractions(() => {
       showSetter(true);
-    }, 150);
+    });
   }
 
   useEffect(() => {

@@ -116,7 +116,7 @@ export default function BudgetDetailScreen() {
             ]}
             progressPercent={Math.min(Math.max(budget.percent, 0), 100)}
             progressColor={budget.remaining < 0 ? palette.negative : palette.budget}
-            progressLabelLeft={budget.remaining < 0 ? 'Over budget' : 'On track'}
+            progressLabelLeft={budget.amount <= 0 ? 'Not set' : budget.remaining < 0 ? 'Over budget' : 'On track'}
             progressLabelRight={`${Math.round(budget.percent)}%`}
             footerLeft={{ text: budget.remaining < 0 ? `${formatCurrency(Math.abs(budget.remaining), sym)} over` : `${formatCurrency(budget.remaining, sym)} left`, color: budget.remaining < 0 ? palette.negative : palette.textSecondary }}
             footerRight={{ text: `${entries.length} transaction${entries.length === 1 ? '' : 's'}` }}

@@ -25,7 +25,7 @@ import { FabButton } from '../../components/ui/FabButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { formatDate, getDateRange, todayUTC } from '../../lib/dateUtils';
+import { formatDate, getDateRange, todayUTC, toLocalDateKey } from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
@@ -387,6 +387,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
   }, []);
+  const todayKey = useMemo(() => toLocalDateKey(today), [today]);
   
   const todayEnd = useMemo(() => {
     const d = new Date();
@@ -405,7 +406,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 
     const periodSummary = periodSnapshot.summary;
     const dailySummary = periodSnapshot.daily;
-    const todayEntry = dailySummary.find((entry) => entry.date.split('T')[0] === today.split('T')[0]);
+    const todayEntry = dailySummary.find((entry) => entry.date === todayKey);
     const todaySummary =
       todaySnapshot ??
       (todayEntry
@@ -416,7 +417,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     setDailyData(dailySummary);
     setTransactions(recentTransactions);
     setTodayCashflow(todaySummary);
-  }, [accountId, from, to, today, todayEnd]);
+  }, [accountId, from, to, today, todayEnd, todayKey]);
 
   useEffect(() => {
     if (!isScreenFocused || !isSelected) return;

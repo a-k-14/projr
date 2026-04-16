@@ -466,16 +466,22 @@ export default function AddTransactionModal() {
     setSplitRows((current) => current.filter((row) => row.id !== id));
   };
 
-  const handleOpenCalculator = () => {
+  const runAfterKeyboardDismiss = (action: () => void) => {
     Keyboard.dismiss();
-    setCalculatorValue(amountStr);
-    setCalculatorOpen(true);
-    router.push({
-      pathname: '/modals/calculator',
-      params: { 
-        brandColor: activeConfig.color, 
-        brandSoft: activeConfig.bg 
-      }
+    InteractionManager.runAfterInteractions(action);
+  };
+
+  const handleOpenCalculator = () => {
+    runAfterKeyboardDismiss(() => {
+      setCalculatorValue(amountStr);
+      setCalculatorOpen(true);
+      router.push({
+        pathname: '/modals/calculator',
+        params: {
+          brandColor: activeConfig.color,
+          brandSoft: activeConfig.bg,
+        },
+      });
     });
   };
 
@@ -617,28 +623,22 @@ export default function AddTransactionModal() {
                 value={getAccountName(accounts, accountId)}
                 placeholder={!accountId}
                 palette={palette}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setTimeout(() => {
-                    setShowAccountSheet(true);
-                  }, 50);
-                }}
+                onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
               />
               <PickerRow
                 label="Category"
                 value={getCategoryName(categories, categoryId)}
                 placeholder={!categoryId}
                 palette={palette}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setTimeout(() => {
+                onPress={() =>
+                  runAfterKeyboardDismiss(() => {
                     setDraftCategoryId(categoryId);
                     router.push({
                       pathname: '/modals/select-category',
                       params: { type },
                     });
-                  }, 50);
-                }}
+                  })
+                }
               />
               <SplitSection
                 amount={amount}
@@ -660,12 +660,7 @@ export default function AddTransactionModal() {
                 value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
                 placeholder={!selectedTagIds.length}
                 palette={palette}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setTimeout(() => {
-                    setShowTagSheet(true);
-                  }, 50);
-                }}
+                onPress={() => runAfterKeyboardDismiss(() => setShowTagSheet(true))}
               />
               <NotesSection 
                 note={note} 
@@ -683,10 +678,7 @@ export default function AddTransactionModal() {
                 value={getAccountName(accounts, accountId) || 'Select...'}
                 placeholder={!accountId}
                 palette={palette}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setTimeout(() => setShowFromAccountSheet(true), 50);
-                }}
+                onPress={() => runAfterKeyboardDismiss(() => setShowFromAccountSheet(true))}
               />
               <View style={{ alignItems: 'center', paddingVertical: 2 }}>
                 <TouchableOpacity
@@ -712,10 +704,7 @@ export default function AddTransactionModal() {
                 value={getAccountName(accounts, linkedAccountId) || 'Select...'}
                 placeholder={!linkedAccountId}
                 palette={palette}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setTimeout(() => setShowToAccountSheet(true), 50);
-                }}
+                onPress={() => runAfterKeyboardDismiss(() => setShowToAccountSheet(true))}
               />
               <AmountRow
                 sym={displaySym}
@@ -796,12 +785,7 @@ export default function AddTransactionModal() {
                 value={getAccountName(accounts, accountId) || 'Select...'}
                 placeholder={!accountId}
                 palette={palette}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setTimeout(() => {
-                    setShowAccountSheet(true);
-                  }, 50);
-                }}
+                onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
               />
               {loanEditMode !== 'settlement' ? (
                 <NotesSection 
@@ -1443,9 +1427,9 @@ function SplitRowEditor({
       <TouchableOpacity
         onPress={() => {
           Keyboard.dismiss();
-          setTimeout(() => {
+          InteractionManager.runAfterInteractions(() => {
             onChange(row.id, { id: row.id, openCategoryPicker: true });
-          }, 50);
+          });
         }}
         style={{
           width: ROW_LABEL_WIDTH,

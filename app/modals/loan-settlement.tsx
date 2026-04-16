@@ -236,7 +236,7 @@ export default function LoanSettlementModal() {
               palette={palette}
               onPress={() => {
                 Keyboard.dismiss();
-                setTimeout(() => setShowAccountSheet(true), 50);
+                InteractionManager.runAfterInteractions(() => setShowAccountSheet(true));
               }}
             />
           </SectionCard>

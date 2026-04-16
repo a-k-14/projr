@@ -2,8 +2,18 @@ import { eq, and, gte, lte } from 'drizzle-orm';
 import { db } from '../db/client';
 import { transactions } from '../db/schema';
 import { getTransactionCashflowImpact } from '../lib/derived';
+import { toLocalDateKey } from '../lib/dateUtils';
 import type { CashflowSummary, DailySpending, CategoryBreakdown, DailyCashflow } from '../types';
 import { getCategories } from './categories';
+
+function safeLocalDateKey(value: string | null | undefined): string {
+  if (!value) return '';
+  try {
+    return toLocalDateKey(value);
+  } catch {
+    return value.split?.('T')?.[0] ?? value;
+  }
+}
 
 export async function getCashflowSummary(
   accountId: string | 'all',
@@ -31,7 +41,8 @@ export async function getCashflowSnapshot(
     outTotal = 0;
   const byDate: Record<string, { in: number; out: number }> = {};
   for (const row of rows) {
-    const dateKey = row.date.split('T')[0];
+    const dateKey = safeLocalDateKey(row.date);
+    if (!dateKey) continue;
     if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
     const impact = getTransactionCashflowImpact(row);
     if (impact === 'in') {
@@ -66,7 +77,8 @@ export async function getDailySpending(
 
   const byDate: Record<string, number> = {};
   for (const row of rows) {
-    const dateKey = row.date.split('T')[0];
+    const dateKey = safeLocalDateKey(row.date);
+    if (!dateKey) continue;
     byDate[dateKey] = (byDate[dateKey] ?? 0) + row.amount;
   }
 

@@ -126,9 +126,6 @@ export default function CategoryFormScreen() {
 
   function addSub() {
     setSubs((s) => [...s, { name: '', deleted: false }]);
-    setTimeout(() => {
-      formScrollRef.current?.scrollToEnd({ animated: true });
-    }, 280);
   }
 
   function updateSubName(idx: number, value: string) {
@@ -329,11 +326,6 @@ export default function CategoryFormScreen() {
                       onChangeText={(v) => updateSubName(sub.originalIdx, v)}
                       placeholder={`Subcategory ${renderIdx + 1}`}
                       autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
-                      onFocus={() => {
-                        setTimeout(() => {
-                          formScrollRef.current?.scrollToEnd({ animated: true });
-                        }, 120);
-                      }}
                     />
                   </View>
                   <IconBtn

@@ -547,9 +547,9 @@ export function SettingsFormLayout({
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 0}
       >
         <ScrollView
           ref={scrollRef}
@@ -557,7 +557,7 @@ export function SettingsFormLayout({
           contentContainerStyle={{
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: SPACING.md,
-            paddingBottom: SPACING.xl,
+            paddingBottom: 100, // Increased to ensure last items can scroll into view
           }}
           keyboardShouldPersistTaps="always"
         >

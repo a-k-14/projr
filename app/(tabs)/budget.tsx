@@ -186,11 +186,14 @@ function BudgetOverviewCard({
   overBudgetCount: number;
   sym: string;
 }) {
-  const isOver = totalRemaining < 0;
+  const hasBudgetSet = totalBudgeted > 0;
+  const isOver = hasBudgetSet && totalRemaining < 0;
   const progress = totalBudgeted > 0 ? Math.min(totalSpent / totalBudgeted, 1) : 0;
   const usageText = totalBudgeted > 0 ? `${Math.round((totalSpent / totalBudgeted) * 100)}% used` : 'Not set';
-  const statusLabel = isOver ? 'Over budget' : 'Left to spend';
-  const statusValue = formatCurrency(Math.abs(totalRemaining), sym);
+  const statusLabel = hasBudgetSet ? (isOver ? 'Over budget' : 'Left to spend') : 'Not set';
+  const statusValue = hasBudgetSet
+    ? formatCurrency(Math.abs(totalRemaining), sym)
+    : formatCurrency(totalSpent, sym);
 
   return (
     <OverviewHeroCard
@@ -235,7 +238,7 @@ function BudgetCard({
   categoryLabel: string;
   onPress: () => void;
 }) {
-  const isOver = budget.remaining < 0;
+  const isOver = budget.amount > 0 && budget.remaining < 0;
   const progressColor = palette.budget;
 
   return (
