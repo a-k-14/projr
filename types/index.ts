@@ -98,6 +98,7 @@ export interface Settings {
   theme: Theme;
   yearStart: number;
   cloudBackupEnabled: boolean;
+  biometricLock: boolean;
   supabaseUserId?: string;
 }
 

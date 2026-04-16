@@ -7,7 +7,7 @@ export function FinanceEmptyMascot({
   variant,
 }: {
   palette: AppThemePalette;
-  variant: 'budget' | 'loan' | 'activity';
+  variant: 'budget' | 'loan' | 'activity' | 'security';
 }) {
   const accent = variant === 'budget' ? palette.budget : variant === 'loan' ? palette.loan : palette.brand;
   const soft = variant === 'budget' ? palette.budgetSoft : variant === 'loan' ? palette.loanSoft : palette.brandSoft;
@@ -161,6 +161,8 @@ export function FinanceEmptyMascot({
           <Text style={{ fontSize: 10, color: badgeColor, fontWeight: '700' }}>₹</Text>
         ) : variant === 'loan' ? (
           <Ionicons name="swap-horizontal" size={15} color={badgeColor} />
+        ) : variant === 'security' ? (
+          <Ionicons name="lock-closed" size={13} color={badgeColor} />
         ) : (
           <Ionicons name="list-outline" size={15} color={badgeColor} />
         )}

@@ -15,6 +15,8 @@ import { useAppTheme } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
+import { SecurityGuard } from '../components/SecurityGuard';
+
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
   const loadSettings = useUIStore((s) => s.load);
@@ -121,54 +123,56 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaProvider>
-        <Stack
-          screenOptions={{
-            contentStyle: {
-              backgroundColor: palette.background,
-            },
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="settings" options={{ headerShown: false }} />
-          <Stack.Screen name="budget/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modals/add-transaction"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
-          <Stack.Screen
-            name="modals/select-account"
-            options={{ presentation: 'transparentModal', headerShown: false }}
-          />
-          <Stack.Screen
-            name="modals/select-tag"
-            options={{ presentation: 'transparentModal', headerShown: false }}
-          />
-          <Stack.Screen
-            name="modals/select-category"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
-          <Stack.Screen
-            name="modals/select-budget-category"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
-          <Stack.Screen
-            name="modals/calculator"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
-          <Stack.Screen
-            name="modals/budget-form"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
-          <Stack.Screen
-            name="modals/loan-settlement"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
-          <Stack.Screen
-            name="modals/split-transaction"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
-        </Stack>
+        <SecurityGuard>
+          <Stack
+            screenOptions={{
+              contentStyle: {
+                backgroundColor: palette.background,
+              },
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="budget/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="modals/add-transaction"
+              options={{ presentation: 'modal', headerShown: false }}
+            />
+            <Stack.Screen
+              name="modals/select-account"
+              options={{ presentation: 'transparentModal', headerShown: false }}
+            />
+            <Stack.Screen
+              name="modals/select-tag"
+              options={{ presentation: 'transparentModal', headerShown: false }}
+            />
+            <Stack.Screen
+              name="modals/select-category"
+              options={{ presentation: 'modal', headerShown: false }}
+            />
+            <Stack.Screen
+              name="modals/select-budget-category"
+              options={{ presentation: 'modal', headerShown: false }}
+            />
+            <Stack.Screen
+              name="modals/calculator"
+              options={{ presentation: 'modal', headerShown: false }}
+            />
+            <Stack.Screen
+              name="modals/budget-form"
+              options={{ presentation: 'modal', headerShown: false }}
+            />
+            <Stack.Screen
+              name="modals/loan-settlement"
+              options={{ presentation: 'modal', headerShown: false }}
+            />
+            <Stack.Screen
+              name="modals/split-transaction"
+              options={{ presentation: 'modal', headerShown: false }}
+            />
+          </Stack>
+        </SecurityGuard>
         <StatusBar
           style={palette.statusBarStyle}
           backgroundColor={palette.background}

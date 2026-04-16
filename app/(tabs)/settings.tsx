@@ -132,6 +132,27 @@ export default function SettingsScreen() {
         </View>
 
         <View>
+          <SectionLabel label="SECURITY" palette={palette} />
+          <CardSection palette={palette}>
+            <SettingsRow
+              icon="lock"
+              label="Biometric Lock"
+              value={settings.biometricLock ? 'Enabled' : 'Disabled'}
+              palette={palette}
+              rightElement={
+                <Switch
+                  value={settings.biometricLock}
+                  onValueChange={(value) => updateSettings({ biometricLock: value })}
+                  trackColor={{ false: palette.border, true: palette.tabActive }}
+                  thumbColor={settings.biometricLock ? palette.onBrand : palette.surface}
+                />
+              }
+              noBorder
+            />
+          </CardSection>
+        </View>
+
+        <View>
           <SectionLabel label="DATA" palette={palette} />
           <CardSection palette={palette}>
             <SettingsRow

@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'light',
   yearStart: 3,
   cloudBackupEnabled: false,
+  biometricLock: false,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -24,6 +25,7 @@ export async function getSettings(): Promise<Settings> {
     theme: (map['theme'] as Settings['theme']) ?? DEFAULT_SETTINGS.theme,
     yearStart: map['yearStart'] ? parseInt(map['yearStart']) : DEFAULT_SETTINGS.yearStart,
     cloudBackupEnabled: map['cloudBackupEnabled'] === 'true',
+    biometricLock: map['biometricLock'] === 'true',
     supabaseUserId: map['supabaseUserId'],
   };
 }
