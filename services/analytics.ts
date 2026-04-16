@@ -10,6 +10,15 @@ export async function getCashflowSummary(
   fromDate: string,
   toDate: string
 ): Promise<CashflowSummary> {
+  const snapshot = await getCashflowSnapshot(accountId, fromDate, toDate);
+  return snapshot.summary;
+}
+
+export async function getCashflowSnapshot(
+  accountId: string | 'all',
+  fromDate: string,
+  toDate: string
+): Promise<{ summary: CashflowSummary; daily: DailyCashflow[] }> {
   const conditions: ReturnType<typeof eq>[] = [
     gte(transactions.date, fromDate),
     lte(transactions.date, toDate),
@@ -20,12 +29,25 @@ export async function getCashflowSummary(
 
   let inTotal = 0,
     outTotal = 0;
+  const byDate: Record<string, { in: number; out: number }> = {};
   for (const row of rows) {
+    const dateKey = row.date.split('T')[0];
+    if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
     const impact = getTransactionCashflowImpact(row);
-    if (impact === 'in') inTotal += row.amount;
-    else if (impact === 'out') outTotal += row.amount;
+    if (impact === 'in') {
+      inTotal += row.amount;
+      byDate[dateKey].in += row.amount;
+    } else if (impact === 'out') {
+      outTotal += row.amount;
+      byDate[dateKey].out += row.amount;
+    }
   }
-  return { in: inTotal, out: outTotal, net: inTotal - outTotal };
+  return {
+    summary: { in: inTotal, out: outTotal, net: inTotal - outTotal },
+    daily: Object.entries(byDate)
+      .map(([date, totals]) => ({ date, ...totals }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+  };
 }
 
 export async function getDailySpending(
@@ -58,27 +80,8 @@ export async function getDailyCashflow(
   fromDate: string,
   toDate: string
 ): Promise<DailyCashflow[]> {
-  const conditions: ReturnType<typeof eq>[] = [
-    gte(transactions.date, fromDate),
-    lte(transactions.date, toDate),
-  ];
-  if (accountId !== 'all') conditions.push(eq(transactions.accountId, accountId));
-
-  const rows = await db.select().from(transactions).where(and(...conditions));
-
-  const byDate: Record<string, { in: number; out: number }> = {};
-  for (const row of rows) {
-    const dateKey = row.date.split('T')[0];
-    if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
-    const impact = getTransactionCashflowImpact(row);
-    if (impact === 'in') byDate[dateKey].in += row.amount;
-    else if (impact === 'out') byDate[dateKey].out += row.amount;
-  }
-
-  // Ensure all dates in range are represented? (Actually chart builder does that)
-  return Object.entries(byDate)
-    .map(([date, totals]) => ({ date, ...totals }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const snapshot = await getCashflowSnapshot(accountId, fromDate, toDate);
+  return snapshot.daily;
 }
 
 export async function getCategoryBreakdown(

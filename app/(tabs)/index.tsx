@@ -4,10 +4,8 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
-  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
@@ -39,7 +37,7 @@ import {
   getFabBottomOffset,
 } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
-import { getCashflowSummary, getDailyCashflow } from '../../services/analytics';
+import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -256,68 +254,16 @@ export default function HomeScreen() {
         }
       />
 
-      <Modal
-        visible={customRangeOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCustomRangeOpen(false)}
-      >
-          <Pressable
-            onPress={() => setCustomRangeOpen(false)}
-            style={{
-              flex: 1,
-              backgroundColor: palette.scrim,
-              justifyContent: 'center',
-              padding: 20,
-            }}
-        >
-          <Pressable
-            onPress={() => { }}
-            style={{
-              backgroundColor: palette.surface,
-              borderRadius: HOME_RADIUS.large,
-              padding: HOME_SPACE.xxl,
-            }}
-          >
-            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginBottom: 8 }}>
-              Custom range
-            </Text>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: 16 }}>
-              Pick the from and to dates for this range.
-            </Text>
-            <View style={{ gap: HOME_SPACE.md, marginBottom: HOME_SPACE.lg }}>
-              <TouchableOpacity
-                onPress={() => openDatePicker('from')}
-                style={{
-                  borderWidth: 1,
-                  borderColor: palette.divider,
-                  borderRadius: HOME_RADIUS.card,
-                  paddingHorizontal: HOME_SPACE.lg,
-                  paddingVertical: 12,
-                }}
-              >
-                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
-                  {formatDate(customDraftFrom.toISOString())}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => openDatePicker('to')}
-                style={{
-                  borderWidth: 1,
-                  borderColor: palette.divider,
-                  borderRadius: HOME_RADIUS.card,
-                  paddingHorizontal: HOME_SPACE.lg,
-                  paddingVertical: 12,
-                }}
-              >
-                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
-                  {formatDate(customDraftTo.toISOString())}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg }}>
+      {customRangeOpen ? (
+        <BottomSheet
+          title="Custom range"
+          subtitle="Pick the from and to dates for this range."
+          palette={palette}
+          onClose={() => setCustomRangeOpen(false)}
+          hasNavBar
+          scrollEnabled={false}
+          footer={
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg, paddingHorizontal: 20, paddingBottom: HOME_SPACE.xl }}>
               <TouchableOpacity
                 onPress={() => setCustomRangeOpen(false)}
                 style={{
@@ -345,9 +291,42 @@ export default function HomeScreen() {
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.surface }}>Done</Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          }
+        >
+          <View style={{ paddingHorizontal: 20, gap: HOME_SPACE.md, paddingTop: HOME_SPACE.sm }}>
+            <TouchableOpacity
+              onPress={() => openDatePicker('from')}
+              style={{
+                borderWidth: 1,
+                borderColor: palette.divider,
+                borderRadius: HOME_RADIUS.card,
+                paddingHorizontal: HOME_SPACE.lg,
+                paddingVertical: 12,
+              }}
+            >
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                {formatDate(customDraftFrom.toISOString())}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => openDatePicker('to')}
+              style={{
+                borderWidth: 1,
+                borderColor: palette.divider,
+                borderRadius: HOME_RADIUS.card,
+                paddingHorizontal: HOME_SPACE.lg,
+                paddingVertical: 12,
+              }}
+            >
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                {formatDate(customDraftTo.toISOString())}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheet>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -416,12 +395,22 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const loadPageData = useCallback(async () => {
     const accountFilter = accountId === 'all' ? undefined : accountId;
-    const [periodSummary, dailySummary, recentTransactions, todaySummary] = await Promise.all([
-      getCashflowSummary(accountId, from, to),
-      getDailyCashflow(accountId, from, to),
+    const [periodSnapshot, recentTransactions, todaySnapshot] = await Promise.all([
+      getCashflowSnapshot(accountId, from, to),
       getTransactions({ accountId: accountFilter, limit: 5 }),
-      getCashflowSummary(accountId, today, todayEnd),
+      today >= from && todayEnd <= to
+        ? Promise.resolve(null)
+        : getCashflowSummary(accountId, today, todayEnd),
     ]);
+
+    const periodSummary = periodSnapshot.summary;
+    const dailySummary = periodSnapshot.daily;
+    const todayEntry = dailySummary.find((entry) => entry.date.split('T')[0] === today.split('T')[0]);
+    const todaySummary =
+      todaySnapshot ??
+      (todayEntry
+        ? { in: todayEntry.in, out: todayEntry.out, net: todayEntry.in - todayEntry.out }
+        : { in: 0, out: 0, net: 0 });
 
     setCashflow(periodSummary);
     setDailyData(dailySummary);
@@ -456,7 +445,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           period: 'day',
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
-          cashflowBucket: kind === 'net' ? 'all' : kind,
+          cashflowBucket: kind,
           ts: String(Date.now()),
         },
       });
@@ -472,7 +461,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           period,
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
-          cashflowBucket: kind === 'net' ? 'all' : kind,
+          cashflowBucket: kind,
           from,
           to,
           ts: String(Date.now()),
@@ -842,7 +831,11 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 onPress={() =>
                   router.navigate({
                     pathname: '/(tabs)/activity',
-                    params: { source: 'home-view-all', ts: String(Date.now()) },
+                    params: {
+                      source: 'home-view-all',
+                      accountId: accountId === 'all' ? 'all' : accountId,
+                      ts: String(Date.now()),
+                    },
                   })
                 }
               >

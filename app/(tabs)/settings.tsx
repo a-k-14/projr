@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -23,10 +23,22 @@ export default function SettingsScreen() {
   const settings = useUIStore((s) => s.settings);
   const updateSettings = useUIStore((s) => s.updateSettings);
   const accounts = useAccountsStore((s) => s.accounts);
+  const accountsLoaded = useAccountsStore((s) => s.isLoaded);
+  const loadAccounts = useAccountsStore((s) => s.load);
   const categories = useCategoriesStore((s) => s.categories);
   const tags = useCategoriesStore((s) => s.tags);
+  const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
+  const loadCategories = useCategoriesStore((s) => s.load);
   const { palette } = useAppTheme();
   const [picker, setPicker] = useState<PickerKind>(null);
+
+  useEffect(() => {
+    if (!accountsLoaded) loadAccounts().catch(() => undefined);
+  }, [accountsLoaded, loadAccounts]);
+
+  useEffect(() => {
+    if (!categoriesLoaded) loadCategories().catch(() => undefined);
+  }, [categoriesLoaded, loadCategories]);
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === settings.defaultAccountId),

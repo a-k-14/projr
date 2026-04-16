@@ -119,6 +119,36 @@ export function PickerRow({
   );
 }
 
+export function FieldRow({
+  label,
+  children,
+  palette,
+  noBorder,
+}: {
+  label: string;
+  children: React.ReactNode;
+  palette: AppThemePalette;
+  noBorder?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        paddingVertical: 14,
+        borderBottomWidth: noBorder === false ? 1 : 0,
+        borderBottomColor: palette.border,
+      }}
+    >
+      <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
+        {label}
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        {children}
+      </View>
+    </View>
+  );
+}
+
 export function OptionChipRow({
   label,
   palette,
@@ -262,7 +292,7 @@ export function AmountRow({
   accentColor,
   onOpenCalculator,
   autoFocus = false,
-  calculatorButtonVariant = 'compact',
+  calculatorButtonVariant = 'large',
 }: {
   sym: string;
   amountStr: string;
@@ -343,13 +373,22 @@ export function AmountRow({
               justifyContent: 'center',
             }}
           >
-            {isLargeButton ? (
-              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="calculator-outline" size={22} color={palette.text} />
-              </View>
-            ) : (
-              <Ionicons name="calculator-outline" size={18} color={palette.textMuted} />
-            )}
+            <View
+              style={{
+                width: isLargeButton ? 44 : 34,
+                height: isLargeButton ? 44 : 34,
+                borderRadius: isLargeButton ? 14 : 12,
+                backgroundColor: palette.inputBg,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons
+                name="calculator-outline"
+                size={isLargeButton ? 22 : 18}
+                color={isLargeButton ? palette.text : palette.textMuted}
+              />
+            </View>
           </TouchableOpacity>
         ) : null}
       </View>

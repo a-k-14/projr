@@ -21,7 +21,7 @@ function isEmoji(icon: string) {
   return !/^[a-z-]+$/.test(icon);
 }
 
-function CategoryIconBadge({
+export function CategoryIconBadge({
   icon,
   size = 20,
   bgSize = 40,

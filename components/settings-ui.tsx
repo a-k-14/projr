@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { ReactNode } from 'react';
+import { ReactNode, RefObject } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TouchableOpacity } from 'react-native-gesture-handler';
@@ -537,10 +537,12 @@ export function SettingsFormLayout({
   children,
   palette,
   bottomActions,
+  scrollRef,
 }: {
   children: ReactNode;
   palette: AppThemePalette;
   bottomActions?: ReactNode;
+  scrollRef?: RefObject<ScrollView | null>;
 }) {
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
@@ -550,13 +552,14 @@ export function SettingsFormLayout({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
       >
         <ScrollView
+          ref={scrollRef}
           style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: SPACING.md,
             paddingBottom: SPACING.xl,
           }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
         >
           {children}
         </ScrollView>

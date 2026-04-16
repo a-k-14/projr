@@ -110,7 +110,7 @@ export default function ActivityScreen() {
   const [customTo, setCustomTo] = useState<string | undefined>();
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
-  const [cashflowBucket, setCashflowBucket] = useState<'all' | 'in' | 'out'>('all');
+  const [cashflowBucket, setCashflowBucket] = useState<'all' | 'in' | 'out' | 'net'>('all');
   const [search, setSearch] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
@@ -284,7 +284,7 @@ export default function ActivityScreen() {
     setSearch('');
     setIsSearchActive(false);
 
-    if (source === 'activity-tab' || source === 'home-view-all') {
+    if (source === 'activity-tab') {
       void loadStoreTransactions().catch(() => undefined);
       lastAppliedRouteTsRef.current = ts;
       return;
@@ -314,11 +314,13 @@ export default function ActivityScreen() {
     if (typeParam === 'all' || typeParam === 'in' || typeParam === 'out' || typeParam === 'transfer' || typeParam === 'loan') {
       setTypeFilter(typeParam);
     }
-    if (cashflowBucketParam === 'all' || cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
+    if (
+      cashflowBucketParam === 'all' ||
+      cashflowBucketParam === 'in' ||
+      cashflowBucketParam === 'out' ||
+      cashflowBucketParam === 'net'
+    ) {
       setCashflowBucket(cashflowBucketParam);
-      if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
-        setTypeFilter(cashflowBucketParam);
-      }
     }
 
     lastAppliedRouteTsRef.current = ts;
@@ -407,12 +409,13 @@ export default function ActivityScreen() {
         if (tx.transferPairId) return false;
         if (tx.type !== typeFilter) return false;
       }
-      if (
-        cashflowBucket !== 'all' &&
-        (typeFilter === 'all' || typeFilter === cashflowBucket) &&
-        getTransactionCashflowImpact(tx) !== cashflowBucket
-      ) {
-        return false;
+      if (cashflowBucket !== 'all') {
+        const impact = getTransactionCashflowImpact(tx);
+        if (cashflowBucket === 'net') {
+          if (impact === 'neutral') return false;
+        } else if ((typeFilter === 'all' || typeFilter === cashflowBucket) && impact !== cashflowBucket) {
+          return false;
+        }
       }
       if (selectedCategoryAndDescendants.size > 0) {
         if (!tx.categoryId || !selectedCategoryAndDescendants.has(tx.categoryId)) return false;

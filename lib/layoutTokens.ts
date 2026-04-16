@@ -170,7 +170,7 @@ export const ACTIVITY_LAYOUT = {
 
 export const PROGRESS_LAYOUT = {
   cardHeight: 4,
-  heroHeight: 3,
+  heroHeight: 4,
   radius: 2,
 } as const;
 

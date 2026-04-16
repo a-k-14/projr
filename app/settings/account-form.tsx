@@ -96,7 +96,7 @@ export default function AccountFormScreen() {
           name: account.name,
           accountNumber: account.accountNumber ?? '',
           type: account.type,
-          balance: formatIndianNumberStr(String(account.balance)),
+          balance: formatIndianNumberStr(String(account.initialBalance)),
           currency: account.currency,
         });
       }
@@ -123,12 +123,12 @@ export default function AccountFormScreen() {
       Alert.alert('Missing name', 'Please enter an account name.');
       return;
     }
+    const openingBalance = Number.parseFloat(parseFormattedNumber(draft.balance || '0')) || 0;
     const payload = {
       name,
       accountNumber: draft.accountNumber.trim() || undefined,
       type: draft.type,
-      balance: Number.parseFloat(parseFormattedNumber(draft.balance || '0')) || 0,
-      initialBalance: Number.parseFloat(parseFormattedNumber(draft.balance || '0')) || 0,
+      initialBalance: openingBalance,
       currency: draft.currency,
       color: ENTITY_COLORS[0],
       icon: 'wallet',
@@ -136,7 +136,7 @@ export default function AccountFormScreen() {
     if (isEditing && id) {
       await updateAccount(id, payload);
     } else {
-      await addAccount(payload);
+      await addAccount({ ...payload, balance: openingBalance });
     }
     router.back();
   }

@@ -533,8 +533,8 @@ function LoanRow({
   onPress: () => void;
 }) {
   const isLent = loan.direction === 'lent';
-  const dirColor = isLent ? palette.brand : palette.negative;
-  const dirBg = isLent ? palette.inBg : palette.outBg;
+  const dirColor = isLent ? palette.negative : palette.brand;
+  const dirBg = isLent ? palette.outBg : palette.inBg;
   const directionLabel = isLent ? 'Lent' : 'Borrowed';
   const progressPercent = loan.status === 'closed' ? 100 : loan.repaidPercent;
   const balanceAmount = loan.status === 'closed' ? 0 : loan.pendingAmount;
@@ -573,7 +573,7 @@ function LoanRow({
               }}
             >
               <Ionicons
-                name={isLent ? 'arrow-down' : 'arrow-up'}
+                name={isLent ? 'arrow-up' : 'arrow-down'}
                 size={Math.round(HOME_LAYOUT.listIconSize * 0.45)}
                 color={dirColor}
               />
@@ -601,9 +601,9 @@ function LoanRow({
 
             <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '400', color: palette.text, marginBottom: 1 }}>
+                <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, marginBottom: 1 }}>
                   {loan.personName}
-                  <Text style={{ color: palette.textSecondary, fontWeight: '400' }}> {'\u2022'} {directionLabel}</Text>
+                  <Text style={{ color: palette.text, fontWeight: '400' }}> {'\u2022'} {directionLabel}</Text>
                 </Text>
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, textAlign: 'right' }}>
                   {formatCurrency(loan.givenAmount, sym)}

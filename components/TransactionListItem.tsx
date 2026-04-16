@@ -1,10 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { formatCurrency, getLoanDisplayLabel, getTransactionCashflowImpact } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { useAccountsStore } from '../stores/useAccountsStore';
+import { useCategoriesStore } from '../stores/useCategoriesStore';
 import type { Transaction } from '../types';
 
 import { CARD_PADDING } from '../lib/design';
@@ -54,10 +55,21 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const accountNameSelected = useAccountsStore((state) =>
     accountName ?? state.accounts.find((account) => account.id === tx.accountId)?.name,
   );
+  const category = useCategoriesStore((state) =>
+    tx.categoryId ? state.categories.find((item) => item.id === tx.categoryId) : undefined,
+  );
 
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;
   const cashflowImpact = getTransactionCashflowImpact(tx);
+
+  function isEmoji(icon: string) {
+    return !/^[a-z-]+$/.test(icon);
+  }
+
+  function isKnownFeatherIcon(icon: string) {
+    return Object.prototype.hasOwnProperty.call(Feather.glyphMap, icon);
+  }
 
   let title = tx.payee || cfg.label;
   let titleSecondaryText: string | undefined;
@@ -85,8 +97,15 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const amountValue = displayAmount ?? tx.amount;
   const amountPrefix = showAmountSign ? (cashflowImpact === 'in' ? '+' : cashflowImpact === 'out' ? '-' : '') : '';
   const amountColor = useTypeAmountColor
-    ? cfg.color
+    ? (tx.transferPairId || tx.type === 'loan' ? palette.text : cfg.color)
     : palette.text;
+  const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && category?.icon ? category.icon : null;
+  const iconName =
+    tx.type === 'loan'
+      ? 'card-outline'
+      : inOutCategoryIcon && !isEmoji(inOutCategoryIcon) && isKnownFeatherIcon(inOutCategoryIcon)
+        ? inOutCategoryIcon
+        : cfg.iconName;
 
   const inner = (
     <View
@@ -110,18 +129,28 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           marginRight: HOME_SPACE.sm + 2,
         }}
       >
-        <Ionicons
-          name={(tx.type === 'loan' ? 'card-outline' : cfg.iconName) as never}
-          size={Math.round(iconSize * 0.45)}
-          color={cfg.color}
-        />
+        {inOutCategoryIcon && isEmoji(inOutCategoryIcon) ? (
+          <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
+        ) : inOutCategoryIcon && isKnownFeatherIcon(inOutCategoryIcon) ? (
+          <Feather
+            name={inOutCategoryIcon as keyof typeof Feather.glyphMap}
+            size={Math.round(iconSize * 0.45)}
+            color={cfg.color}
+          />
+        ) : (
+          <Ionicons
+            name={iconName as never}
+            size={Math.round(iconSize * 0.45)}
+            color={cfg.color}
+          />
+        )}
       </View>
 
       <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
         <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, marginBottom: 2 }}>
           {title}
           {titleSecondaryText ? (
-            <Text style={{ color: palette.textSecondary, fontWeight: '400' }}>
+            <Text style={{ color: palette.text, fontWeight: '400' }}>
               {' '}
               {'\u2022'} {titleSecondaryText}
             </Text>
