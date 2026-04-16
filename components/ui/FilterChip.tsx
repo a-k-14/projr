@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
-import { ACTIVITY_LAYOUT } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { AppThemePalette } from '../../lib/theme';
 
 interface FilterChipProps {
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   text: {
-    fontSize: 12,
+    fontSize: HOME_TEXT.caption,
     fontWeight: '600',
   },
 });

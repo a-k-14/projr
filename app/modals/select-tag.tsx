@@ -8,6 +8,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 
 export default function SelectTagSheet() {
   const tags = useCategoriesStore((s) => s.tags);
@@ -39,7 +40,7 @@ export default function SelectTagSheet() {
           <View style={{ width: 42, height: 5, borderRadius: 999, backgroundColor: palette.divider, opacity: 0.65 }} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: palette.text, flex: 1 }}>Select tags</Text>
+          <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>Select tags</Text>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
             <Ionicons name="close" size={22} color={palette.textMuted} />
           </TouchableOpacity>
@@ -72,7 +73,7 @@ export default function SelectTagSheet() {
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>{tag.name}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>{tag.name}</Text>
                 </View>
                 {selected ? <Ionicons name="checkmark" size={18} color={palette.tabActive} /> : null}
               </TouchableOpacity>
@@ -92,7 +93,7 @@ export default function SelectTagSheet() {
             marginTop: 4,
           }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: 15, fontWeight: '700' }}>Done</Text>
+          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700' }}>Done</Text>
         </TouchableOpacity>
       </View>
     </View>

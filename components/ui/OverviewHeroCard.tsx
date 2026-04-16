@@ -68,7 +68,7 @@ export function OverviewHeroCard({
           </Text>
         </View>
         <View style={[styles.pill, { backgroundColor: badgeBg }]}>
-          <Text style={{ fontSize: 12, fontWeight: '700', color: badgeColor }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: badgeColor }}>
             {badgeLabel}
           </Text>
         </View>
@@ -172,14 +172,14 @@ const styles = {
     width: 1,
   },
   metricLabel: (palette: AppThemePalette) => ({
-    fontSize: 11,
+    fontSize: HOME_TEXT.tiny,
     color: palette.textMuted,
     fontWeight: '700' as const,
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
   }),
   metricValue: (color: string) => ({
-    fontSize: 24,
+    fontSize: HOME_TEXT.heroValue,
     lineHeight: 30,
     fontWeight: '800' as const,
     color,

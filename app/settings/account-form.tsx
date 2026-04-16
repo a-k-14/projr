@@ -13,7 +13,7 @@ import {
 } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
-import { RADIUS, SCREEN_GUTTER, SPACING } from '../../lib/design';
+import { RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../../lib/design';
 import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -232,7 +232,7 @@ export default function AccountFormScreen() {
           activeOpacity={0.7}
           style={pickerRowStyle(palette)}
         >
-          <Text style={{ color: palette.text, fontSize: 16 }}>{selectedType?.label ?? ''}</Text>
+          <Text style={{ color: palette.text, fontSize: TYPE.rowLabel }}>{selectedType?.label ?? ''}</Text>
           <Feather name="chevron-down" size={20} color={palette.textSoft} />
         </TouchableOpacity>
       </View>
@@ -269,7 +269,7 @@ export default function AccountFormScreen() {
           activeOpacity={0.7}
           style={pickerRowStyle(palette)}
         >
-          <Text style={{ color: palette.text, fontSize: 16 }}>
+          <Text style={{ color: palette.text, fontSize: TYPE.rowLabel }}>
             {selectedCurrency.symbol} {selectedCurrency.code}
           </Text>
           <Feather name="chevron-down" size={20} color={palette.textSoft} />

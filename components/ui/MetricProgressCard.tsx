@@ -98,10 +98,10 @@ export function MetricProgressCard({
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-        <Text style={{ fontSize: 13, color: footerLeft.color ?? palette.textSecondary }}>
+        <Text style={{ fontSize: HOME_TEXT.bodySmall, color: footerLeft.color ?? palette.textSecondary }}>
           {footerLeft.text}
         </Text>
-        <Text style={{ fontSize: 13, color: footerRight.color ?? palette.textSecondary }}>
+        <Text style={{ fontSize: HOME_TEXT.bodySmall, color: footerRight.color ?? palette.textSecondary }}>
           {footerRight.text}
         </Text>
       </View>

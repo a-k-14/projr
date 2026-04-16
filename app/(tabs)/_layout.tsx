@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../lib/theme';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 
 function TabIcon({
   name,
@@ -30,7 +31,7 @@ function TabIcon({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 11,
+          fontSize: HOME_TEXT.tiny,
           lineHeight: 13,
           marginTop: 4,
           color: focused ? active : inactive,

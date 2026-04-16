@@ -17,7 +17,7 @@ export function ScreenTitle({
 }) {
   return (
     <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: SPACING.md }}>
-      <Text style={{ fontSize: 26, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>{title}</Text>
+      <Text style={{ fontSize: TYPE.title, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>{title}</Text>
       {subtitle ? (
         <Text style={{ fontSize: TYPE.caption, color: palette.textMuted, marginTop: 2, lineHeight: 17 }}>
           {subtitle}
@@ -31,7 +31,7 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
   return (
     <Text
       style={{
-        fontSize: 13,
+        fontSize: TYPE.body,
         fontWeight: '700',
         color: palette.textMuted,
         marginHorizontal: 14,
@@ -99,7 +99,7 @@ export function SettingsRow({
       <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
         <Text
           style={{
-            fontSize: 15,
+            fontSize: TYPE.section,
             fontWeight: '500',
             color: palette.text,
           }}
@@ -109,7 +109,7 @@ export function SettingsRow({
         {subtitle ? (
           <Text
             style={{
-              fontSize: 13,
+              fontSize: TYPE.body,
               color: palette.textMuted,
               marginTop: 2,
               fontWeight: '400',
@@ -121,7 +121,7 @@ export function SettingsRow({
       </View>
       {rightElement ? rightElement : null}
       {!rightElement && value ? (
-        <Text style={{ fontSize: 13, color: palette.textMuted, marginRight: 10 }} numberOfLines={1}>
+        <Text style={{ fontSize: TYPE.body, color: palette.textMuted, marginRight: 10 }} numberOfLines={1}>
           {value}
         </Text>
       ) : null}
@@ -190,7 +190,7 @@ export function ChoiceRow({
       <View style={{ flex: 1 }}>
         <Text
           style={{
-            fontSize: 16,
+            fontSize: TYPE.rowLabel,
             fontWeight: selected ? '500' : '400',
             color: selected ? palette.tabActive : palette.text,
           }}
@@ -200,7 +200,7 @@ export function ChoiceRow({
         {subtitle ? (
           <Text
             style={{
-              fontSize: 13,
+              fontSize: TYPE.body,
               color: palette.textMuted,
               marginTop: 2,
               lineHeight: 18,
@@ -254,7 +254,7 @@ export function PickerChip({
         justifyContent: 'center',
       }}
     >
-      <Text style={{ fontSize: 14, fontWeight: '500', color: palette.text }}>{label}</Text>
+      <Text style={{ fontSize: TYPE.rowValue, fontWeight: '500', color: palette.text }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -263,7 +263,7 @@ export function FieldLabel({ label, palette }: { label: string; palette: AppThem
   return (
     <Text
       style={{
-        fontSize: 13,
+        fontSize: TYPE.body,
         fontWeight: '700',
         color: palette.textMuted,
         marginBottom: 8,
@@ -341,7 +341,7 @@ export function InputField({
           {
             flex: 1,
             color: palette.text,
-            fontSize: 16,
+            fontSize: TYPE.rowLabel,
             paddingVertical: 12,
           },
           props.style as any,
@@ -477,7 +477,7 @@ export function ActionButton({
         paddingHorizontal: 20,
       }}
     >
-      <Text style={{ fontSize: 15, fontWeight: '700', color: picked.color }}>{label}</Text>
+      <Text style={{ fontSize: TYPE.section, fontWeight: '700', color: picked.color }}>{label}</Text>
     </TouchableOpacity>
   );
 }

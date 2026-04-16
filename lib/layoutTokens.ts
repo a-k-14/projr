@@ -1,4 +1,6 @@
-import { CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING, RADIUS as DESIGN_RADIUS } from './design';
+import { CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING, RADIUS as DESIGN_RADIUS, HOME_TEXT } from './design';
+
+export { HOME_TEXT };
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 // Previously HOME_COLORS. Now unified into AppThemePalette in lib/theme.ts.
@@ -95,19 +97,6 @@ export const HOME_SPACE = {
   sectionGap: SPACING.md,
   cardGap: SPACING.md,
   pageBottom: SPACING.lg,
-} as const;
-
-// ─── Typography tokens ─────────────────────────────────────────────────────────
-export const HOME_TEXT = {
-  screenTitle: 28,
-  heroLabel: 16,
-  heroValue: 22,
-  sectionTitle: 15,
-  body: 14,
-  bodySmall: 13,
-  caption: 12,
-  tiny: 10,
-  tab: 15,
 } as const;
 
 // ─── Layout tokens ─────────────────────────────────────────────────────────────

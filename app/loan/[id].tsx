@@ -91,7 +91,7 @@ export default function LoanDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: HOME_SPACE.md }}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: palette.text, flex: 1 }}>
+        <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>
           {loan.personName}
         </Text>
         <TouchableOpacity
@@ -129,7 +129,7 @@ export default function LoanDetailScreen() {
                   marginBottom: HOME_SPACE.xs,
                 }}
               >
-                <Text style={{ fontSize: 22, fontWeight: '700', color: palette.text }}>
+                <Text style={{ fontSize: HOME_TEXT.heroValue, fontWeight: '700', color: palette.text }}>
                   {loan.personName}
                 </Text>
                 <TouchableOpacity

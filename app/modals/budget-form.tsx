@@ -7,6 +7,7 @@ import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
@@ -165,7 +166,7 @@ export default function BudgetFormModal() {
           >
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: palette.text }}>
+          <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
             {editingBudget ? 'Edit budget' : 'New budget'}
           </Text>
         </View>
@@ -221,13 +222,13 @@ export default function BudgetFormModal() {
             backgroundColor: isValid ? palette.budget : palette.borderSoft,
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '800', color: palette.onBudget }}>
+          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBudget }}>
             {editingBudget ? 'Save changes' : 'Add budget'}
           </Text>
         </TouchableOpacity>
         {editingBudget ? (
           <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', marginTop: 12 }}>
-            <Text style={{ color: palette.negative, fontSize: 15, fontWeight: '500' }}>Delete budget</Text>
+            <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete budget</Text>
           </TouchableOpacity>
         ) : null}
       </View>

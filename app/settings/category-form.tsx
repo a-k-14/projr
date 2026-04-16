@@ -13,7 +13,7 @@ import {
 } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
-import { CARD_PADDING, SPACING } from '../../lib/design';
+import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
 import { CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -250,7 +250,7 @@ export default function CategoryFormScreen() {
                 <Feather name="plus" size={14} color={palette.brand} />
                 <Text
                   style={{
-                    fontSize: 14,
+                    fontSize: TYPE.rowValue,
                     fontWeight: '600',
                     color: palette.brand,
                     letterSpacing: 0.2,
@@ -266,7 +266,7 @@ export default function CategoryFormScreen() {
               {visibleSubs.length === 0 && (
                 <Text
                   style={{
-                    fontSize: 14,
+                    fontSize: TYPE.rowValue,
                     color: palette.textSecondary,
                     paddingHorizontal: CARD_PADDING,
                     paddingVertical: 12,

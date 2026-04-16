@@ -28,6 +28,7 @@ import {
   TextInputRow,
 } from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import { formatDate, nowUTC } from '../../lib/dateUtils';
 import {
   formatCurrency,
@@ -602,7 +603,7 @@ export default function AddTransactionModal() {
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: palette.text }}>
+          <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
             {isEditing ? 'Edit Transaction' : 'New Transaction'}
           </Text>
         </View>
@@ -633,7 +634,7 @@ export default function AddTransactionModal() {
                 >
                   <Text
                     style={{
-                      fontSize: 13,
+                      fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '700',
                       color: type === t ? TYPE_CONFIG[t].color : palette.textMuted,
                     }}
@@ -681,7 +682,7 @@ export default function AddTransactionModal() {
                   activeOpacity={0.75}
                 >
                   <Ionicons name="layers-outline" size={14} color={palette.brand} />
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: palette.brand }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: palette.brand }}>
                     Split
                   </Text>
                 </TouchableOpacity>
@@ -796,7 +797,7 @@ export default function AddTransactionModal() {
               <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
               {loanEditMode === 'settlement' ? (
                 <FieldRow label="Loan" palette={palette}>
-                  <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text }}>
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text }}>
                     {personName} {'\u2022'} {loanDirection === 'lent' ? 'Receipt' : 'Repayment'}
                   </Text>
                 </FieldRow>
@@ -823,7 +824,7 @@ export default function AddTransactionModal() {
                             >
                               <Text
                                 style={{
-                                  fontSize: 13,
+                                  fontSize: HOME_TEXT.bodySmall,
                                   fontWeight: '700',
                                   color: active ? activeConfig.color : palette.textMuted,
                                 }}
@@ -911,11 +912,11 @@ export default function AddTransactionModal() {
             marginBottom: 12,
           }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: 16, fontWeight: '600' }}>{actionLabel}</Text>
+          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>{actionLabel}</Text>
         </TouchableOpacity>
         {isEditing && (
           <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
-            <Text style={{ color: palette.negative, fontSize: 15, fontWeight: '500' }}>
+            <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>
               Delete transaction
             </Text>
           </TouchableOpacity>
@@ -925,7 +926,7 @@ export default function AddTransactionModal() {
       {showAccountSheet ? (
         <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)}>
           {accounts.length === 0 ? (
-            <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
             accounts.map((account, index) => {
               return (
@@ -950,7 +951,7 @@ export default function AddTransactionModal() {
       {showFromAccountSheet ? (
         <BottomSheet title="Transfer from" palette={palette} onClose={() => setShowFromAccountSheet(false)}>
           {accounts.length === 0 ? (
-            <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
             accounts.map((account, index) => {
               if (account.id === linkedAccountId) return null;
@@ -976,7 +977,7 @@ export default function AddTransactionModal() {
       {showToAccountSheet ? (
         <BottomSheet title="Transfer to" palette={palette} onClose={() => setShowToAccountSheet(false)}>
           {accounts.length === 0 ? (
-            <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
             accounts.map((account, index) => {
               if (account.id === accountId) return null;
@@ -1026,13 +1027,13 @@ export default function AddTransactionModal() {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ color: palette.onBrand, fontSize: 16, fontWeight: '700' }}>Done</Text>
+                <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '700' }}>Done</Text>
               </RnghTouchableOpacity>
             </View>
           }
         >
           {tags.length === 0 ? (
-            <Text style={{ color: palette.textMuted, fontSize: 14, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
           ) : (
             tags.map((tag, index) => {
               return (
@@ -1057,7 +1058,7 @@ export default function AddTransactionModal() {
 function ReceiptSection({ palette }: { palette: AppThemePalette }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
+      <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
         Receipt
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
@@ -1077,8 +1078,8 @@ function ReceiptSection({ palette }: { palette: AppThemePalette }) {
           <Ionicons name="camera-outline" size={22} color={palette.tabActive} />
         </TouchableOpacity>
         <View style={{ justifyContent: 'center' }}>
-          <Text style={{ fontSize: 13, color: palette.text, fontWeight: '400' }}>Add receipt</Text>
-          <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>Tap camera to scan</Text>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '400' }}>Add receipt</Text>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>Tap camera to scan</Text>
         </View>
       </ScrollView>
     </View>

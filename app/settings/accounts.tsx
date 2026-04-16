@@ -9,6 +9,7 @@ import {
   SettingsScreenLayout,
 } from '../../components/settings-ui';
 import { formatAccountDisplayName } from '../../lib/account-utils';
+import { TYPE } from '../../lib/design';
 import { formatDisplayCurrency, symbolFor } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -39,7 +40,7 @@ export default function AccountsScreen() {
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.brand }}>
+            <Text style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
               + Add Account
             </Text>
           </TouchableOpacity>
@@ -60,7 +61,7 @@ export default function AccountsScreen() {
         ))}
         {accounts.length === 0 && (
           <View style={{ padding: 24, alignItems: 'center' }}>
-            <Text style={{ color: palette.textMuted, fontSize: 14 }}>No accounts yet.</Text>
+            <Text style={{ color: palette.textMuted, fontSize: TYPE.rowValue }}>No accounts yet.</Text>
           </View>
         )}
       </CardSection>

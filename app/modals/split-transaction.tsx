@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionCard } from '../../components/ui/transaction-form-primitives';
-import { CategoryTreePicker } from '../../components/ui/CategoryTreePicker';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -40,9 +40,6 @@ export default function SplitTransactionModal() {
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
-  const [search, setSearch] = useState('');
-  const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
-  const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,42 +47,6 @@ export default function SplitTransactionModal() {
       setSplitRows([{ id: `split-${Date.now()}`, categoryId: '', amountStr: '' }]);
     }
   }, [setSplitRows, splitRows.length]);
-
-  const sections = useMemo(() => {
-    const parents = categories
-      .filter((c) => c.parentId == null && (c.type === txType || c.type === 'both'))
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
-
-    return parents
-      .map((parent) => {
-        const children = categories
-          .filter((c) => c.parentId === parent.id && (c.type === txType || c.type === 'both'))
-          .slice()
-          .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
-        const filteredChildren = children.filter((child) => {
-          if (!search.trim()) return true;
-          const haystack = `${parent.name} ${child.name}`.toLowerCase();
-          return haystack.includes(search.trim().toLowerCase());
-        });
-
-        return {
-          parent,
-          children,
-          filteredChildren,
-          hasSearchMatch:
-            filteredChildren.length > 0 ||
-            parent.name.toLowerCase().includes(search.trim().toLowerCase()),
-        };
-      })
-      .filter((section) => search.trim() === '' || section.hasSearchMatch);
-  }, [categories, search, txType]);
-
-  useEffect(() => {
-    if (search.trim().length > 0) {
-      setExpandedParentIds(new Set(sections.map((section) => section.parent.id)));
-    }
-  }, [search, sections]);
 
   const total = splitRows.reduce(
     (sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0),
@@ -131,29 +92,6 @@ export default function SplitTransactionModal() {
     router.back();
   };
 
-  if (activeRowId) {
-    const selectedCategoryId = splitRows.find((row) => row.id === activeRowId)?.categoryId;
-    return (
-      <CategoryTreePicker
-        title="Select category"
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder={`Search ${txType} categories...`}
-        sections={sections}
-        selectedCategoryId={selectedCategoryId}
-        expandedParentIds={expandedParentIds}
-        setExpandedParentIds={setExpandedParentIds}
-        onBack={() => setActiveRowId(null)}
-        onSelect={(categoryId) => {
-          updateRow(activeRowId, { categoryId });
-          setSearch('');
-          setActiveRowId(null);
-        }}
-        palette={palette}
-      />
-    );
-  }
-
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
@@ -161,7 +99,7 @@ export default function SplitTransactionModal() {
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: palette.text }}>
+          <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
             Split Transaction
           </Text>
         </View>
@@ -176,7 +114,7 @@ export default function SplitTransactionModal() {
           <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
             <TouchableOpacity onPress={addRow} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Ionicons name="add" size={14} color={palette.brand} />
-              <Text style={{ fontSize: 14, fontWeight: '700', color: palette.brand }}>Add Line Item</Text>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Add Line Item</Text>
             </TouchableOpacity>
           </View>
 
@@ -194,14 +132,19 @@ export default function SplitTransactionModal() {
                 }}
               >
                 <TouchableOpacity
-                  onPress={() => setActiveRowId(row.id)}
+                  onPress={() => 
+                    router.push({ 
+                      pathname: '/modals/select-category', 
+                      params: { type: txType, splitRowId: row.id } 
+                    })
+                  }
                   activeOpacity={0.75}
-                  style={{ flex: 1, minWidth: 0, paddingRight: 10 }}
+                  style={{ flex: 1, minWidth: 0, paddingRight: 8 }}
                 >
                   <Text
                     numberOfLines={1}
                     style={{
-                      fontSize: 15,
+                      fontSize: HOME_TEXT.sectionTitle,
                       fontWeight: row.categoryId ? '500' : '400',
                       color: row.categoryId ? palette.text : palette.textMuted,
                     }}
@@ -212,13 +155,12 @@ export default function SplitTransactionModal() {
 
                 <View
                   style={{
-                    width: 94,
+                    width: 112,
                     flexDirection: 'row',
                     alignItems: 'center',
                     borderBottomWidth: 1,
-                    borderBottomColor: focusedRowId === row.id ? palette.brand : palette.borderSoft ?? palette.border,
+                    borderBottomColor: focusedRowId === row.id ? palette.textSecondary : palette.borderSoft ?? palette.border,
                     paddingBottom: 4,
-                    marginRight: 8,
                   }}
                 >
                   <TextInput
@@ -240,7 +182,7 @@ export default function SplitTransactionModal() {
                     onBlur={() => setFocusedRowId((current) => (current === row.id ? null : current))}
                     style={{
                       flex: 1,
-                      fontSize: 15,
+                      fontSize: HOME_TEXT.sectionTitle,
                       fontWeight: '500',
                       color: palette.text,
                       textAlign: 'right',
@@ -254,6 +196,7 @@ export default function SplitTransactionModal() {
                   style={{
                     width: 34,
                     height: 34,
+                    marginLeft: 8,
                     borderRadius: 12,
                     backgroundColor: palette.inputBg,
                     alignItems: 'center',
@@ -281,8 +224,8 @@ export default function SplitTransactionModal() {
         }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 }}>
-          <Text style={{ fontSize: 14, color: palette.textMuted, fontWeight: '600' }}>Total</Text>
-          <Text style={{ fontSize: 18, color: palette.text, fontWeight: '700' }}>{formatIndianNumberStr(String(total || 0))}</Text>
+          <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '600' }}>Total</Text>
+          <Text style={{ fontSize: HOME_TEXT.rowLabel, color: palette.text, fontWeight: '700' }}>{formatIndianNumberStr(String(total || 0))}</Text>
         </View>
         <TouchableOpacity
           onPress={handleDone}
@@ -295,7 +238,7 @@ export default function SplitTransactionModal() {
             justifyContent: 'center',
           }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: 16, fontWeight: '700' }}>Done</Text>
+          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '700' }}>Done</Text>
         </TouchableOpacity>
       </View>
     </View>

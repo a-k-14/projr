@@ -8,7 +8,7 @@ import {
   FixedBottomActions,
 } from '../../components/settings-ui';
 import { CategoryIconBadge, CATEGORY_TREE_ROW } from '../../components/ui/CategoryTreePicker';
-import { CARD_PADDING } from '../../lib/design';
+import { CARD_PADDING, TYPE } from '../../lib/design';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 
@@ -68,7 +68,7 @@ export default function CategoriesScreen() {
         <CardSection palette={palette}>
           {visible.length === 0 && (
             <View style={{ padding: 24, alignItems: 'center' }}>
-              <Text style={{ color: palette.textMuted, fontSize: 14 }}>
+              <Text style={{ color: palette.textMuted, fontSize: TYPE.rowValue }}>
                 No {kind === 'in' ? 'income' : 'expense'} categories yet.
               </Text>
             </View>
@@ -97,13 +97,13 @@ export default function CategoriesScreen() {
                 >
                   <CategoryIconBadge icon={cat.icon ?? 'tag'} size={20} bgSize={40} palette={palette} />
                   <Text
-                    style={{ flex: 1, fontSize: 15, fontWeight: '500', color: palette.text }}
+                    style={{ flex: 1, fontSize: TYPE.section, fontWeight: '500', color: palette.text }}
                     numberOfLines={1}
                   >
                     {cat.name}
                   </Text>
                   {subs.length > 0 && (
-                    <Text style={{ fontSize: 12, color: palette.textMuted, marginRight: 4 }}>
+                    <Text style={{ fontSize: TYPE.caption, color: palette.textMuted, marginRight: 4 }}>
                       {subs.length}
                     </Text>
                   )}
@@ -154,7 +154,7 @@ export default function CategoriesScreen() {
                         }}
                       >
                         <Text
-                          style={{ flex: 1, fontSize: 15, color: palette.text, fontWeight: '400' }}
+                          style={{ flex: 1, fontSize: TYPE.section, color: palette.text, fontWeight: '400' }}
                           numberOfLines={1}
                         >
                           {sub.name}
@@ -171,7 +171,7 @@ export default function CategoriesScreen() {
                           borderTopColor: palette.divider,
                         }}
                       >
-                        <Text style={{ fontSize: 13, color: palette.textSoft }}>No subcategories</Text>
+                        <Text style={{ fontSize: TYPE.body, color: palette.textSoft }}>No subcategories</Text>
                       </View>
                     )}
                   </View>
@@ -221,7 +221,7 @@ export default function CategoriesScreen() {
             >
               <Text
                 style={{
-                  fontSize: 14,
+                  fontSize: TYPE.rowValue,
                   fontWeight: '600',
                   color: tab === t ? palette.brand : palette.textMuted,
                 }}
@@ -267,7 +267,7 @@ export default function CategoriesScreen() {
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '600', color: palette.brand }}>
+          <Text style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
             + Add {tab === 'in' ? 'Income' : 'Expense'} Category
           </Text>
         </TouchableOpacity>

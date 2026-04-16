@@ -11,6 +11,7 @@ interface TransactionDraftStore {
   setCategoryId: (categoryId: string) => void;
   setTagIds: (tagIds: string[]) => void;
   setSplitRows: (rows: SplitDraftRow[]) => void;
+  updateSplitRow: (id: string, patch: Partial<SplitDraftRow>) => void;
   clearSplitRows: () => void;
   setCalculatorValue: (value: string) => void;
   setCalculatorOpen: (open: boolean) => void;
@@ -33,6 +34,10 @@ export const useTransactionDraftStore = create<TransactionDraftStore>((set) => (
   setCategoryId: (categoryId) => set({ categoryId }),
   setTagIds: (tagIds) => set({ tagIds }),
   setSplitRows: (splitRows) => set({ splitRows }),
+  updateSplitRow: (id, patch) =>
+    set((state) => ({
+      splitRows: state.splitRows.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+    })),
   clearSplitRows: () => set({ splitRows: [] }),
   setCalculatorValue: (calculatorValue) => set({ calculatorValue }),
   setCalculatorOpen: (calculatorOpen) => set({ calculatorOpen }),

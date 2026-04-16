@@ -1,11 +1,12 @@
 import { Stack } from 'expo-router';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 
 export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={{
         headerTitleStyle: {
-          fontSize: 18,
+          fontSize: HOME_TEXT.rowLabel,
           fontWeight: '700',
         },
         headerShadowVisible: false,

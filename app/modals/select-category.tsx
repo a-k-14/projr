@@ -7,10 +7,15 @@ import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore'
 import type { TransactionType } from '../../types';
 
 export default function SelectCategoryScreen() {
-  const { type } = useLocalSearchParams<{ type?: TransactionType }>();
+  const { type, splitRowId } = useLocalSearchParams<{ type?: TransactionType; splitRowId?: string }>();
   const categories = useCategoriesStore((s) => s.categories);
-  const selectedCategoryId = useTransactionDraftStore((s) => s.categoryId);
+  const splitRows = useTransactionDraftStore((s) => s.splitRows);
+  const selectedCategoryId = splitRowId 
+    ? (splitRows.find(r => r.id === splitRowId)?.categoryId || '')
+    : useTransactionDraftStore((s) => s.categoryId);
+  
   const setCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
+  const updateSplitRow = useTransactionDraftStore((s) => s.updateSplitRow);
   const { palette } = useAppTheme();
   const [search, setSearch] = useState('');
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
@@ -51,7 +56,11 @@ export default function SelectCategoryScreen() {
   }, [search, sections]);
 
   const onSelect = (id: string) => {
-    setCategoryId(id);
+    if (splitRowId) {
+      updateSplitRow(splitRowId, { categoryId: id });
+    } else {
+      setCategoryId(id);
+    }
     router.back();
   };
 

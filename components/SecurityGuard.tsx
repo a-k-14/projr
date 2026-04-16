@@ -4,6 +4,7 @@ import { AppState, View, Text, TouchableOpacity, StyleSheet, Platform } from 're
 import { useUIStore } from '../stores/useUIStore';
 import { useAppTheme } from '../lib/theme';
 import { FinanceEmptyMascot } from './ui/FinanceEmptyMascot';
+import { HOME_TEXT } from '../lib/layoutTokens';
 
 const GRACE_PERIOD_MS = 10000; // 10 seconds
 
@@ -121,12 +122,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: HOME_TEXT.heroValue,
     fontWeight: '700',
     marginBottom: 10,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: HOME_TEXT.sectionTitle,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 36,
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: HOME_TEXT.rowLabel,
     fontWeight: '700',
   },
 });

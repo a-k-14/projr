@@ -90,7 +90,7 @@ export default function BudgetDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
           <Feather name="arrow-left" size={24} color={palette.text} />
         </TouchableOpacity>
-        <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: palette.text }} numberOfLines={1}>
+        <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }} numberOfLines={1}>
           {getCategoryFullDisplayName(budget.categoryId, ' › ')}
         </Text>
         <TouchableOpacity
@@ -102,7 +102,7 @@ export default function BudgetDetailScreen() {
           }
           style={{ padding: 6 }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '700', color: palette.brand }}>Edit</Text>
+          <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Edit</Text>
         </TouchableOpacity>
       </View>
 

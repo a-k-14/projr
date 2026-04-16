@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BottomSheet } from './ui/BottomSheet';
-import { ACTIVITY_LAYOUT, HOME_RADIUS } from '../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import { formatMonthYear } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
 
@@ -81,7 +81,7 @@ export function BudgetMonthField({
           alignItems: 'center',
         }}
       >
-        <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: palette.text, textAlign: 'center' }}>
+        <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, textAlign: 'center' }}>
           {formatBudgetMonthLabel(value)}
         </Text>
         {!onPrev && !onNext ? <Ionicons name="chevron-down" size={15} color={palette.textMuted} /> : null}
@@ -154,7 +154,7 @@ export function BudgetMonthSheet({
           >
             <Ionicons name="chevron-back" size={18} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: palette.text }}>{selectedYear}</Text>
+          <Text style={{ flex: 1, textAlign: 'center', fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text }}>{selectedYear}</Text>
           <TouchableOpacity
             onPress={() => setSelectedYear((year) => year + 1)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -188,7 +188,7 @@ export function BudgetMonthSheet({
                 paddingHorizontal: 8,
               }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '700', color: isSelected ? palette.budget : palette.text }}>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: isSelected ? palette.budget : palette.text }}>
                 {new Date(month).toLocaleDateString('en-IN', { month: 'short' })}
               </Text>
             </TouchableOpacity>

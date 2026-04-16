@@ -5,6 +5,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -171,7 +172,7 @@ export default function CalculatorModal() {
           <TouchableOpacity onPress={handleClose} style={{ padding: 6, marginRight: 8 }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: palette.text, flex: 1 }}>
+          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, flex: 1 }}>
             Calculator
           </Text>
         </View>
@@ -286,7 +287,7 @@ function CalcButton({
       ) : (
         <Text
           style={{
-            fontSize: label === 'OK' ? 15 : 18,
+            fontSize: label === 'OK' ? HOME_TEXT.sectionTitle : HOME_TEXT.rowLabel,
             fontWeight: '700',
             color: primary ? palette.onBrand : palette.text,
           }}

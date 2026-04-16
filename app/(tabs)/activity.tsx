@@ -782,7 +782,7 @@ export default function ActivityScreen() {
               placeholderTextColor={palette.textSoft}
               value={search}
               onChangeText={setSearch}
-              style={{ flex: 1, fontSize: 14, color: palette.text, padding: 0 }}
+              style={{ flex: 1, fontSize: HOME_TEXT.body, color: palette.text, padding: 0 }}
               returnKeyType="search"
             />
             {search.length > 0 ? (
@@ -792,7 +792,7 @@ export default function ActivityScreen() {
             ) : null}
           </View>
           <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearch(''); }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -800,7 +800,7 @@ export default function ActivityScreen() {
       ) : (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
           <View style={styles.topBarMainRow}>
-            <Text style={{ fontSize: 26, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>
+            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>
               Activity
             </Text>
 
@@ -847,7 +847,7 @@ export default function ActivityScreen() {
                   },
                 ]}
               >
-                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: palette.text, flex: 1 }}>
+                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
                   {accountLabel}
                 </Text>
                 <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
@@ -884,7 +884,7 @@ export default function ActivityScreen() {
                     activeOpacity={0.7}
                     hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
                   >
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }} numberOfLines={1}>
+                    <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }} numberOfLines={1}>
                       {periodLabel}
                     </Text>
                   </TouchableOpacity>
@@ -944,7 +944,7 @@ export default function ActivityScreen() {
               >
                 <Text
                   numberOfLines={1}
-                  style={{ flex: 1, fontSize: 13, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
+                  style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
                 >
                   {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
                 </Text>
@@ -977,7 +977,7 @@ export default function ActivityScreen() {
                   <Feather name="chevron-left" size={16} color={palette.textMuted} />
                   <Text
                     numberOfLines={1}
-                    style={{ flex: 1, fontSize: 14, fontWeight: '700', color: palette.text }}
+                    style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
                   >
                     {categoryDrilldown.parentLabel} › {categoryDrilldown.subLabel}
                   </Text>
@@ -1030,7 +1030,7 @@ export default function ActivityScreen() {
                   },
                 ]}
               >
-                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: palette.text, flex: 1 }}>
+                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
                   {accountLabel}
                 </Text>
                 <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
@@ -1067,7 +1067,7 @@ export default function ActivityScreen() {
                     activeOpacity={0.7}
                     hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
                   >
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }} numberOfLines={1}>
+                    <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }} numberOfLines={1}>
                       {periodLabel}
                     </Text>
                   </TouchableOpacity>
@@ -1125,7 +1125,7 @@ export default function ActivityScreen() {
               >
                 <Text
                   numberOfLines={1}
-                  style={{ flex: 1, fontSize: 13, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
+                  style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
                 >
                   {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
                 </Text>
@@ -1176,12 +1176,12 @@ export default function ActivityScreen() {
                               palette={palette}
                               iconColor={syntheticCfg?.color}
                             />
-                            <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
+                            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
                               {category.parentLabel}
                             </Text>
                             <Text
                               style={{
-                                fontSize: 14,
+                                fontSize: HOME_TEXT.body,
                                 fontWeight: '600',
                                 color: category.total >= 0 ? palette.brand : palette.negative,
                                 marginRight: 2,
@@ -1227,12 +1227,12 @@ export default function ActivityScreen() {
                                     borderTopColor: palette.divider,
                                   }}
                                 >
-                                  <Text numberOfLines={1} style={{ flex: 1, fontSize: 15, fontWeight: '400', color: palette.text }}>
+                                  <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
                                     {sub.subLabel}
                                   </Text>
                                   <Text
                                     style={{
-                                      fontSize: 14,
+                                      fontSize: HOME_TEXT.body,
                                       fontWeight: '500',
                                       color: sub.total >= 0 ? palette.brand : palette.negative,
                                       marginRight: 10,
@@ -1363,10 +1363,10 @@ export default function ActivityScreen() {
                   },
                 ]}
               >
-                <Text style={{ fontSize: 10, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
                   FROM
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text, marginTop: 2 }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
                   {customFrom ? formatDateFull(customFrom) : 'Select...'}
                 </Text>
               </TouchableOpacity>
@@ -1381,10 +1381,10 @@ export default function ActivityScreen() {
                   },
                 ]}
               >
-                <Text style={{ fontSize: 10, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
                   TO
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text, marginTop: 2 }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
                   {customTo ? formatDateFull(customTo) : 'Select...'}
                 </Text>
               </TouchableOpacity>
@@ -1410,7 +1410,7 @@ export default function ActivityScreen() {
               ]}
               activeOpacity={0.8}
             >
-              <Text style={{ fontSize: 14, fontWeight: '800', color: palette.onBrand }}>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: palette.onBrand }}>
                 Apply
               </Text>
             </TouchableOpacity>
@@ -1437,7 +1437,7 @@ export default function ActivityScreen() {
                 style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
                 activeOpacity={0.85}
               >
-                <Text style={{ fontSize: 15, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
               </TouchableOpacity>
             </View>
           }
@@ -1456,7 +1456,7 @@ export default function ActivityScreen() {
               hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
               style={styles.clearAllButton}
             >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: palette.brand }}>Clear all</Text>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
             </TouchableOpacity>
           }
         >
@@ -1533,7 +1533,7 @@ export default function ActivityScreen() {
                               activeOpacity={0.75}
                               style={{ flex: 1, minWidth: 0 }}
                             >
-                              <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '400', color: palette.text }}>
+                              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
                                 {child.name}
                               </Text>
                             </TouchableOpacity>
@@ -1551,7 +1551,7 @@ export default function ActivityScreen() {
             <ListHeading label="Tags" palette={palette} />
 
             {tags.length === 0 ? (
-              <Text style={{ color: palette.textMuted, fontSize: 13, paddingHorizontal: CARD_PADDING, paddingVertical: 12 }}>
+              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.bodySmall, paddingHorizontal: CARD_PADDING, paddingVertical: 12 }}>
                 No tags yet
               </Text>
             ) : (
@@ -1583,7 +1583,7 @@ export default function ActivityScreen() {
                 placeholderTextColor={palette.textMuted}
                 style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
               />
-              <Text style={{ color: palette.textMuted, fontSize: 18 }}>—</Text>
+              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.rowLabel }}>—</Text>
               <TextInput
                 value={amountMaxStr}
                 onChangeText={setAmountMaxStr}
@@ -1623,7 +1623,7 @@ function AccountChip({
         },
       ]}
     >
-      <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '700', color: active ? palette.brand : palette.textMuted }}>
+      <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: active ? palette.brand : palette.textMuted }}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -1726,7 +1726,7 @@ function CategoryIconBadge({
       {ioniconName ? (
         <Ionicons name={ioniconName as never} size={16} color={iconColor ?? palette.iconTint} />
       ) : isEmoji ? (
-        <Text style={{ fontSize: 16 }}>{icon}</Text>
+        <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{icon}</Text>
       ) : (
         <Feather name={(icon ?? 'tag') as keyof typeof Feather.glyphMap} size={16} color={iconColor ?? palette.iconTint} />
       )}
@@ -1761,7 +1761,7 @@ function MoreCategoryRow({
       <TouchableOpacity onPress={hasChildren ? onToggleExpanded : onToggleSelected} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
         <CategoryIconBadge icon={category.icon} palette={palette} />
         <View style={{ marginLeft: 14, flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '500', color: palette.text }}>
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
             {category.name}
           </Text>
         </View>
@@ -1797,11 +1797,11 @@ function MoreTagRow({
       </TouchableOpacity>
       <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color, marginRight: 14 }} />
       <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '500', color: palette.text }}>
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
           {tag.name}
         </Text>
       </TouchableOpacity>
-      <Text style={{ fontSize: 14, fontWeight: '700', color: palette.textMuted, marginRight: 10 }}>
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginRight: 10 }}>
         {count}
       </Text>
       <View style={{ width: 18 }} />
@@ -1976,7 +1976,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: HOME_TEXT.body,
     fontWeight: '700',
   },
   applyBtn: {

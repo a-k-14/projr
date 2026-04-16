@@ -1,5 +1,3 @@
-// Design tokens for settings screens (consumed by components/settings-ui.tsx).
-// Main-app screens (Home, Activity, Budgets, Loans, modals) use lib/layoutTokens.ts instead.
 export const SPACING = {
   xs: 4,
   sm: 8,
@@ -20,13 +18,26 @@ export const RADIUS = {
   xl: 24,
 } as const;
 
-export const TYPE = {
-  title: 28,
-  section: 11,
+export const HOME_TEXT = {
+  screenTitle: 28,
+  heroLabel: 16,
+  heroValue: 22,
   rowLabel: 16,
-  rowValue: 14,
-  body: 13,
+  sectionTitle: 15,
+  body: 14,
+  bodySmall: 13,
   caption: 12,
+  tiny: 10,
+  tab: 15,
+} as const;
+
+export const TYPE = {
+  title: HOME_TEXT.screenTitle,
+  section: HOME_TEXT.sectionTitle,
+  rowLabel: HOME_TEXT.rowLabel,
+  rowValue: HOME_TEXT.body,
+  body: HOME_TEXT.bodySmall,
+  caption: HOME_TEXT.caption,
 } as const;
 
 export const BORDER = {

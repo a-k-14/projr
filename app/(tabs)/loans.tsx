@@ -191,7 +191,7 @@ export default function LoansScreen() {
               placeholderTextColor={palette.textSoft}
               value={search}
               onChangeText={setSearch}
-              style={{ flex: 1, fontSize: 14, color: palette.text, padding: 0 }}
+              style={{ flex: 1, fontSize: HOME_TEXT.body, color: palette.text, padding: 0 }}
               returnKeyType="search"
             />
             {search.length > 0 ? (
@@ -201,7 +201,7 @@ export default function LoansScreen() {
             ) : null}
           </View>
           <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearch(''); }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -209,7 +209,7 @@ export default function LoansScreen() {
       ) : (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
           <View style={styles.topBarMainRow}>
-            <Text style={{ fontSize: 26, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>
+            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>
               Loans
             </Text>
             <View style={{ flex: 1 }} />
@@ -266,7 +266,7 @@ export default function LoansScreen() {
                   },
                 ]}
               >
-                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: palette.text, flex: 1 }}>
+                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
                   {selectedAccountLabel}
                 </Text>
                 <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
@@ -286,7 +286,7 @@ export default function LoansScreen() {
                   },
                 ]}
               >
-                <Text numberOfLines={1} style={{ flex: 1, fontSize: 13, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}>
+                <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}>
                   {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
                 </Text>
                 <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
@@ -371,7 +371,7 @@ export default function LoansScreen() {
                 style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
                 activeOpacity={0.85}
               >
-                <Text style={{ fontSize: 15, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
               </TouchableOpacity>
             </View>
           }
@@ -388,7 +388,7 @@ export default function LoansScreen() {
               hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
               style={styles.clearAllButton}
             >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: palette.brand }}>Clear all</Text>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
             </TouchableOpacity>
           }
         >
@@ -425,10 +425,10 @@ export default function LoansScreen() {
                 onPress={openFromDatePicker}
                 style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}
               >
-                <Text style={{ fontSize: 10, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
                   FROM
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text, marginTop: 2 }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
                   {fromDate ? formatDateFull(fromDate) : 'Select...'}
                 </Text>
               </TouchableOpacity>
@@ -437,10 +437,10 @@ export default function LoansScreen() {
                 onPress={openToDatePicker}
                 style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}
               >
-                <Text style={{ fontSize: 10, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
                   TO
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: palette.text, marginTop: 2 }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
                   {toDate ? formatDateFull(toDate) : 'Select...'}
                 </Text>
               </TouchableOpacity>
@@ -456,7 +456,7 @@ export default function LoansScreen() {
                 placeholderTextColor={palette.textMuted}
                 style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
               />
-              <Text style={{ color: palette.textMuted, fontSize: 18 }}>—</Text>
+              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.rowLabel }}>—</Text>
               <TextInput
                 value={amountMaxStr}
                 onChangeText={setAmountMaxStr}
@@ -588,7 +588,7 @@ function LoanRow({
                   zIndex: 2,
                 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: '700', color: palette.textSecondary }}>Closed</Text>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textSecondary }}>Closed</Text>
               </View>
             ) : null}
 
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: HOME_TEXT.body,
     fontWeight: '700',
   },
   sheetChipRow: {

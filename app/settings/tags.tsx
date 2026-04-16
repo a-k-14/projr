@@ -7,6 +7,7 @@ import {
   SettingsRow,
   SettingsScreenLayout,
 } from '../../components/settings-ui';
+import { TYPE } from '../../lib/design';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 
@@ -36,7 +37,7 @@ export default function TagsScreen() {
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.brand }}>+ Add Tag</Text>
+            <Text style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>+ Add Tag</Text>
           </TouchableOpacity>
         </FixedBottomActions>
       }
@@ -66,7 +67,7 @@ export default function TagsScreen() {
         ))}
         {tags.length === 0 && (
           <View style={{ padding: 24, alignItems: 'center' }}>
-            <Text style={{ color: palette.textMuted, fontSize: 14 }}>No tags yet.</Text>
+            <Text style={{ color: palette.textMuted, fontSize: TYPE.rowValue }}>No tags yet.</Text>
           </View>
         )}
       </CardSection>

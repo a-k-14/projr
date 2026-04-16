@@ -30,6 +30,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
 import { getTransactionById } from '../../services/transactions';
@@ -205,7 +206,7 @@ export default function LoanSettlementModal() {
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: palette.text }}>{title}</Text>
+          <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>{title}</Text>
         </View>
       </SafeAreaView>
 
@@ -214,7 +215,7 @@ export default function LoanSettlementModal() {
           <SectionCard palette={palette}>
             <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
             <FieldRow label="Loan" palette={palette}>
-              <Text style={{ fontSize: 15, fontWeight: '500', color: palette.text }}>
+              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text }}>
                 {personName || 'Loan'}
                 <Text style={{ color: palette.textSecondary, fontWeight: '400' }}>
                   {' '}
@@ -255,13 +256,13 @@ export default function LoanSettlementModal() {
             marginBottom: 12,
           }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: 16, fontWeight: '600' }}>
+          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>
             {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           </Text>
         </TouchableOpacity>
         {isEditing ? (
           <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
-            <Text style={{ color: palette.negative, fontSize: 15, fontWeight: '500' }}>Delete transaction</Text>
+            <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete transaction</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -304,7 +305,7 @@ function FieldRow({ label, children, palette }: { label: string; children: React
     <View style={{ paddingHorizontal: SCREEN_GUTTER, minHeight: ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}>
       <Text
         numberOfLines={1}
-        style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, width: ROW_LABEL_WIDTH, paddingRight: ROW_COLUMN_GAP }}
+        style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, width: ROW_LABEL_WIDTH, paddingRight: ROW_COLUMN_GAP }}
       >
         {label}
       </Text>

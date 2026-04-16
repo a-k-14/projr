@@ -12,6 +12,7 @@ import { useAccountsStore } from '../stores/useAccountsStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useAppTheme } from '../lib/theme';
+import { HOME_TEXT } from '../lib/layoutTokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -64,7 +65,7 @@ export default function RootLayout() {
       >
         <Text
           style={{
-            fontSize: 22,
+            fontSize: HOME_TEXT.heroValue,
             fontWeight: '700',
             color: palette.text,
             marginBottom: 12,
@@ -75,7 +76,7 @@ export default function RootLayout() {
         </Text>
         <Text
           style={{
-            fontSize: 15,
+            fontSize: HOME_TEXT.sectionTitle,
             lineHeight: 22,
             color: palette.textSecondary,
             textAlign: 'center',
@@ -97,7 +98,7 @@ export default function RootLayout() {
             paddingHorizontal: 20,
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '700', color: palette.onBrand }}>
+          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.onBrand }}>
             Try again
           </Text>
         </TouchableOpacity>

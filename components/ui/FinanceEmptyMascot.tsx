@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
 export function FinanceEmptyMascot({
@@ -158,7 +159,7 @@ export function FinanceEmptyMascot({
         }}
       >
         {variant === 'budget' ? (
-          <Text style={{ fontSize: 10, color: badgeColor, fontWeight: '700' }}>₹</Text>
+          <Text style={{ fontSize: HOME_TEXT.tiny, color: badgeColor, fontWeight: '700' }}>₹</Text>
         ) : variant === 'loan' ? (
           <Ionicons name="swap-horizontal" size={15} color={badgeColor} />
         ) : variant === 'security' ? (

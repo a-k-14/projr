@@ -587,7 +587,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 >
                   <Text
                     style={{
-                      fontSize: 12,
+                      fontSize: HOME_TEXT.caption,
                       fontWeight: period === value ? '700' : '600',
                       textAlign: 'center',
                       textAlignVertical: 'center',
@@ -645,7 +645,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 {/* Left Fixed Column: Period */}
                 <View style={{ width: 45 }}>
                   <View style={{ borderBottomWidth: 1, borderBottomColor: palette.borderSoft, paddingBottom: HOME_SURFACE.tableHeaderPaddingBottom, marginBottom: HOME_SURFACE.panelSubheaderGap }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center' }}>
+                    <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center' }}>
                       Period
                     </Text>
                   </View>
@@ -667,7 +667,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                       >
                         <Text
                           numberOfLines={1}
-                          style={{ width: 45, fontSize: 14, fontWeight: '600', color: palette.text, opacity: 0.85, textAlign: 'center' }}
+                          style={{ width: 45, fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, opacity: 0.85, textAlign: 'center' }}
                         >
                           {row.label}
                         </Text>
@@ -693,9 +693,9 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                         marginBottom: HOME_SURFACE.panelSubheaderGap,
                       }}
                     >
-                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Inflow</Text>
-                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Outflow</Text>
-                      <Text style={{ width: 95, fontSize: 13, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Net</Text>
+                      <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Inflow</Text>
+                      <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Outflow</Text>
+                      <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Net</Text>
                     </View>
                     <ScrollView
                       ref={rightScrollRef}
@@ -724,7 +724,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                           >
                             <Text
                               numberOfLines={1}
-                              style={{ fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right' }}
+                              style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right' }}
                             >
                               {row.in > 0 ? formatIndianNumberStr(String(row.in)) : '-'}
                             </Text>
@@ -736,7 +736,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                           >
                             <Text
                               numberOfLines={1}
-                              style={{ fontSize: 14, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right' }}
+                              style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right' }}
                             >
                               {row.out > 0 ? formatIndianNumberStr(String(row.out)) : '-'}
                             </Text>
@@ -749,7 +749,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                             <Text
                               numberOfLines={1}
                               style={{
-                                fontSize: 14,
+                                fontSize: HOME_TEXT.body,
                                 fontWeight: '600',
                                 color: row.net > 0 ? palette.brand : row.net < 0 ? palette.negative : palette.text,
                                 opacity: row.net === 0 ? 0.85 : 1,

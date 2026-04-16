@@ -4,6 +4,7 @@ import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { formatDate } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
 export const ROW_LABEL_WIDTH = 92;
@@ -73,7 +74,7 @@ export function PickerRow({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 13,
+          fontSize: HOME_TEXT.bodySmall,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -99,7 +100,7 @@ export function PickerRow({
           <>
             <Text
               style={{
-                fontSize: 15,
+                fontSize: HOME_TEXT.sectionTitle,
                 fontWeight: '400',
                 color: placeholder ? palette.textMuted : palette.text,
                 textAlign: 'left',
@@ -139,7 +140,7 @@ export function FieldRow({
         borderBottomColor: palette.border,
       }}
     >
-      <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
+      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -164,7 +165,7 @@ export function OptionChipRow({
     <View style={{ paddingHorizontal: SCREEN_GUTTER, minHeight: ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'flex-start', paddingTop: 18, paddingBottom: 14 }}>
       <Text
         style={{
-          fontSize: 13,
+          fontSize: HOME_TEXT.bodySmall,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -192,14 +193,14 @@ export function OptionChipRow({
                 borderColor: option.selected ? option.activeColor : palette.divider,
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: option.selected ? option.activeColor : palette.text }}>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: option.selected ? option.activeColor : palette.text }}>
                 {option.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
         {helperText ? (
-          <Text style={{ fontSize: 12, color: palette.textMuted }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
             {helperText}
           </Text>
         ) : null}
@@ -234,7 +235,7 @@ export function InteractiveDateTimeRow({
     >
       <Text
         style={{
-          fontSize: 13,
+          fontSize: HOME_TEXT.bodySmall,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -264,7 +265,7 @@ export function InteractiveDateTimeRow({
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onOpenTime}
@@ -277,7 +278,7 @@ export function InteractiveDateTimeRow({
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -320,7 +321,7 @@ export function AmountRow({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 13,
+          fontSize: HOME_TEXT.bodySmall,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -347,7 +348,7 @@ export function AmountRow({
             editable={editable}
             style={{
               flex: 1,
-              fontSize: 20,
+              fontSize: HOME_TEXT.sectionTitle,
               fontWeight: '500',
               color: editable ? accentColor : palette.text,
               paddingBottom: 2,
@@ -429,7 +430,7 @@ export function TextInputRow({
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 13,
+          fontSize: HOME_TEXT.bodySmall,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -455,7 +456,7 @@ export function TextInputRow({
           style={{
             flex: 1,
             minWidth: 0,
-            fontSize: 15,
+            fontSize: HOME_TEXT.sectionTitle,
             fontWeight: '400',
             color: palette.text,
             paddingBottom: 2,
@@ -489,7 +490,7 @@ export function NotesSection({
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
-      <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
+      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
         Notes
       </Text>
       <TextInput
@@ -501,7 +502,7 @@ export function NotesSection({
         cursorColor={accentColor || palette.tabActive}
         style={{
           minHeight: 72,
-          fontSize: 15,
+          fontSize: HOME_TEXT.sectionTitle,
           color: palette.text,
           paddingVertical: 0,
           textAlignVertical: 'top',

@@ -1,5 +1,6 @@
 import { Text } from 'react-native';
 import { CARD_PADDING } from '../../lib/design';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
 export function ListHeading({
@@ -20,7 +21,7 @@ export function ListHeading({
   return (
     <Text
       style={{
-        fontSize: 11,
+        fontSize: HOME_TEXT.tiny,
         fontWeight: '800',
         letterSpacing: 0.8,
         textTransform: 'uppercase',

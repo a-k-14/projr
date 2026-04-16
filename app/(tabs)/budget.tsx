@@ -251,7 +251,7 @@ function BudgetCard({
           }}
         >
           {isEmojiIcon(budget.categoryIcon) ? (
-            <Text style={{ fontSize: 18 }}>{budget.categoryIcon}</Text>
+            <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{budget.categoryIcon}</Text>
           ) : (
             <Feather name={budget.categoryIcon as keyof typeof Feather.glyphMap} size={17} color={palette.iconTint} />
           )}

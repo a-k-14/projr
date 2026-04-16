@@ -8,6 +8,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 
 export default function SelectAccountSheet() {
@@ -41,7 +42,7 @@ export default function SelectAccountSheet() {
           />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, paddingHorizontal: SHEET_GUTTER }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: palette.text, flex: 1 }}>
+          <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>
             Select account
           </Text>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
