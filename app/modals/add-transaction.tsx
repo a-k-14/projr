@@ -108,6 +108,7 @@ export default function AddTransactionModal() {
   const [pickerMode, setPickerMode] = useState<'date' | 'time' | 'datetime'>('date');
   const splitIdSeed = useRef(0);
   const hadSplitRows = useRef(false);
+  const previousType = useRef<TransactionType>((initialType as TransactionType) || 'out');
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -302,9 +303,6 @@ export default function AddTransactionModal() {
   const usableSplitRows = splitRows.filter(
     (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0,
   );
-  const splitValid =
-    splitRows.length === 0 ||
-    splitRows.every((row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0);
 
   useEffect(() => {
     if (type !== 'in' && type !== 'out') return;
@@ -324,14 +322,31 @@ export default function AddTransactionModal() {
     }
   }, [categoryId, setDraftCategoryId, splitTotal, type, usableSplitRows.length]);
 
+  useEffect(() => {
+    const previous = previousType.current;
+    previousType.current = type;
+
+    const switchedBetweenCashflowTypes =
+      (previous === 'in' || previous === 'out') &&
+      (type === 'in' || type === 'out') &&
+      previous !== type;
+
+    if ((type !== 'in' && type !== 'out') || switchedBetweenCashflowTypes) {
+      if (splitRows.length > 0) {
+        clearSplitRows();
+        setEditingSplitGroupId('');
+      }
+    }
+  }, [clearSplitRows, splitRows.length, type]);
+
   const isValid =
     type === 'transfer'
       ? amount > 0 && accountId && linkedAccountId && accountId !== linkedAccountId
       : type === 'loan'
         ? amount > 0 && accountId && personName.trim().length > 0
         : usableSplitRows.length > 0
-          ? splitTotal > 0 && accountId && splitValid
-          : amount > 0 && accountId && categoryId && splitValid;
+          ? splitTotal > 0 && accountId
+          : amount > 0 && accountId && categoryId;
 
   const actionLabel = isEditing
     ? 'Save Changes'
@@ -392,6 +407,7 @@ export default function AddTransactionModal() {
         }
         await reloadTransactions();
         await refreshAccounts();
+        setEditingSplitGroupId('');
         clearSplitRows();
         router.back();
         return;
@@ -473,6 +489,7 @@ export default function AddTransactionModal() {
             await removeTransaction(editId);
           }
           await refreshAccounts();
+          setEditingSplitGroupId('');
           clearSplitRows();
           router.back();
         },

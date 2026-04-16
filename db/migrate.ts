@@ -11,6 +11,74 @@ async function ensureColumn(table: string, column: string, definition: string): 
   return true;
 }
 
+async function dropLegacySplitDataColumn() {
+  if (!(await hasColumn('transactions', 'split_data'))) return;
+
+  await sqlite.execAsync(`
+    BEGIN TRANSACTION;
+
+    ALTER TABLE transactions RENAME TO transactions_legacy;
+
+    CREATE TABLE transactions (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      amount REAL NOT NULL,
+      account_id TEXT NOT NULL,
+      split_group_id TEXT,
+      linked_account_id TEXT,
+      loan_id TEXT,
+      category_id TEXT,
+      tags TEXT NOT NULL DEFAULT '[]',
+      payee TEXT,
+      note TEXT,
+      date TEXT NOT NULL,
+      transfer_pair_id TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    INSERT INTO transactions (
+      id,
+      type,
+      amount,
+      account_id,
+      split_group_id,
+      linked_account_id,
+      loan_id,
+      category_id,
+      tags,
+      payee,
+      note,
+      date,
+      transfer_pair_id,
+      created_at
+    )
+    SELECT
+      id,
+      type,
+      amount,
+      account_id,
+      split_group_id,
+      linked_account_id,
+      loan_id,
+      category_id,
+      tags,
+      payee,
+      note,
+      date,
+      transfer_pair_id,
+      created_at
+    FROM transactions_legacy;
+
+    DROP TABLE transactions_legacy;
+
+    CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
+    CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_loan ON transactions(loan_id);
+
+    COMMIT;
+  `);
+}
+
 export async function runMigrations() {
   await sqlite.execAsync(`
     CREATE TABLE IF NOT EXISTS accounts (
@@ -95,6 +163,7 @@ export async function runMigrations() {
   await ensureColumn('accounts', 'account_number', 'TEXT');
   await ensureColumn('accounts', 'initial_balance', 'REAL');
   await ensureColumn('budget', 'repeat', 'INTEGER NOT NULL DEFAULT 1');
+  await dropLegacySplitDataColumn();
   const addedSortOrder = await ensureColumn('accounts', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
 
   if (addedSortOrder) {

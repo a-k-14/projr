@@ -53,20 +53,23 @@ export async function createAccount(data: CreateAccountInput): Promise<Account> 
 }
 
 export async function updateAccount(id: string, data: Partial<Account>): Promise<Account> {
-  const existing = await getAccountById(id);
-  if (!existing) throw new Error('Account not found');
+  await db.transaction(async (tx) => {
+    const rows = await tx.select().from(accounts).where(eq(accounts.id, id));
+    const existing = rows[0];
+    if (!existing) throw new Error('Account not found');
 
-  const updateData: Partial<typeof accounts.$inferInsert> = { ...(data as Partial<typeof accounts.$inferInsert>) };
+    const updateData: Partial<typeof accounts.$inferInsert> = { ...(data as Partial<typeof accounts.$inferInsert>) };
 
-  if (data.initialBalance !== undefined) {
-    const delta = data.initialBalance - existing.initialBalance;
-    updateData.initialBalance = data.initialBalance;
-    updateData.balance = existing.balance + delta;
-  } else if (data.balance !== undefined) {
-    throw new Error('Direct balance updates are not supported.');
-  }
+    if (data.initialBalance !== undefined) {
+      const delta = data.initialBalance - existing.initialBalance;
+      updateData.initialBalance = data.initialBalance;
+      updateData.balance = existing.balance + delta;
+    } else if (data.balance !== undefined) {
+      throw new Error('Direct balance updates are not supported.');
+    }
 
-  await db.update(accounts).set(updateData).where(eq(accounts.id, id));
+    await tx.update(accounts).set(updateData).where(eq(accounts.id, id));
+  });
   return (await getAccountById(id))!;
 }
 

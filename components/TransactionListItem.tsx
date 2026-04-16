@@ -72,6 +72,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   let titleSecondaryText: string | undefined;
   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' · ');
   let noteLine: string | undefined;
+  const metadataParts: string[] = [];
 
   // 1. Specialized Title/Subtitle based on type
   if (tx.transferPairId && linkedAccountName) {
@@ -91,6 +92,13 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     subtitle = [tx.payee, accountNameSelected].filter(Boolean).join(' · ');
     noteLine = tx.note?.trim() || undefined;
+  }
+
+  if (tx.splitGroupId) {
+    metadataParts.push('Split');
+  }
+  if (tertiaryText) {
+    metadataParts.push(tertiaryText);
   }
 
   const amountValue = displayAmount ?? tx.amount;
@@ -162,32 +170,17 @@ export const TransactionListItem = React.memo(function TransactionListItem({
             {noteLine}
           </Text>
         ) : null}
-        {tertiaryText ? (
+        {metadataParts.length > 0 ? (
           <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 1 }}>
-            {tertiaryText}
+            {metadataParts.join(' • ')}
           </Text>
         ) : null}
       </View>
 
-      <View style={{ alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: tx.splitGroupId ? 'space-between' : 'center', paddingVertical: 1 }}>
+      <View style={{ alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'center', paddingVertical: 1 }}>
         <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: amountColor }}>
           {amountPrefix ? `${amountPrefix} ${formatCurrency(amountValue, sym)}` : formatCurrency(amountValue, sym)}
         </Text>
-        {tx.splitGroupId ? (
-          <View
-            style={{
-              minHeight: 22,
-              paddingHorizontal: 8,
-              borderRadius: 10,
-              backgroundColor: palette.inputBg,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginTop: 8,
-            }}
-          >
-            <Text style={{ fontSize: 10, fontWeight: '700', color: palette.textSecondary }}>Split</Text>
-          </View>
-        ) : null}
       </View>
     </View>
   );

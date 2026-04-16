@@ -1,6 +1,6 @@
-import { eq, and, gte, lte, desc, like } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, like, inArray } from 'drizzle-orm';
 import { db } from '../db/client';
-import { transactions } from '../db/schema';
+import { accounts, categories, transactions } from '../db/schema';
 import type {
   Transaction,
   CreateTransactionInput,
@@ -8,7 +8,8 @@ import type {
 } from '../types';
 import { generateId } from '../lib/ids';
 import { nowUTC } from '../lib/dateUtils';
-import { updateAccountBalance } from './accounts';
+
+type TransactionExecutor = Pick<typeof db, 'select' | 'update'>;
 
 function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
   return {
@@ -27,6 +28,28 @@ function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
     transferPairId: row.transferPairId ?? undefined,
     createdAt: row.createdAt,
   };
+}
+
+async function getAccountBalance(executor: TransactionExecutor, accountId: string): Promise<number> {
+  const rows = await executor
+    .select({ balance: accounts.balance })
+    .from(accounts)
+    .where(eq(accounts.id, accountId));
+  if (!rows[0]) throw new Error('Account not found');
+  return rows[0].balance;
+}
+
+async function applyAccountBalanceDelta(
+  executor: TransactionExecutor,
+  accountId: string,
+  delta: number,
+): Promise<void> {
+  if (!delta) return;
+  const currentBalance = await getAccountBalance(executor, accountId);
+  await executor
+    .update(accounts)
+    .set({ balance: currentBalance + delta })
+    .where(eq(accounts.id, accountId));
 }
 
 export async function getTransactions(filters: TransactionFilters = {}): Promise<Transaction[]> {
@@ -103,9 +126,11 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       createdAt: now,
     };
 
-    await db.insert(transactions).values([outRow, inRow]);
-    await updateAccountBalance(data.accountId, -data.amount);
-    await updateAccountBalance(data.linkedAccountId!, data.amount);
+    await db.transaction(async (tx) => {
+      await tx.insert(transactions).values([outRow, inRow]);
+      await applyAccountBalanceDelta(tx, data.accountId, -data.amount);
+      await applyAccountBalanceDelta(tx, data.linkedAccountId!, data.amount);
+    });
     return rowToTransaction(outRow);
   }
 
@@ -127,10 +152,11 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     createdAt: now,
   };
 
-  await db.insert(transactions).values(row);
-
-  if (data.type === 'in') await updateAccountBalance(data.accountId, data.amount);
-  else if (data.type === 'out') await updateAccountBalance(data.accountId, -data.amount);
+  await db.transaction(async (tx) => {
+    await tx.insert(transactions).values(row);
+    if (data.type === 'in') await applyAccountBalanceDelta(tx, data.accountId, data.amount);
+    else if (data.type === 'out') await applyAccountBalanceDelta(tx, data.accountId, -data.amount);
+  });
 
   return rowToTransaction(row);
 }
@@ -141,10 +167,6 @@ export async function updateTransaction(
 ): Promise<Transaction> {
   const existing = await getTransactionById(id);
   if (!existing) throw new Error('Transaction not found');
-
-  // Reverse old balance effect
-  if (existing.type === 'in') await updateAccountBalance(existing.accountId, -existing.amount);
-  else if (existing.type === 'out') await updateAccountBalance(existing.accountId, existing.amount);
 
   const updateData: Record<string, any> = {};
   if (data.type !== undefined) updateData.type = data.type;
@@ -157,15 +179,22 @@ export async function updateTransaction(
   if (data.accountId !== undefined) updateData.accountId = data.accountId;
   if (data.splitGroupId !== undefined) updateData.splitGroupId = data.splitGroupId;
 
-  await db.update(transactions).set(updateData).where(eq(transactions.id, id));
+  let updatedRow: typeof transactions.$inferSelect | undefined;
+  await db.transaction(async (tx) => {
+    if (existing.type === 'in') await applyAccountBalanceDelta(tx, existing.accountId, -existing.amount);
+    else if (existing.type === 'out') await applyAccountBalanceDelta(tx, existing.accountId, existing.amount);
 
-  const updated = await getTransactionById(id);
+    await tx.update(transactions).set(updateData).where(eq(transactions.id, id));
 
-  // Apply new balance effect
-  if (updated!.type === 'in') await updateAccountBalance(updated!.accountId, updated!.amount);
-  else if (updated!.type === 'out') await updateAccountBalance(updated!.accountId, -updated!.amount);
+    const rows = await tx.select().from(transactions).where(eq(transactions.id, id));
+    updatedRow = rows[0];
+    if (!updatedRow) throw new Error('Updated transaction not found');
 
-  return updated!;
+    if (updatedRow.type === 'in') await applyAccountBalanceDelta(tx, updatedRow.accountId, updatedRow.amount);
+    else if (updatedRow.type === 'out') await applyAccountBalanceDelta(tx, updatedRow.accountId, -updatedRow.amount);
+  });
+
+  return rowToTransaction(updatedRow!);
 }
 
 export async function updateTransferTransaction(
@@ -185,49 +214,54 @@ export async function updateTransferTransaction(
   const inRow = pair.find((row) => row.type === 'in');
   if (!outRow || !inRow) throw new Error('Transfer pair is incomplete');
 
-  await updateAccountBalance(outRow.accountId, outRow.amount);
-  await updateAccountBalance(inRow.accountId, -inRow.amount);
+  let updatedRow: typeof transactions.$inferSelect | undefined;
+  await db.transaction(async (tx) => {
+    await applyAccountBalanceDelta(tx, outRow.accountId, outRow.amount);
+    await applyAccountBalanceDelta(tx, inRow.accountId, -inRow.amount);
 
-  await db
-    .update(transactions)
-    .set({
-      type: 'out',
-      amount: data.amount,
-      accountId: data.accountId,
-      splitGroupId: null,
-      linkedAccountId: data.linkedAccountId,
-      loanId: null,
-      categoryId: null,
-      payee: data.payee ?? null,
-      tags: '[]',
-      note: data.note ?? null,
-      date: data.date,
-    })
-    .where(eq(transactions.id, outRow.id));
+    await tx
+      .update(transactions)
+      .set({
+        type: 'out',
+        amount: data.amount,
+        accountId: data.accountId,
+        splitGroupId: null,
+        linkedAccountId: data.linkedAccountId,
+        loanId: null,
+        categoryId: null,
+        payee: data.payee ?? null,
+        tags: '[]',
+        note: data.note ?? null,
+        date: data.date,
+      })
+      .where(eq(transactions.id, outRow.id));
 
-  await db
-    .update(transactions)
-    .set({
-      type: 'in',
-      amount: data.amount,
-      accountId: data.linkedAccountId,
-      splitGroupId: null,
-      linkedAccountId: data.accountId,
-      loanId: null,
-      categoryId: null,
-      payee: data.payee ?? null,
-      tags: '[]',
-      note: data.note ?? null,
-      date: data.date,
-    })
-    .where(eq(transactions.id, inRow.id));
+    await tx
+      .update(transactions)
+      .set({
+        type: 'in',
+        amount: data.amount,
+        accountId: data.linkedAccountId,
+        splitGroupId: null,
+        linkedAccountId: data.accountId,
+        loanId: null,
+        categoryId: null,
+        payee: data.payee ?? null,
+        tags: '[]',
+        note: data.note ?? null,
+        date: data.date,
+      })
+      .where(eq(transactions.id, inRow.id));
 
-  await updateAccountBalance(data.accountId, -data.amount);
-  await updateAccountBalance(data.linkedAccountId, data.amount);
+    await applyAccountBalanceDelta(tx, data.accountId, -data.amount);
+    await applyAccountBalanceDelta(tx, data.linkedAccountId!, data.amount);
 
-  const updated = await getTransactionById(id);
-  if (!updated) throw new Error('Updated transfer transaction not found');
-  return updated;
+    const rows = await tx.select().from(transactions).where(eq(transactions.id, id));
+    updatedRow = rows[0];
+  });
+
+  if (!updatedRow) throw new Error('Updated transfer transaction not found');
+  return rowToTransaction(updatedRow);
 }
 
 export async function getTransactionsBySplitGroup(splitGroupId: string): Promise<Transaction[]> {
@@ -254,10 +288,48 @@ type SplitGroupInput = {
   items: SplitGroupItemInput[];
 };
 
+async function normalizeSplitGroupItems(
+  type: 'in' | 'out',
+  items: SplitGroupItemInput[],
+): Promise<SplitGroupItemInput[]> {
+  const normalized = items
+    .map((item) => ({
+      categoryId: item.categoryId,
+      amount: Number(item.amount),
+    }))
+    .filter((item) => item.categoryId && Number.isFinite(item.amount) && item.amount > 0);
+
+  if (normalized.length === 0) {
+    throw new Error('Add at least one valid split line item.');
+  }
+
+  const categoryIds = Array.from(new Set(normalized.map((item) => item.categoryId)));
+  const categoryRows = await db
+    .select({ id: categories.id, type: categories.type })
+    .from(categories)
+    .where(inArray(categories.id, categoryIds));
+
+  if (categoryRows.length !== categoryIds.length) {
+    throw new Error('One or more split categories could not be found.');
+  }
+
+  const typeById = new Map(categoryRows.map((row) => [row.id, row.type]));
+  for (const item of normalized) {
+    const categoryType = typeById.get(item.categoryId);
+    if (!categoryType || (categoryType !== type && categoryType !== 'both')) {
+      throw new Error(`Split items must use valid ${type} categories.`);
+    }
+  }
+
+  return normalized;
+}
+
 export async function createSplitTransactionGroup(data: SplitGroupInput): Promise<Transaction[]> {
+  const items = await normalizeSplitGroupItems(data.type, data.items);
   const splitGroupId = generateId();
-  const rows = data.items.map((item, index) => {
-    const createdAt = new Date(Date.now() + (data.items.length - index)).toISOString();
+  const baseCreatedAt = Date.now();
+  const rows = items.map((item, index) => {
+    const createdAt = new Date(baseCreatedAt + (items.length - index)).toISOString();
     return {
       id: generateId(),
       type: data.type,
@@ -276,9 +348,11 @@ export async function createSplitTransactionGroup(data: SplitGroupInput): Promis
     };
   });
 
-  await db.insert(transactions).values(rows);
-  const total = data.items.reduce((sum, item) => sum + item.amount, 0);
-  await updateAccountBalance(data.accountId, data.type === 'in' ? total : -total);
+  await db.transaction(async (tx) => {
+    await tx.insert(transactions).values(rows);
+    const total = items.reduce((sum, item) => sum + item.amount, 0);
+    await applyAccountBalanceDelta(tx, data.accountId, data.type === 'in' ? total : -total);
+  });
   return rows.map(rowToTransaction);
 }
 
@@ -288,16 +362,15 @@ export async function updateSplitTransactionGroup(
 ): Promise<Transaction[]> {
   const existing = await getTransactionsBySplitGroup(splitGroupId);
   if (existing.length === 0) throw new Error('Split transaction not found');
+  const items = await normalizeSplitGroupItems(data.type, data.items);
 
   const existingTotal = existing.reduce((sum, tx) => sum + tx.amount, 0);
   const existingAccountId = existing[0].accountId;
   const existingType = existing[0].type;
+  const baseCreatedAt = Date.now();
 
-  await updateAccountBalance(existingAccountId, existingType === 'in' ? -existingTotal : existingTotal);
-  await db.delete(transactions).where(eq(transactions.splitGroupId, splitGroupId));
-
-  const rows = data.items.map((item, index) => {
-    const createdAt = new Date(Date.now() + (data.items.length - index)).toISOString();
+  const rows = items.map((item, index) => {
+    const createdAt = new Date(baseCreatedAt + (items.length - index)).toISOString();
     return {
       id: generateId(),
       type: data.type,
@@ -316,9 +389,17 @@ export async function updateSplitTransactionGroup(
     };
   });
 
-  await db.insert(transactions).values(rows);
-  const total = data.items.reduce((sum, item) => sum + item.amount, 0);
-  await updateAccountBalance(data.accountId, data.type === 'in' ? total : -total);
+  await db.transaction(async (tx) => {
+    await applyAccountBalanceDelta(
+      tx,
+      existingAccountId,
+      existingType === 'in' ? -existingTotal : existingTotal,
+    );
+    await tx.delete(transactions).where(eq(transactions.splitGroupId, splitGroupId));
+    await tx.insert(transactions).values(rows);
+    const total = items.reduce((sum, item) => sum + item.amount, 0);
+    await applyAccountBalanceDelta(tx, data.accountId, data.type === 'in' ? total : -total);
+  });
   return rows.map(rowToTransaction);
 }
 
@@ -358,11 +439,13 @@ export async function deleteTransaction(id: string): Promise<void> {
 
   if (existing.splitGroupId) {
     const group = await getTransactionsBySplitGroup(existing.splitGroupId);
-    for (const tx of group) {
-      if (tx.type === 'in') await updateAccountBalance(tx.accountId, -tx.amount);
-      else if (tx.type === 'out') await updateAccountBalance(tx.accountId, tx.amount);
-    }
-    await db.delete(transactions).where(eq(transactions.splitGroupId, existing.splitGroupId));
+    await db.transaction(async (tx) => {
+      for (const item of group) {
+        if (item.type === 'in') await applyAccountBalanceDelta(tx, item.accountId, -item.amount);
+        else if (item.type === 'out') await applyAccountBalanceDelta(tx, item.accountId, item.amount);
+      }
+      await tx.delete(transactions).where(eq(transactions.splitGroupId, existing.splitGroupId!));
+    });
     return;
   }
 
@@ -372,19 +455,23 @@ export async function deleteTransaction(id: string): Promise<void> {
       .from(transactions)
       .where(eq(transactions.transferPairId, existing.transferPairId));
 
-    for (const t of pair) {
-      if (t.type === 'in') await updateAccountBalance(t.accountId, -t.amount);
-      else if (t.type === 'out') await updateAccountBalance(t.accountId, t.amount);
-    }
+    await db.transaction(async (tx) => {
+      for (const item of pair) {
+        if (item.type === 'in') await applyAccountBalanceDelta(tx, item.accountId, -item.amount);
+        else if (item.type === 'out') await applyAccountBalanceDelta(tx, item.accountId, item.amount);
+      }
 
-    await db
-      .delete(transactions)
-      .where(eq(transactions.transferPairId, existing.transferPairId));
+      await tx
+        .delete(transactions)
+        .where(eq(transactions.transferPairId, existing.transferPairId!));
+    });
     return;
   }
 
-  if (existing.type === 'in') await updateAccountBalance(existing.accountId, -existing.amount);
-  else if (existing.type === 'out') await updateAccountBalance(existing.accountId, existing.amount);
+  await db.transaction(async (tx) => {
+    if (existing.type === 'in') await applyAccountBalanceDelta(tx, existing.accountId, -existing.amount);
+    else if (existing.type === 'out') await applyAccountBalanceDelta(tx, existing.accountId, existing.amount);
 
-  await db.delete(transactions).where(eq(transactions.id, id));
+    await tx.delete(transactions).where(eq(transactions.id, id));
+  });
 }
