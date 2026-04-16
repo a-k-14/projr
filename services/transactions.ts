@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, desc, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, inArray, sql, or, like } from 'drizzle-orm';
 import { db } from '../db/client';
 import { accounts, categories, loans, transactions } from '../db/schema';
 import type {
@@ -49,10 +49,10 @@ async function applyAccountBalanceDelta(
   delta: number,
 ): Promise<void> {
   if (!delta) return;
-  const currentBalance = await getAccountBalance(executor, accountId);
+  // Use atomic SQL update to prevent race conditions
   await executor
     .update(accounts)
-    .set({ balance: currentBalance + delta })
+    .set({ balance: sql`${accounts.balance} + ${delta}` })
     .where(eq(accounts.id, accountId));
 }
 
@@ -66,63 +66,28 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
   if (filters.fromDate) conditions.push(gte(transactions.date, filters.fromDate));
   if (filters.toDate) conditions.push(lte(transactions.date, filters.toDate));
 
-  const baseQuery = db
+  if (filters.search?.trim()) {
+    const needle = `%${filters.search.trim()}%`;
+    conditions.push(
+      or(
+        like(transactions.payee, needle),
+        like(transactions.note, needle),
+      ) as ReturnType<typeof eq>
+    );
+  }
+
+  let query = db
     .select()
     .from(transactions)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(transactions.date), desc(transactions.createdAt));
+    .orderBy(desc(transactions.date), desc(transactions.createdAt))
+    .$dynamic();
 
-  if (!filters.search?.trim()) {
-    let query = baseQuery.$dynamic();
+  if (filters.limit) query = query.limit(filters.limit);
+  if (filters.offset) query = query.offset(filters.offset);
 
-    if (filters.limit) query = query.limit(filters.limit);
-    if (filters.offset) query = query.offset(filters.offset);
-
-    const rows = await query;
-    return rows.map(rowToTransaction);
-  }
-
-  const rows = await baseQuery;
-  const txs = rows.map(rowToTransaction);
-  const needle = filters.search.trim().toLowerCase();
-  const [accountRows, categoryRows, tagRows, loanRows] = await Promise.all([
-    getAccounts(),
-    getCategories(),
-    getTags(),
-    db.select({ id: loans.id, personName: loans.personName }).from(loans),
-  ]);
-
-  const accountById = new Map(accountRows.map((account) => [account.id, account.name]));
-  const categoryById = new Map(categoryRows.map((category) => [category.id, category]));
-  const tagById = new Map(tagRows.map((tag) => [tag.id, tag.name]));
-  const loanById = new Map(loanRows.map((loan) => [loan.id, loan.personName]));
-
-  const matches = txs.filter((tx) => {
-    const accountName = accountById.get(tx.accountId) ?? '';
-    const linkedAccountName = tx.linkedAccountId ? accountById.get(tx.linkedAccountId) ?? '' : '';
-    const category = tx.categoryId ? categoryById.get(tx.categoryId) : undefined;
-    const parentCategory = category?.parentId ? categoryById.get(category.parentId) : undefined;
-    const categoryDisplay = parentCategory ? `${parentCategory.name} ${category?.name ?? ''}` : category?.name ?? '';
-    const tagDisplay = tx.tags.map((tagId) => tagById.get(tagId) ?? '').join(' ');
-    const loanPersonName = tx.loanId ? loanById.get(tx.loanId) ?? '' : '';
-    const haystack = [
-      tx.note ?? '',
-      tx.payee ?? '',
-      accountName,
-      linkedAccountName,
-      categoryDisplay,
-      tagDisplay,
-      loanPersonName,
-    ]
-      .join(' ')
-      .toLowerCase();
-
-    return haystack.includes(needle);
-  });
-
-  const offset = filters.offset ?? 0;
-  const sliced = filters.limit ? matches.slice(offset, offset + filters.limit) : matches.slice(offset);
-  return sliced;
+  const rows = await query;
+  return rows.map(rowToTransaction);
 }
 
 export async function getTransactionById(id: string): Promise<Transaction | null> {

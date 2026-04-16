@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
+  LayoutAnimation,
   RefreshControl,
   StyleSheet,
   Text,
@@ -62,6 +63,12 @@ export default function LoansScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
+
+  const toggleSearch = useCallback((active: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsSearchActive(active);
+    if (!active) setSearch('');
+  }, []);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [directionFilter, setDirectionFilter] = useState<'all' | 'lent' | 'borrowed'>('all');
@@ -200,7 +207,7 @@ export default function LoansScreen() {
               </TouchableOpacity>
             ) : null}
           </View>
-          <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearch(''); }}>
+          <TouchableOpacity onPress={() => toggleSearch(false)}>
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
@@ -214,7 +221,7 @@ export default function LoansScreen() {
             </Text>
             <View style={{ flex: 1 }} />
             <TouchableOpacity
-              onPress={() => setIsSearchActive(true)}
+              onPress={() => toggleSearch(true)}
               style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
             >
               <Ionicons name="search" size={17} color={palette.textMuted} />
@@ -230,6 +237,9 @@ export default function LoansScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />
         }
         contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         ListHeaderComponent={
           <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
             <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>

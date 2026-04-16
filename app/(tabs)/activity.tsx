@@ -1,11 +1,14 @@
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   BackHandler,
   FlatList,
+  InteractionManager,
+  LayoutAnimation,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,6 +16,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
@@ -23,11 +27,15 @@ import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { FilterChip } from '../../components/ui/FilterChip';
 import { ListHeading } from '../../components/ui/ListHeading';
+import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
+import { ActivityFilterBar } from '../../components/activity/ActivityFilterBar';
+import { ActivityMoreFiltersSheet } from '../../components/activity/ActivityMoreFiltersSheet';
 import {
   getNavigableDateRange,
   getPeriodNavLabel,
   getRelativeDateLabel,
 } from '../../lib/dateUtils';
+import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { formatCurrency, getLoanTransactionKind, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_SPACE, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
@@ -58,16 +66,6 @@ type CategoryDrilldown = {
 };
 type HierarchyFamily = 'out' | 'in' | 'loan' | 'transfer';
 
-const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'In', value: 'in' },
-  { label: 'Out', value: 'out' },
-  { label: 'Transfer', value: 'transfer' },
-  { label: 'Loan', value: 'loan' },
-];
-
-const PERIOD_ARROW_WIDTH = 34;
-
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
   const routeParams = useLocalSearchParams<{
@@ -79,6 +77,7 @@ export default function ActivityScreen() {
     from?: string;
     to?: string;
     ts?: string;
+    categoryId?: string;
   }>();
   const accounts = useAccountsStore((s) => s.accounts);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
@@ -116,14 +115,23 @@ export default function ActivityScreen() {
   const [cashflowBucket, setCashflowBucket] = useState<'all' | 'in' | 'out' | 'net'>('all');
   const [search, setSearch] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
+
+  const toggleSearch = useCallback((active: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsSearchActive(active);
+    if (!active) setSearch('');
+  }, []);
+
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [amountMinStr, setAmountMinStr] = useState('');
   const [amountMaxStr, setAmountMaxStr] = useState('');
+  const [isTransitioning, setIsTransitioning] = useState(true);
   const [groupByMode, setGroupByMode] = useState<GroupByMode>('date');
   const [draftGroupByMode, setDraftGroupByMode] = useState<GroupByMode>('date');
   const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
@@ -135,6 +143,36 @@ export default function ActivityScreen() {
   const loadingRef = useRef(false);
   const requestIdRef = useRef(0);
   const lastAppliedRouteTsRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsTransitioning(false);
+    });
+    return () => task.cancel();
+  }, []);
+
+  useEffect(() => {
+    if (routeParams.from || routeParams.to || routeParams.type || routeParams.categoryId || routeParams.cashflowBucket) {
+      if (routeParams.ts === lastAppliedRouteTsRef.current) return;
+      lastAppliedRouteTsRef.current = routeParams.ts ?? null;
+
+      InteractionManager.runAfterInteractions(() => {
+        if (routeParams.from) setCustomFrom(routeParams.from);
+        if (routeParams.to) setCustomTo(routeParams.to);
+        if (routeParams.from && routeParams.to) setPeriod('custom');
+        if (routeParams.period && routeParams.period !== 'custom') {
+          setPeriod(routeParams.period as ActivityPeriod);
+          setPeriodOffset(0);
+        }
+        if (routeParams.type) setTypeFilter(routeParams.type as TransactionType | 'all');
+        if (routeParams.cashflowBucket) setCashflowBucket(routeParams.cashflowBucket as 'all' | 'in' | 'out' | 'net');
+        if (routeParams.categoryId) {
+          setSelectedCategoryIds([routeParams.categoryId]);
+          setGroupByMode('date');
+        }
+      });
+    }
+  }, [routeParams]);
 
   useEffect(() => {
     if (!isFocused || groupByMode !== 'category' || !categoryDrilldown) return;
@@ -773,8 +811,8 @@ export default function ActivityScreen() {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       {isSearchActive ? (
-        <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
-          <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
+        <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}>
+          <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
             <Ionicons name="search" size={15} color={palette.textMuted} />
             <TextInput
               autoFocus
@@ -791,7 +829,7 @@ export default function ActivityScreen() {
               </TouchableOpacity>
             ) : null}
           </View>
-          <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearch(''); }}>
+          <TouchableOpacity onPress={() => toggleSearch(false)}>
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
@@ -807,7 +845,7 @@ export default function ActivityScreen() {
             <View style={{ flex: 1 }} />
 
             <TouchableOpacity
-              onPress={() => setIsSearchActive(true)}
+              onPress={() => toggleSearch(true)}
               style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
             >
               <Ionicons name="search" size={17} color={palette.textMuted} />
@@ -816,449 +854,255 @@ export default function ActivityScreen() {
         </View>
       )}
 
-      {groupByMode === 'date' || categoryDrilldown ? (
-        <FlatList
-          data={grouped}
-          keyExtractor={(item) => item.groupKey}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-          onEndReached={onLoadMore}
-          onEndReachedThreshold={0.4}
-          contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
-          ListHeaderComponent={
-          <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-            <View
-              style={[
-                styles.row,
-                {
-                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                  marginBottom: ACTIVITY_LAYOUT.headerRowGap,
-                },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={() => setShowAccountSheet(true)}
-                style={[
-                  styles.accountPicker,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: palette.divider,
-                    width: '36%',
-                    marginRight: ACTIVITY_LAYOUT.controlChipGap,
-                  },
-                ]}
-              >
-                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
-                  {accountLabel}
-                </Text>
-                <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
-              </TouchableOpacity>
-
-              <View
-                style={[
-                  styles.periodBar,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: palette.divider,
-                    flex: 1,
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={goPrev}
-                  disabled={period === 'custom' || period === 'all'}
-                  style={[styles.periodArrow, { borderRightColor: palette.divider }]}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={14}
-                    color={palette.text}
-                    style={{ opacity: period === 'custom' || period === 'all' ? 0.2 : 1 }}
+      {isTransitioning ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={palette.brand} />
+        </View>
+      ) : (
+        <>
+          {groupByMode === 'date' || categoryDrilldown ? (
+            <FlatList
+              data={grouped}
+              keyExtractor={(item) => item.groupKey}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
+              onEndReached={onLoadMore}
+              onEndReachedThreshold={0.4}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
+              ListHeaderComponent={
+                <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
+                  <ActivityFilterBar
+                    accountLabel={accountLabel}
+                    setShowAccountSheet={setShowAccountSheet}
+                    typeFilter={typeFilter}
+                    setTypeFilter={setTypeFilter}
+                    setCashflowBucket={setCashflowBucket}
+                    setShowMoreSheet={setShowMoreSheet}
+                    moreActiveCount={moreActiveCount}
+                    palette={palette}
+                    periodNavigation={
+                      <ActivityPeriodHeader
+                        period={period}
+                        periodLabel={periodLabel}
+                        goPrev={goPrev}
+                        goNext={goNext}
+                        canGoNext={canGoNext}
+                        setShowPeriodSheet={setShowPeriodSheet}
+                        palette={palette}
+                      />
+                    }
                   />
-                </TouchableOpacity>
 
-                <View style={styles.periodCenter}>
-                  <TouchableOpacity
-                    onPress={() => setShowPeriodSheet(true)}
-                    style={styles.periodCenterTouch}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
-                  >
-                    <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }} numberOfLines={1}>
-                      {periodLabel}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                  {period !== 'all' ? (
+                    <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+                      <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
+                    </View>
+                  ) : null}
 
-                <TouchableOpacity
-                  onPress={goNext}
-                  disabled={!canGoNext}
-                  style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <Ionicons
-                    name="chevron-forward"
-                    size={14}
-                    color={palette.text}
-                    style={{ opacity: canGoNext ? 1 : 0.2 }}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }]}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingRight: ACTIVITY_LAYOUT.controlChipGap, paddingBottom: 2 }}
-              >
-                <View style={styles.chipRow}>
-                  {TYPE_OPTIONS.map((option) => (
-                    <FilterChip
-                      key={option.value}
-                      label={option.label}
-                      isActive={typeFilter === option.value}
-                      onPress={() => {
-                        setTypeFilter(option.value);
-                        setCashflowBucket(
-                          option.value === 'in' || option.value === 'out' ? option.value : 'all',
-                        );
+                  {groupByMode === 'category' && categoryDrilldown ? (
+                    <View
+                      style={{
+                        paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+                        marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom,
                       }}
-                      palette={palette}
-                    />
-                  ))}
+                    >
+                      <TouchableOpacity
+                        onPress={() => setCategoryDrilldown(null)}
+                        activeOpacity={0.75}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <Feather name="chevron-left" size={16} color={palette.textMuted} />
+                        <Text
+                          numberOfLines={1}
+                          style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
+                        >
+                          {categoryDrilldown.parentLabel} › {categoryDrilldown.subLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+
+                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
                 </View>
-              </ScrollView>
-              <TouchableOpacity
-                onPress={() => setShowMoreSheet(true)}
-                activeOpacity={0.75}
-                style={[
-                  styles.moreChip,
-                  {
-                    backgroundColor: moreActiveCount > 0 ? moreActiveBg : palette.surface,
-                    borderColor: moreActiveCount > 0 ? moreActiveBorder : palette.divider,
-                    marginLeft: ACTIVITY_LAYOUT.moreButtonGap,
-                  },
-                ]}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
-                >
-                  {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
-                </Text>
-                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
-              </TouchableOpacity>
-            </View>
+              }
+              renderItem={renderGroupItem}
+              ListEmptyComponent={
+                !refreshing ? (
+                  <View style={{ paddingTop: 64, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+                    <EmptyStateCard
+                      palette={palette}
+                      title="No transactions found"
+                      subtitle="Add transactions or widen your filters to see activity here."
+                      illustration={<FinanceEmptyMascot palette={palette} variant="activity" />}
+                    />
+                  </View>
+                ) : null
+              }
+            />
+          ) : null}
 
-            {period !== 'all' ? (
-              <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-                <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
-              </View>
-            ) : null}
-
-            {groupByMode === 'category' && categoryDrilldown ? (
-              <View
-                style={{
-                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                  marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => setCategoryDrilldown(null)}
-                  activeOpacity={0.75}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <Feather name="chevron-left" size={16} color={palette.textMuted} />
-                  <Text
-                    numberOfLines={1}
-                    style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
-                  >
-                    {categoryDrilldown.parentLabel} › {categoryDrilldown.subLabel}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
-            <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
-          </View>
-          }
-          renderItem={renderGroupItem}
-          ListEmptyComponent={
-            !refreshing ? (
-              <View style={{ paddingTop: 64, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-                <EmptyStateCard
+          {groupByMode === 'category' && !categoryDrilldown ? (
+            <ScrollView
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
+              contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
+            >
+              <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
+                <ActivityFilterBar
+                  accountLabel={accountLabel}
+                  setShowAccountSheet={setShowAccountSheet}
+                  typeFilter={typeFilter}
+                  setTypeFilter={setTypeFilter}
+                  setCashflowBucket={setCashflowBucket}
+                  setShowMoreSheet={setShowMoreSheet}
+                  moreActiveCount={moreActiveCount}
                   palette={palette}
-                  title="No transactions found"
-                  subtitle="Add transactions or widen your filters to see activity here."
-                  illustration={<FinanceEmptyMascot palette={palette} variant="activity" />}
-                />
-              </View>
-            ) : null
-          }
-        />
-      ) : null}
-      {groupByMode === 'category' && !categoryDrilldown ? (
-        <ScrollView
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-          contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
-        >
-          <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-            <View
-              style={[
-                styles.row,
-                {
-                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                  marginBottom: ACTIVITY_LAYOUT.headerRowGap,
-                },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={() => setShowAccountSheet(true)}
-                style={[
-                  styles.accountPicker,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: palette.divider,
-                    width: '36%',
-                    marginRight: ACTIVITY_LAYOUT.controlChipGap,
-                  },
-                ]}
-              >
-                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
-                  {accountLabel}
-                </Text>
-                <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
-              </TouchableOpacity>
-
-              <View
-                style={[
-                  styles.periodBar,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: palette.divider,
-                    flex: 1,
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={goPrev}
-                  disabled={period === 'custom' || period === 'all'}
-                  style={[styles.periodArrow, { borderRightColor: palette.divider }]}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={14}
-                    color={palette.text}
-                    style={{ opacity: period === 'custom' || period === 'all' ? 0.2 : 1 }}
-                  />
-                </TouchableOpacity>
-
-                <View style={styles.periodCenter}>
-                  <TouchableOpacity
-                    onPress={() => setShowPeriodSheet(true)}
-                    style={styles.periodCenterTouch}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
-                  >
-                    <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }} numberOfLines={1}>
-                      {periodLabel}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  onPress={goNext}
-                  disabled={!canGoNext}
-                  style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <Ionicons
-                    name="chevron-forward"
-                    size={14}
-                    color={palette.text}
-                    style={{ opacity: canGoNext ? 1 : 0.2 }}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }]}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingRight: ACTIVITY_LAYOUT.controlChipGap, paddingBottom: 2 }}
-              >
-                <View style={styles.chipRow}>
-                  {TYPE_OPTIONS.map((option) => (
-                    <FilterChip
-                      key={option.value}
-                      label={option.label}
-                      isActive={typeFilter === option.value}
-                      onPress={() => {
-                        setTypeFilter(option.value);
-                        setCashflowBucket(option.value === 'in' || option.value === 'out' ? option.value : 'all');
-                      }}
+                  periodNavigation={
+                    <ActivityPeriodHeader
+                      period={period}
+                      periodLabel={periodLabel}
+                      goPrev={goPrev}
+                      goNext={goNext}
+                      canGoNext={canGoNext}
+                      setShowPeriodSheet={setShowPeriodSheet}
                       palette={palette}
                     />
-                  ))}
-                </View>
-              </ScrollView>
-              <TouchableOpacity
-                onPress={() => setShowMoreSheet(true)}
-                activeOpacity={0.75}
-                style={[
-                  styles.moreChip,
-                  {
-                    backgroundColor: moreActiveCount > 0 ? moreActiveBg : palette.surface,
-                    borderColor: moreActiveCount > 0 ? moreActiveBorder : palette.divider,
-                    marginLeft: ACTIVITY_LAYOUT.moreButtonGap,
-                  },
-                ]}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
-                >
-                  {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
-                </Text>
-                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
-              </TouchableOpacity>
-            </View>
+                  }
+                />
 
-            {period !== 'all' ? (
-              <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-                <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
-              </View>
-            ) : null}
+                {period !== 'all' ? (
+                  <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+                    <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
+                  </View>
+                ) : null}
 
-            <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
+                <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
 
-            <View>
-              {hierarchySections.map((section) => (
-                <View key={section.key}>
-                  <ListHeading label={section.label} palette={palette} paddingHorizontal={CARD_PADDING} paddingTop={16} paddingBottom={10} />
-                  <CardSection palette={palette}>
-                    {section.items.map((category, categoryIndex) => {
-                      const isExpanded = expandedCategoryIds.includes(category.parentKey);
-                      const isLastCategory = categoryIndex === section.items.length - 1;
-                      const syntheticCfg = category.parentSyntheticType ? txTypeConfig[category.parentSyntheticType] : undefined;
-                      return (
-                        <View key={category.parentKey}>
-                          <TouchableOpacity
-                            onPress={() => toggleCategoryExpansion(category.parentKey)}
-                            activeOpacity={0.75}
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              paddingVertical: 12,
-                              paddingHorizontal: CARD_PADDING,
-                              minHeight: 62,
-                              borderBottomWidth: isLastCategory && !isExpanded ? 0 : 1,
-                              borderBottomColor: palette.divider,
-                              gap: 12,
-                            }}
-                          >
-                            <CategoryIconBadge
-                              icon={category.parentIcon}
-                              ioniconName={
-                                category.parentSyntheticType === 'loan'
-                                  ? 'card-outline'
-                                  : syntheticCfg?.iconName
-                              }
-                              palette={palette}
-                              iconColor={syntheticCfg?.color}
-                            />
-                            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
-                              {category.parentLabel}
-                            </Text>
-                            <Text
-                              style={{
-                                fontSize: HOME_TEXT.body,
-                                fontWeight: '600',
-                                color: category.total >= 0 ? palette.brand : palette.negative,
-                                marginRight: 2,
-                              }}
-                            >
-                              {signedCurrency(category.total, sym)}
-                            </Text>
-                            <Feather
-                              name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                              size={18}
-                              color={palette.textSoft}
-                            />
-                          </TouchableOpacity>
-
-                          {isExpanded ? (
-                            <View
-                              style={{
-                                backgroundColor: palette.inputBg,
-                                borderBottomWidth: isLastCategory ? 0 : 1,
-                                borderBottomColor: palette.divider,
-                              }}
-                            >
-                              {category.subcategories.map((sub, index) => (
-                                <TouchableOpacity
-                                  key={sub.subKey}
-                                  onPress={() =>
-                                    setCategoryDrilldown({
-                                      parentKey: category.parentKey,
-                                      parentLabel: category.parentLabel,
-                                      subKey: sub.subKey,
-                                      subLabel: sub.subLabel,
-                                    })
+                <View>
+                  {hierarchySections.map((section) => (
+                    <View key={section.key}>
+                      <ListHeading label={section.label} palette={palette} paddingHorizontal={CARD_PADDING} paddingTop={16} paddingBottom={10} />
+                      <CardSection palette={palette}>
+                        {section.items.map((category, categoryIndex) => {
+                          const isExpanded = expandedCategoryIds.includes(category.parentKey);
+                          const isLastCategory = categoryIndex === section.items.length - 1;
+                          const syntheticCfg = category.parentSyntheticType ? (txTypeConfig as any)[category.parentSyntheticType] : undefined;
+                          return (
+                            <View key={category.parentKey}>
+                              <TouchableOpacity
+                                onPress={() => toggleCategoryExpansion(category.parentKey)}
+                                activeOpacity={0.75}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  paddingVertical: 12,
+                                  paddingHorizontal: CARD_PADDING,
+                                  minHeight: 62,
+                                  borderBottomWidth: isLastCategory && !isExpanded ? 0 : 1,
+                                  borderBottomColor: palette.divider,
+                                  gap: 12,
+                                }}
+                              >
+                                <CategoryIconBadge
+                                  icon={category.parentIcon}
+                                  ioniconName={
+                                    category.parentSyntheticType === 'loan'
+                                      ? 'card-outline'
+                                      : syntheticCfg?.iconName
                                   }
-                                  activeOpacity={0.75}
+                                  palette={palette}
+                                  iconColor={syntheticCfg?.color}
+                                />
+                                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
+                                  {category.parentLabel}
+                                </Text>
+                                <Text
                                   style={{
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    paddingVertical: 12,
-                                    paddingLeft: CARD_PADDING + 40,
-                                    paddingRight: CARD_PADDING,
-                                    minHeight: 52,
-                                    borderTopWidth: 1,
-                                    borderTopColor: palette.divider,
+                                    fontSize: HOME_TEXT.body,
+                                    fontWeight: '600',
+                                    color: category.total >= 0 ? palette.brand : palette.negative,
+                                    marginRight: 2,
                                   }}
                                 >
-                                  <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
-                                    {sub.subLabel}
-                                  </Text>
-                                  <Text
-                                    style={{
-                                      fontSize: HOME_TEXT.body,
-                                      fontWeight: '500',
-                                      color: sub.total >= 0 ? palette.brand : palette.negative,
-                                      marginRight: 10,
-                                    }}
-                                  >
-                                    {signedCurrency(sub.total, sym)}
-                                  </Text>
-                                  <Feather
-                                    name="chevron-right"
-                                    size={16}
-                                    color={palette.textSoft}
-                                  />
-                                </TouchableOpacity>
-                              ))}
+                                  {signedCurrency(category.total, sym)}
+                                </Text>
+                                <Feather
+                                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                  size={18}
+                                  color={palette.textSoft}
+                                />
+                              </TouchableOpacity>
+
+                              {isExpanded ? (
+                                <View
+                                  style={{
+                                    backgroundColor: palette.inputBg,
+                                    borderBottomWidth: isLastCategory ? 0 : 1,
+                                    borderBottomColor: palette.divider,
+                                  }}
+                                >
+                                  {category.subcategories.map((sub) => (
+                                    <TouchableOpacity
+                                      key={sub.subKey}
+                                      onPress={() =>
+                                        setCategoryDrilldown({
+                                          parentKey: category.parentKey,
+                                          parentLabel: category.parentLabel,
+                                          subKey: sub.subKey,
+                                          subLabel: sub.subLabel,
+                                        })
+                                      }
+                                      activeOpacity={0.75}
+                                      style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        paddingVertical: 12,
+                                        paddingLeft: CARD_PADDING + 40,
+                                        paddingRight: CARD_PADDING,
+                                        minHeight: 52,
+                                        borderTopWidth: 1,
+                                        borderTopColor: palette.divider,
+                                      }}
+                                    >
+                                      <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
+                                        {sub.subLabel}
+                                      </Text>
+                                      <Text
+                                        style={{
+                                          fontSize: HOME_TEXT.body,
+                                          fontWeight: '500',
+                                          color: sub.total >= 0 ? palette.brand : palette.negative,
+                                          marginRight: 10,
+                                        }}
+                                      >
+                                        {signedCurrency(sub.total, sym)}
+                                      </Text>
+                                      <Feather
+                                        name="chevron-right"
+                                        size={16}
+                                        color={palette.textSoft}
+                                      />
+                                    </TouchableOpacity>
+                                  ))}
+                                </View>
+                              ) : null}
                             </View>
-                          ) : null}
-                        </View>
-                      );
-                    })}
-                  </CardSection>
+                          );
+                        })}
+                      </CardSection>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-      ) : null}
+              </View>
+            </ScrollView>
+          ) : null}
+        </>
+      )}
 
       {showAccountSheet ? (
         <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
@@ -1419,231 +1263,40 @@ export default function ActivityScreen() {
       ) : null}
 
       {showMoreSheet ? (
-        <BottomSheet
-          title="More filters"
+        <ActivityMoreFiltersSheet
+          groupByMode={groupByMode}
+          setGroupByMode={setGroupByMode}
+          draftGroupByMode={draftGroupByMode}
+          setDraftGroupByMode={setDraftGroupByMode}
+          selectedCategoryIds={selectedCategoryIds}
+          toggleCategoryId={toggleCategoryId}
+          toggleCategoryFamily={toggleCategoryFamily}
+          expandedCategoryIds={expandedCategoryIds}
+          toggleCategoryExpansion={toggleCategoryExpansion}
+          selectedTagIds={selectedTagIds}
+          toggleTagId={toggleTagId}
+          amountMinStr={amountMinStr}
+          setAmountMinStr={setAmountMinStr}
+          amountMaxStr={amountMaxStr}
+          setAmountMaxStr={setAmountMaxStr}
+          setShowMoreSheet={setShowMoreSheet}
+          categories={categories}
+          tags={tags}
+          transactions={transactions}
           palette={palette}
-          onClose={() => setShowMoreSheet(false)}
-          hasNavBar
-          footer={
-            <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 8, paddingBottom: 3, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
-              <TouchableOpacity
-                onPress={() => {
-                  setGroupByMode(draftGroupByMode);
-                  if (draftGroupByMode === 'date') {
-                    setCategoryDrilldown(null);
-                  }
-                  setShowMoreSheet(false);
-                }}
-                style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
-                activeOpacity={0.85}
-              >
-                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
-              </TouchableOpacity>
-            </View>
-          }
-          headerRight={
-            <TouchableOpacity
-              onPress={() => {
-                setSelectedCategoryIds([]);
-                setSelectedTagIds([]);
-                setAmountMinStr('');
-                setAmountMaxStr('');
-                setExpandedCategoryIds([]);
-                setGroupByMode('date');
-                setDraftGroupByMode('date');
-                setCategoryDrilldown(null);
-              }}
-              hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
-              style={styles.clearAllButton}
-            >
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
-            </TouchableOpacity>
-          }
-        >
-          <View style={{ paddingBottom: 12 }}>
-            <ListHeading label="Group by" palette={palette} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: ACTIVITY_LAYOUT.controlChipGap, paddingHorizontal: CARD_PADDING, paddingBottom: 8 }}>
-              <FilterChip
-                label="Date"
-                isActive={draftGroupByMode === 'date'}
-                onPress={() => {
-                  setDraftGroupByMode('date');
-                }}
-                palette={palette}
-              />
-              <FilterChip
-                label="Category"
-                isActive={draftGroupByMode === 'category'}
-                onPress={() => setDraftGroupByMode('category')}
-                palette={palette}
-              />
-            </View>
-
-            <View style={{ height: 1, backgroundColor: palette.divider }} />
-
-            <ListHeading label="Category" palette={palette} />
-
-            <View style={{ paddingTop: 2 }}>
-              {topCategories.map((category) => {
-                const children = childCategoriesByParent.get(category.id) ?? [];
-                const childSelectedCount = children.filter((child) => selectedCategoryIds.includes(child.id)).length;
-                const hasChildren = children.length > 0;
-                const parentExplicitlySelected = selectedCategoryIds.includes(category.id);
-                const allChildrenSelected = hasChildren && childSelectedCount === children.length;
-                const isSelected = parentExplicitlySelected || allChildrenSelected;
-                const isPartial = hasChildren && childSelectedCount > 0 && childSelectedCount < children.length && !parentExplicitlySelected;
-                const isExpanded = expandedCategoryIds.includes(category.id);
-                return (
-                  <View key={category.id}>
-                    <MoreCategoryRow
-                      category={category}
-                      selected={isSelected}
-                      partial={isPartial}
-                      expanded={isExpanded}
-                      hasChildren={hasChildren}
-                      palette={palette}
-                      onToggleSelected={() => toggleCategoryFamily(category.id)}
-                      onToggleExpanded={() => toggleCategoryExpansion(category.id)}
-                    />
-                    {isExpanded
-                      ? children.map((child) => {
-                        const childSelected = selectedCategoryIds.includes(child.id);
-                        return (
-                          <View
-                            key={child.id}
-                            style={[
-                              styles.moreSubRow,
-                              {
-                                borderBottomColor: palette.divider,
-                                paddingHorizontal: CARD_PADDING + 34,
-                                backgroundColor: palette.inputBg,
-                                minHeight: 56,
-                              },
-                            ]}
-                          >
-                            <TouchableOpacity
-                              onPress={() => toggleCategoryId(child.id)}
-                              activeOpacity={0.75}
-                              style={{ marginRight: 12 }}
-                            >
-                              <Checkbox selected={childSelected} palette={palette} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => toggleCategoryId(child.id)}
-                              activeOpacity={0.75}
-                              style={{ flex: 1, minWidth: 0 }}
-                            >
-                              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
-                                {child.name}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        );
-                      })
-                      : null}
-                  </View>
-                );
-              })}
-            </View>
-
-            <View style={{ height: 1, backgroundColor: palette.divider }} />
-
-            <ListHeading label="Tags" palette={palette} />
-
-            {tags.length === 0 ? (
-              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.bodySmall, paddingHorizontal: CARD_PADDING, paddingVertical: 12 }}>
-                No tags yet
-              </Text>
-            ) : (
-              tags.map((tag) => {
-                const count = getTagTxCount(transactions, tag.id);
-                const isSelected = selectedTagIds.includes(tag.id);
-                return (
-                  <MoreTagRow
-                    key={tag.id}
-                    tag={tag}
-                    count={count}
-                    selected={isSelected}
-                    palette={palette}
-                    onToggleSelected={() => toggleTagId(tag.id)}
-                  />
-                );
-              })
-            )}
-
-            <View style={{ height: 1, backgroundColor: palette.divider }} />
-
-            <ListHeading label="Amount Range" palette={palette} paddingBottom={12} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
-              <TextInput
-                value={amountMinStr}
-                onChangeText={setAmountMinStr}
-                keyboardType="numeric"
-                placeholder="Min ₹"
-                placeholderTextColor={palette.textMuted}
-                style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
-              />
-              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.rowLabel }}>—</Text>
-              <TextInput
-                value={amountMaxStr}
-                onChangeText={setAmountMaxStr}
-                keyboardType="numeric"
-                placeholder="Max ₹"
-                placeholderTextColor={palette.textMuted}
-                style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
-              />
-            </View>
-          </View>
-        </BottomSheet>
+          clearAll={() => {
+            setSelectedCategoryIds([]);
+            setSelectedTagIds([]);
+            setAmountMinStr('');
+            setAmountMaxStr('');
+            setExpandedCategoryIds([]);
+            setGroupByMode('date');
+            setDraftGroupByMode('date');
+            setCategoryDrilldown(null);
+          }}
+        />
       ) : null}
     </SafeAreaView>
-  );
-}
-
-function AccountChip({
-  label,
-  active,
-  onPress,
-  palette,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  palette: AppThemePalette;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.75}
-      style={[
-        styles.accountChip,
-        {
-          backgroundColor: active ? palette.brandSoft : palette.inputBg,
-          borderColor: active ? palette.brand : palette.borderSoft,
-        },
-      ]}
-    >
-      <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: active ? palette.brand : palette.textMuted }}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-function calcNet(txs: Transaction[]): number {
-  return calcCashflowSummary(txs).net;
-}
-
-function calcCashflowSummary(txs: Transaction[]) {
-  return txs.reduce(
-    (summary, tx) => {
-      const impact = getTransactionCashflowImpact(tx);
-      if (impact === 'in') summary.in += tx.amount;
-      if (impact === 'out') summary.out += tx.amount;
-      summary.net = summary.in - summary.out;
-      return summary;
-    },
-    { in: 0, out: 0, net: 0 },
   );
 }
 
@@ -1663,154 +1316,26 @@ function endOfDayIso(date: Date) {
   return next.toISOString();
 }
 
-function nowIso() {
-  return new Date().toISOString();
-}
-
 function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {
   const range = getNavigableDateRange(period, offset, yearStart);
   return getPeriodNavLabel(period, range.from, range.to);
 }
 
-function Checkbox({
-  selected,
-  partial = false,
-  palette,
-}: {
-  selected: boolean;
-  partial?: boolean;
-  palette: AppThemePalette;
-}) {
-  return (
-    <View
-      style={{
-        width: 26,
-        height: 26,
-        borderRadius: 8,
-        borderWidth: 1.5,
-        borderColor: selected || partial ? palette.brand : palette.border,
-        backgroundColor: selected ? palette.brand : partial ? palette.brandSoft : palette.surface,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {selected ? <Ionicons name="checkmark" size={15} color={palette.onBrand} /> : null}
-      {partial ? <View style={{ width: 10, height: 2.5, borderRadius: 99, backgroundColor: palette.brand }} /> : null}
-    </View>
-  );
+function calcNet(txs: Transaction[]): number {
+  return calcCashflowSummary(txs).net;
 }
 
-function CategoryIconBadge({
-  icon,
-  ioniconName,
-  palette,
-  iconColor,
-}: {
-  icon?: string;
-  ioniconName?: string;
-  palette: AppThemePalette;
-  iconColor?: string;
-}) {
-  const isEmoji = icon ? !/^[a-z-]+$/.test(icon) : false;
-  return (
-    <View
-      style={{
-        width: 34,
-        height: 34,
-        borderRadius: 10,
-        backgroundColor: palette.inputBg,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {ioniconName ? (
-        <Ionicons name={ioniconName as never} size={16} color={iconColor ?? palette.iconTint} />
-      ) : isEmoji ? (
-        <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{icon}</Text>
-      ) : (
-        <Feather name={(icon ?? 'tag') as keyof typeof Feather.glyphMap} size={16} color={iconColor ?? palette.iconTint} />
-      )}
-    </View>
+function calcCashflowSummary(txs: Transaction[]) {
+  return txs.reduce(
+    (summary, tx) => {
+      const impact = getTransactionCashflowImpact(tx);
+      if (impact === 'in') summary.in += tx.amount;
+      if (impact === 'out') summary.out += tx.amount;
+      summary.net = summary.in - summary.out;
+      return summary;
+    },
+    { in: 0, out: 0, net: 0 },
   );
-}
-
-function MoreCategoryRow({
-  category,
-  selected,
-  partial,
-  expanded,
-  hasChildren,
-  palette,
-  onToggleSelected,
-  onToggleExpanded,
-}: {
-  category: { id: string; name: string; icon: string; color: string };
-  selected: boolean;
-  partial: boolean;
-  expanded: boolean;
-  hasChildren: boolean;
-  palette: AppThemePalette;
-  onToggleSelected: () => void;
-  onToggleExpanded: () => void;
-}) {
-  return (
-    <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}>
-      <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>
-        <Checkbox selected={selected} partial={partial} palette={palette} />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={hasChildren ? onToggleExpanded : onToggleSelected} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
-        <CategoryIconBadge icon={category.icon} palette={palette} />
-        <View style={{ marginLeft: 14, flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
-            {category.name}
-          </Text>
-        </View>
-      </TouchableOpacity>
-      {hasChildren ? (
-        <TouchableOpacity onPress={onToggleExpanded} activeOpacity={0.7}>
-          <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} />
-        </TouchableOpacity>
-      ) : (
-        <View style={{ width: 18 }} />
-      )}
-    </View>
-  );
-}
-
-function MoreTagRow({
-  tag,
-  count,
-  selected,
-  palette,
-  onToggleSelected,
-}: {
-  tag: { id: string; name: string; color: string };
-  count: number;
-  selected: boolean;
-  palette: AppThemePalette;
-  onToggleSelected: () => void;
-}) {
-  return (
-    <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}>
-      <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>
-        <Checkbox selected={selected} palette={palette} />
-      </TouchableOpacity>
-      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color, marginRight: 14 }} />
-      <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
-          {tag.name}
-        </Text>
-      </TouchableOpacity>
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginRight: 10 }}>
-        {count}
-      </Text>
-      <View style={{ width: 18 }} />
-    </View>
-  );
-}
-
-function getTagTxCount(txs: Transaction[], tagId: string) {
-  return txs.filter((tx) => tx.tags.includes(tagId)).length;
 }
 
 const styles = StyleSheet.create({
@@ -1852,132 +1377,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  chipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ACTIVITY_LAYOUT.controlChipGap,
-  },
-  accountChip: {
-    minWidth: ACTIVITY_LAYOUT.accountChipMinWidth,
-    maxWidth: ACTIVITY_LAYOUT.accountChipMaxWidth,
-    height: ACTIVITY_LAYOUT.accountChipHeight,
-    paddingHorizontal: ACTIVITY_LAYOUT.accountChipHorizontalPadding,
-    borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  periodBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: ACTIVITY_LAYOUT.controlHeight,
-    borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1.5,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  accountPicker: {
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    height: ACTIVITY_LAYOUT.controlHeight,
-    paddingHorizontal: ACTIVITY_LAYOUT.accountChipHorizontalPadding,
-    borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  periodArrow: {
-    width: PERIOD_ARROW_WIDTH,
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: 0,
-    borderLeftWidth: 0,
-  },
-  periodCenter: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 0,
-  },
-  periodCenterTouch: {
-    height: '100%',
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  moreBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: ACTIVITY_LAYOUT.controlHeight,
-    paddingHorizontal: ACTIVITY_LAYOUT.filterChipHorizontalPadding,
-    borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1.5,
-    flexShrink: 0,
-  },
-  moreChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 90,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: ACTIVITY_LAYOUT.chipRadius,
-    borderWidth: 1.5,
-    flexShrink: 0,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  clearAllButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    marginRight: -4,
-  },
-  moreRow: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-  },
-  moreSubRow: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-  },
   dateField: {
     flex: 1,
     borderRadius: 12,
     borderWidth: 1.5,
     paddingHorizontal: 14,
     paddingVertical: 10,
-  },
-  amountField: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: HOME_TEXT.body,
-    fontWeight: '700',
   },
   applyBtn: {
     marginTop: 12,
