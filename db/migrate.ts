@@ -74,6 +74,10 @@ async function dropLegacySplitDataColumn() {
     CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
     CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_loan ON transactions(loan_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_split_group ON transactions(split_group_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_transfer_pair ON transactions(transfer_pair_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, date);
 
     COMMIT;
   `);
@@ -128,6 +132,10 @@ export async function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
     CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_loan ON transactions(loan_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_split_group ON transactions(split_group_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_transfer_pair ON transactions(transfer_pair_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, date);
 
     CREATE TABLE IF NOT EXISTS loans (
       id TEXT PRIMARY KEY,
@@ -164,6 +172,12 @@ export async function runMigrations() {
   await ensureColumn('accounts', 'initial_balance', 'REAL');
   await ensureColumn('budget', 'repeat', 'INTEGER NOT NULL DEFAULT 1');
   await dropLegacySplitDataColumn();
+  await sqlite.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_split_group ON transactions(split_group_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_transfer_pair ON transactions(transfer_pair_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, date);
+  `);
   const addedSortOrder = await ensureColumn('accounts', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
 
   if (addedSortOrder) {

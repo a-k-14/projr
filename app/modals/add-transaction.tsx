@@ -670,9 +670,10 @@ export default function AddTransactionModal() {
                       router.push({ pathname: '/modals/split-transaction', params: { type } })
                     )
                   }
-                  style={{ minHeight: 28, alignItems: 'center', justifyContent: 'center' }}
+                  style={{ minHeight: 28, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}
                   activeOpacity={0.75}
                 >
+                  <Ionicons name="layers-outline" size={14} color={palette.brand} />
                   <Text style={{ fontSize: 12, fontWeight: '700', color: palette.brand }}>
                     Split
                   </Text>

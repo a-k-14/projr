@@ -94,9 +94,6 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     noteLine = tx.note?.trim() || undefined;
   }
 
-  if (tx.splitGroupId) {
-    metadataParts.push('Split');
-  }
   if (tertiaryText) {
     metadataParts.push(tertiaryText);
   }
@@ -162,18 +159,25 @@ export const TransactionListItem = React.memo(function TransactionListItem({
             </Text>
           ) : null}
         </Text>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.text }}>
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, lineHeight: 18 }}>
           {subtitle}
         </Text>
         {noteLine ? (
-          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 1 }}>
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, marginTop: 4, lineHeight: 18 }}>
             {noteLine}
           </Text>
         ) : null}
-        {metadataParts.length > 0 ? (
-          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 1 }}>
-            {metadataParts.join(' • ')}
-          </Text>
+        {(tx.splitGroupId || metadataParts.length > 0) ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+            {tx.splitGroupId ? (
+              <Ionicons name="layers-outline" size={13} color={palette.textSecondary} />
+            ) : null}
+            {(tx.splitGroupId || metadataParts.length > 0) ? (
+              <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, lineHeight: 18 }}>
+                {metadataParts.length > 0 ? metadataParts.join(' • ') : 'Split'}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
       </View>
 

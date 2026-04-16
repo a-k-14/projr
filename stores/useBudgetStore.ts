@@ -8,7 +8,7 @@ interface BudgetStore {
   load: (selectedMonthIso?: string) => Promise<void>;
   add: (data: CreateBudgetInput, selectedMonthIso?: string) => Promise<void>;
   update: (id: string, data: Partial<BudgetWithSpent>, selectedMonthIso?: string) => Promise<void>;
-  remove: (id: string) => Promise<void>;
+  remove: (id: string, selectedMonthIso?: string) => Promise<void>;
 }
 
 export const useBudgetStore = create<BudgetStore>((set, get) => ({
@@ -30,8 +30,8 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
     await get().load(selectedMonthIso);
   },
 
-  remove: async (id) => {
+  remove: async (id, selectedMonthIso) => {
     await budgetService.deleteBudget(id);
-    set((state) => ({ budgets: state.budgets.filter((b) => b.id !== id) }));
+    await get().load(selectedMonthIso);
   },
 }));

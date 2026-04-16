@@ -1,6 +1,6 @@
-import { eq, and, gte, lte, desc, like, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, inArray } from 'drizzle-orm';
 import { db } from '../db/client';
-import { accounts, categories, transactions } from '../db/schema';
+import { accounts, categories, loans, transactions } from '../db/schema';
 import type {
   Transaction,
   CreateTransactionInput,
@@ -8,6 +8,9 @@ import type {
 } from '../types';
 import { generateId } from '../lib/ids';
 import { nowUTC } from '../lib/dateUtils';
+import { getAccounts } from './accounts';
+import { getCategories } from './categories';
+import { getTags } from './tags';
 
 type TransactionExecutor = Pick<typeof db, 'select' | 'update'>;
 
@@ -61,20 +64,64 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
   if (filters.loanId) conditions.push(eq(transactions.loanId, filters.loanId));
   if (filters.fromDate) conditions.push(gte(transactions.date, filters.fromDate));
   if (filters.toDate) conditions.push(lte(transactions.date, filters.toDate));
-  if (filters.search) conditions.push(like(transactions.note, `%${filters.search}%`));
 
-  let query = db
+  const baseQuery = db
     .select()
     .from(transactions)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(transactions.date), desc(transactions.createdAt))
-    .$dynamic();
+    .orderBy(desc(transactions.date), desc(transactions.createdAt));
 
-  if (filters.limit) query = query.limit(filters.limit);
-  if (filters.offset) query = query.offset(filters.offset);
+  if (!filters.search?.trim()) {
+    let query = baseQuery.$dynamic();
 
-  const rows = await query;
-  return rows.map(rowToTransaction);
+    if (filters.limit) query = query.limit(filters.limit);
+    if (filters.offset) query = query.offset(filters.offset);
+
+    const rows = await query;
+    return rows.map(rowToTransaction);
+  }
+
+  const rows = await baseQuery;
+  const txs = rows.map(rowToTransaction);
+  const needle = filters.search.trim().toLowerCase();
+  const [accountRows, categoryRows, tagRows, loanRows] = await Promise.all([
+    getAccounts(),
+    getCategories(),
+    getTags(),
+    db.select({ id: loans.id, personName: loans.personName }).from(loans),
+  ]);
+
+  const accountById = new Map(accountRows.map((account) => [account.id, account.name]));
+  const categoryById = new Map(categoryRows.map((category) => [category.id, category]));
+  const tagById = new Map(tagRows.map((tag) => [tag.id, tag.name]));
+  const loanById = new Map(loanRows.map((loan) => [loan.id, loan.personName]));
+
+  const matches = txs.filter((tx) => {
+    const accountName = accountById.get(tx.accountId) ?? '';
+    const linkedAccountName = tx.linkedAccountId ? accountById.get(tx.linkedAccountId) ?? '' : '';
+    const category = tx.categoryId ? categoryById.get(tx.categoryId) : undefined;
+    const parentCategory = category?.parentId ? categoryById.get(category.parentId) : undefined;
+    const categoryDisplay = parentCategory ? `${parentCategory.name} ${category?.name ?? ''}` : category?.name ?? '';
+    const tagDisplay = tx.tags.map((tagId) => tagById.get(tagId) ?? '').join(' ');
+    const loanPersonName = tx.loanId ? loanById.get(tx.loanId) ?? '' : '';
+    const haystack = [
+      tx.note ?? '',
+      tx.payee ?? '',
+      accountName,
+      linkedAccountName,
+      categoryDisplay,
+      tagDisplay,
+      loanPersonName,
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(needle);
+  });
+
+  const offset = filters.offset ?? 0;
+  const sliced = filters.limit ? matches.slice(offset, offset + filters.limit) : matches.slice(offset);
+  return sliced;
 }
 
 export async function getTransactionById(id: string): Promise<Transaction | null> {

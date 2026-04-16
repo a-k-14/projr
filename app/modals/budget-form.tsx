@@ -130,7 +130,7 @@ export default function BudgetFormModal() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await removeBudget(editingBudget.id);
+          await removeBudget(editingBudget.id, month);
           resetDraft();
           router.back();
         },
