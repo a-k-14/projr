@@ -293,6 +293,7 @@ export function AmountRow({
   onOpenCalculator,
   autoFocus = false,
   calculatorButtonVariant = 'large',
+  editable = true,
 }: {
   sym: string;
   amountStr: string;
@@ -302,6 +303,7 @@ export function AmountRow({
   onOpenCalculator?: () => void;
   autoFocus?: boolean;
   calculatorButtonVariant?: 'compact' | 'large';
+  editable?: boolean;
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const isLargeButton = calculatorButtonVariant === 'large';
@@ -342,22 +344,24 @@ export function AmountRow({
             keyboardType="decimal-pad"
             placeholder="0"
             placeholderTextColor={palette.textSoft}
+            editable={editable}
             style={{
               flex: 1,
               fontSize: 20,
               fontWeight: '500',
-              color: accentColor,
+              color: editable ? accentColor : palette.text,
               paddingBottom: 2,
               paddingTop: 0,
               paddingLeft: 4,
               textAlign: 'left',
               lineHeight: 24,
-              borderBottomWidth: isFocused ? 1.5 : 1,
-              borderBottomColor: isFocused ? accentColor : palette.borderSoft ?? palette.border,
+              borderBottomWidth: editable ? (isFocused ? 1.5 : 1) : 1,
+              borderBottomColor: editable ? (isFocused ? accentColor : palette.borderSoft ?? palette.border) : palette.borderSoft ?? palette.border,
+              opacity: editable ? 1 : 0.92,
             }}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            cursorColor={accentColor}
+            onFocus={() => editable && setIsFocused(true)}
+            onBlur={() => editable && setIsFocused(false)}
+            cursorColor={editable ? accentColor : palette.text}
             autoFocus={autoFocus}
           />
         </View>

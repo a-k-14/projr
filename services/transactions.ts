@@ -3,7 +3,6 @@ import { db } from '../db/client';
 import { transactions } from '../db/schema';
 import type {
   Transaction,
-  TransactionSplit,
   CreateTransactionInput,
   TransactionFilters,
 } from '../types';
@@ -11,46 +10,18 @@ import { generateId } from '../lib/ids';
 import { nowUTC } from '../lib/dateUtils';
 import { updateAccountBalance } from './accounts';
 
-function parseSplits(raw: string | null | undefined): TransactionSplit[] {
-  if (!raw) return [];
-  try {
-    const value = JSON.parse(raw);
-    if (!Array.isArray(value)) return [];
-    return value
-      .map((item) => ({
-        categoryId: String(item?.categoryId ?? ''),
-        amount: Number(item?.amount ?? 0),
-      }))
-      .filter((item) => item.categoryId && item.amount > 0);
-  } catch {
-    return [];
-  }
-}
-
-function serializeSplits(splits?: TransactionSplit[]): string {
-  if (!splits || splits.length === 0) return '[]';
-  return JSON.stringify(
-    splits
-      .map((item) => ({
-        categoryId: item.categoryId,
-        amount: Number(item.amount),
-      }))
-      .filter((item) => item.categoryId && item.amount > 0)
-  );
-}
-
 function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
   return {
     id: row.id,
     type: row.type as Transaction['type'],
     amount: row.amount,
     accountId: row.accountId,
+    splitGroupId: row.splitGroupId ?? undefined,
     linkedAccountId: row.linkedAccountId ?? undefined,
     loanId: row.loanId ?? undefined,
     categoryId: row.categoryId ?? undefined,
     payee: row.payee ?? undefined,
     tags: JSON.parse(row.tags),
-    splits: parseSplits(row.splitData),
     note: row.note ?? undefined,
     date: row.date,
     transferPairId: row.transferPairId ?? undefined,
@@ -104,12 +75,12 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       type: 'out' as const,
       amount: data.amount,
       accountId: data.accountId,
+      splitGroupId: null,
       linkedAccountId: data.linkedAccountId ?? null,
       loanId: null,
       categoryId: null,
       payee: data.payee ?? null,
       tags: '[]',
-      splitData: '[]',
       note: data.note ?? null,
       date: data.date,
       transferPairId,
@@ -120,12 +91,12 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       type: 'in' as const,
       amount: data.amount,
       accountId: data.linkedAccountId!,
+      splitGroupId: null,
       linkedAccountId: data.accountId,
       loanId: null,
       categoryId: null,
       payee: data.payee ?? null,
       tags: '[]',
-      splitData: '[]',
       note: data.note ?? null,
       date: data.date,
       transferPairId,
@@ -144,12 +115,12 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     type: data.type,
     amount: data.amount,
     accountId: data.accountId,
+    splitGroupId: data.splitGroupId ?? null,
     linkedAccountId: data.linkedAccountId ?? null,
     loanId: data.loanId ?? null,
     categoryId: data.categoryId ?? null,
     payee: data.payee ?? null,
     tags: JSON.stringify(data.tags ?? []),
-    splitData: serializeSplits(data.splits),
     note: data.note ?? null,
     date: data.date,
     transferPairId: null,
@@ -181,10 +152,10 @@ export async function updateTransaction(
   if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
   if (data.payee !== undefined) updateData.payee = data.payee;
   if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);
-  if (data.splits !== undefined) updateData.splitData = serializeSplits(data.splits);
   if (data.note !== undefined) updateData.note = data.note;
   if (data.date !== undefined) updateData.date = data.date;
   if (data.accountId !== undefined) updateData.accountId = data.accountId;
+  if (data.splitGroupId !== undefined) updateData.splitGroupId = data.splitGroupId;
 
   await db.update(transactions).set(updateData).where(eq(transactions.id, id));
 
@@ -223,12 +194,12 @@ export async function updateTransferTransaction(
       type: 'out',
       amount: data.amount,
       accountId: data.accountId,
+      splitGroupId: null,
       linkedAccountId: data.linkedAccountId,
       loanId: null,
       categoryId: null,
       payee: data.payee ?? null,
       tags: '[]',
-      splitData: '[]',
       note: data.note ?? null,
       date: data.date,
     })
@@ -240,12 +211,12 @@ export async function updateTransferTransaction(
       type: 'in',
       amount: data.amount,
       accountId: data.linkedAccountId,
+      splitGroupId: null,
       linkedAccountId: data.accountId,
       loanId: null,
       categoryId: null,
       payee: data.payee ?? null,
       tags: '[]',
-      splitData: '[]',
       note: data.note ?? null,
       date: data.date,
     })
@@ -257,6 +228,98 @@ export async function updateTransferTransaction(
   const updated = await getTransactionById(id);
   if (!updated) throw new Error('Updated transfer transaction not found');
   return updated;
+}
+
+export async function getTransactionsBySplitGroup(splitGroupId: string): Promise<Transaction[]> {
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.splitGroupId, splitGroupId))
+    .orderBy(desc(transactions.date), desc(transactions.createdAt));
+  return rows.map(rowToTransaction);
+}
+
+type SplitGroupItemInput = {
+  categoryId: string;
+  amount: number;
+};
+
+type SplitGroupInput = {
+  type: 'in' | 'out';
+  accountId: string;
+  payee?: string;
+  note?: string;
+  tags?: string[];
+  date: string;
+  items: SplitGroupItemInput[];
+};
+
+export async function createSplitTransactionGroup(data: SplitGroupInput): Promise<Transaction[]> {
+  const splitGroupId = generateId();
+  const rows = data.items.map((item, index) => {
+    const createdAt = new Date(Date.now() + (data.items.length - index)).toISOString();
+    return {
+      id: generateId(),
+      type: data.type,
+      amount: item.amount,
+      accountId: data.accountId,
+      splitGroupId,
+      linkedAccountId: null,
+      loanId: null,
+      categoryId: item.categoryId,
+      payee: data.payee ?? null,
+      tags: JSON.stringify(data.tags ?? []),
+      note: data.note ?? null,
+      date: data.date,
+      transferPairId: null,
+      createdAt,
+    };
+  });
+
+  await db.insert(transactions).values(rows);
+  const total = data.items.reduce((sum, item) => sum + item.amount, 0);
+  await updateAccountBalance(data.accountId, data.type === 'in' ? total : -total);
+  return rows.map(rowToTransaction);
+}
+
+export async function updateSplitTransactionGroup(
+  splitGroupId: string,
+  data: SplitGroupInput
+): Promise<Transaction[]> {
+  const existing = await getTransactionsBySplitGroup(splitGroupId);
+  if (existing.length === 0) throw new Error('Split transaction not found');
+
+  const existingTotal = existing.reduce((sum, tx) => sum + tx.amount, 0);
+  const existingAccountId = existing[0].accountId;
+  const existingType = existing[0].type;
+
+  await updateAccountBalance(existingAccountId, existingType === 'in' ? -existingTotal : existingTotal);
+  await db.delete(transactions).where(eq(transactions.splitGroupId, splitGroupId));
+
+  const rows = data.items.map((item, index) => {
+    const createdAt = new Date(Date.now() + (data.items.length - index)).toISOString();
+    return {
+      id: generateId(),
+      type: data.type,
+      amount: item.amount,
+      accountId: data.accountId,
+      splitGroupId,
+      linkedAccountId: null,
+      loanId: null,
+      categoryId: item.categoryId,
+      payee: data.payee ?? null,
+      tags: JSON.stringify(data.tags ?? []),
+      note: data.note ?? null,
+      date: data.date,
+      transferPairId: null,
+      createdAt,
+    };
+  });
+
+  await db.insert(transactions).values(rows);
+  const total = data.items.reduce((sum, item) => sum + item.amount, 0);
+  await updateAccountBalance(data.accountId, data.type === 'in' ? total : -total);
+  return rows.map(rowToTransaction);
 }
 
 export async function countByAccount(accountId: string): Promise<number> {
@@ -292,6 +355,16 @@ export async function countByTag(tagId: string): Promise<number> {
 export async function deleteTransaction(id: string): Promise<void> {
   const existing = await getTransactionById(id);
   if (!existing) return;
+
+  if (existing.splitGroupId) {
+    const group = await getTransactionsBySplitGroup(existing.splitGroupId);
+    for (const tx of group) {
+      if (tx.type === 'in') await updateAccountBalance(tx.accountId, -tx.amount);
+      else if (tx.type === 'out') await updateAccountBalance(tx.accountId, tx.amount);
+    }
+    await db.delete(transactions).where(eq(transactions.splitGroupId, existing.splitGroupId));
+    return;
+  }
 
   if (existing.transferPairId) {
     const pair = await db

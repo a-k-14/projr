@@ -45,11 +45,11 @@ export async function runMigrations() {
       type TEXT NOT NULL,
       amount REAL NOT NULL,
       account_id TEXT NOT NULL,
+      split_group_id TEXT,
       linked_account_id TEXT,
       loan_id TEXT,
       category_id TEXT,
       tags TEXT NOT NULL DEFAULT '[]',
-      split_data TEXT NOT NULL DEFAULT '[]',
       payee TEXT,
       note TEXT,
       date TEXT NOT NULL,
@@ -90,7 +90,7 @@ export async function runMigrations() {
     );
   `);
 
-  await ensureColumn('transactions', 'split_data', "TEXT NOT NULL DEFAULT '[]'");
+  await ensureColumn('transactions', 'split_group_id', 'TEXT');
   await ensureColumn('transactions', 'payee', 'TEXT');
   await ensureColumn('accounts', 'account_number', 'TEXT');
   await ensureColumn('accounts', 'initial_balance', 'REAL');

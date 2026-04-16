@@ -32,7 +32,7 @@ import {
 import { SCREEN_GUTTER } from '../../lib/design';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
-import { getTransactionById, updateTransferTransaction } from '../../services/transactions';
+import { createSplitTransactionGroup, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
@@ -48,34 +48,6 @@ import type {
 } from '../../types';
 
 // We compute TYPE_CONFIG dynamically inside the component to use the derived palette
-
-type SplitDraft = {
-  id: string;
-  categoryId: string;
-  amountStr: string;
-  openCategoryPicker?: boolean;
-};
-
-function sanitizeDecimalInput(value: string): string {
-  // Remove any character that isn't a digit or a period
-  let cleaned = value.replace(/[^0-9.]/g, '');
-
-  // Handle empty input
-  if (!cleaned) return '';
-
-  // If we have multiple dots, keep only the first one
-  const parts = cleaned.split('.');
-  if (parts.length > 2) {
-    cleaned = parts[0] + '.' + parts.slice(1).join('');
-  }
-
-  // Handle leading zeros (e.g., "05" -> "5", but "0.5" remains "0.5")
-  if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') {
-    cleaned = cleaned.substring(1);
-  }
-
-  return cleaned;
-}
 
 export default function AddTransactionModal() {
   const {
@@ -106,6 +78,9 @@ export default function AddTransactionModal() {
   const calculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
   const calculatorOpen = useTransactionDraftStore((s) => s.calculatorOpen);
   const setDraftCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
+  const splitRows = useTransactionDraftStore((s) => s.splitRows);
+  const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
+  const clearSplitRows = useTransactionDraftStore((s) => s.clearSplitRows);
   const setCalculatorValue = useTransactionDraftStore((s) => s.setCalculatorValue);
   const setCalculatorOpen = useTransactionDraftStore((s) => s.setCalculatorOpen);
   const insets = useSafeAreaInsets();
@@ -116,13 +91,13 @@ export default function AddTransactionModal() {
   const [categoryId, setCategoryId] = useState('');
   const [payee, setPayee] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [splitRows, setSplitRows] = useState<SplitDraft[]>([]);
   const [date, setDate] = useState(nowUTC());
   const [note, setNote] = useState('');
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loanEditMode, setLoanEditMode] = useState<'new' | 'origin' | 'settlement'>('new');
   const [editingLoanId, setEditingLoanId] = useState('');
+  const [editingSplitGroupId, setEditingSplitGroupId] = useState('');
   const [isTransferEdit, setIsTransferEdit] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
@@ -132,6 +107,7 @@ export default function AddTransactionModal() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time' | 'datetime'>('date');
   const splitIdSeed = useRef(0);
+  const hadSplitRows = useRef(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -176,8 +152,9 @@ export default function AddTransactionModal() {
     if (!isEditing) {
       setDraftCategoryId('');
       setCategoryId('');
+      clearSplitRows();
     }
-  }, [isEditing]);
+  }, [clearSplitRows, isEditing]);
 
   useEffect(() => {
     if (isSyncingCategory.current) {
@@ -239,17 +216,33 @@ export default function AddTransactionModal() {
         if (tx.categoryId) setCategoryId(tx.categoryId);
         if (tx.payee) setPayee(tx.payee);
         if (tx.tags?.length) setSelectedTagIds(tx.tags);
-        if (tx.splits?.length) {
-          setSplitRows(
-            tx.splits.map((split) => ({
-              id: `split-${splitIdSeed.current++}`,
-              categoryId: split.categoryId,
-              amountStr: String(split.amount),
-            }))
-          );
-        }
         setDate(tx.date);
         if (tx.note) setNote(tx.note);
+
+        if (tx.splitGroupId) {
+          const group = await getTransactionsBySplitGroup(tx.splitGroupId);
+          if (group.length > 0) {
+            const first = group[0];
+            setEditingSplitGroupId(tx.splitGroupId);
+            setType(first.type);
+            setAccountId(first.accountId);
+            setDate(first.date);
+            setPayee(first.payee ?? '');
+            setSelectedTagIds(first.tags ?? []);
+            setNote(first.note ?? '');
+            setCategoryId('');
+            setSplitRows(
+              group
+                .slice()
+                .reverse()
+                .map((item) => ({
+                  id: `split-${splitIdSeed.current++}`,
+                  categoryId: item.categoryId ?? '',
+                  amountStr: formatIndianNumberStr(String(item.amount)),
+                }))
+            );
+          }
+        }
 
         if (tx.transferPairId) {
           setType('transfer');
@@ -306,31 +299,53 @@ export default function AddTransactionModal() {
   const lockTypeSelection = isEditing && (isTransferEdit || (type === 'loan' && !!editingLoanId));
   const displaySym = showCurrencySymbol ? sym : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
+  const usableSplitRows = splitRows.filter(
+    (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0,
+  );
   const splitValid =
     splitRows.length === 0 ||
-    (splitRows.every((row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0) &&
-      Math.abs(splitTotal - amount) / Math.max(amount, 1) < 0.001);
+    splitRows.every((row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0);
+
+  useEffect(() => {
+    if (type !== 'in' && type !== 'out') return;
+    if (usableSplitRows.length === 0) {
+      if (hadSplitRows.current) {
+        setAmountStr('');
+        setEditingSplitGroupId('');
+      }
+      hadSplitRows.current = false;
+      return;
+    }
+    hadSplitRows.current = true;
+    setAmountStr(formatIndianNumberStr(String(splitTotal)));
+    if (categoryId) {
+      setCategoryId('');
+      setDraftCategoryId('');
+    }
+  }, [categoryId, setDraftCategoryId, splitTotal, type, usableSplitRows.length]);
 
   const isValid =
     type === 'transfer'
       ? amount > 0 && accountId && linkedAccountId && accountId !== linkedAccountId
       : type === 'loan'
         ? amount > 0 && accountId && personName.trim().length > 0
-        : amount > 0 && accountId && categoryId && splitValid;
+        : usableSplitRows.length > 0
+          ? splitTotal > 0 && accountId && splitValid
+          : amount > 0 && accountId && categoryId && splitValid;
 
   const actionLabel = isEditing
-    ? 'Save changes'
+    ? 'Save Changes'
     : type === 'loan' && routeLoanId && settlement === '1'
       ? loanDirection === 'lent'
-        ? 'Add receipt'
-        : 'Add repayment'
+        ? 'Add Receipt'
+        : 'Add Repayment'
     : type === 'in'
-      ? 'Add income'
+      ? 'Add Income'
       : type === 'transfer'
-        ? 'Move money'
+        ? 'Move Money'
         : type === 'loan'
-          ? 'Add loan'
-          : 'Add expense';
+          ? 'Add Loan'
+          : 'Add Expense';
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -345,17 +360,42 @@ export default function AddTransactionModal() {
         categoryId: categoryId || undefined,
         payee: payee.trim() || undefined,
         tags: selectedTagIds,
-        splits:
-          type === 'in' || type === 'out'
-            ? splitRows.length > 0
-              ? splitRows.map((row) => ({
-                categoryId: row.categoryId,
-                amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0,
-              }))
-              : []
-            : undefined,
         linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
       };
+
+      if ((type === 'in' || type === 'out') && usableSplitRows.length > 0) {
+        const splitItems = usableSplitRows.map((row) => ({
+          categoryId: row.categoryId,
+          amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0,
+        }));
+
+        if (isEditing && editId && editingSplitGroupId) {
+          await updateSplitTransactionGroup(editingSplitGroupId, {
+            type,
+            accountId,
+            payee: payee.trim() || undefined,
+            note: note || undefined,
+            tags: selectedTagIds,
+            date,
+            items: splitItems,
+          });
+        } else {
+          await createSplitTransactionGroup({
+            type,
+            accountId,
+            payee: payee.trim() || undefined,
+            note: note || undefined,
+            tags: selectedTagIds,
+            date,
+            items: splitItems,
+          });
+        }
+        await reloadTransactions();
+        await refreshAccounts();
+        clearSplitRows();
+        router.back();
+        return;
+      }
 
       if (type === 'loan' && isEditing && editId && loanEditMode === 'origin' && editingLoanId) {
         await updateLoanOrigin(editingLoanId, {
@@ -411,6 +451,7 @@ export default function AddTransactionModal() {
       }
       await reloadTransactions();
       await refreshAccounts();
+      clearSplitRows();
       router.back();
     } catch (e) {
       Alert.alert('Error', String(e));
@@ -432,6 +473,7 @@ export default function AddTransactionModal() {
             await removeTransaction(editId);
           }
           await refreshAccounts();
+          clearSplitRows();
           router.back();
         },
       },
@@ -442,28 +484,6 @@ export default function AddTransactionModal() {
     setSelectedTagIds((current) =>
       current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId]
     );
-  };
-
-  const addSplitRow = () => {
-    const fallbackCategory = categoryId || getRelevantCategoryOptions(categories, type)[0]?.id || '';
-    setSplitRows((current) => [
-      ...current,
-      {
-        id: `split-${splitIdSeed.current++}`,
-        categoryId: fallbackCategory,
-        amountStr: current.length === 0 ? amountStr : '',
-      },
-    ]);
-  };
-
-  const updateSplitRow = (id: string, patch: Partial<SplitDraft>) => {
-    setSplitRows((current) =>
-      current.map((row) => (row.id === id ? { ...row, ...patch } : row))
-    );
-  };
-
-  const removeSplitRow = (id: string) => {
-    setSplitRows((current) => current.filter((row) => row.id !== id));
   };
 
   const runAfterKeyboardDismiss = (action: () => void) => {
@@ -559,7 +579,7 @@ export default function AddTransactionModal() {
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: 20, fontWeight: '700', color: palette.text }}>
-            {isEditing ? 'Edit transaction' : 'New transaction'}
+            {isEditing ? 'Edit Transaction' : 'New Transaction'}
           </Text>
         </View>
       </SafeAreaView>
@@ -609,6 +629,13 @@ export default function AddTransactionModal() {
                 onOpenTime={openTime}
                 palette={palette}
               />
+              <PickerRow
+                label="Account"
+                value={getAccountName(accounts, accountId)}
+                placeholder={!accountId}
+                palette={palette}
+                onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
+              />
               <AmountRow
                 sym={displaySym}
                 amountStr={amountStr}
@@ -617,42 +644,51 @@ export default function AddTransactionModal() {
                 palette={palette}
                 accentColor={activeConfig.color}
                 autoFocus
+                editable={usableSplitRows.length === 0}
               />
-              <PickerRow
-                label="Account"
-                value={getAccountName(accounts, accountId)}
-                placeholder={!accountId}
-                palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
-              />
-              <PickerRow
-                label="Category"
-                value={getCategoryName(categories, categoryId)}
-                placeholder={!categoryId}
-                palette={palette}
-                onPress={() =>
-                  runAfterKeyboardDismiss(() => {
-                    setDraftCategoryId(categoryId);
-                    router.push({
-                      pathname: '/modals/select-category',
-                      params: { type },
-                    });
-                  })
-                }
-              />
-              <SplitSection
-                amount={amount}
-                amountStr={amountStr}
-                currencySymbol={displaySym}
-                splitRows={splitRows}
-                splitTotal={splitTotal}
-                categories={categories}
-                type={type}
-                onAddSplit={addSplitRow}
-                onChangeSplit={updateSplitRow}
-                onRemoveSplit={removeSplitRow}
-                palette={palette}
-              />
+              <View style={{ paddingHorizontal: SCREEN_GUTTER, marginTop: -4, marginBottom: 2, alignItems: 'flex-end' }}>
+                <TouchableOpacity
+                  onPress={() =>
+                    runAfterKeyboardDismiss(() =>
+                      router.push({ pathname: '/modals/split-transaction', params: { type } })
+                    )
+                  }
+                  style={{ minHeight: 28, alignItems: 'center', justifyContent: 'center' }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: palette.brand }}>
+                    Split
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {usableSplitRows.length > 0 ? (
+                <PickerRow
+                  label="Category"
+                  value="Split"
+                  palette={palette}
+                  onPress={() =>
+                    runAfterKeyboardDismiss(() =>
+                      router.push({ pathname: '/modals/split-transaction', params: { type } })
+                    )
+                  }
+                />
+              ) : (
+                <PickerRow
+                  label="Category"
+                  value={getCategoryName(categories, categoryId)}
+                  placeholder={!categoryId}
+                  palette={palette}
+                  onPress={() =>
+                    runAfterKeyboardDismiss(() => {
+                      setDraftCategoryId(categoryId);
+                      router.push({
+                        pathname: '/modals/select-category',
+                        params: { type },
+                      });
+                    })
+                  }
+                />
+              )}
               <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" palette={palette} activeConfig={activeConfig} />
               <ReceiptSection palette={palette} />
               <PickerRow
@@ -1142,100 +1178,6 @@ function InlineInputRow({
   );
 }
 
-function SplitSection({
-  amount,
-  amountStr,
-  currencySymbol,
-  splitRows,
-  splitTotal,
-  categories,
-  type,
-  onAddSplit,
-  onChangeSplit,
-  onRemoveSplit,
-  palette,
-}: {
-  amount: number;
-  amountStr: string;
-  currencySymbol: string;
-  splitRows: SplitDraft[];
-  splitTotal: number;
-  categories: Category[];
-  type: TransactionType;
-  onAddSplit: () => void;
-  onChangeSplit: (id: string, patch: Partial<SplitDraft>) => void;
-  onRemoveSplit: (id: string) => void;
-  palette: AppThemePalette;
-}) {
-  const diff = amount - splitTotal;
-  const isBalanced = Math.abs(diff) < 0.01;
-
-  return (
-    <View style={{ marginVertical: 4 }}>
-      <View style={{
-        paddingHorizontal: SCREEN_GUTTER,
-        height: 32,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: palette.surface,
-        marginTop: 4,
-      }}>
-        <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: palette.textSoft, textTransform: 'uppercase' }}>
-          Splits
-        </Text>
-        <TouchableOpacity onPress={onAddSplit} style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="add" size={14} color={palette.tabActive} />
-          <Text style={{ fontSize: 12, color: palette.tabActive, fontWeight: '600', marginLeft: 2 }}>Add Split</Text>
-        </TouchableOpacity>
-      </View>
-
-      {splitRows.length > 0 ? (
-        <View>
-          {splitRows.map((row, index) => (
-            <SplitRowEditor
-              key={row.id}
-              row={row}
-              index={index}
-              categories={categories}
-              type={type}
-              onChange={onChangeSplit}
-              onRemove={onRemoveSplit}
-              palette={palette}
-            />
-          ))}
-
-          {!isBalanced && (
-            <View style={{
-              paddingHorizontal: SCREEN_GUTTER,
-              paddingVertical: 10,
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              backgroundColor: palette.negative + '08'
-            }}>
-              <Text style={{ fontSize: 13, color: palette.negative, fontWeight: '500' }}>
-                Remaining: {formatCurrency(diff, currencySymbol)}
-              </Text>
-            </View>
-          )}
-        </View>
-      ) : (
-        <TouchableOpacity
-          onPress={onAddSplit}
-          style={{
-            paddingHorizontal: SCREEN_GUTTER,
-            paddingVertical: 16,
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <Text style={{ fontSize: 13, color: palette.textSoft }}>This transaction is in one category. Tap to split it.</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
 function ReceiptSection({ palette }: { palette: AppThemePalette }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
@@ -1299,233 +1241,6 @@ function NotesSection({
   );
 }
 
-function AccountPicker({
-  accounts,
-  selectedId,
-  onSelect,
-  excludeId,
-  palette,
-}: {
-  accounts: Account[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-  excludeId?: string;
-  palette: AppThemePalette;
-}) {
-  const filtered = accounts.filter((a) => a.id !== excludeId);
-  if (filtered.length === 0) {
-    return <Text style={{ fontSize: 13, color: palette.textMuted }}>No account available</Text>;
-  }
-
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-      {filtered.map((acc) => (
-        <TouchableOpacity
-          key={acc.id}
-          onPress={() => onSelect(acc.id)}
-          style={{
-            paddingHorizontal: SCREEN_GUTTER,
-            paddingVertical: 8,
-            borderRadius: 12,
-            marginRight: 8,
-            backgroundColor: selectedId === acc.id ? palette.tabActive : palette.surface,
-            borderWidth: 1,
-            borderColor: selectedId === acc.id ? palette.tabActive : palette.border,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: '600',
-              color: selectedId === acc.id ? palette.onBrand : palette.textMuted,
-            }}
-            numberOfLines={1}
-          >
-            {acc.name}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-}
-
-function CategoryPicker({
-  categories,
-  selectedId,
-  onSelect,
-  type,
-  palette,
-}: {
-  categories: Category[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-  type: TransactionType;
-  palette: AppThemePalette;
-}) {
-  const options = getRelevantCategoryOptions(categories, type);
-
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-      {options.map((option) => (
-        <TouchableOpacity
-          key={option.id}
-          onPress={() => onSelect(option.id)}
-          style={{
-            paddingHorizontal: SCREEN_GUTTER,
-            paddingVertical: 8,
-            borderRadius: 12,
-            marginRight: 8,
-            backgroundColor: selectedId === option.id ? palette.tabActive : palette.surface,
-            borderWidth: 1,
-            borderColor: selectedId === option.id ? palette.tabActive : palette.border,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: '600',
-              color: selectedId === option.id ? palette.onBrand : palette.textMuted,
-            }}
-            numberOfLines={1}
-          >
-            {option.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-}
-
-function SplitRowEditor({
-  row,
-  index,
-  categories,
-  type,
-  onChange,
-  onRemove,
-  palette,
-}: {
-  row: SplitDraft;
-  index: number;
-  categories: Category[];
-  type: TransactionType;
-  onChange: (id: string, patch: Partial<SplitDraft>) => void;
-  onRemove: (id: string) => void;
-  palette: AppThemePalette;
-}) {
-  const categoryName = categories.find(c => c.id === row.categoryId)?.name || 'Select Category';
-  const [isFocused, setIsFocused] = useState(false);
-
-  return (
-    <View style={{
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      minHeight: ROW_MIN_HEIGHT,
-      paddingHorizontal: SCREEN_GUTTER,
-      paddingBottom: 6,
-    }}>
-      <TouchableOpacity
-        onPress={() => {
-          Keyboard.dismiss();
-          InteractionManager.runAfterInteractions(() => {
-            onChange(row.id, { id: row.id, openCategoryPicker: true });
-          });
-        }}
-        style={{
-          width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-          paddingBottom: 6,
-        }}
-      >
-        <Text numberOfLines={1} style={{ fontSize: 13, color: row.categoryId ? palette.text : palette.textSoft, fontWeight: '500' }}>
-          {categoryName}
-        </Text>
-      </TouchableOpacity>
-
-      <View style={{
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        borderBottomWidth: isFocused ? 1.5 : 1,
-        borderBottomColor: isFocused ? palette.tabActive : palette.borderSoft,
-        paddingBottom: 5.5,
-      }}>
-        <TextInput
-          value={row.amountStr}
-          onChangeText={(value) => onChange(row.id, { amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          placeholderTextColor={palette.textSoft}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          style={{
-            flex: 1,
-            fontSize: 15,
-            color: palette.text,
-            paddingVertical: 0,
-            lineHeight: 20,
-          }}
-        />
-        <TouchableOpacity
-          onPress={() => onRemove(row.id)}
-          style={{ paddingLeft: 12, paddingBottom: 2 }}
-        >
-          <Ionicons name="trash-outline" size={16} color={palette.negative} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-function TagPicker({
-  tags,
-  selectedIds,
-  onToggle,
-  palette,
-}: {
-  tags: Tag[];
-  selectedIds: string[];
-  onToggle: (id: string) => void;
-  palette: AppThemePalette;
-}) {
-  if (tags.length === 0) {
-    return <Text style={{ fontSize: 13, color: palette.textSoft }}>No tags yet</Text>;
-  }
-
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-      {tags.map((tag) => {
-        const selected = selectedIds.includes(tag.id);
-        return (
-          <TouchableOpacity
-            key={tag.id}
-            onPress={() => onToggle(tag.id)}
-            style={{
-              paddingHorizontal: SCREEN_GUTTER,
-              paddingVertical: 8,
-              borderRadius: 12,
-              marginRight: 8,
-              backgroundColor: selected ? tag.color : palette.surface,
-              borderWidth: 1,
-              borderColor: selected ? tag.color : palette.border,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: '600',
-                color: selected ? palette.onBrand : palette.textMuted,
-              }}
-            >
-              {tag.name}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
 function tagSummary(tags: Tag[], selectedIds: string[]) {
   const names = selectedIds
     .map((id) => tags.find((tag) => tag.id === id)?.name)
@@ -1545,24 +1260,4 @@ function getCategoryName(categories: Category[], categoryId: string) {
   return category.parentId
     ? `${categories.find((item) => item.id === category.parentId)?.name ?? 'Category'} › ${category.name}`
     : category.name;
-}
-
-function getRelevantCategoryOptions(categories: Category[], type: TransactionType) {
-  const relevantParents = categories
-    .filter((category) => category.type === type || category.type === 'both')
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
-  return relevantParents.flatMap((parent) => {
-    const children = categories
-      .filter((category) => category.parentId === parent.id)
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
-    if (children.length > 0) {
-      return children.map((child) => ({
-        id: child.id,
-        label: `${parent.name} › ${child.name}`,
-      }));
-    }
-    return [{ id: parent.id, label: parent.name }];
-  });
 }

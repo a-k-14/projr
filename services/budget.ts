@@ -122,27 +122,6 @@ export async function getBudgetWithSpent(selectedMonthIso: string = todayUTC()):
   const spentByCategory = new Map<string, number>();
 
   rows.forEach((row) => {
-    const splits = (() => {
-      try {
-        const parsed = JSON.parse((row as any).splitData ?? '[]');
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    })();
-
-    if (splits.length > 0) {
-      splits.forEach((split: any) => {
-        const splitCategoryId = split.categoryId;
-        if (!splitCategoryId) return;
-        spentByCategory.set(
-          splitCategoryId,
-          (spentByCategory.get(splitCategoryId) ?? 0) + Number(split.amount || 0),
-        );
-      });
-      return;
-    }
-
     if (row.categoryId) {
       spentByCategory.set(row.categoryId, (spentByCategory.get(row.categoryId) ?? 0) + row.amount);
     }
@@ -241,6 +220,7 @@ export async function getBudgetTransactionEntries(
         type: row.type as Transaction['type'],
         amount: row.amount,
         accountId: row.accountId,
+        splitGroupId: row.splitGroupId ?? undefined,
         linkedAccountId: row.linkedAccountId ?? undefined,
         loanId: row.loanId ?? undefined,
         categoryId: row.categoryId ?? undefined,
@@ -253,27 +233,10 @@ export async function getBudgetTransactionEntries(
             return [];
           }
         })(),
-        splits: (() => {
-          try {
-            const parsed = JSON.parse(row.splitData ?? '[]');
-            return Array.isArray(parsed) ? parsed : [];
-          } catch {
-            return [];
-          }
-        })(),
         note: row.note ?? undefined,
         date: row.date,
         createdAt: row.createdAt,
       } as Transaction;
-
-      const splits = tx.splits ?? [];
-      if (splits.length > 0) {
-        const matching = splits.find((split) => split.categoryId === categoryId);
-        if (matching) {
-          entries.push({ transaction: tx, countedAmount: Number(matching.amount || 0) });
-        }
-        return;
-      }
 
       if (tx.categoryId === categoryId) {
         entries.push({ transaction: tx, countedAmount: tx.amount });

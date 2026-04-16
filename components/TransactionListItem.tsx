@@ -148,13 +148,13 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, marginBottom: 2 }}>
           {title}
           {titleSecondaryText ? (
-            <Text style={{ color: palette.text, fontWeight: '400' }}>
+            <Text style={{ color: palette.text, fontWeight: '500' }}>
               {' '}
               {'\u2022'} {titleSecondaryText}
             </Text>
           ) : null}
         </Text>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.text }}>
           {subtitle}
         </Text>
         {noteLine ? (
@@ -169,9 +169,26 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         ) : null}
       </View>
 
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: amountColor }}>
-        {amountPrefix ? `${amountPrefix} ${formatCurrency(amountValue, sym)}` : formatCurrency(amountValue, sym)}
-      </Text>
+      <View style={{ alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: tx.splitGroupId ? 'space-between' : 'center', paddingVertical: 1 }}>
+        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: amountColor }}>
+          {amountPrefix ? `${amountPrefix} ${formatCurrency(amountValue, sym)}` : formatCurrency(amountValue, sym)}
+        </Text>
+        {tx.splitGroupId ? (
+          <View
+            style={{
+              minHeight: 22,
+              paddingHorizontal: 8,
+              borderRadius: 10,
+              backgroundColor: palette.inputBg,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: 8,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '700', color: palette.textSecondary }}>Split</Text>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 

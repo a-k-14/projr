@@ -27,7 +27,7 @@ export function TransactionItem({
   
   const account = getById(tx.accountId);
   const categoryName = tx.categoryId ? getCategoryDisplayName(tx.categoryId) : undefined;
-  const splitLabel = tx.splits?.length ? `Split ${tx.splits.length > 1 ? `(${tx.splits.length})` : ''}` : undefined;
+  const splitLabel = tx.splitGroupId ? 'Split' : undefined;
 
   const iconName =
     tx.type === 'in'

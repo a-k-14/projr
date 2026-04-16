@@ -24,21 +24,16 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   accountId: string;
+  splitGroupId?: string;
   linkedAccountId?: string;
   loanId?: string;
   categoryId?: string;
   payee?: string;
   tags: string[];
-  splits?: TransactionSplit[];
   note?: string;
   date: string;
   transferPairId?: string;
   createdAt: string;
-}
-
-export interface TransactionSplit {
-  categoryId: string;
-  amount: number;
 }
 
 export interface Loan {
@@ -163,12 +158,12 @@ export interface CreateTransactionInput {
   type: TransactionType;
   amount: number;
   accountId: string;
+  splitGroupId?: string;
   linkedAccountId?: string;
   loanId?: string;
   categoryId?: string;
   payee?: string;
   tags?: string[];
-  splits?: TransactionSplit[];
   note?: string;
   date: string;
 }

@@ -56,6 +56,14 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   remove: async (id) => {
     const existing = get().transactions.find((t) => t.id === id);
     await transactionsService.deleteTransaction(id);
+    if (existing?.splitGroupId) {
+      set((state) => ({
+        transactions: state.transactions.filter(
+          (t) => t.splitGroupId !== existing.splitGroupId
+        ),
+      }));
+      return;
+    }
     if (existing?.transferPairId) {
       set((state) => ({
         transactions: state.transactions.filter(
