@@ -11,6 +11,7 @@ import { nowUTC } from '../lib/dateUtils';
 import { getAccounts } from './accounts';
 import { getCategories } from './categories';
 import { getTags } from './tags';
+import { getTransactionBalanceDelta } from '../lib/derived';
 
 type TransactionExecutor = Pick<typeof db, 'select' | 'update'>;
 
@@ -201,8 +202,10 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
 
   await db.transaction(async (tx) => {
     await tx.insert(transactions).values(row);
-    if (data.type === 'in') await applyAccountBalanceDelta(tx, data.accountId, data.amount);
-    else if (data.type === 'out') await applyAccountBalanceDelta(tx, data.accountId, -data.amount);
+    const delta = getTransactionBalanceDelta(rowToTransaction(row));
+    if (delta) {
+      await applyAccountBalanceDelta(tx, data.accountId, delta);
+    }
   });
 
   return rowToTransaction(row);
@@ -228,8 +231,10 @@ export async function updateTransaction(
 
   let updatedRow: typeof transactions.$inferSelect | undefined;
   await db.transaction(async (tx) => {
-    if (existing.type === 'in') await applyAccountBalanceDelta(tx, existing.accountId, -existing.amount);
-    else if (existing.type === 'out') await applyAccountBalanceDelta(tx, existing.accountId, existing.amount);
+    const rollbackDelta = -getTransactionBalanceDelta(existing);
+    if (rollbackDelta) {
+      await applyAccountBalanceDelta(tx, existing.accountId, rollbackDelta);
+    }
 
     await tx.update(transactions).set(updateData).where(eq(transactions.id, id));
 
@@ -237,8 +242,10 @@ export async function updateTransaction(
     updatedRow = rows[0];
     if (!updatedRow) throw new Error('Updated transaction not found');
 
-    if (updatedRow.type === 'in') await applyAccountBalanceDelta(tx, updatedRow.accountId, updatedRow.amount);
-    else if (updatedRow.type === 'out') await applyAccountBalanceDelta(tx, updatedRow.accountId, -updatedRow.amount);
+    const nextDelta = getTransactionBalanceDelta(rowToTransaction(updatedRow));
+    if (nextDelta) {
+      await applyAccountBalanceDelta(tx, updatedRow.accountId, nextDelta);
+    }
   });
 
   return rowToTransaction(updatedRow!);
@@ -516,8 +523,10 @@ export async function deleteTransaction(id: string): Promise<void> {
   }
 
   await db.transaction(async (tx) => {
-    if (existing.type === 'in') await applyAccountBalanceDelta(tx, existing.accountId, -existing.amount);
-    else if (existing.type === 'out') await applyAccountBalanceDelta(tx, existing.accountId, existing.amount);
+    const rollbackDelta = -getTransactionBalanceDelta(existing);
+    if (rollbackDelta) {
+      await applyAccountBalanceDelta(tx, existing.accountId, rollbackDelta);
+    }
 
     await tx.delete(transactions).where(eq(transactions.id, id));
   });

@@ -399,3 +399,115 @@ export function AmountRow({
     </View>
   );
 }
+
+export function TextInputRow({
+  label,
+  value,
+  onChangeText,
+  palette,
+  placeholder,
+  accentColor,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  palette: AppThemePalette;
+  placeholder?: string;
+  accentColor?: string;
+}) {
+  const [isFocused, setIsFocused] = useState(false);
+
+  return (
+    <View
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 13,
+          fontWeight: '700',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={palette.textSoft}
+          cursorColor={accentColor || palette.tabActive}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontSize: 15,
+            fontWeight: '400',
+            color: palette.text,
+            paddingBottom: 2,
+            paddingTop: 0,
+            paddingLeft: 4,
+            textAlign: 'left',
+            lineHeight: 20,
+            borderBottomWidth: isFocused ? 1.5 : 1,
+            borderBottomColor: isFocused ? accentColor || palette.tabActive : palette.borderSoft,
+          }}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+        />
+      </View>
+    </View>
+  );
+}
+
+export function NotesSection({
+  note,
+  onChangeNote,
+  palette,
+  accentColor,
+  onFocus,
+}: {
+  note: string;
+  onChangeNote: (value: string) => void;
+  palette: AppThemePalette;
+  accentColor?: string;
+  onFocus?: () => void;
+}) {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
+        Notes
+      </Text>
+      <TextInput
+        value={note}
+        onChangeText={onChangeNote}
+        onFocus={onFocus}
+        placeholder="Add a note..."
+        placeholderTextColor={palette.textSoft}
+        cursorColor={accentColor || palette.tabActive}
+        style={{
+          minHeight: 72,
+          fontSize: 15,
+          color: palette.text,
+          paddingVertical: 0,
+          textAlignVertical: 'top',
+        }}
+        multiline
+      />
+    </View>
+  );
+}

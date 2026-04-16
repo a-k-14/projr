@@ -25,7 +25,13 @@ import { FabButton } from '../../components/ui/FabButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { formatDate, getDateRange, todayUTC, toLocalDateKey } from '../../lib/dateUtils';
+import {
+  formatDate,
+  getDateRange,
+  toLocalDateKey,
+  toLocalDayEndISO,
+  toLocalDayStartISO,
+} from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
@@ -75,8 +81,8 @@ export default function HomeScreen() {
   const { palette } = useAppTheme();
   const scrollX = useSharedValue(0);
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
-  const [customRangeFrom, setCustomRangeFrom] = useState(() => todayUTC());
-  const [customRangeTo, setCustomRangeTo] = useState(() => todayUTC());
+  const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
+  const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
 
@@ -169,8 +175,8 @@ export default function HomeScreen() {
     const toDate = customDraftTo >= customDraftFrom ? customDraftTo : customDraftFrom;
     setCustomDraftFrom(fromDate);
     setCustomDraftTo(toDate);
-    setCustomRangeFrom(fromDate.toISOString());
-    setCustomRangeTo(toDate.toISOString());
+    setCustomRangeFrom(toLocalDayStartISO(fromDate));
+    setCustomRangeTo(toLocalDayEndISO(toDate));
     setCustomRangeOpen(false);
   }, [customDraftFrom, customDraftTo]);
 
@@ -906,18 +912,6 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   );
 });
 
-function startOfDayIso(date: Date): string {
-  const value = new Date(date);
-  value.setHours(0, 0, 0, 0);
-  return value.toISOString();
-}
-
-function endOfDayIso(date: Date): string {
-  const value = new Date(date);
-  value.setHours(23, 59, 59, 999);
-  return value.toISOString();
-}
-
 function addDays(date: Date, amount: number): Date {
   const value = new Date(date);
   value.setDate(value.getDate() + amount);
@@ -943,7 +937,7 @@ function buildCashflowDrilldownRanges(
   if (period === 'week') {
     return Array.from({ length: 7 }, (_, index) => {
       const day = addDays(fromDate, index);
-      return { from: startOfDayIso(day), to: endOfDayIso(day) };
+      return { from: toLocalDayStartISO(day), to: toLocalDayEndISO(day) };
     });
   }
 
@@ -954,7 +948,7 @@ function buildCashflowDrilldownRanges(
       const bucketEnd = addDays(bucketStart, 6);
       const boundedStart = bucketStart < fromDate ? fromDate : bucketStart;
       const boundedEnd = bucketEnd > toDate ? toDate : bucketEnd;
-      return { from: startOfDayIso(boundedStart), to: endOfDayIso(boundedEnd) };
+      return { from: toLocalDayStartISO(boundedStart), to: toLocalDayEndISO(boundedEnd) };
     });
   }
 
@@ -966,7 +960,7 @@ function buildCashflowDrilldownRanges(
       const monthEnd = new Date(fiscalStart.getFullYear(), fiscalStart.getMonth() + index + 1, 0);
       const boundedStart = monthStart < fromDate ? fromDate : monthStart;
       const boundedEnd = monthEnd > toDate ? toDate : monthEnd;
-      return { from: startOfDayIso(boundedStart), to: endOfDayIso(boundedEnd) };
+      return { from: toLocalDayStartISO(boundedStart), to: toLocalDayEndISO(boundedEnd) };
     });
   }
 
@@ -974,7 +968,7 @@ function buildCashflowDrilldownRanges(
   if (totalDays <= 14) {
     return Array.from({ length: totalDays }, (_, index) => {
       const day = addDays(fromDate, index);
-      return { from: startOfDayIso(day), to: endOfDayIso(day) };
+      return { from: toLocalDayStartISO(day), to: toLocalDayEndISO(day) };
     });
   }
 
@@ -986,6 +980,6 @@ function buildCashflowDrilldownRanges(
     const bucketEnd = addDays(bucketStart, step - 1);
     const boundedStart = bucketStart < fromDate ? fromDate : bucketStart;
     const boundedEnd = bucketEnd > toDate ? toDate : bucketEnd;
-    return { from: startOfDayIso(boundedStart), to: endOfDayIso(boundedEnd) };
+    return { from: toLocalDayStartISO(boundedStart), to: toLocalDayEndISO(boundedEnd) };
   });
 }

@@ -14,6 +14,32 @@ export function nowUTC(): string {
   return new Date().toISOString();
 }
 
+export function toLocalDayStartISO(value: Date | string): string {
+  const date = typeof value === 'string' ? new Date(value) : new Date(value);
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    0,
+    0,
+    0,
+    0
+  ).toISOString();
+}
+
+export function toLocalDayEndISO(value: Date | string): string {
+  const date = typeof value === 'string' ? new Date(value) : new Date(value);
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    23,
+    59,
+    59,
+    999
+  ).toISOString();
+}
+
 /** Returns YYYY-MM-DD for a given ISO string in the user's local timezone */
 export function toLocalDateKey(isoDate: string): string {
   const d = new Date(isoDate);

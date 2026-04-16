@@ -10,7 +10,6 @@ import {
   Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   LayoutAnimation,
@@ -19,7 +18,15 @@ import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-h
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
-import { AmountRow, FieldRow, InteractiveDateTimeRow, PickerRow, ROW_COLUMN_GAP, ROW_LABEL_WIDTH, ROW_MIN_HEIGHT, ROW_TRAILING_WIDTH, SectionCard } from '../../components/ui/transaction-form-primitives';
+import {
+  AmountRow,
+  FieldRow,
+  InteractiveDateTimeRow,
+  NotesSection,
+  PickerRow,
+  SectionCard,
+  TextInputRow,
+} from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, nowUTC } from '../../lib/dateUtils';
 import {
@@ -707,7 +714,14 @@ export default function AddTransactionModal() {
                   }
                 />
               )}
-              <InlineInputRow label="Payee" value={payee} onChangeText={setPayee} placeholder="Add payee" palette={palette} activeConfig={activeConfig} />
+              <TextInputRow
+                label="Payee"
+                value={payee}
+                onChangeText={setPayee}
+                placeholder="Add payee"
+                palette={palette}
+                accentColor={activeConfig.color}
+              />
               <ReceiptSection palette={palette} />
               <PickerRow
                 label="Tag"
@@ -720,7 +734,7 @@ export default function AddTransactionModal() {
                 note={note} 
                 onChangeNote={setNote} 
                 palette={palette} 
-                activeConfig={activeConfig} 
+                accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
             </SectionCard>
@@ -773,7 +787,7 @@ export default function AddTransactionModal() {
                 note={note} 
                 onChangeNote={setNote} 
                 palette={palette} 
-                activeConfig={activeConfig}
+                accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
             </SectionCard>
@@ -822,7 +836,14 @@ export default function AddTransactionModal() {
                       </View>
                     </FieldRow>
                   </View>
-                  <InlineInputRow label="Person" value={personName} onChangeText={setPersonName} placeholder="Name" palette={palette} activeConfig={activeConfig} />
+                  <TextInputRow
+                    label="Person"
+                    value={personName}
+                    onChangeText={setPersonName}
+                    placeholder="Name"
+                    palette={palette}
+                    accentColor={activeConfig.color}
+                  />
                 </>
               )}
               <AmountRow
@@ -846,7 +867,7 @@ export default function AddTransactionModal() {
                   note={note} 
                   onChangeNote={setNote} 
                   palette={palette} 
-                  activeConfig={activeConfig}
+                  accentColor={activeConfig.color}
                   onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
                 />
               ) : null}
@@ -1033,169 +1054,6 @@ export default function AddTransactionModal() {
   );
 }
 
-function InlinePickerRow({
-  label,
-  value,
-  onPress,
-  placeholder,
-  icon,
-  showChevron = true,
-  noBorder,
-  valueStyle,
-  palette,
-}: {
-  label: string;
-  value: string;
-  onPress: () => void;
-  placeholder?: boolean;
-  icon?: keyof typeof Ionicons.glyphMap;
-  showChevron?: boolean;
-  noBorder?: boolean;
-  valueStyle?: object;
-  palette: AppThemePalette;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={{
-        paddingHorizontal: SCREEN_GUTTER,
-        minHeight: ROW_MIN_HEIGHT,
-        flexDirection: 'row',
-        alignItems: 'center',
-      }}
-    >
-      <Text
-        numberOfLines={1}
-        style={{
-          fontSize: 13,
-          fontWeight: '700',
-          color: palette.textMuted,
-          width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-        }}
-      >
-        {label}
-      </Text>
-      <View
-        style={{
-          flex: 1,
-          minWidth: 0,
-          minHeight: ROW_MIN_HEIGHT,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottomWidth: noBorder === false ? 1 : 0,
-          borderBottomColor: palette.border,
-          paddingLeft: 4,
-        }}
-      >
-        <Text
-          style={[
-            {
-              fontSize: 15,
-              fontWeight: '400',
-              color: placeholder ? palette.textMuted : palette.text,
-              textAlign: 'left',
-              flexShrink: 1,
-            },
-            valueStyle,
-          ]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {icon ? (
-            <View style={{ width: ROW_TRAILING_WIDTH + 14, alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={icon} size={15} color={palette.text} />
-              </View>
-            </View>
-          ) : null}
-          {showChevron ? (
-            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-              <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
-            </View>
-          ) : null}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function InlineInputRow({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  palette,
-  activeConfig,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  palette: AppThemePalette;
-  placeholder?: string;
-  activeConfig?: any;
-}) {
-  const [isFocused, setIsFocused] = useState(false);
-  return (
-    <View
-      style={{
-        paddingHorizontal: SCREEN_GUTTER,
-        minHeight: ROW_MIN_HEIGHT,
-        flexDirection: 'row',
-        alignItems: 'center',
-      }}
-    >
-      <Text
-        numberOfLines={1}
-        style={{
-          fontSize: 13,
-          fontWeight: '700',
-          color: palette.textMuted,
-          width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-        }}
-      >
-        {label}
-      </Text>
-      <View
-        style={{
-          flex: 1,
-          minWidth: 0,
-          flexDirection: 'row',
-          alignItems: 'center',
-        }}
-      >
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={palette.textSoft}
-          cursorColor={activeConfig?.color || palette.tabActive}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontSize: 15,
-            fontWeight: '400',
-            color: palette.text,
-            paddingBottom: 2,
-            paddingTop: 0,
-            paddingLeft: 4,
-            textAlign: 'left',
-            lineHeight: 20,
-            borderBottomWidth: isFocused ? 1.5 : 1,
-            borderBottomColor: isFocused ? (activeConfig?.color || palette.tabActive) : palette.borderSoft,
-          }}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-        />
-      </View>
-    </View>
-  );
-}
-
 function ReceiptSection({ palette }: { palette: AppThemePalette }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
@@ -1223,38 +1081,6 @@ function ReceiptSection({ palette }: { palette: AppThemePalette }) {
           <Text style={{ fontSize: 12, color: palette.textMuted, marginTop: 2 }}>Tap camera to scan</Text>
         </View>
       </ScrollView>
-    </View>
-  );
-}
-
-function NotesSection({
-  note,
-  onChangeNote,
-  palette,
-  activeConfig,
-  onFocus,
-}: {
-  note: string;
-  onChangeNote: (value: string) => void;
-  palette: AppThemePalette;
-  activeConfig?: any;
-  onFocus?: () => void;
-}) {
-  return (
-    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
-      <Text style={{ fontSize: 13, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
-        Notes
-      </Text>
-      <TextInput
-        value={note}
-        onChangeText={onChangeNote}
-        onFocus={onFocus}
-        placeholder="Add a note..."
-        placeholderTextColor={palette.textSoft}
-        cursorColor={activeConfig?.color || palette.tabActive}
-        style={{ minHeight: 72, fontSize: 15, color: palette.text, paddingVertical: 0, textAlignVertical: 'top' }}
-        multiline
-      />
     </View>
   );
 }

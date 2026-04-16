@@ -21,7 +21,9 @@ export const useUIStore = create<UIStore>((set, get) => ({
       const settings = await settingsService.getSettings();
       set({ settings, isLoaded: true, loadError: null });
     } catch (e) {
-      set({ loadError: String(e) });
+      const message = e instanceof Error ? e.message : String(e);
+      set({ isLoaded: false, loadError: message });
+      throw e;
     }
   },
 

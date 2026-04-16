@@ -135,18 +135,10 @@ export default function SettingsScreen() {
           <SectionLabel label="DATA" palette={palette} />
           <CardSection palette={palette}>
             <SettingsRow
-              icon="cloud"
+              icon="cloud-off"
               label="Cloud Backup"
-              value={settings.cloudBackupEnabled ? 'On' : 'Off'}
+              value="Not available"
               palette={palette}
-              rightElement={
-                <Switch
-                  value={settings.cloudBackupEnabled}
-                  onValueChange={(value) => updateSettings({ cloudBackupEnabled: value })}
-                  trackColor={{ false: palette.border, true: palette.tabActive }}
-                  thumbColor={settings.cloudBackupEnabled ? palette.onBrand : palette.surface}
-                />
-              }
               noBorder
             />
           </CardSection>

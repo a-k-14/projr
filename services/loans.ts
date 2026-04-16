@@ -88,16 +88,20 @@ export async function createLoan(data: CreateLoanInput): Promise<Loan> {
   };
   await db.insert(loans).values(row);
 
-  const label =
-    getLoanOriginLabel(data.direction, data.personName);
-  await createTransaction({
-    type: 'loan',
-    amount: data.givenAmount,
-    accountId: data.accountId,
-    loanId: id,
-    note: label,
-    date: data.date,
-  });
+  try {
+    const label = getLoanOriginLabel(data.direction, data.personName);
+    await createTransaction({
+      type: 'loan',
+      amount: data.givenAmount,
+      accountId: data.accountId,
+      loanId: id,
+      note: label,
+      date: data.date,
+    });
+  } catch (error) {
+    await db.delete(loans).where(eq(loans.id, id));
+    throw error;
+  }
 
   return rowToLoan(row);
 }

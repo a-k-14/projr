@@ -28,6 +28,13 @@ type Draft = {
   currency: string;
 };
 
+function toAccountNumberSuffix(value: string): string | undefined {
+  const digitsOnly = value.replace(/\D/g, '');
+  const trimmed = digitsOnly || value.trim();
+  const suffix = trimmed.slice(-4);
+  return suffix || undefined;
+}
+
 export default function AccountFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
@@ -126,7 +133,7 @@ export default function AccountFormScreen() {
     const openingBalance = Number.parseFloat(parseFormattedNumber(draft.balance || '0')) || 0;
     const payload = {
       name,
-      accountNumber: draft.accountNumber.trim() || undefined,
+      accountNumber: toAccountNumberSuffix(draft.accountNumber),
       type: draft.type,
       initialBalance: openingBalance,
       currency: draft.currency,
@@ -207,12 +214,12 @@ export default function AccountFormScreen() {
 
       {/* Account Number */}
       <View style={{ marginBottom: SPACING.lg }}>
-        <FieldLabel label="Account Number" palette={palette} />
+        <FieldLabel label="Account Number (Last 4)" palette={palette} />
         <InputField
           palette={palette}
           value={draft.accountNumber}
           onChangeText={(v) => setDraft((s) => ({ ...s, accountNumber: v }))}
-          placeholder="e.g. 1234 5678 1234"
+          placeholder="e.g. 1234"
           keyboardType="numeric"
         />
       </View>
