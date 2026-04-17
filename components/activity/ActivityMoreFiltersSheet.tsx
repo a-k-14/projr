@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { BottomSheet } from '../ui/BottomSheet';
 import { FilterChip } from '../ui/FilterChip';
 import { ListHeading } from '../ui/ListHeading';
@@ -80,7 +81,6 @@ export function ActivityMoreFiltersSheet({
               setShowMoreSheet(false);
             }}
             style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
-            activeOpacity={0.85}
           >
             <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
           </TouchableOpacity>
@@ -261,7 +261,7 @@ function MoreCategoryRow({
         <Checkbox selected={selected} partial={partial} palette={palette} />
       </TouchableOpacity>
       <TouchableOpacity onPress={hasChildren ? onToggleExpanded : onToggleSelected} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
-        <CategoryIconBadge icon={category.icon} palette={palette} iconColor={category.color} />
+        <CategoryIconBadge icon={category.icon} palette={palette} />
         <View style={{ marginLeft: 14, flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
             {category.name}

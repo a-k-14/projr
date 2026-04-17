@@ -109,7 +109,7 @@ export default function AddTransactionModal() {
   const [editingLoanId, setEditingLoanId] = useState('');
   const [editingSplitGroupId, setEditingSplitGroupId] = useState('');
   const [isTransferEdit, setIsTransferEdit] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false); // kept for future use (e.g., error feedback)
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showFromAccountSheet, setShowFromAccountSheet] = useState(false);
   const [showToAccountSheet, setShowToAccountSheet] = useState(false);
@@ -374,7 +374,6 @@ export default function AddTransactionModal() {
 
   const handleSubmit = async () => {
     if (!isValid) return;
-    setLoading(true);
     try {
       if (!isEditing && accountId) {
         updateSettings({ lastUsedAccountId: accountId }).catch(() => {});
@@ -419,11 +418,10 @@ export default function AddTransactionModal() {
             items: splitItems,
           });
         }
-        await reloadTransactions();
-        await refreshAccounts();
-        setEditingSplitGroupId('');
         clearSplitRows();
         router.back();
+        // Background refresh after navigation
+        Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => {});
         return;
       }
 
@@ -479,14 +477,12 @@ export default function AddTransactionModal() {
       } else {
         await addTransaction(data);
       }
-      await reloadTransactions();
-      await refreshAccounts();
       clearSplitRows();
       router.back();
+      // Background refresh after navigation
+      Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => {});
     } catch (e) {
       Alert.alert('Error', String(e));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -907,9 +903,9 @@ export default function AddTransactionModal() {
           backgroundColor: palette.background,
         }}
       >
-        <TouchableOpacity
+        <RnghTouchableOpacity
           onPress={handleSubmit}
-          disabled={!isValid || loading}
+          enabled={isValid}
           style={{
             backgroundColor: isValid ? activeConfig.color : palette.textSoft,
             borderRadius: 18,
@@ -919,13 +915,13 @@ export default function AddTransactionModal() {
           }}
         >
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>{actionLabel}</Text>
-        </TouchableOpacity>
+        </RnghTouchableOpacity>
         {isEditing && (
-          <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
+          <RnghTouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>
               Delete transaction
             </Text>
-          </TouchableOpacity>
+          </RnghTouchableOpacity>
         )}
       </View>
 

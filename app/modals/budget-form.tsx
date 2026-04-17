@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Keyboard, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
@@ -46,7 +47,7 @@ export default function BudgetFormModal() {
   const [categoryId, setCategoryId] = useState('');
   const [startMonth, setStartMonth] = useState(month || new Date().toISOString());
   const [repeat, setRepeat] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
   const initializedRef = useRef(false);
 
@@ -100,7 +101,6 @@ export default function BudgetFormModal() {
 
   const handleSave = async () => {
     if (!isValid) return;
-    setLoading(true);
     try {
       const payload = {
         categoryId,
@@ -118,8 +118,6 @@ export default function BudgetFormModal() {
       router.back();
     } catch (error) {
       Alert.alert('Error', String(error));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -210,10 +208,9 @@ export default function BudgetFormModal() {
           backgroundColor: palette.background,
         }}
       >
-        <TouchableOpacity
+        <RnghTouchableOpacity
           onPress={handleSave}
-          disabled={!isValid || loading}
-          activeOpacity={0.8}
+          enabled={isValid}
           style={{
             minHeight: 52,
             borderRadius: 16,
@@ -225,11 +222,11 @@ export default function BudgetFormModal() {
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBudget }}>
             {editingBudget ? 'Save changes' : 'Add budget'}
           </Text>
-        </TouchableOpacity>
+        </RnghTouchableOpacity>
         {editingBudget ? (
-          <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', marginTop: 12 }}>
+          <RnghTouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', marginTop: 12, paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete budget</Text>
-          </TouchableOpacity>
+          </RnghTouchableOpacity>
         ) : null}
       </View>
       <BudgetMonthSheet

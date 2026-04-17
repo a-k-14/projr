@@ -101,7 +101,7 @@ export function BottomSheet({
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, { toValue: BACKDROP_OPACITY, duration: OPEN_ANIMATION_DURATION_MS, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 160, friction: 16 }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 220, friction: 22 }),
     ]).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

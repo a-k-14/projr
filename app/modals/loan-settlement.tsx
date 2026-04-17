@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -60,7 +61,7 @@ export default function LoanSettlementModal() {
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
   const [date, setDate] = useState(nowUTC());
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
@@ -101,7 +102,6 @@ export default function LoanSettlementModal() {
 
   const handleSave = async () => {
     if (!isValid) return;
-    setLoading(true);
     try {
       const payload = {
         type: 'loan' as const,
@@ -116,13 +116,11 @@ export default function LoanSettlementModal() {
       } else {
         await addTransaction(payload);
       }
-      await refreshAccounts();
-      await loadLoans();
       router.back();
+      // Background refresh after navigation
+      Promise.all([refreshAccounts(), loadLoans()]).catch(() => {});
     } catch (e) {
       Alert.alert('Error', String(e));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -135,9 +133,8 @@ export default function LoanSettlementModal() {
         style: 'destructive',
         onPress: async () => {
           await removeTransaction(editId);
-          await refreshAccounts();
-          await loadLoans();
           router.back();
+          Promise.all([refreshAccounts(), loadLoans()]).catch(() => {});
         },
       },
     ]);
@@ -245,9 +242,9 @@ export default function LoanSettlementModal() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: Math.max(insets.bottom, 12) + 12, paddingTop: 8 }}>
-        <TouchableOpacity
+        <RnghTouchableOpacity
           onPress={handleSave}
-          disabled={!isValid || loading}
+          enabled={isValid}
           style={{
             backgroundColor: isValid ? palette.loan : palette.textSoft,
             borderRadius: 18,
@@ -259,11 +256,11 @@ export default function LoanSettlementModal() {
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>
             {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           </Text>
-        </TouchableOpacity>
+        </RnghTouchableOpacity>
         {isEditing ? (
-          <TouchableOpacity onPress={handleDelete} style={{ alignItems: 'center' }}>
+          <RnghTouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete transaction</Text>
-          </TouchableOpacity>
+          </RnghTouchableOpacity>
         ) : null}
       </View>
 
