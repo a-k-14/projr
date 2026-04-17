@@ -1,5 +1,5 @@
 import { Tabs, router } from 'expo-router';
-import { View, Text } from 'react-native';
+import { Platform, Vibration, View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../lib/theme';
@@ -52,6 +52,11 @@ export default function TabLayout() {
 
   const TAB_HEIGHT = 60;
 
+  const triggerTabHaptic = () => {
+    // Android: short vibration. iOS: no-op until expo-haptics is installed.
+    if (Platform.OS === 'android') Vibration.vibrate(8);
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -82,31 +87,21 @@ export default function TabLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name="grid"
-              focused={focused}
-              label="Home"
-              active={palette.tabActive}
-              inactive={palette.tabInactive}
-            />
+            <TabIcon name="grid" focused={focused} label="Home" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
+        listeners={{ tabPress: triggerTabHaptic }}
       />
       <Tabs.Screen
         name="activity"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name="activity"
-              focused={focused}
-              label="Activity"
-              active={palette.tabActive}
-              inactive={palette.tabInactive}
-            />
+            <TabIcon name="activity" focused={focused} label="Activity" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
         listeners={{
           tabPress: (event) => {
+            triggerTabHaptic();
             event.preventDefault();
             router.navigate({
               pathname: '/(tabs)/activity',
@@ -119,43 +114,28 @@ export default function TabLayout() {
         name="loans"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name="credit-card"
-              focused={focused}
-              label="Loans"
-              active={palette.tabActive}
-              inactive={palette.tabInactive}
-            />
+            <TabIcon name="credit-card" focused={focused} label="Loans" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
+        listeners={{ tabPress: triggerTabHaptic }}
       />
       <Tabs.Screen
         name="budget"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name="pie-chart"
-              focused={focused}
-              label="Budget"
-              active={palette.tabActive}
-              inactive={palette.tabInactive}
-            />
+            <TabIcon name="pie-chart" focused={focused} label="Budget" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
+        listeners={{ tabPress: triggerTabHaptic }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name="settings"
-              focused={focused}
-              label="Settings"
-              active={palette.tabActive}
-              inactive={palette.tabInactive}
-            />
+            <TabIcon name="settings" focused={focused} label="Settings" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
+        listeners={{ tabPress: triggerTabHaptic }}
       />
     </Tabs>
   );

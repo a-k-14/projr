@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

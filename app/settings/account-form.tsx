@@ -1,7 +1,8 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, InteractionManager, Keyboard, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, InteractionManager, Keyboard, Text, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import {
   ActionButton,
   ChoiceRow,

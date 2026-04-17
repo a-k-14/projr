@@ -1,6 +1,7 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { AppState, View, Text, StyleSheet, Platform } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useUIStore } from '../stores/useUIStore';
 import { useAppTheme } from '../lib/theme';
 import { FinanceEmptyMascot } from './ui/FinanceEmptyMascot';

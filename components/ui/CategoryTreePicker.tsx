@@ -1,5 +1,6 @@
 import { Feather } from '@expo/vector-icons';
-import { LayoutAnimation, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { LayoutAnimation, ScrollView, Text, TextInput, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';

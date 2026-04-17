@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';

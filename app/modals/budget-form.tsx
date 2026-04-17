@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Keyboard, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Keyboard, ScrollView, Text, View } from 'react-native';
 import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';

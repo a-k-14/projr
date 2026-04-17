@@ -1,7 +1,8 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { Animated, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   CardSection,

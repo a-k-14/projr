@@ -1,7 +1,8 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import {
   ActionButton,
   FixedBottomActions,

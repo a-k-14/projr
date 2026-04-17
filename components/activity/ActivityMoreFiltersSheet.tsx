@@ -256,26 +256,25 @@ function MoreCategoryRow({
   onToggleExpanded,
 }: MoreCategoryRowProps) {
   return (
-    <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}>
-      <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>
+    <TouchableOpacity
+      onPress={hasChildren ? onToggleExpanded : onToggleSelected}
+      style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}
+    >
+      <TouchableOpacity onPress={onToggleSelected} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 12 }}>
         <Checkbox selected={selected} partial={partial} palette={palette} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={hasChildren ? onToggleExpanded : onToggleSelected} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
         <CategoryIconBadge icon={category.icon} palette={palette} />
-        <View style={{ marginLeft: 14, flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
-            {category.name}
-          </Text>
-        </View>
-      </TouchableOpacity>
+        <Text numberOfLines={1} style={{ marginLeft: 14, flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
+          {category.name}
+        </Text>
+      </View>
       {hasChildren ? (
-        <TouchableOpacity onPress={onToggleExpanded} activeOpacity={0.7}>
-          <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} />
-        </TouchableOpacity>
+        <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} style={{ marginLeft: 8 }} />
       ) : (
-        <View style={{ width: 18 }} />
+        <View style={{ width: 26 }} />
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 

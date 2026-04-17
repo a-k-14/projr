@@ -1,7 +1,8 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import {
   CardSection,
   FixedBottomActions,
