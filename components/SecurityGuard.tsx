@@ -22,6 +22,16 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
     
     try {
       setIsAuthenticating(true);
+
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (!hasHardware || !isEnrolled) {
+        setIsLocked(false);
+        useUIStore.getState().updateSettings({ biometricLock: false });
+        return;
+      }
+
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Reni',
         fallbackLabel: 'Use Passcode',
@@ -32,7 +42,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
         setIsLocked(false);
       }
     } catch (error) {
-      console.error('Authentication error:', error);
+      // Suppressed for release
     } finally {
       setIsAuthenticating(false);
     }

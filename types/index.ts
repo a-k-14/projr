@@ -92,6 +92,7 @@ export interface BudgetWithSpent extends Budget {
 
 export interface Settings {
   defaultAccountId: string;
+  lastUsedAccountId?: string;
   currency: string;
   currencySymbol: string;
   showCurrencySymbol: boolean;

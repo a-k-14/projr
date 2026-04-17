@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleProp, TouchableOpacity, ViewStyle } from 'react-native';
+import { StyleProp, ViewStyle } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -28,8 +29,9 @@ export function FabButton({
 }) {
   return (
     <TouchableOpacity
+      delayPressIn={0}
       activeOpacity={activeOpacity}
-      onPress={onPress}
+      onPress={() => requestAnimationFrame(() => onPress())}
       style={[
         {
           position: 'absolute',

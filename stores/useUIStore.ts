@@ -45,10 +45,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
     try {
       // Persist in background after optimistic state update
       await settingsService.updateSettings(data);
-      const totalTransactionMS = Date.now() - traceStart;
-      console.log(`[PERF-THEME] updateSettings(${metricContext || Object.keys(data).join(',')}) -> UI: ${uiRepaintMS}ms | Disk Sync: ${totalTransactionMS}ms`);
     } catch (error) {
-      console.error('[PERF-THEME] updateSettings failed, rolling back:', error);
       // Restore previous state if persistence fails
       set({ settings: previousSettings });
     }

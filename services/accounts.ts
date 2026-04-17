@@ -75,15 +75,7 @@ export async function updateAccount(id: string, data: Partial<Account>): Promise
 
 export async function updateAccountBalance(id: string, delta: number): Promise<void> {
   if (!delta) return;
-  await db.transaction(async (tx) => {
-    const rows = await tx.select().from(accounts).where(eq(accounts.id, id));
-    const account = rows[0];
-    if (!account) return;
-    await tx
-      .update(accounts)
-      .set({ balance: account.balance + delta })
-      .where(eq(accounts.id, id));
-  });
+  await db.update(accounts).set({ balance: sql`${accounts.balance} + ${delta}` }).where(eq(accounts.id, id));
 }
 
 export async function setAccountOrder(accountIds: string[]): Promise<void> {

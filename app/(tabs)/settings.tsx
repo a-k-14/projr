@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Switch, Text, View } from 'react-native';
+import { ScrollView, Switch, Text, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -44,6 +45,22 @@ export default function SettingsScreen() {
     () => accounts.find((account) => account.id === settings.defaultAccountId),
     [accounts, settings.defaultAccountId],
   );
+
+  const handleBiometricToggle = async (value: boolean) => {
+    if (value) {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        Alert.alert('Not Supported', 'Your device does not support biometric authentication.');
+        return;
+      }
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!isEnrolled) {
+        Alert.alert('Not Enrolled', 'No biometrics are enrolled on this device. Please set up a screen lock or biometrics in your device settings.');
+        return;
+      }
+    }
+    updateSettings({ biometricLock: value });
+  };
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
@@ -142,7 +159,7 @@ export default function SettingsScreen() {
               rightElement={
                 <Switch
                   value={settings.biometricLock}
-                  onValueChange={(value) => updateSettings({ biometricLock: value })}
+                  onValueChange={handleBiometricToggle}
                   trackColor={{ false: palette.border, true: palette.tabActive }}
                   thumbColor={settings.biometricLock ? palette.onBrand : palette.surface}
                 />

@@ -439,17 +439,11 @@ export async function countByCategory(categoryId: string): Promise<number> {
 }
 
 export async function countByTag(tagId: string): Promise<number> {
-  const rows = await db.select().from(transactions);
-  let count = 0;
-  for (const row of rows) {
-    try {
-      const tags: string[] = JSON.parse(row.tags);
-      if (tags.includes(tagId)) count++;
-    } catch {
-      // ignore malformed json
-    }
-  }
-  return count;
+  const rows = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(transactions)
+    .where(like(transactions.tags, `%"${tagId}"%`));
+  return rows[0]?.count ?? 0;
 }
 
 export async function deleteTransaction(id: string): Promise<void> {

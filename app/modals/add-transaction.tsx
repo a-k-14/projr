@@ -79,6 +79,8 @@ export default function AddTransactionModal() {
   const categories = useCategoriesStore((s) => s.categories);
   const tags = useCategoriesStore((s) => s.tags);
   const defaultAccountId = useUIStore((s) => s.settings.defaultAccountId);
+  const lastUsedAccountId = useUIStore((s) => s.settings.lastUsedAccountId);
+  const updateSettings = useUIStore((s) => s.updateSettings);
   const sym = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const { palette } = useAppTheme();
@@ -144,11 +146,11 @@ export default function AddTransactionModal() {
       const preferred =
         sourceAccountId && sourceAccountId !== 'all' && accounts.some((account) => account.id === sourceAccountId)
           ? sourceAccountId
-          : defaultAccountId || accounts[0].id;
+          : defaultAccountId || lastUsedAccountId || accounts[0].id;
       setAccountId(preferred);
       if (accounts.length > 1) setLinkedAccountId(accounts[1].id);
     }
-  }, [accounts, accountId, defaultAccountId, sourceAccountId]);
+  }, [accounts, accountId, defaultAccountId, lastUsedAccountId, sourceAccountId]);
 
   // One-way sync: when user picks a category in the external modal,
   // draftCategoryId changes → pull it into local state.
@@ -374,6 +376,10 @@ export default function AddTransactionModal() {
     if (!isValid) return;
     setLoading(true);
     try {
+      if (!isEditing && accountId) {
+        updateSettings({ lastUsedAccountId: accountId }).catch(() => {});
+      }
+
       const data: CreateTransactionInput = {
         type,
         amount,

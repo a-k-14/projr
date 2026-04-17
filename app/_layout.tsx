@@ -35,7 +35,6 @@ export default function RootLayout() {
       await Promise.all([loadAccounts(), loadSettings(), loadCategories()]);
       setReady(true);
     } catch (error) {
-      console.error('Init error:', error);
       setInitError(
         error instanceof Error ? error.message : 'Something went wrong while opening the app.'
       );

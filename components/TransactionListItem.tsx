@@ -1,6 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { formatCurrency, getLoanDisplayLabel, getTransactionCashflowImpact } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
@@ -191,7 +192,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
 
   if (onPress) {
     return (
-      <TouchableOpacity activeOpacity={0.6} onPress={() => onPress(tx)}>
+      <TouchableOpacity activeOpacity={0.6} onPress={() => requestAnimationFrame(() => onPress(tx))}>
         {inner}
       </TouchableOpacity>
     );
