@@ -24,7 +24,24 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
   load: async (filters) => {
     const f = { ...get().filters, ...filters };
     const loans = await loansService.getLoans(f);
-    set({ loans, filters: f, isLoaded: true });
+
+    let needsRefetch = false;
+    for (const loan of loans) {
+      if (loan.pendingAmount <= 0 && loan.status === 'open') {
+        await loansService.updateLoan(loan.id, { status: 'closed' });
+        needsRefetch = true;
+      } else if (loan.pendingAmount > 0 && loan.status === 'closed') {
+        await loansService.updateLoan(loan.id, { status: 'open' });
+        needsRefetch = true;
+      }
+    }
+
+    if (needsRefetch) {
+      const finalLoans = await loansService.getLoans(f);
+      set({ loans: finalLoans, filters: f, isLoaded: true });
+    } else {
+      set({ loans, filters: f, isLoaded: true });
+    }
   },
 
   add: async (data) => {

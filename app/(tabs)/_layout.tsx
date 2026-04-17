@@ -52,11 +52,6 @@ export default function TabLayout() {
 
   const TAB_HEIGHT = 60;
 
-  const triggerTabHaptic = () => {
-    // Android: short vibration. iOS: no-op until expo-haptics is installed.
-    if (Platform.OS === 'android') Vibration.vibrate(8);
-  };
-
   return (
     <Tabs
       screenOptions={{
@@ -90,7 +85,6 @@ export default function TabLayout() {
             <TabIcon name="grid" focused={focused} label="Home" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
-        listeners={{ tabPress: triggerTabHaptic }}
       />
       <Tabs.Screen
         name="activity"
@@ -98,16 +92,6 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <TabIcon name="activity" focused={focused} label="Activity" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
-        }}
-        listeners={{
-          tabPress: (event) => {
-            triggerTabHaptic();
-            event.preventDefault();
-            router.navigate({
-              pathname: '/(tabs)/activity',
-              params: { source: 'activity-tab', ts: String(Date.now()) },
-            });
-          },
         }}
       />
       <Tabs.Screen
@@ -117,7 +101,6 @@ export default function TabLayout() {
             <TabIcon name="credit-card" focused={focused} label="Loans" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
-        listeners={{ tabPress: triggerTabHaptic }}
       />
       <Tabs.Screen
         name="budget"
@@ -126,7 +109,6 @@ export default function TabLayout() {
             <TabIcon name="pie-chart" focused={focused} label="Budget" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
-        listeners={{ tabPress: triggerTabHaptic }}
       />
       <Tabs.Screen
         name="settings"
@@ -135,7 +117,6 @@ export default function TabLayout() {
             <TabIcon name="settings" focused={focused} label="Settings" active={palette.tabActive} inactive={palette.tabInactive} />
           ),
         }}
-        listeners={{ tabPress: triggerTabHaptic }}
       />
     </Tabs>
   );

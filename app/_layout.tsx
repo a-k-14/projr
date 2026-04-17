@@ -130,8 +130,6 @@ export default function RootLayout() {
               contentStyle: {
                 backgroundColor: palette.background,
               },
-              animation: 'slide_from_right',
-              animationDuration: 220,
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
@@ -140,7 +138,7 @@ export default function RootLayout() {
             <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
             <Stack.Screen
               name="modals/add-transaction"
-              options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="modals/select-account"
@@ -152,27 +150,27 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="modals/select-category"
-              options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="modals/select-budget-category"
-              options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="modals/calculator"
-              options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="modals/budget-form"
-              options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="modals/loan-settlement"
-              options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="modals/split-transaction"
-              options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+              options={{ headerShown: false }}
             />
           </Stack>
         </SecurityGuard>

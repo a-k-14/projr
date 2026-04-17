@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { TouchableOpacity, View, Text } from 'react-native';
+import { View, Text } from 'react-native';
+import { HapticTouch } from './ui/HapticTouch';
 import { BottomSheet } from './ui/BottomSheet';
 import { ACTIVITY_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import { formatMonthYear } from '../lib/ui-format';
@@ -62,15 +63,15 @@ export function BudgetMonthField({
       }}
     >
       {onPrev ? (
-        <TouchableOpacity
+        <HapticTouch
           onPress={onPrev}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{ width: 36, height: 36, borderRadius: HOME_RADIUS.tab, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="chevron-back" size={18} color={palette.text} />
-        </TouchableOpacity>
+        </HapticTouch>
       ) : null}
-      <TouchableOpacity
+      <HapticTouch
         onPress={onPress}
         activeOpacity={0.75}
         style={{
@@ -85,15 +86,15 @@ export function BudgetMonthField({
           {formatBudgetMonthLabel(value)}
         </Text>
         {!onPrev && !onNext ? <Ionicons name="chevron-down" size={15} color={palette.textMuted} /> : null}
-      </TouchableOpacity>
+      </HapticTouch>
       {onNext ? (
-        <TouchableOpacity
+        <HapticTouch
           onPress={onNext}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{ width: 36, height: 36, borderRadius: HOME_RADIUS.tab, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="chevron-forward" size={18} color={palette.text} />
-        </TouchableOpacity>
+        </HapticTouch>
       ) : null}
     </View>
   );
@@ -147,21 +148,21 @@ export function BudgetMonthSheet({
             paddingHorizontal: 6,
           }}
         >
-          <TouchableOpacity
+          <HapticTouch
             onPress={() => setSelectedYear((year) => year - 1)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{ width: 40, height: 40, borderRadius: HOME_RADIUS.tab, alignItems: 'center', justifyContent: 'center' }}
           >
             <Ionicons name="chevron-back" size={18} color={palette.text} />
-          </TouchableOpacity>
+          </HapticTouch>
           <Text style={{ flex: 1, textAlign: 'center', fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text }}>{selectedYear}</Text>
-          <TouchableOpacity
+          <HapticTouch
             onPress={() => setSelectedYear((year) => year + 1)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{ width: 40, height: 40, borderRadius: HOME_RADIUS.tab, alignItems: 'center', justifyContent: 'center' }}
           >
             <Ionicons name="chevron-forward" size={18} color={palette.text} />
-          </TouchableOpacity>
+          </HapticTouch>
         </View>
       </View>
 
@@ -169,7 +170,7 @@ export function BudgetMonthSheet({
         {options.map((month) => {
           const isSelected = month === selectedMonth;
           return (
-            <TouchableOpacity
+            <HapticTouch
               key={month}
               onPress={() => {
                 onSelect(month);
@@ -191,7 +192,7 @@ export function BudgetMonthSheet({
               <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: isSelected ? palette.budget : palette.text }}>
                 {new Date(month).toLocaleDateString('en-IN', { month: 'short' })}
               </Text>
-            </TouchableOpacity>
+            </HapticTouch>
           );
         })}
       </View>

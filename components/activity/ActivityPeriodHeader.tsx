@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { HapticTouch } from '../ui/HapticTouch';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
@@ -36,7 +37,7 @@ export function ActivityPeriodHeader({
         },
       ]}
     >
-      <TouchableOpacity
+      <HapticTouch
         onPress={goPrev}
         disabled={isDisabled}
         style={[styles.periodArrow, { borderRightColor: palette.divider }]}
@@ -48,10 +49,10 @@ export function ActivityPeriodHeader({
           color={palette.text}
           style={{ opacity: isDisabled ? 0.2 : 1 }}
         />
-      </TouchableOpacity>
+      </HapticTouch>
 
       <View style={styles.periodCenter}>
-        <TouchableOpacity
+        <HapticTouch
           onPress={() => setShowPeriodSheet(true)}
           style={styles.periodCenterTouch}
           activeOpacity={0.7}
@@ -60,10 +61,10 @@ export function ActivityPeriodHeader({
           <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }} numberOfLines={1}>
             {periodLabel}
           </Text>
-        </TouchableOpacity>
+        </HapticTouch>
       </View>
 
-      <TouchableOpacity
+      <HapticTouch
         onPress={goNext}
         disabled={!canGoNext}
         style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
@@ -75,7 +76,7 @@ export function ActivityPeriodHeader({
           color={palette.text}
           style={{ opacity: canGoNext ? 1 : 0.2 }}
         />
-      </TouchableOpacity>
+      </HapticTouch>
     </View>
   );
 }

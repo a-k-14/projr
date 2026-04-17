@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import {
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { HapticTouch } from './ui/HapticTouch';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -189,7 +189,7 @@ function AccountTabItem({
   });
 
   return (
-    <TouchableOpacity
+    <HapticTouch
       onPress={() => onSelect(account.id)}
       style={{
         minWidth: HOME_LAYOUT.tabMinWidth,
@@ -218,6 +218,6 @@ function AccountTabItem({
           {account.name}
         </Animated.Text>
       </View>
-    </TouchableOpacity>
+    </HapticTouch>
   );
 }

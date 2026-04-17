@@ -1,8 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, ScrollView, Text, View, useWindowDimensions } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Animated, Pressable, ScrollView, Text, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   CardSection,
@@ -210,15 +209,15 @@ export default function CategoriesScreen() {
             }}
           />
           {(['in', 'out'] as const).map((t) => (
-            <TouchableOpacity
+            <Pressable
               key={t}
               onPress={() => setTab(t)}
-              activeOpacity={0.7}
-              style={{
+              style={({ pressed }) => ({
                 flex: 1,
                 paddingVertical: 14,
                 alignItems: 'center',
-              }}
+                opacity: pressed ? 0.7 : 1,
+              })}
             >
               <Text
                 style={{
@@ -229,7 +228,7 @@ export default function CategoriesScreen() {
               >
                 {t === 'in' ? 'Income' : 'Expense'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
 

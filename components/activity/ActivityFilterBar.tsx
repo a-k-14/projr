@@ -1,6 +1,7 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { HapticTouch } from '../ui/HapticTouch';
 import { FilterChip } from '../ui/FilterChip';
 import { ACTIVITY_LAYOUT, CARD_PADDING, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
@@ -51,7 +52,7 @@ export function ActivityFilterBar({
           },
         ]}
       >
-        <TouchableOpacity
+        <HapticTouch
           onPress={() => setShowAccountSheet(true)}
           style={[
             styles.accountPicker,
@@ -67,7 +68,7 @@ export function ActivityFilterBar({
             {accountLabel}
           </Text>
           <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
-        </TouchableOpacity>
+        </HapticTouch>
 
         {periodNavigation}
       </View>
@@ -96,7 +97,7 @@ export function ActivityFilterBar({
             ))}
           </View>
         </ScrollView>
-        <TouchableOpacity
+        <HapticTouch
           onPress={() => setShowMoreSheet(true)}
           activeOpacity={0.75}
           style={[
@@ -115,7 +116,7 @@ export function ActivityFilterBar({
             {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
           </Text>
           <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
-        </TouchableOpacity>
+        </HapticTouch>
       </View>
     </View>
   );

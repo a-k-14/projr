@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
+import { HapticTouch } from './HapticTouch';
 import { formatDate } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -62,7 +63,7 @@ export function PickerRow({
   custom?: boolean;
 }) {
   return (
-    <TouchableOpacity
+    <HapticTouch
       onPress={onPress}
       style={{
         paddingHorizontal: SCREEN_GUTTER,
@@ -116,7 +117,7 @@ export function PickerRow({
           </>
         )}
       </View>
-    </TouchableOpacity>
+    </HapticTouch>
   );
 }
 
@@ -178,7 +179,7 @@ export function OptionChipRow({
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {options.map((option) => (
-            <TouchableOpacity
+            <HapticTouch
               key={option.label}
               onPress={option.onPress}
               style={{
@@ -196,7 +197,7 @@ export function OptionChipRow({
               <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: option.selected ? option.activeColor : palette.text }}>
                 {option.label}
               </Text>
-            </TouchableOpacity>
+            </HapticTouch>
           ))}
         </View>
         {helperText ? (
@@ -254,7 +255,7 @@ export function InteractiveDateTimeRow({
           gap: 8,
         }}
       >
-        <TouchableOpacity
+        <HapticTouch
           onPress={onOpenDate}
           style={{
             flex: 1.5,
@@ -266,8 +267,8 @@ export function InteractiveDateTimeRow({
           }}
         >
           <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </HapticTouch>
+        <HapticTouch
           onPress={onOpenTime}
           style={{
             flex: 0.9,
@@ -279,7 +280,7 @@ export function InteractiveDateTimeRow({
           }}
         >
           <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
-        </TouchableOpacity>
+        </HapticTouch>
       </View>
     </View>
   );
@@ -367,7 +368,7 @@ export function AmountRow({
           />
         </View>
         {onOpenCalculator ? (
-          <TouchableOpacity
+          <HapticTouch
             onPress={onOpenCalculator}
             style={{
               marginLeft: isLargeButton ? SCREEN_GUTTER : 0,
@@ -394,7 +395,7 @@ export function AmountRow({
                 color={isLargeButton ? palette.text : palette.textMuted}
               />
             </View>
-          </TouchableOpacity>
+          </HapticTouch>
         ) : null}
       </View>
     </View>
