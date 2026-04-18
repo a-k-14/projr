@@ -2,16 +2,14 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  FlatList,
+import { FlatList,
   LayoutAnimation,
   RefreshControl,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+  
+  View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -30,8 +28,7 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-  getFabBottomOffset,
-} from '../../lib/layoutTokens';
+  getFabBottomOffset } from '../../lib/layoutTokens';
 import { formatDateFull } from '../../lib/ui-format';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -167,8 +164,7 @@ export default function LoansScreen() {
           setToDate(endOfDayIso(date));
         }
         setFromDate(nextFrom);
-      },
-    });
+      } });
   };
 
   const openToDatePicker = () => {
@@ -182,8 +178,7 @@ export default function LoansScreen() {
           setFromDate(startOfDayIso(date));
         }
         setToDate(nextTo);
-      },
-    });
+      } });
   };
 
   return (
@@ -202,12 +197,12 @@ export default function LoansScreen() {
               returnKeyType="search"
             />
             {search.length > 0 ? (
-              <TouchableOpacity onPress={() => setSearch('')}>
+              <TouchableOpacity delayPressIn={0} onPress={() => setSearch('')}>
                 <Ionicons name="close-circle" size={16} color={palette.textSoft} />
               </TouchableOpacity>
             ) : null}
           </View>
-          <TouchableOpacity onPress={() => toggleSearch(false)}>
+          <TouchableOpacity delayPressIn={0} onPress={() => toggleSearch(false)}>
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
@@ -220,7 +215,7 @@ export default function LoansScreen() {
               Loans
             </Text>
             <View style={{ flex: 1 }} />
-            <TouchableOpacity
+            <TouchableOpacity delayPressIn={0}
               onPress={() => toggleSearch(true)}
               style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
             >
@@ -259,11 +254,10 @@ export default function LoansScreen() {
                 {
                   paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
                   marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom,
-                  gap: ACTIVITY_LAYOUT.controlChipGap,
-                },
+                  gap: ACTIVITY_LAYOUT.controlChipGap },
               ]}
             >
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={() => setShowAccountSheet(true)}
                 style={[
                   styles.accountPicker,
@@ -272,8 +266,7 @@ export default function LoansScreen() {
                     borderColor: palette.divider,
                     flex: 1,
                     flexBasis: 0,
-                    minWidth: 0,
-                  },
+                    minWidth: 0 },
                 ]}
               >
                 <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
@@ -282,7 +275,7 @@ export default function LoansScreen() {
                 <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
               </TouchableOpacity>
 
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={() => setShowMoreSheet(true)}
                 activeOpacity={0.75}
                 style={[
@@ -292,8 +285,7 @@ export default function LoansScreen() {
                     flexBasis: 0,
                     minWidth: 0,
                     backgroundColor: moreActiveCount > 0 ? palette.brandSoft : palette.surface,
-                    borderColor: moreActiveCount > 0 ? palette.brand : palette.divider,
-                  },
+                    borderColor: moreActiveCount > 0 ? palette.brand : palette.divider },
                 ]}
               >
                 <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}>
@@ -376,7 +368,7 @@ export default function LoansScreen() {
           hasNavBar
           footer={
             <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 8, paddingBottom: 3, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={() => setShowMoreSheet(false)}
                 style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
                 activeOpacity={0.85}
@@ -386,7 +378,7 @@ export default function LoansScreen() {
             </View>
           }
           headerRight={
-            <TouchableOpacity
+            <TouchableOpacity delayPressIn={0}
               onPress={() => {
                 setDirectionFilter('all');
                 setStatusFilter('all');
@@ -431,7 +423,7 @@ export default function LoansScreen() {
 
             <ListHeading label="Date Range" palette={palette} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={openFromDatePicker}
                 style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}
               >
@@ -443,7 +435,7 @@ export default function LoansScreen() {
                 </Text>
               </TouchableOpacity>
               <Ionicons name="arrow-forward" size={18} color={palette.textSoft} />
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={openToDatePicker}
                 style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}
               >
@@ -489,8 +481,7 @@ function LoanSummaryCard({
   net,
   netPositive,
   sym,
-  palette,
-}: {
+  palette }: {
   lent: number;
   borrowed: number;
   net: number;
@@ -526,8 +517,7 @@ function LoanRow({
   sym,
   palette,
   isLast,
-  onPress,
-}: {
+  onPress }: {
   loan: LoanWithSummary;
   accountName?: string;
   sym: string;
@@ -549,10 +539,9 @@ function LoanRow({
           backgroundColor: palette.surface,
           borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
           marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-          overflow: 'hidden',
-        }}
+          overflow: 'hidden' }}
       >
-        <TouchableOpacity activeOpacity={0.6} onPress={onPress}>
+        <TouchableOpacity delayPressIn={0} activeOpacity={0.6} onPress={onPress}>
           <View
             style={{
               flexDirection: 'row',
@@ -561,8 +550,7 @@ function LoanRow({
               paddingTop: loan.status === 'closed' ? HOME_LAYOUT.listRowPaddingY + 14 : HOME_LAYOUT.listRowPaddingY,
               paddingBottom: loan.status === 'closed' ? HOME_LAYOUT.listRowPaddingY + 2 : HOME_LAYOUT.listRowPaddingY,
               borderBottomWidth: isLast ? 0 : 0,
-              position: 'relative',
-            }}
+              position: 'relative' }}
           >
             <View
               style={{
@@ -572,8 +560,7 @@ function LoanRow({
                 backgroundColor: dirBg,
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginRight: HOME_SPACE.sm + 2,
-              }}
+                marginRight: HOME_SPACE.sm + 2 }}
             >
               <Ionicons
                 name={isLent ? 'arrow-up' : 'arrow-down'}
@@ -595,8 +582,7 @@ function LoanRow({
                   backgroundColor: palette.inputBg,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  zIndex: 2,
-                }}
+                  zIndex: 2 }}
               >
                 <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textSecondary }}>Closed</Text>
               </View>
@@ -626,16 +612,14 @@ function LoanRow({
                   backgroundColor: palette.divider,
                   borderRadius: PROGRESS.radius,
                   marginTop: 6,
-                  overflow: 'hidden',
-                }}
+                  overflow: 'hidden' }}
               >
                 <View
                   style={{
                     height: PROGRESS.cardHeight,
                     width: `${progressPercent}%`,
                     backgroundColor: dirColor,
-                    borderRadius: PROGRESS.radius,
-                  }}
+                    borderRadius: PROGRESS.radius }}
                 />
               </View>
             </View>
@@ -651,13 +635,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   topBarMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
+    gap: 10 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -665,8 +647,7 @@ const styles = StyleSheet.create({
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   iconBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -678,12 +659,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
+    elevation: 1 },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   accountPicker: {
     minWidth: 0,
     flexDirection: 'row',
@@ -698,8 +677,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
+    elevation: 1 },
   moreChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -714,20 +692,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
+    elevation: 1 },
   clearAllButton: {
     paddingHorizontal: 8,
     paddingVertical: 6,
-    marginRight: -4,
-  },
+    marginRight: -4 },
   dateField: {
     flex: 1,
     borderRadius: 12,
     borderWidth: 1.5,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
+    paddingVertical: 10 },
   amountField: {
     flex: 1,
     borderRadius: 12,
@@ -735,16 +710,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: HOME_TEXT.body,
-    fontWeight: '700',
-  },
+    fontWeight: '700' },
   sheetChipRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: ACTIVITY_LAYOUT.controlChipGap,
     paddingHorizontal: CARD_PADDING,
-    paddingBottom: 8,
-  },
-});
+    paddingBottom: 8 } });
 
 function startOfDayIso(date: Date) {
   const next = new Date(date);
@@ -762,6 +734,5 @@ function formatLoanRowDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric',
-  });
+    year: 'numeric' });
 }

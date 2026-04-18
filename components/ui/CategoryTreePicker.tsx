@@ -1,6 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { LayoutAnimation, ScrollView, Text, TextInput, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { LayoutAnimation, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
@@ -24,8 +23,7 @@ export const CATEGORY_TREE_ROW = {
   parentMinHeight: 62,
   childMinHeight: 52,
   rowGap: 12,
-  childIndent: CARD_PADDING + 40,
-} as const;
+  childIndent: CARD_PADDING + 40 } as const;
 
 export function CategoryIconBadge({
   icon,
@@ -35,8 +33,7 @@ export function CategoryIconBadge({
   backgroundColor,
   borderColor,
   iconColor,
-  showBorder = false,
-}: {
+  showBorder = false }: {
   icon: string;
   size?: number;
   bgSize?: number;
@@ -56,8 +53,7 @@ export function CategoryIconBadge({
         borderWidth: showBorder ? 1 : 0,
         borderColor: borderColor ?? palette.border,
         alignItems: 'center',
-        justifyContent: 'center',
-      }}
+        justifyContent: 'center' }}
     >
       {isEmojiIcon(icon) ? (
         <Text style={{ fontSize: size }}>{icon}</Text>
@@ -80,8 +76,7 @@ export function CategoryTreePicker({
   onBack,
   onSelect,
   palette,
-  emptyMessage = 'No categories found',
-}: {
+  emptyMessage = 'No categories found' }: {
   title: string;
   search: string;
   onSearchChange: (value: string) => void;
@@ -109,7 +104,7 @@ export function CategoryTreePicker({
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
-          <TouchableOpacity onPress={onBack} style={{ padding: 4, marginRight: 12 }}>
+          <TouchableOpacity delayPressIn={0} onPress={onBack} style={{ padding: 4, marginRight: 12 }}>
             <Feather name="arrow-left" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, flex: 1 }}>
@@ -125,8 +120,7 @@ export function CategoryTreePicker({
               borderRadius: 16,
               paddingHorizontal: CARD_PADDING,
               borderWidth: 1,
-              borderColor: palette.divider,
-            }}
+              borderColor: palette.divider }}
           >
             <Feather name="search" size={16} color={palette.textMuted} />
             <TextInput
@@ -151,7 +145,7 @@ export function CategoryTreePicker({
 
               return (
                 <View key={parent.id}>
-                  <TouchableOpacity
+                  <TouchableOpacity delayPressIn={0}
                     activeOpacity={0.6}
                     onPress={() => (hasChildren ? toggleParent(parent.id) : onSelect(parent.id))}
                     style={{
@@ -163,8 +157,7 @@ export function CategoryTreePicker({
                       borderBottomWidth: isLast && !isExpanded ? 0 : 1,
                       borderBottomColor: palette.divider,
                       backgroundColor: selected ? palette.brandSoft : 'transparent',
-                      gap: CATEGORY_TREE_ROW.rowGap,
-                    }}
+                      gap: CATEGORY_TREE_ROW.rowGap }}
                   >
                     <CategoryIconBadge icon={parent.icon || 'tag'} palette={palette} />
                     <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
@@ -184,8 +177,7 @@ export function CategoryTreePicker({
                           borderRadius: 11,
                           backgroundColor: palette.tabActive,
                           alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
+                          justifyContent: 'center' }}
                       >
                         <Feather name="check" size={13} color={palette.onBrand} />
                       </View>
@@ -197,7 +189,7 @@ export function CategoryTreePicker({
                       {filteredChildren.map((child) => {
                         const childSelected = child.id === selectedCategoryId;
                         return (
-                          <TouchableOpacity
+                          <TouchableOpacity delayPressIn={0}
                             key={child.id}
                             onPress={() => onSelect(child.id)}
                             style={{
@@ -209,8 +201,7 @@ export function CategoryTreePicker({
                               minHeight: CATEGORY_TREE_ROW.childMinHeight,
                               borderTopWidth: 1,
                               borderTopColor: palette.divider,
-                              backgroundColor: childSelected ? palette.brandSoft : 'transparent',
-                            }}
+                              backgroundColor: childSelected ? palette.brandSoft : 'transparent' }}
                           >
                             <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text, flex: 1 }} numberOfLines={1}>
                               {child.name}
@@ -223,8 +214,7 @@ export function CategoryTreePicker({
                                   borderRadius: 11,
                                   backgroundColor: palette.tabActive,
                                   alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
+                                  justifyContent: 'center' }}
                               >
                                 <Feather name="check" size={13} color={palette.onBrand} />
                               </View>

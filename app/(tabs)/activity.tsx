@@ -3,8 +3,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
+import { ActivityIndicator,
   BackHandler,
   FlatList,
   InteractionManager,
@@ -14,10 +13,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
+  
   View,
-  type LayoutChangeEvent,
-} from 'react-native';
+  type LayoutChangeEvent , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
@@ -33,8 +31,7 @@ import { ActivityMoreFiltersSheet } from '../../components/activity/ActivityMore
 import {
   getNavigableDateRange,
   getPeriodNavLabel,
-  getRelativeDateLabel,
-} from '../../lib/dateUtils';
+  getRelativeDateLabel } from '../../lib/dateUtils';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { formatCurrency, getLoanTransactionKind, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
@@ -245,8 +242,7 @@ export default function ActivityScreen() {
           fromDate: dateRange?.from,
           toDate: dateRange?.to,
           limit: period === 'all' && !needsFullDataset ? TRANSACTIONS_PAGE_SIZE : undefined,
-          offset: period === 'all' && !needsFullDataset ? currentOffset : 0,
-        };
+          offset: period === 'all' && !needsFullDataset ? currentOffset : 0 };
         const results = await transactionsService.getTransactions(filters);
         if (requestId !== requestIdRef.current) return;
         if (isInitial) {
@@ -407,8 +403,7 @@ export default function ActivityScreen() {
         }
         setCustomFrom(pickedFrom);
         setPeriod('custom');
-      },
-    });
+      } });
   };
 
   const openCustomToPicker = () => {
@@ -426,8 +421,7 @@ export default function ActivityScreen() {
         }
         setCustomTo(pickedTo);
         setPeriod('custom');
-      },
-    });
+      } });
   };
 
   const filteredTransactions = useMemo(() => {
@@ -586,8 +580,7 @@ export default function ActivityScreen() {
         title: date,
         subtitle: label || undefined,
         net: calcNet(group.items),
-        items: group.items,
-      };
+        items: group.items };
     });
   }, [categoryDrilldown, drilldownTransactions, filteredTransactions]);
 
@@ -668,8 +661,7 @@ export default function ActivityScreen() {
           familyOrder: getFamilyOrder(familyKey),
           familyKey,
           transactions: [],
-          subMap: new Map(),
-        });
+          subMap: new Map() });
       }
 
       const parentEntry = parentMap.get(parentKey)!;
@@ -693,12 +685,10 @@ export default function ActivityScreen() {
             subKey: sub.subKey,
             subLabel: sub.subLabel,
             total: calcNet(sub.transactions),
-            transactions: sub.transactions,
-          }))
+            transactions: sub.transactions }))
           .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
         familyOrder: entry.familyOrder,
-        familyKey: entry.familyKey,
-      }))
+        familyKey: entry.familyKey }))
       .sort((a, b) => {
         if (a.familyOrder !== b.familyOrder) return a.familyOrder - b.familyOrder;
         return a.parentLabel.localeCompare(b.parentLabel, 'en', { sensitivity: 'base' });
@@ -715,8 +705,7 @@ export default function ActivityScreen() {
       ] as const)
         .map((section) => ({
           ...section,
-          items: categoryHierarchy.filter((category) => category.familyKey === section.key),
-        }))
+          items: categoryHierarchy.filter((category) => category.familyKey === section.key) }))
         .filter((section) => section.items.length > 0),
     [categoryHierarchy],
   );
@@ -754,8 +743,7 @@ export default function ActivityScreen() {
                 style={{
                   fontSize: HOME_TEXT.bodySmall,
                   fontWeight: '800',
-                  color: groupNet > 0 ? palette.brand : palette.negative,
-                }}
+                  color: groupNet > 0 ? palette.brand : palette.negative }}
               >
                 {signedCurrency(groupNet, sym)}
               </Text>
@@ -767,8 +755,7 @@ export default function ActivityScreen() {
               backgroundColor: palette.surface,
               borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
               marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-              overflow: 'hidden',
-            }}
+              overflow: 'hidden' }}
           >
             {item.items.map((tx, index) => {
               const account = accounts.find((a) => a.id === tx.accountId);
@@ -824,12 +811,12 @@ export default function ActivityScreen() {
               returnKeyType="search"
             />
             {search.length > 0 ? (
-              <TouchableOpacity onPress={() => setSearch('')}>
+              <TouchableOpacity delayPressIn={0} onPress={() => setSearch('')}>
                 <Ionicons name="close-circle" size={16} color={palette.textSoft} />
               </TouchableOpacity>
             ) : null}
           </View>
-          <TouchableOpacity onPress={() => toggleSearch(false)}>
+          <TouchableOpacity delayPressIn={0} onPress={() => toggleSearch(false)}>
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
@@ -844,7 +831,7 @@ export default function ActivityScreen() {
 
             <View style={{ flex: 1 }} />
 
-            <TouchableOpacity
+            <TouchableOpacity delayPressIn={0}
               onPress={() => toggleSearch(true)}
               style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
             >
@@ -905,17 +892,15 @@ export default function ActivityScreen() {
                     <View
                       style={{
                         paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                        marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom,
-                      }}
+                        marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}
                     >
-                      <TouchableOpacity
+                      <TouchableOpacity delayPressIn={0}
                         onPress={() => setCategoryDrilldown(null)}
                         activeOpacity={0.75}
                         style={{
                           flexDirection: 'row',
                           alignItems: 'center',
-                          gap: 8,
-                        }}
+                          gap: 8 }}
                       >
                         <Feather name="chevron-left" size={16} color={palette.textMuted} />
                         <Text
@@ -994,7 +979,7 @@ export default function ActivityScreen() {
                           const syntheticCfg = category.parentSyntheticType ? (txTypeConfig as any)[category.parentSyntheticType] : undefined;
                           return (
                             <View key={category.parentKey}>
-                              <TouchableOpacity
+                              <TouchableOpacity delayPressIn={0}
                                 onPress={() => toggleCategoryExpansion(category.parentKey)}
                                 activeOpacity={0.75}
                                 style={{
@@ -1005,8 +990,7 @@ export default function ActivityScreen() {
                                   minHeight: 62,
                                   borderBottomWidth: isLastCategory && !isExpanded ? 0 : 1,
                                   borderBottomColor: palette.divider,
-                                  gap: 12,
-                                }}
+                                  gap: 12 }}
                               >
                                 <CategoryIconBadge
                                   icon={category.parentIcon}
@@ -1026,8 +1010,7 @@ export default function ActivityScreen() {
                                     fontSize: HOME_TEXT.body,
                                     fontWeight: '600',
                                     color: category.total >= 0 ? palette.brand : palette.negative,
-                                    marginRight: 2,
-                                  }}
+                                    marginRight: 2 }}
                                 >
                                   {signedCurrency(category.total, sym)}
                                 </Text>
@@ -1043,19 +1026,17 @@ export default function ActivityScreen() {
                                   style={{
                                     backgroundColor: palette.inputBg,
                                     borderBottomWidth: isLastCategory ? 0 : 1,
-                                    borderBottomColor: palette.divider,
-                                  }}
+                                    borderBottomColor: palette.divider }}
                                 >
                                   {category.subcategories.map((sub) => (
-                                    <TouchableOpacity
+                                    <TouchableOpacity delayPressIn={0}
                                       key={sub.subKey}
                                       onPress={() =>
                                         setCategoryDrilldown({
                                           parentKey: category.parentKey,
                                           parentLabel: category.parentLabel,
                                           subKey: sub.subKey,
-                                          subLabel: sub.subLabel,
-                                        })
+                                          subLabel: sub.subLabel })
                                       }
                                       activeOpacity={0.75}
                                       style={{
@@ -1066,8 +1047,7 @@ export default function ActivityScreen() {
                                         paddingRight: CARD_PADDING,
                                         minHeight: 52,
                                         borderTopWidth: 1,
-                                        borderTopColor: palette.divider,
-                                      }}
+                                        borderTopColor: palette.divider }}
                                     >
                                       <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
                                         {sub.subLabel}
@@ -1077,8 +1057,7 @@ export default function ActivityScreen() {
                                           fontSize: HOME_TEXT.body,
                                           fontWeight: '500',
                                           color: sub.total >= 0 ? palette.brand : palette.negative,
-                                          marginRight: 10,
-                                        }}
+                                          marginRight: 10 }}
                                       >
                                         {signedCurrency(sub.total, sym)}
                                       </Text>
@@ -1197,14 +1176,13 @@ export default function ActivityScreen() {
           <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 16, paddingBottom: 18 }}>
             <ListHeading label="Custom Range" palette={palette} paddingHorizontal={0} paddingTop={0} paddingBottom={10} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={openCustomFromPicker}
                 style={[
                   styles.dateField,
                   {
                     borderColor: period === 'custom' ? palette.brand : palette.divider,
-                    backgroundColor: palette.surface,
-                  },
+                    backgroundColor: palette.surface },
                 ]}
               >
                 <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
@@ -1215,14 +1193,13 @@ export default function ActivityScreen() {
                 </Text>
               </TouchableOpacity>
               <Ionicons name="arrow-forward" size={18} color={palette.textSoft} />
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={openCustomToPicker}
                 style={[
                   styles.dateField,
                   {
                     borderColor: period === 'custom' ? palette.brand : palette.divider,
-                    backgroundColor: palette.surface,
-                  },
+                    backgroundColor: palette.surface },
                 ]}
               >
                 <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
@@ -1233,7 +1210,7 @@ export default function ActivityScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
+            <TouchableOpacity delayPressIn={0}
               onPress={() => {
                 if (customFrom && customTo) {
                   const from = new Date(customFrom);
@@ -1249,8 +1226,7 @@ export default function ActivityScreen() {
               style={[
                 styles.applyBtn,
                 {
-                  backgroundColor: customFrom && customTo ? palette.brand : palette.borderSoft,
-                },
+                  backgroundColor: customFrom && customTo ? palette.brand : palette.borderSoft },
               ]}
               activeOpacity={0.8}
             >
@@ -1343,13 +1319,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   topBarMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
+    gap: 10 },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
@@ -1358,8 +1332,7 @@ const styles = StyleSheet.create({
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   iconBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -1371,27 +1344,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
+    elevation: 1 },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   dateField: {
     flex: 1,
     borderRadius: 12,
     borderWidth: 1.5,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
+    paddingVertical: 10 },
   applyBtn: {
     marginTop: 12,
     borderRadius: 12,
     paddingVertical: 13,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   groupHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-});
+    alignItems: 'center' } });

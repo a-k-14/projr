@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { HapticTouch } from '../ui/HapticTouch';
+import { StyleSheet, Text, View , TouchableOpacity} from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
@@ -22,8 +21,7 @@ export function ActivityPeriodHeader({
   goNext,
   canGoNext,
   setShowPeriodSheet,
-  palette,
-}: ActivityPeriodHeaderProps) {
+  palette }: ActivityPeriodHeaderProps) {
   const isDisabled = period === 'custom' || period === 'all';
 
   return (
@@ -33,11 +31,10 @@ export function ActivityPeriodHeader({
         {
           backgroundColor: palette.surface,
           borderColor: palette.divider,
-          flex: 1,
-        },
+          flex: 1 },
       ]}
     >
-      <HapticTouch
+      <TouchableOpacity delayPressIn={0}
         onPress={goPrev}
         disabled={isDisabled}
         style={[styles.periodArrow, { borderRightColor: palette.divider }]}
@@ -49,10 +46,10 @@ export function ActivityPeriodHeader({
           color={palette.text}
           style={{ opacity: isDisabled ? 0.2 : 1 }}
         />
-      </HapticTouch>
+      </TouchableOpacity>
 
       <View style={styles.periodCenter}>
-        <HapticTouch
+        <TouchableOpacity delayPressIn={0}
           onPress={() => setShowPeriodSheet(true)}
           style={styles.periodCenterTouch}
           activeOpacity={0.7}
@@ -61,10 +58,10 @@ export function ActivityPeriodHeader({
           <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }} numberOfLines={1}>
             {periodLabel}
           </Text>
-        </HapticTouch>
+        </TouchableOpacity>
       </View>
 
-      <HapticTouch
+      <TouchableOpacity delayPressIn={0}
         onPress={goNext}
         disabled={!canGoNext}
         style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
@@ -76,7 +73,7 @@ export function ActivityPeriodHeader({
           color={palette.text}
           style={{ opacity: canGoNext ? 1 : 0.2 }}
         />
-      </HapticTouch>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -88,24 +85,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: ACTIVITY_LAYOUT.controlRadius,
     borderWidth: 1.5,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   periodArrow: {
     width: ACTIVITY_LAYOUT.periodArrowWidth,
     height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   periodCenter: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   periodCenterTouch: {
     height: '100%',
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-});
+    paddingHorizontal: 8 } });

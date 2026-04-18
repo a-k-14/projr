@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
-import { HapticTouch } from './HapticTouch';
+import { Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { formatDate } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -25,8 +24,7 @@ function sanitizeDecimalInput(value: string): string {
 export function SectionCard({
   children,
   palette,
-  horizontalInset = SCREEN_GUTTER,
-}: {
+  horizontalInset = SCREEN_GUTTER }: {
   children: React.ReactNode;
   palette: AppThemePalette;
   horizontalInset?: number;
@@ -39,8 +37,7 @@ export function SectionCard({
         marginHorizontal: horizontalInset,
         borderWidth: 1,
         borderColor: palette.border,
-        overflow: 'hidden',
-      }}
+        overflow: 'hidden' }}
     >
       {children}
     </View>
@@ -53,8 +50,7 @@ export function PickerRow({
   placeholder,
   onPress,
   palette,
-  custom = false,
-}: {
+  custom = false }: {
   label: string;
   value: string | React.ReactNode;
   placeholder?: boolean;
@@ -63,14 +59,13 @@ export function PickerRow({
   custom?: boolean;
 }) {
   return (
-    <HapticTouch
+    <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       style={{
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center',
-      }}
+        alignItems: 'center' }}
     >
       <Text
         numberOfLines={1}
@@ -79,8 +74,7 @@ export function PickerRow({
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-        }}
+          paddingRight: ROW_COLUMN_GAP }}
       >
         {label}
       </Text>
@@ -92,8 +86,7 @@ export function PickerRow({
           flex: 1,
           minWidth: 0,
           minHeight: ROW_MIN_HEIGHT,
-          paddingLeft: 4,
-        }}
+          paddingLeft: 4 }}
       >
         {custom ? (
           <View style={{ flex: 1 }}>{value}</View>
@@ -105,8 +98,7 @@ export function PickerRow({
                 fontWeight: '400',
                 color: placeholder ? palette.textMuted : palette.text,
                 textAlign: 'left',
-                flexShrink: 1,
-              }}
+                flexShrink: 1 }}
               numberOfLines={1}
             >
               {value}
@@ -117,7 +109,7 @@ export function PickerRow({
           </>
         )}
       </View>
-    </HapticTouch>
+    </TouchableOpacity>
   );
 }
 
@@ -125,8 +117,7 @@ export function FieldRow({
   label,
   children,
   palette,
-  noBorder,
-}: {
+  noBorder }: {
   label: string;
   children: React.ReactNode;
   palette: AppThemePalette;
@@ -138,8 +129,7 @@ export function FieldRow({
         paddingHorizontal: SCREEN_GUTTER,
         paddingVertical: 14,
         borderBottomWidth: noBorder === false ? 1 : 0,
-        borderBottomColor: palette.border,
-      }}
+        borderBottomColor: palette.border }}
     >
       <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
         {label}
@@ -155,8 +145,7 @@ export function OptionChipRow({
   label,
   palette,
   options,
-  helperText,
-}: {
+  helperText }: {
   label: string;
   palette: AppThemePalette;
   options: { label: string; selected: boolean; onPress: () => void; activeColor: string; activeBg: string }[];
@@ -171,15 +160,14 @@ export function OptionChipRow({
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
-          paddingTop: 10,
-        }}
+          paddingTop: 10 }}
       >
         {label}
       </Text>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {options.map((option) => (
-            <HapticTouch
+            <TouchableOpacity delayPressIn={0}
               key={option.label}
               onPress={option.onPress}
               style={{
@@ -191,13 +179,12 @@ export function OptionChipRow({
                 justifyContent: 'center',
                 marginBottom: 4,
                 backgroundColor: option.selected ? option.activeBg : palette.inputBg,
-                borderColor: option.selected ? option.activeColor : palette.divider,
-              }}
+                borderColor: option.selected ? option.activeColor : palette.divider }}
             >
               <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: option.selected ? option.activeColor : palette.text }}>
                 {option.label}
               </Text>
-            </HapticTouch>
+            </TouchableOpacity>
           ))}
         </View>
         {helperText ? (
@@ -214,8 +201,7 @@ export function InteractiveDateTimeRow({
   date,
   palette,
   onOpenDate,
-  onOpenTime,
-}: {
+  onOpenTime }: {
   date: string;
   palette: AppThemePalette;
   onOpenDate: () => void;
@@ -231,8 +217,7 @@ export function InteractiveDateTimeRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center',
-      }}
+        alignItems: 'center' }}
     >
       <Text
         style={{
@@ -240,8 +225,7 @@ export function InteractiveDateTimeRow({
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-        }}
+          paddingRight: ROW_COLUMN_GAP }}
       >
         Date
       </Text>
@@ -252,10 +236,9 @@ export function InteractiveDateTimeRow({
           alignItems: 'center',
           minHeight: ROW_MIN_HEIGHT,
           paddingLeft: 4,
-          gap: 8,
-        }}
+          gap: 8 }}
       >
-        <HapticTouch
+        <TouchableOpacity delayPressIn={0}
           onPress={onOpenDate}
           style={{
             flex: 1.5,
@@ -263,12 +246,11 @@ export function InteractiveDateTimeRow({
             paddingVertical: 9,
             borderRadius: 12,
             alignItems: 'center',
-            justifyContent: 'center',
-          }}
+            justifyContent: 'center' }}
         >
           <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>{dateStr}</Text>
-        </HapticTouch>
-        <HapticTouch
+        </TouchableOpacity>
+        <TouchableOpacity delayPressIn={0}
           onPress={onOpenTime}
           style={{
             flex: 0.9,
@@ -276,11 +258,10 @@ export function InteractiveDateTimeRow({
             paddingVertical: 9,
             borderRadius: 12,
             alignItems: 'center',
-            justifyContent: 'center',
-          }}
+            justifyContent: 'center' }}
         >
           <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>{timeStr}</Text>
-        </HapticTouch>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -295,8 +276,7 @@ export function AmountRow({
   onOpenCalculator,
   autoFocus = false,
   calculatorButtonVariant = 'large',
-  editable = true,
-}: {
+  editable = true }: {
   sym: string;
   amountStr: string;
   setAmountStr: (value: string) => void;
@@ -316,8 +296,7 @@ export function AmountRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center',
-      }}
+        alignItems: 'center' }}
     >
       <Text
         numberOfLines={1}
@@ -326,8 +305,7 @@ export function AmountRow({
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-        }}
+          paddingRight: ROW_COLUMN_GAP }}
       >
         Amount {sym ? `(${sym})` : ''}
       </Text>
@@ -337,8 +315,7 @@ export function AmountRow({
             flex: 1,
             minWidth: 0,
             flexDirection: 'row',
-            alignItems: 'center',
-          }}
+            alignItems: 'center' }}
         >
           <TextInput
             value={amountStr}
@@ -359,8 +336,7 @@ export function AmountRow({
               lineHeight: 24,
               borderBottomWidth: editable ? (isFocused ? 1.5 : 1) : 1,
               borderBottomColor: editable ? (isFocused ? accentColor : palette.borderSoft ?? palette.border) : palette.borderSoft ?? palette.border,
-              opacity: editable ? 1 : 0.92,
-            }}
+              opacity: editable ? 1 : 0.92 }}
             onFocus={() => editable && setIsFocused(true)}
             onBlur={() => editable && setIsFocused(false)}
             cursorColor={editable ? accentColor : palette.text}
@@ -368,7 +344,7 @@ export function AmountRow({
           />
         </View>
         {onOpenCalculator ? (
-          <HapticTouch
+          <TouchableOpacity delayPressIn={0}
             onPress={onOpenCalculator}
             style={{
               marginLeft: isLargeButton ? SCREEN_GUTTER : 0,
@@ -376,8 +352,7 @@ export function AmountRow({
               height: isLargeButton ? 48 : undefined,
               minHeight: ROW_MIN_HEIGHT,
               alignItems: 'center',
-              justifyContent: 'center',
-            }}
+              justifyContent: 'center' }}
           >
             <View
               style={{
@@ -386,8 +361,7 @@ export function AmountRow({
                 borderRadius: isLargeButton ? 14 : 12,
                 backgroundColor: palette.inputBg,
                 alignItems: 'center',
-                justifyContent: 'center',
-              }}
+                justifyContent: 'center' }}
             >
               <Ionicons
                 name="calculator-outline"
@@ -395,7 +369,7 @@ export function AmountRow({
                 color={isLargeButton ? palette.text : palette.textMuted}
               />
             </View>
-          </HapticTouch>
+          </TouchableOpacity>
         ) : null}
       </View>
     </View>
@@ -408,8 +382,7 @@ export function TextInputRow({
   onChangeText,
   palette,
   placeholder,
-  accentColor,
-}: {
+  accentColor }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
@@ -425,8 +398,7 @@ export function TextInputRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center',
-      }}
+        alignItems: 'center' }}
     >
       <Text
         numberOfLines={1}
@@ -435,8 +407,7 @@ export function TextInputRow({
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP,
-        }}
+          paddingRight: ROW_COLUMN_GAP }}
       >
         {label}
       </Text>
@@ -445,8 +416,7 @@ export function TextInputRow({
           flex: 1,
           minWidth: 0,
           flexDirection: 'row',
-          alignItems: 'center',
-        }}
+          alignItems: 'center' }}
       >
         <TextInput
           value={value}
@@ -466,8 +436,7 @@ export function TextInputRow({
             textAlign: 'left',
             lineHeight: 20,
             borderBottomWidth: isFocused ? 1.5 : 1,
-            borderBottomColor: isFocused ? accentColor || palette.tabActive : palette.borderSoft,
-          }}
+            borderBottomColor: isFocused ? accentColor || palette.tabActive : palette.borderSoft }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
@@ -481,8 +450,7 @@ export function NotesSection({
   onChangeNote,
   palette,
   accentColor,
-  onFocus,
-}: {
+  onFocus }: {
   note: string;
   onChangeNote: (value: string) => void;
   palette: AppThemePalette;
@@ -506,8 +474,7 @@ export function NotesSection({
           fontSize: HOME_TEXT.sectionTitle,
           color: palette.text,
           paddingVertical: 0,
-          textAlignVertical: 'top',
-        }}
+          textAlignVertical: 'top' }}
         multiline
       />
     </View>

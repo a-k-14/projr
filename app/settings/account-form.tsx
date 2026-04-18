@@ -1,8 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, InteractionManager, Keyboard, Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Alert, InteractionManager, Keyboard, Text, View , TouchableOpacity} from 'react-native';
 import {
   ActionButton,
   ChoiceRow,
@@ -10,8 +9,7 @@ import {
   FixedBottomActions,
   IconBtn,
   InputField,
-  SettingsFormLayout,
-} from '../../components/settings-ui';
+  SettingsFormLayout } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../../lib/design';
@@ -55,8 +53,7 @@ export default function AccountFormScreen() {
     accountNumber: '',
     type: 'savings',
     balance: '',
-    currency: defaultCurrency ?? 'INR',
-  });
+    currency: defaultCurrency ?? 'INR' });
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
@@ -105,8 +102,7 @@ export default function AccountFormScreen() {
           accountNumber: account.accountNumber ?? '',
           type: account.type,
           balance: formatIndianNumberStr(String(account.initialBalance)),
-          currency: account.currency,
-        });
+          currency: account.currency });
       }
     } else {
       setDraft({
@@ -114,15 +110,13 @@ export default function AccountFormScreen() {
         accountNumber: '',
         type: 'savings',
         balance: '',
-        currency: defaultCurrency ?? 'INR',
-      });
+        currency: defaultCurrency ?? 'INR' });
     }
   }, [id, accounts, defaultCurrency]);
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? 'Edit Account' : 'New Account',
-    });
+      title: isEditing ? 'Edit Account' : 'New Account' });
   }, [isEditing, navigation]);
 
   async function onSave() {
@@ -139,8 +133,7 @@ export default function AccountFormScreen() {
       initialBalance: openingBalance,
       currency: draft.currency,
       color: ENTITY_COLORS[0],
-      icon: 'wallet',
-    };
+      icon: 'wallet' };
     if (isEditing && id) {
       await updateAccount(id, payload);
     } else {
@@ -170,8 +163,7 @@ export default function AccountFormScreen() {
                 error instanceof Error ? error.message : 'This account could not be deleted.',
               );
             }
-          },
-        },
+          } },
       ],
     );
   }
@@ -228,7 +220,7 @@ export default function AccountFormScreen() {
       {/* Account Type */}
       <View style={{ marginBottom: SPACING.xl }}>
         <FieldLabel label="Account Type" palette={palette} />
-        <TouchableOpacity
+        <TouchableOpacity delayPressIn={0}
           onPress={() => handlePickerOpen(setShowTypePicker)}
           activeOpacity={0.7}
           style={pickerRowStyle(palette)}
@@ -265,7 +257,7 @@ export default function AccountFormScreen() {
       {/* Currency */}
       <View style={{ marginBottom: SPACING.xl }}>
         <FieldLabel label="Currency" palette={palette} />
-        <TouchableOpacity
+        <TouchableOpacity delayPressIn={0}
           onPress={() => handlePickerOpen(setShowCurrencyPicker)}
           activeOpacity={0.7}
           style={pickerRowStyle(palette)}
@@ -342,6 +334,5 @@ function pickerRowStyle(palette: { border: string; surface: string }) {
     paddingHorizontal: 16,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-  };
+    justifyContent: 'space-between' as const };
 }

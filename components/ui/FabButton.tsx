@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleProp, ViewStyle } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { StyleProp, ViewStyle , TouchableOpacity} from 'react-native';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -14,8 +13,7 @@ export function FabButton({
   activeOpacity = 0.75,
   backgroundColor = palette.brand,
   iconColor = palette.onBrand,
-  style,
-}: {
+  style }: {
   onPress: () => void;
   palette: AppThemePalette;
   bottom: number;
@@ -28,7 +26,7 @@ export function FabButton({
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <TouchableOpacity
+    <TouchableOpacity delayPressIn={0}
       delayPressIn={0}
       activeOpacity={activeOpacity}
       onPress={() => requestAnimationFrame(() => onPress())}
@@ -43,8 +41,7 @@ export function FabButton({
           backgroundColor,
           alignItems: 'center',
           justifyContent: 'center',
-          ...HOME_SHADOW.card,
-        },
+          ...HOME_SHADOW.card },
         style,
       ]}
     >

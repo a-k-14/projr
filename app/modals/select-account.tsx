@@ -1,5 +1,4 @@
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { View, Text, ScrollView, Pressable , TouchableOpacity} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,8 +27,7 @@ export default function SelectAccountSheet() {
           borderTopLeftRadius: RADIUS.xl,
           borderTopRightRadius: RADIUS.xl,
           paddingTop: 12,
-          paddingBottom: insets.bottom + 14,
-        }}
+          paddingBottom: insets.bottom + 14 }}
       >
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <View
@@ -38,15 +36,14 @@ export default function SelectAccountSheet() {
               height: 5,
               borderRadius: 999,
               backgroundColor: palette.divider,
-              opacity: 0.65,
-            }}
+              opacity: 0.65 }}
           />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, paddingHorizontal: SHEET_GUTTER }}>
           <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>
             Select account
           </Text>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4 }}>
             <Ionicons name="close" size={22} color={palette.textMuted} />
           </TouchableOpacity>
         </View>

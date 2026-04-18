@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HapticTouch } from '../../components/ui/HapticTouch';
 import { SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -97,9 +96,9 @@ export default function SplitTransactionModal() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
-          <HapticTouch onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
             <Ionicons name="close" size={24} color={palette.text} />
-          </HapticTouch>
+          </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
             Split Transaction
           </Text>
@@ -113,10 +112,10 @@ export default function SplitTransactionModal() {
       >
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 4 }}>
           <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
-            <HapticTouch onPress={addRow} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <TouchableOpacity delayPressIn={0} onPress={addRow} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Ionicons name="add" size={14} color={palette.brand} />
               <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Add Line Item</Text>
-            </HapticTouch>
+            </TouchableOpacity>
           </View>
 
           <SectionCard palette={palette} horizontalInset={0}>
@@ -129,10 +128,9 @@ export default function SplitTransactionModal() {
                   alignItems: 'center',
                   paddingHorizontal: SCREEN_GUTTER,
                   borderBottomWidth: index === splitRows.length - 1 ? 0 : 1,
-                  borderBottomColor: palette.divider,
-                }}
+                  borderBottomColor: palette.divider }}
               >
-                <HapticTouch
+                <TouchableOpacity delayPressIn={0}
                   onPress={() => 
                     router.push({ 
                       pathname: '/modals/select-category', 
@@ -147,12 +145,11 @@ export default function SplitTransactionModal() {
                     style={{
                       fontSize: HOME_TEXT.sectionTitle,
                       fontWeight: row.categoryId ? '500' : '400',
-                      color: row.categoryId ? palette.text : palette.textMuted,
-                    }}
+                      color: row.categoryId ? palette.text : palette.textMuted }}
                   >
                     {getCategoryName(categories, row.categoryId)}
                   </Text>
-                </HapticTouch>
+                </TouchableOpacity>
 
                 <View
                   style={{
@@ -161,15 +158,13 @@ export default function SplitTransactionModal() {
                     alignItems: 'center',
                     borderBottomWidth: 1,
                     borderBottomColor: focusedRowId === row.id ? palette.textSecondary : palette.borderSoft ?? palette.border,
-                    paddingBottom: 4,
-                  }}
+                    paddingBottom: 4 }}
                 >
                   <TextInput
                     value={row.amountStr}
                     onChangeText={(value) =>
                       updateRow(row.id, {
-                        amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)),
-                      })
+                        amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })
                     }
                     placeholder="0"
                     placeholderTextColor={palette.textSoft}
@@ -187,12 +182,11 @@ export default function SplitTransactionModal() {
                       fontWeight: '500',
                       color: palette.text,
                       textAlign: 'right',
-                      paddingVertical: 0,
-                    }}
+                      paddingVertical: 0 }}
                   />
                 </View>
 
-                <HapticTouch
+                <TouchableOpacity delayPressIn={0}
                   onPress={() => removeRow(row.id)}
                   style={{
                     width: 34,
@@ -201,11 +195,10 @@ export default function SplitTransactionModal() {
                     borderRadius: 12,
                     backgroundColor: palette.inputBg,
                     alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                    justifyContent: 'center' }}
                 >
                   <Ionicons name="trash-outline" size={16} color={palette.negative} />
-                </HapticTouch>
+                </TouchableOpacity>
               </View>
             ))}
           </SectionCard>
@@ -221,14 +214,13 @@ export default function SplitTransactionModal() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 12,
           paddingBottom: (insets.bottom || 16) + 4,
-          backgroundColor: palette.background,
-        }}
+          backgroundColor: palette.background }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 }}>
           <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '600' }}>Total</Text>
           <Text style={{ fontSize: HOME_TEXT.rowLabel, color: palette.text, fontWeight: '700' }}>{formatIndianNumberStr(String(total || 0))}</Text>
         </View>
-        <HapticTouch
+        <TouchableOpacity delayPressIn={0}
           onPress={handleDone}
           activeOpacity={0.85}
           style={{
@@ -236,11 +228,10 @@ export default function SplitTransactionModal() {
             borderRadius: 18,
             minHeight: 54,
             alignItems: 'center',
-            justifyContent: 'center',
-          }}
+            justifyContent: 'center' }}
         >
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '700' }}>Done</Text>
-        </HapticTouch>
+        </TouchableOpacity>
       </View>
     </View>
   );

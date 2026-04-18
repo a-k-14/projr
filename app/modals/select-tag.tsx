@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { View, Text, ScrollView, Pressable , TouchableOpacity} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,15 +33,14 @@ export default function SelectTagSheet() {
           borderTopRightRadius: RADIUS.xl,
           paddingTop: 12,
           paddingBottom: insets.bottom + 14,
-          paddingHorizontal: SHEET_GUTTER,
-        }}
+          paddingHorizontal: SHEET_GUTTER }}
       >
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
           <View style={{ width: 42, height: 5, borderRadius: 999, backgroundColor: palette.divider, opacity: 0.65 }} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
           <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>Select tags</Text>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4 }}>
             <Ionicons name="close" size={22} color={palette.textMuted} />
           </TouchableOpacity>
         </View>
@@ -50,7 +48,7 @@ export default function SelectTagSheet() {
           {tags.map((tag) => {
             const selected = selectedIds.includes(tag.id);
             return (
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 key={tag.id}
                 onPress={() =>
                   setSelectedIds((current) =>
@@ -69,8 +67,7 @@ export default function SelectTagSheet() {
                   marginBottom: 10,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+                  justifyContent: 'space-between' }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />
@@ -81,7 +78,7 @@ export default function SelectTagSheet() {
             );
           })}
         </ScrollView>
-        <TouchableOpacity
+        <TouchableOpacity delayPressIn={0}
           onPress={() => {
             setTagIds(selectedIds);
             router.back();
@@ -91,8 +88,7 @@ export default function SelectTagSheet() {
             borderRadius: 16,
             paddingVertical: 14,
             alignItems: 'center',
-            marginTop: 4,
-          }}
+            marginTop: 4 }}
         >
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700' }}>Done</Text>
         </TouchableOpacity>

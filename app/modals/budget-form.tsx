@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Keyboard, ScrollView, Text, View } from 'react-native';
+import { Alert, Keyboard, ScrollView, Text, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HapticTouch } from '../../components/ui/HapticTouch';
 import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
@@ -107,8 +106,7 @@ export default function BudgetFormModal() {
         amount: Number(parseFormattedNumber(amountStr)),
         period: 'month' as const,
         startDate: startMonth,
-        repeat,
-      };
+        repeat };
       if (editingBudget) {
         await updateBudget(editingBudget.id, payload as Partial<BudgetWithSpent>, month);
       } else {
@@ -132,8 +130,7 @@ export default function BudgetFormModal() {
           await removeBudget(editingBudget.id, month);
           resetDraft();
           router.back();
-        },
-      },
+        } },
     ]);
   };
 
@@ -146,16 +143,14 @@ export default function BudgetFormModal() {
       params: {
         draft: 'budget',
         brandColor: palette.budget,
-        brandSoft: palette.budgetSoft,
-      },
-    });
+        brandSoft: palette.budgetSoft } });
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
-          <HapticTouch
+          <TouchableOpacity delayPressIn={0}
             onPress={() => {
               resetDraft();
               router.back();
@@ -163,7 +158,7 @@ export default function BudgetFormModal() {
             style={{ padding: 4, marginRight: 12 }}
           >
             <Ionicons name="close" size={24} color={palette.text} />
-          </HapticTouch>
+          </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
             {editingBudget ? 'Edit budget' : 'New budget'}
           </Text>
@@ -171,7 +166,7 @@ export default function BudgetFormModal() {
       </SafeAreaView>
 
       <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={{ paddingBottom: 120 }}>
-        <SectionCard palette={palette} horizontalInset={0}>
+        <SectionCard palette={palette}>
           <PickerRow
             label="Month"
             palette={palette}
@@ -205,10 +200,9 @@ export default function BudgetFormModal() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingBottom: Math.max(insets.bottom, 12) + 12,
           paddingTop: 8,
-          backgroundColor: palette.background,
-        }}
+          backgroundColor: palette.background }}
       >
-        <HapticTouch
+        <TouchableOpacity delayPressIn={0}
           onPress={handleSave}
           disabled={!isValid}
           style={{
@@ -216,17 +210,16 @@ export default function BudgetFormModal() {
             borderRadius: 16,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: isValid ? palette.budget : palette.borderSoft,
-          }}
+            backgroundColor: isValid ? palette.budget : palette.borderSoft }}
         >
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBudget }}>
             {editingBudget ? 'Save changes' : 'Add budget'}
           </Text>
-        </HapticTouch>
+        </TouchableOpacity>
         {editingBudget ? (
-          <HapticTouch onPress={handleDelete} style={{ alignItems: 'center', marginTop: 12, paddingVertical: 8 }}>
+          <TouchableOpacity delayPressIn={0} onPress={handleDelete} style={{ alignItems: 'center', marginTop: 12, paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete budget</Text>
-          </HapticTouch>
+          </TouchableOpacity>
         ) : null}
       </View>
       <BudgetMonthSheet
@@ -243,8 +236,7 @@ export default function BudgetFormModal() {
 function RepeatRow({
   repeat,
   setRepeat,
-  palette,
-}: {
+  palette }: {
   repeat: boolean;
   setRepeat: (value: boolean) => void;
   palette: AppThemePalette;

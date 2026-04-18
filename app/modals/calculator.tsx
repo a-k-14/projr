@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { HapticTouch } from '../../components/ui/HapticTouch';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { HOME_TEXT } from '../../lib/layoutTokens';
@@ -167,12 +166,11 @@ export default function CalculatorModal() {
             flexDirection: 'row',
             alignItems: 'center',
             marginBottom: 120,
-            paddingHorizontal: SCREEN_GUTTER,
-          }}
+            paddingHorizontal: SCREEN_GUTTER }}
         >
-          <HapticTouch onPress={handleClose} style={{ padding: 6, marginRight: 8 }}>
+          <TouchableOpacity delayPressIn={0} onPress={handleClose} style={{ padding: 6, marginRight: 8 }}>
             <Ionicons name="close" size={24} color={palette.text} />
-          </HapticTouch>
+          </TouchableOpacity>
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, flex: 1 }}>
             Calculator
           </Text>
@@ -188,8 +186,7 @@ export default function CalculatorModal() {
                 color: palette.text,
                 textAlign: 'right',
                 letterSpacing: -1,
-                marginBottom: 4,
-              }}
+                marginBottom: 4 }}
             >
               {display}
             </Text>
@@ -201,8 +198,7 @@ export default function CalculatorModal() {
                 borderTopWidth: 1,
                 borderTopColor: palette.border,
                 paddingTop: 12,
-                width: '100%',
-              }}
+                width: '100%' }}
             />
 
             <View style={{ height: 14 }} />
@@ -246,8 +242,7 @@ function CalcButton({
   palette,
   primary,
   brandColor,
-  brandSoft,
-}: {
+  brandSoft }: {
   label: string;
   onPress: () => void;
   palette: AppThemePalette;
@@ -266,7 +261,7 @@ function CalcButton({
         : palette.surface;
 
   return (
-    <HapticTouch
+    <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       style={{
         flex: 1,
@@ -276,8 +271,7 @@ function CalcButton({
         borderWidth: 1,
         borderColor: primary ? (brandColor || palette.tabActive) : palette.border,
         alignItems: 'center',
-        justifyContent: 'center',
-      }}
+        justifyContent: 'center' }}
     >
       {label === '⌫' ? (
         <Ionicons
@@ -290,12 +284,11 @@ function CalcButton({
           style={{
             fontSize: label === 'OK' ? HOME_TEXT.sectionTitle : HOME_TEXT.rowLabel,
             fontWeight: '700',
-            color: primary ? palette.onBrand : palette.text,
-          }}
+            color: primary ? palette.onBrand : palette.text }}
         >
           {label}
         </Text>
       )}
-    </HapticTouch>
+    </TouchableOpacity>
   );
 }

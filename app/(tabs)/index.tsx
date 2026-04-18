@@ -2,17 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  LayoutChangeEvent,
+import { LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
   RefreshControl,
   ScrollView,
   Text,
-  TouchableOpacity,
+  
   useWindowDimensions,
-  View,
-} from 'react-native';
+  View , TouchableOpacity} from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedRef } from 'react-native-reanimated';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
@@ -30,8 +28,7 @@ import {
   getDateRange,
   toLocalDateKey,
   toLocalDayEndISO,
-  toLocalDayStartISO,
-} from '../../lib/dateUtils';
+  toLocalDayStartISO } from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
@@ -40,8 +37,7 @@ import {
   HOME_SPACE,
   HOME_SURFACE,
   HOME_TEXT,
-  getFabBottomOffset,
-} from '../../lib/layoutTokens';
+  getFabBottomOffset } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
@@ -61,8 +57,7 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   week: 'Week',
   month: 'Month',
   year: 'Year',
-  custom: 'Custom',
-};
+  custom: 'Custom' };
 
 type AccountTab = {
   id: string | 'all';
@@ -134,8 +129,7 @@ export default function HomeScreen() {
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollX.value = event.contentOffset.x;
-    },
-  });
+    } });
 
 
 
@@ -164,8 +158,7 @@ export default function HomeScreen() {
           } else {
             setCustomDraftTo(selected < customDraftFrom ? customDraftFrom : selected);
           }
-        },
-      });
+        } });
     },
     [customDraftFrom, customDraftTo],
   );
@@ -255,8 +248,7 @@ export default function HomeScreen() {
         onPress={() =>
           router.push({
             pathname: '/modals/add-transaction',
-            params: selectedAccountId === 'all' ? undefined : { accountId: selectedAccountId },
-          })
+            params: selectedAccountId === 'all' ? undefined : { accountId: selectedAccountId } })
         }
       />
 
@@ -270,7 +262,7 @@ export default function HomeScreen() {
           scrollEnabled={false}
           footer={
             <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg, paddingHorizontal: 20, paddingBottom: HOME_SPACE.xl }}>
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={() => setCustomRangeOpen(false)}
                 style={{
                   flex: 1,
@@ -278,12 +270,11 @@ export default function HomeScreen() {
                   borderRadius: HOME_RADIUS.tab,
                   backgroundColor: palette.divider,
                   alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                  justifyContent: 'center' }}
               >
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={handleCustomRangeDone}
                 style={{
                   flex: 1,
@@ -291,8 +282,7 @@ export default function HomeScreen() {
                   borderRadius: HOME_RADIUS.tab,
                   backgroundColor: palette.brand,
                   alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                  justifyContent: 'center' }}
               >
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.surface }}>Done</Text>
               </TouchableOpacity>
@@ -300,30 +290,28 @@ export default function HomeScreen() {
           }
         >
           <View style={{ paddingHorizontal: 20, gap: HOME_SPACE.md, paddingTop: HOME_SPACE.sm }}>
-            <TouchableOpacity
+            <TouchableOpacity delayPressIn={0}
               onPress={() => openDatePicker('from')}
               style={{
                 borderWidth: 1,
                 borderColor: palette.divider,
                 borderRadius: HOME_RADIUS.card,
                 paddingHorizontal: HOME_SPACE.lg,
-                paddingVertical: 12,
-              }}
+                paddingVertical: 12 }}
             >
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
               <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
                 {formatDate(customDraftFrom.toISOString())}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity delayPressIn={0}
               onPress={() => openDatePicker('to')}
               style={{
                 borderWidth: 1,
                 borderColor: palette.divider,
                 borderRadius: HOME_RADIUS.card,
                 paddingHorizontal: HOME_SPACE.lg,
-                paddingVertical: 12,
-              }}
+                paddingVertical: 12 }}
             >
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
               <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
@@ -347,8 +335,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   onOpenCustomRange,
   totalBalance,
   onRefresh,
-  isSelected,
-}: {
+  isSelected }: {
   pageHeight: number;
   accountId: string | 'all';
   accountName: string;
@@ -453,9 +440,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
           cashflowBucket: kind,
-          ts: String(Date.now()),
-        },
-      });
+          ts: String(Date.now()) } });
     },
     [accountId],
   );
@@ -471,9 +456,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           cashflowBucket: kind,
           from,
           to,
-          ts: String(Date.now()),
-        },
-      });
+          ts: String(Date.now()) } });
     },
     [accountId, from, period, to],
   );
@@ -497,9 +480,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           cashflowBucket: type,
           from: range.from,
           to: range.to,
-          ts: String(Date.now()),
-        },
-      });
+          ts: String(Date.now()) } });
     },
     [accountId],
   );
@@ -526,8 +507,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 fontWeight: '600',
                 color: palette.text,
                 textAlign: 'right',
-                flexShrink: 1,
-              }}
+                flexShrink: 1 }}
             >
               {formatCurrency(totalBalance, currencySymbol)}
             </Text>
@@ -560,11 +540,10 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 flexDirection: 'row',
                 backgroundColor: palette.card,
                 borderRadius: HOME_RADIUS.tab,
-                overflow: 'hidden',
-              }}
+                overflow: 'hidden' }}
             >
               {PERIODS.map((value) => (
-                <TouchableOpacity
+                <TouchableOpacity delayPressIn={0}
                   key={value}
                   onPress={
                     value === 'custom'
@@ -582,8 +561,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                     justifyContent: 'center',
                     backgroundColor: period === value
                       ? palette.brandSoft
-                      : 'transparent',
-                  }}
+                      : 'transparent' }}
                 >
                   <Text
                     style={{
@@ -594,8 +572,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                       includeFontPadding: false,
                       color: period === value
                         ? palette.brand
-                        : palette.textMuted,
-                    }}
+                        : palette.textMuted }}
                   >
                     {PERIOD_LABELS[value]}
                   </Text>
@@ -622,17 +599,15 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               paddingHorizontal: CARD_PADDING,
               paddingTop: HOME_SURFACE.cardPaddingY,
               paddingBottom: HOME_SURFACE.cardPaddingBottom,
-              marginBottom: HOME_SURFACE.chartCardBottom,
-            }}
+              marginBottom: HOME_SURFACE.chartCardBottom }}
           >
-            <TouchableOpacity
+            <TouchableOpacity delayPressIn={0}
               onPress={() => setShowViewPicker(true)}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 marginBottom: HOME_SURFACE.panelHeaderGap,
-                gap: 6,
-              }}
+                gap: 6 }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
                 {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow'}
@@ -662,8 +637,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                             height: HOME_SURFACE.tableRowHeight,
                           justifyContent: 'center',
                           borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
-                          borderBottomColor: palette.borderSoft,
-                        }}
+                          borderBottomColor: palette.borderSoft }}
                       >
                         <Text
                           numberOfLines={1}
@@ -690,8 +664,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                         borderBottomWidth: 1,
                         borderBottomColor: palette.borderSoft,
                         paddingBottom: HOME_SURFACE.tableHeaderPaddingBottom,
-                        marginBottom: HOME_SURFACE.panelSubheaderGap,
-                      }}
+                        marginBottom: HOME_SURFACE.panelSubheaderGap }}
                     >
                       <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Inflow</Text>
                       <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Outflow</Text>
@@ -714,10 +687,9 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                           height: HOME_SURFACE.tableRowHeight,
                           borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
                           borderBottomColor: palette.borderSoft,
-                          alignItems: 'center',
-                          }}
+                          alignItems: 'center' }}
                         >
-                          <TouchableOpacity
+                          <TouchableOpacity delayPressIn={0}
                             activeOpacity={0.75}
                             onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'in')}
                             style={{ width: 95, marginLeft: 12 }}
@@ -729,7 +701,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                               {row.in > 0 ? formatIndianNumberStr(String(row.in)) : '-'}
                             </Text>
                           </TouchableOpacity>
-                          <TouchableOpacity
+                          <TouchableOpacity delayPressIn={0}
                             activeOpacity={0.75}
                             onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'out')}
                             style={{ width: 95, marginLeft: 12 }}
@@ -741,7 +713,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                               {row.out > 0 ? formatIndianNumberStr(String(row.out)) : '-'}
                             </Text>
                           </TouchableOpacity>
-                          <TouchableOpacity
+                          <TouchableOpacity delayPressIn={0}
                             activeOpacity={0.75}
                             onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'all')}
                             style={{ width: 95, marginLeft: 12 }}
@@ -753,8 +725,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                                 fontWeight: '600',
                                 color: row.net > 0 ? palette.brand : row.net < 0 ? palette.negative : palette.text,
                                 opacity: row.net === 0 ? 0.85 : 1,
-                                textAlign: 'right',
-                              }}
+                                textAlign: 'right' }}
                             >
                               {row.net !== 0 ? formatIndianNumberStr(String(row.net)) : '-'}
                             </Text>
@@ -771,7 +742,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                   ? viewData.map((entry, index) => {
                     const amount = activeView === 'in' ? entry.in : entry.out;
                     return (
-                      <TouchableOpacity
+                      <TouchableOpacity delayPressIn={0}
                         key={`${entry.label}-${index}`}
                         activeOpacity={0.75}
                         onPress={() =>
@@ -788,8 +759,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                             backgroundColor: activeView === 'in' ? palette.brand : palette.negative,
                             borderRadius: HOME_RADIUS.chartBar,
                             opacity: amount > 0 ? 0.88 : 0.2,
-                            height: Math.max(4, (amount / maxVal) * HOME_LAYOUT.chartBarHeight),
-                          }}
+                            height: Math.max(4, (amount / maxVal) * HOME_LAYOUT.chartBarHeight) }}
                         />
                         <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textSoft, marginTop: 8 }}>
                           {entry.label}
@@ -804,16 +774,14 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                           width: 10,
                           height: 4,
                           backgroundColor: index === 0 ? palette.heroBar : palette.chartBarMuted,
-                          borderRadius: HOME_RADIUS.full,
-                        }}
+                          borderRadius: HOME_RADIUS.full }}
                       />
                       <Text
                         style={{
                           fontSize: HOME_TEXT.tiny,
                           color: index === 0 ? palette.text : palette.textMuted,
                           marginTop: 8,
-                          fontWeight: index === 0 ? '700' : '500',
-                        }}
+                          fontWeight: index === 0 ? '700' : '500' }}
                       >
                         {day}
                       </Text>
@@ -830,20 +798,17 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: HOME_SPACE.sm,
-                paddingHorizontal: CARD_PADDING,
-              }}
+                paddingHorizontal: CARD_PADDING }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={() =>
                   router.navigate({
                     pathname: '/(tabs)/activity',
                     params: {
                       source: 'home-view-all',
                       accountId: accountId === 'all' ? 'all' : accountId,
-                      ts: String(Date.now()),
-                    },
-                  })
+                      ts: String(Date.now()) } })
                 }
               >
                 <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '600' }}>View all</Text>

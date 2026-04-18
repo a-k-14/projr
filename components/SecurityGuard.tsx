@@ -1,7 +1,6 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, View, Text, StyleSheet, Platform } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { AppState, View, Text, StyleSheet, Platform , TouchableOpacity} from 'react-native';
 import { useUIStore } from '../stores/useUIStore';
 import { useAppTheme } from '../lib/theme';
 import { FinanceEmptyMascot } from './ui/FinanceEmptyMascot';
@@ -36,14 +35,16 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Reni',
         fallbackLabel: 'Use Passcode',
-        disableDeviceFallback: false,
-      });
+        disableDeviceFallback: false });
 
       if (result.success) {
         setIsLocked(false);
       }
     } catch (error) {
-      // Suppressed for release
+      console.error('Biometric auth failed', error);
+      import('react-native').then(({ Alert }) => {
+        Alert.alert('Authentication Error', 'An unexpected error occurred accessing biometric unlocking. If this persists, try restarting the app or checking device security settings.');
+      });
     } finally {
       setIsAuthenticating(false);
     }
@@ -101,7 +102,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
             Authentication required to access your data
           </Text>
           
-          <TouchableOpacity
+          <TouchableOpacity delayPressIn={0}
             onPress={authenticate}
             activeOpacity={0.8}
             style={[styles.button, { backgroundColor: palette.brand }]}
@@ -120,39 +121,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   content: {
     alignItems: 'center',
     paddingHorizontal: 40,
-    width: '100%',
-  },
+    width: '100%' },
   illustrationContainer: {
     marginBottom: 32,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   title: {
     fontSize: HOME_TEXT.heroValue,
     fontWeight: '700',
-    marginBottom: 10,
-  },
+    marginBottom: 10 },
   subtitle: {
     fontSize: HOME_TEXT.sectionTitle,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 36,
-  },
+    marginBottom: 36 },
   button: {
     minHeight: 54,
     minWidth: 150,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
+    paddingHorizontal: 28 },
   buttonText: {
     fontSize: HOME_TEXT.rowLabel,
-    fontWeight: '700',
-  },
-});
+    fontWeight: '700' } });

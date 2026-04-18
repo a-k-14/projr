@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, ViewStyle } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { StyleSheet, Text, ViewStyle , TouchableOpacity} from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { AppThemePalette } from '../../lib/theme';
 
@@ -17,10 +16,9 @@ export function FilterChip({
   label,
   isActive,
   onPress,
-  style,
-}: FilterChipProps) {
+  style }: FilterChipProps) {
   return (
-    <TouchableOpacity
+    <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       activeOpacity={0.75}
       delayPressIn={0}
@@ -29,8 +27,7 @@ export function FilterChip({
         styles.chip,
         {
           backgroundColor: isActive ? palette.brand : palette.surface,
-          borderColor: isActive ? palette.brand : palette.divider,
-        },
+          borderColor: isActive ? palette.brand : palette.divider },
         style,
       ]}
     >
@@ -60,10 +57,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
+    elevation: 1 },
   text: {
     fontSize: HOME_TEXT.caption,
-    fontWeight: '600',
-  },
-});
+    fontWeight: '600' } });

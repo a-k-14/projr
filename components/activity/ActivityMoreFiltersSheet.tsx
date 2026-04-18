@@ -1,7 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { StyleSheet, Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { BottomSheet } from '../ui/BottomSheet';
 import { FilterChip } from '../ui/FilterChip';
 import { ListHeading } from '../ui/ListHeading';
@@ -56,8 +55,7 @@ export function ActivityMoreFiltersSheet({
   tags,
   transactions,
   palette,
-  clearAll,
-}: ActivityMoreFiltersSheetProps) {
+  clearAll }: ActivityMoreFiltersSheetProps) {
   const topCategories = categories.filter((c) => !c.parentId);
   const childCategoriesByParent = new Map<string, Category[]>();
   categories.forEach((c) => {
@@ -75,7 +73,7 @@ export function ActivityMoreFiltersSheet({
       hasNavBar
       footer={
         <View style={{ padding: 16 }}>
-          <TouchableOpacity
+          <TouchableOpacity delayPressIn={0}
             onPress={() => {
               setGroupByMode(draftGroupByMode);
               setShowMoreSheet(false);
@@ -87,7 +85,7 @@ export function ActivityMoreFiltersSheet({
         </View>
       }
       headerRight={
-        <TouchableOpacity
+        <TouchableOpacity delayPressIn={0}
           onPress={clearAll}
           hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
           style={styles.clearAllButton}
@@ -153,18 +151,17 @@ export function ActivityMoreFiltersSheet({
                             backgroundColor: palette.inputBg,
                             minHeight: 56,
                             flexDirection: 'row',
-                            alignItems: 'center',
-                          },
+                            alignItems: 'center' },
                         ]}
                       >
-                        <TouchableOpacity
+                        <TouchableOpacity delayPressIn={0}
                           onPress={() => toggleCategoryId(child.id)}
                           activeOpacity={0.75}
                           style={{ marginRight: 12 }}
                         >
                           <Checkbox selected={childSelected} palette={palette} />
                         </TouchableOpacity>
-                        <TouchableOpacity
+                        <TouchableOpacity delayPressIn={0}
                           onPress={() => toggleCategoryId(child.id)}
                           activeOpacity={0.75}
                           style={{ flex: 1, minWidth: 0 }}
@@ -253,14 +250,13 @@ function MoreCategoryRow({
   hasChildren,
   palette,
   onToggleSelected,
-  onToggleExpanded,
-}: MoreCategoryRowProps) {
+  onToggleExpanded }: MoreCategoryRowProps) {
   return (
-    <TouchableOpacity
+    <TouchableOpacity delayPressIn={0}
       onPress={hasChildren ? onToggleExpanded : onToggleSelected}
       style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}
     >
-      <TouchableOpacity onPress={onToggleSelected} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 12 }}>
+      <TouchableOpacity delayPressIn={0} onPress={onToggleSelected} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 12 }}>
         <Checkbox selected={selected} partial={partial} palette={palette} />
       </TouchableOpacity>
       <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
@@ -289,11 +285,11 @@ interface MoreTagRowProps {
 function MoreTagRow({ tag, count, selected, palette, onToggleSelected }: MoreTagRowProps) {
   return (
     <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}>
-      <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>
+      <TouchableOpacity delayPressIn={0} onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>
         <Checkbox selected={selected} palette={palette} />
       </TouchableOpacity>
       <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color, marginRight: 14 }} />
-      <TouchableOpacity onPress={onToggleSelected} activeOpacity={0.75} style={{ flex: 1, minWidth: 0 }}>
+      <TouchableOpacity delayPressIn={0} onPress={onToggleSelected} activeOpacity={0.75} style={{ flex: 1, minWidth: 0 }}>
         <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
           {tag.name}
         </Text>
@@ -308,11 +304,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 64,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   moreSubRow: {
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   amountField: {
     flex: 1,
     height: 48,
@@ -320,9 +314,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: HOME_TEXT.body,
-    fontWeight: '600',
-  },
+    fontWeight: '600' },
   clearAllButton: {
-    marginRight: 4,
-  },
-});
+    marginRight: 4 } });

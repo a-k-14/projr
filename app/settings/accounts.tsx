@@ -1,14 +1,12 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Text, View , TouchableOpacity} from 'react-native';
 import {
   CardSection,
   FixedBottomActions,
   SettingsRow,
-  SettingsScreenLayout,
-} from '../../components/settings-ui';
+  SettingsScreenLayout } from '../../components/settings-ui';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { TYPE } from '../../lib/design';
 import { formatDisplayCurrency, symbolFor } from '../../lib/settings-shared';
@@ -29,7 +27,7 @@ export default function AccountsScreen() {
       palette={palette}
       bottomAction={
         <FixedBottomActions palette={palette}>
-          <TouchableOpacity
+          <TouchableOpacity delayPressIn={0}
             onPress={() => router.push('/settings/account-form')}
             activeOpacity={0.7}
             style={{
@@ -38,8 +36,7 @@ export default function AccountsScreen() {
               borderWidth: 1,
               borderColor: palette.brand,
               alignItems: 'center',
-              justifyContent: 'center',
-            }}
+              justifyContent: 'center' }}
           >
             <Text style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
               + Add Account

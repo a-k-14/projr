@@ -1,8 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Alert, ScrollView, Text, View , TouchableOpacity} from 'react-native';
 import {
   ActionButton,
   FixedBottomActions,
@@ -10,8 +9,7 @@ import {
   IconGrid,
   InputField,
   SectionLabel,
-  SettingsFormLayout,
-} from '../../components/settings-ui';
+  SettingsFormLayout } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
@@ -75,8 +73,7 @@ export default function CategoryFormScreen() {
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? name || 'Edit Category' : 'New Category',
-    });
+      title: isEditing ? name || 'Edit Category' : 'New Category' });
   }, [name, isEditing, navigation]);
 
   function addSub() {
@@ -110,8 +107,7 @@ export default function CategoryFormScreen() {
         type,
         icon,
         color,
-        parentId: editingCategory?.parentId ?? undefined,
-      });
+        parentId: editingCategory?.parentId ?? undefined });
     } else {
       const created = await addCategory({ name: trimmed, type, icon, color: ENTITY_COLORS[0] });
       parentCategoryId = created.id;
@@ -127,16 +123,14 @@ export default function CategoryFormScreen() {
             type,
             icon,
             color,
-            parentId: parentCategoryId,
-          });
+            parentId: parentCategoryId });
         } else if (!sub.deleted && !sub.id && sub.name.trim()) {
           await addCategory({
             name: sub.name.trim(),
             type,
             icon,
             color: ENTITY_COLORS[0],
-            parentId: parentCategoryId,
-          });
+            parentId: parentCategoryId });
         }
       }
     }
@@ -170,8 +164,7 @@ export default function CategoryFormScreen() {
                 error instanceof Error ? error.message : 'Could not delete.',
               );
             }
-          },
-        },
+          } },
       ],
     );
   }
@@ -199,7 +192,7 @@ export default function CategoryFormScreen() {
         <View style={{ gap: SPACING.md }}>
         <SectionLabel label="General Info" palette={palette} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <TouchableOpacity onPress={() => setShowIconPicker(true)} activeOpacity={0.7}>
+          <TouchableOpacity delayPressIn={0} onPress={() => setShowIconPicker(true)} activeOpacity={0.7}>
             <CategoryIconBadge
               icon={icon}
               size={22}
@@ -239,11 +232,10 @@ export default function CategoryFormScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingHorizontal: 2,
-              }}
+                paddingHorizontal: 2 }}
             >
               <SectionLabel label="Subcategories" palette={palette} />
-              <TouchableOpacity
+              <TouchableOpacity delayPressIn={0}
                 onPress={addSub}
                 activeOpacity={0.7}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
@@ -254,8 +246,7 @@ export default function CategoryFormScreen() {
                     fontSize: TYPE.rowValue,
                     fontWeight: '600',
                     color: palette.brand,
-                    letterSpacing: 0.2,
-                  }}
+                    letterSpacing: 0.2 }}
                 >
                   Add
                 </Text>
@@ -271,8 +262,7 @@ export default function CategoryFormScreen() {
                     color: palette.textSecondary,
                     paddingHorizontal: CARD_PADDING,
                     paddingVertical: 12,
-                    fontStyle: 'italic',
-                  }}
+                    fontStyle: 'italic' }}
                 >
                   No subcategories yet. Tap Add to create one.
                 </Text>

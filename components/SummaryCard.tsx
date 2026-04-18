@@ -1,5 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { HapticTouch } from './ui/HapticTouch';
+import { StyleSheet, Text, View , TouchableOpacity} from 'react-native';
 import { formatCurrency } from '../lib/derived';
 import { HOME_RADIUS, HOME_SURFACE, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
@@ -22,7 +21,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
   return (
     <View style={[styles.card, { backgroundColor: palette.card }]}>
       {categories.map((category, index) => (
-        <HapticTouch
+        <TouchableOpacity delayPressIn={0}
           key={category.key}
           onPress={onPressCategory ? () => onPressCategory(category.key) : undefined}
           disabled={!onPressCategory}
@@ -30,8 +29,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
             styles.column,
             {
               borderLeftWidth: index === 0 ? 0 : 1,
-              borderLeftColor: palette.divider,
-            },
+              borderLeftColor: palette.divider },
           ]}
         >
           <Text style={[styles.label, { color: palette.textMuted, fontWeight: '700' }]}>{category.label}</Text>
@@ -45,7 +43,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
           >
             {formatCurrency(cashflow[category.key], sym)}
           </Text>
-        </HapticTouch>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -56,20 +54,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: HOME_RADIUS.card,
     overflow: 'hidden',
-    marginBottom: HOME_SURFACE.summaryCardBottom,
-  },
+    marginBottom: HOME_SURFACE.summaryCardBottom },
   column: {
     flex: 1,
     paddingVertical: HOME_SURFACE.summaryColumnPaddingY,
     paddingHorizontal: HOME_SURFACE.summaryColumnPaddingX,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   label: {
     fontSize: HOME_TEXT.caption,
-    marginBottom: 6,
-  },
+    marginBottom: 6 },
   value: {
     fontSize: HOME_TEXT.body,
-    fontWeight: '600',
-  },
-});
+    fontWeight: '600' } });

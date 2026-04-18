@@ -2,8 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
+import { Alert,
   InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
@@ -11,10 +10,8 @@ import {
   ScrollView,
   Text,
   TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { HapticTouch } from '../../components/ui/HapticTouch';
+  
+  View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -25,8 +22,7 @@ import {
   ROW_COLUMN_GAP,
   ROW_LABEL_WIDTH,
   ROW_MIN_HEIGHT,
-  SectionCard,
-} from '../../components/ui/transaction-form-primitives';
+  SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, parseFormattedNumber } from '../../lib/derived';
@@ -109,8 +105,7 @@ export default function LoanSettlementModal() {
         accountId,
         loanId: resolvedLoanId,
         note: getLoanSettlementLabel(loanDirection, personName),
-        date,
-      };
+        date };
       if (isEditing && editId) {
         await updateTransaction(editId, payload);
       } else {
@@ -135,8 +130,7 @@ export default function LoanSettlementModal() {
           await removeTransaction(editId);
           router.back();
           Promise.all([refreshAccounts(), loadLoans()]).catch(() => {});
-        },
-      },
+        } },
     ]);
   };
 
@@ -154,8 +148,7 @@ export default function LoanSettlementModal() {
             final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
             setDate(final.toISOString());
           }
-        },
-      });
+        } });
     } else {
       setPickerMode('date');
       setShowDatePicker(true);
@@ -178,8 +171,7 @@ export default function LoanSettlementModal() {
             final.setMinutes(selectedTime.getMinutes());
             setDate(final.toISOString());
           }
-        },
-      });
+        } });
     } else {
       setPickerMode('time');
       setShowDatePicker(true);
@@ -200,7 +192,7 @@ export default function LoanSettlementModal() {
     >
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>{title}</Text>
@@ -242,7 +234,7 @@ export default function LoanSettlementModal() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: Math.max(insets.bottom, 12) + 12, paddingTop: 8 }}>
-        <HapticTouch
+        <TouchableOpacity delayPressIn={0}
           onPress={handleSave}
           disabled={!isValid}
           style={{
@@ -250,17 +242,16 @@ export default function LoanSettlementModal() {
             borderRadius: 18,
             paddingVertical: 16,
             alignItems: 'center',
-            marginBottom: 12,
-          }}
+            marginBottom: 12 }}
         >
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>
             {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           </Text>
-        </HapticTouch>
+        </TouchableOpacity>
         {isEditing ? (
-          <HapticTouch onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
+          <TouchableOpacity delayPressIn={0} onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete transaction</Text>
-          </HapticTouch>
+          </TouchableOpacity>
         ) : null}
       </View>
 

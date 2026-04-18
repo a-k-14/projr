@@ -2,19 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import {
-  Alert,
+import { Alert,
   InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Text,
-  TouchableOpacity,
+  
   View,
-  LayoutAnimation,
-} from 'react-native';
-import { HapticTouch } from '../../components/ui/HapticTouch';
+  LayoutAnimation , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -25,8 +22,7 @@ import {
   NotesSection,
   PickerRow,
   SectionCard,
-  TextInputRow,
-} from '../../components/ui/transaction-form-primitives';
+  TextInputRow } from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { HOME_TEXT } from '../../lib/layoutTokens';
 import { formatDate, nowUTC } from '../../lib/dateUtils';
@@ -35,8 +31,7 @@ import {
   formatIndianNumberStr,
   getLoanSettlementLabel,
   getLoanTransactionKind,
-  parseFormattedNumber,
-} from '../../lib/derived';
+  parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
@@ -52,8 +47,7 @@ import type {
   Category,
   CreateTransactionInput,
   Tag,
-  TransactionType,
-} from '../../types';
+  TransactionType } from '../../types';
 
 // We compute TYPE_CONFIG dynamically inside the component to use the derived palette
 
@@ -63,8 +57,7 @@ export default function AddTransactionModal() {
     accountId: sourceAccountId,
     type: initialType,
     loanId: routeLoanId,
-    settlement,
-  } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string }>();
+    settlement } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string }>();
   const isEditing = !!editId;
 
   const addTransaction = useTransactionsStore((s) => s.add);
@@ -138,8 +131,7 @@ export default function AddTransactionModal() {
     in: { label: 'In', color: palette.positive, borderColor: palette.positive, bg: palette.inBg },
     out: { label: 'Out', color: palette.negative, borderColor: palette.negative, bg: palette.outBg },
     transfer: { label: 'Transfer', color: palette.transferText, borderColor: palette.transferText, bg: palette.transferBg },
-    loan: { label: 'Loan', color: palette.loan, borderColor: palette.loan, bg: palette.loanBg },
-  };
+    loan: { label: 'Loan', color: palette.loan, borderColor: palette.loan, bg: palette.loanBg } };
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
@@ -249,8 +241,7 @@ export default function AddTransactionModal() {
                 .map((item) => ({
                   id: `split-${splitIdSeed.current++}`,
                   categoryId: item.categoryId ?? '',
-                  amountStr: formatIndianNumberStr(String(item.amount)),
-                }))
+                  amountStr: formatIndianNumberStr(String(item.amount)) }))
             );
           }
         }
@@ -388,14 +379,12 @@ export default function AddTransactionModal() {
         categoryId: categoryId || undefined,
         payee: payee.trim() || undefined,
         tags: selectedTagIds,
-        linkedAccountId: type === 'transfer' ? linkedAccountId : undefined,
-      };
+        linkedAccountId: type === 'transfer' ? linkedAccountId : undefined };
 
       if ((type === 'in' || type === 'out') && usableSplitRows.length > 0) {
         const splitItems = usableSplitRows.map((row) => ({
           categoryId: row.categoryId,
-          amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0,
-        }));
+          amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0 }));
 
         if (isEditing && editId && editingSplitGroupId) {
           await updateSplitTransactionGroup(editingSplitGroupId, {
@@ -405,8 +394,7 @@ export default function AddTransactionModal() {
             note: note || undefined,
             tags: selectedTagIds,
             date,
-            items: splitItems,
-          });
+            items: splitItems });
         } else {
           await createSplitTransactionGroup({
             type,
@@ -415,8 +403,7 @@ export default function AddTransactionModal() {
             note: note || undefined,
             tags: selectedTagIds,
             date,
-            items: splitItems,
-          });
+            items: splitItems });
         }
         clearSplitRows();
         router.back();
@@ -433,8 +420,7 @@ export default function AddTransactionModal() {
           givenAmount: amount,
           note: note || undefined,
           tags: selectedTagIds,
-          date,
-        });
+          date });
       } else if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
         await updateTransaction(editId, {
           type: 'loan',
@@ -442,8 +428,7 @@ export default function AddTransactionModal() {
           accountId,
           loanId: editingLoanId,
           note: getLoanSettlementLabel(loanDirection, personName),
-          date,
-        });
+          date });
       } else if (type === 'loan' && routeLoanId && settlement === '1') {
         await addTransaction({
           type: 'loan',
@@ -451,8 +436,7 @@ export default function AddTransactionModal() {
           accountId,
           loanId: routeLoanId,
           note: getLoanSettlementLabel(loanDirection, personName),
-          date,
-        });
+          date });
       } else if (type === 'loan') {
         await addLoan({
           personName,
@@ -461,8 +445,7 @@ export default function AddTransactionModal() {
           givenAmount: amount,
           note: note || undefined,
           tags: selectedTagIds,
-          date,
-        });
+          date });
       } else if (isEditing && editId && isTransferEdit) {
         await updateTransferTransaction(editId, {
           amount,
@@ -470,8 +453,7 @@ export default function AddTransactionModal() {
           linkedAccountId,
           date,
           note: note || undefined,
-          payee: payee.trim() || undefined,
-        });
+          payee: payee.trim() || undefined });
       } else if (isEditing && editId) {
         await updateTransaction(editId, data);
       } else {
@@ -502,8 +484,7 @@ export default function AddTransactionModal() {
           setEditingSplitGroupId('');
           clearSplitRows();
           router.back();
-        },
-      },
+        } },
     ]);
   };
 
@@ -526,9 +507,7 @@ export default function AddTransactionModal() {
         pathname: '/modals/calculator',
         params: {
           brandColor: activeConfig.color,
-          brandSoft: activeConfig.bg,
-        },
-      });
+          brandSoft: activeConfig.bg } });
     });
   };
 
@@ -547,8 +526,7 @@ export default function AddTransactionModal() {
             final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
             setDate(final.toISOString());
           }
-        },
-      });
+        } });
     } else {
       setPickerMode('date');
       setShowDatePicker(true);
@@ -572,8 +550,7 @@ export default function AddTransactionModal() {
             final.setMinutes(selectedTime.getMinutes());
             setDate(final.toISOString());
           }
-        },
-      });
+        } });
     } else {
       setPickerMode('time');
       setShowDatePicker(true);
@@ -599,10 +576,9 @@ export default function AddTransactionModal() {
             alignItems: 'center',
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: 8,
-            paddingBottom: 12,
-          }}
+            paddingBottom: 12 }}
         >
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
@@ -616,7 +592,7 @@ export default function AddTransactionModal() {
           <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
-                <TouchableOpacity
+                <TouchableOpacity delayPressIn={0}
                   key={t}
                   onPress={() => {
                     if (lockTypeSelection && t !== type) return;
@@ -631,15 +607,13 @@ export default function AddTransactionModal() {
                     alignItems: 'center',
                     borderColor: type === t ? TYPE_CONFIG[t].borderColor : palette.border,
                     backgroundColor: type === t ? TYPE_CONFIG[t].bg : palette.surface,
-                    opacity: lockTypeSelection && t !== type ? 0.35 : 1,
-                  }}
+                    opacity: lockTypeSelection && t !== type ? 0.35 : 1 }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '700',
-                      color: type === t ? TYPE_CONFIG[t].color : palette.textMuted,
-                    }}
+                      color: type === t ? TYPE_CONFIG[t].color : palette.textMuted }}
                   >
                     {TYPE_CONFIG[t].label}
                   </Text>
@@ -674,7 +648,7 @@ export default function AddTransactionModal() {
                 editable={usableSplitRows.length === 0}
               />
               <View style={{ paddingHorizontal: SCREEN_GUTTER, marginTop: -4, marginBottom: 2, alignItems: 'flex-end' }}>
-                <TouchableOpacity
+                <TouchableOpacity delayPressIn={0}
                   onPress={() =>
                     runAfterKeyboardDismiss(() =>
                       router.push({ pathname: '/modals/split-transaction', params: { type } })
@@ -711,8 +685,7 @@ export default function AddTransactionModal() {
                       setDraftCategoryId(categoryId);
                       router.push({
                         pathname: '/modals/select-category',
-                        params: { type },
-                      });
+                        params: { type } });
                     })
                   }
                 />
@@ -752,7 +725,7 @@ export default function AddTransactionModal() {
                 onPress={() => runAfterKeyboardDismiss(() => setShowFromAccountSheet(true))}
               />
               <View style={{ alignItems: 'center', paddingVertical: 2 }}>
-                <TouchableOpacity
+                <TouchableOpacity delayPressIn={0}
                   onPress={() => {
                     const tmp = accountId;
                     setAccountId(linkedAccountId);
@@ -764,8 +737,7 @@ export default function AddTransactionModal() {
                     borderRadius: 10,
                     backgroundColor: activeConfig.bg,
                     alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                    justifyContent: 'center' }}
                 >
                   <Ionicons name="swap-vertical" size={16} color={activeConfig.color} />
                 </TouchableOpacity>
@@ -811,7 +783,7 @@ export default function AddTransactionModal() {
                         {(['lent', 'borrowed'] as const).map((d) => {
                           const active = loanDirection === d;
                           return (
-                            <TouchableOpacity
+                            <TouchableOpacity delayPressIn={0}
                               key={d}
                               onPress={() => setLoanDirection(d)}
                               style={{
@@ -821,15 +793,13 @@ export default function AddTransactionModal() {
                                 alignItems: 'center',
                                 borderWidth: 1.5,
                                 borderColor: active ? activeConfig.borderColor : palette.border,
-                                backgroundColor: active ? activeConfig.bg : palette.surface,
-                              }}
+                                backgroundColor: active ? activeConfig.bg : palette.surface }}
                             >
                               <Text
                                 style={{
                                   fontSize: HOME_TEXT.bodySmall,
                                   fontWeight: '700',
-                                  color: active ? activeConfig.color : palette.textMuted,
-                                }}
+                                  color: active ? activeConfig.color : palette.textMuted }}
                               >
                                 {d === 'lent' ? 'I lent' : 'I borrowed'}
                               </Text>
@@ -900,10 +870,9 @@ export default function AddTransactionModal() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingBottom: (insets.bottom || 16) + 4,
           paddingTop: 12,
-          backgroundColor: palette.background,
-        }}
+          backgroundColor: palette.background }}
       >
-        <HapticTouch
+        <TouchableOpacity delayPressIn={0}
           onPress={handleSubmit}
           disabled={!isValid}
           style={{
@@ -911,17 +880,16 @@ export default function AddTransactionModal() {
             borderRadius: 18,
             paddingVertical: 16,
             alignItems: 'center',
-            marginBottom: 12,
-          }}
+            marginBottom: 12 }}
         >
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>{actionLabel}</Text>
-        </HapticTouch>
+        </TouchableOpacity>
         {isEditing && (
-          <HapticTouch onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
+          <TouchableOpacity delayPressIn={0} onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>
               Delete transaction
             </Text>
-          </HapticTouch>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -1016,21 +984,19 @@ export default function AddTransactionModal() {
                 paddingBottom: 10,
                 borderTopWidth: 1,
                 borderTopColor: palette.divider,
-                backgroundColor: palette.surface,
-              }}
+                backgroundColor: palette.surface }}
             >
-              <HapticTouch
+              <TouchableOpacity delayPressIn={0}
                 onPress={() => setShowTagSheet(false)}
                 style={{
                   backgroundColor: palette.tabActive,
                   borderRadius: 18,
                   minHeight: 54,
                   alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                  justifyContent: 'center' }}
               >
                 <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '700' }}>Done</Text>
-              </HapticTouch>
+              </TouchableOpacity>
             </View>
           }
         >
@@ -1064,7 +1030,7 @@ function ReceiptSection({ palette }: { palette: AppThemePalette }) {
         Receipt
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-        <TouchableOpacity
+        <TouchableOpacity delayPressIn={0}
           onPress={() => Alert.alert('Receipt capture', 'Receipt capture is coming next.')}
           style={{
             width: 58,
@@ -1074,8 +1040,7 @@ function ReceiptSection({ palette }: { palette: AppThemePalette }) {
             borderColor: palette.border,
             backgroundColor: palette.surface,
             alignItems: 'center',
-            justifyContent: 'center',
-          }}
+            justifyContent: 'center' }}
         >
           <Ionicons name="camera-outline" size={22} color={palette.tabActive} />
         </TouchableOpacity>

@@ -1,13 +1,11 @@
 import { useEffect } from 'react';
-import {
-  View,
+import { View,
   Text,
   ScrollView,
-  TouchableOpacity,
+  
   Alert,
   KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+  Platform , TouchableOpacity} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,8 +22,7 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-  PROGRESS,
-} from '../../lib/layoutTokens';
+  PROGRESS } from '../../lib/layoutTokens';
 import type { LoanWithSummary } from '../../types';
 
 export default function LoanDetailScreen() {
@@ -85,16 +82,15 @@ export default function LoanDetailScreen() {
           alignItems: 'center',
           paddingHorizontal: SCREEN_GUTTER,
           paddingVertical: HOME_SPACE.md,
-          backgroundColor: palette.background,
-        }}
+          backgroundColor: palette.background }}
       >
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: HOME_SPACE.md }}>
+        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ marginRight: HOME_SPACE.md }}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </TouchableOpacity>
         <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>
           {loan.personName}
         </Text>
-        <TouchableOpacity
+        <TouchableOpacity delayPressIn={0}
           onPress={() => {
             if (!originTx) return;
             router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
@@ -118,35 +114,31 @@ export default function LoanDetailScreen() {
                 backgroundColor: palette.surface,
                 borderRadius: HOME_RADIUS.card,
                 padding: HOME_SPACE.xl,
-                marginBottom: HOME_SPACE.md,
-              }}
+                marginBottom: HOME_SPACE.md }}
             >
               <View
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: HOME_SPACE.xs,
-                }}
+                  marginBottom: HOME_SPACE.xs }}
               >
                 <Text style={{ fontSize: HOME_TEXT.heroValue, fontWeight: '700', color: palette.text }}>
                   {loan.personName}
                 </Text>
-                <TouchableOpacity
+                <TouchableOpacity delayPressIn={0}
                   onPress={handleToggleStatus}
                   style={{
                     paddingHorizontal: HOME_SPACE.md,
                     paddingVertical: HOME_SPACE.xs,
                     borderRadius: HOME_RADIUS.small,
-                    backgroundColor: loan.status === 'open' ? palette.loanBg : palette.inputBg,
-                  }}
+                    backgroundColor: loan.status === 'open' ? palette.loanBg : palette.inputBg }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '600',
-                      color: loan.status === 'open' ? palette.loan : palette.textSecondary,
-                    }}
+                      color: loan.status === 'open' ? palette.loan : palette.textSecondary }}
                   >
                     {loan.status === 'open' ? 'Open' : 'Closed'}
                   </Text>
@@ -180,8 +172,7 @@ export default function LoanDetailScreen() {
                   backgroundColor: palette.surface,
                   borderRadius: HOME_RADIUS.card,
                   padding: HOME_SPACE.xl,
-                  marginBottom: HOME_SPACE.md,
-                }}
+                  marginBottom: HOME_SPACE.md }}
               >
                 <Text
                   style={{
@@ -189,8 +180,7 @@ export default function LoanDetailScreen() {
                     color: palette.textMuted,
                     fontWeight: '600',
                     letterSpacing: 0.5,
-                    marginBottom: HOME_SPACE.sm,
-                  }}
+                    marginBottom: HOME_SPACE.sm }}
                 >
                   NOTE
                 </Text>
@@ -205,8 +195,7 @@ export default function LoanDetailScreen() {
                 color: palette.textMuted,
                 fontWeight: '600',
                 letterSpacing: 0.5,
-                marginBottom: HOME_SPACE.sm,
-              }}
+                marginBottom: HOME_SPACE.sm }}
             >
               TRANSACTIONS
             </Text>
@@ -231,8 +220,7 @@ export default function LoanDetailScreen() {
                             getLoanTransactionKind(tx, loan.direction) === 'settlement'
                               ? '/modals/loan-settlement'
                               : '/modals/add-transaction',
-                          params: { editId: tx.id },
-                        })
+                          params: { editId: tx.id } })
                       }
                     />
                   ))}
@@ -252,10 +240,9 @@ export default function LoanDetailScreen() {
               paddingHorizontal: SCREEN_GUTTER,
               paddingBottom: 28,
               paddingTop: HOME_SPACE.md,
-              backgroundColor: palette.background,
-            }}
+              backgroundColor: palette.background }}
           >
-            <TouchableOpacity
+            <TouchableOpacity delayPressIn={0}
               onPress={() =>
                 router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
               }
@@ -266,8 +253,7 @@ export default function LoanDetailScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: HOME_SPACE.sm,
-              }}
+                gap: HOME_SPACE.sm }}
             >
               <Ionicons name="arrow-down" size={18} color={palette.surface} />
               <Text style={{ color: palette.surface, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>

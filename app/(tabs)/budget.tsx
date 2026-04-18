@@ -2,8 +2,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { RefreshControl, ScrollView, Text, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
 import { ScreenTitle } from '../../components/settings-ui';
@@ -123,8 +122,7 @@ export default function BudgetScreen() {
                 onPress={() =>
                   router.push({
                     pathname: '/budget/[id]',
-                    params: { id: budget.id, month: selectedMonth },
-                  })
+                    params: { id: budget.id, month: selectedMonth } })
                 }
               />
             ))}
@@ -149,8 +147,7 @@ export default function BudgetScreen() {
         onPress={() =>
           router.push({
             pathname: '/modals/budget-form',
-            params: { month: selectedMonth },
-          })
+            params: { month: selectedMonth } })
         }
       />
       <BudgetMonthSheet
@@ -172,8 +169,7 @@ function BudgetOverviewCard({
   totalSpent,
   totalRemaining,
   overBudgetCount,
-  sym,
-}: {
+  sym }: {
   palette: AppThemePalette;
   monthLabel: string;
   totalBudgeted: number;
@@ -226,8 +222,7 @@ function BudgetCard({
   sym,
   palette,
   categoryLabel,
-  onPress,
-}: {
+  onPress }: {
   budget: BudgetWithSpent;
   sym: string;
   palette: AppThemePalette;
@@ -238,7 +233,7 @@ function BudgetCard({
   const progressColor = palette.budget;
 
   return (
-    <TouchableOpacity activeOpacity={0.75} onPress={onPress} style={[styles.budgetCard, { backgroundColor: palette.surface }]}>
+    <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPress} style={[styles.budgetCard, { backgroundColor: palette.surface }]}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
         <View
           style={{
@@ -248,8 +243,7 @@ function BudgetCard({
             backgroundColor: palette.inputBg,
             alignItems: 'center',
             justifyContent: 'center',
-            marginRight: HOME_SPACE.sm + 2,
-          }}
+            marginRight: HOME_SPACE.sm + 2 }}
         >
           {isEmojiIcon(budget.categoryIcon) ? (
             <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{budget.categoryIcon}</Text>
@@ -281,16 +275,14 @@ function BudgetCard({
               backgroundColor: palette.divider,
               borderRadius: PROGRESS.radius,
               marginTop: 6,
-              overflow: 'hidden',
-            }}
+              overflow: 'hidden' }}
           >
             <View
               style={{
                 height: PROGRESS.cardHeight,
                 width: `${Math.min(Math.max(budget.percent, 0), 100)}%`,
                 backgroundColor: progressColor,
-                borderRadius: PROGRESS.radius,
-              }}
+                borderRadius: PROGRESS.radius }}
             />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
@@ -312,6 +304,4 @@ const styles = {
     borderRadius: HOME_RADIUS.card,
     paddingHorizontal: CARD_PADDING,
     paddingVertical: 14,
-    marginBottom: HOME_SPACE.md,
-  },
-};
+    marginBottom: HOME_SPACE.md } };

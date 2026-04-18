@@ -2,8 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { RefreshControl, ScrollView, Text, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MetricProgressCard } from '../../components/ui/MetricProgressCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
@@ -70,8 +69,7 @@ export default function BudgetDetailScreen() {
         key: group.dateKey,
         title: date,
         subtitle: label,
-        items: entries.filter((entry) => group.items.some((item) => item.id === entry.transaction.id)),
-      };
+        items: entries.filter((entry) => group.items.some((item) => item.id === entry.transaction.id)) };
     });
   }, [entries]);
 
@@ -88,18 +86,17 @@ export default function BudgetDetailScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
           <Feather name="arrow-left" size={24} color={palette.text} />
         </TouchableOpacity>
         <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }} numberOfLines={1}>
           {getCategoryFullDisplayName(budget.categoryId, ' › ')}
         </Text>
-        <TouchableOpacity
+        <TouchableOpacity delayPressIn={0}
           onPress={() =>
             router.push({
               pathname: '/modals/budget-form',
-              params: { budgetId: budget.id, month },
-            })
+              params: { budgetId: budget.id, month } })
           }
           style={{ padding: 6 }}
         >

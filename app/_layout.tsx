@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, ActivityIndicator, Text , TouchableOpacity} from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -17,7 +17,6 @@ import { HOME_TEXT } from '../lib/layoutTokens';
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 import { SecurityGuard } from '../components/SecurityGuard';
-import { HapticTouch } from '../components/ui/HapticTouch';
 
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
@@ -60,8 +59,7 @@ export default function RootLayout() {
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 28,
-          backgroundColor: palette.background,
-        }}
+          backgroundColor: palette.background }}
       >
         <Text
           style={{
@@ -69,8 +67,7 @@ export default function RootLayout() {
             fontWeight: '700',
             color: palette.text,
             marginBottom: 12,
-            textAlign: 'center',
-          }}
+            textAlign: 'center' }}
         >
           App couldn&apos;t start
         </Text>
@@ -80,12 +77,11 @@ export default function RootLayout() {
             lineHeight: 22,
             color: palette.textSecondary,
             textAlign: 'center',
-            marginBottom: 24,
-          }}
+            marginBottom: 24 }}
         >
           {initError}
         </Text>
-        <HapticTouch
+        <TouchableOpacity delayPressIn={0}
           onPress={init}
           activeOpacity={0.85}
           style={{
@@ -95,13 +91,12 @@ export default function RootLayout() {
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: palette.brand,
-            paddingHorizontal: 20,
-          }}
+            paddingHorizontal: 20 }}
         >
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.onBrand }}>
             Try again
           </Text>
-        </HapticTouch>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -113,8 +108,7 @@ export default function RootLayout() {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: palette.background,
-        }}
+          backgroundColor: palette.background }}
       >
         <ActivityIndicator size="large" color={palette.tabActive} />
       </View>
@@ -127,10 +121,9 @@ export default function RootLayout() {
         <SecurityGuard>
           <Stack
             screenOptions={{
+              animationDuration: 200,
               contentStyle: {
-                backgroundColor: palette.background,
-              },
-            }}
+                backgroundColor: palette.background } }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />

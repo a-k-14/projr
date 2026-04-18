@@ -1,16 +1,14 @@
 import { Feather } from '@expo/vector-icons';
 import { ReactNode, RefObject } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
 
 export function ScreenTitle({
   title,
   subtitle,
-  palette,
-}: {
+  palette }: {
   title: string;
   subtitle?: string;
   palette: AppThemePalette;
@@ -36,8 +34,7 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
         color: palette.textMuted,
         marginHorizontal: 14,
         marginBottom: 6,
-        marginTop: 4,
-      }}
+        marginTop: 4 }}
     >
       {label}
     </Text>
@@ -46,8 +43,7 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
 
 export function CardSection({
   children,
-  palette,
-}: {
+  palette }: {
   children: ReactNode;
   palette: AppThemePalette;
 }) {
@@ -60,8 +56,7 @@ export function CardSection({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: palette.border,
-        marginBottom: SPACING.lg,
-      }}
+        marginBottom: SPACING.lg }}
     >
       {children}
     </View>
@@ -77,8 +72,7 @@ export function SettingsRow({
   noBorder,
   rightElement,
   subtitle,
-  leftElement,
-}: {
+  leftElement }: {
   icon?: keyof typeof Feather.glyphMap;
   label: string;
   subtitle?: string;
@@ -101,8 +95,7 @@ export function SettingsRow({
           style={{
             fontSize: TYPE.section,
             fontWeight: '500',
-            color: palette.text,
-          }}
+            color: palette.text }}
         >
           {label}
         </Text>
@@ -112,8 +105,7 @@ export function SettingsRow({
               fontSize: TYPE.body,
               color: palette.textMuted,
               marginTop: 2,
-              fontWeight: '400',
-            }}
+              fontWeight: '400' }}
           >
             {subtitle}
           </Text>
@@ -136,12 +128,11 @@ export function SettingsRow({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     borderBottomWidth: noBorder ? 0 : 1,
-    borderBottomColor: palette.divider,
-  };
+    borderBottomColor: palette.divider };
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} delayPressIn={0} style={style}>
+      <TouchableOpacity delayPressIn={0} onPress={onPress} delayPressIn={0} style={style}>
         {content}
       </TouchableOpacity>
     );
@@ -158,8 +149,7 @@ export function ChoiceRow({
   noBorder,
   leftElement,
   rightElement,
-  horizontalPadding = CARD_PADDING,
-}: {
+  horizontalPadding = CARD_PADDING }: {
   title: string;
   subtitle?: string;
   selected?: boolean;
@@ -171,7 +161,7 @@ export function ChoiceRow({
   horizontalPadding?: number;
 }) {
   return (
-    <TouchableOpacity
+    <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       activeOpacity={0.6}
       delayPressIn={0}
@@ -183,8 +173,7 @@ export function ChoiceRow({
         alignItems: 'center',
         backgroundColor: selected ? palette.brandSoft : 'transparent',
         borderBottomWidth: noBorder ? 0 : 1,
-        borderBottomColor: palette.divider,
-      }}
+        borderBottomColor: palette.divider }}
       >
       {leftElement && <View style={{ marginRight: 14 }}>{leftElement}</View>}
       <View style={{ flex: 1 }}>
@@ -192,8 +181,7 @@ export function ChoiceRow({
           style={{
             fontSize: TYPE.rowLabel,
             fontWeight: selected ? '500' : '400',
-            color: selected ? palette.tabActive : palette.text,
-          }}
+            color: selected ? palette.tabActive : palette.text }}
         >
           {title}
         </Text>
@@ -204,8 +192,7 @@ export function ChoiceRow({
               color: palette.textMuted,
               marginTop: 2,
               lineHeight: 18,
-              fontWeight: '400',
-            }}
+              fontWeight: '400' }}
           >
             {subtitle}
           </Text>
@@ -220,8 +207,7 @@ export function ChoiceRow({
             borderRadius: 11,
             backgroundColor: palette.tabActive,
             alignItems: 'center',
-            justifyContent: 'center',
-          }}
+            justifyContent: 'center' }}
         >
           <Feather name="check" size={13} color={palette.onBrand} />
         </View>
@@ -234,15 +220,14 @@ export function PickerChip({
   label,
   selected,
   palette,
-  onPress,
-}: {
+  onPress }: {
   label: string;
   selected?: boolean;
   palette: AppThemePalette;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity
+    <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       style={{
         minHeight: 44,
@@ -251,8 +236,7 @@ export function PickerChip({
         borderColor: selected ? palette.tabActive : palette.border,
         backgroundColor: selected ? palette.brandSoft : palette.surface,
         paddingHorizontal: SPACING.lg,
-        justifyContent: 'center',
-      }}
+        justifyContent: 'center' }}
     >
       <Text style={{ fontSize: TYPE.rowValue, fontWeight: '500', color: palette.text }}>{label}</Text>
     </TouchableOpacity>
@@ -266,8 +250,7 @@ export function FieldLabel({ label, palette }: { label: string; palette: AppThem
         fontSize: TYPE.body,
         fontWeight: '700',
         color: palette.textMuted,
-        marginBottom: 8,
-      }}
+        marginBottom: 8 }}
     >
       {label}
     </Text>
@@ -283,8 +266,7 @@ export function IconBtn({
   children,
   variant = 'default',
   palette,
-  hitSlop,
-}: {
+  hitSlop }: {
   onPress: () => void;
   children: ReactNode;
   variant?: 'default' | 'danger';
@@ -292,7 +274,7 @@ export function IconBtn({
   hitSlop?: { top: number; bottom: number; left: number; right: number };
 }) {
   return (
-    <TouchableOpacity
+    <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       activeOpacity={0.7}
       hitSlop={hitSlop}
@@ -304,8 +286,7 @@ export function IconBtn({
         borderWidth: 1,
         borderColor: palette.border,
         alignItems: 'center',
-        justifyContent: 'center',
-      }}
+        justifyContent: 'center' }}
     >
       {children}
     </TouchableOpacity>
@@ -332,8 +313,7 @@ export function InputField({
         borderWidth: 1,
         borderColor: palette.border,
         backgroundColor: palette.surface,
-        paddingHorizontal: CARD_PADDING,
-      }}
+        paddingHorizontal: CARD_PADDING }}
     >
       <TextInput
         {...props}
@@ -342,8 +322,7 @@ export function InputField({
             flex: 1,
             color: palette.text,
             fontSize: TYPE.rowLabel,
-            paddingVertical: 12,
-          },
+            paddingVertical: 12 },
           props.style as any,
         ]}
         placeholderTextColor={palette.textSoft}
@@ -358,8 +337,7 @@ export function ColorGrid({
   colors,
   selectedColor,
   onSelect,
-  palette,
-}: {
+  palette }: {
   colors: readonly string[];
   selectedColor: string;
   onSelect: (color: string) => void;
@@ -370,7 +348,7 @@ export function ColorGrid({
       {colors.map((color) => {
         const isSelected = selectedColor === color;
         return (
-          <TouchableOpacity
+          <TouchableOpacity delayPressIn={0}
             key={color}
             activeOpacity={0.8}
             onPress={() => onSelect(color)}
@@ -382,8 +360,7 @@ export function ColorGrid({
               borderWidth: 2,
               borderColor: isSelected ? palette.text : 'transparent',
               alignItems: 'center',
-              justifyContent: 'center',
-            }}
+              justifyContent: 'center' }}
           >
             {isSelected && (
               <View
@@ -391,8 +368,7 @@ export function ColorGrid({
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: palette.onBrand,
-                }}
+                  backgroundColor: palette.onBrand }}
               />
             )}
           </TouchableOpacity>
@@ -406,8 +382,7 @@ export function IconGrid({
   icons,
   selectedIcon,
   onSelect,
-  palette,
-}: {
+  palette }: {
   icons: readonly string[];
   selectedIcon: string;
   onSelect: (icon: string) => void;
@@ -418,7 +393,7 @@ export function IconGrid({
       {icons.map((icon) => {
         const isSelected = selectedIcon === icon;
         return (
-          <TouchableOpacity
+          <TouchableOpacity delayPressIn={0}
             key={icon}
             activeOpacity={0.7}
             onPress={() => onSelect(icon)}
@@ -430,8 +405,7 @@ export function IconGrid({
               borderColor: isSelected ? palette.tabActive : palette.border,
               backgroundColor: isSelected ? palette.brandSoft : palette.surface,
               alignItems: 'center',
-              justifyContent: 'center',
-            }}
+              justifyContent: 'center' }}
           >
             <Feather
               name={icon as any}
@@ -449,8 +423,7 @@ export function ActionButton({
   label,
   onPress,
   variant = 'primary',
-  palette,
-}: {
+  palette }: {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'danger' | 'secondary';
@@ -459,11 +432,10 @@ export function ActionButton({
   const styles = {
     primary: { backgroundColor: palette.tabActive, color: palette.onBrand },
     danger: { backgroundColor: palette.outBg, color: palette.negative },
-    secondary: { backgroundColor: palette.card, color: palette.text },
-  } as const;
+    secondary: { backgroundColor: palette.card, color: palette.text } } as const;
   const picked = styles[variant];
   return (
-    <TouchableOpacity
+    <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       activeOpacity={0.8}
       style={{
@@ -474,8 +446,7 @@ export function ActionButton({
         justifyContent: 'center',
         borderWidth: variant === 'secondary' ? 1 : 0,
         borderColor: variant === 'secondary' ? palette.border : 'transparent',
-        paddingHorizontal: 20,
-      }}
+        paddingHorizontal: 20 }}
     >
       <Text style={{ fontSize: TYPE.section, fontWeight: '700', color: picked.color }}>{label}</Text>
     </TouchableOpacity>
@@ -488,8 +459,7 @@ export function ActionButton({
 
 export function FixedBottomActions({
   children,
-  palette,
-}: {
+  palette }: {
   children: ReactNode;
   palette: AppThemePalette;
 }) {
@@ -503,8 +473,7 @@ export function FixedBottomActions({
         paddingTop: SPACING.md,
         paddingBottom: (insets.bottom || 16) + 2,
         backgroundColor: palette.background,
-        gap: SPACING.sm,
-      }}
+        gap: SPACING.sm }}
     >
       {children}
     </View>
@@ -514,8 +483,7 @@ export function FixedBottomActions({
 export function SettingsScreenLayout({
   children,
   palette,
-  bottomAction,
-}: {
+  bottomAction }: {
   children: ReactNode;
   palette: AppThemePalette;
   bottomAction?: ReactNode;
@@ -537,8 +505,7 @@ export function SettingsFormLayout({
   children,
   palette,
   bottomActions,
-  scrollRef,
-}: {
+  scrollRef }: {
   children: ReactNode;
   palette: AppThemePalette;
   bottomActions?: ReactNode;

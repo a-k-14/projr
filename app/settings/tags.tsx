@@ -1,13 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Text, View , TouchableOpacity} from 'react-native';
 import {
   CardSection,
   FixedBottomActions,
   SettingsRow,
-  SettingsScreenLayout,
-} from '../../components/settings-ui';
+  SettingsScreenLayout } from '../../components/settings-ui';
 import { TYPE } from '../../lib/design';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -26,7 +24,7 @@ export default function TagsScreen() {
       palette={palette}
       bottomAction={
         <FixedBottomActions palette={palette}>
-          <TouchableOpacity
+          <TouchableOpacity delayPressIn={0}
             onPress={() => router.push('/settings/tag-form')}
             activeOpacity={0.7}
             style={{
@@ -35,8 +33,7 @@ export default function TagsScreen() {
               borderWidth: 1,
               borderColor: palette.brand,
               alignItems: 'center',
-              justifyContent: 'center',
-            }}
+              justifyContent: 'center' }}
           >
             <Text style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>+ Add Tag</Text>
           </TouchableOpacity>
@@ -59,8 +56,7 @@ export default function TagsScreen() {
                     width: 14,
                     height: 14,
                     borderRadius: 7,
-                    backgroundColor: tag.color,
-                  }}
+                    backgroundColor: tag.color }}
                 />
               </View>
             }

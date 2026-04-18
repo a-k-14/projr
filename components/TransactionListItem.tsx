@@ -1,7 +1,6 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Text, View , TouchableOpacity} from 'react-native';
 import { formatCurrency, getLoanDisplayLabel, getTransactionCashflowImpact } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
@@ -51,8 +50,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   paddingX = HOME_LAYOUT.listRowPaddingX,
   paddingY = HOME_LAYOUT.listRowPaddingY,
   iconSize = HOME_LAYOUT.listIconSize,
-  onPress,
-}: Props) {
+  onPress }: Props) {
   const effectiveType = tx.transferPairId ? 'transfer' : tx.type;
   const accountNameSelected = useAccountsStore((state) =>
     accountName ?? state.accounts.find((account) => account.id === tx.accountId)?.name,
@@ -119,8 +117,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         paddingHorizontal: paddingX,
         paddingVertical: paddingY,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: palette.divider,
-      }}
+        borderBottomColor: palette.divider }}
     >
       <View
         style={{
@@ -130,8 +127,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           backgroundColor: cfg.bg,
           alignItems: 'center',
           justifyContent: 'center',
-          marginRight: HOME_SPACE.sm + 2,
-        }}
+          marginRight: HOME_SPACE.sm + 2 }}
       >
         {inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
           <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
@@ -192,7 +188,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
 
   if (onPress) {
     return (
-      <TouchableOpacity activeOpacity={0.6} onPress={() => requestAnimationFrame(() => onPress(tx))}>
+      <TouchableOpacity delayPressIn={0} activeOpacity={0.6} onPress={() => requestAnimationFrame(() => onPress(tx))}>
         {inner}
       </TouchableOpacity>
     );

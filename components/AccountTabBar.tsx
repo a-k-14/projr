@@ -1,9 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import {
-  View,
-  useWindowDimensions,
-} from 'react-native';
-import { HapticTouch } from './ui/HapticTouch';
+import { View,
+  useWindowDimensions , TouchableOpacity} from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,8 +12,7 @@ import Animated, {
   interpolateColor,
   interpolate,
   Extrapolation,
-  type SharedValue,
-} from 'react-native-reanimated';
+  type SharedValue } from 'react-native-reanimated';
 import { SCREEN_GUTTER } from '../lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
@@ -68,8 +64,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
     const tw = interpolate(scrollX.value, safeInputRange, safeWidths, Extrapolation.CLAMP);
     return {
       width: withSpring(tw, { damping: 20, stiffness: 300, mass: 0.5 }),
-      transform: [{ translateX: withSpring(tx, { damping: 20, stiffness: 300, mass: 0.5 }) }],
-    };
+      transform: [{ translateX: withSpring(tx, { damping: 20, stiffness: 300, mass: 0.5 }) }] };
   });
 
   const selectedIndex = Math.max(0, accounts.findIndex((a) => a.id === selectedId));
@@ -106,8 +101,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
         backgroundColor: palette.surface,
         borderBottomWidth: 1,
         borderBottomColor: palette.divider,
-        maxHeight: HOME_LAYOUT.tabHeight,
-      }}
+        maxHeight: HOME_LAYOUT.tabHeight }}
       contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER }}
     >
       <Animated.View
@@ -119,8 +113,7 @@ export function AccountTabBar({ accounts, selectedId, onSelect, externalScrollX,
             bottom: 0,
             height: HOME_LAYOUT.tabUnderlineHeight,
             borderRadius: HOME_RADIUS.full,
-            backgroundColor: palette.brand,
-          },
+            backgroundColor: palette.brand },
           underlineAnimatedStyle
         ]}
       />
@@ -184,12 +177,11 @@ function AccountTabItem({
   const textAnimatedStyle = useAnimatedStyle(() => {
     const color = interpolateColor(scrollX.value, textInputRange, textOutputRange);
     return {
-      color,
-    };
+      color };
   });
 
   return (
-    <HapticTouch
+    <TouchableOpacity delayPressIn={0}
       onPress={() => onSelect(account.id)}
       style={{
         minWidth: HOME_LAYOUT.tabMinWidth,
@@ -199,8 +191,7 @@ function AccountTabItem({
         paddingHorizontal: HOME_LAYOUT.tabItemPaddingX,
         paddingVertical: HOME_LAYOUT.tabItemPaddingY,
         alignItems: 'center',
-        justifyContent: 'center',
-      }}
+        justifyContent: 'center' }}
     >
       <View style={{ width: '100%', paddingHorizontal: 2 }}>
         <Animated.Text
@@ -210,14 +201,13 @@ function AccountTabItem({
             {
               fontSize: HOME_TEXT.tab,
               lineHeight: 18,
-              fontWeight: '500',
-            },
+              fontWeight: '500' },
             textAnimatedStyle,
           ]}
         >
           {account.name}
         </Animated.Text>
       </View>
-    </HapticTouch>
+    </TouchableOpacity>
   );
 }
