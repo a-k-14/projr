@@ -12,23 +12,38 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
   const isAuthEnabled = useUIStore((s) => s.settings.biometricLock);
   const [isLocked, setIsLocked] = useState(isAuthEnabled);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const isAuthenticatingRef = useRef(false);
   const { palette } = useAppTheme();
   
   const appState = useRef(AppState.currentState);
   const lastBackgroundTime = useRef<number | null>(null);
 
   const authenticate = async () => {
-    if (isAuthenticating) return;
+    if (isAuthenticatingRef.current) return;
     
     try {
       setIsAuthenticating(true);
+      isAuthenticatingRef.current = true;
 
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
       if (!hasHardware || !isEnrolled) {
-        setIsLocked(false);
-        useUIStore.getState().updateSettings({ biometricLock: false });
+        Alert.alert(
+          'Biometrics Unavailable',
+          'Your device biometric enrollment has changed or is unavailable. To protect your data, the app remains locked.\n\nDo you want to disable the app lock?',
+          [
+            { text: 'Keep Locked', style: 'cancel' },
+            { 
+              text: 'Disable Lock',
+              style: 'destructive',
+              onPress: () => {
+                useUIStore.getState().updateSettings({ biometricLock: false });
+                setIsLocked(false);
+              }
+            }
+          ]
+        );
         return;
       }
 
@@ -45,17 +60,27 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
       Alert.alert('Authentication Error', 'An unexpected error occurred accessing biometric unlocking. If this persists, try restarting the app or checking device security settings.');
     } finally {
       setIsAuthenticating(false);
+      isAuthenticatingRef.current = false;
+      lastBackgroundTime.current = null;
     }
   };
 
   useEffect(() => {
-    if (isAuthEnabled && isLocked) {
+    if (isAuthEnabled) {
+      setIsLocked(true);
       authenticate();
+    } else {
+      setIsLocked(false);
     }
   }, [isAuthEnabled]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (isAuthenticatingRef.current) {
+        appState.current = nextAppState;
+        return;
+      }
+
       if (
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
@@ -81,12 +106,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthEnabled]);
 
-  // If the user disables the lock while the app is locked, unlock it immediately
-  useEffect(() => {
-    if (!isAuthEnabled) {
-      setIsLocked(false);
-    }
-  }, [isAuthEnabled]);
+  // Replaced by the main effect above
 
   if (isLocked) {
     return (

@@ -132,7 +132,7 @@ export function SettingsRow({
 
   if (onPress) {
     return (
-      <TouchableOpacity delayPressIn={0} onPress={onPress} delayPressIn={0} style={style}>
+      <TouchableOpacity delayPressIn={0} onPress={onPress} style={style}>
         {content}
       </TouchableOpacity>
     );
@@ -164,7 +164,6 @@ export function ChoiceRow({
     <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       activeOpacity={0.6}
-      delayPressIn={0}
       style={{
         minHeight: 68,
         paddingHorizontal: horizontalPadding,

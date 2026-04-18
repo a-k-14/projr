@@ -18,7 +18,7 @@ export function FilterChip({
   onPress,
   style }: FilterChipProps) {
   return (
-    <TouchableOpacity delayPressIn={0}
+    <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
       delayPressIn={0}

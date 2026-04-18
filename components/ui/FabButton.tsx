@@ -27,7 +27,6 @@ export function FabButton({
 }) {
   return (
     <TouchableOpacity delayPressIn={0}
-      delayPressIn={0}
       activeOpacity={activeOpacity}
       onPress={() => requestAnimationFrame(() => onPress())}
       style={[

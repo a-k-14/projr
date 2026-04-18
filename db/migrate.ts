@@ -30,68 +30,73 @@ async function dropLegacySplitDataColumn() {
 
   const { count: legacyCount } = await sqlite.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM transactions`) || { count: 0 };
 
-  await sqlite.execAsync(`
-    BEGIN TRANSACTION;
+  try {
+    await sqlite.execAsync(`
+      BEGIN TRANSACTION;
 
-    ALTER TABLE transactions RENAME TO transactions_legacy;
+      ALTER TABLE transactions RENAME TO transactions_legacy;
 
-    CREATE TABLE transactions (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      amount REAL NOT NULL,
-      account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
-      split_group_id TEXT,
-      linked_account_id TEXT,
-      loan_id TEXT,
-      category_id TEXT,
-      tags TEXT NOT NULL DEFAULT '[]',
-      payee TEXT,
-      note TEXT,
-      date TEXT NOT NULL,
-      transfer_pair_id TEXT,
-      created_at TEXT NOT NULL
-    );
+      CREATE TABLE transactions (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+        split_group_id TEXT,
+        linked_account_id TEXT,
+        loan_id TEXT,
+        category_id TEXT,
+        tags TEXT NOT NULL DEFAULT '[]',
+        payee TEXT,
+        note TEXT,
+        date TEXT NOT NULL,
+        transfer_pair_id TEXT,
+        created_at TEXT NOT NULL
+      );
 
-    INSERT INTO transactions (
-      id,
-      type,
-      amount,
-      account_id,
-      split_group_id,
-      linked_account_id,
-      loan_id,
-      category_id,
-      tags,
-      payee,
-      note,
-      date,
-      transfer_pair_id,
-      created_at
-    )
-    SELECT
-      id,
-      type,
-      amount,
-      account_id,
-      split_group_id,
-      linked_account_id,
-      loan_id,
-      category_id,
-      tags,
-      payee,
-      note,
-      date,
-      transfer_pair_id,
-      created_at
-    FROM transactions_legacy;
-  `);
+      INSERT INTO transactions (
+        id,
+        type,
+        amount,
+        account_id,
+        split_group_id,
+        linked_account_id,
+        loan_id,
+        category_id,
+        tags,
+        payee,
+        note,
+        date,
+        transfer_pair_id,
+        created_at
+      )
+      SELECT
+        id,
+        type,
+        amount,
+        account_id,
+        split_group_id,
+        linked_account_id,
+        loan_id,
+        category_id,
+        tags,
+        payee,
+        note,
+        date,
+        transfer_pair_id,
+        created_at
+      FROM transactions_legacy;
+    `);
 
-  await verifyRowCount('transactions', legacyCount);
+    await verifyRowCount('transactions', legacyCount);
 
-  await sqlite.execAsync(`
-    DROP TABLE transactions_legacy;
-    COMMIT;
-  `);
+    await sqlite.execAsync(`
+      DROP TABLE transactions_legacy;
+      COMMIT;
+    `);
+  } catch (error) {
+    await sqlite.execAsync(`ROLLBACK;`).catch(() => undefined);
+    throw error;
+  }
 }
 
 async function rebuildTablesWithForeignKeys() {
@@ -106,10 +111,6 @@ async function rebuildTablesWithForeignKeys() {
   await sqlite.execAsync(`PRAGMA foreign_keys = OFF;`);
 
   try {
-    const { count: txCount } = await sqlite.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM transactions`) || { count: 0 };
-    const { count: loanCount } = await sqlite.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM loans`) || { count: 0 };
-    const { count: budgetCount } = await sqlite.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM budget`) || { count: 0 };
-
     await sqlite.execAsync(`
       BEGIN TRANSACTION;
 
@@ -121,7 +122,13 @@ async function rebuildTablesWithForeignKeys() {
 
       DELETE FROM budget
       WHERE category_id NOT IN (SELECT id FROM categories);
+    `);
 
+    const { count: txCount } = await sqlite.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM transactions`) || { count: 0 };
+    const { count: loanCount } = await sqlite.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM loans`) || { count: 0 };
+    const { count: budgetCount } = await sqlite.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM budget`) || { count: 0 };
+
+    await sqlite.execAsync(`
       ALTER TABLE transactions RENAME TO transactions_legacy_fk;
       CREATE TABLE transactions (
         id TEXT PRIMARY KEY,
@@ -380,7 +387,7 @@ export async function runMigrations() {
     const rows = await sqlite.getAllAsync<{ id: string }>(`SELECT id FROM accounts ORDER BY created_at ASC`);
     for (let index = 0; index < rows.length; index += 1) {
       const row = rows[index];
-      await sqlite.execAsync(`UPDATE accounts SET sort_order = ${index} WHERE id = '${row.id}';`);
+      await sqlite.runAsync(`UPDATE accounts SET sort_order = ? WHERE id = ?`, index, row.id);
     }
   }
 }

@@ -202,7 +202,6 @@ export default function CategoriesScreen() {
           {(['in', 'out'] as const).map((t) => (
             <Pressable
               key={t}
-              delayPressIn={0}
               onPress={() => setTab(t)}
               style={({ pressed }) => ({
                 flex: 1,

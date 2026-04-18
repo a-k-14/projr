@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "node --test --experimental-strip-types tests/*.test.ts && jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -43,9 +44,14 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
+    "better-sqlite3": "^12.9.0",
     "drizzle-kit": "^0.31.10",
+    "jest": "^30.3.0",
     "react-test-renderer": "19.1.0",
+    "ts-jest": "^29.4.9",
     "typescript": "~5.9.2"
   },
   "private": true

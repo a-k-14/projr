@@ -1,6 +1,6 @@
 import { CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING, RADIUS as DESIGN_RADIUS, HOME_TEXT } from './design';
 
-export { HOME_TEXT };
+export { HOME_TEXT, CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING };
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 // Previously HOME_COLORS. Now unified into AppThemePalette in lib/theme.ts.
