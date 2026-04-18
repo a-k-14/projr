@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import type { Transaction, CreateTransactionInput, TransactionFilters } from '../types';
 import * as transactionsService from '../services/transactions';
-import { useLoansStore } from './useLoansStore';
 import { TRANSACTIONS_PAGE_SIZE as PAGE_SIZE } from '../lib/layoutTokens';
 
 interface TransactionsStore {
@@ -48,13 +47,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     } else {
       set((state) => ({ transactions: [tx, ...state.transactions] }));
     }
-    await useLoansStore.getState().load();
     return tx;
   },
 
   update: async (id, data) => {
     await transactionsService.updateTransaction(id, data);
-    await useLoansStore.getState().load();
     if (get().isLoaded) {
       await get().load(get().filters);
       return;
@@ -68,7 +65,6 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
   remove: async (id) => {
     await transactionsService.deleteTransaction(id);
-    await useLoansStore.getState().load();
     if (get().isLoaded) {
       await get().load(get().filters);
     } else {

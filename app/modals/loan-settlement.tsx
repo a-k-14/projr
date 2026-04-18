@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
+import { HapticTouch } from '../../components/ui/HapticTouch';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -242,9 +242,9 @@ export default function LoanSettlementModal() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: Math.max(insets.bottom, 12) + 12, paddingTop: 8 }}>
-        <RnghTouchableOpacity
+        <HapticTouch
           onPress={handleSave}
-          enabled={isValid}
+          disabled={!isValid}
           style={{
             backgroundColor: isValid ? palette.loan : palette.textSoft,
             borderRadius: 18,
@@ -256,11 +256,11 @@ export default function LoanSettlementModal() {
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>
             {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           </Text>
-        </RnghTouchableOpacity>
+        </HapticTouch>
         {isEditing ? (
-          <RnghTouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
+          <HapticTouch onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete transaction</Text>
-          </RnghTouchableOpacity>
+          </HapticTouch>
         ) : null}
       </View>
 

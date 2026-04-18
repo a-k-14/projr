@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Keyboard, ScrollView, Text, View, TouchableOpacity } from 'react-native';
+import { Alert, Keyboard, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HapticTouch } from '../../components/ui/HapticTouch';
 import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
@@ -154,7 +155,7 @@ export default function BudgetFormModal() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
-          <TouchableOpacity
+          <HapticTouch
             onPress={() => {
               resetDraft();
               router.back();
@@ -162,7 +163,7 @@ export default function BudgetFormModal() {
             style={{ padding: 4, marginRight: 12 }}
           >
             <Ionicons name="close" size={24} color={palette.text} />
-          </TouchableOpacity>
+          </HapticTouch>
           <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
             {editingBudget ? 'Edit budget' : 'New budget'}
           </Text>
@@ -207,9 +208,9 @@ export default function BudgetFormModal() {
           backgroundColor: palette.background,
         }}
       >
-        <RnghTouchableOpacity
+        <HapticTouch
           onPress={handleSave}
-          enabled={isValid}
+          disabled={!isValid}
           style={{
             minHeight: 52,
             borderRadius: 16,
@@ -221,11 +222,11 @@ export default function BudgetFormModal() {
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBudget }}>
             {editingBudget ? 'Save changes' : 'Add budget'}
           </Text>
-        </RnghTouchableOpacity>
+        </HapticTouch>
         {editingBudget ? (
-          <RnghTouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', marginTop: 12, paddingVertical: 8 }}>
+          <HapticTouch onPress={handleDelete} style={{ alignItems: 'center', marginTop: 12, paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete budget</Text>
-          </RnghTouchableOpacity>
+          </HapticTouch>
         ) : null}
       </View>
       <BudgetMonthSheet

@@ -14,7 +14,7 @@ import {
   View,
   LayoutAnimation,
 } from 'react-native';
-import { TouchableOpacity as RnghTouchableOpacity } from 'react-native-gesture-handler';
+import { HapticTouch } from '../../components/ui/HapticTouch';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -903,9 +903,9 @@ export default function AddTransactionModal() {
           backgroundColor: palette.background,
         }}
       >
-        <RnghTouchableOpacity
+        <HapticTouch
           onPress={handleSubmit}
-          enabled={isValid}
+          disabled={!isValid}
           style={{
             backgroundColor: isValid ? activeConfig.color : palette.textSoft,
             borderRadius: 18,
@@ -915,13 +915,13 @@ export default function AddTransactionModal() {
           }}
         >
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>{actionLabel}</Text>
-        </RnghTouchableOpacity>
+        </HapticTouch>
         {isEditing && (
-          <RnghTouchableOpacity onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
+          <HapticTouch onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
             <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>
               Delete transaction
             </Text>
-          </RnghTouchableOpacity>
+          </HapticTouch>
         )}
       </View>
 
@@ -1019,7 +1019,7 @@ export default function AddTransactionModal() {
                 backgroundColor: palette.surface,
               }}
             >
-              <RnghTouchableOpacity
+              <HapticTouch
                 onPress={() => setShowTagSheet(false)}
                 style={{
                   backgroundColor: palette.tabActive,
@@ -1030,7 +1030,7 @@ export default function AddTransactionModal() {
                 }}
               >
                 <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '700' }}>Done</Text>
-              </RnghTouchableOpacity>
+              </HapticTouch>
             </View>
           }
         >

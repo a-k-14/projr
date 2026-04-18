@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -18,6 +17,7 @@ import { HOME_TEXT } from '../lib/layoutTokens';
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 import { SecurityGuard } from '../components/SecurityGuard';
+import { HapticTouch } from '../components/ui/HapticTouch';
 
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
@@ -85,7 +85,7 @@ export default function RootLayout() {
         >
           {initError}
         </Text>
-        <TouchableOpacity
+        <HapticTouch
           onPress={init}
           activeOpacity={0.85}
           style={{
@@ -101,7 +101,7 @@ export default function RootLayout() {
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.onBrand }}>
             Try again
           </Text>
-        </TouchableOpacity>
+        </HapticTouch>
       </View>
     );
   }

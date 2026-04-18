@@ -55,7 +55,7 @@ export default function LoanDetailScreen() {
 
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const progressColor = isLent ? palette.positive : palette.negative;
+  const progressColor = isLent ? palette.negative : palette.brand;
   const grouped = groupTransactionsByDate(loan.transactions);
   const originTx = loan.transactions.find((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin');
 
@@ -162,8 +162,8 @@ export default function LoanDetailScreen() {
               palette={palette}
               metrics={[
                 { key: 'given', label: isLent ? 'GIVEN' : 'BORROWED', value: formatCurrency(loan.givenAmount, sym), valueColor: palette.text },
-                { key: 'settled', label: isLent ? 'RECEIVED' : 'REPAID', value: formatCurrency(loan.settledAmount, sym), valueColor: palette.positive },
-                { key: 'pending', label: 'PENDING', value: formatCurrency(loan.pendingAmount, sym), valueColor: isLent ? palette.loan : palette.negative },
+                { key: 'settled', label: isLent ? 'RECEIVED' : 'REPAID', value: formatCurrency(loan.settledAmount, sym), valueColor: progressColor },
+                { key: 'pending', label: 'PENDING', value: formatCurrency(loan.pendingAmount, sym), valueColor: isLent ? palette.loan : palette.textSecondary },
               ]}
               progressPercent={loan.repaidPercent}
               progressColor={progressColor}

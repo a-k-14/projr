@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View, TouchableOpacity } from 'react-native';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HapticTouch } from '../../components/ui/HapticTouch';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { HOME_TEXT } from '../../lib/layoutTokens';
@@ -169,9 +170,9 @@ export default function CalculatorModal() {
             paddingHorizontal: SCREEN_GUTTER,
           }}
         >
-          <TouchableOpacity onPress={handleClose} style={{ padding: 6, marginRight: 8 }}>
+          <HapticTouch onPress={handleClose} style={{ padding: 6, marginRight: 8 }}>
             <Ionicons name="close" size={24} color={palette.text} />
-          </TouchableOpacity>
+          </HapticTouch>
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, flex: 1 }}>
             Calculator
           </Text>
@@ -265,7 +266,7 @@ function CalcButton({
         : palette.surface;
 
   return (
-    <TouchableOpacity
+    <HapticTouch
       onPress={onPress}
       style={{
         flex: 1,
@@ -295,6 +296,6 @@ function CalcButton({
           {label}
         </Text>
       )}
-    </TouchableOpacity>
+    </HapticTouch>
   );
 }
