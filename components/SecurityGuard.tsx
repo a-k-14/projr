@@ -1,6 +1,6 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, View, Text, StyleSheet, Platform , TouchableOpacity} from 'react-native';
+import { AppState, View, Text, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
 import { useUIStore } from '../stores/useUIStore';
 import { useAppTheme } from '../lib/theme';
 import { FinanceEmptyMascot } from './ui/FinanceEmptyMascot';
@@ -42,9 +42,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Biometric auth failed', error);
-      import('react-native').then(({ Alert }) => {
-        Alert.alert('Authentication Error', 'An unexpected error occurred accessing biometric unlocking. If this persists, try restarting the app or checking device security settings.');
-      });
+      Alert.alert('Authentication Error', 'An unexpected error occurred accessing biometric unlocking. If this persists, try restarting the app or checking device security settings.');
     } finally {
       setIsAuthenticating(false);
     }
