@@ -137,7 +137,7 @@ export default function ActivityScreen() {
   const [showMoreSheet, setShowMoreSheet] = useState(false);
 
   const resetAllFilters = useCallback(() => {
-    setPeriod('month');
+    setPeriod('all');
     setPeriodOffset(0);
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -156,7 +156,7 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', (e: any) => {
-      if (navigation.isFocused()) {
+      if (navigation.isFocused() && !routeParams.source) {
         resetAllFilters();
       }
     });
@@ -184,28 +184,7 @@ export default function ActivityScreen() {
     return () => task.cancel();
   }, []);
 
-  useEffect(() => {
-    if (routeParams.from || routeParams.to || routeParams.type || routeParams.categoryId || routeParams.cashflowBucket) {
-      if (routeParams.ts === lastAppliedRouteTsRef.current) return;
-      lastAppliedRouteTsRef.current = routeParams.ts ?? null;
 
-      InteractionManager.runAfterInteractions(() => {
-        if (routeParams.from) setCustomFrom(routeParams.from);
-        if (routeParams.to) setCustomTo(routeParams.to);
-        if (routeParams.from && routeParams.to) setPeriod('custom');
-        if (routeParams.period && routeParams.period !== 'custom') {
-          setPeriod(routeParams.period as ActivityPeriod);
-          setPeriodOffset(0);
-        }
-        if (routeParams.type) setTypeFilter(routeParams.type as TransactionType | 'all');
-        if (routeParams.cashflowBucket) setCashflowBucket(routeParams.cashflowBucket as 'all' | 'in' | 'out' | 'net');
-        if (routeParams.categoryId) {
-          setSelectedCategoryIds([routeParams.categoryId]);
-          setGroupByMode('date');
-        }
-      });
-    }
-  }, [routeParams]);
 
   useEffect(() => {
     if (!isFocused || groupByMode !== 'category' || !categoryDrilldown) return;
@@ -339,6 +318,11 @@ export default function ActivityScreen() {
       typeof routeParams.cashflowBucket === 'string' ? routeParams.cashflowBucket : undefined;
     const fromParam = typeof routeParams.from === 'string' ? routeParams.from : undefined;
     const toParam = typeof routeParams.to === 'string' ? routeParams.to : undefined;
+    const categoryIdParam = typeof routeParams.categoryId === 'string' ? routeParams.categoryId : undefined;
+
+    if (accountParam && accountParam !== 'all' && accounts.length === 0) {
+      return;
+    }
 
     setPeriod('all');
     setPeriodOffset(0);
@@ -380,8 +364,15 @@ export default function ActivityScreen() {
 
     if (accountParam === 'all') {
       setSelectedAccountId('all');
-    } else if (accountParam && accounts.some((account) => account.id === accountParam)) {
-      setSelectedAccountId(accountParam);
+    } else if (accountParam && accounts.length > 0) {
+      if (accounts.some((account) => account.id === accountParam)) {
+        setSelectedAccountId(accountParam);
+      }
+    }
+
+    if (categoryIdParam) {
+      setSelectedCategoryIds([categoryIdParam]);
+      setGroupByMode('date');
     }
 
     if (typeParam === 'all' || typeParam === 'in' || typeParam === 'out' || typeParam === 'transfer' || typeParam === 'loan') {
@@ -397,7 +388,7 @@ export default function ActivityScreen() {
     }
 
     lastAppliedRouteTsRef.current = ts;
-  }, [accounts, loadStoreTransactions, routeParams.accountId, routeParams.cashflowBucket, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
+  }, [accounts, loadStoreTransactions, routeParams.accountId, routeParams.cashflowBucket, routeParams.categoryId, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
 
   const onRefresh = async () => {
     setRefreshing(true);

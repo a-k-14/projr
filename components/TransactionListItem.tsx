@@ -100,7 +100,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const amountValue = displayAmount ?? tx.amount;
   const amountPrefix = showAmountSign ? (cashflowImpact === 'in' ? '+' : cashflowImpact === 'out' ? '-' : '') : '';
   const amountColor = useTypeAmountColor
-    ? (tx.transferPairId || tx.type === 'loan' ? palette.text : cfg.color)
+    ? (cashflowImpact === 'in' ? palette.brand : cashflowImpact === 'out' ? palette.negative : palette.text)
     : palette.text;
   const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && category?.icon ? category.icon : null;
   const iconName =
