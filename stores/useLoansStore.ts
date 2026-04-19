@@ -8,6 +8,7 @@ interface LoansStore {
   filters: LoanFilters;
   isLoaded: boolean;
   load: (filters?: LoanFilters) => Promise<void>;
+  reset: () => void;
   add: (data: CreateLoanInput) => Promise<void>;
   update: (id: string, data: Partial<LoanWithSummary>) => Promise<void>;
   updateOrigin: (id: string, data: Partial<CreateLoanInput>) => Promise<void>;
@@ -42,6 +43,10 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
     } else {
       set({ loans, filters: f, isLoaded: true });
     }
+  },
+
+  reset: () => {
+    set({ loans: [], filters: {}, isLoaded: false });
   },
 
   add: async (data) => {

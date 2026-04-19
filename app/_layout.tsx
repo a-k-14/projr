@@ -13,6 +13,7 @@ import { useUIStore } from '../stores/useUIStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useAppTheme } from '../lib/theme';
 import { HOME_TEXT } from '../lib/layoutTokens';
+import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/settings';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -34,10 +35,14 @@ export default function RootLayout() {
       await runMigrations();
       await Promise.all([loadAccounts(), loadSettings(), loadCategories()]);
 
-      // Trigger automatic seeding if the database is fresh (no accounts)
-      if (useAccountsStore.getState().accounts.length === 0) {
+      // Only seed starter data on a true first run, not after a user-triggered reset.
+      if (
+        useAccountsStore.getState().accounts.length === 0 &&
+        await shouldAutoSeedStarterData()
+      ) {
         const { seedDatabase } = await import('../db/seed');
         await seedDatabase();
+        await markStarterDataSeeded();
         // Reload stores to reflect newly seeded data
         await Promise.all([loadAccounts(), loadCategories()]);
       }

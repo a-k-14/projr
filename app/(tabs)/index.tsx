@@ -506,7 +506,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   }, []);
 
   const openSliceActivity = useCallback(
-    (range: { from: string; to: string }, type: TransactionType | 'all') => {
+    (range: { from: string; to: string }, bucket: 'in' | 'out' | 'net') => {
       router.navigate({
         pathname: '/(tabs)/activity',
         params: {
@@ -514,7 +514,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           period: 'custom',
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
-          cashflowBucket: type,
+          cashflowBucket: bucket,
           from: range.from,
           to: range.to,
           ts: String(Date.now())
@@ -763,7 +763,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                           </TouchableOpacity>
                           <TouchableOpacity delayPressIn={0}
                             activeOpacity={0.75}
-                            onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'all')}
+                            onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'net')}
                             style={{ width: 95, marginLeft: 12 }}
                           >
                             <Text

@@ -8,6 +8,7 @@ interface AccountsStore {
   accounts: Account[];
   isLoaded: boolean;
   load: () => Promise<void>;
+  reset: () => void;
   add: (data: CreateAccountInput) => Promise<Account>;
   update: (id: string, data: Partial<Account>) => Promise<void>;
   setOrder: (ids: string[]) => Promise<void>;
@@ -23,6 +24,10 @@ export const useAccountsStore = create<AccountsStore>((set, get) => ({
   load: async () => {
     const accounts = await accountsService.getAccounts();
     set({ accounts, isLoaded: true });
+  },
+
+  reset: () => {
+    set({ accounts: [], isLoaded: false });
   },
 
   refresh: async () => {

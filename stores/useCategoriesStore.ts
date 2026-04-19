@@ -9,6 +9,7 @@ interface CategoriesStore {
   tags: Tag[];
   isLoaded: boolean;
   load: () => Promise<void>;
+  reset: () => void;
   addCategory: (data: Omit<Category, 'id'>) => Promise<Category>;
   updateCategory: (id: string, data: Partial<Category>) => Promise<void>;
   removeCategory: (id: string) => Promise<void>;
@@ -32,6 +33,10 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
       tagsService.getTags(),
     ]);
     set({ categories, tags, isLoaded: true });
+  },
+
+  reset: () => {
+    set({ categories: [], tags: [], isLoaded: false });
   },
 
   addCategory: async (data) => {

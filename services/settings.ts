@@ -1,7 +1,10 @@
 import { db } from '../db/client';
 import { accounts, budget, categories, loans, settings, tags, transactions } from '../db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { Settings } from '../types';
+
+const STARTER_DATA_SEED_STATE_KEY = 'starterDataSeedState';
+type StarterDataSeedState = 'seeded' | 'suppressed';
 
 export const DEFAULT_SETTINGS: Settings = {
   defaultAccountId: '',
@@ -46,6 +49,22 @@ export async function updateSettings(data: Partial<Settings>): Promise<void> {
   );
 }
 
+async function setInternalSetting(key: string, value: string): Promise<void> {
+  await db
+    .insert(settings)
+    .values({ key, value })
+    .onConflictDoUpdate({ target: settings.key, set: { value } });
+}
+
+export async function shouldAutoSeedStarterData(): Promise<boolean> {
+  const rows = await db.select().from(settings).where(eq(settings.key, STARTER_DATA_SEED_STATE_KEY));
+  return rows[0]?.value === undefined;
+}
+
+export async function markStarterDataSeeded(): Promise<void> {
+  await setInternalSetting(STARTER_DATA_SEED_STATE_KEY, 'seeded');
+}
+
 export async function clearLocalData(): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.delete(transactions);
@@ -57,5 +76,8 @@ export async function clearLocalData(): Promise<void> {
     await tx.delete(categories);
     await tx.delete(accounts);
     await tx.delete(settings);
+    await tx
+      .insert(settings)
+      .values({ key: STARTER_DATA_SEED_STATE_KEY, value: 'suppressed' satisfies StarterDataSeedState });
   });
 }

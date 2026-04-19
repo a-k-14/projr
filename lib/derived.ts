@@ -156,7 +156,7 @@ export interface SpendingChartPoint {
 }
 
 function toDateKey(isoDate: string): string {
-  return isoDate.split('T')[0];
+  return toLocalDateKey(isoDate);
 }
 
 function addDays(date: Date, days: number): Date {
@@ -230,7 +230,7 @@ export function buildCashflowChartData(
     for (let offset = 0; offset < 35; offset += 1) {
       const date = addDays(start, offset);
       if (date > new Date(to)) break;
-      const bucketIndex = Math.min(4, Math.floor(date.getDate() / 7));
+      const bucketIndex = Math.min(4, Math.floor((date.getDate() - 1) / 7));
       const vals = getDayValues(toDateKey(date.toISOString()));
       inBuckets[bucketIndex] += vals.in;
       outBuckets[bucketIndex] += vals.out;
@@ -338,7 +338,7 @@ export function buildSpendingChartData(
     for (let offset = 0; offset < 35; offset += 1) {
       const date = addDays(start, offset);
       if (date > new Date(to)) break;
-      const bucketIndex = Math.min(4, Math.floor(date.getDate() / 7));
+      const bucketIndex = Math.min(4, Math.floor((date.getDate() - 1) / 7));
       buckets[bucketIndex] += dailyMap.get(toDateKey(date.toISOString())) ?? 0;
     }
     return buckets.map((amount, index) => ({

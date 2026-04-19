@@ -8,6 +8,7 @@ interface UIStore {
   isLoaded: boolean;
   loadError: string | null;
   load: () => Promise<void>;
+  reset: () => void;
   updateSettings: (data: Partial<Settings>, metricContext?: string) => Promise<void>;
 }
 
@@ -25,6 +26,10 @@ export const useUIStore = create<UIStore>((set, get) => ({
       set({ isLoaded: false, loadError: message });
       throw e;
     }
+  },
+
+  reset: () => {
+    set({ settings: DEFAULT_SETTINGS, isLoaded: false, loadError: null });
   },
 
   updateSettings: async (data, metricContext) => {

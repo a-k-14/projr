@@ -108,36 +108,46 @@ export function getDateRange(
   customFrom?: string,
   customTo?: string
 ): { from: string; to: string } {
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
-  const todayEnd = now.toISOString();
-
-  const todayStart = toUTCMidnight(new Date());
-
   if (period === 'custom') {
-    return { from: customFrom ?? todayStart, to: customTo ?? todayEnd };
+    return { 
+      from: customFrom ?? toLocalDayStartISO(new Date()), 
+      to: customTo ?? toLocalDayEndISO(new Date()) 
+    };
   }
 
   if (period === 'week') {
     const day = new Date().getDay();
     const monday = new Date();
     monday.setDate(new Date().getDate() - ((day + 6) % 7));
-    return { from: toUTCMidnight(monday), to: todayEnd };
+    return { 
+      from: toLocalDayStartISO(monday), 
+      to: toLocalDayEndISO(new Date()) 
+    };
   }
 
   if (period === 'month') {
     const from = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    return { from: toUTCMidnight(from), to: todayEnd };
+    return { 
+      from: toLocalDayStartISO(from), 
+      to: toLocalDayEndISO(new Date()) 
+    };
   }
 
   if (period === 'year') {
     const month = new Date().getMonth();
     const year = month >= yearStart ? new Date().getFullYear() : new Date().getFullYear() - 1;
     const from = new Date(year, yearStart, 1);
-    return { from: toUTCMidnight(from), to: todayEnd };
+    return { 
+      from: toLocalDayStartISO(from), 
+      to: toLocalDayEndISO(new Date()) 
+    };
   }
 
-  return { from: todayStart, to: todayEnd };
+  // default to today
+  return { 
+    from: toLocalDayStartISO(new Date()), 
+    to: toLocalDayEndISO(new Date()) 
+  };
 }
 
 /**
@@ -167,24 +177,26 @@ export function getNavigableDateRange(
     const dayOfWeek = now.getDay();
     const monday = new Date(now);
     monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7) + offset * 7);
-    monday.setHours(0, 0, 0, 0);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
-    const endOfSunday = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate(), 23, 59, 59, 999);
-    // Cap "to" at today for the current week
-    const to = offset === 0
-      ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
-      : endOfSunday.toISOString();
-    return { from: monday.toISOString(), to };
+    
+    return { 
+      from: toLocalDayStartISO(monday), 
+      to: offset === 0 && offset === 0 // current week
+        ? toLocalDayEndISO(now)
+        : toLocalDayEndISO(sunday)
+    };
   }
 
   if (period === 'month') {
-    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    const to = offset === 0
-      ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
-      : new Date(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate(), 23, 59, 59, 999).toISOString();
-    return { from: toUTCMidnight(d), to };
+    const from = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const lastDay = new Date(from.getFullYear(), from.getMonth() + 1, 0);
+    return { 
+      from: toLocalDayStartISO(from), 
+      to: offset === 0 
+        ? toLocalDayEndISO(now) 
+        : toLocalDayEndISO(lastDay) 
+    };
   }
 
   // year (fiscal)
@@ -193,10 +205,13 @@ export function getNavigableDateRange(
   const targetFYStart = currentFYStart + offset;
   const from = new Date(targetFYStart, yearStart, 1);
   const lastDayOfFY = new Date(targetFYStart + 1, yearStart, 0);
-  const to = offset === 0
-    ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
-    : new Date(lastDayOfFY.getFullYear(), lastDayOfFY.getMonth(), lastDayOfFY.getDate(), 23, 59, 59, 999).toISOString();
-  return { from: toUTCMidnight(from), to };
+  
+  return { 
+    from: toLocalDayStartISO(from), 
+    to: offset === 0 
+      ? toLocalDayEndISO(now) 
+      : toLocalDayEndISO(lastDayOfFY) 
+  };
 }
 
 /**

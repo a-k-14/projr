@@ -6,6 +6,7 @@ interface BudgetStore {
   budgets: BudgetWithSpent[];
   isLoaded: boolean;
   load: (selectedMonthIso?: string) => Promise<void>;
+  reset: () => void;
   add: (data: CreateBudgetInput, selectedMonthIso?: string) => Promise<void>;
   update: (id: string, data: Partial<BudgetWithSpent>, selectedMonthIso?: string) => Promise<void>;
   remove: (id: string, selectedMonthIso?: string) => Promise<void>;
@@ -18,6 +19,10 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
   load: async (selectedMonthIso) => {
     const budgets = await budgetService.getBudgetWithSpent(selectedMonthIso);
     set({ budgets, isLoaded: true });
+  },
+
+  reset: () => {
+    set({ budgets: [], isLoaded: false });
   },
 
   add: async (data, selectedMonthIso) => {
