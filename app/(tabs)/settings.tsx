@@ -181,7 +181,8 @@ export default function SettingsScreen() {
               />
               <SettingsRow
                 icon="refresh-cw"
-                label="Full Reset"
+                label="Reset App"
+                labelStyle={{ color: palette.negative }}
                 value="Erase everything"
                 palette={palette}
                 onPress={() => router.push('/settings/reset')}

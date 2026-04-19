@@ -152,7 +152,7 @@ export function CalculatorSheet({
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <CalcButton label="C" onPress={() => setDisplay('0')} palette={palette} />
             <CalcButton label="⌫" onPress={backspace} palette={palette} />
-            <CalcButton label="=" onPress={() => setDisplay(pretty(evaluate()))} palette={palette} />
+            <CalcButton label="=" onPress={() => setDisplay(pretty(evaluate()))} palette={palette} brandSoft={brandSoft} />
             <CalcButton
               label="OK"
               onPress={handleDone}
@@ -182,7 +182,7 @@ function CalcButton({
   brandColor?: string;
   brandSoft?: string;
 }) {
-  const isOperator = ['÷', '×', '−', '+', '%'].includes(label);
+  const isOperator = ['÷', '×', '−', '+', '%', '='].includes(label);
   const isAction = ['C', '⌫', 'OK'].includes(label);
   const bg = primary
     ? (brandColor || palette.tabActive)

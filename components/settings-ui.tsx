@@ -72,10 +72,12 @@ export function SettingsRow({
   noBorder,
   rightElement,
   subtitle,
+  labelStyle,
   leftElement }: {
   icon?: keyof typeof Feather.glyphMap;
   label: string;
   subtitle?: string;
+  labelStyle?: any;
   value?: string;
   palette: AppThemePalette;
   onPress?: () => void;
@@ -92,10 +94,14 @@ export function SettingsRow({
       ) : null}
       <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
         <Text
-          style={{
-            fontSize: TYPE.section,
-            fontWeight: '500',
-            color: palette.text }}
+          style={[
+            {
+              fontSize: TYPE.section,
+              fontWeight: '500',
+              color: palette.text,
+            },
+            labelStyle,
+          ]}
         >
           {label}
         </Text>

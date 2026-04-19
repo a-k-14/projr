@@ -11,14 +11,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
-import { HOME_TEXT, SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { clearLocalData } from '../../services/settings';
 
 export default function ResetScreen() {
   const { palette } = useAppTheme();
   const [confirmText, setConfirmText] = useState('');
-  const isConfirmed = confirmText.trim().toUpperCase() === 'RESET';
+  const isConfirmed = confirmText === 'RESET';
 
   const handleReset = async () => {
     if (!isConfirmed) return;
@@ -33,43 +33,28 @@ export default function ResetScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'center',
             paddingHorizontal: SCREEN_GUTTER,
+            paddingTop: 24, // Added small padding for breathing room at the very top
             paddingBottom: 40,
           }}
+          keyboardShouldPersistTaps="handled"
         >
-          <TouchableOpacity
-            style={{ position: 'absolute', top: 20, left: SCREEN_GUTTER }}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </TouchableOpacity>
-
-          <View
-            style={{
-              backgroundColor: palette.surface,
-              borderRadius: 24,
-              padding: 24,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: palette.divider,
-            }}
-          >
+          <View style={{ alignItems: 'center', marginBottom: 32 }}>
             <View
               style={{
-                width: 64,
+                width: 64, // Slightly smaller icon container
                 height: 64,
                 borderRadius: 32,
-                backgroundColor: palette.negative + '10',
+                backgroundColor: palette.negative + '15',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 20,
+                marginBottom: 16,
               }}
             >
               <Ionicons name="warning" size={32} color={palette.negative} />
@@ -77,70 +62,72 @@ export default function ResetScreen() {
 
             <Text
               style={{
-                fontSize: 24,
-                fontWeight: '700',
+                fontSize: 26, // Slightly smaller title
+                fontWeight: '600',
                 color: palette.text,
                 textAlign: 'center',
                 marginBottom: 12,
+                letterSpacing: -0.5,
               }}
             >
-              Full Reset
+              Reset App
             </Text>
 
             <Text
               style={{
-                fontSize: 16,
-                lineHeight: 24,
+                fontSize: 14,
+                lineHeight: 22,
                 color: palette.textMuted,
                 textAlign: 'center',
-                marginBottom: 24,
+                paddingHorizontal: 10,
               }}
             >
-              This will permanently erase all your accounts, transactions, budgets, and settings. This action cannot be undone.
+              This will permanently erase all your accounts, transactions, budgets, and settings.
+              <Text style={{ fontWeight: '600', color: palette.text }}> This action cannot be undone.</Text>
             </Text>
+          </View>
 
-            <View style={{ width: '100%', marginBottom: 24 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: '600',
-                  color: palette.textSecondary,
-                  marginBottom: 8,
-                  textAlign: 'center',
-                }}
-              >
-                Type <Text style={{ color: palette.negative }}>RESET</Text> to confirm
-              </Text>
-              <TextInput
-                value={confirmText}
-                onChangeText={setConfirmText}
-                placeholder="Type here..."
-                placeholderTextColor={palette.textSoft}
-                autoFocus
-                autoCapitalize="characters"
-                style={{
-                  backgroundColor: palette.inputBg,
-                  borderRadius: 14,
-                  paddingHorizontal: 16,
-                  paddingVertical: 14,
-                  fontSize: 18,
-                  fontWeight: '700',
-                  color: palette.text,
-                  textAlign: 'center',
-                  borderWidth: 1,
-                  borderColor: palette.divider,
-                }}
-              />
-            </View>
+          <View style={{ width: '100%', marginBottom: 20 }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: palette.textSecondary,
+                marginBottom: 12,
+                textAlign: 'center',
+              }}
+            >
+              Type <Text style={{ color: palette.negative, fontWeight: '800' }}>RESET</Text> to confirm
+            </Text>
+            <TextInput
+              value={confirmText}
+              onChangeText={setConfirmText}
+              placeholder=""
+              autoFocus
+              style={{
+                backgroundColor: palette.inputBg,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 16,
+                fontSize: 18,
+                fontWeight: '700',
+                color: palette.text,
+                textAlign: 'center',
+                borderWidth: 1.5,
+                borderColor: isConfirmed ? palette.negative : palette.divider,
+              }}
+            />
+          </View>
 
+          <View style={{ gap: 12 }}>
             <TouchableOpacity
               onPress={handleReset}
               disabled={!isConfirmed}
               style={{
                 width: '100%',
                 backgroundColor: isConfirmed ? palette.negative : palette.divider,
-                paddingVertical: 16,
-                borderRadius: 18,
+                paddingVertical: 18,
+                borderRadius: 20,
                 alignItems: 'center',
               }}
             >
@@ -151,13 +138,13 @@ export default function ResetScreen() {
                   fontWeight: '700',
                 }}
               >
-                Reset Everything
+                Erase Everything
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => router.back()}
-              style={{ marginTop: 16 }}
+              style={{ paddingVertical: 12, alignItems: 'center' }}
             >
               <Text
                 style={{

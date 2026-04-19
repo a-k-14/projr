@@ -215,16 +215,21 @@ export default function ActivityScreen() {
   const selectedAccount =
     selectedAccountId === 'all' ? null : accounts.find((account) => account.id === selectedAccountId);
   const accountLabel = selectedAccount ? selectedAccount.name : 'All Accounts';
-  const isDefaultView =
-    period === 'all' &&
-    selectedAccountId === 'all' &&
-    typeFilter === 'all' &&
-    cashflowBucket === 'all' &&
-    !search &&
-    selectedCategoryIds.length === 0 &&
-    selectedTagIds.length === 0 &&
-    !amountMinStr &&
-    !amountMaxStr;
+    const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
+    const ts = typeof routeParams.ts === 'string' ? routeParams.ts : undefined;
+    
+    // Improved check: if we have params but haven't applied them yet, don't count as default view
+    const isDefaultView =
+      !source &&
+      period === 'all' &&
+      selectedAccountId === 'all' &&
+      typeFilter === 'all' &&
+      cashflowBucket === 'all' &&
+      !search &&
+      selectedCategoryIds.length === 0 &&
+      selectedTagIds.length === 0 &&
+      !amountMinStr &&
+      !amountMaxStr;
   const needsFullDataset =
     period === 'all' &&
     (!!search.trim() ||
@@ -311,90 +316,84 @@ export default function ActivityScreen() {
     const ts = typeof routeParams.ts === 'string' ? routeParams.ts : undefined;
     if (!source || !ts || lastAppliedRouteTsRef.current === ts) return;
 
-    const periodParam = typeof routeParams.period === 'string' ? routeParams.period : undefined;
-    const accountParam = typeof routeParams.accountId === 'string' ? routeParams.accountId : undefined;
-    const typeParam = typeof routeParams.type === 'string' ? routeParams.type : undefined;
-    const cashflowBucketParam =
-      typeof routeParams.cashflowBucket === 'string' ? routeParams.cashflowBucket : undefined;
-    const fromParam = typeof routeParams.from === 'string' ? routeParams.from : undefined;
-    const toParam = typeof routeParams.to === 'string' ? routeParams.to : undefined;
-    const categoryIdParam = typeof routeParams.categoryId === 'string' ? routeParams.categoryId : undefined;
+    InteractionManager.runAfterInteractions(() => {
+      const periodParam = typeof routeParams.period === 'string' ? routeParams.period : undefined;
+      const accountParam = typeof routeParams.accountId === 'string' ? routeParams.accountId : undefined;
+      const typeParam = typeof routeParams.type === 'string' ? routeParams.type : undefined;
+      const cashflowBucketParam =
+        typeof routeParams.cashflowBucket === 'string' ? routeParams.cashflowBucket : undefined;
+      const fromParam = typeof routeParams.from === 'string' ? routeParams.from : undefined;
+      const toParam = typeof routeParams.to === 'string' ? routeParams.to : undefined;
+      const categoryIdParam = typeof routeParams.categoryId === 'string' ? routeParams.categoryId : undefined;
 
-    if (accountParam && accountParam !== 'all' && accounts.length === 0) {
-      return;
-    }
+      if (accountParam && accountParam !== 'all' && accounts.length === 0) {
+        return;
+      }
 
-    setPeriod('all');
-    setPeriodOffset(0);
-    setCustomFrom(undefined);
-    setCustomTo(undefined);
-    setSelectedAccountId('all');
-    setTypeFilter('all');
-    setCashflowBucket('all');
-    setSelectedCategoryIds([]);
-    setSelectedTagIds([]);
-    setAmountMinStr('');
-    setAmountMaxStr('');
-    setExpandedCategoryIds([]);
-    setGroupByMode('date');
-    setCategoryDrilldown(null);
-    setSearch('');
-    setIsSearchActive(false);
+      setPeriod('all');
+      setPeriodOffset(0);
+      setCustomFrom(undefined);
+      setCustomTo(undefined);
+      setSelectedAccountId('all');
+      setTypeFilter('all');
+      setCashflowBucket('all');
+      setSelectedCategoryIds([]);
+      setSelectedTagIds([]);
+      setAmountMinStr('');
+      setAmountMaxStr('');
+      setExpandedCategoryIds([]);
+      setGroupByMode('date');
+      setCategoryDrilldown(null);
+      setSearch('');
+      setIsSearchActive(false);
 
-    if (source === 'activity-tab') {
-      void loadStoreTransactions().catch(() => undefined);
-      lastAppliedRouteTsRef.current = ts;
-      return;
-    }
+      if (source === 'activity-tab') {
+        void loadStoreTransactions().catch(() => undefined);
+        lastAppliedRouteTsRef.current = ts;
+        return;
+      }
 
-    if (periodParam === 'day' || periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
-      setPeriod(periodParam);
-      // If from/to are provided for these fixed periods, we should ideally calculate the offset.
-      // For now, if they are provided, we switch to 'custom' to guarantee the exact range matches the graph.
-      if (fromParam && toParam) {
+      if (periodParam === 'day' || periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
+        setPeriod(periodParam);
+        if (fromParam && toParam) {
+          setPeriod('custom');
+          setCustomFrom(fromParam);
+          setCustomTo(toParam);
+        } else {
+          setPeriodOffset(0);
+        }
+      } else if (periodParam === 'custom') {
         setPeriod('custom');
         setCustomFrom(fromParam);
         setCustomTo(toParam);
-      } else {
-        setPeriodOffset(0);
       }
-    } else if (periodParam === 'custom') {
-      setPeriod('custom');
-      setCustomFrom(fromParam);
-      setCustomTo(toParam);
-    } else {
-      setPeriod('all');
-      setPeriodOffset(0);
-    }
 
-    if (accountParam === 'all') {
-      setSelectedAccountId('all');
-    } else if (accountParam && accounts.length > 0) {
-      if (accounts.some((account) => account.id === accountParam)) {
-        setSelectedAccountId(accountParam);
+      if (accountParam === 'all') {
+        setSelectedAccountId('all');
+      } else if (accountParam && accounts.length > 0) {
+        if (accounts.some((account) => account.id === accountParam)) {
+          setSelectedAccountId(accountParam);
+        }
       }
-    }
 
-    if (categoryIdParam) {
-      setSelectedCategoryIds([categoryIdParam]);
-      setGroupByMode('date');
-    }
-
-    if (typeParam === 'all' || typeParam === 'in' || typeParam === 'out' || typeParam === 'transfer' || typeParam === 'loan') {
-      setTypeFilter(typeParam);
-    }
-
-    if (cashflowBucketParam) {
-      setCashflowBucket(cashflowBucketParam as any);
-      // If we are drilling into a cashflow bucket (like 'in' or 'out'), 
-      // we should align the typeFilter if it's currently 'all' to avoid confusion,
-      // but only for 'in'/'out' buckets.
-      if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
-        setTypeFilter(cashflowBucketParam as any);
+      if (categoryIdParam) {
+        setSelectedCategoryIds([categoryIdParam]);
+        setGroupByMode('date');
       }
-    }
 
-    lastAppliedRouteTsRef.current = ts;
+      if (typeParam === 'all' || typeParam === 'in' || typeParam === 'out' || typeParam === 'transfer' || typeParam === 'loan') {
+        setTypeFilter(typeParam);
+      }
+
+      if (cashflowBucketParam) {
+        setCashflowBucket(cashflowBucketParam as any);
+        if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
+          setTypeFilter(cashflowBucketParam as any);
+        }
+      }
+
+      lastAppliedRouteTsRef.current = ts;
+    });
   }, [accounts, loadStoreTransactions, routeParams.accountId, routeParams.cashflowBucket, routeParams.categoryId, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
 
   const onRefresh = async () => {
