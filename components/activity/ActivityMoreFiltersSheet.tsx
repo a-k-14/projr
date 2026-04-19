@@ -294,7 +294,6 @@ function MoreTagRow({ tag, count, selected, palette, onToggleSelected }: MoreTag
           {tag.name}
         </Text>
       </TouchableOpacity>
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginRight: 10 }}>{count}</Text>
     </View>
   );
 }

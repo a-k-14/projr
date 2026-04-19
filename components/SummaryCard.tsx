@@ -13,9 +13,9 @@ interface SummaryCardProps {
 
 export function SummaryCard({ cashflow, sym, palette, onPressCategory }: SummaryCardProps) {
   const categories = [
-    { key: 'in', label: 'In', color: palette.brand },
-    { key: 'out', label: 'Out', color: palette.negative },
-    { key: 'net', label: 'Net', color: palette.brand },
+    { key: 'in', label: 'In', color: palette.text },
+    { key: 'out', label: 'Out', color: palette.text },
+    { key: 'net', label: 'Net', color: cashflow.net < 0 ? palette.negative : palette.brand },
   ] as const;
 
   return (
@@ -41,7 +41,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
               { color: category.color },
             ]}
           >
-            {formatCurrency(cashflow[category.key], sym)}
+            {formatCurrency(Math.abs(cashflow[category.key]), sym)}
           </Text>
         </TouchableOpacity>
       ))}

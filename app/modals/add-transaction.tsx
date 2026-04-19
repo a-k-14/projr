@@ -148,12 +148,12 @@ export default function AddTransactionModal() {
   // draftCategoryId changes → pull it into local state.
   // We guard with a ref so that our own setCategoryId calls don't re-trigger.
   const isSyncingCategory = useRef(false);
-  const skipInitialDraftCategorySync = useRef(!isEditing);
+  const skipInitialDraftCategorySync = useRef(true);
   
   // Clear category draft on mount for new transactions
   useEffect(() => {
+    setDraftCategoryId('');
     if (!isEditing) {
-      setDraftCategoryId('');
       setCategoryId('');
       clearSplitRows();
     }
@@ -894,7 +894,16 @@ export default function AddTransactionModal() {
       </View>
 
       {showAccountSheet ? (
-        <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)}>
+        <BottomSheet
+          title="Select account"
+          palette={palette}
+          onClose={() => setShowAccountSheet(false)}
+          headerRight={
+            <TouchableOpacity delayPressIn={0} onPress={() => { setShowAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+            </TouchableOpacity>
+          }
+        >
           {accounts.length === 0 ? (
             <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
@@ -919,7 +928,16 @@ export default function AddTransactionModal() {
       ) : null}
 
       {showFromAccountSheet ? (
-        <BottomSheet title="Transfer from" palette={palette} onClose={() => setShowFromAccountSheet(false)}>
+        <BottomSheet
+          title="Transfer from"
+          palette={palette}
+          onClose={() => setShowFromAccountSheet(false)}
+          headerRight={
+            <TouchableOpacity delayPressIn={0} onPress={() => { setShowFromAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+            </TouchableOpacity>
+          }
+        >
           {accounts.length === 0 ? (
             <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
@@ -945,7 +963,16 @@ export default function AddTransactionModal() {
       ) : null}
 
       {showToAccountSheet ? (
-        <BottomSheet title="Transfer to" palette={palette} onClose={() => setShowToAccountSheet(false)}>
+        <BottomSheet
+          title="Transfer to"
+          palette={palette}
+          onClose={() => setShowToAccountSheet(false)}
+          headerRight={
+            <TouchableOpacity delayPressIn={0} onPress={() => { setShowToAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+            </TouchableOpacity>
+          }
+        >
           {accounts.length === 0 ? (
             <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (

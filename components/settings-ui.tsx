@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { ReactNode, RefObject } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
+import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
 
 export function ScreenTitle({
@@ -430,7 +430,7 @@ export function ActionButton({
 }) {
   const styles = {
     primary: { backgroundColor: palette.tabActive, color: palette.onBrand },
-    danger: { backgroundColor: palette.outBg, color: palette.negative },
+    danger: { backgroundColor: 'transparent', color: palette.negative },
     secondary: { backgroundColor: palette.card, color: palette.text } } as const;
   const picked = styles[variant];
   return (
@@ -438,8 +438,9 @@ export function ActionButton({
       onPress={onPress}
       activeOpacity={0.8}
       style={{
-        minHeight: 52,
-        borderRadius: 16,
+        minHeight: variant === 'danger' ? 0 : 56,
+        paddingVertical: variant === 'danger' ? 8 : 12,
+        borderRadius: 18,
         backgroundColor: picked.backgroundColor,
         alignItems: 'center',
         justifyContent: 'center',
@@ -447,7 +448,7 @@ export function ActionButton({
         borderColor: variant === 'secondary' ? palette.border : 'transparent',
         paddingHorizontal: 20 }}
     >
-      <Text style={{ fontSize: TYPE.section, fontWeight: '700', color: picked.color }}>{label}</Text>
+      <Text style={{ fontSize: variant === 'primary' ? HOME_TEXT.rowLabel : TYPE.section, fontWeight: variant === 'danger' ? '500' : '600', color: picked.color }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -466,13 +467,15 @@ export function FixedBottomActions({
   return (
     <View
       style={{
-        borderTopWidth: 1,
-        borderTopColor: palette.divider,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
         paddingHorizontal: SCREEN_GUTTER,
-        paddingTop: SPACING.md,
-        paddingBottom: (insets.bottom || 16) + 2,
+        paddingTop: 12,
+        paddingBottom: (insets.bottom || 16) + 4,
         backgroundColor: palette.background,
-        gap: SPACING.sm }}
+        gap: 12 }}
     >
       {children}
     </View>
@@ -523,7 +526,7 @@ export function SettingsFormLayout({
           contentContainerStyle={{
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: SPACING.md,
-            paddingBottom: 100, // Increased to ensure last items can scroll into view
+            paddingBottom: 150,
           }}
           keyboardShouldPersistTaps="always"
         >

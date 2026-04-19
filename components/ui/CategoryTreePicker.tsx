@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { LayoutAnimation, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
@@ -110,6 +111,9 @@ export function CategoryTreePicker({
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, flex: 1 }}>
             {title}
           </Text>
+          <TouchableOpacity delayPressIn={0} onPress={() => { onBack(); router.push('/settings/categories'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+          </TouchableOpacity>
         </View>
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 12 }}>
           <View

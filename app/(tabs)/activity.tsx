@@ -1,5 +1,5 @@
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -7,15 +7,16 @@ import { ActivityIndicator,
   BackHandler,
   FlatList,
   InteractionManager,
+  Keyboard,
   LayoutAnimation,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  
+  TouchableOpacity,
   View,
-  type LayoutChangeEvent , TouchableOpacity} from 'react-native';
+  type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
@@ -31,9 +32,16 @@ import { ActivityMoreFiltersSheet } from '../../components/activity/ActivityMore
 import {
   getNavigableDateRange,
   getPeriodNavLabel,
-  getRelativeDateLabel } from '../../lib/dateUtils';
+  getRelativeDateLabel,
+  toLocalDayEndISO,
+  toLocalDayStartISO } from '../../lib/dateUtils';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
-import { formatCurrency, getLoanTransactionKind, getTransactionCashflowImpact, groupTransactionsByDate } from '../../lib/derived';
+import {
+  formatCurrency,
+  getCashflowFromList,
+  getLoanTransactionKind,
+  getTransactionCashflowImpact,
+  groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_SPACE, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { formatDateFull } from '../../lib/ui-format';
@@ -65,6 +73,7 @@ type HierarchyFamily = 'out' | 'in' | 'loan' | 'transfer';
 
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
+  const navigation = useNavigation();
   const routeParams = useLocalSearchParams<{
     source?: string;
     period?: string;
@@ -113,16 +122,6 @@ export default function ActivityScreen() {
   const [search, setSearch] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
 
-  const toggleSearch = useCallback((active: boolean) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsSearchActive(active);
-    if (!active) setSearch('');
-  }, []);
-
-  const [showAccountSheet, setShowAccountSheet] = useState(false);
-  const [showPeriodSheet, setShowPeriodSheet] = useState(false);
-  const [showMoreSheet, setShowMoreSheet] = useState(false);
-
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -132,6 +131,43 @@ export default function ActivityScreen() {
   const [groupByMode, setGroupByMode] = useState<GroupByMode>('date');
   const [draftGroupByMode, setDraftGroupByMode] = useState<GroupByMode>('date');
   const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
+
+  const [showAccountSheet, setShowAccountSheet] = useState(false);
+  const [showPeriodSheet, setShowPeriodSheet] = useState(false);
+  const [showMoreSheet, setShowMoreSheet] = useState(false);
+
+  const resetAllFilters = useCallback(() => {
+    setPeriod('month');
+    setPeriodOffset(0);
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setSelectedAccountId('all');
+    setTypeFilter('all');
+    setCashflowBucket('all');
+    setSelectedCategoryIds([]);
+    setSelectedTagIds([]);
+    setAmountMinStr('');
+    setAmountMaxStr('');
+    setSearch('');
+    setGroupByMode('date');
+    setCategoryDrilldown(null);
+    setIsSearchActive(false);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener('tabPress', (e: any) => {
+      if (navigation.isFocused()) {
+        resetAllFilters();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, resetAllFilters]);
+
+  const toggleSearch = useCallback((active: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsSearchActive(active);
+    if (!active) setSearch('');
+  }, []);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -394,12 +430,13 @@ export default function ActivityScreen() {
     DateTimePickerAndroid.open({
       value: customFrom ? new Date(customFrom) : new Date(),
       mode: 'date',
+      display: 'calendar',
       onChange: (_, date) => {
         if (!date) return;
-        const pickedFrom = startOfDayIso(date);
+        const pickedFrom = toLocalDayStartISO(date);
         const currentTo = customTo ? new Date(customTo).toISOString() : undefined;
         if (currentTo && pickedFrom > currentTo) {
-          setCustomTo(endOfDayIso(date));
+          setCustomTo(toLocalDayEndISO(date));
         }
         setCustomFrom(pickedFrom);
         setPeriod('custom');
@@ -411,13 +448,14 @@ export default function ActivityScreen() {
     DateTimePickerAndroid.open({
       value: customTo ? new Date(customTo) : new Date(),
       mode: 'date',
+      display: 'calendar',
       minimumDate: minDate,
       onChange: (_, date) => {
         if (!date) return;
-        const pickedTo = endOfDayIso(date);
+        const pickedTo = toLocalDayEndISO(date);
         const currentFrom = customFrom ? new Date(customFrom).toISOString() : undefined;
         if (currentFrom && currentFrom > pickedTo) {
-          setCustomFrom(startOfDayIso(date));
+          setCustomFrom(toLocalDayStartISO(date));
         }
         setCustomTo(pickedTo);
         setPeriod('custom');
@@ -481,8 +519,8 @@ export default function ActivityScreen() {
     });
   }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, transactions]);
 
-  const periodCashflow = useMemo(() => calcCashflowSummary(filteredTransactions), [filteredTransactions]);
-  const overallNet = useMemo(() => calcNet(filteredTransactions), [filteredTransactions]);
+  const periodCashflow = useMemo(() => getCashflowFromList(filteredTransactions), [filteredTransactions]);
+  const overallNet = useMemo(() => periodCashflow.net, [periodCashflow]);
   const drilldownTransactions = useMemo(() => {
     if (!categoryDrilldown) return filteredTransactions;
     return filteredTransactions.filter((tx) => {
@@ -492,7 +530,7 @@ export default function ActivityScreen() {
       return tx.categoryId === categoryDrilldown.subKey;
     });
   }, [categoryDrilldown, filteredTransactions]);
-  const displayedCashflow = categoryDrilldown ? calcCashflowSummary(drilldownTransactions) : periodCashflow;
+  const displayedCashflow = categoryDrilldown ? getCashflowFromList(drilldownTransactions) : periodCashflow;
 
   const moreActiveCount =
     selectedCategoryIds.length +
@@ -579,7 +617,7 @@ export default function ActivityScreen() {
         groupKey: group.dateKey,
         title: date,
         subtitle: label || undefined,
-        net: calcNet(group.items),
+        net: getCashflowFromList(group.items).net,
         items: group.items };
     });
   }, [categoryDrilldown, drilldownTransactions, filteredTransactions]);
@@ -679,12 +717,12 @@ export default function ActivityScreen() {
         parentLabel: entry.parentLabel,
         parentIcon: entry.parentIcon,
         parentSyntheticType: entry.parentSyntheticType,
-        total: calcNet(entry.transactions),
+        total: getCashflowFromList(entry.transactions).net,
         subcategories: Array.from(entry.subMap.values())
           .map((sub) => ({
             subKey: sub.subKey,
             subLabel: sub.subLabel,
-            total: calcNet(sub.transactions),
+            total: getCashflowFromList(sub.transactions).net,
             transactions: sub.transactions }))
           .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
         familyOrder: entry.familyOrder,
@@ -888,6 +926,8 @@ export default function ActivityScreen() {
                     </View>
                   ) : null}
 
+                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
+
                   {groupByMode === 'category' && categoryDrilldown ? (
                     <View
                       style={{
@@ -912,8 +952,6 @@ export default function ActivityScreen() {
                       </TouchableOpacity>
                     </View>
                   ) : null}
-
-                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
                 </View>
               }
               renderItem={renderGroupItem}
@@ -1117,7 +1155,6 @@ export default function ActivityScreen() {
           palette={palette}
           onClose={() => setShowPeriodSheet(false)}
           hasNavBar
-          extraBottomPadding={ACTIVITY_LAYOUT.periodSheetBottomOffset}
         >
           <ChoiceRow
             title="All Time"
@@ -1216,8 +1253,8 @@ export default function ActivityScreen() {
                   const from = new Date(customFrom);
                   const to = new Date(customTo);
                   if (from > to) {
-                    setCustomFrom(startOfDayIso(to));
-                    setCustomTo(endOfDayIso(from));
+                    setCustomFrom(toLocalDayStartISO(to));
+                    setCustomTo(toLocalDayEndISO(from));
                   }
                   setPeriod('custom');
                   setShowPeriodSheet(false);
@@ -1280,38 +1317,9 @@ function signedCurrency(amount: number, sym: string) {
   return formatCurrency(Math.abs(amount), sym);
 }
 
-function startOfDayIso(date: Date) {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next.toISOString();
-}
-
-function endOfDayIso(date: Date) {
-  const next = new Date(date);
-  next.setHours(23, 59, 59, 999);
-  return next.toISOString();
-}
-
 function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {
   const range = getNavigableDateRange(period, offset, yearStart);
   return getPeriodNavLabel(period, range.from, range.to);
-}
-
-function calcNet(txs: Transaction[]): number {
-  return calcCashflowSummary(txs).net;
-}
-
-function calcCashflowSummary(txs: Transaction[]) {
-  return txs.reduce(
-    (summary, tx) => {
-      const impact = getTransactionCashflowImpact(tx);
-      if (impact === 'in') summary.in += tx.amount;
-      if (impact === 'out') summary.out += tx.amount;
-      summary.net = summary.in - summary.out;
-      return summary;
-    },
-    { in: 0, out: 0, net: 0 },
-  );
 }
 
 const styles = StyleSheet.create({

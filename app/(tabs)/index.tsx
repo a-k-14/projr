@@ -3,14 +3,16 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Pressable,
   RefreshControl,
   ScrollView,
   Text,
-  
+  TouchableOpacity,
   useWindowDimensions,
-  View , TouchableOpacity} from 'react-native';
+  View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedRef } from 'react-native-reanimated';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
@@ -146,7 +148,7 @@ export default function HomeScreen() {
       DateTimePickerAndroid.open({
         value,
         mode: 'date',
-        display: 'calendar', // Material 3 Calendar
+        display: 'calendar',
         minimumDate: minDate,
         onChange: (_event, selected) => {
           if (!selected) return;
@@ -252,16 +254,64 @@ export default function HomeScreen() {
         }
       />
 
-      {customRangeOpen ? (
-        <BottomSheet
-          title="Custom range"
-          subtitle="Pick the from and to dates for this range."
-          palette={palette}
-          onClose={() => setCustomRangeOpen(false)}
-          hasNavBar
-          scrollEnabled={false}
-          footer={
-            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg, paddingHorizontal: 20, paddingBottom: HOME_SPACE.xl }}>
+      <Modal
+        visible={customRangeOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCustomRangeOpen(false)}
+      >
+        <Pressable
+          onPress={() => setCustomRangeOpen(false)}
+          style={{
+            flex: 1,
+            backgroundColor: palette.scrim,
+            justifyContent: 'center',
+            padding: 20 }}
+        >
+          <Pressable
+            onPress={() => {}}
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: HOME_RADIUS.large,
+              padding: HOME_SPACE.xxl }}
+          >
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginBottom: 8 }}>
+              Custom range
+            </Text>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: 16 }}>
+              Pick the from and to dates for this range.
+            </Text>
+            <View style={{ gap: HOME_SPACE.md, marginBottom: HOME_SPACE.lg }}>
+              <TouchableOpacity delayPressIn={0}
+                onPress={() => openDatePicker('from')}
+                style={{
+                  borderWidth: 1,
+                  borderColor: palette.divider,
+                  borderRadius: HOME_RADIUS.card,
+                  paddingHorizontal: HOME_SPACE.lg,
+                  paddingVertical: 12 }}
+              >
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                  {formatDate(customDraftFrom.toISOString())}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity delayPressIn={0}
+                onPress={() => openDatePicker('to')}
+                style={{
+                  borderWidth: 1,
+                  borderColor: palette.divider,
+                  borderRadius: HOME_RADIUS.card,
+                  paddingHorizontal: HOME_SPACE.lg,
+                  paddingVertical: 12 }}
+              >
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                  {formatDate(customDraftTo.toISOString())}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg }}>
               <TouchableOpacity delayPressIn={0}
                 onPress={() => setCustomRangeOpen(false)}
                 style={{
@@ -284,43 +334,12 @@ export default function HomeScreen() {
                   alignItems: 'center',
                   justifyContent: 'center' }}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.surface }}>Done</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.onBrand }}>Done</Text>
               </TouchableOpacity>
             </View>
-          }
-        >
-          <View style={{ paddingHorizontal: 20, gap: HOME_SPACE.md, paddingTop: HOME_SPACE.sm }}>
-            <TouchableOpacity delayPressIn={0}
-              onPress={() => openDatePicker('from')}
-              style={{
-                borderWidth: 1,
-                borderColor: palette.divider,
-                borderRadius: HOME_RADIUS.card,
-                paddingHorizontal: HOME_SPACE.lg,
-                paddingVertical: 12 }}
-            >
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
-                {formatDate(customDraftFrom.toISOString())}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity delayPressIn={0}
-              onPress={() => openDatePicker('to')}
-              style={{
-                borderWidth: 1,
-                borderColor: palette.divider,
-                borderRadius: HOME_RADIUS.card,
-                paddingHorizontal: HOME_SPACE.lg,
-                paddingVertical: 12 }}
-            >
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
-                {formatDate(customDraftTo.toISOString())}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </BottomSheet>
-      ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -509,7 +528,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 textAlign: 'right',
                 flexShrink: 1 }}
             >
-              {formatCurrency(totalBalance, currencySymbol)}
+              {totalBalance < 0 ? '-' : ''}{formatCurrency(Math.abs(totalBalance), currencySymbol)}
             </Text>
           </View>
           <View style={{ height: 1, backgroundColor: palette.borderSoft, marginTop: HOME_SURFACE.heroDividerTop, marginBottom: HOME_SURFACE.heroDividerBottom }} />
@@ -727,7 +746,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                                 opacity: row.net === 0 ? 0.85 : 1,
                                 textAlign: 'right' }}
                             >
-                              {row.net !== 0 ? formatIndianNumberStr(String(row.net)) : '-'}
+                              {row.net !== 0 ? formatIndianNumberStr(String(Math.abs(row.net))) : '-'}
                             </Text>
                           </TouchableOpacity>
                         </View>

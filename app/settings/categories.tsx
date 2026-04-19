@@ -183,6 +183,7 @@ export default function CategoriesScreen() {
         <View
           style={{
             flexDirection: 'row',
+            width: '100%',
             borderBottomWidth: 1,
             borderBottomColor: palette.divider,
             marginBottom: 8,
@@ -194,20 +195,20 @@ export default function CategoriesScreen() {
               position: 'absolute',
               left: 0,
               bottom: -1,
-              width: width / 2,
+              width: `${50}%`,
               height: 2,
               backgroundColor: palette.brand,
               transform: [{ translateX: underlineTranslateX }] }}
           />
           {(['in', 'out'] as const).map((t) => (
-            <Pressable
+            <TouchableOpacity delayPressIn={0}
               key={t}
               onPress={() => setTab(t)}
-              style={({ pressed }) => ({
+              activeOpacity={0.7}
+              style={{
                 flex: 1,
                 paddingVertical: 14,
-                alignItems: 'center',
-                opacity: pressed ? 0.7 : 1 })}
+                alignItems: 'center' }}
             >
               <Text
                 style={{
@@ -217,7 +218,7 @@ export default function CategoriesScreen() {
               >
                 {t === 'in' ? 'Income' : 'Expense'}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </View>
 
