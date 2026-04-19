@@ -1,4 +1,4 @@
-export type AccountType = 'savings' | 'credit' | 'cash' | 'wallet' | 'other';
+export type AccountType = 'savings' | 'credit' | 'cash' | 'wallet' | 'investment' | 'other';
 export type TransactionType = 'in' | 'out' | 'transfer' | 'loan';
 export type LoanDirection = 'lent' | 'borrowed';
 export type LoanStatus = 'open' | 'closed';

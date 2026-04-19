@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Switch, Text, View, Alert } from 'react-native';
+import { Keyboard, ScrollView, Switch, Text, View, Alert, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useAppTheme } from '../../lib/theme';
 import { CardSection, ScreenTitle, SectionLabel, SettingsRow, ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import {
   CURRENCIES,
   MONTHS,
@@ -64,12 +65,13 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 120 }} // Increased for seamless scroll behind navbar
-        showsVerticalScrollIndicator={false}
-      >
-        <ScreenTitle title="Settings" palette={palette} />
+      <ScreenTitle title="Settings" palette={palette} />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 120 }} // Increased for seamless scroll behind navbar
+          showsVerticalScrollIndicator={false}
+        >
 
         <View>
           <SectionLabel label="GENERAL" palette={palette} />
@@ -185,10 +187,20 @@ export default function SettingsScreen() {
         <View>
           <SectionLabel label="ABOUT" palette={palette} />
           <CardSection palette={palette}>
-            <SettingsRow icon="info" label="Version" value="1.0.0" palette={palette} noBorder />
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <View style={{ marginBottom: 16 }}>
+                <FinanceEmptyMascot palette={palette} variant="security" />
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: palette.text, letterSpacing: -0.5 }}>Reni</Text>
+              <Text style={{ fontSize: 13, color: palette.textMuted, marginTop: 2 }}>Personal Finance Companion</Text>
+              <View style={{ marginTop: 16, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, backgroundColor: palette.inputBg }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: palette.textSecondary }}>VERSION 1.0.0</Text>
+              </View>
+            </View>
           </CardSection>
         </View>
       </ScrollView>
+    </TouchableWithoutFeedback>
 
       {picker ? (
         <BottomSheet

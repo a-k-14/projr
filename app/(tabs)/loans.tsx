@@ -311,7 +311,7 @@ export default function LoansScreen() {
         }
         ListEmptyComponent={
           !refreshing ? (
-            <View style={{ paddingTop: 64, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+            <View style={{ paddingTop: 24, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
               <EmptyStateCard
                 palette={palette}
                 title="No loans found"
@@ -489,7 +489,7 @@ function LoanSummaryCard({
   sym: string;
   palette: AppThemePalette;
 }) {
-  const badgeLabel = borrowed === 0 && lent === 0 ? 'No open loans' : borrowed === 0 ? 'Net lent' : lent === 0 ? 'Net borrowed' : netPositive ? 'Net lent' : 'Net borrowed';
+  const badgeLabel = borrowed === 0 && lent === 0 ? 'No loans' : borrowed === 0 ? 'Net lent' : lent === 0 ? 'Net borrowed' : netPositive ? 'Net lent' : 'Net borrowed';
 
   return (
     <OverviewHeroCard

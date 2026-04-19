@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS: Settings = {
   currencySymbol: '₹',
   showCurrencySymbol: false,
   theme: 'light',
-  yearStart: 3,
+  yearStart: 0,
   cloudBackupEnabled: false,
   biometricLock: false,
 };

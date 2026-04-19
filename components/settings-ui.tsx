@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { ReactNode, RefObject } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
@@ -571,9 +571,11 @@ export function SettingsFormLayout({
             paddingTop: SPACING.md,
             paddingBottom: 150,
           }}
-          keyboardShouldPersistTaps="always"
+          keyboardShouldPersistTaps="handled"
         >
-          {children}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1 }}>{children}</View>
+          </TouchableWithoutFeedback>
         </ScrollView>
       </KeyboardAvoidingView>
       {bottomActions}

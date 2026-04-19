@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent,
+import {
+  LayoutChangeEvent,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -12,17 +14,17 @@ import { LayoutChangeEvent,
   Text,
   TouchableOpacity,
   useWindowDimensions,
-  View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedRef } from 'react-native-reanimated';
+  View
+} from 'react-native';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
-import { useIsFocused } from '@react-navigation/native';
+import Animated, { useAnimatedRef, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
-import { FabButton } from '../../components/ui/FabButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { FabButton } from '../../components/ui/FabButton';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import {
@@ -30,16 +32,18 @@ import {
   getDateRange,
   toLocalDateKey,
   toLocalDayEndISO,
-  toLocalDayStartISO } from '../../lib/dateUtils';
+  toLocalDayStartISO
+} from '../../lib/dateUtils';
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
+  getFabBottomOffset,
   HOME_LAYOUT,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_SURFACE,
-  HOME_TEXT,
-  getFabBottomOffset } from '../../lib/layoutTokens';
+  HOME_TEXT
+} from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
@@ -49,9 +53,9 @@ import { useUIStore } from '../../stores/useUIStore';
 import type {
   CashflowSummary,
   DailyCashflow,
-  TransactionType,
   PeriodType,
-  Transaction
+  Transaction,
+  TransactionType
 } from '../../types';
 
 const PERIODS: PeriodType[] = ['week', 'month', 'year', 'custom'];
@@ -59,7 +63,8 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   week: 'Week',
   month: 'Month',
   year: 'Year',
-  custom: 'Custom' };
+  custom: 'Custom'
+};
 
 type AccountTab = {
   id: string | 'all';
@@ -131,7 +136,8 @@ export default function HomeScreen() {
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollX.value = event.contentOffset.x;
-    } });
+    }
+  });
 
 
 
@@ -160,7 +166,8 @@ export default function HomeScreen() {
           } else {
             setCustomDraftTo(selected < customDraftFrom ? customDraftFrom : selected);
           }
-        } });
+        }
+      });
     },
     [customDraftFrom, customDraftTo],
   );
@@ -250,7 +257,8 @@ export default function HomeScreen() {
         onPress={() =>
           router.push({
             pathname: '/modals/add-transaction',
-            params: selectedAccountId === 'all' ? undefined : { accountId: selectedAccountId } })
+            params: selectedAccountId === 'all' ? undefined : { accountId: selectedAccountId }
+          })
         }
       />
 
@@ -266,14 +274,16 @@ export default function HomeScreen() {
             flex: 1,
             backgroundColor: palette.scrim,
             justifyContent: 'center',
-            padding: 20 }}
+            padding: 20
+          }}
         >
           <Pressable
-            onPress={() => {}}
+            onPress={() => { }}
             style={{
               backgroundColor: palette.surface,
               borderRadius: HOME_RADIUS.large,
-              padding: HOME_SPACE.xxl }}
+              padding: HOME_SPACE.xxl
+            }}
           >
             <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginBottom: 8 }}>
               Custom range
@@ -289,7 +299,8 @@ export default function HomeScreen() {
                   borderColor: palette.divider,
                   borderRadius: HOME_RADIUS.card,
                   paddingHorizontal: HOME_SPACE.lg,
-                  paddingVertical: 12 }}
+                  paddingVertical: 12
+                }}
               >
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
@@ -303,7 +314,8 @@ export default function HomeScreen() {
                   borderColor: palette.divider,
                   borderRadius: HOME_RADIUS.card,
                   paddingHorizontal: HOME_SPACE.lg,
-                  paddingVertical: 12 }}
+                  paddingVertical: 12
+                }}
               >
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
@@ -320,7 +332,8 @@ export default function HomeScreen() {
                   borderRadius: HOME_RADIUS.tab,
                   backgroundColor: palette.divider,
                   alignItems: 'center',
-                  justifyContent: 'center' }}
+                  justifyContent: 'center'
+                }}
               >
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>Cancel</Text>
               </TouchableOpacity>
@@ -332,7 +345,8 @@ export default function HomeScreen() {
                   borderRadius: HOME_RADIUS.tab,
                   backgroundColor: palette.brand,
                   alignItems: 'center',
-                  justifyContent: 'center' }}
+                  justifyContent: 'center'
+                }}
               >
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.onBrand }}>Done</Text>
               </TouchableOpacity>
@@ -355,17 +369,17 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   totalBalance,
   onRefresh,
   isSelected }: {
-  pageHeight: number;
-  accountId: string | 'all';
-  accountName: string;
-  settingsYearStart: number;
-  currencySymbol: string;
-  customRange?: { from: Date; to: Date };
-  onOpenCustomRange: () => void;
-  totalBalance: number;
-  onRefresh: () => Promise<void>;
-  isSelected: boolean;
-}) {
+    pageHeight: number;
+    accountId: string | 'all';
+    accountName: string;
+    settingsYearStart: number;
+    currencySymbol: string;
+    customRange?: { from: Date; to: Date };
+    onOpenCustomRange: () => void;
+    totalBalance: number;
+    onRefresh: () => Promise<void>;
+    isSelected: boolean;
+  }) {
   const { palette } = useAppTheme();
   const getCategoryDisplayName = useCategoriesStore((s) => s.getCategoryDisplayName);
   const [period, setPeriod] = useState<PeriodType>('week');
@@ -393,14 +407,14 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     customRange ? customRange.from.toISOString() : undefined,
     customRange ? customRange.to.toISOString() : undefined,
   );
-  
+
   // Use localized Today boundaries
   const today = useMemo(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
   }, []);
   const todayKey = useMemo(() => toLocalDateKey(today), [today]);
-  
+
   const todayEnd = useMemo(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
@@ -459,7 +473,9 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
           cashflowBucket: kind,
-          ts: String(Date.now()) } });
+          ts: String(Date.now())
+        }
+      });
     },
     [accountId],
   );
@@ -475,7 +491,9 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           cashflowBucket: kind,
           from,
           to,
-          ts: String(Date.now()) } });
+          ts: String(Date.now())
+        }
+      });
     },
     [accountId, from, period, to],
   );
@@ -499,7 +517,9 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           cashflowBucket: type,
           from: range.from,
           to: range.to,
-          ts: String(Date.now()) } });
+          ts: String(Date.now())
+        }
+      });
     },
     [accountId],
   );
@@ -526,7 +546,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 fontWeight: '600',
                 color: palette.text,
                 textAlign: 'right',
-                flexShrink: 1 }}
+                flexShrink: 1
+              }}
             >
               {totalBalance < 0 ? '-' : ''}{formatCurrency(Math.abs(totalBalance), currencySymbol)}
             </Text>
@@ -559,7 +580,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 flexDirection: 'row',
                 backgroundColor: palette.card,
                 borderRadius: HOME_RADIUS.tab,
-                overflow: 'hidden' }}
+                overflow: 'hidden'
+              }}
             >
               {PERIODS.map((value) => (
                 <TouchableOpacity delayPressIn={0}
@@ -580,7 +602,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                     justifyContent: 'center',
                     backgroundColor: period === value
                       ? palette.brandSoft
-                      : 'transparent' }}
+                      : 'transparent'
+                  }}
                 >
                   <Text
                     style={{
@@ -591,7 +614,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                       includeFontPadding: false,
                       color: period === value
                         ? palette.brand
-                        : palette.textMuted }}
+                        : palette.textMuted
+                    }}
                   >
                     {PERIOD_LABELS[value]}
                   </Text>
@@ -601,7 +625,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           </View>
 
           <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 14 }}>
-            {formatDate(from)} — {formatDate(to)}
+            {formatDate(from)} - {formatDate(to)}
           </Text>
 
           <SummaryCard
@@ -618,7 +642,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               paddingHorizontal: CARD_PADDING,
               paddingTop: HOME_SURFACE.cardPaddingY,
               paddingBottom: HOME_SURFACE.cardPaddingBottom,
-              marginBottom: HOME_SURFACE.chartCardBottom }}
+              marginBottom: HOME_SURFACE.chartCardBottom
+            }}
           >
             <TouchableOpacity delayPressIn={0}
               onPress={() => setShowViewPicker(true)}
@@ -626,7 +651,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 flexDirection: 'row',
                 alignItems: 'center',
                 marginBottom: HOME_SURFACE.panelHeaderGap,
-                gap: 6 }}
+                gap: 6
+              }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
                 {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow'}
@@ -653,10 +679,11 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                       <View
                         key={i}
                         style={{
-                            height: HOME_SURFACE.tableRowHeight,
+                          height: HOME_SURFACE.tableRowHeight,
                           justifyContent: 'center',
                           borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
-                          borderBottomColor: palette.borderSoft }}
+                          borderBottomColor: palette.borderSoft
+                        }}
                       >
                         <Text
                           numberOfLines={1}
@@ -683,7 +710,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                         borderBottomWidth: 1,
                         borderBottomColor: palette.borderSoft,
                         paddingBottom: HOME_SURFACE.tableHeaderPaddingBottom,
-                        marginBottom: HOME_SURFACE.panelSubheaderGap }}
+                        marginBottom: HOME_SURFACE.panelSubheaderGap
+                      }}
                     >
                       <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Inflow</Text>
                       <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Outflow</Text>
@@ -700,13 +728,14 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                       {viewData.map((row, i) => (
                         <View
                           key={i}
-                        style={{
-                          flexDirection: 'row',
-                          paddingVertical: HOME_SURFACE.cardPaddingY,
-                          height: HOME_SURFACE.tableRowHeight,
-                          borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
-                          borderBottomColor: palette.borderSoft,
-                          alignItems: 'center' }}
+                          style={{
+                            flexDirection: 'row',
+                            paddingVertical: HOME_SURFACE.cardPaddingY,
+                            height: HOME_SURFACE.tableRowHeight,
+                            borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
+                            borderBottomColor: palette.borderSoft,
+                            alignItems: 'center'
+                          }}
                         >
                           <TouchableOpacity delayPressIn={0}
                             activeOpacity={0.75}
@@ -744,7 +773,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                                 fontWeight: '600',
                                 color: row.net > 0 ? palette.brand : row.net < 0 ? palette.negative : palette.text,
                                 opacity: row.net === 0 ? 0.85 : 1,
-                                textAlign: 'right' }}
+                                textAlign: 'right'
+                              }}
                             >
                               {row.net !== 0 ? formatIndianNumberStr(String(Math.abs(row.net))) : '-'}
                             </Text>
@@ -778,7 +808,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                             backgroundColor: activeView === 'in' ? palette.brand : palette.negative,
                             borderRadius: HOME_RADIUS.chartBar,
                             opacity: amount > 0 ? 0.88 : 0.2,
-                            height: Math.max(4, (amount / maxVal) * HOME_LAYOUT.chartBarHeight) }}
+                            height: Math.max(4, (amount / maxVal) * HOME_LAYOUT.chartBarHeight)
+                          }}
                         />
                         <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textSoft, marginTop: 8 }}>
                           {entry.label}
@@ -793,14 +824,16 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                           width: 10,
                           height: 4,
                           backgroundColor: index === 0 ? palette.heroBar : palette.chartBarMuted,
-                          borderRadius: HOME_RADIUS.full }}
+                          borderRadius: HOME_RADIUS.full
+                        }}
                       />
                       <Text
                         style={{
                           fontSize: HOME_TEXT.tiny,
                           color: index === 0 ? palette.text : palette.textMuted,
                           marginTop: 8,
-                          fontWeight: index === 0 ? '700' : '500' }}
+                          fontWeight: index === 0 ? '700' : '500'
+                        }}
                       >
                         {day}
                       </Text>
@@ -817,7 +850,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: HOME_SPACE.sm,
-                paddingHorizontal: CARD_PADDING }}
+                paddingHorizontal: CARD_PADDING
+              }}
             >
               <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
               <TouchableOpacity delayPressIn={0}
@@ -827,7 +861,9 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                     params: {
                       source: 'home-view-all',
                       accountId: accountId === 'all' ? 'all' : accountId,
-                      ts: String(Date.now()) } })
+                      ts: String(Date.now())
+                    }
+                  })
                 }
               >
                 <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '600' }}>View all</Text>
@@ -848,13 +884,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                   return (
                     <TransactionListItem
                       key={transaction.id}
-                    tx={transaction}
-                    sym={currencySymbol}
-                    palette={palette}
-                    isLast={index === transactions.length - 1}
-                    categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
-                    onPress={handleTransactionPress}
-                  />
+                      tx={transaction}
+                      sym={currencySymbol}
+                      palette={palette}
+                      isLast={index === transactions.length - 1}
+                      categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
+                      onPress={handleTransactionPress}
+                    />
                   );
                 })
               )}

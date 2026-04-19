@@ -948,7 +948,7 @@ export default function ActivityScreen() {
               renderItem={renderGroupItem}
               ListEmptyComponent={
                 !refreshing ? (
-                  <View style={{ paddingTop: 64, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+                  <View style={{ paddingTop: 24, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
                     <EmptyStateCard
                       palette={palette}
                       title="No transactions found"

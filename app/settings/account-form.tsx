@@ -33,7 +33,7 @@ const EMPTY_DRAFT: Draft = {
   name: '',
   accountNumber: '',
   type: 'savings',
-  balance: '0',
+  balance: '',
   currency: 'INR',
 };
 
