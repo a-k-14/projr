@@ -14,9 +14,9 @@ import {
   CURRENCIES,
   MONTHS,
   THEMES,
-  formatDisplayCurrency,
   symbolFor,
 } from '../../lib/settings-shared';
+import { formatCurrency } from '../../lib/derived';
 
 type PickerKind = 'year-start' | 'default-account' | 'currency' | 'theme' | null;
 
@@ -69,138 +69,144 @@ export default function SettingsScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 120 }} // Increased for seamless scroll behind navbar
+          contentContainerStyle={{ paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
         >
+          <View>
+            <SectionLabel label="GENERAL" palette={palette} />
+            <CardSection palette={palette}>
+              <SettingsRow
+                icon="calendar"
+                label="Year Start"
+                value={MONTHS[settings.yearStart]}
+                palette={palette}
+                onPress={() => setPicker('year-start')}
+              />
+              <SettingsRow
+                icon="credit-card"
+                label="Default Account"
+                value={selectedAccount?.name ?? 'None'}
+                palette={palette}
+                onPress={() => setPicker('default-account')}
+              />
+              <SettingsRow
+                icon="dollar-sign"
+                label="Currency"
+                value={`${settings.currency} ${settings.currencySymbol}`}
+                palette={palette}
+                onPress={() => setPicker('currency')}
+              />
+              <SettingsRow
+                icon="eye"
+                label="Show Currency Symbol"
+                value={settings.showCurrencySymbol ? 'On' : 'Off'}
+                palette={palette}
+                rightElement={
+                  <Switch
+                    value={settings.showCurrencySymbol}
+                    onValueChange={(value) => updateSettings({ showCurrencySymbol: value })}
+                    trackColor={{ false: palette.border, true: palette.tabActive }}
+                    thumbColor={settings.showCurrencySymbol ? palette.onBrand : palette.surface}
+                  />
+                }
+              />
+              <SettingsRow
+                icon="sun"
+                label="Theme"
+                value={capitalize(settings.theme)}
+                palette={palette}
+                onPress={() => setPicker('theme')}
+                noBorder
+              />
+            </CardSection>
+          </View>
 
-        <View>
-          <SectionLabel label="GENERAL" palette={palette} />
-          <CardSection palette={palette}>
-            <SettingsRow
-              icon="calendar"
-              label="Year Start"
-              value={MONTHS[settings.yearStart]}
-              palette={palette}
-              onPress={() => setPicker('year-start')}
-            />
-            <SettingsRow
-              icon="credit-card"
-              label="Default Account"
-              value={selectedAccount?.name ?? 'None'}
-              palette={palette}
-              onPress={() => setPicker('default-account')}
-            />
-            <SettingsRow
-              icon="dollar-sign"
-              label="Currency"
-              value={`${settings.currency} ${settings.currencySymbol}`}
-              palette={palette}
-              onPress={() => setPicker('currency')}
-            />
-            <SettingsRow
-              icon="eye"
-              label="Show Currency Symbol"
-              value={settings.showCurrencySymbol ? 'On' : 'Off'}
-              palette={palette}
-              rightElement={
-                <Switch
-                  value={settings.showCurrencySymbol}
-                  onValueChange={(value) => updateSettings({ showCurrencySymbol: value })}
-                  trackColor={{ false: palette.border, true: palette.tabActive }}
-                  thumbColor={settings.showCurrencySymbol ? palette.onBrand : palette.surface}
-                />
-              }
-            />
-            <SettingsRow
-              icon="sun"
-              label="Theme"
-              value={capitalize(settings.theme)}
-              palette={palette}
-              onPress={() => setPicker('theme')}
-              noBorder
-            />
-          </CardSection>
-        </View>
+          <View>
+            <SectionLabel label="MANAGE" palette={palette} />
+            <CardSection palette={palette}>
+              <SettingsRow
+                icon="layers"
+                label="Accounts"
+                value={String(accounts.length)}
+                palette={palette}
+                onPress={() => router.push('/settings/accounts')}
+              />
+              <SettingsRow
+                icon="grid"
+                label="Categories"
+                value={String(categories.length)}
+                palette={palette}
+                onPress={() => router.push('/settings/categories')}
+              />
+              <SettingsRow
+                icon="tag"
+                label="Tags"
+                value={String(tags.length)}
+                palette={palette}
+                onPress={() => router.push('/settings/tags')}
+                noBorder
+              />
+            </CardSection>
+          </View>
 
-        <View>
-          <SectionLabel label="MANAGE" palette={palette} />
-          <CardSection palette={palette}>
-            <SettingsRow
-              icon="layers"
-              label="Accounts"
-              value={String(accounts.length)}
-              palette={palette}
-              onPress={() => router.push('/settings/accounts')}
-            />
-            <SettingsRow
-              icon="grid"
-              label="Categories"
-              value={String(categories.length)}
-              palette={palette}
-              onPress={() => router.push('/settings/categories')}
-            />
-            <SettingsRow
-              icon="tag"
-              label="Tags"
-              value={String(tags.length)}
-              palette={palette}
-              onPress={() => router.push('/settings/tags')}
-              noBorder
-            />
-          </CardSection>
-        </View>
+          <View>
+            <SectionLabel label="SECURITY" palette={palette} />
+            <CardSection palette={palette}>
+              <SettingsRow
+                icon="lock"
+                label="Biometric Lock"
+                value={settings.biometricLock ? 'Enabled' : 'Disabled'}
+                palette={palette}
+                rightElement={
+                  <Switch
+                    value={settings.biometricLock}
+                    onValueChange={handleBiometricToggle}
+                    trackColor={{ false: palette.border, true: palette.tabActive }}
+                    thumbColor={settings.biometricLock ? palette.onBrand : palette.surface}
+                  />
+                }
+                noBorder
+              />
+            </CardSection>
+          </View>
 
-        <View>
-          <SectionLabel label="SECURITY" palette={palette} />
-          <CardSection palette={palette}>
-            <SettingsRow
-              icon="lock"
-              label="Biometric Lock"
-              value={settings.biometricLock ? 'Enabled' : 'Disabled'}
-              palette={palette}
-              rightElement={
-                <Switch
-                  value={settings.biometricLock}
-                  onValueChange={handleBiometricToggle}
-                  trackColor={{ false: palette.border, true: palette.tabActive }}
-                  thumbColor={settings.biometricLock ? palette.onBrand : palette.surface}
-                />
-              }
-              noBorder
-            />
-          </CardSection>
-        </View>
+          <View>
+            <SectionLabel label="DATA" palette={palette} />
+            <CardSection palette={palette}>
+              <SettingsRow
+                icon="cloud-off"
+                label="Cloud Backup"
+                value="Not available"
+                palette={palette}
+              />
+              <SettingsRow
+                icon="refresh-cw"
+                label="Full Reset"
+                value="Erase everything"
+                palette={palette}
+                onPress={() => router.push('/settings/reset')}
+                noBorder
+              />
+            </CardSection>
+          </View>
 
-        <View>
-          <SectionLabel label="DATA" palette={palette} />
-          <CardSection palette={palette}>
-            <SettingsRow
-              icon="cloud-off"
-              label="Cloud Backup"
-              value="Not available"
-              palette={palette}
-              noBorder
-            />
-          </CardSection>
-        </View>
-
-        <View>
-          <SectionLabel label="ABOUT" palette={palette} />
-          <CardSection palette={palette}>
-            <View style={{ padding: 20, alignItems: 'center' }}>
-              <View style={{ marginBottom: 16 }}>
-                <FinanceEmptyMascot palette={palette} variant="security" />
+          <View>
+            <SectionLabel label="ABOUT" palette={palette} />
+            <CardSection palette={palette}>
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <View style={{ marginBottom: 16 }}>
+                  <FinanceEmptyMascot palette={palette} variant="activity" />
+                </View>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: palette.text, letterSpacing: -0.5 }}>Reni</Text>
+                <Text style={{ fontSize: 13, color: palette.textMuted, marginTop: 2 }}>Personal Finance Companion</Text>
+                <View style={{ marginTop: 16, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, backgroundColor: palette.inputBg }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: palette.textSecondary }}>VERSION 1.0.0</Text>
+                </View>
               </View>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: palette.text, letterSpacing: -0.5 }}>Reni</Text>
-              <Text style={{ fontSize: 13, color: palette.textMuted, marginTop: 2 }}>Personal Finance Companion</Text>
-              <View style={{ marginTop: 16, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, backgroundColor: palette.inputBg }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: palette.textSecondary }}>VERSION 1.0.0</Text>
-              </View>
-            </View>
-          </CardSection>
-        </View>
-      </ScrollView>
-    </TouchableWithoutFeedback>
+            </CardSection>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
 
       {picker ? (
         <BottomSheet
@@ -243,7 +249,7 @@ export default function SettingsScreen() {
                   <ChoiceRow
                     key={account.id}
                     title={account.name}
-                    subtitle={`${capitalize(account.type)} · ${formatDisplayCurrency(account.balance, symbolFor(account.currency))}`}
+                    subtitle={`${capitalize(account.type)} · ${formatCurrency(account.balance, symbolFor(account.currency))}`}
                     selected={settings.defaultAccountId === account.id}
                     palette={palette}
                     onPress={() => {

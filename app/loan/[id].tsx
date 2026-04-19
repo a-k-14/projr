@@ -132,13 +132,13 @@ export default function LoanDetailScreen() {
                     paddingHorizontal: HOME_SPACE.md,
                     paddingVertical: HOME_SPACE.xs,
                     borderRadius: HOME_RADIUS.small,
-                    backgroundColor: loan.status === 'open' ? palette.loanBg : palette.inputBg }}
+                    backgroundColor: loan.status === 'open' ? (isLent ? palette.outBg : palette.inBg) : palette.inputBg }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '600',
-                      color: loan.status === 'open' ? palette.loan : palette.textSecondary }}
+                      color: loan.status === 'open' ? (isLent ? palette.negative : palette.positive) : palette.textSecondary }}
                   >
                     {loan.status === 'open' ? 'Open' : 'Closed'}
                   </Text>
@@ -161,8 +161,8 @@ export default function LoanDetailScreen() {
               progressColor={progressColor}
               progressLabelLeft={isLent ? 'Received' : 'Repaid'}
               progressLabelRight={`${loan.repaidPercent}%`}
-              footerLeft={{ text: isLent ? `${formatCurrency(loan.pendingAmount, sym)} due` : `${formatCurrency(loan.pendingAmount, sym)} left`, color: isLent ? palette.loan : palette.textSecondary }}
-              footerRight={{ text: loan.status === 'closed' ? 'Closed' : 'Open', color: loan.status === 'closed' ? palette.textSecondary : palette.loan }}
+              footerLeft={{ text: isLent ? `${formatCurrency(loan.pendingAmount, sym)} due` : `${formatCurrency(loan.pendingAmount, sym)} left`, color: isLent ? palette.negative : palette.textSecondary }}
+              footerRight={{ text: loan.status === 'closed' ? 'Closed' : 'Open', color: loan.status === 'closed' ? palette.textSecondary : (isLent ? palette.negative : palette.positive) }}
             />
 
             {/* Note */}
@@ -247,7 +247,7 @@ export default function LoanDetailScreen() {
                 router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
               }
               style={{
-                backgroundColor: palette.loan,
+                backgroundColor: isLent ? palette.negative : palette.brand,
                 borderRadius: HOME_RADIUS.card,
                 paddingVertical: HOME_SPACE.xl,
                 flexDirection: 'row',

@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text , TouchableOpacity} from 'react-native';
-import { BottomSheet } from './ui/BottomSheet';
-import { ACTIVITY_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
-import { formatMonthYear } from '../lib/ui-format';
+import { useEffect, useMemo, useState } from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
+import { formatMonthYear } from '../lib/ui-format';
+import { BottomSheet } from './ui/BottomSheet';
 
 export function shiftBudgetMonth(iso: string, delta: number) {
   const date = new Date(iso);
@@ -41,23 +41,24 @@ export function BudgetMonthField({
   onPress,
   onPrev,
   onNext }: {
-  value: string;
-  palette: AppThemePalette;
-  onPress: () => void;
-  onPrev?: () => void;
-  onNext?: () => void;
-}) {
+    value: string;
+    palette: AppThemePalette;
+    onPress: () => void;
+    onPrev?: () => void;
+    onNext?: () => void;
+  }) {
   return (
     <View
       style={{
-        minHeight: 48,
-        borderRadius: ACTIVITY_LAYOUT.controlRadius,
+        minHeight: 40,
+        borderRadius: 14,
         borderWidth: 1.5,
         borderColor: palette.divider,
         backgroundColor: palette.surface,
         paddingHorizontal: 6,
         flexDirection: 'row',
-        alignItems: 'center' }}
+        alignItems: 'center'
+      }}
     >
       {onPrev ? (
         <TouchableOpacity delayPressIn={0}
@@ -76,7 +77,8 @@ export function BudgetMonthField({
           minHeight: 40,
           paddingHorizontal: 8,
           flexDirection: 'row',
-          alignItems: 'center' }}
+          alignItems: 'center'
+        }}
       >
         <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, textAlign: 'center' }}>
           {formatBudgetMonthLabel(value)}
@@ -104,14 +106,14 @@ export function BudgetMonthSheet({
   onClose,
   title = 'Select month',
   hasNavBar = false }: {
-  visible: boolean;
-  palette: AppThemePalette;
-  selectedMonth: string;
-  onSelect: (value: string) => void;
-  onClose: () => void;
-  title?: string;
-  hasNavBar?: boolean;
-}) {
+    visible: boolean;
+    palette: AppThemePalette;
+    selectedMonth: string;
+    onSelect: (value: string) => void;
+    onClose: () => void;
+    title?: string;
+    hasNavBar?: boolean;
+  }) {
   const selectedDate = new Date(selectedMonth);
   const [selectedYear, setSelectedYear] = useState(selectedDate.getFullYear());
 
@@ -140,7 +142,8 @@ export function BudgetMonthSheet({
             backgroundColor: palette.inputBg,
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: 6 }}
+            paddingHorizontal: 6
+          }}
         >
           <TouchableOpacity delayPressIn={0}
             onPress={() => setSelectedYear((year) => year - 1)}
@@ -180,7 +183,8 @@ export function BudgetMonthSheet({
                 backgroundColor: isSelected ? palette.budgetSoft : palette.surface,
                 alignItems: 'center',
                 justifyContent: 'center',
-                paddingHorizontal: 8 }}
+                paddingHorizontal: 8
+              }}
             >
               <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: isSelected ? palette.budget : palette.text }}>
                 {new Date(month).toLocaleDateString('en-IN', { month: 'short' })}

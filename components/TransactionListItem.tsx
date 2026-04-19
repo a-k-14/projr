@@ -46,7 +46,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   loanDirection,
   tertiaryText,
   showAmountSign = true,
-  useTypeAmountColor = false,
+  useTypeAmountColor = true,
   paddingX = HOME_LAYOUT.listRowPaddingX,
   paddingY = HOME_LAYOUT.listRowPaddingY,
   iconSize = HOME_LAYOUT.listIconSize,

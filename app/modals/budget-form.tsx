@@ -13,6 +13,7 @@ import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { CalculatorSheet } from '../../components/CalculatorSheet';
 import type { BudgetWithSpent } from '../../types';
 
 export default function BudgetFormModal() {
@@ -48,6 +49,7 @@ export default function BudgetFormModal() {
   const [repeat, setRepeat] = useState(true);
   const [loading] = useState(false);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -136,14 +138,7 @@ export default function BudgetFormModal() {
 
   const handleOpenCalculator = () => {
     Keyboard.dismiss();
-    setCalculatorValue(amountStr);
-    setCalculatorOpen(true);
-    router.push({
-      pathname: '/modals/calculator',
-      params: {
-        draft: 'budget',
-        brandColor: palette.budget,
-        brandSoft: palette.budgetSoft } });
+    setShowCalculator(true);
   };
 
   return (
@@ -160,7 +155,7 @@ export default function BudgetFormModal() {
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
-            {editingBudget ? 'Edit budget' : 'New budget'}
+            {editingBudget ? 'Edit Budget' : 'New Budget'}
           </Text>
         </View>
       </SafeAreaView>
@@ -176,7 +171,7 @@ export default function BudgetFormModal() {
           />
           <PickerRow
             label="Category"
-            value={selectedCategory ? getCategoryFullDisplayName(selectedCategory.id, ' › ') : 'Select subcategory'}
+            value={selectedCategory ? getCategoryFullDisplayName(selectedCategory.id, ' › ') : 'Select Category'}
             placeholder={!selectedCategory}
             palette={palette}
             onPress={openCategoryPicker}
@@ -228,6 +223,17 @@ export default function BudgetFormModal() {
         selectedMonth={startMonth}
         onSelect={setStartMonth}
         onClose={() => setShowMonthSheet(false)}
+      />
+      <CalculatorSheet
+        visible={showCalculator}
+        value={amountStr.replace(/,/g, '')}
+        palette={palette}
+        brandColor={palette.budget}
+        brandSoft={palette.budgetSoft}
+        onClose={(finalValue) => {
+          setShowCalculator(false);
+          setAmountStr(formatIndianNumberStr(finalValue));
+        }}
       />
     </View>
   );

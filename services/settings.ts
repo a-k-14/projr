@@ -1,6 +1,6 @@
 import { db } from '../db/client';
-import { settings } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { accounts, budget, categories, loans, settings, tags, transactions } from '../db/schema';
+import { eq, sql } from 'drizzle-orm';
 import type { Settings } from '../types';
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -44,4 +44,18 @@ export async function updateSettings(data: Partial<Settings>): Promise<void> {
         .onConflictDoUpdate({ target: settings.key, set: { value: String(value) } }),
     ),
   );
+}
+
+export async function clearLocalData(): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(transactions);
+    await tx.delete(loans);
+    await tx.delete(budget);
+    await tx.delete(tags);
+    // Categories and Accounts have foreign key relationships, 
+    // but transactions/loans/budget refer to them. We cleared those first.
+    await tx.delete(categories);
+    await tx.delete(accounts);
+    await tx.delete(settings);
+  });
 }

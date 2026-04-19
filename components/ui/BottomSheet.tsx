@@ -91,9 +91,10 @@ export function BottomSheet({
   const sheetHeight = useRef(new Animated.Value(0)).current;
   const contentHeight = useRef(0);
   const headerHeight = useRef(0);
+  const footerHeight = useRef(0);
 
   const commitHeight = useCallback(() => {
-    const nextHeight = Math.min(headerHeight.current + contentHeight.current + modalHeightBoost, maxSheetHeight);
+    const nextHeight = Math.min(headerHeight.current + contentHeight.current + footerHeight.current + modalHeightBoost, maxSheetHeight);
     if (nextHeight > 0) {
       sheetHeight.setValue(nextHeight);
     }
@@ -257,7 +258,19 @@ export function BottomSheet({
                 {children}
               </View>
             )}
-            {footer ? <View>{footer}</View> : null}
+            {footer ? (
+              <View
+                onLayout={(event) => {
+                  const next = Math.round(event.nativeEvent.layout.height);
+                  if (next !== footerHeight.current) {
+                    footerHeight.current = next;
+                    commitHeight();
+                  }
+                }}
+              >
+                {footer}
+              </View>
+            ) : null}
           </Animated.View>
         </Animated.View>
       </View>

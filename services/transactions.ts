@@ -490,3 +490,37 @@ export async function deleteTransaction(id: string): Promise<void> {
     await tx.delete(transactions).where(eq(transactions.id, id));
   });
 }
+
+export async function getRecentPayees(search?: string, limit = 10): Promise<string[]> {
+  const conditions = [sql`${transactions.payee} IS NOT NULL`, sql`${transactions.payee} != ''`];
+  if (search) {
+    conditions.push(like(transactions.payee, `%${search}%`));
+  }
+
+  const rows = await db
+    .select({ payee: transactions.payee })
+    .from(transactions)
+    .where(and(...conditions))
+    .groupBy(transactions.payee)
+    .orderBy(sql`MAX(${transactions.date}) DESC`)
+    .limit(limit);
+
+  return rows.map((r) => r.payee as string);
+}
+
+export async function getRecentNotes(search?: string, limit = 10): Promise<string[]> {
+  const conditions = [sql`${transactions.note} IS NOT NULL`, sql`${transactions.note} != ''`];
+  if (search) {
+    conditions.push(like(transactions.note, `%${search}%`));
+  }
+
+  const rows = await db
+    .select({ note: transactions.note })
+    .from(transactions)
+    .where(and(...conditions))
+    .groupBy(transactions.note)
+    .orderBy(sql`MAX(${transactions.date}) DESC`)
+    .limit(limit);
+
+  return rows.map((r) => r.note as string);
+}

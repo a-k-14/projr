@@ -229,7 +229,7 @@ export function useAppTheme(): { mode: AppThemeMode; palette: AppThemePalette } 
   const theme = useUIStore((state) => state.settings.theme);
   const systemScheme = useColorScheme();
   const mode = resolveTheme(theme, systemScheme);
-  
+
   const palette = useMemo(() => getThemePalette(mode), [mode]);
 
   return { mode, palette };

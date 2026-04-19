@@ -21,6 +21,7 @@ import {
   InteractiveDateTimeRow,
   NotesSection,
   PickerRow,
+  ROW_LABEL_WIDTH,
   SectionCard,
   TextInputRow } from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
@@ -36,13 +37,14 @@ import { SCREEN_GUTTER } from '../../lib/design';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
-import { createSplitTransactionGroup, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
+import { createSplitTransactionGroup, getRecentNotes, getRecentPayees, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { CalculatorSheet } from '../../components/CalculatorSheet';
 import type {
   Account,
   Category,
@@ -110,6 +112,9 @@ export default function AddTransactionModal() {
   const [showTagSheet, setShowTagSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time' | 'datetime'>('date');
+  const [payeeSuggestions, setPayeeSuggestions] = useState<string[]>([]);
+  const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
+  const [showCalculator, setShowCalculator] = useState(false);
   const splitIdSeed = useRef(0);
   const hadSplitRows = useRef(false);
   const previousType = useRef<TransactionType>((initialType as TransactionType) || 'out');
@@ -206,6 +211,29 @@ export default function AddTransactionModal() {
     }
     prevCalculatorOpen.current = calculatorOpen;
   }, [calculatorOpen, calculatorValue]);
+  
+  useEffect(() => {
+    if (type === 'transfer' || type === 'loan') return;
+    const term = payee.trim();
+    if (!term || term.length < 1) {
+      setPayeeSuggestions([]);
+      return;
+    }
+    getRecentPayees(term, 5).then((results) => {
+      setPayeeSuggestions(results.filter(r => r.toLowerCase() !== term.toLowerCase()));
+    });
+  }, [payee, type]);
+
+  useEffect(() => {
+    const term = note.trim();
+    if (!term || term.length < 1) {
+      setNoteSuggestions([]);
+      return;
+    }
+    getRecentNotes(term, 5).then((results) => {
+      setNoteSuggestions(results.filter(r => r.toLowerCase() !== term.toLowerCase()));
+    });
+  }, [note]);
 
   useEffect(() => {
     if (!isEditing || !editId) return;
@@ -498,13 +526,7 @@ export default function AddTransactionModal() {
 
   const handleOpenCalculator = () => {
     runAfterKeyboardDismiss(() => {
-      setCalculatorValue(amountStr);
-      setCalculatorOpen(true);
-      router.push({
-        pathname: '/modals/calculator',
-        params: {
-          brandColor: activeConfig.color,
-          brandSoft: activeConfig.bg } });
+      setShowCalculator(true);
     });
   };
 
@@ -695,6 +717,29 @@ export default function AddTransactionModal() {
                 palette={palette}
                 accentColor={activeConfig.color}
               />
+              {payeeSuggestions.length > 0 && (
+                <View style={{ paddingHorizontal: SCREEN_GUTTER + ROW_LABEL_WIDTH, paddingBottom: 16, marginTop: -8 }}>
+                  <View style={{ maxHeight: 200 }}>
+                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                      {payeeSuggestions.slice(0, 6).map((s) => (
+                        <TouchableOpacity delayPressIn={0}
+                          key={s}
+                          onPress={() => setPayee(s)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            borderRadius: 11,
+                            backgroundColor: palette.inputBg,
+                            borderWidth: 1,
+                            borderColor: palette.divider }}
+                        >
+                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              )}
               <ReceiptSection palette={palette} />
               <PickerRow
                 label="Tag"
@@ -710,6 +755,29 @@ export default function AddTransactionModal() {
                 accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
+              {noteSuggestions.length > 0 && (
+                <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
+                  <View style={{ maxHeight: 200 }}>
+                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                      {noteSuggestions.slice(0, 6).map((s) => (
+                        <TouchableOpacity delayPressIn={0}
+                          key={s}
+                          onPress={() => setNote(s)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            borderRadius: 11,
+                            backgroundColor: palette.inputBg,
+                            borderWidth: 1,
+                            borderColor: palette.divider }}
+                        >
+                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              )}
             </SectionCard>
           ) : type === 'transfer' ? (
             <SectionCard palette={palette}>
@@ -762,6 +830,29 @@ export default function AddTransactionModal() {
                 accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
+              {noteSuggestions.length > 0 && (
+                <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
+                  <View style={{ maxHeight: 200 }}>
+                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                      {noteSuggestions.slice(0, 6).map((s) => (
+                        <TouchableOpacity delayPressIn={0}
+                          key={s}
+                          onPress={() => setNote(s)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            borderRadius: 11,
+                            backgroundColor: palette.inputBg,
+                            borderWidth: 1,
+                            borderColor: palette.divider }}
+                        >
+                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              )}
             </SectionCard>
           ) : (
             <SectionCard palette={palette}>
@@ -841,19 +932,32 @@ export default function AddTransactionModal() {
                   onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
                 />
               ) : null}
+              {noteSuggestions.length > 0 && (
+                <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
+                  <View style={{ maxHeight: 200 }}>
+                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                      {noteSuggestions.slice(0, 6).map((s) => (
+                        <TouchableOpacity delayPressIn={0}
+                          key={s}
+                          onPress={() => setNote(s)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            borderRadius: 11,
+                            backgroundColor: palette.inputBg,
+                            borderWidth: 1,
+                            borderColor: palette.divider }}
+                        >
+                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              )}
             </SectionCard>
           )}
 
-          {showDatePicker && Platform.OS === 'ios' && (
-            <DateTimePicker
-              value={new Date(date)}
-              mode={pickerMode}
-              display="default"
-              onChange={onDateChange}
-              textColor={palette.text}
-              accentColor={palette.tabActive}
-            />
-          )}
 
         </View>
       </ScrollView>
@@ -1043,6 +1147,36 @@ export default function AddTransactionModal() {
           )}
         </BottomSheet>
       ) : null}
+      {showDatePicker && (
+        <BottomSheet
+          title={pickerMode === 'date' ? 'Select Date' : 'Select Time'}
+          palette={palette}
+          onClose={() => setShowDatePicker(false)}
+        >
+          <View style={{ height: 260, justifyContent: 'center' }}>
+            <DateTimePicker
+              value={new Date(date)}
+              mode={pickerMode}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onDateChange}
+              textColor={palette.text}
+              accentColor={palette.tabActive}
+            />
+          </View>
+        </BottomSheet>
+      )}
+
+      <CalculatorSheet
+        visible={showCalculator}
+        value={amountStr.replace(/,/g, '')}
+        palette={palette}
+        brandColor={activeConfig.color}
+        brandSoft={activeConfig.bg}
+        onClose={(finalValue) => {
+          setShowCalculator(false);
+          setAmountStr(formatIndianNumberStr(finalValue));
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -1092,7 +1226,7 @@ function getAccountName(accounts: Account[], accountId: string) {
 
 function getCategoryName(categories: Category[], categoryId: string) {
   const category = categories.find((item) => item.id === categoryId);
-  if (!category) return 'Select category';
+  if (!category) return 'Select Category';
   return category.parentId
     ? `${categories.find((item) => item.id === category.parentId)?.name ?? 'Category'} › ${category.name}`
     : category.name;

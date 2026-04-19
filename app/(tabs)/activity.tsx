@@ -347,17 +347,22 @@ export default function ActivityScreen() {
       return;
     }
 
-    if (periodParam === 'day') {
-      setPeriod('day');
-      setPeriodOffset(0);
-    } else if (periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
+    if (periodParam === 'day' || periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
       setPeriod(periodParam);
-      setPeriodOffset(0);
+      // If from/to are provided for these fixed periods, we should ideally calculate the offset.
+      // For now, if they are provided, we switch to 'custom' to guarantee the exact range matches the graph.
+      if (fromParam && toParam) {
+        setPeriod('custom');
+        setCustomFrom(fromParam);
+        setCustomTo(toParam);
+      } else {
+        setPeriodOffset(0);
+      }
     } else if (periodParam === 'custom') {
       setPeriod('custom');
       setCustomFrom(fromParam);
       setCustomTo(toParam);
-    } else if (periodParam === 'all') {
+    } else {
       setPeriod('all');
       setPeriodOffset(0);
     }
@@ -378,13 +383,15 @@ export default function ActivityScreen() {
     if (typeParam === 'all' || typeParam === 'in' || typeParam === 'out' || typeParam === 'transfer' || typeParam === 'loan') {
       setTypeFilter(typeParam);
     }
-    if (
-      cashflowBucketParam === 'all' ||
-      cashflowBucketParam === 'in' ||
-      cashflowBucketParam === 'out' ||
-      cashflowBucketParam === 'net'
-    ) {
-      setCashflowBucket(cashflowBucketParam);
+
+    if (cashflowBucketParam) {
+      setCashflowBucket(cashflowBucketParam as any);
+      // If we are drilling into a cashflow bucket (like 'in' or 'out'), 
+      // we should align the typeFilter if it's currently 'all' to avoid confusion,
+      // but only for 'in'/'out' buckets.
+      if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
+        setTypeFilter(cashflowBucketParam as any);
+      }
     }
 
     lastAppliedRouteTsRef.current = ts;
@@ -471,7 +478,16 @@ export default function ActivityScreen() {
         if (!tx.transferPairId) return false;
       } else if (typeFilter !== 'all') {
         if (tx.transferPairId) return false;
-        if (tx.type !== typeFilter) return false;
+        // Exception: if typeFilter is 'in' or 'out', we should allow 'loan' transactions 
+        // provided their impact matches the typeFilter.
+        const impact = getTransactionCashflowImpact(tx);
+        if (tx.type !== typeFilter) {
+          if (tx.type === 'loan') {
+            if (impact !== typeFilter) return false;
+          } else {
+            return false;
+          }
+        }
       }
       if (cashflowBucket !== 'all') {
         const impact = getTransactionCashflowImpact(tx);

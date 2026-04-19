@@ -66,10 +66,10 @@ export default function SelectCategoryScreen() {
 
   return (
     <CategoryTreePicker
-      title="Select category"
+      title="Select Category"
       search={search}
       onSearchChange={setSearch}
-      searchPlaceholder={`Search ${type || ''} categories...`}
+      searchPlaceholder="Search"
       sections={sections}
       selectedCategoryId={selectedCategoryId}
       expandedParentIds={expandedParentIds}

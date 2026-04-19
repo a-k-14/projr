@@ -49,10 +49,10 @@ export default function SelectBudgetCategoryScreen() {
 
   return (
     <CategoryTreePicker
-      title="Select subcategory"
+      title="Select Category"
       search={search}
       onSearchChange={setSearch}
-      searchPlaceholder="Search budget subcategories..."
+      searchPlaceholder="Search"
       sections={sections}
       selectedCategoryId={selectedCategoryId}
       expandedParentIds={expandedParentIds}

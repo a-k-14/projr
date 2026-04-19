@@ -33,6 +33,15 @@ export default function RootLayout() {
     try {
       await runMigrations();
       await Promise.all([loadAccounts(), loadSettings(), loadCategories()]);
+
+      // Trigger automatic seeding if the database is fresh (no accounts)
+      if (useAccountsStore.getState().accounts.length === 0) {
+        const { seedDatabase } = await import('../db/seed');
+        await seedDatabase();
+        // Reload stores to reflect newly seeded data
+        await Promise.all([loadAccounts(), loadCategories()]);
+      }
+
       setReady(true);
     } catch (error) {
       setInitError(
