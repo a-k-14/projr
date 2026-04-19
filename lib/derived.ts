@@ -117,27 +117,31 @@ export function groupTransactionsByCategory(
 }
 
 export function formatCurrency(amount: number, symbol: string = '₹'): string {
-  const abs = Math.abs(amount);
+  const val = typeof amount === 'number' ? amount : 0;
+  const abs = Math.abs(val);
   const hasFraction = Math.abs(abs - Math.round(abs)) > 0.000001;
   const formatted = new Intl.NumberFormat('en-IN', {
     minimumFractionDigits: 0,
     maximumFractionDigits: hasFraction ? 2 : 0,
   }).format(abs);
-  return `${symbol}${formatted}`;
+  const safeSymbol = typeof symbol === 'string' ? symbol : '';
+  return `${safeSymbol}${formatted}`;
 }
 
 /** Formats a numeric string with Indian-style commas (##,##,###) */
 export function formatIndianNumberStr(val: string): string {
   if (!val) return '';
-  const parts = val.split('.');
-  const intPart = parts[0].replace(/,/g, '');
+  const clean = val.replace(/[^0-9.]/g, '');
+  if (!clean) return '';
+  const parts = clean.split('.');
+  const intPart = parts[0];
   const decPart = parts.length > 1 ? '.' + parts[1] : '';
+
+  if (intPart.length <= 3) return intPart + decPart;
 
   const lastThree = intPart.substring(intPart.length - 3);
   const other = intPart.substring(0, intPart.length - 3);
-  const formattedInt = other !== ''
-    ? other.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + lastThree
-    : lastThree;
+  const formattedInt = other.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + lastThree;
   return formattedInt + decPart;
 }
 

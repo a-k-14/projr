@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, Text, View , TouchableOpacity} from 'react-native';
 import {
   ActionButton,
+  ChoiceRow,
   FixedBottomActions,
   IconBtn,
   IconGrid,
   InputField,
   SectionLabel,
+  SelectTrigger,
   SettingsFormLayout } from '../../components/settings-ui';
+import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
@@ -22,6 +25,12 @@ type SubDraft = {
   name: string;
   deleted: boolean;
 };
+
+const CATEGORY_TYPE_OPTIONS = [
+  { key: 'out', label: 'Expense (Out)' },
+  { key: 'in', label: 'Income (In)' },
+  { key: 'both', label: 'Both / Mixed' },
+] as const;
 
 export default function CategoryFormScreen() {
   const { id, type: typeParam } = useLocalSearchParams<{ id?: string; type?: string }>();
@@ -40,10 +49,13 @@ export default function CategoryFormScreen() {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<string>(CATEGORY_ICONS[0]);
   const [type, setType] = useState<'in' | 'out' | 'both'>(
-    (typeParam as 'in' | 'out' | 'both') ?? 'both',
+    (typeParam as 'in' | 'out' | 'both') ?? 'out',
   );
+  // Hide type selector if we're explicitly adding a specific type or editing an existing category
+  const hideTypePicker = !!typeParam || isEditing;
   const [subs, setSubs] = useState<SubDraft[]>([]);
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [showTypePicker, setShowTypePicker] = useState(false);
   const formScrollRef = useRef<ScrollView | null>(null);
 
   const editingCategory = id ? categories.find((c) => c.id === id) : undefined;
@@ -71,10 +83,14 @@ export default function CategoryFormScreen() {
     }
   }, [id, categories]);
 
+  const typeLabel = type === 'in' ? 'Income' : type === 'out' ? 'Expense' : '';
+
   useEffect(() => {
+    const action = isEditing ? 'Edit' : 'New';
+    const prefix = typeLabel ? `${action} ${typeLabel}` : action;
     navigation.setOptions({
-      title: isEditing ? name || 'Edit Category' : 'New Category' });
-  }, [name, isEditing, navigation]);
+      title: isEditing ? (name || `${prefix} Category`) : `${prefix} Category` });
+  }, [name, isEditing, navigation, typeLabel]);
 
   function addSub() {
     setSubs((s) => [...s, { name: '', deleted: false }]);
@@ -114,24 +130,32 @@ export default function CategoryFormScreen() {
     }
 
     if (!isSubcategory && parentCategoryId) {
-      for (const sub of subs) {
-        if (sub.deleted && sub.id) {
-          await removeCategory(sub.id);
-        } else if (!sub.deleted && sub.id && sub.name.trim()) {
-          await updateCategory(sub.id, {
-            name: sub.name.trim(),
-            type,
-            icon,
-            color,
-            parentId: parentCategoryId });
-        } else if (!sub.deleted && !sub.id && sub.name.trim()) {
-          await addCategory({
-            name: sub.name.trim(),
-            type,
-            icon,
-            color: ENTITY_COLORS[0],
-            parentId: parentCategoryId });
+      try {
+        for (const sub of subs) {
+          if (sub.deleted && sub.id) {
+            await removeCategory(sub.id);
+          } else if (!sub.deleted && sub.id && sub.name.trim()) {
+            await updateCategory(sub.id, {
+              name: sub.name.trim(),
+              type,
+              icon,
+              color,
+              parentId: parentCategoryId });
+          } else if (!sub.deleted && !sub.id && sub.name.trim()) {
+            await addCategory({
+              name: sub.name.trim(),
+              type,
+              icon,
+              color: ENTITY_COLORS[0],
+              parentId: parentCategoryId });
+          }
         }
+      } catch (error) {
+        Alert.alert(
+          'Could not update all subcategories',
+          error instanceof Error ? error.message : 'An error occurred during save.'
+        );
+        return;
       }
     }
 
@@ -173,6 +197,8 @@ export default function CategoryFormScreen() {
     .map((sub, originalIdx) => ({ ...sub, originalIdx }))
     .filter((sub) => !sub.deleted);
 
+  const selectedType = CATEGORY_TYPE_OPTIONS.find((o) => o.key === type);
+
   return (
     <>
       <SettingsFormLayout
@@ -190,114 +216,144 @@ export default function CategoryFormScreen() {
         }
       >
         <View style={{ gap: SPACING.md }}>
-        <SectionLabel label="General Info" palette={palette} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <TouchableOpacity delayPressIn={0} onPress={() => setShowIconPicker(true)} activeOpacity={0.7}>
-            <CategoryIconBadge
-              icon={icon}
-              size={22}
-              bgSize={52}
-              palette={palette}
-              backgroundColor={palette.surface}
-              borderColor={palette.border}
-              showBorder
-            />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <InputField
-              palette={palette}
-              value={name}
-              onChangeText={setName}
-              placeholder="Category name"
-              autoFocus={!isEditing}
-            />
-          </View>
-          {isEditing && (
-            <IconBtn
-              onPress={onDelete}
-              variant="danger"
-              palette={palette}
-              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-            >
-              <Feather name="trash-2" size={18} color={palette.negative} />
-            </IconBtn>
-          )}
-        </View>
-
-        {!isSubcategory && (
-          <View style={{ marginTop: SPACING.md, gap: SPACING.sm }}>
-            {/* Section header row: label on left, "+ Add" button on right */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingHorizontal: 2 }}
-            >
-              <SectionLabel label="Subcategories" palette={palette} />
-              <TouchableOpacity delayPressIn={0}
-                onPress={addSub}
-                activeOpacity={0.7}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+          <SectionLabel label="General Info" palette={palette} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.md }}>
+            <TouchableOpacity delayPressIn={0} onPress={() => runAfterKeyboardDismiss(() => setShowIconPicker(true))} activeOpacity={0.7}>
+              <CategoryIconBadge
+                icon={icon}
+                size={22}
+                bgSize={52}
+                palette={palette}
+                backgroundColor={palette.surface}
+                borderColor={palette.border}
+                showBorder
+              />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <InputField
+                palette={palette}
+                value={name}
+                onChangeText={setName}
+                placeholder="Category name"
+                autoFocus={!isEditing}
+              />
+            </View>
+            {isEditing && (
+              <IconBtn
+                onPress={onDelete}
+                variant="danger"
+                palette={palette}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
               >
-                <Feather name="plus" size={14} color={palette.brand} />
-                <Text
-                  style={{
-                    fontSize: TYPE.rowValue,
-                    fontWeight: '600',
-                    color: palette.brand,
-                    letterSpacing: 0.2 }}
-                >
-                  Add
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Subcategory rows */}
-            <View style={{ gap: 8 }}>
-              {visibleSubs.length === 0 && (
-                <Text
-                  style={{
-                    fontSize: TYPE.rowValue,
-                    color: palette.textSecondary,
-                    paddingHorizontal: CARD_PADDING,
-                    paddingVertical: 12,
-                    fontStyle: 'italic' }}
-                >
-                  No subcategories yet. Tap Add to create one.
-                </Text>
-              )}
-              {visibleSubs.map((sub, renderIdx) => (
-                <View key={sub.id ?? `new-${sub.originalIdx}`}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <InputField
-                      palette={palette}
-                      value={sub.name}
-                      onChangeText={(v) => updateSubName(sub.originalIdx, v)}
-                      placeholder={`Subcategory ${renderIdx + 1}`}
-                      autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
-                      onFocus={() => requestAnimationFrame(() => formScrollRef.current?.scrollToEnd({ animated: true }))}
-                    />
-                  </View>
-                  <IconBtn
-                    onPress={() => deleteSub(sub.originalIdx)}
-                    variant="danger"
-                    palette={palette}
-                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                  >
-                    <Feather name="trash-2" size={18} color={palette.negative} />
-                  </IconBtn>
-                </View>
-              ))}
-            </View>
+                <Feather name="trash-2" size={18} color={palette.negative} />
+              </IconBtn>
+            )}
           </View>
-        )}
+
+          {!hideTypePicker && (
+            <SelectTrigger
+              label="Transaction Type"
+              valueLabel={selectedType?.label}
+              onPress={() => runAfterKeyboardDismiss(() => setShowTypePicker(true))}
+              palette={palette}
+            />
+          )}
+
+          {!isSubcategory && (
+            <View style={{ marginTop: SPACING.md, gap: SPACING.sm }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 2 }}
+              >
+                <SectionLabel label="Subcategories" palette={palette} />
+                <TouchableOpacity delayPressIn={0}
+                  onPress={addSub}
+                  activeOpacity={0.7}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                >
+                  <Feather name="plus" size={14} color={palette.brand} />
+                  <Text
+                    style={{
+                      fontSize: TYPE.rowValue,
+                      fontWeight: '600',
+                      color: palette.brand,
+                      letterSpacing: 0.2 }}
+                  >
+                    Add
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ gap: 8 }}>
+                {visibleSubs.length === 0 && (
+                  <Text
+                    style={{
+                      fontSize: TYPE.rowValue,
+                      color: palette.textSecondary,
+                      paddingHorizontal: CARD_PADDING,
+                      paddingVertical: 12,
+                      fontStyle: 'italic' }}
+                  >
+                    No subcategories yet. Tap Add to create one.
+                  </Text>
+                )}
+                {visibleSubs.map((sub, renderIdx) => (
+                  <View key={sub.id ?? `new-${sub.originalIdx}`}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <InputField
+                        palette={palette}
+                        value={sub.name}
+                        onChangeText={(v) => updateSubName(sub.originalIdx, v)}
+                        placeholder={`Subcategory ${renderIdx + 1}`}
+                        autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
+                        onFocus={() => requestAnimationFrame(() => formScrollRef.current?.scrollToEnd({ animated: true }))}
+                      />
+                    </View>
+                    <IconBtn
+                      onPress={() => deleteSub(sub.originalIdx)}
+                      variant="danger"
+                      palette={palette}
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                    >
+                      <Feather name="trash-2" size={18} color={palette.negative} />
+                    </IconBtn>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       </SettingsFormLayout>
 
-      {showIconPicker ? (
+      {/* Root-level BottomSheets avoid clipping in SettingsFormLayout ScrollView */}
+      {showTypePicker && (
+        <BottomSheet
+          title="Category Type"
+          palette={palette}
+          onClose={() => setShowTypePicker(false)}
+        >
+          {CATEGORY_TYPE_OPTIONS.map((opt, i) => (
+            <ChoiceRow
+              key={opt.key}
+              title={opt.label}
+              selected={type === opt.key}
+              palette={palette}
+              noBorder={i === CATEGORY_TYPE_OPTIONS.length - 1}
+              onPress={() => {
+                setType(opt.key);
+                setShowTypePicker(false);
+              }}
+            />
+          ))}
+        </BottomSheet>
+      )}
+
+      {showIconPicker && (
         <BottomSheet
           title="Choose Icon"
           palette={palette}
@@ -315,7 +371,7 @@ export default function CategoryFormScreen() {
             />
           </View>
         </BottomSheet>
-      ) : null}
+      )}
     </>
   );
 }

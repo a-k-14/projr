@@ -39,7 +39,7 @@ const HEADER_SUBTITLE_SIZE = 13;
 const HEADER_TITLE_TRACKING = -0.3;
 const HEADER_SUBTITLE_MARGIN = 3;
 const SHADOW_COLOR = '#000';
-const MODAL_HEIGHT_BOOST = 72;
+const MODAL_HEIGHT_BOOST = 0;
 
 /**
  * BottomSheet — Centralised bottom sheet for any picker/selection UI.
@@ -83,7 +83,8 @@ export function BottomSheet({
   const maxSheetHeight = screenHeight * MAX_HEIGHT_RATIO;
   const bottomInset = hasNavBar ? 0 : insets.bottom;
   const bottomOffset = extraBottomPadding + bottomInset;
-  const modalHeightBoost = hasNavBar || disableModalHeightBoost ? 0 : bottomInset + MODAL_HEIGHT_BOOST;
+  // Boost should ONLY include manual extra padding now, as bottomInset is handled by outer container padding
+  const modalHeightBoost = extraBottomPadding;
 
   const translateY = useRef(new Animated.Value(screenHeight)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -157,17 +158,20 @@ export function BottomSheet({
 
   return (
     <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 1000 }}>
+      {/* Backdrop */}
       <Animated.View
         style={{
           ...StyleSheet.absoluteFillObject,
           backgroundColor: BACKDROP_COLOR,
           opacity,
-          bottom: bottomInset,
+          // Background should cover everything except the very bottom safe area if we want full screen, 
+          // or we can just leave it as absolute fill.
         }}
       >
         <Pressable style={{ flex: 1 }} onPress={closeSheet} />
       </Animated.View>
 
+      {/* Sheet Container */}
       <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
         <Animated.View
           style={{
@@ -177,16 +181,16 @@ export function BottomSheet({
             shadowOpacity: SHADOW_OPACITY,
             shadowRadius: SHADOW_RADIUS,
             elevation: ELEVATION,
-            marginBottom: bottomOffset,
+            backgroundColor: palette.card,
+            borderTopLeftRadius: SHEET_RADIUS,
+            borderTopRightRadius: SHEET_RADIUS,
+            paddingBottom: bottomOffset,
+            overflow: 'hidden',
           }}
         >
           <Animated.View
             style={{
               height: sheetHeight,
-              backgroundColor: palette.card,
-              borderTopLeftRadius: SHEET_RADIUS,
-              borderTopRightRadius: SHEET_RADIUS,
-              overflow: 'hidden',
             }}
           >
             <View

@@ -156,7 +156,7 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', (e: any) => {
-      if (navigation.isFocused() && !routeParams.source) {
+      if (navigation.isFocused()) {
         resetAllFilters();
       }
     });

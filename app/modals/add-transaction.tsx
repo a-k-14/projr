@@ -33,6 +33,7 @@ import {
   getLoanTransactionKind,
   parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
+import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
 import { createSplitTransactionGroup, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
@@ -494,10 +495,6 @@ export default function AddTransactionModal() {
     );
   };
 
-  const runAfterKeyboardDismiss = (action: () => void) => {
-    Keyboard.dismiss();
-    InteractionManager.runAfterInteractions(action);
-  };
 
   const handleOpenCalculator = () => {
     runAfterKeyboardDismiss(() => {

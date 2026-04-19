@@ -332,6 +332,49 @@ export function InputField({
   );
 }
 
+export function SelectTrigger({
+  label,
+  valueLabel,
+  onPress,
+  palette,
+  placeholder = 'Select...',
+  containerStyle,
+}: {
+  label: string;
+  valueLabel?: string;
+  onPress: () => void;
+  palette: AppThemePalette;
+  placeholder?: string;
+  containerStyle?: View['props']['style'];
+}) {
+  return (
+    <View style={[{ marginBottom: SPACING.xl }, containerStyle]}>
+      <FieldLabel label={label} palette={palette} />
+      <TouchableOpacity
+        delayPressIn={0}
+        activeOpacity={0.7}
+        style={{
+          minHeight: 56,
+          borderRadius: RADIUS.md,
+          borderWidth: 1,
+          borderColor: palette.border,
+          backgroundColor: palette.surface,
+          paddingHorizontal: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+        onPress={onPress}
+      >
+        <Text style={{ color: valueLabel ? palette.text : palette.textSoft, fontSize: TYPE.rowLabel }}>
+          {valueLabel ?? placeholder}
+        </Text>
+        <Feather name="chevron-down" size={20} color={palette.textSoft} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export function ColorGrid({
   colors,
   selectedColor,
@@ -532,8 +575,8 @@ export function SettingsFormLayout({
         >
           {children}
         </ScrollView>
-        {bottomActions}
       </KeyboardAvoidingView>
+      {bottomActions}
     </SafeAreaView>
   );
 }

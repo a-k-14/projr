@@ -1,7 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, InteractionManager, Keyboard, Text, View , TouchableOpacity} from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, View } from 'react-native';
 import {
   ActionButton,
   ChoiceRow,
@@ -9,89 +9,49 @@ import {
   FixedBottomActions,
   IconBtn,
   InputField,
-  SettingsFormLayout } from '../../components/settings-ui';
+  SelectTrigger,
+  SettingsFormLayout,
+} from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
-import { RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../../lib/design';
-import { ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
+import { SPACING } from '../../lib/design';
+import { ACCOUNT_ICONS, ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
+import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
-import { useUIStore } from '../../stores/useUIStore';
+import { Account, AccountType, CreateAccountInput } from '../../types';
 
 type Draft = {
   name: string;
   accountNumber: string;
-  type: (typeof ACCOUNT_TYPES)[number]['key'];
+  type: AccountType;
   balance: string;
   currency: string;
 };
 
-function toAccountNumberSuffix(value: string): string | undefined {
-  const digitsOnly = value.replace(/\D/g, '');
-  const trimmed = digitsOnly || value.trim();
-  const suffix = trimmed.slice(-4);
-  return suffix || undefined;
-}
+const EMPTY_DRAFT: Draft = {
+  name: '',
+  accountNumber: '',
+  type: 'savings',
+  balance: '0',
+  currency: 'INR',
+};
 
 export default function AccountFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
+
   const accounts = useAccountsStore((s) => s.accounts);
-  const loadAccounts = useAccountsStore((s) => s.load);
-  const isAccountsLoaded = useAccountsStore((s) => s.isLoaded);
   const addAccount = useAccountsStore((s) => s.add);
   const updateAccount = useAccountsStore((s) => s.update);
   const removeAccount = useAccountsStore((s) => s.remove);
-  const defaultCurrency = useUIStore((s) => s.settings.currency);
   const { palette } = useAppTheme();
   const router = useRouter();
   const navigation = useNavigation();
 
-  const [draft, setDraft] = useState<Draft>({
-    name: '',
-    accountNumber: '',
-    type: 'savings',
-    balance: '',
-    currency: defaultCurrency ?? 'INR' });
+  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-
-  const calculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
-  const calculatorOpen = useTransactionDraftStore((s) => s.calculatorOpen);
-  const setCalculatorValue = useTransactionDraftStore((s) => s.setCalculatorValue);
-  const setCalculatorOpen = useTransactionDraftStore((s) => s.setCalculatorOpen);
-  const prevCalculatorOpen = useRef(calculatorOpen);
-
-  useEffect(() => {
-    if (prevCalculatorOpen.current === true && calculatorOpen === false) {
-      if (calculatorValue && calculatorValue !== '0') {
-        const clean = calculatorValue.replace(/[^0-9.]/g, '');
-        if (clean) setDraft((s) => ({ ...s, balance: clean }));
-      }
-    }
-    prevCalculatorOpen.current = calculatorOpen;
-  }, [calculatorOpen, calculatorValue]);
-
-  function handleOpenCalculator() {
-    Keyboard.dismiss();
-    InteractionManager.runAfterInteractions(() => {
-      setCalculatorOpen(true);
-      setCalculatorValue(draft.balance || '');
-      router.push('/modals/calculator');
-    });
-  }
-
-  function handlePickerOpen(showSetter: (v: boolean) => void) {
-    Keyboard.dismiss();
-    InteractionManager.runAfterInteractions(() => {
-      showSetter(true);
-    });
-  }
-
-  useEffect(() => {
-    if (!isAccountsLoaded) loadAccounts().catch(() => undefined);
-  }, [isAccountsLoaded, loadAccounts]);
 
   useEffect(() => {
     if (id) {
@@ -101,23 +61,25 @@ export default function AccountFormScreen() {
           name: account.name,
           accountNumber: account.accountNumber ?? '',
           type: account.type,
-          balance: formatIndianNumberStr(String(account.initialBalance)),
+          balance: formatIndianNumberStr(String(account.initialBalance ?? 0)),
           currency: account.currency });
       }
     } else {
-      setDraft({
-        name: '',
-        accountNumber: '',
-        type: 'savings',
-        balance: '',
-        currency: defaultCurrency ?? 'INR' });
+      setDraft(EMPTY_DRAFT);
     }
-  }, [id, accounts, defaultCurrency]);
+  }, [id, accounts]);
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? 'Edit Account' : 'New Account' });
-  }, [isEditing, navigation]);
+      title: isEditing ? (draft.name || 'Edit Account') : 'New Account',
+    });
+  }, [draft.name, isEditing, navigation]);
+
+  const handleOpenCalculator = () => {
+    runAfterKeyboardDismiss(() => {
+      Alert.alert('Calculator', 'Calculator is coming soon to settings.');
+    });
+  };
 
   async function onSave() {
     const name = draft.name.trim();
@@ -125,19 +87,30 @@ export default function AccountFormScreen() {
       Alert.alert('Missing name', 'Please enter an account name.');
       return;
     }
-    const openingBalance = Number.parseFloat(parseFormattedNumber(draft.balance || '0')) || 0;
-    const payload = {
-      name,
-      accountNumber: toAccountNumberSuffix(draft.accountNumber),
-      type: draft.type,
-      initialBalance: openingBalance,
-      currency: draft.currency,
-      color: ENTITY_COLORS[0],
-      icon: 'wallet' };
+
+    const initialBalance = parseFloat(parseFormattedNumber(draft.balance)) || 0;
+
     if (isEditing && id) {
-      await updateAccount(id, payload);
+      const updateData: Partial<Account> = {
+        name,
+        accountNumber: draft.accountNumber.trim() || undefined,
+        type: draft.type,
+        initialBalance,
+        currency: draft.currency,
+      };
+      await updateAccount(id, updateData);
     } else {
-      await addAccount({ ...payload, balance: openingBalance });
+      const createData: CreateAccountInput = {
+        name,
+        accountNumber: draft.accountNumber.trim() || undefined,
+        type: draft.type,
+        initialBalance,
+        balance: initialBalance,
+        currency: draft.currency,
+        color: ENTITY_COLORS[0],
+        icon: ACCOUNT_ICONS[0],
+      };
+      await addAccount(createData);
     }
     router.back();
   }
@@ -172,111 +145,98 @@ export default function AccountFormScreen() {
   const selectedCurrency = CURRENCIES.find((c) => c.code === draft.currency) ?? CURRENCIES[0];
 
   return (
-    <SettingsFormLayout
-      palette={palette}
-      bottomActions={
-        <FixedBottomActions palette={palette}>
-          <ActionButton
-            label={isEditing ? 'Save Account' : 'Create Account'}
-            variant="primary"
-            palette={palette}
-            onPress={onSave}
-          />
-          {isEditing && (
+    <>
+      <SettingsFormLayout
+        palette={palette}
+        bottomActions={
+          <FixedBottomActions palette={palette}>
             <ActionButton
-              label="Delete Account"
-              variant="danger"
+              label={isEditing ? 'Save Account' : 'Create Account'}
+              variant="primary"
               palette={palette}
-              onPress={onDelete}
+              onPress={onSave}
             />
-          )}
-        </FixedBottomActions>
-      }
-    >
-      {/* Name */}
-      <View style={{ marginBottom: SPACING.lg }}>
-        <FieldLabel label="Account Name" palette={palette} />
-        <InputField
-          palette={palette}
-          value={draft.name}
-          onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
-          placeholder="e.g. HDFC Bank"
-          autoFocus={!isEditing}
-        />
-      </View>
-
-      {/* Account Number */}
-      <View style={{ marginBottom: SPACING.lg }}>
-        <FieldLabel label="Account Number (Last 4)" palette={palette} />
-        <InputField
-          palette={palette}
-          value={draft.accountNumber}
-          onChangeText={(v) => setDraft((s) => ({ ...s, accountNumber: v }))}
-          placeholder="e.g. 1234"
-          keyboardType="numeric"
-        />
-      </View>
-
-      {/* Account Type */}
-      <View style={{ marginBottom: SPACING.xl }}>
-        <FieldLabel label="Account Type" palette={palette} />
-        <TouchableOpacity delayPressIn={0}
-          onPress={() => handlePickerOpen(setShowTypePicker)}
-          activeOpacity={0.7}
-          style={pickerRowStyle(palette)}
-        >
-          <Text style={{ color: palette.text, fontSize: TYPE.rowLabel }}>{selectedType?.label ?? ''}</Text>
-          <Feather name="chevron-down" size={20} color={palette.textSoft} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Balance */}
-      <View style={{ marginBottom: SPACING.lg }}>
-        <FieldLabel label="Opening Balance" palette={palette} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View style={{ flex: 1 }}>
-            <InputField
-              palette={palette}
-              isNumeric
-              value={draft.balance}
-              onChangeText={(v) => {
-                const clean = v.replace(/[^0-9.]/g, '');
-                // Apply real-time formatting if it's not a trailing decimal point
-                const formatted = v.endsWith('.') ? clean + '.' : formatIndianNumberStr(clean);
-                setDraft((s) => ({ ...s, balance: formatted }));
-              }}
-              placeholder="0.00"
-            />
-          </View>
-          <IconBtn onPress={handleOpenCalculator} palette={palette}>
-            <Ionicons name="calculator-outline" size={20} color={palette.text} />
-          </IconBtn>
+            {isEditing && (
+              <ActionButton
+                label="Delete Account"
+                variant="danger"
+                palette={palette}
+                onPress={onDelete}
+              />
+            )}
+          </FixedBottomActions>
+        }
+      >
+        {/* Name */}
+        <View style={{ marginBottom: SPACING.lg }}>
+          <FieldLabel label="Account Name" palette={palette} />
+          <InputField
+            palette={palette}
+            value={draft.name}
+            onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
+            placeholder="e.g. HDFC Bank"
+            autoFocus={!isEditing}
+          />
         </View>
-      </View>
 
-      {/* Currency */}
-      <View style={{ marginBottom: SPACING.xl }}>
-        <FieldLabel label="Currency" palette={palette} />
-        <TouchableOpacity delayPressIn={0}
-          onPress={() => handlePickerOpen(setShowCurrencyPicker)}
-          activeOpacity={0.7}
-          style={pickerRowStyle(palette)}
-        >
-          <Text style={{ color: palette.text, fontSize: TYPE.rowLabel }}>
-            {selectedCurrency.symbol} {selectedCurrency.code}
-          </Text>
-          <Feather name="chevron-down" size={20} color={palette.textSoft} />
-        </TouchableOpacity>
-      </View>
+        {/* Account Number */}
+        <View style={{ marginBottom: SPACING.lg }}>
+          <FieldLabel label="Account Number (Last 4)" palette={palette} />
+          <InputField
+            palette={palette}
+            value={draft.accountNumber}
+            onChangeText={(v) => setDraft((s) => ({ ...s, accountNumber: v }))}
+            placeholder="e.g. 1234"
+            keyboardType="numeric"
+          />
+        </View>
 
-      {/* Account Type picker */}
+        {/* Account Type */}
+        <SelectTrigger
+          label="Account Type"
+          valueLabel={selectedType?.label}
+          onPress={() => runAfterKeyboardDismiss(() => setShowTypePicker(true))}
+          palette={palette}
+        />
+
+        {/* Balance */}
+        <View style={{ marginBottom: SPACING.lg }}>
+          <FieldLabel label="Opening Balance" palette={palette} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flex: 1 }}>
+              <InputField
+                palette={palette}
+                isNumeric
+                value={draft.balance}
+                onChangeText={(v) => {
+                  const clean = v.replace(/[^0-9.]/g, '');
+                  const formatted = v.endsWith('.') ? clean + '.' : formatIndianNumberStr(clean);
+                  setDraft((s) => ({ ...s, balance: formatted }));
+                }}
+                placeholder="0.00"
+              />
+            </View>
+            <IconBtn onPress={handleOpenCalculator} palette={palette}>
+              <Ionicons name="calculator-outline" size={20} color={palette.text} />
+            </IconBtn>
+          </View>
+        </View>
+
+        {/* Currency */}
+        <SelectTrigger
+          label="Currency"
+          valueLabel={`${selectedCurrency.symbol} ${selectedCurrency.code}`}
+          onPress={() => runAfterKeyboardDismiss(() => setShowCurrencyPicker(true))}
+          palette={palette}
+        />
+      </SettingsFormLayout>
+
+      {/* Root-level BottomSheets avoid clipping in SettingsFormLayout ScrollView */}
       {showTypePicker && (
         <BottomSheet
           title="Account Type"
           palette={palette}
           onClose={() => setShowTypePicker(false)}
-          hasNavBar
-          extraBottomPadding={10}
         >
           {ACCOUNT_TYPES.map((t, i) => (
             <ChoiceRow
@@ -294,15 +254,12 @@ export default function AccountFormScreen() {
         </BottomSheet>
       )}
 
-      {/* Currency picker */}
       {showCurrencyPicker && (
         <BottomSheet
           title="Currency"
           subtitle="Pick the currency for this account"
           palette={palette}
           onClose={() => setShowCurrencyPicker(false)}
-          hasNavBar
-          extraBottomPadding={10}
         >
           {CURRENCIES.map((c, i) => (
             <ChoiceRow
@@ -320,19 +277,6 @@ export default function AccountFormScreen() {
           ))}
         </BottomSheet>
       )}
-    </SettingsFormLayout>
+    </>
   );
-}
-
-function pickerRowStyle(palette: { border: string; surface: string }) {
-  return {
-    minHeight: 56,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: palette.border,
-    backgroundColor: palette.surface,
-    paddingHorizontal: 16,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const };
 }
