@@ -16,7 +16,7 @@ import { Alert,
   LayoutAnimation , TouchableOpacity} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -1240,117 +1240,102 @@ export default function AddTransactionModal() {
       />
       <Modal
         visible={receiptPreviewOpen}
-        transparent
         animationType="fade"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
+        hardwareAccelerated
         onRequestClose={() => setReceiptPreviewOpen(false)}
       >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: palette.scrimHeavy,
-            justifyContent: 'center',
-            padding: 18,
-          }}
-        >
-          <TouchableOpacity
-            delayPressIn={0}
-            onPress={() => setReceiptPreviewOpen(false)}
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View
             style={{
-              position: 'absolute',
-              top: 48,
-              left: 18,
-              zIndex: 2,
-              width: 42,
-              height: 42,
-              borderRadius: 21,
-              backgroundColor: palette.card,
-              alignItems: 'center',
-              justifyContent: 'center',
+              flex: 1,
+              backgroundColor: '#000000',
             }}
           >
-            <Ionicons name="close" size={22} color={palette.text} />
-          </TouchableOpacity>
-          {receiptImageUris[receiptPreviewIndex] ? (
-            <>
-              <TouchableOpacity
-                delayPressIn={0}
-                onPress={() => removeReceiptAtIndex(receiptPreviewIndex)}
-                style={{
-                  position: 'absolute',
-                  top: 48,
-                  right: 18,
-                  zIndex: 2,
-                  width: 42,
-                  height: 42,
-                  borderRadius: 21,
-                  backgroundColor: palette.card,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="close-circle" size={24} color={palette.negative} />
-              </TouchableOpacity>
-              <ZoomableReceiptImage uri={receiptImageUris[receiptPreviewIndex]} />
-              {receiptImageUris.length > 1 ? (
-                <>
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    onPress={() => setReceiptPreviewIndex((index) => Math.max(0, index - 1))}
-                    disabled={receiptPreviewIndex === 0}
-                    style={{
-                      position: 'absolute',
-                      left: 18,
-                      top: '50%',
-                      width: 42,
-                      height: 42,
-                      borderRadius: 21,
-                      backgroundColor: palette.card,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: receiptPreviewIndex === 0 ? 0.35 : 1,
-                    }}
-                  >
-                    <Ionicons name="chevron-back" size={24} color={palette.text} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    onPress={() => setReceiptPreviewIndex((index) => Math.min(receiptImageUris.length - 1, index + 1))}
-                    disabled={receiptPreviewIndex === receiptImageUris.length - 1}
-                    style={{
-                      position: 'absolute',
-                      right: 18,
-                      top: '50%',
-                      width: 42,
-                      height: 42,
-                      borderRadius: 21,
-                      backgroundColor: palette.card,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: receiptPreviewIndex === receiptImageUris.length - 1 ? 0.35 : 1,
-                    }}
-                  >
-                    <Ionicons name="chevron-forward" size={24} color={palette.text} />
-                  </TouchableOpacity>
-                  <View
-                    style={{
-                      position: 'absolute',
-                      bottom: 36,
-                      alignSelf: 'center',
-                      paddingHorizontal: 12,
-                      paddingVertical: 7,
-                      borderRadius: 999,
-                      backgroundColor: palette.card,
-                    }}
-                  >
-                    <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: palette.text }}>
-                      {receiptPreviewIndex + 1} / {receiptImageUris.length}
-                    </Text>
-                  </View>
-                </>
-              ) : null}
-            </>
-          ) : null}
-        </View>
+            <TouchableOpacity
+              delayPressIn={0}
+              onPress={() => setReceiptPreviewOpen(false)}
+              style={{
+                position: 'absolute',
+                top: 48,
+                left: 18,
+                zIndex: 2,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: 'rgba(255,255,255,0.14)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            {receiptImageUris[receiptPreviewIndex] ? (
+              <>
+                <ZoomableReceiptImage uri={receiptImageUris[receiptPreviewIndex]} />
+                {receiptImageUris.length > 1 ? (
+                  <>
+                    <TouchableOpacity
+                      delayPressIn={0}
+                      onPress={() => setReceiptPreviewIndex((index) => Math.max(0, index - 1))}
+                      disabled={receiptPreviewIndex === 0}
+                      style={{
+                        position: 'absolute',
+                        left: 18,
+                        top: '50%',
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        backgroundColor: 'rgba(255,255,255,0.14)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: receiptPreviewIndex === 0 ? 0.35 : 1,
+                      }}
+                    >
+                      <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      delayPressIn={0}
+                      onPress={() => setReceiptPreviewIndex((index) => Math.min(receiptImageUris.length - 1, index + 1))}
+                      disabled={receiptPreviewIndex === receiptImageUris.length - 1}
+                      style={{
+                        position: 'absolute',
+                        right: 18,
+                        top: '50%',
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        backgroundColor: 'rgba(255,255,255,0.14)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: receiptPreviewIndex === receiptImageUris.length - 1 ? 0.35 : 1,
+                      }}
+                    >
+                      <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <View
+                      style={{
+                        position: 'absolute',
+                        bottom: 36,
+                        alignSelf: 'center',
+                        paddingHorizontal: 12,
+                        paddingVertical: 7,
+                        borderRadius: 999,
+                        backgroundColor: 'rgba(255,255,255,0.14)',
+                      }}
+                    >
+                      <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: '#FFFFFF' }}>
+                        {receiptPreviewIndex + 1} / {receiptImageUris.length}
+                      </Text>
+                    </View>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </View>
+        </GestureHandlerRootView>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -1397,19 +1382,17 @@ function ReceiptSection({
               onPress={() => onRemove(index)}
               style={{
                 position: 'absolute',
-                top: -7,
-                right: -7,
+                top: 4,
+                right: 4,
                 width: 26,
                 height: 26,
                 borderRadius: 13,
-                backgroundColor: palette.card,
+                backgroundColor: 'rgba(0,0,0,0.58)',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: palette.border,
               }}
             >
-              <Ionicons name="close-circle" size={21} color={palette.negative} />
+              <Ionicons name="close" size={17} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         ))}
@@ -1464,6 +1447,7 @@ function ZoomableReceiptImage({ uri }: { uri: string }) {
   const pinch = useMemo(
     () =>
       Gesture.Pinch()
+        .shouldCancelWhenOutside(false)
         .onUpdate((event) => {
           scale.value = Math.min(4, Math.max(1, savedScale.value * event.scale));
         })
@@ -1484,6 +1468,7 @@ function ZoomableReceiptImage({ uri }: { uri: string }) {
   const pan = useMemo(
     () =>
       Gesture.Pan()
+        .shouldCancelWhenOutside(false)
         .onUpdate((event) => {
           if (scale.value <= 1) return;
           translateX.value = savedTranslateX.value + event.translationX;
@@ -1506,18 +1491,19 @@ function ZoomableReceiptImage({ uri }: { uri: string }) {
 
   return (
     <GestureDetector gesture={Gesture.Simultaneous(pinch, pan)}>
-      <Animated.Image
-        source={{ uri }}
-        resizeMode="contain"
-        style={[
-          {
-            width: '100%',
-            height: '82%',
-            borderRadius: 16,
-          },
-          imageStyle,
-        ]}
-      />
+      <Animated.View collapsable={false} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Animated.Image
+          source={{ uri }}
+          resizeMode="contain"
+          style={[
+            {
+              width: '100%',
+              height: '100%',
+            },
+            imageStyle,
+          ]}
+        />
+      </Animated.View>
     </GestureDetector>
   );
 }
