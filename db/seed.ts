@@ -1,17 +1,8 @@
-import { toUTCMidnight } from '../lib/dateUtils';
 import * as accountsService from '../services/accounts';
 import * as categoriesService from '../services/categories';
-import * as loansService from '../services/loans';
 import * as tagsService from '../services/tags';
-import * as transactionsService from '../services/transactions';
 import { db } from './client';
 import { accounts, budget, categories, loans, settings, tags, transactions } from './schema';
-
-function daysAgo(n: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - n);
-  return toUTCMidnight(date);
-}
 
 async function clearDemoData(): Promise<void> {
   await db.delete(transactions);
@@ -38,7 +29,7 @@ export async function seedDatabase(): Promise<void> {
   await clearDemoData();
 
   // 1. Accounts
-  const cash = await accountsService.createAccount({
+  await accountsService.createAccount({
     name: 'Cash',
     type: 'cash',
     balance: 0,
@@ -46,7 +37,7 @@ export async function seedDatabase(): Promise<void> {
     color: '#0F766E',
     icon: 'dollar-sign',
   });
-  const creditCard = await accountsService.createAccount({
+  await accountsService.createAccount({
     name: 'Credit Card',
     type: 'credit',
     balance: 0,
@@ -54,7 +45,7 @@ export async function seedDatabase(): Promise<void> {
     color: '#CC3B2D',
     icon: 'credit-card',
   });
-  const wallet = await accountsService.createAccount({
+  await accountsService.createAccount({
     name: 'Wallet',
     type: 'wallet',
     balance: 0,
@@ -62,7 +53,7 @@ export async function seedDatabase(): Promise<void> {
     color: '#B45309',
     icon: 'smartphone',
   });
-  const savings = await accountsService.createAccount({
+  await accountsService.createAccount({
     name: 'Savings Account',
     type: 'savings',
     balance: 0,
@@ -232,59 +223,6 @@ export async function seedDatabase(): Promise<void> {
   });
 
   // 3. Tags
-  const personalTag = await tagsService.createTag({ name: 'Personal', color: '#EC4899' });
-  const workTag = await tagsService.createTag({ name: 'Work', color: '#0F766E' });
-
-  // 4. Sample Transactions
-  // Find a few subcategories to use
-  const allCats = await categoriesService.getCategories();
-  const salaryCat = allCats.find((c) => c.name === 'Salary' && c.type === 'in');
-  const groceryCat = allCats.find((c) => c.name === 'Groceries');
-  const moviesCat = allCats.find((c) => c.name === 'Movies');
-  const fuelCat = allCats.find((c) => c.name === 'Fuel');
-
-  if (salaryCat && savings) {
-    await transactionsService.createTransaction({
-      type: 'in',
-      amount: 4500000,
-      accountId: savings.id,
-      categoryId: salaryCat.id,
-      date: daysAgo(0),
-      note: 'Initial Salary credit',
-    });
-  }
-
-  if (groceryCat && cash) {
-    await transactionsService.createTransaction({
-      type: 'out',
-      amount: 150000,
-      accountId: cash.id,
-      categoryId: groceryCat.id,
-      date: daysAgo(1),
-      note: 'Weekly groceries',
-      tags: [personalTag.id],
-    });
-  }
-
-  if (fuelCat && creditCard) {
-    await transactionsService.createTransaction({
-      type: 'out',
-      amount: 320000,
-      accountId: creditCard.id,
-      categoryId: fuelCat.id,
-      date: daysAgo(2),
-      note: 'Petrol refill',
-    });
-  }
-
-  // 5. Sample Loan
-  await loansService.createLoan({
-    personName: 'Rahul',
-    direction: 'lent',
-    accountId: cash.id,
-    givenAmount: 500000,
-    note: 'Emergency help',
-    date: daysAgo(5),
-  });
+  await tagsService.createTag({ name: 'Personal', color: '#EC4899' });
+  await tagsService.createTag({ name: 'Work', color: '#0F766E' });
 }
-

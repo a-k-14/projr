@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Text, TextInput, View , TouchableOpacity} from 'react-native';
+import { Platform, Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { formatDate } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -13,12 +13,13 @@ export const ROW_COLUMN_GAP = 16;
 export const ROW_TRAILING_WIDTH = 24;
 
 function sanitizeDecimalInput(value: string): string {
+  const isNegative = value.trim().startsWith('-');
   let cleaned = value.replace(/[^0-9.]/g, '');
   if (!cleaned) return '';
   const parts = cleaned.split('.');
   if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
   if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') cleaned = cleaned.substring(1);
-  return cleaned;
+  return `${isNegative ? '-' : ''}${cleaned}`;
 }
 
 export function SectionCard({
@@ -320,7 +321,7 @@ export function AmountRow({
           <TextInput
             value={amountStr}
             onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
-            keyboardType="decimal-pad"
+            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
             placeholder="0"
             placeholderTextColor={palette.textSoft}
             editable={editable}

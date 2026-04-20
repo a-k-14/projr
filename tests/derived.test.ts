@@ -36,3 +36,7 @@ test('unknown loan notes stay neutral instead of mutating balances', () => {
     0
   );
 });
+
+test('negative expense amounts invert balance deltas', () => {
+  assert.equal(getTransactionBalanceDelta({ type: 'out', amount: -2500 }), 2500);
+});

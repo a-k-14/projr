@@ -31,6 +31,7 @@ export interface Transaction {
   payee?: string;
   tags: string[];
   note?: string;
+  receiptImageUris?: string[];
   date: string;
   transferPairId?: string;
   createdAt: string;
@@ -167,6 +168,7 @@ export interface CreateTransactionInput {
   payee?: string;
   tags?: string[];
   note?: string;
+  receiptImageUris?: string[] | null;
   date: string;
 }
 

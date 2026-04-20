@@ -131,18 +131,19 @@ export function formatCurrency(amount: number, symbol: string = '₹'): string {
 /** Formats a numeric string with Indian-style commas (##,##,###) */
 export function formatIndianNumberStr(val: string): string {
   if (!val) return '';
+  const isNegative = val.trim().startsWith('-');
   const clean = val.replace(/[^0-9.]/g, '');
   if (!clean) return '';
   const parts = clean.split('.');
   const intPart = parts[0];
   const decPart = parts.length > 1 ? '.' + parts[1] : '';
 
-  if (intPart.length <= 3) return intPart + decPart;
+  if (intPart.length <= 3) return `${isNegative ? '-' : ''}${intPart}${decPart}`;
 
   const lastThree = intPart.substring(intPart.length - 3);
   const other = intPart.substring(0, intPart.length - 3);
   const formattedInt = other.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + lastThree;
-  return formattedInt + decPart;
+  return `${isNegative ? '-' : ''}${formattedInt}${decPart}`;
 }
 
 /** Strips commas from a formatted numeric string */

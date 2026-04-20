@@ -23,6 +23,15 @@ jest.mock('expo-crypto', () => ({
   randomUUID: () => require('crypto').randomUUID()
 }));
 
+jest.mock('expo-file-system/legacy', () => ({
+  documentDirectory: 'file:///tmp/reni-test/',
+  getInfoAsync: jest.fn(async () => ({ exists: true })),
+  makeDirectoryAsync: jest.fn(async () => undefined),
+  copyAsync: jest.fn(async () => undefined),
+  deleteAsync: jest.fn(async () => undefined),
+}));
+
+import * as FileSystem from 'expo-file-system/legacy';
 import { createTransaction, getTransactions, updateTransaction } from '../services/transactions.ts';
 
 beforeEach(() => {
@@ -56,6 +65,7 @@ beforeEach(() => {
       tags TEXT NOT NULL DEFAULT '[]',
       payee TEXT,
       note TEXT,
+      receipt_image_uris TEXT,
       date TEXT NOT NULL,
       transfer_pair_id TEXT,
       created_at TEXT NOT NULL
@@ -135,5 +145,28 @@ describe('transactions database integration', () => {
         row = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc1'").get();
         // Should rollback +200, then apply -350 = 650
         expect((row as any).balance).toBe(650);
+    });
+
+    it('copies and stores receipt image paths for transactions', async () => {
+        const tx = await createTransaction({
+            type: 'out',
+            amount: 200,
+            accountId: 'acc1',
+            receiptImageUris: ['file:///tmp/source-receipt.jpg', 'file:///tmp/second-receipt.jpg'],
+            date: '2024-01-02T12:00:00.000Z'
+        });
+
+        const receiptImageUris = tx.receiptImageUris ?? [];
+        expect(receiptImageUris).toHaveLength(2);
+        expect(receiptImageUris[0]).toContain(`/receipts/${tx.id}/receipt-`);
+        expect(FileSystem.copyAsync).toHaveBeenCalledWith(
+            expect.objectContaining({
+                from: 'file:///tmp/source-receipt.jpg',
+                to: receiptImageUris[0],
+            })
+        );
+
+        const row = sqlite.prepare('SELECT receipt_image_uris FROM transactions WHERE id = ?').get(tx.id) as any;
+        expect(JSON.parse(row.receipt_image_uris)).toEqual(receiptImageUris);
     });
 });

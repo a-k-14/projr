@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
+import { Alert, Platform, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
@@ -13,6 +13,7 @@ import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransac
 import type { Category, TransactionType } from '../../types';
 
 function sanitizeDecimalInput(value: string): string {
+  const isNegative = value.trim().startsWith('-');
   let cleaned = value.replace(/[^0-9.]/g, '');
   if (!cleaned) return '';
   const parts = cleaned.split('.');
@@ -20,7 +21,7 @@ function sanitizeDecimalInput(value: string): string {
   if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') {
     cleaned = cleaned.substring(1);
   }
-  return cleaned;
+  return `${isNegative ? '-' : ''}${cleaned}`;
 }
 
 function getCategoryName(categories: Category[], categoryId: string) {
@@ -74,7 +75,7 @@ export default function SplitTransactionModal() {
 
   const handleDone = () => {
     const filledRows = splitRows.filter(
-      (row) => row.categoryId || (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0,
+      (row) => row.categoryId || (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
     );
     if (filledRows.length === 0) {
       setSplitRows([]);
@@ -82,7 +83,7 @@ export default function SplitTransactionModal() {
       return;
     }
     const valid = filledRows.every(
-      (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0,
+      (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
     );
     if (!valid) {
       Alert.alert('Complete all line items', 'Choose a category and amount for each split line.');
@@ -168,7 +169,7 @@ export default function SplitTransactionModal() {
                     }
                     placeholder="0"
                     placeholderTextColor={palette.textSoft}
-                    keyboardType="decimal-pad"
+                    keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
                     onFocus={() => {
                       setFocusedRowId(row.id);
                       requestAnimationFrame(() => {

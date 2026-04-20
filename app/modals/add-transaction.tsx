@@ -1,18 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert,
+  Image,
   InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   Text,
   
   View,
   LayoutAnimation , TouchableOpacity} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import {
@@ -81,14 +86,10 @@ export default function AddTransactionModal() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const { palette } = useAppTheme();
   const draftCategoryId = useTransactionDraftStore((s) => s.categoryId);
-  const calculatorValue = useTransactionDraftStore((s) => s.calculatorValue);
-  const calculatorOpen = useTransactionDraftStore((s) => s.calculatorOpen);
   const setDraftCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
   const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
   const clearSplitRows = useTransactionDraftStore((s) => s.clearSplitRows);
-  const setCalculatorValue = useTransactionDraftStore((s) => s.setCalculatorValue);
-  const setCalculatorOpen = useTransactionDraftStore((s) => s.setCalculatorOpen);
   const insets = useSafeAreaInsets();
   const [type, setType] = useState<TransactionType>((initialType as TransactionType) || 'out');
   const [amountStr, setAmountStr] = useState('');
@@ -99,13 +100,15 @@ export default function AddTransactionModal() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [date, setDate] = useState(nowUTC());
   const [note, setNote] = useState('');
+  const [receiptImageUris, setReceiptImageUris] = useState<string[]>([]);
+  const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false);
+  const [receiptPreviewIndex, setReceiptPreviewIndex] = useState(0);
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loanEditMode, setLoanEditMode] = useState<'new' | 'origin' | 'settlement'>('new');
   const [editingLoanId, setEditingLoanId] = useState('');
   const [editingSplitGroupId, setEditingSplitGroupId] = useState('');
   const [isTransferEdit, setIsTransferEdit] = useState(false);
-  const [loading] = useState(false); // kept for future use (e.g., error feedback)
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showFromAccountSheet, setShowFromAccountSheet] = useState(false);
   const [showToAccountSheet, setShowToAccountSheet] = useState(false);
@@ -198,20 +201,6 @@ export default function AddTransactionModal() {
     }
   }, [type, categoryId, categories]);
 
-  // Only sync calculator value to amountStr when the calculator is closed
-  // This prevents incomplete expressions like "94+" from appearing in the main form
-  const prevCalculatorOpen = useRef(calculatorOpen);
-  useEffect(() => {
-    if (prevCalculatorOpen.current === true && calculatorOpen === false) {
-      if (calculatorValue && calculatorValue !== '0') {
-        // Strict sanitization: remove anything that isn't a number or period
-        const clean = calculatorValue.replace(/[^0-9.]/g, '');
-        setAmountStr(formatIndianNumberStr(clean));
-      }
-    }
-    prevCalculatorOpen.current = calculatorOpen;
-  }, [calculatorOpen, calculatorValue]);
-  
   useEffect(() => {
     if (type === 'transfer' || type === 'loan') return;
     const term = payee.trim();
@@ -250,6 +239,7 @@ export default function AddTransactionModal() {
         if (tx.tags?.length) setSelectedTagIds(tx.tags);
         setDate(tx.date);
         if (tx.note) setNote(tx.note);
+        setReceiptImageUris(tx.receiptImageUris ?? []);
 
         if (tx.splitGroupId) {
           const group = await getTransactionsBySplitGroup(tx.splitGroupId);
@@ -262,6 +252,7 @@ export default function AddTransactionModal() {
             setPayee(first.payee ?? '');
             setSelectedTagIds(first.tags ?? []);
             setNote(first.note ?? '');
+            setReceiptImageUris(first.receiptImageUris ?? []);
             setCategoryId('');
             setSplitRows(
               group
@@ -331,7 +322,7 @@ export default function AddTransactionModal() {
   const displaySym = showCurrencySymbol ? sym : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
   const usableSplitRows = splitRows.filter(
-    (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) > 0,
+    (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
   );
 
   useEffect(() => {
@@ -369,14 +360,15 @@ export default function AddTransactionModal() {
     }
   }, [clearSplitRows, splitRows.length, type]);
 
+  const hasNonZeroAmount = Number.isFinite(amount) && amount !== 0;
   const isValid =
     type === 'transfer'
       ? amount > 0 && accountId && linkedAccountId && accountId !== linkedAccountId
       : type === 'loan'
-        ? amount > 0 && accountId && personName.trim().length > 0
+        ? hasNonZeroAmount && accountId && personName.trim().length > 0
         : usableSplitRows.length > 0
-          ? splitTotal > 0 && accountId
-          : amount > 0 && accountId && categoryId;
+          ? splitTotal !== 0 && accountId
+          : hasNonZeroAmount && accountId && categoryId;
 
   const actionLabel = isEditing
     ? 'Save Changes'
@@ -405,6 +397,7 @@ export default function AddTransactionModal() {
         accountId,
         date,
         note: note || undefined,
+        receiptImageUris,
         categoryId: categoryId || undefined,
         payee: payee.trim() || undefined,
         tags: selectedTagIds,
@@ -421,6 +414,7 @@ export default function AddTransactionModal() {
             accountId,
             payee: payee.trim() || undefined,
             note: note || undefined,
+            receiptImageUris,
             tags: selectedTagIds,
             date,
             items: splitItems });
@@ -430,6 +424,7 @@ export default function AddTransactionModal() {
             accountId,
             payee: payee.trim() || undefined,
             note: note || undefined,
+            receiptImageUris,
             tags: selectedTagIds,
             date,
             items: splitItems });
@@ -528,6 +523,66 @@ export default function AddTransactionModal() {
     runAfterKeyboardDismiss(() => {
       setShowCalculator(true);
     });
+  };
+
+  const setPickedReceipt = (result: ImagePicker.ImagePickerResult) => {
+    if (result.canceled) return;
+    const nextUris = result.assets.map((asset) => asset.uri).filter(Boolean);
+    if (nextUris.length) {
+      setReceiptImageUris((current) => [...current, ...nextUris]);
+    }
+  };
+
+  const takeReceiptPhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Camera permission needed', 'Allow camera access to take receipt photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.85,
+    });
+    setPickedReceipt(result);
+  };
+
+  const chooseReceiptImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync(false);
+    if (!permission.granted) {
+      Alert.alert('Photo permission needed', 'Allow photo access to attach a receipt image.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      quality: 0.85,
+    });
+    setPickedReceipt(result);
+  };
+
+  const openReceiptPicker = () => {
+    runAfterKeyboardDismiss(() => {
+      Alert.alert('Receipt image', 'Attach a receipt to this transaction.', [
+        { text: 'Take Photo', onPress: () => void takeReceiptPhoto() },
+        { text: 'Choose Photo', onPress: () => void chooseReceiptImage() },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    });
+  };
+
+  const openReceiptPreview = (index: number) => {
+    setReceiptPreviewIndex(index);
+    setReceiptPreviewOpen(true);
+  };
+
+  const removeReceiptAtIndex = (index: number) => {
+    setReceiptImageUris((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setReceiptPreviewIndex((current) => Math.max(0, Math.min(current, receiptImageUris.length - 2)));
+    if (receiptImageUris.length <= 1) {
+      setReceiptPreviewOpen(false);
+    }
   };
 
   const openDate = () => {
@@ -740,7 +795,13 @@ export default function AddTransactionModal() {
                   </View>
                 </View>
               )}
-              <ReceiptSection palette={palette} />
+              <ReceiptSection
+                palette={palette}
+                receiptImageUris={receiptImageUris}
+                onAdd={openReceiptPicker}
+                onPreview={openReceiptPreview}
+                onRemove={removeReceiptAtIndex}
+              />
               <PickerRow
                 label="Tag"
                 value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
@@ -1177,37 +1238,273 @@ export default function AddTransactionModal() {
           setAmountStr(formatIndianNumberStr(finalValue));
         }}
       />
+      <Modal
+        visible={receiptPreviewOpen}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
+        hardwareAccelerated
+        onRequestClose={() => setReceiptPreviewOpen(false)}
+      >
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: '#000000',
+            }}
+          >
+            <TouchableOpacity
+              delayPressIn={0}
+              onPress={() => setReceiptPreviewOpen(false)}
+              style={{
+                position: 'absolute',
+                top: 48,
+                left: 18,
+                zIndex: 2,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: 'rgba(255,255,255,0.14)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            {receiptImageUris[receiptPreviewIndex] ? (
+              <>
+                <ZoomableReceiptImage uri={receiptImageUris[receiptPreviewIndex]} />
+                {receiptImageUris.length > 1 ? (
+                  <>
+                    <TouchableOpacity
+                      delayPressIn={0}
+                      onPress={() => setReceiptPreviewIndex((index) => Math.max(0, index - 1))}
+                      disabled={receiptPreviewIndex === 0}
+                      style={{
+                        position: 'absolute',
+                        left: 18,
+                        top: '50%',
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        backgroundColor: 'rgba(255,255,255,0.14)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: receiptPreviewIndex === 0 ? 0.35 : 1,
+                      }}
+                    >
+                      <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      delayPressIn={0}
+                      onPress={() => setReceiptPreviewIndex((index) => Math.min(receiptImageUris.length - 1, index + 1))}
+                      disabled={receiptPreviewIndex === receiptImageUris.length - 1}
+                      style={{
+                        position: 'absolute',
+                        right: 18,
+                        top: '50%',
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        backgroundColor: 'rgba(255,255,255,0.14)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: receiptPreviewIndex === receiptImageUris.length - 1 ? 0.35 : 1,
+                      }}
+                    >
+                      <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <View
+                      style={{
+                        position: 'absolute',
+                        bottom: 36,
+                        alignSelf: 'center',
+                        paddingHorizontal: 12,
+                        paddingVertical: 7,
+                        borderRadius: 999,
+                        backgroundColor: 'rgba(255,255,255,0.14)',
+                      }}
+                    >
+                      <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: '#FFFFFF' }}>
+                        {receiptPreviewIndex + 1} / {receiptImageUris.length}
+                      </Text>
+                    </View>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </View>
+        </GestureHandlerRootView>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
 
-function ReceiptSection({ palette }: { palette: AppThemePalette }) {
+function ReceiptSection({
+  palette,
+  receiptImageUris,
+  onAdd,
+  onPreview,
+  onRemove,
+}: {
+  palette: AppThemePalette;
+  receiptImageUris: string[];
+  onAdd: () => void;
+  onPreview: (index: number) => void;
+  onRemove: (index: number) => void;
+}) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
       <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
         Receipt
       </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-        <TouchableOpacity delayPressIn={0}
-          onPress={() => Alert.alert('Receipt capture', 'Receipt capture is coming next.')}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, alignItems: 'center' }}>
+        {receiptImageUris.map((uri, index) => (
+          <View key={`${uri}-${index}`} style={{ width: 76, height: 76 }}>
+            <TouchableOpacity
+              delayPressIn={0}
+              onPress={() => onPreview(index)}
+              style={{
+                width: 76,
+                height: 76,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: palette.border,
+                backgroundColor: palette.surface,
+                overflow: 'hidden',
+              }}
+            >
+              <Image source={{ uri }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              delayPressIn={0}
+              onPress={() => onRemove(index)}
+              style={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                width: 26,
+                height: 26,
+                borderRadius: 13,
+                backgroundColor: 'rgba(0,0,0,0.58)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="close" size={17} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        ))}
+        <TouchableOpacity
+          delayPressIn={0}
+          onPress={onAdd}
           style={{
-            width: 58,
-            height: 58,
+            width: receiptImageUris.length ? 76 : 58,
+            height: receiptImageUris.length ? 76 : 58,
             borderRadius: 16,
             borderWidth: 1,
             borderColor: palette.border,
             backgroundColor: palette.surface,
             alignItems: 'center',
-            justifyContent: 'center' }}
+            justifyContent: 'center',
+          }}
         >
-          <Ionicons name="camera-outline" size={22} color={palette.tabActive} />
+          <Ionicons name={receiptImageUris.length ? 'add' : 'camera-outline'} size={22} color={palette.tabActive} />
         </TouchableOpacity>
-        <View style={{ justifyContent: 'center' }}>
-          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '400' }}>Add receipt</Text>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>Tap camera to scan</Text>
-        </View>
+        {!receiptImageUris.length ? (
+          <View style={{ justifyContent: 'center' }}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>
+              Add receipt
+            </Text>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>
+              Take photos or choose images
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
+  );
+}
+
+function ZoomableReceiptImage({ uri }: { uri: string }) {
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+
+  useEffect(() => {
+    scale.value = withTiming(1);
+    savedScale.value = 1;
+    translateX.value = withTiming(0);
+    translateY.value = withTiming(0);
+    savedTranslateX.value = 0;
+    savedTranslateY.value = 0;
+  }, [savedScale, savedTranslateX, savedTranslateY, scale, translateX, translateY, uri]);
+
+  const pinch = useMemo(
+    () =>
+      Gesture.Pinch()
+        .shouldCancelWhenOutside(false)
+        .onUpdate((event) => {
+          scale.value = Math.min(4, Math.max(1, savedScale.value * event.scale));
+        })
+        .onEnd(() => {
+          savedScale.value = scale.value;
+          if (scale.value <= 1.02) {
+            scale.value = withTiming(1);
+            savedScale.value = 1;
+            translateX.value = withTiming(0);
+            translateY.value = withTiming(0);
+            savedTranslateX.value = 0;
+            savedTranslateY.value = 0;
+          }
+        }),
+    [savedScale, savedTranslateX, savedTranslateY, scale, translateX, translateY],
+  );
+
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .shouldCancelWhenOutside(false)
+        .onUpdate((event) => {
+          if (scale.value <= 1) return;
+          translateX.value = savedTranslateX.value + event.translationX;
+          translateY.value = savedTranslateY.value + event.translationY;
+        })
+        .onEnd(() => {
+          savedTranslateX.value = translateX.value;
+          savedTranslateY.value = translateY.value;
+        }),
+    [savedTranslateX, savedTranslateY, scale, translateX, translateY],
+  );
+
+  const imageStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
+
+  return (
+    <GestureDetector gesture={Gesture.Simultaneous(pinch, pan)}>
+      <Animated.View collapsable={false} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Animated.Image
+          source={{ uri }}
+          resizeMode="contain"
+          style={[
+            {
+              width: '100%',
+              height: '100%',
+            },
+            imageStyle,
+          ]}
+        />
+      </Animated.View>
+    </GestureDetector>
   );
 }
 

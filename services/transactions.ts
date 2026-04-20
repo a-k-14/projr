@@ -8,12 +8,27 @@ import type {
 } from '../types';
 import { generateId } from '../lib/ids';
 import { nowUTC } from '../lib/dateUtils';
-import { getAccounts } from './accounts';
-import { getCategories } from './categories';
-import { getTags } from './tags';
 import { getTransactionBalanceDelta } from '../lib/derived';
+import {
+  deleteReceiptImage,
+  deleteReceiptOwnerDirectory,
+  persistReceiptImagesForOwner,
+} from './receiptStorage';
 
 type TransactionExecutor = Pick<typeof db, 'select' | 'update'>;
+
+function parseReceiptImageUris(receiptImageUris?: string | null): string[] {
+  if (!receiptImageUris) return [];
+  try {
+    const parsed = JSON.parse(receiptImageUris);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((uri): uri is string => typeof uri === 'string' && uri.length > 0);
+    }
+  } catch {
+    return [];
+  }
+  return [];
+}
 
 function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
   return {
@@ -28,6 +43,7 @@ function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
     payee: row.payee ?? undefined,
     tags: JSON.parse(row.tags),
     note: row.note ?? undefined,
+    receiptImageUris: parseReceiptImageUris(row.receiptImageUris),
     date: row.date,
     transferPairId: row.transferPairId ?? undefined,
     createdAt: row.createdAt,
@@ -118,6 +134,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       payee: data.payee ?? null,
       tags: '[]',
       note: data.note ?? null,
+      receiptImageUris: null,
       date: data.date,
       transferPairId,
       createdAt: now,
@@ -134,6 +151,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       payee: data.payee ?? null,
       tags: '[]',
       note: data.note ?? null,
+      receiptImageUris: null,
       date: data.date,
       transferPairId,
       createdAt: now,
@@ -148,6 +166,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
   }
 
   const id = generateId();
+  const receiptImageUris = await persistReceiptImagesForOwner(id, data.receiptImageUris);
   const row = {
     id,
     type: data.type,
@@ -160,6 +179,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     payee: data.payee ?? null,
     tags: JSON.stringify(data.tags ?? []),
     note: data.note ?? null,
+    receiptImageUris: JSON.stringify(receiptImageUris),
     date: data.date,
     transferPairId: null,
     createdAt: now,
@@ -190,6 +210,10 @@ export async function updateTransaction(
   if (data.payee !== undefined) updateData.payee = data.payee;
   if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);
   if (data.note !== undefined) updateData.note = data.note;
+  if (data.receiptImageUris !== undefined) {
+    const receiptImageUris = await persistReceiptImagesForOwner(id, data.receiptImageUris);
+    updateData.receiptImageUris = JSON.stringify(receiptImageUris);
+  }
   if (data.date !== undefined) updateData.date = data.date;
   if (data.accountId !== undefined) updateData.accountId = data.accountId;
   if (data.splitGroupId !== undefined) updateData.splitGroupId = data.splitGroupId;
@@ -212,6 +236,15 @@ export async function updateTransaction(
       await applyAccountBalanceDelta(tx, updatedRow.accountId, nextDelta);
     }
   });
+
+  if (data.receiptImageUris !== undefined) {
+    const nextUris = rowToTransaction(updatedRow!).receiptImageUris ?? [];
+    await Promise.all(
+      (existing.receiptImageUris ?? [])
+        .filter((uri) => !nextUris.includes(uri))
+        .map((uri) => deleteReceiptImage(uri)),
+    );
+  }
 
   return rowToTransaction(updatedRow!);
 }
@@ -251,6 +284,7 @@ export async function updateTransferTransaction(
         payee: data.payee ?? null,
         tags: '[]',
         note: data.note ?? null,
+        receiptImageUris: null,
         date: data.date,
       })
       .where(eq(transactions.id, outRow.id));
@@ -268,6 +302,7 @@ export async function updateTransferTransaction(
         payee: data.payee ?? null,
         tags: '[]',
         note: data.note ?? null,
+        receiptImageUris: null,
         date: data.date,
       })
       .where(eq(transactions.id, inRow.id));
@@ -303,6 +338,7 @@ type SplitGroupInput = {
   payee?: string;
   note?: string;
   tags?: string[];
+  receiptImageUris?: string[] | null;
   date: string;
   items: SplitGroupItemInput[];
 };
@@ -316,7 +352,7 @@ async function normalizeSplitGroupItems(
       categoryId: item.categoryId,
       amount: Number(item.amount),
     }))
-    .filter((item) => item.categoryId && Number.isFinite(item.amount) && item.amount > 0);
+    .filter((item) => item.categoryId && Number.isFinite(item.amount) && item.amount !== 0);
 
   if (normalized.length === 0) {
     throw new Error('Add at least one valid split line item.');
@@ -346,6 +382,7 @@ async function normalizeSplitGroupItems(
 export async function createSplitTransactionGroup(data: SplitGroupInput): Promise<Transaction[]> {
   const items = await normalizeSplitGroupItems(data.type, data.items);
   const splitGroupId = generateId();
+  const receiptImageUris = await persistReceiptImagesForOwner(splitGroupId, data.receiptImageUris);
   const baseCreatedAt = Date.now();
   const rows = items.map((item, index) => {
     const createdAt = new Date(baseCreatedAt + (items.length - index)).toISOString();
@@ -361,6 +398,7 @@ export async function createSplitTransactionGroup(data: SplitGroupInput): Promis
       payee: data.payee ?? null,
       tags: JSON.stringify(data.tags ?? []),
       note: data.note ?? null,
+      receiptImageUris: JSON.stringify(receiptImageUris),
       date: data.date,
       transferPairId: null,
       createdAt,
@@ -386,6 +424,11 @@ export async function updateSplitTransactionGroup(
   const existingTotal = existing.reduce((sum, tx) => sum + tx.amount, 0);
   const existingAccountId = existing[0].accountId;
   const existingType = existing[0].type;
+  const existingReceiptUris = Array.from(new Set(existing.flatMap((tx) => tx.receiptImageUris ?? [])));
+  const receiptImageUris =
+    data.receiptImageUris === undefined
+      ? existing[0].receiptImageUris ?? []
+      : await persistReceiptImagesForOwner(splitGroupId, data.receiptImageUris);
   const baseCreatedAt = Date.now();
 
   const rows = items.map((item, index) => {
@@ -402,6 +445,7 @@ export async function updateSplitTransactionGroup(
       payee: data.payee ?? null,
       tags: JSON.stringify(data.tags ?? []),
       note: data.note ?? null,
+      receiptImageUris: JSON.stringify(receiptImageUris),
       date: data.date,
       transferPairId: null,
       createdAt,
@@ -419,6 +463,11 @@ export async function updateSplitTransactionGroup(
     const total = items.reduce((sum, item) => sum + item.amount, 0);
     await applyAccountBalanceDelta(tx, data.accountId, data.type === 'in' ? total : -total);
   });
+  await Promise.all(
+    existingReceiptUris
+      .filter((uri) => !receiptImageUris.includes(uri))
+      .map((uri) => deleteReceiptImage(uri)),
+  );
   return rows.map(rowToTransaction);
 }
 
@@ -459,6 +508,7 @@ export async function deleteTransaction(id: string): Promise<void> {
       }
       await tx.delete(transactions).where(eq(transactions.splitGroupId, existing.splitGroupId!));
     });
+    await deleteReceiptOwnerDirectory(existing.splitGroupId);
     return;
   }
 
@@ -478,6 +528,7 @@ export async function deleteTransaction(id: string): Promise<void> {
         .delete(transactions)
         .where(eq(transactions.transferPairId, existing.transferPairId!));
     });
+    await Promise.all(pair.flatMap((item) => rowToTransaction(item).receiptImageUris ?? []).map((uri) => deleteReceiptImage(uri)));
     return;
   }
 
@@ -489,6 +540,7 @@ export async function deleteTransaction(id: string): Promise<void> {
 
     await tx.delete(transactions).where(eq(transactions.id, id));
   });
+  await deleteReceiptOwnerDirectory(id);
 }
 
 export async function getRecentPayees(search?: string, limit = 10): Promise<string[]> {
