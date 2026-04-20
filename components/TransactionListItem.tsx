@@ -71,7 +71,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   let titleSecondaryText: string | undefined;
   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' · ');
   let noteLine: string | undefined;
-  const metadataParts: string[] = [];
+  const hasReceipt = (tx.receiptImageUris?.length ?? 0) > 0;
 
   // 1. Specialized Title/Subtitle based on type
   if (tx.transferPairId && linkedAccountName) {
@@ -91,13 +91,6 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     subtitle = [tx.payee, accountNameSelected].filter(Boolean).join(' · ');
     noteLine = tx.note?.trim() || undefined;
-  }
-
-  if (tertiaryText) {
-    metadataParts.push(tertiaryText);
-  }
-  if ((tx.receiptImageUris?.length ?? 0) > 0) {
-    metadataParts.push('Receipt');
   }
 
   const amountValue = displayAmount ?? tx.amount;
@@ -168,17 +161,17 @@ export const TransactionListItem = React.memo(function TransactionListItem({
             {noteLine}
           </Text>
         ) : null}
-        {(tx.splitGroupId || metadataParts.length > 0) ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+        {(tx.splitGroupId || hasReceipt || tertiaryText) ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
             {tx.splitGroupId ? (
               <Ionicons name="layers-outline" size={13} color={palette.textSecondary} />
             ) : null}
-            {(tx.receiptImageUris?.length ?? 0) > 0 ? (
+            {hasReceipt ? (
               <Ionicons name="image-outline" size={13} color={palette.textSecondary} />
             ) : null}
-            {(tx.splitGroupId || metadataParts.length > 0) ? (
+            {tertiaryText ? (
               <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, lineHeight: 18 }}>
-                {metadataParts.length > 0 ? metadataParts.join(' • ') : 'Split'}
+                {tertiaryText}
               </Text>
             ) : null}
           </View>

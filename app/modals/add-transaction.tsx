@@ -1265,9 +1265,16 @@ export default function AddTransactionModal() {
                 width: 44,
                 height: 44,
                 borderRadius: 22,
-                backgroundColor: 'rgba(255,255,255,0.14)',
+                backgroundColor: 'rgba(0,0,0,0.62)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.28)',
                 alignItems: 'center',
                 justifyContent: 'center',
+                shadowColor: '#000000',
+                shadowOpacity: 0.35,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 8,
               }}
             >
               <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
@@ -1288,9 +1295,16 @@ export default function AddTransactionModal() {
                         width: 42,
                         height: 42,
                         borderRadius: 21,
-                        backgroundColor: 'rgba(255,255,255,0.14)',
+                        backgroundColor: 'rgba(0,0,0,0.62)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.28)',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        shadowColor: '#000000',
+                        shadowOpacity: 0.35,
+                        shadowRadius: 12,
+                        shadowOffset: { width: 0, height: 4 },
+                        elevation: 8,
                         opacity: receiptPreviewIndex === 0 ? 0.35 : 1,
                       }}
                     >
@@ -1307,9 +1321,16 @@ export default function AddTransactionModal() {
                         width: 42,
                         height: 42,
                         borderRadius: 21,
-                        backgroundColor: 'rgba(255,255,255,0.14)',
+                        backgroundColor: 'rgba(0,0,0,0.62)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.28)',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        shadowColor: '#000000',
+                        shadowOpacity: 0.35,
+                        shadowRadius: 12,
+                        shadowOffset: { width: 0, height: 4 },
+                        elevation: 8,
                         opacity: receiptPreviewIndex === receiptImageUris.length - 1 ? 0.35 : 1,
                       }}
                     >
@@ -1323,7 +1344,9 @@ export default function AddTransactionModal() {
                         paddingHorizontal: 12,
                         paddingVertical: 7,
                         borderRadius: 999,
-                        backgroundColor: 'rgba(255,255,255,0.14)',
+                        backgroundColor: 'rgba(0,0,0,0.62)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.28)',
                       }}
                     >
                       <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: '#FFFFFF' }}>

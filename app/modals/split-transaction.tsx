@@ -15,7 +15,7 @@ import type { Category, TransactionType } from '../../types';
 function sanitizeDecimalInput(value: string): string {
   const isNegative = value.trim().startsWith('-');
   let cleaned = value.replace(/[^0-9.]/g, '');
-  if (!cleaned) return '';
+  if (!cleaned) return isNegative ? '-' : '';
   const parts = cleaned.split('.');
   if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
   if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') {
@@ -169,7 +169,7 @@ export default function SplitTransactionModal() {
                     }
                     placeholder="0"
                     placeholderTextColor={palette.textSoft}
-                    keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
+                    keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
                     onFocus={() => {
                       setFocusedRowId(row.id);
                       requestAnimationFrame(() => {

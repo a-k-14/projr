@@ -133,7 +133,7 @@ export function formatIndianNumberStr(val: string): string {
   if (!val) return '';
   const isNegative = val.trim().startsWith('-');
   const clean = val.replace(/[^0-9.]/g, '');
-  if (!clean) return '';
+  if (!clean) return isNegative ? '-' : '';
   const parts = clean.split('.');
   const intPart = parts[0];
   const decPart = parts.length > 1 ? '.' + parts[1] : '';

@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 import {
   ActionButton,
   ChoiceRow,
@@ -197,16 +197,23 @@ export default function AccountFormScreen() {
           <FieldLabel label="Opening Balance" palette={palette} />
           <InputField
             palette={palette}
-            isNumeric
             value={draft.balance}
             onChangeText={(v) => {
               const isNegative = v.trim().startsWith('-');
-              const clean = v.replace(/[^0-9.]/g, '');
-              const signed = `${isNegative ? '-' : ''}${clean}`;
-              const formatted = v.endsWith('.') ? `${signed}.` : formatIndianNumberStr(signed);
-              setDraft((s) => ({ ...s, balance: formatted }));
+              let clean = v.replace(/[^0-9.]/g, '');
+              if (!clean) {
+                setDraft((s) => ({ ...s, balance: isNegative ? '-' : '' }));
+                return;
+              }
+              const parts = clean.split('.');
+              if (parts.length > 2) clean = parts[0] + '.' + parts.slice(1).join('');
+              if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
+                clean = clean.substring(1);
+              }
+              setDraft((s) => ({ ...s, balance: formatIndianNumberStr(`${isNegative ? '-' : ''}${clean}`) }));
             }}
             placeholder="0.00"
+            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
           />
         </View>
 
