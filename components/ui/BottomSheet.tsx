@@ -36,7 +36,7 @@ const SWIPE_DISMISS_DISTANCE = 80;
 const SWIPE_DISMISS_VELOCITY = 0.5;
 const HEADER_TITLE_SIZE = 20;
 const HEADER_SUBTITLE_SIZE = 13;
-const HEADER_TITLE_TRACKING = -0.3;
+const HEADER_TITLE_TRACKING = 0;
 const HEADER_SUBTITLE_MARGIN = 3;
 const SHADOW_COLOR = '#000';
 const MODAL_HEIGHT_BOOST = 0;
@@ -53,6 +53,7 @@ export function BottomSheet({
   title,
   subtitle,
   headerRight,
+  showHeaderTitle = true,
   footer,
   palette,
   onClose,
@@ -66,6 +67,7 @@ export function BottomSheet({
   title: string;
   subtitle?: string;
   headerRight?: ReactNode;
+  showHeaderTitle?: boolean;
   footer?: ReactNode;
   palette: AppThemePalette;
   onClose: () => void;
@@ -215,19 +217,25 @@ export function BottomSheet({
                   }}
                 />
               </View>
-              <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: '600', color: palette.text, letterSpacing: HEADER_TITLE_TRACKING }}>
-                    {title}
-                  </Text>
-                  {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
+              {showHeaderTitle || headerRight ? (
+                <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {showHeaderTitle ? (
+                      <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: '600', color: palette.text, letterSpacing: HEADER_TITLE_TRACKING }}>
+                        {title}
+                      </Text>
+                    ) : (
+                      <View />
+                    )}
+                    {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
+                  </View>
+                  {showHeaderTitle && subtitle ? (
+                    <Text style={{ fontSize: HEADER_SUBTITLE_SIZE, color: palette.textMuted, marginTop: HEADER_SUBTITLE_MARGIN, fontWeight: '400' }}>
+                      {subtitle}
+                    </Text>
+                  ) : null}
                 </View>
-                {subtitle ? (
-                  <Text style={{ fontSize: HEADER_SUBTITLE_SIZE, color: palette.textMuted, marginTop: HEADER_SUBTITLE_MARGIN, fontWeight: '400' }}>
-                    {subtitle}
-                  </Text>
-                ) : null}
-              </View>
+              ) : null}
             </View>
 
             {scrollEnabled ? (

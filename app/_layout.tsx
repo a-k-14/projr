@@ -164,10 +164,6 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
-              name="modals/calculator"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
               name="modals/budget-form"
               options={{ headerShown: false }}
             />

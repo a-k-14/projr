@@ -93,7 +93,7 @@ export default function LoanSettlementModal() {
   }, [editId, isEditing, loanId]);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
-  const isValid = !!resolvedLoanId && !!accountId && amount > 0;
+  const isValid = !!resolvedLoanId && !!accountId && amount !== 0;
   const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'receipt' : 'repayment'}` : loanDirection === 'lent' ? 'New receipt' : 'New repayment';
 
   const handleSave = async () => {

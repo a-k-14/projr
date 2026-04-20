@@ -25,6 +25,7 @@ import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FabButton } from '../../components/ui/FabButton';
+import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { InlineDot } from '../../components/ui/InlineDot';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import {
@@ -139,8 +140,6 @@ export default function HomeScreen() {
     }
   });
 
-
-
   const openCustomRange = useCallback(() => {
     setCustomDraftFrom(new Date(customRangeFrom));
     setCustomDraftTo(new Date(customRangeTo));
@@ -181,6 +180,77 @@ export default function HomeScreen() {
     setCustomRangeTo(toLocalDayEndISO(toDate));
     setCustomRangeOpen(false);
   }, [customDraftFrom, customDraftTo]);
+
+  if (accounts.length === 0) {
+    return (
+      <SafeAreaView
+        edges={['top']}
+        style={{ flex: 1, backgroundColor: palette.background }}
+      >
+        <View
+          style={{
+            flex: 1,
+            paddingHorizontal: SCREEN_GUTTER,
+            paddingBottom: Math.max(insets.bottom, 18),
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <FinanceEmptyMascot palette={palette} variant="account" />
+          <Text
+            style={{
+              marginTop: 18,
+              fontSize: HOME_TEXT.heroValue,
+              fontWeight: '700',
+              color: palette.text,
+              textAlign: 'center',
+            }}
+          >
+            Add your first account
+          </Text>
+          <Text
+            style={{
+              marginTop: 8,
+              maxWidth: 280,
+              fontSize: HOME_TEXT.body,
+              lineHeight: 20,
+              color: palette.textMuted,
+              textAlign: 'center',
+            }}
+          >
+            Create an account to start tracking balances and transactions.
+          </Text>
+          <TouchableOpacity
+            delayPressIn={0}
+            activeOpacity={0.85}
+            onPress={() => router.push('/settings/account-form')}
+            style={{
+              minHeight: 48,
+              marginTop: 24,
+              paddingHorizontal: CARD_PADDING,
+              borderRadius: HOME_RADIUS.card,
+              backgroundColor: palette.brand,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <Ionicons name="add" size={19} color={palette.onBrand} />
+            <Text
+              style={{
+                fontSize: HOME_TEXT.rowLabel,
+                fontWeight: '700',
+                color: palette.onBrand,
+              }}
+            >
+              Add Account
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView

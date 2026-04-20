@@ -43,6 +43,7 @@ import {
   getTransactionCashflowImpact,
   groupTransactionsByDate } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
+import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_SPACE, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { formatDateFull } from '../../lib/ui-format';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
@@ -551,20 +552,14 @@ export default function ActivityScreen() {
     });
   }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, transactions, typeFilter, selectedAccountId]);
 
-  // IMPORTANT: periodCashflow should be calculated from ALL transactions in the period
-  // to ensure it matches the totals on the Home screen charts.
-  const periodCashflow = useMemo(() => getCashflowFromList(transactions), [transactions]);
-  const overallNet = useMemo(() => periodCashflow.net, [periodCashflow]);
-  const drilldownTransactions = useMemo(() => {
-    if (!categoryDrilldown) return filteredTransactions;
-    return filteredTransactions.filter((tx) => {
-      if (!tx.categoryId) {
-        return categoryDrilldown.subKey === `type:${tx.type}`;
-      }
-      return tx.categoryId === categoryDrilldown.subKey;
-    });
-  }, [categoryDrilldown, filteredTransactions]);
-  const displayedCashflow = categoryDrilldown ? getCashflowFromList(drilldownTransactions) : periodCashflow;
+  const drilldownTransactions = useMemo(
+    () => getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown),
+    [categoryDrilldown, filteredTransactions],
+  );
+  const displayedCashflow = useMemo(
+    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown),
+    [categoryDrilldown, filteredTransactions],
+  );
 
   const moreActiveCount =
     selectedCategoryIds.length +

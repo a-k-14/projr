@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -7,7 +7,6 @@ import {
   ChoiceRow,
   FieldLabel,
   FixedBottomActions,
-  IconBtn,
   InputField,
   SelectTrigger,
   SettingsFormLayout,
@@ -74,12 +73,6 @@ export default function AccountFormScreen() {
       title: isEditing ? (draft.name || 'Edit Account') : 'New Account',
     });
   }, [draft.name, isEditing, navigation]);
-
-  const handleOpenCalculator = () => {
-    runAfterKeyboardDismiss(() => {
-      Alert.alert('Calculator', 'Calculator is coming soon to settings.');
-    });
-  };
 
   async function onSave() {
     const name = draft.name.trim();
@@ -202,24 +195,19 @@ export default function AccountFormScreen() {
         {/* Balance */}
         <View style={{ marginBottom: SPACING.lg }}>
           <FieldLabel label="Opening Balance" palette={palette} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <View style={{ flex: 1 }}>
-              <InputField
-                palette={palette}
-                isNumeric
-                value={draft.balance}
-                onChangeText={(v) => {
-                  const clean = v.replace(/[^0-9.]/g, '');
-                  const formatted = v.endsWith('.') ? clean + '.' : formatIndianNumberStr(clean);
-                  setDraft((s) => ({ ...s, balance: formatted }));
-                }}
-                placeholder="0.00"
-              />
-            </View>
-            <IconBtn onPress={handleOpenCalculator} palette={palette}>
-              <Ionicons name="calculator-outline" size={20} color={palette.text} />
-            </IconBtn>
-          </View>
+          <InputField
+            palette={palette}
+            isNumeric
+            value={draft.balance}
+            onChangeText={(v) => {
+              const isNegative = v.trim().startsWith('-');
+              const clean = v.replace(/[^0-9.]/g, '');
+              const signed = `${isNegative ? '-' : ''}${clean}`;
+              const formatted = v.endsWith('.') ? `${signed}.` : formatIndianNumberStr(signed);
+              setDraft((s) => ({ ...s, balance: formatted }));
+            }}
+            placeholder="0.00"
+          />
         </View>
 
         {/* Currency */}

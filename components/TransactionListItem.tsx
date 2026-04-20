@@ -1,7 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Text, View , TouchableOpacity} from 'react-native';
-import { formatCurrency, getLoanDisplayLabel, getTransactionCashflowImpact } from '../lib/derived';
+import { formatCurrency, getLoanDisplayLabel, getTransactionBalanceDelta, getTransactionCashflowImpact } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
@@ -96,11 +96,15 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   if (tertiaryText) {
     metadataParts.push(tertiaryText);
   }
+  if ((tx.receiptImageUris?.length ?? 0) > 0) {
+    metadataParts.push('Receipt');
+  }
 
   const amountValue = displayAmount ?? tx.amount;
-  const amountPrefix = showAmountSign ? (cashflowImpact === 'in' ? '+' : cashflowImpact === 'out' ? '-' : '') : '';
+  const balanceDelta = getTransactionBalanceDelta(tx);
+  const amountPrefix = showAmountSign ? (balanceDelta > 0 ? '+' : balanceDelta < 0 ? '-' : '') : '';
   const amountColor = useTypeAmountColor
-    ? (cashflowImpact === 'in' ? palette.brand : cashflowImpact === 'out' ? palette.negative : palette.text)
+    ? (balanceDelta > 0 ? palette.brand : balanceDelta < 0 ? palette.negative : palette.text)
     : palette.text;
   const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && category?.icon ? category.icon : null;
   const iconName =
@@ -168,6 +172,9 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
             {tx.splitGroupId ? (
               <Ionicons name="layers-outline" size={13} color={palette.textSecondary} />
+            ) : null}
+            {(tx.receiptImageUris?.length ?? 0) > 0 ? (
+              <Ionicons name="image-outline" size={13} color={palette.textSecondary} />
             ) : null}
             {(tx.splitGroupId || metadataParts.length > 0) ? (
               <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, lineHeight: 18 }}>

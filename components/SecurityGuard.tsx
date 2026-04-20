@@ -1,5 +1,5 @@
 import * as LocalAuthentication from 'expo-local-authentication';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, View, Text, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
 import { useUIStore } from '../stores/useUIStore';
 import { useAppTheme } from '../lib/theme';
@@ -7,23 +7,92 @@ import { FinanceEmptyMascot } from './ui/FinanceEmptyMascot';
 import { HOME_TEXT } from '../lib/layoutTokens';
 
 const GRACE_PERIOD_MS = 10000; // 10 seconds
+const AUTH_PROMPT_STALE_MS = 30000;
+
+function shouldShowAuthFailure(error?: string) {
+  return !!error && !['user_cancel', 'system_cancel', 'app_cancel', 'authentication_failed'].includes(error);
+}
+
+function authFailureMessage(error?: string) {
+  if (error === 'lockout') {
+    return 'Authentication is temporarily locked because of too many failed attempts. Try again later or use your device passcode if available.';
+  }
+  if (error === 'not_available') {
+    return 'Device authentication is currently unavailable. Check your device security settings and try again.';
+  }
+  if (error === 'timeout') {
+    return 'Authentication timed out. Tap Unlock to try again.';
+  }
+  return 'Authentication could not be started. Tap Unlock to try again, or check your device security settings.';
+}
 
 export function SecurityGuard({ children }: { children: React.ReactNode }) {
   const isAuthEnabled = useUIStore((s) => s.settings.biometricLock);
-  const [isLocked, setIsLocked] = useState(isAuthEnabled);
+  const [isLocked, setIsLockedState] = useState(isAuthEnabled);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const isLockedRef = useRef(isAuthEnabled);
   const isAuthenticatingRef = useRef(false);
+  const authAttemptIdRef = useRef(0);
+  const authWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { palette } = useAppTheme();
   
   const appState = useRef(AppState.currentState);
   const lastBackgroundTime = useRef<number | null>(null);
 
-  const authenticate = async () => {
-    if (isAuthenticatingRef.current) return;
+  const clearAuthWatchdog = useCallback(() => {
+    if (authWatchdogRef.current) {
+      clearTimeout(authWatchdogRef.current);
+      authWatchdogRef.current = null;
+    }
+  }, []);
+
+  const cancelNativeAuth = useCallback(async () => {
+    if (Platform.OS !== 'android') return;
+    await LocalAuthentication.cancelAuthenticate().catch(() => undefined);
+  }, []);
+
+  const setLocked = useCallback((locked: boolean) => {
+    isLockedRef.current = locked;
+    setIsLockedState(locked);
+  }, []);
+
+  const finishAuthAttempt = useCallback(
+    (attemptId: number) => {
+      if (authAttemptIdRef.current !== attemptId) return;
+      clearAuthWatchdog();
+      setIsAuthenticating(false);
+      isAuthenticatingRef.current = false;
+      lastBackgroundTime.current = null;
+    },
+    [clearAuthWatchdog],
+  );
+
+  const authenticate = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+    if (isAuthenticatingRef.current) {
+      if (!force) return;
+      authAttemptIdRef.current += 1;
+      clearAuthWatchdog();
+      setIsAuthenticating(false);
+      isAuthenticatingRef.current = false;
+      await cancelNativeAuth();
+    }
+
+    if (AppState.currentState !== 'active') {
+      setLocked(true);
+      return;
+    }
     
+    const attemptId = authAttemptIdRef.current + 1;
+    authAttemptIdRef.current = attemptId;
+
     try {
       setIsAuthenticating(true);
       isAuthenticatingRef.current = true;
+      authWatchdogRef.current = setTimeout(() => {
+        if (authAttemptIdRef.current !== attemptId || !isAuthenticatingRef.current) return;
+        void cancelNativeAuth();
+        finishAuthAttempt(attemptId);
+      }, AUTH_PROMPT_STALE_MS);
 
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
@@ -39,7 +108,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
               style: 'destructive',
               onPress: () => {
                 useUIStore.getState().updateSettings({ biometricLock: false });
-                setIsLocked(false);
+                setLocked(false);
               }
             }
           ]
@@ -49,30 +118,39 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
 
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Reni',
+        promptSubtitle: 'Authentication required to access your financial data',
         fallbackLabel: 'Use Passcode',
         disableDeviceFallback: false });
 
       if (result.success) {
-        setIsLocked(false);
+        setLocked(false);
+      } else if (shouldShowAuthFailure(result.error)) {
+        Alert.alert('Unlock Failed', authFailureMessage(result.error));
       }
     } catch (error) {
       console.error('Biometric auth failed', error);
       Alert.alert('Authentication Error', 'An unexpected error occurred accessing biometric unlocking. If this persists, try restarting the app or checking device security settings.');
     } finally {
-      setIsAuthenticating(false);
-      isAuthenticatingRef.current = false;
-      lastBackgroundTime.current = null;
+      finishAuthAttempt(attemptId);
     }
-  };
+  }, [cancelNativeAuth, clearAuthWatchdog, finishAuthAttempt, setLocked]);
 
   useEffect(() => {
     if (isAuthEnabled) {
-      setIsLocked(true);
-      authenticate();
+      setLocked(true);
+      const timer = setTimeout(() => {
+        void authenticate();
+      }, 250);
+      return () => clearTimeout(timer);
     } else {
-      setIsLocked(false);
+      authAttemptIdRef.current += 1;
+      clearAuthWatchdog();
+      isAuthenticatingRef.current = false;
+      setIsAuthenticating(false);
+      void cancelNativeAuth();
+      setLocked(false);
     }
-  }, [isAuthEnabled]);
+  }, [authenticate, cancelNativeAuth, clearAuthWatchdog, isAuthEnabled, setLocked]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
@@ -88,9 +166,12 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
         // App has come to the foreground
         if (isAuthEnabled) {
           const now = Date.now();
-          if (lastBackgroundTime.current && now - lastBackgroundTime.current > GRACE_PERIOD_MS) {
-            setIsLocked(true);
-            authenticate();
+          const shouldReauth =
+            isLockedRef.current ||
+            (lastBackgroundTime.current !== null && now - lastBackgroundTime.current > GRACE_PERIOD_MS);
+          if (shouldReauth) {
+            setLocked(true);
+            void authenticate();
           }
         }
       } else if (nextAppState.match(/inactive|background/)) {
@@ -104,9 +185,15 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.remove();
     };
-  }, [isAuthEnabled]);
+  }, [authenticate, isAuthEnabled, setLocked]);
 
-  // Replaced by the main effect above
+  useEffect(() => {
+    return () => {
+      authAttemptIdRef.current += 1;
+      clearAuthWatchdog();
+      void cancelNativeAuth();
+    };
+  }, [cancelNativeAuth, clearAuthWatchdog]);
 
   if (isLocked) {
     return (
@@ -121,11 +208,13 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
           </Text>
           
           <TouchableOpacity delayPressIn={0}
-            onPress={authenticate}
+            onPress={() => void authenticate({ force: true })}
             activeOpacity={0.8}
             style={[styles.button, { backgroundColor: palette.brand }]}
           >
-            <Text style={[styles.buttonText, { color: palette.onBrand }]}>Unlock</Text>
+            <Text style={[styles.buttonText, { color: palette.onBrand }]}>
+              {isAuthenticating ? 'Retry unlock' : 'Unlock'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

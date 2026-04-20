@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Text, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheet } from './ui/BottomSheet';
-import { formatIndianNumberStr, parseFormattedNumber } from '../lib/derived';
+import { CALCULATOR_DISPLAY_MAX_LINES, getCalculatorDisplayMetrics } from '../lib/calculatorDisplay';
+import { formatIndianNumberStr } from '../lib/derived';
 import { SCREEN_GUTTER } from '../lib/design';
-import { HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
 
 interface CalculatorSheetProps {
@@ -55,6 +55,33 @@ export function CalculatorSheet({
 
   if (!visible) return null;
 
+  const evaluateExpression = (input: string) => {
+    let expr = input.trim();
+    if (!expr || expr === '0') return '0';
+    expr = expr.replace(/[+−×÷]+$/, '');
+    if (!expr) return '0';
+    try {
+      const normalized = raw(expr).replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+      const safe = normalized.replace(/[^0-9+\-*/().\s]/g, '');
+      const result = Function(`"use strict"; return (${safe});`)();
+      return Number.isFinite(result)
+        ? String(Number.parseFloat(Number(result).toFixed(10)))
+        : raw(expr);
+    } catch {
+      return raw(expr);
+    }
+  };
+
+  const getPreviewResult = (input: string) => {
+    const expr = input.trim();
+    if (!/[+−×÷%*/-]/.test(expr)) return null;
+    if (/[+−×÷]$/.test(expr)) return null;
+
+    const result = evaluateExpression(expr);
+    if (!result || result === raw(expr)) return null;
+    return pretty(result);
+  };
+
   const appendToken = (token: string) => {
     setDisplay((current) => {
       const operators = ['+', '−', '×', '÷', '%'];
@@ -92,46 +119,54 @@ export function CalculatorSheet({
     });
   };
 
-  const evaluate = () => {
-    let expr = display.trim();
-    if (!expr || expr === '0') return '0';
-    expr = expr.replace(/[+−×÷%]+$/, '');
-    if (!expr) return '0';
-    try {
-      const normalized = raw(expr).replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
-      const safe = normalized.replace(/[^0-9+\-*/().\s]/g, '');
-      const result = Function(`"use strict"; return (${safe});`)();
-      return Number.isFinite(result)
-        ? String(Number.parseFloat(Number(result).toFixed(10)))
-        : raw(expr);
-    } catch {
-      return raw(expr);
-    }
-  };
+  const evaluate = () => evaluateExpression(display);
 
   const handleDone = () => {
     const final = evaluate();
     onClose(final);
   };
+  const displayMetrics = getCalculatorDisplayMetrics(display, 36);
+  const previewResult = getPreviewResult(display);
 
   return (
     <BottomSheet
       title="Calculator"
+      showHeaderTitle={false}
       palette={palette}
       onClose={() => handleDone()}
     >
       <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 20 }}>
-        <View style={{ minHeight: 60, justifyContent: 'center', alignItems: 'flex-end', marginBottom: 16 }}>
+        <View style={{ minHeight: 118, justifyContent: 'center', alignItems: 'flex-end', marginBottom: 16 }}>
           <Text
-            numberOfLines={1}
+            numberOfLines={CALCULATOR_DISPLAY_MAX_LINES}
+            adjustsFontSizeToFit
+            minimumFontScale={0.55}
             style={{
-              fontSize: 36,
+              fontSize: displayMetrics.fontSize,
+              lineHeight: displayMetrics.lineHeight,
               fontWeight: '700',
               color: palette.text,
-              letterSpacing: -1,
+              letterSpacing: 0,
+              textAlign: 'right',
             }}
           >
             {display}
+          </Text>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+            style={{
+              minHeight: 24,
+              marginTop: 6,
+              fontSize: 20,
+              fontWeight: '600',
+              color: palette.textMuted,
+              textAlign: 'right',
+              letterSpacing: 0,
+            }}
+          >
+            {previewResult ? `= ${previewResult}` : ''}
           </Text>
         </View>
 

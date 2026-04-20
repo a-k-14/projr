@@ -41,6 +41,7 @@ export const transactions = sqliteTable('transactions', {
   payee: text('payee'),
   tags: text('tags').notNull().default('[]'),
   note: text('note'),
+  receiptImageUris: text('receipt_image_uris'),
   date: text('date').notNull(),
   transferPairId: text('transfer_pair_id'),
   createdAt: text('created_at').notNull(),

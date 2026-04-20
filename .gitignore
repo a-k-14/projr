@@ -8,6 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+.expo-export-*/
 
 # Native
 .kotlin/
@@ -25,6 +26,7 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+build.log
 
 # macOS
 .DS_Store
@@ -42,7 +44,3 @@ yarn-error.*
 
 # apk files
 *.apk
-
-.expo-export-review-2/
-.expo-export-review-4/
-.expo-export-review-3/

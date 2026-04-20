@@ -31,11 +31,7 @@ export default function BudgetFormModal() {
   const insets = useSafeAreaInsets();
 
   const draftCategoryId = useBudgetDraftStore((s) => s.categoryId);
-  const calculatorValue = useBudgetDraftStore((s) => s.calculatorValue);
-  const calculatorOpen = useBudgetDraftStore((s) => s.calculatorOpen);
   const setDraftCategoryId = useBudgetDraftStore((s) => s.setCategoryId);
-  const setCalculatorValue = useBudgetDraftStore((s) => s.setCalculatorValue);
-  const setCalculatorOpen = useBudgetDraftStore((s) => s.setCalculatorOpen);
   const resetDraft = useBudgetDraftStore((s) => s.reset);
 
   const editingBudget = useMemo(
@@ -47,7 +43,6 @@ export default function BudgetFormModal() {
   const [categoryId, setCategoryId] = useState('');
   const [startMonth, setStartMonth] = useState(month || new Date().toISOString());
   const [repeat, setRepeat] = useState(true);
-  const [loading] = useState(false);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const initializedRef = useRef(false);
@@ -61,12 +56,11 @@ export default function BudgetFormModal() {
       setDraftCategoryId(editingBudget.categoryId);
       setStartMonth(editingBudget.startDate);
       setRepeat(editingBudget.repeat);
-      setCalculatorValue(String(editingBudget.amount));
     } else {
       setStartMonth(month || new Date().toISOString());
       resetDraft();
     }
-  }, [editingBudget, month, resetDraft, setCalculatorValue, setDraftCategoryId]);
+  }, [editingBudget, month, resetDraft, setDraftCategoryId]);
 
   useEffect(() => {
     if (draftCategoryId && draftCategoryId !== categoryId) {
@@ -74,18 +68,8 @@ export default function BudgetFormModal() {
     }
   }, [categoryId, draftCategoryId]);
 
-  const prevCalculatorOpen = useRef(calculatorOpen);
-  useEffect(() => {
-    if (prevCalculatorOpen.current && !calculatorOpen) {
-      if (calculatorValue && calculatorValue !== '0') {
-        setAmountStr(formatIndianNumberStr(calculatorValue.replace(/[^0-9.]/g, '')));
-      }
-    }
-    prevCalculatorOpen.current = calculatorOpen;
-  }, [calculatorOpen, calculatorValue]);
-
   const selectedCategory = categories.find((category) => category.id === categoryId);
-  const isValid = !!categoryId && Number(parseFormattedNumber(amountStr || '0')) > 0;
+  const isValid = !!categoryId && Number(parseFormattedNumber(amountStr || '0')) !== 0;
 
   const openMonthPicker = () => {
     Keyboard.dismiss();
