@@ -97,6 +97,8 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const pagerRef = useAnimatedRef<Animated.ScrollView>();
   const accountPagerScrollX = useSharedValue(0);
+  const verticalScrolls = useSharedValue<number[]>(new Array(20).fill(0));
+  const indicatorY = useSharedValue(0);
   const { palette } = useAppTheme();
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
@@ -335,7 +337,7 @@ export default function HomeScreen() {
       />
 
       <View
-        style={{ flex: 1 }}
+        style={{ flex: 1, overflow: 'hidden' }}
         onLayout={(event: LayoutChangeEvent) => {
           setPagerHeight(event.nativeEvent.layout.height);
         }}
@@ -358,11 +360,10 @@ export default function HomeScreen() {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               directionalLockEnabled
-              decelerationRate="fast"
               onScroll={accountPagerScrollHandler}
               onScrollEndDrag={handlePagerMomentumEnd}
               onMomentumScrollEnd={handlePagerMomentumEnd}
-              scrollEventThrottle={16}
+              scrollEventThrottle={1}
               style={{ flex: 1 }}
             >
               {displayAccounts.map((account, index) => {
@@ -397,9 +398,8 @@ export default function HomeScreen() {
                           onRefresh={refreshAccounts}
                           isSelected={account.id === selectedAccountId}
                           pageIndex={index}
-                          pageCount={displayAccounts.length}
-                          pageWidth={width}
-                          accountPagerScrollX={accountPagerScrollX}
+                          verticalScrolls={verticalScrolls}
+                          indicatorY={indicatorY}
                         />
                       )
                     ) : (
@@ -409,6 +409,14 @@ export default function HomeScreen() {
                 );
               })}
             </Animated.ScrollView>
+            <PageDashIndicator
+              pageCount={displayAccounts.length}
+              palette={palette}
+              pageWidth={width}
+              scrollX={accountPagerScrollX}
+              verticalScrolls={verticalScrolls}
+              indicatorY={indicatorY}
+            />
           </>
         )}
       </View>
@@ -416,6 +424,8 @@ export default function HomeScreen() {
       <FabButton
         bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
+        backgroundColor={palette.text}
+        iconColor={palette.surface}
         onPress={() =>
           selectedAccountId === 'add'
             ? router.push('/settings/account-form')
@@ -855,8 +865,8 @@ function HomeAccountsList({
           gap: 8,
         }}
       >
-        <Ionicons name="add-circle-outline" size={22} color={palette.brand} />
-        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.cardContent, color: palette.brand }}>
+        <Ionicons name="add-circle-outline" size={22} color={palette.text} />
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.cardContent, color: palette.text }}>
           Add Account
         </Text>
       </TouchableOpacity>
@@ -866,43 +876,87 @@ function HomeAccountsList({
 
 function PageDashIndicator({
   pageCount,
-  pageIndex,
   palette,
   pageWidth,
   scrollX,
+  verticalScrolls,
+  indicatorY,
 }: {
   pageCount: number;
-  pageIndex: number;
   palette: AppThemePalette;
   pageWidth: number;
   scrollX: SharedValue<number>;
+  verticalScrolls: SharedValue<number[]>;
+  indicatorY: SharedValue<number>;
 }) {
   const safePageCount = Math.max(pageCount, 1);
+  const dotCount = safePageCount;
   const inactiveWidth = 7;
   const activeWidth = 18;
   const dashHeight = 3;
   const gap = 5;
   const step = inactiveWidth + gap;
   const sidePad = (activeWidth - inactiveWidth) / 2;
-  const trackWidth = inactiveWidth * safePageCount + gap * (safePageCount - 1) + sidePad * 2;
+  const trackWidth = inactiveWidth * dotCount + gap * (dotCount - 1) + sidePad * 2;
+
+  const containerStyle = useAnimatedStyle(() => {
+    const rawProgress = pageWidth > 0 ? scrollX.value / pageWidth : 0;
+    const progress = Math.min(Math.max(rawProgress, 0), safePageCount - 1);
+    const i = Math.floor(progress);
+    const fraction = progress - i;
+
+    const idx0 = Math.min(Math.max(i, 0), safePageCount - 1);
+    const idx1 = Math.min(idx0 + 1, safePageCount - 1);
+
+    const v0 = verticalScrolls.value[idx0] ?? 0;
+    const v1 = verticalScrolls.value[idx1] ?? 0;
+
+    const currentScroll = v0 * (1 - fraction) + v1 * fraction;
+    const y = indicatorY.value;
+
+    // Fade out immediately as soon as the user starts swiping to the "Add Account" card (last card)
+    const fadeOutProgress = Math.max(0, (progress - (safePageCount - 2)) * 10);
+    const scrollOpacity = Math.max(0, 1 - fadeOutProgress);
+    const targetReady = (y > 0 && pageCount > 1) ? 1 : 0;
+
+    return {
+      transform: [
+        { translateY: y - currentScroll }
+      ],
+      opacity: withTiming(targetReady * scrollOpacity, { duration: 150 })
+    };
+  }, [pageWidth, pageCount]);
+
   const activeStyle = useAnimatedStyle(() => {
     const rawIndex = pageWidth > 0 ? scrollX.value / pageWidth : 0;
-    const clampedIndex = Math.min(Math.max(rawIndex, 0), safePageCount - 1);
+    const clampedIndex = Math.min(Math.max(rawIndex, 0), dotCount - 1);
     return {
       transform: [{ translateX: clampedIndex * step }],
     };
-  }, [gap, pageWidth, safePageCount, step]);
-  const fixedTrackStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: scrollX.value - pageIndex * pageWidth }],
-  }), [pageIndex, pageWidth]);
+  }, [gap, pageWidth, dotCount, step]);
 
   if (pageCount <= 1) return null;
 
   return (
-    <Animated.View style={[{ alignItems: 'center', height: 14, justifyContent: 'center', marginTop: 6, marginBottom: 2 }, fixedTrackStyle]}>
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          height: 26,
+          justifyContent: 'center',
+          zIndex: 10
+        },
+        containerStyle
+      ]}
+    >
       <View style={{ width: trackWidth, height: 8, justifyContent: 'center', paddingHorizontal: sidePad }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap }}>
-          {Array.from({ length: safePageCount }).map((_, index) => (
+          {Array.from({ length: dotCount }).map((_, index) => (
             <View
               key={index}
               style={{
@@ -967,12 +1021,12 @@ function AddAccountPage({
           padding: CARD_PADDING,
         }}
       >
-        <Ionicons name="add-circle-outline" size={34} color={palette.brand} />
+        <Ionicons name="add-circle-outline" size={34} color={palette.text} />
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, marginTop: 12 }}>
           Add Account
         </Text>
         <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginTop: 6, textAlign: 'center' }}>
-          Create another account to track balances separately.
+          Create a new account to track balances separately.
         </Text>
       </TouchableOpacity>
     </View>
@@ -994,7 +1048,9 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   pageIndex,
   pageCount,
   pageWidth,
-  accountPagerScrollX }: {
+  accountPagerScrollX,
+  verticalScrolls,
+  indicatorY }: {
     pageHeight: number;
     accountId: string | 'all';
     accountName: string;
@@ -1007,9 +1063,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     onRefresh: () => Promise<void>;
     isSelected: boolean;
     pageIndex: number;
-    pageCount: number;
-    pageWidth: number;
-    accountPagerScrollX: SharedValue<number>;
+    verticalScrolls: SharedValue<number[]>;
+    indicatorY: SharedValue<number>;
   }) {
   const { palette } = useAppTheme();
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
@@ -1041,6 +1096,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   useEffect(() => {
     periodIndicatorX.value = withTiming(periodIndex * periodSegmentWidth + 3, { duration: 180 });
   }, [periodIndex, periodIndicatorX, periodSegmentWidth]);
+
+  const verticalScrollHandler = useAnimatedScrollHandler((event) => {
+    'worklet';
+    const arr = verticalScrolls.value.slice();
+    arr[pageIndex] = event.contentOffset.y;
+    verticalScrolls.value = arr;
+  });
 
   const handleSyncScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = event.nativeEvent.contentOffset.y;
@@ -1178,9 +1240,11 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 
   return (
     <View style={{ flex: 1, height: pageHeight }}>
-      <ScrollView
+      <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
+        onScroll={verticalScrollHandler}
+        scrollEventThrottle={1}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
@@ -1193,12 +1257,14 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             palette={palette}
             onPressCategory={openTodayActivity}
           />
-          <PageDashIndicator
-            pageCount={pageCount}
-            pageIndex={pageIndex}
-            palette={palette}
-            pageWidth={pageWidth}
-            scrollX={accountPagerScrollX}
+          <View
+            onLayout={(event) => {
+              const newY = event.nativeEvent.layout.y;
+              if (newY > 0 && indicatorY.value !== newY) {
+                indicatorY.value = newY;
+              }
+            }}
+            style={{ height: 22 }}
           />
         </View>
 
@@ -1532,7 +1598,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                   })
                 }
               >
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '600' }}>View all</Text>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '700' }}>View all</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -1568,7 +1634,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             </ScrollView>
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {showViewPicker && (
         <BottomSheet
