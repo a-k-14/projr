@@ -139,6 +139,8 @@ export default function ActivityScreen() {
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
 
+  const flatListRef = useRef<FlatList>(null);
+
   const resetAllFilters = useCallback(() => {
     setPeriod('all');
     setPeriodOffset(0);
@@ -155,6 +157,7 @@ export default function ActivityScreen() {
     setGroupByMode('date');
     setCategoryDrilldown(null);
     setIsSearchActive(false);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
   useEffect(() => {
@@ -931,6 +934,7 @@ export default function ActivityScreen() {
         <>
           {groupByMode === 'date' || categoryDrilldown ? (
             <FlatList
+              ref={flatListRef}
               data={grouped}
               keyExtractor={(item) => item.groupKey}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}

@@ -105,6 +105,8 @@ export default function HomeScreen() {
   const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
+  const [globalScrollResetTick, setGlobalScrollResetTick] = useState(0);
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
 
   const displayAccounts = useMemo<AccountTab[]>(() => [
     { id: 'all', name: 'All' },
@@ -153,6 +155,7 @@ export default function HomeScreen() {
     }
     accountPagerScrollX.value = 0;
     pagerRef.current?.scrollTo({ x: 0, animated: true });
+    setGlobalScrollResetTick(v => v + 1);
   }, [accountPagerScrollX, homeAccountViewMode, pagerRef, updateSettings]);
 
   useEffect(() => {
@@ -400,6 +403,8 @@ export default function HomeScreen() {
                           pageIndex={index}
                           verticalScrolls={verticalScrolls}
                           indicatorY={indicatorY}
+                          resetTick={globalScrollResetTick}
+                          onBottomSheetChange={setBottomSheetVisible}
                         />
                       )
                     ) : (
@@ -416,6 +421,7 @@ export default function HomeScreen() {
               scrollX={accountPagerScrollX}
               verticalScrolls={verticalScrolls}
               indicatorY={indicatorY}
+              hidden={bottomSheetVisible}
             />
           </>
         )}
@@ -881,6 +887,7 @@ function PageDashIndicator({
   scrollX,
   verticalScrolls,
   indicatorY,
+  hidden,
 }: {
   pageCount: number;
   palette: AppThemePalette;
@@ -888,6 +895,7 @@ function PageDashIndicator({
   scrollX: SharedValue<number>;
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
+  hidden?: boolean;
 }) {
   const safePageCount = Math.max(pageCount, 1);
   const dotCount = safePageCount;
@@ -915,30 +923,31 @@ function PageDashIndicator({
     const v1 = verticalScrolls.value[idx1] ?? 0;
     const vDiff = Math.abs(v0 - v1);
     
-    // If the pages are scrolled to completely different vertical heights, the indicator 
-    // shouldn't visually drop in diagonally. Instead, we sharply dip its opacity to 0 
-    // exactly at the 50% boundary and instantly teleport it to perfectly match the new page.
-    const dipOpacity = vDiff > 20 ? Math.max(0, 1 - Math.pow(fractionOffset * 2, 4)) : 1;
-    
-    const currentScroll = verticalScrolls.value[activeIdx] ?? 0;
+    // Teleport Logic: If pages have vastly different heights, stick to the current 
+    // page's scroll height until exactly mid-swipe, then snap to the next.
+    // This (combined with the dip) prevents diagonal "sliding" artifacts.
+    const currentScroll = vDiff > 20 
+      ? (progress < idx0 + 0.5 ? v0 : v1) 
+      : (v0 * (1 - fraction) + v1 * fraction);
+      
     const y = indicatorY.value;
 
-    // Start fading at 20% swipe progress, and fade out entirely by 60% of the swipe 
-    // to strictly hide the indicator *before* fully landing on the final Add Account card
     const overshoot = progress - (safePageCount - 2);
     const fadeOutProgress = Math.max(0, (overshoot - 0.2) * 2.5);
     const scrollOpacity = Math.max(0, 1 - fadeOutProgress);
     const targetReady = (y > 0 && pageCount > 1) ? 1 : 0;
+    const hideFlag = hidden ? 0 : 1;
+
+    // Sharper dip for the teleport jump boundary
+    const jumpDip = vDiff > 20 ? Math.max(0, 1 - Math.pow(fractionOffset * 2, 6)) : 1;
 
     return {
-      // Re-apply rounding to fix sub-pixel shimmer when the list rests natively on a float 
       transform: [
-        { translateY: Math.round(y - currentScroll) }
+        { translateY: y - currentScroll }
       ],
-      // Drop `withTiming` so React doesn't stall the animation node when rapidly swiping
-      opacity: targetReady * scrollOpacity * dipOpacity
+      opacity: hideFlag * targetReady * scrollOpacity * jumpDip
     };
-  }, [pageWidth, pageCount]);
+  }, [pageWidth, pageCount, hidden]);
 
   const activeStyle = useAnimatedStyle(() => {
     const rawIndex = pageWidth > 0 ? scrollX.value / pageWidth : 0;
@@ -961,8 +970,7 @@ function PageDashIndicator({
           right: 0,
           alignItems: 'center',
           height: 26,
-          justifyContent: 'center',
-          zIndex: 10
+          justifyContent: 'center'
         },
         containerStyle
       ]}
@@ -1063,7 +1071,10 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   pageWidth,
   accountPagerScrollX,
   verticalScrolls,
-  indicatorY }: {
+  indicatorY,
+  resetTick,
+  onBottomSheetChange,
+}: {
     pageHeight: number;
     accountId: string | 'all';
     accountName: string;
@@ -1078,6 +1089,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     pageIndex: number;
     verticalScrolls: SharedValue<number[]>;
     indicatorY: SharedValue<number>;
+    resetTick: number;
+    onBottomSheetChange?: (visible: boolean) => void;
   }) {
   const { palette } = useAppTheme();
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
@@ -1093,6 +1106,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showViewPicker, setShowViewPicker] = useState(false);
+  useEffect(() => { onBottomSheetChange?.(showViewPicker); }, [showViewPicker, onBottomSheetChange]);
   const isScreenFocused = useIsFocused();
   const [periodControlWidth, setPeriodControlWidth] = useState(0);
   const periodIndicatorX = useSharedValue(0);
@@ -1114,13 +1128,21 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   }, [isSelected]);
 
   useEffect(() => {
+    if (isSelected && resetTick > 0 && mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ y: 0, animated: true });
+    }
+  }, [isSelected, resetTick]);
+
+  useEffect(() => {
     periodIndicatorX.value = withTiming(periodIndex * periodSegmentWidth + 3, { duration: 180 });
   }, [periodIndex, periodIndicatorX, periodSegmentWidth]);
 
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
+    const y = event.contentOffset.y;
+    // Maintain the per-page array for high-performance tracking and crossfade logic
     const arr = verticalScrolls.value.slice();
-    arr[pageIndex] = event.contentOffset.y;
+    arr[pageIndex] = y;
     verticalScrolls.value = arr;
   });
 
@@ -1153,7 +1175,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     const accountFilter = accountId === 'all' ? undefined : accountId;
     const [periodSnapshot, recentTransactions, todaySnapshot] = await Promise.all([
       getCashflowSnapshot(accountId, from, to),
-      getTransactions({ accountId: accountFilter, limit: 5 }),
+      getTransactions({ accountId: accountFilter, limit: 10 }),
       today >= from && todayEnd <= to
         ? Promise.resolve(null)
         : getCashflowSummary(accountId, today, todayEnd),

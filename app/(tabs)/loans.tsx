@@ -2,7 +2,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { FlatList,
   LayoutAnimation,
@@ -78,6 +78,8 @@ export default function LoansScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
+  const flatListRef = useRef<FlatList>(null);
+
   const resetLoanView = useCallback(() => {
     setSearch('');
     setIsSearchActive(false);
@@ -90,6 +92,7 @@ export default function LoansScreen() {
     setAmountMinStr('');
     setAmountMaxStr('');
     loadLoans({ accountId: undefined, status: undefined }).catch(() => undefined);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, [loadLoans]);
 
   useEffect(() => {
@@ -251,6 +254,7 @@ export default function LoansScreen() {
       )}
 
       <FlatList
+        ref={flatListRef}
         data={filteredLoans}
         keyExtractor={(item) => item.id}
         refreshControl={

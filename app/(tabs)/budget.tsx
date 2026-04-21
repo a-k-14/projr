@@ -1,7 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { RefreshControl, ScrollView, View , TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,9 +44,11 @@ export default function BudgetScreen() {
   const [selectedMonth, setSelectedMonth] = useState(() => monthStartIso(new Date()));
   const [refreshing, setRefreshing] = useState(false);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   const resetBudgetView = useCallback(() => {
     setSelectedMonth(monthStartIso(new Date()));
     setShowMonthSheet(false);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   }, []);
 
   useEffect(() => {
@@ -100,6 +102,7 @@ export default function BudgetScreen() {
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       <ScreenTitle title="Budget" palette={palette} />
       <ScrollView
+        ref={scrollViewRef}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
         contentContainerStyle={{ paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
       >
