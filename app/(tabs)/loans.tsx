@@ -1,5 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
@@ -75,6 +76,30 @@ export default function LoansScreen() {
   const [amountMinStr, setAmountMinStr] = useState('');
   const [amountMaxStr, setAmountMaxStr] = useState('');
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+
+  const resetLoanView = useCallback(() => {
+    setSearch('');
+    setIsSearchActive(false);
+    setShowAccountSheet(false);
+    setShowMoreSheet(false);
+    setDirectionFilter('all');
+    setStatusFilter('all');
+    setFromDate(undefined);
+    setToDate(undefined);
+    setAmountMinStr('');
+    setAmountMaxStr('');
+    loadLoans({ accountId: undefined, status: undefined }).catch(() => undefined);
+  }, [loadLoans]);
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener('tabPress', () => {
+      if (navigation.isFocused()) {
+        resetLoanView();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, resetLoanView]);
 
   useEffect(() => {
     loadLoans();

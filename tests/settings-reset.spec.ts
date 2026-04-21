@@ -231,6 +231,7 @@ describe('local reset', () => {
         yearStart: 3,
         cloudBackupEnabled: true,
         biometricLock: true,
+        homeAccountViewMode: 'list',
       },
       isLoaded: true,
       loadError: 'previous',

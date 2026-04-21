@@ -45,7 +45,7 @@ import {
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
 import * as transactionsService from '../../services/transactions';
@@ -796,7 +796,7 @@ export default function ActivityScreen() {
               styles.groupHeader,
               {
                 paddingLeft: ACTIVITY_LAYOUT.headerPaddingX,
-                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + CARD_PADDING,
+                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + HOME_LAYOUT.listRowPaddingX,
                 marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom,
               },
             ]}
@@ -820,9 +820,9 @@ export default function ActivityScreen() {
             </View>
             {item.items.length > 1 && groupNet !== 0 ? (
               <Text
+                appWeight="medium"
                 style={{
-                  fontSize: HOME_TEXT.bodySmall,
-                  fontWeight: '800',
+                  fontSize: HOME_TEXT.cardContent,
                   color: groupNet > 0 ? palette.brand : palette.negative
                 }}
               >

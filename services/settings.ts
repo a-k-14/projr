@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   yearStart: 0,
   cloudBackupEnabled: false,
   biometricLock: false,
+  homeAccountViewMode: 'swipe',
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -31,6 +32,7 @@ export async function getSettings(): Promise<Settings> {
     yearStart: map['yearStart'] ? parseInt(map['yearStart']) : DEFAULT_SETTINGS.yearStart,
     cloudBackupEnabled: map['cloudBackupEnabled'] === 'true',
     biometricLock: map['biometricLock'] === 'true',
+    homeAccountViewMode: map['homeAccountViewMode'] === 'list' ? 'list' : 'swipe',
     supabaseUserId: map['supabaseUserId'],
   };
 }

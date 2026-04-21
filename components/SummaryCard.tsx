@@ -20,7 +20,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
   ] as const;
 
   return (
-    <View style={[styles.card, { backgroundColor: palette.card }]}>
+    <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
       {categories.map((category, index) => (
         <TouchableOpacity delayPressIn={0}
           key={category.key}
@@ -56,7 +56,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: HOME_RADIUS.card,
     overflow: 'hidden',
-    marginBottom: HOME_SURFACE.summaryCardBottom },
+    marginBottom: HOME_SURFACE.summaryCardBottom,
+    borderWidth: 1 },
   column: {
     flex: 1,
     paddingVertical: HOME_SURFACE.summaryColumnPaddingY,

@@ -1,7 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { RefreshControl, ScrollView, View , TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,10 +39,24 @@ export default function BudgetScreen() {
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const [selectedMonth, setSelectedMonth] = useState(() => monthStartIso(new Date()));
   const [refreshing, setRefreshing] = useState(false);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
+  const resetBudgetView = useCallback(() => {
+    setSelectedMonth(monthStartIso(new Date()));
+    setShowMonthSheet(false);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener('tabPress', () => {
+      if (navigation.isFocused()) {
+        resetBudgetView();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, resetBudgetView]);
 
   useEffect(() => {
     if (!categoriesLoaded) loadCategories().catch(() => undefined);

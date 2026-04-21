@@ -25,6 +25,7 @@ export const HOME_TEXT = {
   rowLabel: 16,
   sectionTitle: 15,
   body: 14,
+  cardContent: 13.5,
   bodySmall: 13,
   caption: 12,
   tiny: 10,

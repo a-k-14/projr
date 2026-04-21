@@ -101,6 +101,7 @@ export interface Settings {
   yearStart: number;
   cloudBackupEnabled: boolean;
   biometricLock: boolean;
+  homeAccountViewMode: 'swipe' | 'list';
   supabaseUserId?: string;
 }
 

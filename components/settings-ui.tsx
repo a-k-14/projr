@@ -9,14 +9,21 @@ import type { AppThemePalette } from '../lib/theme';
 export function ScreenTitle({
   title,
   subtitle,
-  palette }: {
+  palette,
+  right }: {
   title: string;
   subtitle?: string;
   palette: AppThemePalette;
+  right?: ReactNode;
 }) {
   return (
     <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: SPACING.md }}>
-      <Text style={{ fontSize: TYPE.title, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>{title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.md }}>
+        <Text style={{ flex: 1, fontSize: TYPE.title, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
+          {title}
+        </Text>
+        {right ? <View style={{ flexShrink: 0 }}>{right}</View> : null}
+      </View>
       {subtitle ? (
         <Text style={{ fontSize: TYPE.caption, color: palette.textMuted, marginTop: 2, lineHeight: 17 }}>
           {subtitle}

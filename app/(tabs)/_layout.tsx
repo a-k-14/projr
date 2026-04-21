@@ -1,48 +1,124 @@
-import { Tabs, router } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
-import { View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { router, Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../lib/theme';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
+import { AppThemePalette, useAppTheme } from '../../lib/theme';
 
-function TabIcon({
-  name,
-  focused,
-  label,
-  active,
-  inactive,
+const TAB_ITEMS: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
+  index: { icon: 'grid', label: 'Home' },
+  activity: { icon: 'activity', label: 'Activity' },
+  loans: { icon: 'credit-card', label: 'Loans' },
+  budget: { icon: 'pie-chart', label: 'Budget' },
+  settings: { icon: 'settings', label: 'Settings' },
+};
+
+function AppTabBar({
+  state,
+  navigation,
+  insetsBottom,
+  palette,
 }: {
-  name: keyof typeof Feather.glyphMap;
-  focused: boolean;
-  label: string;
-  active: string;
-  inactive: string;
+  state: any;
+  navigation: any;
+  insetsBottom: number;
+  palette: AppThemePalette;
 }) {
+  const { width } = useWindowDimensions();
+  const tabHeight = 60;
+  const routes = state.routes;
+  const itemWidth = width / Math.max(routes.length, 1);
+  const pillWidth = 58;
+  const indicatorX = useSharedValue(state.index * itemWidth + (itemWidth - pillWidth) / 2);
+
+  useEffect(() => {
+    indicatorX.value = withTiming(state.index * itemWidth + (itemWidth - pillWidth) / 2, { duration: 190 });
+  }, [indicatorX, itemWidth, state.index]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+  }));
+
   return (
     <View
       style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingTop: 4,
-        width: 74,
+        height: tabHeight + insetsBottom,
+        paddingBottom: insetsBottom,
+        paddingTop: 8,
+        backgroundColor: palette.surface,
+        borderTopWidth: 1,
+        borderTopColor: palette.border,
       }}
     >
-      <Feather name={name} size={20} color={focused ? active : inactive} />
-      <Text
-        numberOfLines={1}
-        style={{
-          fontSize: HOME_TEXT.tiny,
-          lineHeight: 13,
-          marginTop: 4,
-          color: focused ? active : inactive,
-          fontWeight: '500',
-          textAlign: 'center',
-          includeFontPadding: false,
-        }}
-      >
-        {label}
-      </Text>
+      <View style={{ flex: 1, flexDirection: 'row', position: 'relative' }}>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              top: 8,
+              left: 0,
+              width: pillWidth,
+              height: 28,
+              borderRadius: HOME_RADIUS.tab,
+              borderWidth: 1,
+              borderColor: palette.borderSoft,
+              backgroundColor: palette.inputBg,
+            },
+            indicatorStyle,
+          ]}
+        />
+        {routes.map((route: any, index: number) => {
+          const focused = state.index === index;
+          const item = TAB_ITEMS[route.name] ?? TAB_ITEMS.index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!focused && !event.defaultPrevented) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
+
+          return (
+            <TouchableOpacity
+              delayPressIn={0}
+              key={route.key}
+              activeOpacity={0.82}
+              onPress={onPress}
+              style={{
+                width: itemWidth,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingTop: 4,
+              }}
+            >
+              <Feather name={item.icon} size={20} color={focused ? palette.text : palette.tabInactive} />
+              <Text
+                numberOfLines={1}
+                style={{
+                  fontSize: HOME_TEXT.tiny,
+                  lineHeight: 13,
+                  marginTop: 4,
+                  color: focused ? palette.text : palette.tabInactive,
+                  fontWeight: '500',
+                  textAlign: 'center',
+                  includeFontPadding: false,
+                }}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -51,74 +127,50 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
 
-  const TAB_HEIGHT = 60;
-
   return (
     <Tabs
+      tabBar={(props) => (
+        <AppTabBar
+          {...props}
+          insetsBottom={insets.bottom}
+          palette={palette}
+        />
+      )}
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false,
         lazy: true,
         freezeOnBlur: true,
         sceneStyle: {
           backgroundColor: palette.background,
         },
-        tabBarStyle: {
-          backgroundColor: palette.surface,
-          borderTopColor: palette.border,
-          borderTopWidth: 1,
-          height: TAB_HEIGHT + insets.bottom,
-          paddingBottom: insets.bottom,
-          paddingTop: 8,
-          elevation: 0,
-          shadowOpacity: 0,
-        },
-        tabBarItemStyle: {
-          paddingHorizontal: 2,
-          paddingTop: 4,
-        },
       }}
     >
       <Tabs.Screen
         name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="grid" focused={focused} label="Home" active={palette.tabActive} inactive={palette.tabInactive} />
-          ),
+        listeners={{
+          tabPress: () => {
+            router.navigate('/(tabs)');
+          },
         }}
       />
-      <Tabs.Screen
-        name="activity"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="activity" focused={focused} label="Activity" active={palette.tabActive} inactive={palette.tabInactive} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="activity" />
       <Tabs.Screen
         name="loans"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="credit-card" focused={focused} label="Loans" active={palette.tabActive} inactive={palette.tabInactive} />
-          ),
+        listeners={{
+          tabPress: () => {
+            router.navigate('/(tabs)/loans');
+          },
         }}
       />
       <Tabs.Screen
         name="budget"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="pie-chart" focused={focused} label="Budget" active={palette.tabActive} inactive={palette.tabInactive} />
-          ),
+        listeners={{
+          tabPress: () => {
+            router.navigate('/(tabs)/budget');
+          },
         }}
       />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="settings" focused={focused} label="Settings" active={palette.tabActive} inactive={palette.tabInactive} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="settings" />
     </Tabs>
   );
 }
