@@ -47,22 +47,21 @@ function AppTabBar({
       style={{
         height: tabHeight + insetsBottom,
         paddingBottom: insetsBottom,
-        paddingTop: 8,
         backgroundColor: palette.surface,
         borderTopWidth: 1,
         borderTopColor: palette.border,
       }}
     >
-      <View style={{ flex: 1, flexDirection: 'row', position: 'relative' }}>
+      <View style={{ height: tabHeight, flexDirection: 'row', position: 'relative' }}>
         <Animated.View
           pointerEvents="none"
           style={[
             {
               position: 'absolute',
-              top: 8,
+              top: 5,
               left: 0,
               width: pillWidth,
-              height: 28,
+              height: 30,
               borderRadius: HOME_RADIUS.tab,
               borderWidth: 1,
               borderColor: palette.borderSoft,
@@ -96,8 +95,7 @@ function AppTabBar({
               style={{
                 width: itemWidth,
                 alignItems: 'center',
-                justifyContent: 'center',
-                paddingTop: 4,
+                paddingTop: 9,
               }}
             >
               <Feather name={item.icon} size={20} color={focused ? palette.text : palette.tabInactive} />
@@ -106,7 +104,7 @@ function AppTabBar({
                 style={{
                   fontSize: HOME_TEXT.tiny,
                   lineHeight: 13,
-                  marginTop: 4,
+                  marginTop: 8,
                   color: focused ? palette.text : palette.tabInactive,
                   fontWeight: '500',
                   textAlign: 'center',
@@ -145,14 +143,7 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        listeners={{
-          tabPress: () => {
-            router.navigate('/(tabs)');
-          },
-        }}
-      />
+      <Tabs.Screen name="index" />
       <Tabs.Screen name="activity" />
       <Tabs.Screen
         name="loans"

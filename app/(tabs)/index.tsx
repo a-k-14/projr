@@ -119,7 +119,6 @@ export default function HomeScreen() {
   ], [accounts]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all' | 'add'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
-  const [accountCardHeight, setAccountCardHeight] = useState(0);
   const selectedAccountIndex = useMemo(
     () => Math.max(0, displayAccounts.findIndex((account) => account.id === selectedAccountId)),
     [displayAccounts, selectedAccountId],
@@ -397,7 +396,10 @@ export default function HomeScreen() {
                           }
                           onRefresh={refreshAccounts}
                           isSelected={account.id === selectedAccountId}
-                          onAccountCardLayout={setAccountCardHeight}
+                          pageIndex={index}
+                          pageCount={displayAccounts.length}
+                          pageWidth={width}
+                          accountPagerScrollX={accountPagerScrollX}
                         />
                       )
                     ) : (
@@ -407,24 +409,6 @@ export default function HomeScreen() {
                 );
               })}
             </Animated.ScrollView>
-            {selectedAccountId !== 'add' && accountCardHeight > 0 ? (
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  top: HOME_SURFACE.heroTop + accountCardHeight + 2,
-                  left: 0,
-                  right: 0,
-                }}
-              >
-                <PageDashIndicator
-                  pageCount={displayAccounts.length}
-                  palette={palette}
-                  pageWidth={width}
-                  scrollX={accountPagerScrollX}
-                />
-              </View>
-            ) : null}
           </>
         )}
       </View>
@@ -882,11 +866,13 @@ function HomeAccountsList({
 
 function PageDashIndicator({
   pageCount,
+  pageIndex,
   palette,
   pageWidth,
   scrollX,
 }: {
   pageCount: number;
+  pageIndex: number;
   palette: AppThemePalette;
   pageWidth: number;
   scrollX: SharedValue<number>;
@@ -906,12 +892,15 @@ function PageDashIndicator({
       transform: [{ translateX: clampedIndex * step }],
     };
   }, [gap, pageWidth, safePageCount, step]);
+  const fixedTrackStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: scrollX.value - pageIndex * pageWidth }],
+  }), [pageIndex, pageWidth]);
 
   if (pageCount <= 1) return null;
 
   return (
-    <View style={{ alignItems: 'center' }}>
-      <View style={{ width: trackWidth, height: activeWidth, justifyContent: 'center', paddingHorizontal: sidePad }}>
+    <Animated.View style={[{ alignItems: 'center', height: 14, justifyContent: 'center', marginTop: 6, marginBottom: 2 }, fixedTrackStyle]}>
+      <View style={{ width: trackWidth, height: 8, justifyContent: 'center', paddingHorizontal: sidePad }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap }}>
           {Array.from({ length: safePageCount }).map((_, index) => (
             <View
@@ -940,7 +929,7 @@ function PageDashIndicator({
           ]}
         />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -1002,7 +991,10 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   totalBalance,
   onRefresh,
   isSelected,
-  onAccountCardLayout }: {
+  pageIndex,
+  pageCount,
+  pageWidth,
+  accountPagerScrollX }: {
     pageHeight: number;
     accountId: string | 'all';
     accountName: string;
@@ -1014,7 +1006,10 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     totalBalance: number;
     onRefresh: () => Promise<void>;
     isSelected: boolean;
-    onAccountCardLayout?: (height: number) => void;
+    pageIndex: number;
+    pageCount: number;
+    pageWidth: number;
+    accountPagerScrollX: SharedValue<number>;
   }) {
   const { palette } = useAppTheme();
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
@@ -1197,12 +1192,18 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             currencySymbol={currencySymbol}
             palette={palette}
             onPressCategory={openTodayActivity}
-            onLayout={onAccountCardLayout}
+          />
+          <PageDashIndicator
+            pageCount={pageCount}
+            pageIndex={pageIndex}
+            palette={palette}
+            pageWidth={pageWidth}
+            scrollX={accountPagerScrollX}
           />
         </View>
 
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 26 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 6 }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, marginBottom: 6 }}>
             <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginRight: 12 }}>
               This
             </Text>
