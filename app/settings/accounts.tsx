@@ -39,7 +39,7 @@ export default function AccountsScreen() {
               alignItems: 'center',
               justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
+            <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
               + Add Account
             </Text>
           </TouchableOpacity>

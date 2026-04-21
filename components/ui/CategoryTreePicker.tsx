@@ -147,7 +147,7 @@ export function CategoryTreePicker({
             {title}
           </Text>
           <TouchableOpacity delayPressIn={0} onPress={() => { onBack(); router.push('/settings/categories'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

@@ -257,7 +257,7 @@ export default function CategoriesScreen() {
             alignItems: 'center',
             justifyContent: 'center' }}
         >
-          <Text style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
+          <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
             + Add {tab === 'in' ? 'Income' : 'Expense'} Category
           </Text>
         </TouchableOpacity>

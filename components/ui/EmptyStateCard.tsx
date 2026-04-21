@@ -10,8 +10,8 @@ export function EmptyStateCard({
   subtitle,
   illustration,
   backgroundColor,
-  horizontalPadding = 32,
-  verticalPadding = 32,
+  horizontalPadding = 24,
+  verticalPadding = 20,
 }: {
   palette: AppThemePalette;
   title: string;
@@ -33,10 +33,10 @@ export function EmptyStateCard({
     >
       {illustration}
       <Text
+        appWeight="medium"
         style={{
           color: palette.text,
           fontSize: HOME_TEXT.body,
-          fontWeight: '500',
           marginTop: illustration ? HOME_SPACE.md : 0,
           textAlign: 'center',
         }}

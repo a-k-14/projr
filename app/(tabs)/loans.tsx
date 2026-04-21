@@ -182,7 +182,7 @@ export default function LoansScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       {isSearchActive ? (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}>
           <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
@@ -203,7 +203,7 @@ export default function LoansScreen() {
             ) : null}
           </View>
           <TouchableOpacity delayPressIn={0} onPress={() => toggleSearch(false)}>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -211,7 +211,7 @@ export default function LoansScreen() {
       ) : (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
           <View style={styles.topBarMainRow}>
-            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>
+            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
               Loans
             </Text>
             <View style={{ flex: 1 }} />
@@ -269,7 +269,7 @@ export default function LoansScreen() {
                     minWidth: 0 },
                 ]}
               >
-                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
+                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
                   {selectedAccountLabel}
                 </Text>
                 <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
@@ -288,14 +288,14 @@ export default function LoansScreen() {
                     borderColor: moreActiveCount > 0 ? palette.brand : palette.divider },
                 ]}
               >
-                <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}>
+                <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}>
                   {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
                 </Text>
                 <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
+            <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 4 }} />
 
             {SHOW_EMPTY_STATE_PREVIEW ? (
               <View style={{ paddingTop: 8, paddingBottom: 22, paddingHorizontal: 24 }}>
@@ -311,7 +311,7 @@ export default function LoansScreen() {
         }
         ListEmptyComponent={
           !refreshing ? (
-            <View style={{ paddingTop: 24, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+            <View style={{ paddingTop: 4, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
               <EmptyStateCard
                 palette={palette}
                 title="No loans found"
@@ -390,7 +390,7 @@ export default function LoansScreen() {
               hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
               style={styles.clearAllButton}
             >
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
             </TouchableOpacity>
           }
         >
@@ -471,7 +471,7 @@ export default function LoansScreen() {
           </View>
         </BottomSheet>
       ) : null}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -497,8 +497,8 @@ function LoanSummaryCard({
       eyebrow="Loans overview"
       title="Current position"
       badgeLabel={badgeLabel}
-      badgeBg={palette.budgetSoft}
-      badgeColor={palette.budget}
+      badgeBg={palette.loanSoft}
+      badgeColor={palette.loan}
       metrics={[
         { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
         { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },
@@ -589,12 +589,12 @@ function LoanRow({
             ) : null}
 
             <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, marginBottom: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, color: palette.listText, marginBottom: 1 }}>
                   {loan.personName}
-                  <Text style={{ color: palette.text, fontWeight: '400' }}> {'\u2022'} {directionLabel}</Text>
+                  <Text appWeight="medium" style={{ color: palette.listText }}> {'\u2022'} {directionLabel}</Text>
                 </Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, textAlign: 'right' }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.listText, textAlign: 'right' }}>
                   {formatCurrency(loan.givenAmount, sym)}
                 </Text>
               </View>

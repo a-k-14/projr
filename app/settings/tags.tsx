@@ -36,7 +36,7 @@ export default function TagsScreen() {
               alignItems: 'center',
               justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>+ Add Tag</Text>
+            <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>+ Add Tag</Text>
           </TouchableOpacity>
         </FixedBottomActions>
       }

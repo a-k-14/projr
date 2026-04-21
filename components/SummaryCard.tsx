@@ -33,8 +33,9 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
               borderLeftColor: palette.divider },
           ]}
         >
-          <Text style={[styles.label, { color: palette.textMuted, fontWeight: '700' }]}>{category.label}</Text>
+          <Text appWeight="medium" style={[styles.label, { color: palette.textMuted }]}>{category.label}</Text>
           <Text
+            appWeight="medium"
             numberOfLines={1}
             adjustsFontSizeToFit={true}
             style={[
@@ -66,4 +67,4 @@ const styles = StyleSheet.create({
     marginBottom: 6 },
   value: {
     fontSize: HOME_TEXT.body,
-    fontWeight: '600' } });
+    fontWeight: '500' } });

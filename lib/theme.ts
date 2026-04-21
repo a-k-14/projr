@@ -3,16 +3,17 @@ import type { Theme } from '../types';
 
 export type AppThemeMode = 'light' | 'dark';
 
-const BRAND = '#17673B';
-const NEGATIVE = '#8A2424';
+const BRAND_LIGHT = '#17673B';
+const BRAND_DARK = '#5FA878';
+const NEGATIVE_LIGHT = '#8A2424';
+const NEGATIVE_DARK = '#C8655F';
 const WHITE = '#FFFFFF';
+const ON_DARK_ACCENT = '#07100B';
 const ON_BUDGET = '#111827';
-const LOAN_LIGHT = '#4E3B2F';
-const LOAN_DARK = '#6A5442';
 const BUDGET_LIGHT = '#1E293B';
 const BUDGET_DARK = '#E2E8F0';
 const TRANSFER_TEXT_LIGHT = '#1E293B';
-const TRANSFER_TEXT_DARK = '#E2E8F0';
+const TRANSFER_TEXT_DARK = '#AAB3C2';
 const INPUT_BG_LIGHT = '#F3F4F6';
 const INPUT_BG_DARK = '#222224';
 const SCRIM = 'rgba(0, 0, 0, 0.4)';
@@ -60,17 +61,7 @@ function tint(hex: string, lightAlpha: number, darkAlpha: number, mode: AppTheme
   return rgba(hex, mode === 'dark' ? darkAlpha : lightAlpha);
 }
 
-const CORE_ACCENT = {
-  brand: BRAND,
-  onBrand: WHITE,
-  positive: BRAND,
-  active: BRAND,
-  tabActive: BRAND,
-  chartBar: BRAND,
-  negative: NEGATIVE,
-} as const;
-
-export const APP_BRAND = BRAND;
+export const APP_BRAND = BRAND_LIGHT;
 export const APP_LIGHT_BACKGROUND = '#F0F0F5';
 export const APP_DARK_BACKGROUND = '#000000';
 
@@ -82,6 +73,7 @@ export interface AppThemePalette {
   border: string;
   divider: string;
   text: string;
+  listText: string;
   textMuted: string;
   textSoft: string;
   tabActive: string;
@@ -132,23 +124,33 @@ export function resolveTheme(theme: Theme, systemScheme: ColorSchemeName): AppTh
 
 export function getThemePalette(mode: AppThemeMode): AppThemePalette {
   if (mode === 'dark') {
+    const budgetSoft = tint(BUDGET_DARK, 0.12, 0.2, mode);
+    const budgetBg = tint(BUDGET_DARK, 0.08, 0.16, mode);
+
     return {
       isDark: true,
-      background: '#000000',
+      background: APP_DARK_BACKGROUND,
       surface: '#121214',
       card: '#18181A',
       border: '#232327',
       divider: '#1F1F23',
-      text: '#F5F5F7',
-      textMuted: '#A1A1A6',
-      textSoft: '#6E6E73',
-      ...CORE_ACCENT,
-      brandSoft: tint(BRAND, 0.12, 0.18, mode),
-      loan: LOAN_DARK,
-      loanSoft: tint(LOAN_DARK, 0.12, 0.18, mode),
-      onLoan: WHITE,
+      text: '#E8EAEE',
+      listText: '#D5DAE2',
+      textMuted: '#9AA3B2',
+      textSoft: '#667085',
+      brand: BRAND_DARK,
+      onBrand: ON_DARK_ACCENT,
+      positive: BRAND_DARK,
+      active: BRAND_DARK,
+      tabActive: BRAND_DARK,
+      chartBar: BRAND_DARK,
+      negative: NEGATIVE_DARK,
+      brandSoft: tint(BRAND_DARK, 0.12, 0.2, mode),
+      loan: BUDGET_DARK,
+      loanSoft: budgetSoft,
+      onLoan: ON_BUDGET,
       budget: BUDGET_DARK,
-      budgetSoft: tint(BUDGET_DARK, 0.12, 0.18, mode),
+      budgetSoft,
       onBudget: ON_BUDGET,
       tabInactive: TAB_INACTIVE_DARK,
       iconTint: ICON_TINT_DARK,
@@ -158,15 +160,15 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       textSecondary: TEXT_SECONDARY_DARK,
       borderSoft: BORDER_SOFT_DARK,
       inactive: INACTIVE_DARK,
-      neutral: '#F5F5F7',
+      neutral: '#E8EAEE',
       chartBarMuted: CHART_BAR_MUTED_DARK,
       heroBar: HERO_BAR_DARK,
       todayDot: TODAY_DOT_DARK,
-      inBg: tint(BRAND, 0.08, 0.16, mode),
-      outBg: tint(NEGATIVE, 0.08, 0.16, mode),
+      inBg: tint(BRAND_DARK, 0.08, 0.16, mode),
+      outBg: tint(NEGATIVE_DARK, 0.08, 0.16, mode),
       transferBg: tint(TRANSFER_TEXT_DARK, 0.08, 0.14, mode),
-      loanBg: tint(LOAN_DARK, 0.14, 0.22, mode),
-      budgetBg: tint(BUDGET_DARK, 0.08, 0.16, mode),
+      loanBg: budgetBg,
+      budgetBg,
       transferText: TRANSFER_TEXT_DARK,
       inputBg: INPUT_BG_DARK,
       scrim: SCRIM,
@@ -183,12 +185,19 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     border: '#E5E7EB',
     divider: '#E5E7EB',
     text: '#1F2A44',
+    listText: '#344054',
     textMuted: '#8C94AF',
     textSoft: '#C8CDD9',
-    ...CORE_ACCENT,
-    brandSoft: tint(BRAND, 0.12, 0.18, mode),
-    loan: LOAN_LIGHT,
-    loanSoft: tint(LOAN_LIGHT, 0.12, 0.18, mode),
+    brand: BRAND_LIGHT,
+    onBrand: WHITE,
+    positive: BRAND_LIGHT,
+    active: BRAND_LIGHT,
+    tabActive: BRAND_LIGHT,
+    chartBar: BRAND_LIGHT,
+    negative: NEGATIVE_LIGHT,
+    brandSoft: tint(BRAND_LIGHT, 0.12, 0.18, mode),
+    loan: BUDGET_LIGHT,
+    loanSoft: tint(BUDGET_LIGHT, 0.12, 0.18, mode),
     onLoan: WHITE,
     budget: BUDGET_LIGHT,
     budgetSoft: tint(BUDGET_LIGHT, 0.12, 0.18, mode),
@@ -205,10 +214,10 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     chartBarMuted: CHART_BAR_MUTED_LIGHT,
     heroBar: HERO_BAR_LIGHT,
     todayDot: TODAY_DOT_LIGHT,
-    inBg: tint(BRAND, 0.08, 0.16, mode),
-    outBg: tint(NEGATIVE, 0.08, 0.16, mode),
+    inBg: tint(BRAND_LIGHT, 0.08, 0.16, mode),
+    outBg: tint(NEGATIVE_LIGHT, 0.08, 0.16, mode),
     transferBg: tint(TRANSFER_TEXT_LIGHT, 0.08, 0.14, mode),
-    loanBg: tint(LOAN_LIGHT, 0.14, 0.22, mode),
+    loanBg: tint(BUDGET_LIGHT, 0.08, 0.16, mode),
     budgetBg: tint(BUDGET_LIGHT, 0.08, 0.16, mode),
     transferText: TRANSFER_TEXT_LIGHT,
     inputBg: INPUT_BG_LIGHT,

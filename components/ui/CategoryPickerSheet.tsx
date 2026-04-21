@@ -67,7 +67,7 @@ export function CategoryPickerSheet({
       }
       headerRight={
         <TouchableOpacity delayPressIn={0} onPress={onManage} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-          <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
         </TouchableOpacity>
       }
     >

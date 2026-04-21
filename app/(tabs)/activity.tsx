@@ -1,52 +1,53 @@
-import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { Text } from '@/components/ui/AppText';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { ActivityIndicator,
+import {
+  ActivityIndicator,
   BackHandler,
   FlatList,
   InteractionManager,
-  Keyboard,
   LayoutAnimation,
   RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
-  type LayoutChangeEvent } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+  View
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityFilterBar } from '../../components/activity/ActivityFilterBar';
+import { ActivityMoreFiltersSheet } from '../../components/activity/ActivityMoreFiltersSheet';
+import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
+import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { FilterChip } from '../../components/ui/FilterChip';
 import { ListHeading } from '../../components/ui/ListHeading';
-import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
-import { ActivityFilterBar } from '../../components/activity/ActivityFilterBar';
-import { ActivityMoreFiltersSheet } from '../../components/activity/ActivityMoreFiltersSheet';
+import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import {
   getNavigableDateRange,
   getPeriodNavLabel,
   getRelativeDateLabel,
   toLocalDayEndISO,
-  toLocalDayStartISO } from '../../lib/dateUtils';
-import { CategoryIconBadge } from '../../components/activity/ActivityUI';
+  toLocalDayStartISO
+} from '../../lib/dateUtils';
 import {
   formatCurrency,
   getCashflowFromList,
   getLoanTransactionKind,
   getTransactionCashflowImpact,
-  groupTransactionsByDate } from '../../lib/derived';
+  groupTransactionsByDate
+} from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
-import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_SPACE, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
-import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -255,16 +256,17 @@ export default function ActivityScreen() {
             ? undefined
             : typeFilter === 'transfer'
               ? undefined
-            : typeFilter === 'all'
-              ? undefined
-              : typeFilter;
+              : typeFilter === 'all'
+                ? undefined
+                : typeFilter;
         const filters: TransactionFilters = {
           accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
           type: effectiveTypeFilter,
           fromDate: dateRange?.from,
           toDate: dateRange?.to,
           limit: period === 'all' && !needsFullDataset ? TRANSACTIONS_PAGE_SIZE : undefined,
-          offset: period === 'all' && !needsFullDataset ? currentOffset : 0 };
+          offset: period === 'all' && !needsFullDataset ? currentOffset : 0
+        };
         const results = await transactionsService.getTransactions(filters);
         if (requestId !== requestIdRef.current) return;
         if (isInitial) {
@@ -446,7 +448,8 @@ export default function ActivityScreen() {
         }
         setCustomFrom(pickedFrom);
         setPeriod('custom');
-      } });
+      }
+    });
   };
 
   const openCustomToPicker = () => {
@@ -465,7 +468,8 @@ export default function ActivityScreen() {
         }
         setCustomTo(pickedTo);
         setPeriod('custom');
-      } });
+      }
+    });
   };
 
   const filteredTransactions = useMemo(() => {
@@ -494,7 +498,7 @@ export default function ActivityScreen() {
         if (!tx.transferPairId) return false;
       } else if (typeFilter !== 'all') {
         if (tx.transferPairId) return false;
-        
+
         // Handle Loan transactions as In/Out if impact matches
         if (tx.type !== typeFilter) {
           if (tx.type === 'loan') {
@@ -647,7 +651,8 @@ export default function ActivityScreen() {
         title: date,
         subtitle: label || undefined,
         net: getCashflowFromList(group.items).net,
-        items: group.items };
+        items: group.items
+      };
     });
   }, [categoryDrilldown, drilldownTransactions, filteredTransactions]);
 
@@ -697,10 +702,10 @@ export default function ActivityScreen() {
           : tx.transferPairId
             ? 'Transfer'
             : tx.type === 'transfer'
-            ? 'Transfer'
-            : tx.type === 'loan'
-              ? 'Loan'
-              : 'Uncategorized';
+              ? 'Transfer'
+              : tx.type === 'loan'
+                ? 'Loan'
+                : 'Uncategorized';
       const parentIcon = parent
         ? parent.icon
         : category
@@ -714,10 +719,10 @@ export default function ActivityScreen() {
         : tx.transferPairId
           ? 'Transfer'
           : tx.type === 'transfer'
-          ? 'Transfer'
-          : tx.type === 'loan'
-            ? 'Loan'
-            : 'Uncategorized';
+            ? 'Transfer'
+            : tx.type === 'loan'
+              ? 'Loan'
+              : 'Uncategorized';
 
       if (!parentMap.has(parentKey)) {
         parentMap.set(parentKey, {
@@ -728,7 +733,8 @@ export default function ActivityScreen() {
           familyOrder: getFamilyOrder(familyKey),
           familyKey,
           transactions: [],
-          subMap: new Map() });
+          subMap: new Map()
+        });
       }
 
       const parentEntry = parentMap.get(parentKey)!;
@@ -752,10 +758,12 @@ export default function ActivityScreen() {
             subKey: sub.subKey,
             subLabel: sub.subLabel,
             total: getCashflowFromList(sub.transactions).net,
-            transactions: sub.transactions }))
+            transactions: sub.transactions
+          }))
           .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
         familyOrder: entry.familyOrder,
-        familyKey: entry.familyKey }))
+        familyKey: entry.familyKey
+      }))
       .sort((a, b) => {
         if (a.familyOrder !== b.familyOrder) return a.familyOrder - b.familyOrder;
         return a.parentLabel.localeCompare(b.parentLabel, 'en', { sensitivity: 'base' });
@@ -772,7 +780,8 @@ export default function ActivityScreen() {
       ] as const)
         .map((section) => ({
           ...section,
-          items: categoryHierarchy.filter((category) => category.familyKey === section.key) }))
+          items: categoryHierarchy.filter((category) => category.familyKey === section.key)
+        }))
         .filter((section) => section.items.length > 0),
     [categoryHierarchy],
   );
@@ -785,11 +794,15 @@ export default function ActivityScreen() {
           <View
             style={[
               styles.groupHeader,
-              { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom },
+              {
+                paddingLeft: ACTIVITY_LAYOUT.headerPaddingX,
+                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + CARD_PADDING,
+                marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom,
+              },
             ]}
           >
             <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.text }}>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.text }}>
                 {item.title}
               </Text>
               {item.subtitle ? (
@@ -799,7 +812,7 @@ export default function ActivityScreen() {
                   >
                     •
                   </Text>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted }}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted }}>
                     {item.subtitle}
                   </Text>
                 </>
@@ -810,7 +823,8 @@ export default function ActivityScreen() {
                 style={{
                   fontSize: HOME_TEXT.bodySmall,
                   fontWeight: '800',
-                  color: groupNet > 0 ? palette.brand : palette.negative }}
+                  color: groupNet > 0 ? palette.brand : palette.negative
+                }}
               >
                 {signedCurrency(groupNet, sym)}
               </Text>
@@ -822,7 +836,8 @@ export default function ActivityScreen() {
               backgroundColor: palette.surface,
               borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
               marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-              overflow: 'hidden' }}
+              overflow: 'hidden'
+            }}
           >
             {item.items.map((tx, index) => {
               const account = accounts.find((a) => a.id === tx.accountId);
@@ -844,9 +859,9 @@ export default function ActivityScreen() {
                   tertiaryText={
                     tx.tags.length > 0
                       ? tx.tags
-                          .map((tagId) => tags.find((tag) => tag.id === tagId)?.name)
-                          .filter((value): value is string => !!value)
-                          .join(' • ') || undefined
+                        .map((tagId) => tags.find((tag) => tag.id === tagId)?.name)
+                        .filter((value): value is string => !!value)
+                        .join(' • ') || undefined
                       : undefined
                   }
                   showAmountSign={false}
@@ -863,7 +878,7 @@ export default function ActivityScreen() {
   );
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       {isSearchActive ? (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}>
           <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
@@ -884,7 +899,7 @@ export default function ActivityScreen() {
             ) : null}
           </View>
           <TouchableOpacity delayPressIn={0} onPress={() => toggleSearch(false)}>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -892,7 +907,7 @@ export default function ActivityScreen() {
       ) : (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
           <View style={styles.topBarMainRow}>
-            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '700', color: palette.text, letterSpacing: -0.5 }}>
+            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
               Activity
             </Text>
 
@@ -955,13 +970,14 @@ export default function ActivityScreen() {
                     </View>
                   ) : null}
 
-                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
+                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 4 }} />
 
                   {groupByMode === 'category' && categoryDrilldown ? (
                     <View
                       style={{
                         paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                        marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}
+                        marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom
+                      }}
                     >
                       <TouchableOpacity delayPressIn={0}
                         onPress={() => setCategoryDrilldown(null)}
@@ -969,7 +985,8 @@ export default function ActivityScreen() {
                         style={{
                           flexDirection: 'row',
                           alignItems: 'center',
-                          gap: 8 }}
+                          gap: 8
+                        }}
                       >
                         <Feather name="chevron-left" size={16} color={palette.textMuted} />
                         <Text
@@ -986,7 +1003,7 @@ export default function ActivityScreen() {
               renderItem={renderGroupItem}
               ListEmptyComponent={
                 !refreshing ? (
-                  <View style={{ paddingTop: 24, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+                  <View style={{ paddingTop: 4, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
                     <EmptyStateCard
                       palette={palette}
                       title="No transactions found"
@@ -1057,7 +1074,8 @@ export default function ActivityScreen() {
                                   minHeight: 62,
                                   borderBottomWidth: isLastCategory && !isExpanded ? 0 : 1,
                                   borderBottomColor: palette.divider,
-                                  gap: 12 }}
+                                  gap: 12
+                                }}
                               >
                                 <CategoryIconBadge
                                   icon={category.parentIcon}
@@ -1069,7 +1087,7 @@ export default function ActivityScreen() {
                                   palette={palette}
                                   iconColor={syntheticCfg?.color}
                                 />
-                                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
+                                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
                                   {category.parentLabel}
                                 </Text>
                                 <Text
@@ -1077,7 +1095,8 @@ export default function ActivityScreen() {
                                     fontSize: HOME_TEXT.body,
                                     fontWeight: '600',
                                     color: category.total >= 0 ? palette.brand : palette.negative,
-                                    marginRight: 2 }}
+                                    marginRight: 2
+                                  }}
                                 >
                                   {signedCurrency(category.total, sym)}
                                 </Text>
@@ -1093,7 +1112,8 @@ export default function ActivityScreen() {
                                   style={{
                                     backgroundColor: palette.inputBg,
                                     borderBottomWidth: isLastCategory ? 0 : 1,
-                                    borderBottomColor: palette.divider }}
+                                    borderBottomColor: palette.divider
+                                  }}
                                 >
                                   {category.subcategories.map((sub) => (
                                     <TouchableOpacity delayPressIn={0}
@@ -1103,7 +1123,8 @@ export default function ActivityScreen() {
                                           parentKey: category.parentKey,
                                           parentLabel: category.parentLabel,
                                           subKey: sub.subKey,
-                                          subLabel: sub.subLabel })
+                                          subLabel: sub.subLabel
+                                        })
                                       }
                                       activeOpacity={0.75}
                                       style={{
@@ -1114,9 +1135,10 @@ export default function ActivityScreen() {
                                         paddingRight: CARD_PADDING,
                                         minHeight: 52,
                                         borderTopWidth: 1,
-                                        borderTopColor: palette.divider }}
+                                        borderTopColor: palette.divider
+                                      }}
                                     >
-                                      <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
+                                      <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
                                         {sub.subLabel}
                                       </Text>
                                       <Text
@@ -1124,7 +1146,8 @@ export default function ActivityScreen() {
                                           fontSize: HOME_TEXT.body,
                                           fontWeight: '500',
                                           color: sub.total >= 0 ? palette.brand : palette.negative,
-                                          marginRight: 10 }}
+                                          marginRight: 10
+                                        }}
                                       >
                                         {signedCurrency(sub.total, sym)}
                                       </Text>
@@ -1248,10 +1271,11 @@ export default function ActivityScreen() {
                   styles.dateField,
                   {
                     borderColor: period === 'custom' ? palette.brand : palette.divider,
-                    backgroundColor: palette.surface },
+                    backgroundColor: palette.surface
+                  },
                 ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textMuted, letterSpacing: 0.6 }}>
                   FROM
                 </Text>
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
@@ -1265,10 +1289,11 @@ export default function ActivityScreen() {
                   styles.dateField,
                   {
                     borderColor: period === 'custom' ? palette.brand : palette.divider,
-                    backgroundColor: palette.surface },
+                    backgroundColor: palette.surface
+                  },
                 ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textMuted, letterSpacing: 0.6 }}>
                   TO
                 </Text>
                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
@@ -1292,7 +1317,8 @@ export default function ActivityScreen() {
               style={[
                 styles.applyBtn,
                 {
-                  backgroundColor: customFrom && customTo ? palette.brand : palette.borderSoft },
+                  backgroundColor: customFrom && customTo ? palette.brand : palette.borderSoft
+                },
               ]}
               activeOpacity={0.8}
             >
@@ -1338,7 +1364,7 @@ export default function ActivityScreen() {
           }}
         />
       ) : null}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1356,11 +1382,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
-    borderBottomWidth: 1 },
+    borderBottomWidth: 1
+  },
   topBarMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10 },
+    gap: 10
+  },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
@@ -1369,7 +1397,8 @@ const styles = StyleSheet.create({
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderWidth: 1.5 },
+    borderWidth: 1.5
+  },
   iconBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -1381,21 +1410,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1 },
+    elevation: 1
+  },
   row: {
     flexDirection: 'row',
-    alignItems: 'center' },
+    alignItems: 'center'
+  },
   dateField: {
     flex: 1,
     borderRadius: 12,
     borderWidth: 1.5,
     paddingHorizontal: 14,
-    paddingVertical: 10 },
+    paddingVertical: 10
+  },
   applyBtn: {
     marginTop: 12,
     borderRadius: 12,
     paddingVertical: 13,
-    alignItems: 'center' },
+    alignItems: 'center'
+  },
   groupHeader: {
     flexDirection: 'row',
-    alignItems: 'center' } });
+    alignItems: 'center'
+  }
+});

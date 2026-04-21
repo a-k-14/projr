@@ -61,7 +61,7 @@ export function ActivityFilterBar({
               marginRight: ACTIVITY_LAYOUT.controlChipGap },
           ]}
         >
-          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
+          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
             {accountLabel}
           </Text>
           <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
@@ -106,6 +106,7 @@ export function ActivityFilterBar({
           ]}
         >
           <Text
+            appWeight="medium"
             numberOfLines={1}
             style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}
           >

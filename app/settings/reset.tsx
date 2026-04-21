@@ -166,17 +166,17 @@ export default function ResetScreen() {
                 }}
               >
                 {isResetting ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={palette.onBrand} />
                 ) : (
                   <>
                     <Ionicons
                       name="trash-outline"
                       size={18}
-                      color={canReset ? '#FFFFFF' : palette.textMuted}
+                      color={canReset ? palette.onBrand : palette.textMuted}
                     />
                     <Text
                       style={{
-                        color: canReset ? '#FFFFFF' : palette.textMuted,
+                        color: canReset ? palette.onBrand : palette.textMuted,
                         fontSize: TYPE.section,
                         fontWeight: '700',
                       }}

@@ -83,7 +83,7 @@ export default function BudgetScreen() {
   );
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       <ScreenTitle title="Budget" palette={palette} />
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
@@ -159,7 +159,7 @@ export default function BudgetScreen() {
         onClose={() => setShowMonthSheet(false)}
         hasNavBar
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -255,10 +255,10 @@ function BudgetCard({
 
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+            <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, color: palette.listText }}>
               {categoryLabel}
             </Text>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, textAlign: 'right' }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.listText, textAlign: 'right' }}>
               {formatCurrency(budget.amount, sym)}
             </Text>
           </View>

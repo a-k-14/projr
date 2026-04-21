@@ -140,10 +140,10 @@ export default function AddTransactionModal() {
   }, []);
 
   const TYPE_CONFIG = {
-    in: { label: 'In', color: palette.positive, borderColor: palette.positive, bg: palette.inBg },
-    out: { label: 'Out', color: palette.negative, borderColor: palette.negative, bg: palette.outBg },
-    transfer: { label: 'Transfer', color: palette.transferText, borderColor: palette.transferText, bg: palette.transferBg },
-    loan: { label: 'Loan', color: palette.loan, borderColor: palette.loan, bg: palette.loanBg } };
+    in: { label: 'In', color: palette.positive, onColor: palette.onBrand, borderColor: palette.positive, bg: palette.inBg },
+    out: { label: 'Out', color: palette.negative, onColor: palette.onBrand, borderColor: palette.negative, bg: palette.outBg },
+    transfer: { label: 'Transfer', color: palette.transferText, onColor: palette.onBrand, borderColor: palette.transferText, bg: palette.transferBg },
+    loan: { label: 'Loan', color: palette.loan, onColor: palette.onLoan, borderColor: palette.loan, bg: palette.loanBg } };
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
@@ -709,7 +709,7 @@ export default function AddTransactionModal() {
                   activeOpacity={0.75}
                 >
                   <Ionicons name="layers-outline" size={14} color={palette.brand} />
-                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: palette.brand }}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: palette.brand }}>
                     Split
                   </Text>
                 </TouchableOpacity>
@@ -1014,7 +1014,7 @@ export default function AddTransactionModal() {
             alignItems: 'center',
             marginBottom: 12 }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>{actionLabel}</Text>
+          <Text style={{ color: isValid ? activeConfig.onColor : palette.textMuted, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>{actionLabel}</Text>
         </TouchableOpacity>
         {isEditing && (
           <TouchableOpacity delayPressIn={0} onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
@@ -1032,7 +1032,7 @@ export default function AddTransactionModal() {
           onClose={() => setShowAccountSheet(false)}
           headerRight={
             <TouchableOpacity delayPressIn={0} onPress={() => { setShowAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
             </TouchableOpacity>
           }
         >
@@ -1066,7 +1066,7 @@ export default function AddTransactionModal() {
           onClose={() => setShowFromAccountSheet(false)}
           headerRight={
             <TouchableOpacity delayPressIn={0} onPress={() => { setShowFromAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
             </TouchableOpacity>
           }
         >
@@ -1101,7 +1101,7 @@ export default function AddTransactionModal() {
           onClose={() => setShowToAccountSheet(false)}
           headerRight={
             <TouchableOpacity delayPressIn={0} onPress={() => { setShowToAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
             </TouchableOpacity>
           }
         >
@@ -1206,6 +1206,7 @@ export default function AddTransactionModal() {
         palette={palette}
         brandColor={activeConfig.color}
         brandSoft={activeConfig.bg}
+        brandOnColor={activeConfig.onColor}
         onClose={(finalValue) => {
           setShowCalculator(false);
           setAmountStr(formatIndianNumberStr(finalValue));

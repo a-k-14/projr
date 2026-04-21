@@ -16,6 +16,7 @@ import Animated, {
 import { SCREEN_GUTTER } from '../lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
+import { AnimatedText } from './ui/AppText';
 
 export type AccountTab = {
   id: string | 'all';
@@ -194,19 +195,19 @@ function AccountTabItem({
         justifyContent: 'center' }}
     >
       <View style={{ width: '100%', paddingHorizontal: 2 }}>
-        <Animated.Text
+        <AnimatedText
           numberOfLines={1}
           ellipsizeMode="tail"
           style={[
             {
               fontSize: HOME_TEXT.tab,
               lineHeight: 18,
-              fontWeight: '500' },
+              fontWeight: '600' },
             textAnimatedStyle,
           ]}
         >
           {account.name}
-        </Animated.Text>
+        </AnimatedText>
       </View>
     </TouchableOpacity>
   );

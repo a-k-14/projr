@@ -20,6 +20,7 @@ export function ListHeading({
 }) {
   return (
     <Text
+      appWeight="medium"
       style={{
         fontSize: HOME_TEXT.tiny,
         fontWeight: '800',

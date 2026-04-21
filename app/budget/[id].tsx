@@ -101,7 +101,7 @@ export default function BudgetDetailScreen() {
           }
           style={{ padding: 6 }}
         >
-          <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Edit</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Edit</Text>
         </TouchableOpacity>
       </View>
 

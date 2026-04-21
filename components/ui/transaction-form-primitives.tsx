@@ -70,9 +70,10 @@ export function PickerRow({
         alignItems: 'center' }}
     >
       <Text
+        appWeight="medium"
         numberOfLines={1}
         style={{
-          fontSize: HOME_TEXT.bodySmall,
+          fontSize: HOME_TEXT.body,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -133,7 +134,7 @@ export function FieldRow({
         borderBottomWidth: noBorder === false ? 1 : 0,
         borderBottomColor: palette.border }}
     >
-      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
+      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -156,8 +157,9 @@ export function OptionChipRow({
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, minHeight: ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'flex-start', paddingTop: 18, paddingBottom: 14 }}>
       <Text
+        appWeight="medium"
         style={{
-          fontSize: HOME_TEXT.bodySmall,
+          fontSize: HOME_TEXT.body,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -222,8 +224,9 @@ export function InteractiveDateTimeRow({
         alignItems: 'center' }}
     >
       <Text
+        appWeight="medium"
         style={{
-          fontSize: HOME_TEXT.bodySmall,
+          fontSize: HOME_TEXT.body,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -301,9 +304,10 @@ export function AmountRow({
         alignItems: 'center' }}
     >
       <Text
+        appWeight="medium"
         numberOfLines={1}
         style={{
-          fontSize: HOME_TEXT.bodySmall,
+          fontSize: HOME_TEXT.body,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -403,9 +407,10 @@ export function TextInputRow({
         alignItems: 'center' }}
     >
       <Text
+        appWeight="medium"
         numberOfLines={1}
         style={{
-          fontSize: HOME_TEXT.bodySmall,
+          fontSize: HOME_TEXT.body,
           fontWeight: '700',
           color: palette.textMuted,
           width: ROW_LABEL_WIDTH,
@@ -461,7 +466,7 @@ export function NotesSection({
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
-      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
+      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
         Notes
       </Text>
       <TextInput

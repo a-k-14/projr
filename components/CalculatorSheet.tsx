@@ -4,7 +4,12 @@ import { View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheet } from './ui/BottomSheet';
 import { CALCULATOR_DISPLAY_MAX_LINES, getCalculatorDisplayMetrics } from '../lib/calculatorDisplay';
-import { formatIndianNumberStr } from '../lib/derived';
+import {
+  appendCalculatorToken,
+  evaluateCalculatorExpression,
+  getCalculatorPreviewResult,
+  prettifyCalculatorValue,
+} from '../lib/calculatorMath';
 import { SCREEN_GUTTER } from '../lib/design';
 import { AppThemePalette } from '../lib/theme';
 
@@ -14,6 +19,7 @@ interface CalculatorSheetProps {
   palette: AppThemePalette;
   brandColor?: string;
   brandSoft?: string;
+  brandOnColor?: string;
   onClose: (finalValue: string) => void;
 }
 
@@ -30,87 +36,21 @@ export function CalculatorSheet({
   palette,
   brandColor,
   brandSoft,
+  brandOnColor,
   onClose,
 }: CalculatorSheetProps) {
-  const pretty = (val: string) => {
-    if (!val) return '';
-    const segments = val.split(/([+−×÷%*\/%-])/);
-    return segments
-      .map((seg) => {
-        if (/^[0-9.]+$/.test(seg)) {
-          return formatIndianNumberStr(seg);
-        }
-        return seg.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−');
-      })
-      .join('');
-  };
-  const raw = (val: string) => val.replace(/[×]/g, '*').replace(/[÷]/g, '/').replace(/[−]/g, '-').replace(/,/g, '');
-
-  const [display, setDisplay] = useState(pretty(value) || '0');
+  const [display, setDisplay] = useState(prettifyCalculatorValue(value) || '0');
 
   useEffect(() => {
     if (visible) {
-      setDisplay(pretty(value) || '0');
+      setDisplay(prettifyCalculatorValue(value) || '0');
     }
   }, [value, visible]);
 
   if (!visible) return null;
 
-  const evaluateExpression = (input: string) => {
-    let expr = input.trim();
-    if (!expr || expr === '0') return '0';
-    expr = expr.replace(/[+−×÷]+$/, '');
-    if (!expr) return '0';
-    try {
-      const normalized = raw(expr).replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
-      const safe = normalized.replace(/[^0-9+\-*/().\s]/g, '');
-      const result = Function(`"use strict"; return (${safe});`)();
-      return Number.isFinite(result)
-        ? String(Number.parseFloat(Number(result).toFixed(10)))
-        : raw(expr);
-    } catch {
-      return raw(expr);
-    }
-  };
-
-  const getPreviewResult = (input: string) => {
-    const expr = input.trim();
-    if (!/[+−×÷%*/-]/.test(expr)) return null;
-    if (/[+−×÷]$/.test(expr)) return null;
-
-    const result = evaluateExpression(expr);
-    if (!result || result === raw(expr)) return null;
-    return pretty(result);
-  };
-
   const appendToken = (token: string) => {
-    setDisplay((current) => {
-      const operators = ['+', '−', '×', '÷', '%'];
-      const isNewTokenOperator = operators.includes(token);
-      const lastChar = current.slice(-1);
-      const isLastCharOperator = operators.includes(lastChar);
-      let base = current;
-
-      if (isNewTokenOperator) {
-        if (isLastCharOperator) {
-          base = current.slice(0, -1);
-        } else if (lastChar === '.') {
-          base = current.slice(0, -1);
-        }
-      } else if (token === '.') {
-        const parts = current.split(/[+−×÷%]/);
-        const lastPart = parts[parts.length - 1];
-        if (lastPart.includes('.')) return current;
-        if (isLastCharOperator || !current || current === '0') {
-          base = current === '0' ? '' : current;
-          return `${base}0.`;
-        }
-      }
-      if (base === '0' && /[0-9.]/.test(token)) {
-        base = '';
-      }
-      return `${base}${token}`;
-    });
+    setDisplay((current) => appendCalculatorToken(current, token));
   };
 
   const backspace = () => {
@@ -120,14 +60,14 @@ export function CalculatorSheet({
     });
   };
 
-  const evaluate = () => evaluateExpression(display);
+  const evaluate = () => evaluateCalculatorExpression(display);
 
   const handleDone = () => {
     const final = evaluate();
     onClose(final);
   };
   const displayMetrics = getCalculatorDisplayMetrics(display, 36);
-  const previewResult = getPreviewResult(display);
+  const previewResult = getCalculatorPreviewResult(display);
 
   return (
     <BottomSheet
@@ -181,6 +121,7 @@ export function CalculatorSheet({
                   onPress={() => appendToken(label)}
                   palette={palette}
                   brandSoft={brandSoft}
+                  brandOnColor={brandOnColor}
                 />
               ))}
             </View>
@@ -188,12 +129,19 @@ export function CalculatorSheet({
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <CalcButton label="C" onPress={() => setDisplay('0')} palette={palette} />
             <CalcButton label="⌫" onPress={backspace} palette={palette} />
-            <CalcButton label="=" onPress={() => setDisplay(pretty(evaluate()))} palette={palette} brandSoft={brandSoft} />
+            <CalcButton
+              label="="
+              onPress={() => setDisplay(prettifyCalculatorValue(evaluate()))}
+              palette={palette}
+              brandSoft={brandSoft}
+              brandOnColor={brandOnColor}
+            />
             <CalcButton
               label="OK"
               onPress={handleDone}
               palette={palette}
               brandColor={brandColor}
+              brandOnColor={brandOnColor}
               primary
             />
           </View>
@@ -210,6 +158,7 @@ function CalcButton({
   primary,
   brandColor,
   brandSoft,
+  brandOnColor,
 }: {
   label: string;
   onPress: () => void;
@@ -217,6 +166,7 @@ function CalcButton({
   primary?: boolean;
   brandColor?: string;
   brandSoft?: string;
+  brandOnColor?: string;
 }) {
   const isOperator = ['÷', '×', '−', '+', '%', '='].includes(label);
   const isAction = ['C', '⌫', 'OK'].includes(label);
@@ -244,13 +194,13 @@ function CalcButton({
       }}
     >
       {label === '⌫' ? (
-        <Ionicons name="backspace-outline" size={22} color={primary ? palette.onBrand : palette.text} />
+        <Ionicons name="backspace-outline" size={22} color={primary ? (brandOnColor || palette.onBrand) : palette.text} />
       ) : (
         <Text
           style={{
             fontSize: label === 'OK' ? 16 : 18,
             fontWeight: '700',
-            color: primary ? palette.onBrand : palette.text,
+            color: primary ? (brandOnColor || palette.onBrand) : palette.text,
           }}
         >
           {label}

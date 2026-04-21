@@ -215,6 +215,7 @@ export default function BudgetFormModal() {
         palette={palette}
         brandColor={palette.budget}
         brandSoft={palette.budgetSoft}
+        brandOnColor={palette.onBudget}
         onClose={(finalValue) => {
           setShowCalculator(false);
           setAmountStr(formatIndianNumberStr(finalValue));

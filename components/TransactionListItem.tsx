@@ -87,10 +87,10 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     const loanLabel = loanDirection ? getLoanDisplayLabel(loanDirection, cashflowImpact).replace(/^Loan - /, '') : 'Loan';
     title = 'Loan';
     titleSecondaryText = loanLabel;
-    subtitle = [loanPersonName, accountNameSelected].filter(Boolean).join(' · ');
+    subtitle = [accountNameSelected, loanPersonName].filter(Boolean).join(' · ');
   } else if (tx.type === 'in' || tx.type === 'out') {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
-    subtitle = [tx.payee, accountNameSelected].filter(Boolean).join(' · ');
+    subtitle = [accountNameSelected, tx.payee].filter(Boolean).join(' · ');
     noteLine = tx.note?.trim() || undefined;
   }
 
@@ -100,6 +100,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const amountColor = useTypeAmountColor
     ? (balanceDelta > 0 ? palette.brand : balanceDelta < 0 ? palette.negative : palette.text)
     : palette.text;
+  const displayAmountColor = amountColor === palette.text ? palette.listText : amountColor;
   const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && category?.icon ? category.icon : null;
   const iconName =
     tx.type === 'loan'
@@ -145,10 +146,10 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       </View>
 
       <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, marginBottom: 2 }}>
+        <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.listText, marginBottom: 2 }}>
           {title}
           {titleSecondaryText ? (
-            <Text style={{ color: palette.text, fontWeight: '500' }}>
+            <Text appWeight="medium" style={{ color: palette.listText }}>
               {' '}
               {'\u2022'} {titleSecondaryText}
             </Text>
@@ -180,7 +181,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       </View>
 
       <View style={{ alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'center', paddingVertical: 1 }}>
-        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: amountColor }}>
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: displayAmountColor }}>
           {amountPrefix ? `${amountPrefix} ${formatCurrency(amountValue, sym)}` : formatCurrency(amountValue, sym)}
         </Text>
       </View>

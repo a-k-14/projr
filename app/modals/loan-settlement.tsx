@@ -206,7 +206,7 @@ export default function LoanSettlementModal() {
             alignItems: 'center',
             marginBottom: 12 }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>
+          <Text style={{ color: isValid ? palette.onLoan : palette.textMuted, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>
             {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           </Text>
         </TouchableOpacity>
@@ -253,6 +253,7 @@ function FieldRow({ label, children, palette }: { label: string; children: React
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, minHeight: ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}>
       <Text
+        appWeight="medium"
         numberOfLines={1}
         style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, width: ROW_LABEL_WIDTH, paddingRight: ROW_COLUMN_GAP }}
       >

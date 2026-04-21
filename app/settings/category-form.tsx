@@ -277,6 +277,7 @@ export default function CategoryFormScreen() {
                 >
                   <Feather name="plus" size={14} color={palette.brand} />
                   <Text
+                    appWeight="medium"
                     style={{
                       fontSize: TYPE.rowValue,
                       fontWeight: '600',

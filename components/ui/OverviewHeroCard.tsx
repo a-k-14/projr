@@ -64,12 +64,12 @@ export function OverviewHeroCard({
           <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: '400' }}>
             {eyebrow}
           </Text>
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginTop: HOME_SPACE.xs }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginTop: HOME_SPACE.xs }}>
             {title}
           </Text>
         </View>
         <View style={[styles.pill, { backgroundColor: badgeBg }]}>
-          <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: badgeColor }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: badgeColor }}>
             {badgeLabel}
           </Text>
         </View>
@@ -79,8 +79,8 @@ export function OverviewHeroCard({
         {metrics.map((metric, index) => (
           <View key={metric.key} style={[styles.metricBlock, index > 0 ? { marginLeft: HOME_SPACE.md } : null]}>
             {index > 0 ? <View style={[styles.metricDivider, { backgroundColor: palette.divider }]} /> : null}
-            <Text style={styles.metricLabel(palette)}>{metric.label}</Text>
-            <Text style={styles.metricValue(metric.valueColor ?? palette.text)}>{metric.value}</Text>
+            <Text appWeight="medium" style={styles.metricLabel(palette)}>{metric.label}</Text>
+            <Text appWeight="medium" style={styles.metricValue(metric.valueColor ?? palette.text)}>{metric.value}</Text>
           </View>
         ))}
       </View>
@@ -106,10 +106,10 @@ export function OverviewHeroCard({
       ) : null}
 
       <View style={[styles.footer, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
           {footerLabel}
         </Text>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: footerValueColor }}>
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: footerValueColor }}>
           {footerValue}
         </Text>
       </View>

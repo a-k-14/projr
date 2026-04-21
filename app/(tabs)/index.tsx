@@ -1,10 +1,11 @@
+import { Text } from '@/components/ui/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { LayoutChangeEvent,
+import {
+  LayoutChangeEvent,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -13,10 +14,11 @@ import { LayoutChangeEvent,
   ScrollView,
   TouchableOpacity,
   useWindowDimensions,
-  View } from 'react-native';
+  View
+} from 'react-native';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedRef, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTabBar } from '../../components/AccountTabBar';
 import { ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
@@ -48,13 +50,13 @@ import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytic
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type {
   CashflowSummary,
   DailyCashflow,
   PeriodType,
-  Transaction,
-  TransactionType
+  Transaction
 } from '../../types';
 
 const PERIODS: PeriodType[] = ['week', 'month', 'year', 'custom'];
@@ -181,9 +183,8 @@ export default function HomeScreen() {
 
   if (accounts.length === 0) {
     return (
-      <SafeAreaView
-        edges={['top']}
-        style={{ flex: 1, backgroundColor: palette.background }}
+      <View
+        style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}
       >
         <View
           style={{
@@ -246,14 +247,13 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={{ flex: 1, backgroundColor: palette.background }}
+    <View
+      style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}
     >
       <AccountTabBar
         accounts={displayAccounts}
@@ -422,7 +422,7 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -449,7 +449,11 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     isSelected: boolean;
   }) {
   const { palette } = useAppTheme();
-  const getCategoryDisplayName = useCategoriesStore((s) => s.getCategoryDisplayName);
+  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
+  const accounts = useAccountsStore((s) => s.accounts);
+  const loans = useLoansStore((s) => s.loans);
+  const loansLoaded = useLoansStore((s) => s.isLoaded);
+  const loadLoans = useLoansStore((s) => s.load);
   const [period, setPeriod] = useState<PeriodType>('week');
   const [activeView, setActiveView] = useState<'out' | 'in' | 'table'>('out');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
@@ -517,6 +521,11 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     if (!isScreenFocused || !isSelected) return;
     loadPageData();
   }, [isScreenFocused, isSelected, loadPageData]);
+
+  useEffect(() => {
+    if (!isScreenFocused || !isSelected || loansLoaded) return;
+    loadLoans().catch(() => undefined);
+  }, [isScreenFocused, isSelected, loadLoans, loansLoaded]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -599,19 +608,20 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
         contentContainerStyle={{ flexGrow: 1, paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SURFACE.heroTop + 8, paddingBottom: HOME_SURFACE.heroBottom }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: HOME_SPACE.lg }}>
-              <Text style={{ fontSize: HOME_TEXT.heroLabel, color: palette.text, fontWeight: '700' }}>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.heroLabel, color: palette.text, fontWeight: '600' }}>
                 {accountId === 'all' ? 'All Accounts' : accountName}
               </Text>
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>Current Balance</Text>
             </View>
             <Text
+              appWeight="medium"
               style={{
-                fontSize: HOME_TEXT.heroValue,
-                lineHeight: 36,
-                fontWeight: '600',
+                fontSize: HOME_TEXT.heroValue - 2,
+                lineHeight: 33,
+                fontWeight: '700',
                 color: palette.text,
                 textAlign: 'right',
                 flexShrink: 1
@@ -620,16 +630,16 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               {totalBalance < 0 ? '-' : ''}{formatCurrency(Math.abs(totalBalance), currencySymbol)}
             </Text>
           </View>
-          <View style={{ height: 1, backgroundColor: palette.borderSoft, marginTop: HOME_SURFACE.heroDividerTop, marginBottom: HOME_SURFACE.heroDividerBottom }} />
+          <View style={{ height: 1, backgroundColor: palette.borderSoft, marginTop: 22, marginBottom: 18 }} />
         </View>
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>
               {formatDate(today)}
             </Text>
-            <InlineDot size={3} color={palette.todayDot} />
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>Today</Text>
+            <InlineDot size={3} color={palette.textMuted} />
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted }}>Today</Text>
           </View>
           <SummaryCard
             cashflow={todayCashflow}
@@ -639,7 +649,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 6 }}>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginRight: 12 }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginRight: 12 }}>
               This
             </Text>
             <View
@@ -674,6 +684,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                   }}
                 >
                   <Text
+                    appWeight="medium"
                     style={{
                       fontSize: HOME_TEXT.caption,
                       fontWeight: period === value ? '700' : '600',
@@ -692,7 +703,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             </View>
           </View>
 
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 14 }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 14 }}>
             {formatDate(from)} - {formatDate(to)}
           </Text>
 
@@ -722,7 +733,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 gap: 6
               }}
             >
-              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
                 {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow'}
               </Text>
               <Ionicons name="chevron-down" size={16} color={palette.textMuted} />
@@ -911,7 +922,18 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             )}
           </View>
 
-          <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, paddingTop: HOME_SURFACE.cardPaddingY, paddingBottom: 4, marginBottom: HOME_SPACE.pageBottom }}>
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: HOME_RADIUS.card,
+              borderWidth: 1,
+              borderColor: palette.border,
+              paddingTop: HOME_SURFACE.cardPaddingY,
+              paddingBottom: 4,
+              marginBottom: HOME_SPACE.pageBottom,
+              overflow: 'hidden',
+            }}
+          >
             <View
               style={{
                 flexDirection: 'row',
@@ -921,7 +943,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 paddingHorizontal: CARD_PADDING
               }}
             >
-              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
               <TouchableOpacity delayPressIn={0}
                 onPress={() =>
                   router.navigate({
@@ -934,7 +956,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                   })
                 }
               >
-                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '600' }}>View all</Text>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '600' }}>View all</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -956,7 +978,12 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                       sym={currencySymbol}
                       palette={palette}
                       isLast={index === transactions.length - 1}
-                      categoryName={transaction.categoryId ? getCategoryDisplayName(transaction.categoryId) : undefined}
+                      categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
+                      accountName={accounts.find((account) => account.id === transaction.accountId)?.name}
+                      linkedAccountName={transaction.linkedAccountId ? accounts.find((account) => account.id === transaction.linkedAccountId)?.name : undefined}
+                      loanPersonName={transaction.loanId ? loans.find((loan) => loan.id === transaction.loanId)?.personName : undefined}
+                      loanDirection={transaction.loanId ? loans.find((loan) => loan.id === transaction.loanId)?.direction : undefined}
+                      showAmountSign={false}
                       onPress={handleTransactionPress}
                     />
                   );

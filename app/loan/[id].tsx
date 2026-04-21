@@ -96,7 +96,7 @@ export default function LoanDetailScreen() {
             router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
           }}
         >
-          <Text style={{ color: palette.brand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+          <Text appWeight="medium" style={{ color: palette.brand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
             Edit
           </Text>
         </TouchableOpacity>

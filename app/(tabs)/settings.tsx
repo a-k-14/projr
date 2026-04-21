@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Keyboard, ScrollView, Switch, View, Alert, TouchableWithoutFeedback } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../stores/useUIStore';
@@ -33,6 +33,7 @@ export default function SettingsScreen() {
   const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
   const loadCategories = useCategoriesStore((s) => s.load);
   const { palette } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [picker, setPicker] = useState<PickerKind>(null);
 
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       <ScreenTitle title="Settings" palette={palette} />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
@@ -305,7 +306,7 @@ export default function SettingsScreen() {
             : null}
         </BottomSheet>
       ) : null}
-    </SafeAreaView>
+    </View>
   );
 }
 

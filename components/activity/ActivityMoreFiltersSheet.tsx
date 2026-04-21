@@ -91,7 +91,7 @@ export function ActivityMoreFiltersSheet({
           hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
           style={styles.clearAllButton}
         >
-          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
         </TouchableOpacity>
       }
     >

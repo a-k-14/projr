@@ -130,7 +130,7 @@ export default function SplitTransactionModal() {
           <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
             <TouchableOpacity delayPressIn={0} onPress={addRow} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Ionicons name="add" size={14} color={palette.brand} />
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Add Line Item</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Add Line Item</Text>
             </TouchableOpacity>
           </View>
 

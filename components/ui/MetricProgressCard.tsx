@@ -51,6 +51,7 @@ export function MetricProgressCard({
             }}
           >
             <Text
+              appWeight="medium"
               style={{
                 fontSize: HOME_TEXT.tiny,
                 color: palette.textMuted,
@@ -61,6 +62,7 @@ export function MetricProgressCard({
               {item.label}
             </Text>
             <Text
+              appWeight="medium"
               style={{
                 fontSize: HOME_TEXT.heroLabel,
                 fontWeight: '700',
@@ -99,10 +101,10 @@ export function MetricProgressCard({
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, color: footerLeft.color ?? palette.textSecondary }}>
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: footerLeft.color ?? palette.textSecondary }}>
           {footerLeft.text}
         </Text>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, color: footerRight.color ?? palette.textSecondary }}>
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: footerRight.color ?? palette.textSecondary }}>
           {footerRight.text}
         </Text>
       </View>

@@ -19,7 +19,6 @@ import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/se
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 import { SecurityGuard } from '../components/SecurityGuard';
-import { useFonts } from 'expo-font';
 
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
@@ -28,11 +27,6 @@ export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const { palette } = useAppTheme();
-
-  const [fontsLoaded, fontError] = useFonts({
-    'Geist-Regular': require('../assets/fonts/Geist-Regular.ttf'),
-    'Geist-Bold': require('../assets/fonts/Geist-Bold.ttf'),
-  });
 
   const init = useCallback(async () => {
     setReady(false);
@@ -69,18 +63,8 @@ export default function RootLayout() {
   }, [init]);
 
   useEffect(() => {
-    if (fontError) {
-      console.warn("Failed to load custom fonts:", fontError);
-    }
-  }, [fontError]);
-
-  useEffect(() => {
     NavigationBar.setButtonStyleAsync(palette.navigationButtonStyle).catch(() => undefined);
   }, [palette.navigationButtonStyle]);
-
-  if (!fontsLoaded && !fontError) {
-    return null; // Keep splash screen visible until fonts load
-  }
 
   if (initError) {
     return (
