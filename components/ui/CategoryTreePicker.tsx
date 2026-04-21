@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { LayoutAnimation, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
@@ -14,10 +15,11 @@ type PickerCategory = {
   icon?: string | null;
 };
 
-type PickerSection = {
+export type PickerSection = {
   parent: PickerCategory;
   children: PickerCategory[];
   filteredChildren: PickerCategory[];
+  hasSearchMatch?: boolean;
 };
 
 export const CATEGORY_TREE_ROW = {
@@ -25,6 +27,47 @@ export const CATEGORY_TREE_ROW = {
   childMinHeight: 52,
   rowGap: 12,
   childIndent: CARD_PADDING + 40 } as const;
+
+export function buildCategoryPickerSections<T extends PickerCategory & { parentId?: string | null; type?: string }>({
+  categories,
+  search,
+  parentFilter,
+  childFilter,
+  requireChildren = false,
+}: {
+  categories: T[];
+  search: string;
+  parentFilter?: (category: T) => boolean;
+  childFilter?: (category: T, parent: T) => boolean;
+  requireChildren?: boolean;
+}): PickerSection[] {
+  const normalizedSearch = search.trim().toLowerCase();
+  const parents = categories
+    .filter((category) => category.parentId == null && (!parentFilter || parentFilter(category)))
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+
+  return parents
+    .map((parent) => {
+      const children = categories
+        .filter((category) => category.parentId === parent.id && (!childFilter || childFilter(category, parent)))
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+      const filteredChildren = children.filter((child) => {
+        if (!normalizedSearch) return true;
+        return `${parent.name} ${child.name}`.toLowerCase().includes(normalizedSearch);
+      });
+
+      return {
+        parent,
+        children,
+        filteredChildren,
+        hasSearchMatch: filteredChildren.length > 0 || parent.name.toLowerCase().includes(normalizedSearch),
+      };
+    })
+    .filter((section) => !requireChildren || section.children.length > 0)
+    .filter((section) => !normalizedSearch || section.hasSearchMatch);
+}
 
 export function CategoryIconBadge({
   icon,
@@ -93,14 +136,6 @@ export function CategoryTreePicker({
 }) {
   const insets = useSafeAreaInsets();
 
-  const toggleParent = (id: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    const next = new Set(expandedParentIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setExpandedParentIds(next);
-  };
-
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
@@ -115,30 +150,139 @@ export function CategoryTreePicker({
             <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
           </TouchableOpacity>
         </View>
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 12 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: palette.surface,
-              borderRadius: 16,
-              paddingHorizontal: CARD_PADDING,
-              borderWidth: 1,
-              borderColor: palette.divider }}
-          >
-            <Feather name="search" size={16} color={palette.textMuted} />
-            <TextInput
-              value={search}
-              onChangeText={onSearchChange}
-              placeholder={searchPlaceholder}
-              placeholderTextColor={palette.textMuted}
-              style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: HOME_TEXT.sectionTitle, color: palette.text }}
-            />
-          </View>
-        </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+      <CategoryTreePickerContent
+        search={search}
+        onSearchChange={onSearchChange}
+        searchPlaceholder={searchPlaceholder}
+        sections={sections}
+        selectedCategoryId={selectedCategoryId}
+        expandedParentIds={expandedParentIds}
+        setExpandedParentIds={setExpandedParentIds}
+        onSelect={onSelect}
+        palette={palette}
+        emptyMessage={emptyMessage}
+        contentBottomPadding={insets.bottom + 24}
+      />
+    </View>
+  );
+}
+
+export function CategoryTreePickerContent({
+  search,
+  onSearchChange,
+  searchPlaceholder,
+  sections,
+  selectedCategoryId,
+  expandedParentIds,
+  setExpandedParentIds,
+  onSelect,
+  palette,
+  emptyMessage,
+  maxListHeight,
+  contentBottomPadding = 24,
+}: {
+  search: string;
+  onSearchChange: (value: string) => void;
+  searchPlaceholder: string;
+  sections: PickerSection[];
+  selectedCategoryId?: string;
+  expandedParentIds: Set<string>;
+  setExpandedParentIds: (value: Set<string>) => void;
+  onSelect: (id: string) => void;
+  palette: AppThemePalette;
+  emptyMessage?: string;
+  maxListHeight?: number;
+  contentBottomPadding?: number;
+}) {
+  return (
+    <View style={{ flex: 1 }}>
+      <CategorySearchBox
+        search={search}
+        onSearchChange={onSearchChange}
+        placeholder={searchPlaceholder}
+        palette={palette}
+      />
+
+      <ScrollView style={maxListHeight ? { maxHeight: maxListHeight } : undefined} contentContainerStyle={{ paddingBottom: contentBottomPadding }} keyboardShouldPersistTaps="handled">
+        <CategoryTreeList
+          sections={sections}
+          selectedCategoryId={selectedCategoryId}
+          expandedParentIds={expandedParentIds}
+          setExpandedParentIds={setExpandedParentIds}
+          onSelect={onSelect}
+          palette={palette}
+          emptyMessage={emptyMessage}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
+export function CategorySearchBox({
+  search,
+  onSearchChange,
+  placeholder,
+  palette,
+}: {
+  search: string;
+  onSearchChange: (value: string) => void;
+  placeholder: string;
+  palette: AppThemePalette;
+}) {
+  return (
+    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 12 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: palette.surface,
+          borderRadius: 16,
+          paddingHorizontal: CARD_PADDING,
+          borderWidth: 1,
+          borderColor: palette.divider }}
+      >
+        <Feather name="search" size={16} color={palette.textMuted} />
+        <TextInput
+          value={search}
+          onChangeText={onSearchChange}
+          placeholder={placeholder}
+          placeholderTextColor={palette.textMuted}
+          style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: HOME_TEXT.sectionTitle, color: palette.text }}
+        />
+      </View>
+    </View>
+  );
+}
+
+export function CategoryTreeList({
+  sections,
+  selectedCategoryId,
+  expandedParentIds,
+  setExpandedParentIds,
+  onSelect,
+  palette,
+  emptyMessage = 'No categories found',
+}: {
+  sections: PickerSection[];
+  selectedCategoryId?: string;
+  expandedParentIds: Set<string>;
+  setExpandedParentIds: (value: Set<string>) => void;
+  onSelect: (id: string) => void;
+  palette: AppThemePalette;
+  emptyMessage?: string;
+}) {
+  const toggleParent = (id: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const next = new Set(expandedParentIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setExpandedParentIds(next);
+  };
+
+  return (
+    <View>
         {sections.length > 0 ? (
           <CardSection palette={palette}>
             {sections.map(({ parent, children, filteredChildren }, index) => {
@@ -238,7 +382,6 @@ export function CategoryTreePicker({
             <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted }}>{emptyMessage}</Text>
           </View>
         )}
-      </ScrollView>
     </View>
   );
 }

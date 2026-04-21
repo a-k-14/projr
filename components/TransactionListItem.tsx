@@ -1,6 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Text, View , TouchableOpacity} from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { View , TouchableOpacity } from 'react-native';
 import { formatCurrency, getLoanDisplayLabel, getTransactionBalanceDelta, getTransactionCashflowImpact } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';

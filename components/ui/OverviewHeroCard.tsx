@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { View } from 'react-native';
 import { CARD_PADDING } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';

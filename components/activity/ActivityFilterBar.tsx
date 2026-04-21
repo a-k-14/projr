@@ -1,6 +1,7 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { ScrollView, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { FilterChip } from '../ui/FilterChip';
 import { ACTIVITY_LAYOUT, CARD_PADDING, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Text } from '@/components/ui/AppText';
 import { Alert,
   Image,
   InteractionManager,
@@ -10,16 +10,17 @@ import { Alert,
   Modal,
   Platform,
   ScrollView,
-  Text,
-  
+  StyleSheet,
   View,
-  LayoutAnimation , TouchableOpacity} from 'react-native';
+  LayoutAnimation , TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
+import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
 import {
   AmountRow,
   FieldRow,
@@ -103,6 +104,7 @@ export default function AddTransactionModal() {
   const [receiptImageUris, setReceiptImageUris] = useState<string[]>([]);
   const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false);
   const [receiptPreviewIndex, setReceiptPreviewIndex] = useState(0);
+  const [showReceiptSheet, setShowReceiptSheet] = useState(false);
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loanEditMode, setLoanEditMode] = useState<'new' | 'origin' | 'settlement'>('new');
@@ -112,9 +114,10 @@ export default function AddTransactionModal() {
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showFromAccountSheet, setShowFromAccountSheet] = useState(false);
   const [showToAccountSheet, setShowToAccountSheet] = useState(false);
+  const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time' | 'datetime'>('date');
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const [payeeSuggestions, setPayeeSuggestions] = useState<string[]>([]);
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -564,17 +567,31 @@ export default function AddTransactionModal() {
 
   const openReceiptPicker = () => {
     runAfterKeyboardDismiss(() => {
-      Alert.alert('Receipt image', 'Attach a receipt to this transaction.', [
-        { text: 'Take Photo', onPress: () => void takeReceiptPhoto() },
-        { text: 'Choose Photo', onPress: () => void chooseReceiptImage() },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
+      setShowReceiptSheet(true);
     });
   };
 
   const openReceiptPreview = (index: number) => {
     setReceiptPreviewIndex(index);
     setReceiptPreviewOpen(true);
+  };
+
+  const openCategorySheet = () => {
+    runAfterKeyboardDismiss(() => {
+      setDraftCategoryId(categoryId);
+      setShowCategorySheet(true);
+    });
+  };
+
+  const selectCategoryFromSheet = (id: string) => {
+    setCategoryId(id);
+    setDraftCategoryId(id);
+    setShowCategorySheet(false);
+  };
+
+  const openCategoryManagerFromSheet = () => {
+    setShowCategorySheet(false);
+    router.push('/settings/categories');
   };
 
   const removeReceiptAtIndex = (index: number) => {
@@ -587,54 +604,14 @@ export default function AddTransactionModal() {
 
   const openDate = () => {
     Keyboard.dismiss();
-    const current = new Date(date);
-
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: current,
-        mode: 'date',
-        display: 'calendar',
-        onChange: (_event, selectedDate) => {
-          if (selectedDate) {
-            const final = new Date(date);
-            final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-            setDate(final.toISOString());
-          }
-        } });
-    } else {
-      setPickerMode('date');
-      setShowDatePicker(true);
-    }
+    setPickerMode('date');
+    setShowDatePicker(true);
   };
 
   const openTime = () => {
     Keyboard.dismiss();
-    const current = new Date(date);
-
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: current,
-        mode: 'time',
-        display: 'clock',
-        is24Hour: false,
-        onChange: (event, selectedTime) => {
-          if (selectedTime) {
-            const final = new Date(date);
-            final.setHours(selectedTime.getHours());
-            final.setMinutes(selectedTime.getMinutes());
-            setDate(final.toISOString());
-          }
-        } });
-    } else {
-      setPickerMode('time');
-      setShowDatePicker(true);
-    }
-  };
-
-  const onDateChange = (_event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'ios' && selectedDate) {
-      setDate(selectedDate.toISOString());
-    }
+    setPickerMode('time');
+    setShowDatePicker(true);
   };
 
   return (
@@ -754,14 +731,7 @@ export default function AddTransactionModal() {
                   value={getCategoryName(categories, categoryId)}
                   placeholder={!categoryId}
                   palette={palette}
-                  onPress={() =>
-                    runAfterKeyboardDismiss(() => {
-                      setDraftCategoryId(categoryId);
-                      router.push({
-                        pathname: '/modals/select-category',
-                        params: { type } });
-                    })
-                  }
+                  onPress={openCategorySheet}
                 />
               )}
               <TextInputRow
@@ -1159,6 +1129,18 @@ export default function AddTransactionModal() {
         </BottomSheet>
       ) : null}
 
+      {showCategorySheet ? (
+        <CategoryPickerSheet
+          categories={categories}
+          transactionType={type}
+          selectedCategoryId={categoryId}
+          palette={palette}
+          onClose={() => setShowCategorySheet(false)}
+          onManage={openCategoryManagerFromSheet}
+          onSelect={selectCategoryFromSheet}
+        />
+      ) : null}
+
       {showTagSheet ? (
         <BottomSheet
           title="Select tags"
@@ -1208,24 +1190,15 @@ export default function AddTransactionModal() {
           )}
         </BottomSheet>
       ) : null}
-      {showDatePicker && (
-        <BottomSheet
-          title={pickerMode === 'date' ? 'Select Date' : 'Select Time'}
-          palette={palette}
-          onClose={() => setShowDatePicker(false)}
-        >
-          <View style={{ height: 260, justifyContent: 'center' }}>
-            <DateTimePicker
-              value={new Date(date)}
-              mode={pickerMode}
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={onDateChange}
-              textColor={palette.text}
-              accentColor={palette.tabActive}
-            />
-          </View>
-        </BottomSheet>
-      )}
+      <DateTimePickerPopup
+        visible={showDatePicker}
+        mode={pickerMode}
+        value={new Date(date)}
+        palette={palette}
+        accentColor={activeConfig.color}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={(nextDate) => setDate(nextDate.toISOString())}
+      />
 
       <CalculatorSheet
         visible={showCalculator}
@@ -1238,6 +1211,52 @@ export default function AddTransactionModal() {
           setAmountStr(formatIndianNumberStr(finalValue));
         }}
       />
+
+      {showReceiptSheet && (
+        <Modal visible={showReceiptSheet} transparent animationType="fade" onRequestClose={() => setShowReceiptSheet(false)}>
+          <View style={{ flex: 1, backgroundColor: palette.scrimHeavy, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+            <TouchableOpacity style={{ ...StyleSheet.absoluteFillObject }} onPress={() => setShowReceiptSheet(false)} />
+            <View style={{ width: '100%', backgroundColor: palette.card, borderRadius: 24, overflow: 'hidden', elevation: 12, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }}>
+              <View style={{ padding: 24, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: palette.border }}>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '700', marginBottom: 6 }}>Receipt image</Text>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, textAlign: 'center' }}>Attach a receipt to this transaction</Text>
+              </View>
+              <TouchableOpacity
+                delayPressIn={0}
+                onPress={() => {
+                  setShowReceiptSheet(false);
+                  void takeReceiptPhoto();
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: palette.border, backgroundColor: palette.surface, gap: 10 }}
+              >
+                <Ionicons name="camera" size={24} color={palette.brand} />
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '600' }}>Take Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                delayPressIn={0}
+                onPress={() => {
+                  setShowReceiptSheet(false);
+                  void chooseReceiptImage();
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, backgroundColor: palette.surface, gap: 10 }}
+              >
+                <Ionicons name="image" size={24} color={palette.brand} />
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '600' }}>Choose Photo</Text>
+              </TouchableOpacity>
+              <View style={{ padding: 16, backgroundColor: palette.surface }}>
+                <TouchableOpacity
+                  delayPressIn={0}
+                  onPress={() => setShowReceiptSheet(false)}
+                  style={{ paddingVertical: 14, alignItems: 'center', backgroundColor: palette.inputBg, borderRadius: 12 }}
+                >
+                  <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: '700' }}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       <Modal
         visible={receiptPreviewOpen}
         animationType="fade"

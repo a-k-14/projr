@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Platform, Text, TextInput, View , TouchableOpacity} from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { Platform, TextInput, View , TouchableOpacity } from 'react-native';
 import { formatDate } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -321,7 +322,7 @@ export function AmountRow({
           <TextInput
             value={amountStr}
             onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
-            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
+            keyboardType="decimal-pad"
             placeholder="0"
             placeholderTextColor={palette.textSoft}
             editable={editable}

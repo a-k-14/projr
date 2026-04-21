@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, View , TouchableOpacity} from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { StyleSheet, View , TouchableOpacity } from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 

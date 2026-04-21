@@ -1,21 +1,17 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  Animated,
+import { Text } from '@/components/ui/AppText';
+import { Animated,
   BackHandler,
   Dimensions,
   PanResponder,
   Pressable,
   StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+  View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER } from '../../lib/design';
 import type { AppThemePalette } from '../../lib/theme';
-
-const MAX_HEIGHT_RATIO = 0.75;
 const OPEN_ANIMATION_DURATION_MS = 150;
 const CLOSE_ANIMATION_DURATION_MS = 140;
 const BACKDROP_COLOR = 'rgb(0,0,0)';
@@ -63,6 +59,9 @@ export function BottomSheet({
   extraBottomPadding = 0,
   scrollEnabled = true,
   disableModalHeightBoost = false,
+  headerBottom,
+  maxHeightRatio,
+  fixedHeightRatio,
 }: {
   title: string;
   subtitle?: string;
@@ -77,12 +76,15 @@ export function BottomSheet({
   extraBottomPadding?: number;
   scrollEnabled?: boolean;
   disableModalHeightBoost?: boolean;
+  headerBottom?: ReactNode;
+  maxHeightRatio?: number;
+  fixedHeightRatio?: number;
 }) {
   const { height: screenHeight } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
 
-  const maxSheetHeight = screenHeight * MAX_HEIGHT_RATIO;
+  const maxSheetHeight = screenHeight * (maxHeightRatio ?? 0.75);
   const bottomInset = hasNavBar ? 0 : insets.bottom;
   const bottomOffset = extraBottomPadding + bottomInset;
   // Boost should ONLY include manual extra padding now, as bottomInset is handled by outer container padding
@@ -96,11 +98,14 @@ export function BottomSheet({
   const footerHeight = useRef(0);
 
   const commitHeight = useCallback(() => {
-    const nextHeight = Math.min(headerHeight.current + contentHeight.current + footerHeight.current + modalHeightBoost, maxSheetHeight);
+    let nextHeight = Math.min(headerHeight.current + contentHeight.current + footerHeight.current + modalHeightBoost, maxSheetHeight);
+    if (fixedHeightRatio) {
+       nextHeight = maxSheetHeight;
+    }
     if (nextHeight > 0) {
       sheetHeight.setValue(nextHeight);
     }
-  }, [maxSheetHeight, modalHeightBoost, sheetHeight]);
+  }, [maxSheetHeight, modalHeightBoost, sheetHeight, fixedHeightRatio]);
 
   useEffect(() => {
     Animated.parallel([
@@ -236,12 +241,16 @@ export function BottomSheet({
                   ) : null}
                 </View>
               ) : null}
+              {headerBottom}
             </View>
 
             {scrollEnabled ? (
               <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: CONTENT_PADDING_BOTTOM }}
+                contentContainerStyle={[
+                  { paddingBottom: CONTENT_PADDING_BOTTOM },
+                  fixedHeightRatio ? { flexGrow: 1 } : null
+                ]}
                 showsVerticalScrollIndicator
                 keyboardShouldPersistTaps="handled"
                 onContentSizeChange={(_, h) => {

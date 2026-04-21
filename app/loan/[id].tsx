@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
+import { Text } from '@/components/ui/AppText';
 import { View,
-  Text,
   ScrollView,
   
   Alert,
   KeyboardAvoidingView,
-  Platform , TouchableOpacity} from 'react-native';
+  Platform , TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';

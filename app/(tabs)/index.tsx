@@ -3,19 +3,17 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  LayoutChangeEvent,
+import { Text } from '@/components/ui/AppText';
+import { LayoutChangeEvent,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
-  Text,
   TouchableOpacity,
   useWindowDimensions,
-  View
-} from 'react-native';
+  View } from 'react-native';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedRef, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';

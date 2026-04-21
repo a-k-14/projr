@@ -2,6 +2,7 @@ import * as accountsService from '../services/accounts';
 import * as categoriesService from '../services/categories';
 import * as tagsService from '../services/tags';
 import { db } from './client';
+import { eq } from 'drizzle-orm';
 import { accounts, budget, categories, loans, settings, tags, transactions } from './schema';
 
 async function clearDemoData(): Promise<void> {
@@ -225,4 +226,5 @@ export async function seedDatabase(): Promise<void> {
   // 3. Tags
   await tagsService.createTag({ name: 'Personal', color: '#EC4899' });
   await tagsService.createTag({ name: 'Work', color: '#0F766E' });
+
 }

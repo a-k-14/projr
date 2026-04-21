@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Platform, ScrollView, Text, TextInput, View , TouchableOpacity} from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { Alert, Keyboard, Platform, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -42,6 +44,7 @@ export default function SplitTransactionModal() {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
+  const [categorySheetRowId, setCategorySheetRowId] = useState<string | null>(null);
 
   useEffect(() => {
     if (splitRows.length === 0) {
@@ -56,6 +59,18 @@ export default function SplitTransactionModal() {
 
   const updateRow = (id: string, patch: Partial<SplitDraftRow>) => {
     setSplitRows(splitRows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  };
+
+  const selectCategoryForSheetRow = (categoryId: string) => {
+    if (categorySheetRowId) {
+      updateRow(categorySheetRowId, { categoryId });
+    }
+    setCategorySheetRowId(null);
+  };
+
+  const openCategoryManagerFromSheet = () => {
+    setCategorySheetRowId(null);
+    router.push('/settings/categories');
   };
 
   const addRow = () => {
@@ -132,12 +147,14 @@ export default function SplitTransactionModal() {
                   borderBottomColor: palette.divider }}
               >
                 <TouchableOpacity delayPressIn={0}
-                  onPress={() => 
-                    router.push({ 
-                      pathname: '/modals/select-category', 
-                      params: { type: txType, splitRowId: row.id } 
-                    })
-                  }
+                  onPress={() => {
+                    if (Keyboard.isVisible()) {
+                      Keyboard.dismiss();
+                      setTimeout(() => setCategorySheetRowId(row.id), 100);
+                    } else {
+                      setCategorySheetRowId(row.id);
+                    }
+                  }}
                   activeOpacity={0.75}
                   style={{ flex: 1, minWidth: 0, paddingRight: 8 }}
                 >
@@ -169,7 +186,7 @@ export default function SplitTransactionModal() {
                     }
                     placeholder="0"
                     placeholderTextColor={palette.textSoft}
-                    keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
+                    keyboardType="decimal-pad"
                     onFocus={() => {
                       setFocusedRowId(row.id);
                       requestAnimationFrame(() => {
@@ -234,6 +251,17 @@ export default function SplitTransactionModal() {
           <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '700' }}>Done</Text>
         </TouchableOpacity>
       </View>
+      {categorySheetRowId ? (
+        <CategoryPickerSheet
+          categories={categories}
+          transactionType={txType}
+          selectedCategoryId={splitRows.find((row) => row.id === categorySheetRowId)?.categoryId}
+          palette={palette}
+          onClose={() => setCategorySheetRowId(null)}
+          onManage={openCategoryManagerFromSheet}
+          onSelect={selectCategoryForSheetRow}
+        />
+      ) : null}
     </View>
   );
 }

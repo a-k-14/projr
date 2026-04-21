@@ -1,20 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
+import { Text } from '@/components/ui/AppText';
 import { Alert,
   InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
   TextInput,
   
-  View , TouchableOpacity} from 'react-native';
+  View , TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
 import {
   AmountRow,
   InteractiveDateTimeRow,
@@ -136,52 +136,14 @@ export default function LoanSettlementModal() {
 
   const openDate = () => {
     Keyboard.dismiss();
-    const current = new Date(date);
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: current,
-        mode: 'date',
-        display: 'calendar',
-        onChange: (_event, selectedDate) => {
-          if (selectedDate) {
-            const final = new Date(date);
-            final.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-            setDate(final.toISOString());
-          }
-        } });
-    } else {
-      setPickerMode('date');
-      setShowDatePicker(true);
-    }
+    setPickerMode('date');
+    setShowDatePicker(true);
   };
 
   const openTime = () => {
     Keyboard.dismiss();
-    const current = new Date(date);
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: current,
-        mode: 'time',
-        display: 'clock',
-        is24Hour: false,
-        onChange: (_event, selectedTime) => {
-          if (selectedTime) {
-            const final = new Date(date);
-            final.setHours(selectedTime.getHours());
-            final.setMinutes(selectedTime.getMinutes());
-            setDate(final.toISOString());
-          }
-        } });
-    } else {
-      setPickerMode('time');
-      setShowDatePicker(true);
-    }
-  };
-
-  const onDateChange = (_event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'ios' && selectedDate) {
-      setDate(selectedDate.toISOString());
-    }
+    setPickerMode('time');
+    setShowDatePicker(true);
   };
 
   return (
@@ -274,16 +236,15 @@ export default function LoanSettlementModal() {
         </BottomSheet>
       ) : null}
 
-      {showDatePicker && Platform.OS === 'ios' ? (
-        <DateTimePicker
-          value={new Date(date)}
-          mode={pickerMode}
-          display="default"
-          onChange={onDateChange}
-          textColor={palette.text}
-          accentColor={palette.tabActive}
-        />
-      ) : null}
+      <DateTimePickerPopup
+        visible={showDatePicker}
+        mode={pickerMode}
+        value={new Date(date)}
+        palette={palette}
+        accentColor={palette.loan}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={(nextDate) => setDate(nextDate.toISOString())}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -75,6 +75,7 @@ export const APP_LIGHT_BACKGROUND = '#F0F0F5';
 export const APP_DARK_BACKGROUND = '#000000';
 
 export interface AppThemePalette {
+  isDark: boolean;
   background: string;
   surface: string;
   card: string;
@@ -132,6 +133,7 @@ export function resolveTheme(theme: Theme, systemScheme: ColorSchemeName): AppTh
 export function getThemePalette(mode: AppThemeMode): AppThemePalette {
   if (mode === 'dark') {
     return {
+      isDark: true,
       background: '#000000',
       surface: '#121214',
       card: '#18181A',
@@ -174,6 +176,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
   }
 
   return {
+    isDark: false,
     background: '#F0F0F5',
     surface: '#FFFFFF',
     card: '#FFFFFF',

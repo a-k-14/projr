@@ -88,4 +88,14 @@ export async function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_loans_account_status_date ON loans(account_id, status, date);
     CREATE INDEX IF NOT EXISTS idx_categories_parent_type ON categories(parent_id, type);
   `);
+
+  try {
+    const tableInfo = await sqlite.getAllAsync<{ name: string }>('PRAGMA table_info(transactions);');
+    const hasReceiptCol = tableInfo.some((col) => col.name === 'receipt_image_uris');
+    if (!hasReceiptCol) {
+      await sqlite.execAsync('ALTER TABLE transactions ADD COLUMN receipt_image_uris TEXT;');
+    }
+  } catch (err) {
+    console.warn('Migration patch error:', err);
+  }
 }

@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View , TouchableOpacity} from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { StyleSheet, View , TouchableOpacity } from 'react-native';
 import { formatCurrency } from '../lib/derived';
 import { HOME_RADIUS, HOME_SURFACE, HOME_TEXT } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';

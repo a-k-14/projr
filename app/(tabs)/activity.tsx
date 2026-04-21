@@ -3,6 +3,7 @@ import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Text } from '@/components/ui/AppText';
 import { ActivityIndicator,
   BackHandler,
   FlatList,
@@ -12,7 +13,6 @@ import { ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,

@@ -2,14 +2,14 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Text } from '@/components/ui/AppText';
 import { FlatList,
   LayoutAnimation,
   RefreshControl,
   StyleSheet,
-  Text,
   TextInput,
   
-  View , TouchableOpacity} from 'react-native';
+  View , TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';

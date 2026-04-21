@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, ViewStyle , TouchableOpacity} from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { StyleSheet, ViewStyle , TouchableOpacity } from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { AppThemePalette } from '../../lib/theme';
 

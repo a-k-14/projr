@@ -1,5 +1,6 @@
 import { Tabs, router } from 'expo-router';
-import { View, Text } from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../lib/theme';

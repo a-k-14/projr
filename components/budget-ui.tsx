@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { TouchableOpacity, View } from 'react-native';
 import { HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { formatMonthYear } from '../lib/ui-format';

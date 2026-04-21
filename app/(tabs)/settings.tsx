@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Keyboard, ScrollView, Switch, Text, View, Alert, TouchableWithoutFeedback } from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { Keyboard, ScrollView, Switch, View, Alert, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { CategoryTreePicker } from '../../components/ui/CategoryTreePicker';
+import { buildCategoryPickerSections, CategoryTreePicker } from '../../components/ui/CategoryTreePicker';
 import { useAppTheme } from '../../lib/theme';
 import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -14,31 +14,12 @@ export default function SelectBudgetCategoryScreen() {
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
 
   const sections = useMemo(() => {
-    const parents = categories
-      .filter((category) => !category.parentId)
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
-
-    return parents
-      .map((parent) => {
-        const children = categories
-          .filter((category) => category.parentId === parent.id && category.type === 'out')
-          .slice()
-          .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
-        const filteredChildren = children.filter((child) => {
-          if (!search.trim()) return true;
-          const haystack = `${parent.name} ${child.name}`.toLowerCase();
-          return haystack.includes(search.trim().toLowerCase());
-        });
-        return {
-          parent,
-          children,
-          filteredChildren,
-          hasSearchMatch: filteredChildren.length > 0 || parent.name.toLowerCase().includes(search.trim().toLowerCase()),
-        };
-      })
-      .filter((section) => section.children.length > 0)
-      .filter((section) => search.trim() === '' || section.hasSearchMatch);
+    return buildCategoryPickerSections({
+      categories,
+      search,
+      childFilter: (category) => category.type === 'out',
+      requireChildren: true,
+    });
   }, [categories, search]);
 
   useEffect(() => {

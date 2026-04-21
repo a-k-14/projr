@@ -1,5 +1,6 @@
 import { Link, Stack } from 'expo-router';
-import { View, Text } from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { View } from 'react-native';
 import { APP_BRAND } from '../lib/theme';
 import { HOME_TEXT } from '../lib/layoutTokens';
 

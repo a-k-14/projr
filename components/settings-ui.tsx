@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { ReactNode, RefObject } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';

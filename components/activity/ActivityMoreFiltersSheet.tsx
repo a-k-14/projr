@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TextInput, View , TouchableOpacity} from 'react-native';
+import { Text } from '@/components/ui/AppText';
+import { StyleSheet, TextInput, View , TouchableOpacity } from 'react-native';
 import { BottomSheet } from '../ui/BottomSheet';
 import { FilterChip } from '../ui/FilterChip';
 import { ListHeading } from '../ui/ListHeading';
