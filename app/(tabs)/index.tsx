@@ -73,6 +73,10 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   custom: 'Custom'
 };
 
+// Set false to restore the previous behavior where the indicator stays visible
+// during horizontal swipes, even when the current page is vertically scrolled.
+const HIDE_SCROLLED_INDICATOR_DURING_SWIPE = true;
+
 type AccountTab = {
   id: string | 'all' | 'add';
   name: string;
@@ -100,6 +104,7 @@ export default function HomeScreen() {
   const settledAccountPageIndex = useSharedValue(0);
   const verticalScrolls = useSharedValue<number[]>(new Array(20).fill(0));
   const indicatorY = useSharedValue(0);
+  const indicatorGestureOpacity = useSharedValue(1);
   const { palette } = useAppTheme();
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
@@ -188,8 +193,27 @@ export default function HomeScreen() {
   );
 
   const accountPagerScrollHandler = useAnimatedScrollHandler({
+    onBeginDrag: () => {
+      if (!HIDE_SCROLLED_INDICATOR_DURING_SWIPE) {
+        indicatorGestureOpacity.value = 1;
+        return;
+      }
+      const settledIndex = Math.max(0, Math.round(settledAccountPageIndex.value));
+      const currentScroll = verticalScrolls.value[settledIndex] ?? 0;
+      indicatorGestureOpacity.value = Math.abs(currentScroll) > 1 ? 0 : 1;
+    },
     onScroll: (event) => {
       accountPagerScrollX.value = event.contentOffset.x;
+
+      const pageWidthValue = Math.max(width, 1);
+      const progress = event.contentOffset.x / pageWidthValue;
+      const settledIndex = Math.max(0, Math.round(settledAccountPageIndex.value));
+      const hasMovedHorizontally = Math.abs(progress - settledIndex) > 0.01;
+      const currentScroll = verticalScrolls.value[settledIndex] ?? 0;
+
+      if (HIDE_SCROLLED_INDICATOR_DURING_SWIPE && hasMovedHorizontally && Math.abs(currentScroll) > 1) {
+        indicatorGestureOpacity.value = 0;
+      }
     },
   });
 
@@ -198,8 +222,9 @@ export default function HomeScreen() {
       const offsetX = event.nativeEvent.contentOffset.x;
       const nextIndex = Math.round(offsetX / Math.max(width, 1));
       handlePagerEnd(nextIndex);
+      indicatorGestureOpacity.value = 1;
     },
-    [handlePagerEnd, width],
+    [handlePagerEnd, indicatorGestureOpacity, width],
   );
 
   const handlePagerDragEnd = useCallback(
@@ -211,9 +236,10 @@ export default function HomeScreen() {
 
       if (Math.abs(offsetX - settledOffset) < 1) {
         handlePagerEnd(nextIndex);
+        indicatorGestureOpacity.value = 1;
       }
     },
-    [handlePagerEnd, width],
+    [handlePagerEnd, indicatorGestureOpacity, width],
   );
 
   const setHomeViewMode = useCallback(
@@ -436,6 +462,7 @@ export default function HomeScreen() {
               settledPageIndex={settledAccountPageIndex}
               verticalScrolls={verticalScrolls}
               indicatorY={indicatorY}
+              gestureOpacity={indicatorGestureOpacity}
               hidden={bottomSheetVisible}
             />
           </>
@@ -903,6 +930,7 @@ function PageDashIndicator({
   settledPageIndex,
   verticalScrolls,
   indicatorY,
+  gestureOpacity,
   hidden,
 }: {
   pageCount: number;
@@ -912,6 +940,7 @@ function PageDashIndicator({
   settledPageIndex: SharedValue<number>;
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
+  gestureOpacity: SharedValue<number>;
   hidden?: boolean;
 }) {
   const safePageCount = Math.max(pageCount, 1);
@@ -944,12 +973,13 @@ function PageDashIndicator({
     const addPageOpacity = Math.min(Math.max(safePageCount - 1 - progress, 0), 1);
     const targetReady = (y > 0 && pageCount > 1) ? 1 : 0;
     const hideFlag = hidden ? 0 : 1;
+    const swipeVisibility = HIDE_SCROLLED_INDICATOR_DURING_SWIPE ? gestureOpacity.value : 1;
 
     return {
       transform: [
         { translateY: y - currentScroll }
       ],
-      opacity: hideFlag * targetReady * addPageOpacity
+      opacity: hideFlag * targetReady * addPageOpacity * swipeVisibility
     };
   }, [pageWidth, pageCount, hidden]);
 
