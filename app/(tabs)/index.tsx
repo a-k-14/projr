@@ -367,7 +367,7 @@ export default function HomeScreen() {
               style={{ flex: 1 }}
             >
               {displayAccounts.map((account, index) => {
-                const shouldRenderPage = Math.abs(index - selectedAccountIndex) <= 1;
+                const shouldRenderPage = Math.abs(index - selectedAccountIndex) <= 2;
                 return (
                   <View key={account.id} style={{ width, height: pagerHeight || undefined }}>
                     {shouldRenderPage ? (
@@ -908,22 +908,35 @@ function PageDashIndicator({
     const idx0 = Math.min(Math.max(i, 0), safePageCount - 1);
     const idx1 = Math.min(idx0 + 1, safePageCount - 1);
 
+    const activeIdx = Math.round(progress);
+    const fractionOffset = Math.abs(progress - activeIdx);
+    
     const v0 = verticalScrolls.value[idx0] ?? 0;
     const v1 = verticalScrolls.value[idx1] ?? 0;
-
-    const currentScroll = v0 * (1 - fraction) + v1 * fraction;
+    const vDiff = Math.abs(v0 - v1);
+    
+    // If the pages are scrolled to completely different vertical heights, the indicator 
+    // shouldn't visually drop in diagonally. Instead, we sharply dip its opacity to 0 
+    // exactly at the 50% boundary and instantly teleport it to perfectly match the new page.
+    const dipOpacity = vDiff > 20 ? Math.max(0, 1 - Math.pow(fractionOffset * 2, 4)) : 1;
+    
+    const currentScroll = verticalScrolls.value[activeIdx] ?? 0;
     const y = indicatorY.value;
 
-    // Fade out immediately as soon as the user starts swiping to the "Add Account" card (last card)
-    const fadeOutProgress = Math.max(0, (progress - (safePageCount - 2)) * 10);
+    // Start fading at 20% swipe progress, and fade out entirely by 60% of the swipe 
+    // to strictly hide the indicator *before* fully landing on the final Add Account card
+    const overshoot = progress - (safePageCount - 2);
+    const fadeOutProgress = Math.max(0, (overshoot - 0.2) * 2.5);
     const scrollOpacity = Math.max(0, 1 - fadeOutProgress);
     const targetReady = (y > 0 && pageCount > 1) ? 1 : 0;
 
     return {
+      // Re-apply rounding to fix sub-pixel shimmer when the list rests natively on a float 
       transform: [
-        { translateY: y - currentScroll }
+        { translateY: Math.round(y - currentScroll) }
       ],
-      opacity: withTiming(targetReady * scrollOpacity, { duration: 150 })
+      // Drop `withTiming` so React doesn't stall the animation node when rapidly swiping
+      opacity: targetReady * scrollOpacity * dipOpacity
     };
   }, [pageWidth, pageCount]);
 
@@ -1092,6 +1105,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const leftScrollRef = useRef<ScrollView>(null);
   const rightScrollRef = useRef<ScrollView>(null);
+  const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
+
+  useEffect(() => {
+    if (!isSelected && mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ y: 0, animated: false });
+    }
+  }, [isSelected]);
 
   useEffect(() => {
     periodIndicatorX.value = withTiming(periodIndex * periodSegmentWidth + 3, { duration: 180 });
@@ -1241,6 +1261,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   return (
     <View style={{ flex: 1, height: pageHeight }}>
       <Animated.ScrollView
+        ref={mainScrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         onScroll={verticalScrollHandler}
@@ -1279,7 +1300,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 flex: 1,
                 flexDirection: 'row',
                 backgroundColor: palette.surface,
-                borderRadius: HOME_RADIUS.tab,
+                borderRadius: HOME_RADIUS.tab + 3,
                 borderWidth: 1,
                 borderColor: palette.divider,
                 height: HOME_LAYOUT.periodHeight,

@@ -1,6 +1,6 @@
-import { CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING, RADIUS as DESIGN_RADIUS, HOME_TEXT } from './design';
+import { CARD_PADDING, RADIUS as DESIGN_RADIUS, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING } from './design';
 
-export { HOME_TEXT, CARD_PADDING, SCREEN_GUTTER, SHEET_GUTTER, SPACING };
+export { CARD_PADDING, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING };
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 // Previously HOME_COLORS. Now unified into AppThemePalette in lib/theme.ts.
@@ -79,7 +79,7 @@ export const HOME_SURFACE = {
   tableColumnGap: 12,
   chartTopGap: 14,
   chartBottomGap: 10,
-  listMaxHeight: 260,
+  listMaxHeight: 400,
   tableMaxHeight: 310,
 } as const;
 
@@ -120,7 +120,7 @@ export const HOME_LAYOUT = {
   fabSize: 56,
   fabRightOffset: 20,
   fabBottomOffset: -24,
-  fabContentBottomPadding: 104,
+  fabContentBottomPadding: 20,
   handleWidth: 42,
   handleHeight: 4,
 } as const;
