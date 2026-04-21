@@ -97,6 +97,7 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const pagerRef = useAnimatedRef<Animated.ScrollView>();
   const accountPagerScrollX = useSharedValue(0);
+  const settledAccountPageIndex = useSharedValue(0);
   const verticalScrolls = useSharedValue<number[]>(new Array(20).fill(0));
   const indicatorY = useSharedValue(0);
   const { palette } = useAppTheme();
@@ -123,10 +124,6 @@ export default function HomeScreen() {
   ], [accounts]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all' | 'add'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
-  const selectedAccountIndex = useMemo(
-    () => Math.max(0, displayAccounts.findIndex((account) => account.id === selectedAccountId)),
-    [displayAccounts, selectedAccountId],
-  );
 
   useEffect(() => {
     if (
@@ -143,20 +140,25 @@ export default function HomeScreen() {
     if (homeAccountViewMode !== 'swipe') return;
     const selectedIndex = displayAccounts.findIndex((account) => account.id === selectedAccountId);
     if (selectedIndex >= 0) {
-      accountPagerScrollX.value = selectedIndex * width;
-      pagerRef.current?.scrollTo({ x: selectedIndex * width, animated: false });
+      const targetX = selectedIndex * width;
+      settledAccountPageIndex.value = selectedIndex;
+      if (Math.abs(accountPagerScrollX.value - targetX) > 1) {
+        accountPagerScrollX.value = targetX;
+        pagerRef.current?.scrollTo({ x: targetX, animated: false });
+      }
     }
-  }, [accountPagerScrollX, displayAccounts, homeAccountViewMode, pagerRef, selectedAccountId, width]);
+  }, [accountPagerScrollX, displayAccounts, homeAccountViewMode, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
 
   const resetHomeToAll = useCallback(() => {
     setSelectedAccountId('all');
     if (homeAccountViewMode === 'list') {
       updateSettings({ homeAccountViewMode: 'swipe' }, 'home-tab-reset').catch(() => undefined);
     }
+    settledAccountPageIndex.value = 0;
     accountPagerScrollX.value = 0;
     pagerRef.current?.scrollTo({ x: 0, animated: true });
     setGlobalScrollResetTick(v => v + 1);
-  }, [accountPagerScrollX, homeAccountViewMode, pagerRef, updateSettings]);
+  }, [accountPagerScrollX, homeAccountViewMode, pagerRef, settledAccountPageIndex, updateSettings]);
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
@@ -175,11 +177,14 @@ export default function HomeScreen() {
   const handlePagerEnd = useCallback(
     (index: number) => {
       const next = displayAccounts[index];
+      if (next) {
+        settledAccountPageIndex.value = index;
+      }
       if (next && next.id !== selectedAccountId) {
         setSelectedAccountId(next.id);
       }
     },
-    [displayAccounts, selectedAccountId],
+    [displayAccounts, selectedAccountId, settledAccountPageIndex],
   );
 
   const accountPagerScrollHandler = useAnimatedScrollHandler({
@@ -193,6 +198,20 @@ export default function HomeScreen() {
       const offsetX = event.nativeEvent.contentOffset.x;
       const nextIndex = Math.round(offsetX / Math.max(width, 1));
       handlePagerEnd(nextIndex);
+    },
+    [handlePagerEnd, width],
+  );
+
+  const handlePagerDragEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const pageWidthValue = Math.max(width, 1);
+      const offsetX = event.nativeEvent.contentOffset.x;
+      const nextIndex = Math.round(offsetX / pageWidthValue);
+      const settledOffset = nextIndex * pageWidthValue;
+
+      if (Math.abs(offsetX - settledOffset) < 1) {
+        handlePagerEnd(nextIndex);
+      }
     },
     [handlePagerEnd, width],
   );
@@ -364,51 +383,46 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               directionalLockEnabled
               onScroll={accountPagerScrollHandler}
-              onScrollEndDrag={handlePagerMomentumEnd}
+              onScrollEndDrag={handlePagerDragEnd}
               onMomentumScrollEnd={handlePagerMomentumEnd}
               scrollEventThrottle={1}
               style={{ flex: 1 }}
             >
               {displayAccounts.map((account, index) => {
-                const shouldRenderPage = Math.abs(index - selectedAccountIndex) <= 2;
                 return (
                   <View key={account.id} style={{ width, height: pagerHeight || undefined }}>
-                    {shouldRenderPage ? (
-                      account.id === 'add' ? (
-                        <AddAccountPage
-                          pageHeight={pagerHeight}
-                          palette={palette}
-                        />
-                      ) : (
-                        <HomeAccountPage
-                          pageHeight={pagerHeight}
-                          accountId={account.id}
-                          accountName={account.name}
-                          accountTypeLabel={
-                            account.id === 'all'
-                              ? ''
-                              : formatAccountTypeLabel(accounts.find((item) => item.id === account.id)?.type)
-                          }
-                          settingsYearStart={settingsYearStart}
-                          currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-                          customRange={customRangeMemo}
-                          onOpenCustomRange={openCustomRange}
-                          totalBalance={
-                            account.id === 'all'
-                              ? getTotalBalance(accounts)
-                              : (accounts.find((item) => item.id === account.id)?.balance ?? 0)
-                          }
-                          onRefresh={refreshAccounts}
-                          isSelected={account.id === selectedAccountId}
-                          pageIndex={index}
-                          verticalScrolls={verticalScrolls}
-                          indicatorY={indicatorY}
-                          resetTick={globalScrollResetTick}
-                          onBottomSheetChange={setBottomSheetVisible}
-                        />
-                      )
+                    {account.id === 'add' ? (
+                      <AddAccountPage
+                        pageHeight={pagerHeight}
+                        palette={palette}
+                      />
                     ) : (
-                      <View style={{ flex: 1 }} />
+                      <HomeAccountPage
+                        pageHeight={pagerHeight}
+                        accountId={account.id}
+                        accountName={account.name}
+                        accountTypeLabel={
+                          account.id === 'all'
+                            ? ''
+                            : formatAccountTypeLabel(accounts.find((item) => item.id === account.id)?.type)
+                        }
+                        settingsYearStart={settingsYearStart}
+                        currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+                        customRange={customRangeMemo}
+                        onOpenCustomRange={openCustomRange}
+                        totalBalance={
+                          account.id === 'all'
+                            ? getTotalBalance(accounts)
+                            : (accounts.find((item) => item.id === account.id)?.balance ?? 0)
+                        }
+                        onRefresh={refreshAccounts}
+                        isSelected={account.id === selectedAccountId}
+                        pageIndex={index}
+                        verticalScrolls={verticalScrolls}
+                        indicatorY={indicatorY}
+                        resetTick={globalScrollResetTick}
+                        onBottomSheetChange={setBottomSheetVisible}
+                      />
                     )}
                   </View>
                 );
@@ -419,6 +433,7 @@ export default function HomeScreen() {
               palette={palette}
               pageWidth={width}
               scrollX={accountPagerScrollX}
+              settledPageIndex={settledAccountPageIndex}
               verticalScrolls={verticalScrolls}
               indicatorY={indicatorY}
               hidden={bottomSheetVisible}
@@ -885,6 +900,7 @@ function PageDashIndicator({
   palette,
   pageWidth,
   scrollX,
+  settledPageIndex,
   verticalScrolls,
   indicatorY,
   hidden,
@@ -893,6 +909,7 @@ function PageDashIndicator({
   palette: AppThemePalette;
   pageWidth: number;
   scrollX: SharedValue<number>;
+  settledPageIndex: SharedValue<number>;
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
   hidden?: boolean;
@@ -910,42 +927,29 @@ function PageDashIndicator({
   const containerStyle = useAnimatedStyle(() => {
     const rawProgress = pageWidth > 0 ? scrollX.value / pageWidth : 0;
     const progress = Math.min(Math.max(rawProgress, 0), safePageCount - 1);
-    const i = Math.floor(progress);
-    const fraction = progress - i;
+    const settledIndex = Math.min(Math.max(Math.round(settledPageIndex.value), 0), safePageCount - 1);
+    const swipeEpsilon = 0.02;
+    let anchorIndex = settledIndex;
 
-    const idx0 = Math.min(Math.max(i, 0), safePageCount - 1);
-    const idx1 = Math.min(idx0 + 1, safePageCount - 1);
+    // During horizontal swipe, anchor Y to the destination page early so the
+    // indicator does not appear to slide in vertically from the previous page.
+    if (progress > settledIndex + swipeEpsilon) {
+      anchorIndex = Math.min(Math.ceil(progress), safePageCount - 1);
+    } else if (progress < settledIndex - swipeEpsilon) {
+      anchorIndex = Math.max(Math.floor(progress), 0);
+    }
 
-    const activeIdx = Math.round(progress);
-    const fractionOffset = Math.abs(progress - activeIdx);
-    
-    const v0 = verticalScrolls.value[idx0] ?? 0;
-    const v1 = verticalScrolls.value[idx1] ?? 0;
-    const vDiff = Math.abs(v0 - v1);
-    
-    // Teleport Logic: If pages have vastly different heights, stick to the current 
-    // page's scroll height until exactly mid-swipe, then snap to the next.
-    // This (combined with the dip) prevents diagonal "sliding" artifacts.
-    const currentScroll = vDiff > 20 
-      ? (progress < idx0 + 0.5 ? v0 : v1) 
-      : (v0 * (1 - fraction) + v1 * fraction);
-      
+    const currentScroll = verticalScrolls.value[anchorIndex] ?? 0;
     const y = indicatorY.value;
-
-    const overshoot = progress - (safePageCount - 2);
-    const fadeOutProgress = Math.max(0, (overshoot - 0.2) * 2.5);
-    const scrollOpacity = Math.max(0, 1 - fadeOutProgress);
+    const addPageOpacity = Math.min(Math.max(safePageCount - 1 - progress, 0), 1);
     const targetReady = (y > 0 && pageCount > 1) ? 1 : 0;
     const hideFlag = hidden ? 0 : 1;
-
-    // Sharper dip for the teleport jump boundary
-    const jumpDip = vDiff > 20 ? Math.max(0, 1 - Math.pow(fractionOffset * 2, 6)) : 1;
 
     return {
       transform: [
         { translateY: y - currentScroll }
       ],
-      opacity: hideFlag * targetReady * scrollOpacity * jumpDip
+      opacity: hideFlag * targetReady * addPageOpacity
     };
   }, [pageWidth, pageCount, hidden]);
 
@@ -1067,9 +1071,6 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   onRefresh,
   isSelected,
   pageIndex,
-  pageCount,
-  pageWidth,
-  accountPagerScrollX,
   verticalScrolls,
   indicatorY,
   resetTick,
@@ -1122,10 +1123,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
 
   useEffect(() => {
-    if (!isSelected && mainScrollRef.current) {
-      mainScrollRef.current.scrollTo({ y: 0, animated: false });
-    }
-  }, [isSelected]);
+    if (isSelected || !mainScrollRef.current) return;
+
+    const arr = verticalScrolls.value.slice();
+    arr[pageIndex] = 0;
+    verticalScrolls.value = arr;
+    mainScrollRef.current.scrollTo({ y: 0, animated: false });
+  }, [isSelected, pageIndex, verticalScrolls]);
 
   useEffect(() => {
     if (isSelected && resetTick > 0 && mainScrollRef.current) {
@@ -1140,7 +1144,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
     const y = event.contentOffset.y;
-    // Maintain the per-page array for high-performance tracking and crossfade logic
+    // Keep the latest vertical offset per page so the overlay indicator follows settled page scroll.
     const arr = verticalScrolls.value.slice();
     arr[pageIndex] = y;
     verticalScrolls.value = arr;
