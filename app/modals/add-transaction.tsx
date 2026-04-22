@@ -1036,7 +1036,7 @@ export default function AddTransactionModal() {
             justifyContent: 'center',
             marginBottom: 12 }}
         >
-          <Text style={{ color: isValid ? actionButtonTextColor : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>{actionLabel}</Text>
+          <Text style={{ color: isValid ? actionButtonTextColor : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500' }}>{actionLabel}</Text>
         </TouchableOpacity>
         {isEditing && (
           <TouchableOpacity delayPressIn={0} onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>

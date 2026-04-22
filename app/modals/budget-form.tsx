@@ -194,7 +194,7 @@ export default function BudgetFormModal() {
             justifyContent: 'center',
             backgroundColor: isValid ? palette.budget : palette.borderSoft }}
         >
-          <Text style={{ fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600', color: palette.onBudget }}>
+          <Text style={{ fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500', color: palette.onBudget }}>
             {editingBudget ? 'Save changes' : 'Add budget'}
           </Text>
         </TouchableOpacity>

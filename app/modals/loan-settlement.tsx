@@ -208,7 +208,7 @@ export default function LoanSettlementModal() {
             justifyContent: 'center',
             marginBottom: 12 }}
         >
-          <Text style={{ color: isValid ? palette.onLoan : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>
+          <Text style={{ color: isValid ? palette.onLoan : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500' }}>
             {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           </Text>
         </TouchableOpacity>

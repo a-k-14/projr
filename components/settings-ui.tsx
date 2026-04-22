@@ -507,7 +507,7 @@ export function ActionButton({
         borderColor: variant === 'secondary' ? palette.border : 'transparent',
         paddingHorizontal: 20 }}
     >
-      <Text style={{ fontSize: variant === 'primary' ? PRIMARY_ACTION.labelSize : TYPE.section, fontWeight: variant === 'danger' ? '500' : '600', color: picked.color }}>{label}</Text>
+      <Text style={{ fontSize: variant === 'primary' ? PRIMARY_ACTION.labelSize : TYPE.section, fontWeight: '500', color: picked.color }}>{label}</Text>
     </TouchableOpacity>
   );
 }

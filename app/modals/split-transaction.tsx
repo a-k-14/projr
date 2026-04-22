@@ -250,7 +250,7 @@ export default function SplitTransactionModal() {
             alignItems: 'center',
             justifyContent: 'center' }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>Done</Text>
+          <Text style={{ color: palette.onBrand, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500' }}>Done</Text>
         </TouchableOpacity>
       </View>
       {categorySheetRowId ? (

@@ -277,7 +277,7 @@ export default function LoanDetailScreen() {
                 }}
               >
                 <Ionicons name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />
-                <Text style={{ color: palette.onLoan, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>
+                <Text style={{ color: palette.onLoan, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500' }}>
                   {isLent ? 'Record Receipt' : 'Record Repayment'}
                 </Text>
               </TouchableOpacity>
