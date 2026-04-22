@@ -26,7 +26,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT, PRIMARY_ACTION } from '../../lib/layoutTokens';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
 import { getTransactionById } from '../../services/transactions';
@@ -96,6 +96,7 @@ export default function LoanSettlementModal() {
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const isValid = !!resolvedLoanId && !!accountId && amount !== 0;
   const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'receipt' : 'repayment'}` : loanDirection === 'lent' ? 'New receipt' : 'New repayment';
+  const actionColor = loanDirection === 'lent' ? palette.brand : palette.negative;
 
   const handleSave = async () => {
     if (!isValid) return;
@@ -201,13 +202,13 @@ export default function LoanSettlementModal() {
           onPress={handleSave}
           disabled={!isValid}
           style={{
-            backgroundColor: isValid ? palette.loan : palette.textSoft,
-            borderRadius: 18,
-            paddingVertical: 16,
+            backgroundColor: isValid ? actionColor : palette.textSoft,
+            borderRadius: PRIMARY_ACTION.radius,
+            minHeight: PRIMARY_ACTION.height,
             alignItems: 'center',
             marginBottom: 12 }}
         >
-          <Text style={{ color: isValid ? palette.onLoan : palette.textMuted, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>
+          <Text style={{ color: isValid ? palette.onBrand : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>
             {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           </Text>
         </TouchableOpacity>

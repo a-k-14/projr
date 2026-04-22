@@ -4,6 +4,7 @@ import { Text } from '@/components/ui/AppText';
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
+import { PRIMARY_ACTION } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 
 export function ScreenTitle({
@@ -496,9 +497,9 @@ export function ActionButton({
       onPress={onPress}
       activeOpacity={0.8}
       style={{
-        minHeight: variant === 'danger' ? 0 : 56,
-        paddingVertical: variant === 'danger' ? 8 : 12,
-        borderRadius: 18,
+        minHeight: variant === 'danger' ? 0 : PRIMARY_ACTION.height,
+        paddingVertical: variant === 'danger' ? 8 : 0,
+        borderRadius: PRIMARY_ACTION.radius,
         backgroundColor: picked.backgroundColor,
         alignItems: 'center',
         justifyContent: 'center',
@@ -506,7 +507,7 @@ export function ActionButton({
         borderColor: variant === 'secondary' ? palette.border : 'transparent',
         paddingHorizontal: 20 }}
     >
-      <Text style={{ fontSize: variant === 'primary' ? HOME_TEXT.rowLabel : TYPE.section, fontWeight: variant === 'danger' ? '500' : '600', color: picked.color }}>{label}</Text>
+      <Text style={{ fontSize: variant === 'primary' ? PRIMARY_ACTION.labelSize : TYPE.section, fontWeight: variant === 'danger' ? '500' : '600', color: picked.color }}>{label}</Text>
     </TouchableOpacity>
   );
 }

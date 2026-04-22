@@ -17,6 +17,7 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
+  PRIMARY_ACTION,
   PROGRESS
 } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
@@ -266,17 +267,17 @@ export default function LoanDetailScreen() {
                   router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
                 }
                 style={{
-                  backgroundColor: isLent ? palette.negative : palette.brand,
-                  borderRadius: HOME_RADIUS.card,
-                  paddingVertical: HOME_SPACE.xl,
+                  backgroundColor: isLent ? palette.brand : palette.negative,
+                  borderRadius: PRIMARY_ACTION.radius,
+                  minHeight: PRIMARY_ACTION.height,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: HOME_SPACE.sm
                 }}
               >
-                <Ionicons name="arrow-down" size={18} color={palette.surface} />
-                <Text style={{ color: palette.surface, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+                <Ionicons name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.surface} />
+                <Text style={{ color: palette.surface, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>
                   {isLent ? 'Record Receipt' : 'Record Repayment'}
                 </Text>
               </TouchableOpacity>
@@ -288,7 +289,7 @@ export default function LoanDetailScreen() {
               }
               style={{ alignItems: 'center', paddingVertical: 10, marginTop: loan.pendingAmount > 0 ? 4 : 0 }}
             >
-              <Text appWeight="medium" style={{ color: isLent ? palette.negative : palette.brand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+              <Text appWeight="medium" style={{ color: palette.loan, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
                 Add More
               </Text>
             </TouchableOpacity>

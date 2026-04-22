@@ -9,7 +9,7 @@ import { SectionCard } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT, PRIMARY_ACTION } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -245,12 +245,12 @@ export default function SplitTransactionModal() {
           activeOpacity={0.85}
           style={{
             backgroundColor: palette.brand,
-            borderRadius: 18,
-            minHeight: 54,
+            borderRadius: PRIMARY_ACTION.radius,
+            minHeight: PRIMARY_ACTION.height,
             alignItems: 'center',
             justifyContent: 'center' }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '700' }}>Done</Text>
+          <Text style={{ color: palette.onBrand, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>Done</Text>
         </TouchableOpacity>
       </View>
       {categorySheetRowId ? (

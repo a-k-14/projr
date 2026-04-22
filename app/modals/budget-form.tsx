@@ -8,7 +8,7 @@ import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT, PRIMARY_ACTION } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
@@ -188,13 +188,13 @@ export default function BudgetFormModal() {
           onPress={handleSave}
           disabled={!isValid}
           style={{
-            minHeight: 52,
-            borderRadius: 16,
+            minHeight: PRIMARY_ACTION.height,
+            borderRadius: PRIMARY_ACTION.radius,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: isValid ? palette.budget : palette.borderSoft }}
         >
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBudget }}>
+          <Text style={{ fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600', color: palette.onBudget }}>
             {editingBudget ? 'Save changes' : 'Add budget'}
           </Text>
         </TouchableOpacity>

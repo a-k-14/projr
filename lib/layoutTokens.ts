@@ -125,6 +125,12 @@ export const HOME_LAYOUT = {
   handleHeight: 4,
 } as const;
 
+export const PRIMARY_ACTION = {
+  height: 48,
+  radius: 14,
+  labelSize: HOME_TEXT.sectionTitle,
+} as const;
+
 export const ACTIVITY_LAYOUT = {
   headerPaddingX: SCREEN_GUTTER,
   headerPaddingTop: 4,

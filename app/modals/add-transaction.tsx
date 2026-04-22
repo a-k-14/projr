@@ -30,7 +30,7 @@ import {
   SectionCard,
   TextInputRow } from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT, PRIMARY_ACTION } from '../../lib/layoutTokens';
 import { formatDate, nowUTC } from '../../lib/dateUtils';
 import {
   formatCurrency,
@@ -392,8 +392,20 @@ export default function AddTransactionModal() {
       : type === 'transfer'
         ? 'Move Money'
         : type === 'loan'
-          ? 'Add Loan'
+        ? 'Add Loan'
           : 'Add Expense';
+  const loanActionCashflow =
+    type === 'loan' && routeLoanId && settlement === '1'
+      ? loanDirection === 'lent'
+          ? 'in'
+          : 'out'
+      : null;
+  const actionButtonColor = loanActionCashflow === 'in'
+    ? palette.brand
+    : loanActionCashflow === 'out'
+      ? palette.negative
+      : activeConfig.color;
+  const actionButtonTextColor = loanActionCashflow ? palette.onBrand : activeConfig.onColor;
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -1027,13 +1039,14 @@ export default function AddTransactionModal() {
           onPress={handleSubmit}
           disabled={!isValid}
           style={{
-            backgroundColor: isValid ? activeConfig.color : palette.textSoft,
-            borderRadius: 18,
-            paddingVertical: 16,
+            backgroundColor: isValid ? actionButtonColor : palette.textSoft,
+            borderRadius: PRIMARY_ACTION.radius,
+            minHeight: PRIMARY_ACTION.height,
             alignItems: 'center',
+            justifyContent: 'center',
             marginBottom: 12 }}
         >
-          <Text style={{ color: isValid ? activeConfig.onColor : palette.textMuted, fontSize: HOME_TEXT.rowLabel, fontWeight: '600' }}>{actionLabel}</Text>
+          <Text style={{ color: isValid ? actionButtonTextColor : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>{actionLabel}</Text>
         </TouchableOpacity>
         {isEditing && (
           <TouchableOpacity delayPressIn={0} onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
