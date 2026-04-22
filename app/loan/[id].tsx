@@ -267,7 +267,7 @@ export default function LoanDetailScreen() {
                   router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
                 }
                 style={{
-                  backgroundColor: isLent ? palette.brand : palette.negative,
+                  backgroundColor: palette.loan,
                   borderRadius: PRIMARY_ACTION.radius,
                   minHeight: PRIMARY_ACTION.height,
                   flexDirection: 'row',
@@ -276,8 +276,8 @@ export default function LoanDetailScreen() {
                   gap: HOME_SPACE.sm
                 }}
               >
-                <Ionicons name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.surface} />
-                <Text style={{ color: palette.surface, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>
+                <Ionicons name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />
+                <Text style={{ color: palette.onLoan, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>
                   {isLent ? 'Record Receipt' : 'Record Repayment'}
                 </Text>
               </TouchableOpacity>

@@ -394,18 +394,8 @@ export default function AddTransactionModal() {
         : type === 'loan'
         ? 'Add Loan'
           : 'Add Expense';
-  const loanActionCashflow =
-    type === 'loan' && routeLoanId && settlement === '1'
-      ? loanDirection === 'lent'
-          ? 'in'
-          : 'out'
-      : null;
-  const actionButtonColor = loanActionCashflow === 'in'
-    ? palette.brand
-    : loanActionCashflow === 'out'
-      ? palette.negative
-      : activeConfig.color;
-  const actionButtonTextColor = loanActionCashflow ? palette.onBrand : activeConfig.onColor;
+  const actionButtonColor = activeConfig.color;
+  const actionButtonTextColor = activeConfig.onColor;
 
   const handleSubmit = async () => {
     if (!isValid) return;

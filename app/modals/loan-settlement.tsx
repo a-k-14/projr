@@ -96,7 +96,6 @@ export default function LoanSettlementModal() {
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const isValid = !!resolvedLoanId && !!accountId && amount !== 0;
   const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'receipt' : 'repayment'}` : loanDirection === 'lent' ? 'New receipt' : 'New repayment';
-  const actionColor = loanDirection === 'lent' ? palette.brand : palette.negative;
 
   const handleSave = async () => {
     if (!isValid) return;
@@ -202,13 +201,14 @@ export default function LoanSettlementModal() {
           onPress={handleSave}
           disabled={!isValid}
           style={{
-            backgroundColor: isValid ? actionColor : palette.textSoft,
+            backgroundColor: isValid ? palette.loan : palette.textSoft,
             borderRadius: PRIMARY_ACTION.radius,
             minHeight: PRIMARY_ACTION.height,
             alignItems: 'center',
+            justifyContent: 'center',
             marginBottom: 12 }}
         >
-          <Text style={{ color: isValid ? palette.onBrand : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>
+          <Text style={{ color: isValid ? palette.onLoan : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '600' }}>
             {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           </Text>
         </TouchableOpacity>
