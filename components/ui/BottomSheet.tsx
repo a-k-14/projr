@@ -11,6 +11,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER } from '../../lib/design';
+import { SCREEN_HEADER } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 const OPEN_ANIMATION_DURATION_MS = 150;
 const CLOSE_ANIMATION_DURATION_MS = 140;
@@ -30,7 +31,7 @@ const SHEET_RADIUS = 24;
 const SWIPE_ACTIVATION_THRESHOLD = 8;
 const SWIPE_DISMISS_DISTANCE = 80;
 const SWIPE_DISMISS_VELOCITY = 0.5;
-const HEADER_TITLE_SIZE = 20;
+const HEADER_TITLE_SIZE = SCREEN_HEADER.titleSize;
 const HEADER_SUBTITLE_SIZE = 13;
 const HEADER_TITLE_TRACKING = 0;
 const HEADER_SUBTITLE_MARGIN = 3;
@@ -226,7 +227,7 @@ export function BottomSheet({
                 <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     {showHeaderTitle ? (
-                      <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: '600', color: palette.text, letterSpacing: HEADER_TITLE_TRACKING }}>
+                      <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, letterSpacing: HEADER_TITLE_TRACKING }}>
                         {title}
                       </Text>
                     ) : (

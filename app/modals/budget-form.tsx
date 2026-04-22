@@ -8,7 +8,7 @@ import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT, PRIMARY_ACTION } from '../../lib/layoutTokens';
+import { HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
@@ -137,11 +137,12 @@ export default function BudgetFormModal() {
               resetDraft();
               router.back();
             }}
-            style={{ padding: 4, marginRight: 12 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ marginRight: SCREEN_HEADER.iconTitleGap }}
           >
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
+          <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             {editingBudget ? 'Edit Budget' : 'New Budget'}
           </Text>
         </View>

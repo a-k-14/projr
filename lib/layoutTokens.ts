@@ -131,6 +131,12 @@ export const PRIMARY_ACTION = {
   labelSize: HOME_TEXT.sectionTitle,
 } as const;
 
+export const SCREEN_HEADER = {
+  titleSize: 18,
+  titleWeight: '500' as const,
+  iconTitleGap: HOME_SPACE.md,
+} as const;
+
 export const ACTIVITY_LAYOUT = {
   headerPaddingX: SCREEN_GUTTER,
   headerPaddingTop: 4,

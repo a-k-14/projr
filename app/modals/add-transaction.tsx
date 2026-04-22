@@ -30,7 +30,7 @@ import {
   SectionCard,
   TextInputRow } from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { HOME_TEXT, PRIMARY_ACTION } from '../../lib/layoutTokens';
+import { HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { formatDate, nowUTC } from '../../lib/dateUtils';
 import {
   formatCurrency,
@@ -396,6 +396,21 @@ export default function AddTransactionModal() {
           : 'Add Expense';
   const actionButtonColor = activeConfig.color;
   const actionButtonTextColor = activeConfig.onColor;
+  const screenTitle = isEditing
+    ? type === 'in'
+      ? 'Edit Income'
+      : type === 'out'
+        ? 'Edit Expense'
+        : type === 'transfer'
+          ? 'Edit Transfer'
+          : loanEditMode === 'settlement'
+            ? loanDirection === 'lent'
+              ? 'Edit Receipt'
+              : 'Edit Repayment'
+            : 'Edit Loan'
+    : isLoanAddMore
+      ? 'Add More'
+      : 'New Transaction';
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -641,11 +656,11 @@ export default function AddTransactionModal() {
             paddingTop: 8,
             paddingBottom: 12 }}
         >
-          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
-            {isEditing ? 'Edit Transaction' : isLoanAddMore ? 'Add More' : 'New Transaction'}
+          <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
+            {screenTitle}
           </Text>
         </View>
       </SafeAreaView>
@@ -1049,7 +1064,7 @@ export default function AddTransactionModal() {
 
       {showAccountSheet ? (
         <BottomSheet
-          title="Select account"
+          title="Select Account"
           palette={palette}
           onClose={() => setShowAccountSheet(false)}
           headerRight={
@@ -1083,7 +1098,7 @@ export default function AddTransactionModal() {
 
       {showFromAccountSheet ? (
         <BottomSheet
-          title="Transfer from"
+          title="Transfer From"
           palette={palette}
           onClose={() => setShowFromAccountSheet(false)}
           headerRight={
@@ -1118,7 +1133,7 @@ export default function AddTransactionModal() {
 
       {showToAccountSheet ? (
         <BottomSheet
-          title="Transfer to"
+          title="Transfer To"
           palette={palette}
           onClose={() => setShowToAccountSheet(false)}
           headerRight={
@@ -1165,7 +1180,7 @@ export default function AddTransactionModal() {
 
       {showTagSheet ? (
         <BottomSheet
-          title="Select tags"
+          title="Select Tags"
           subtitle="Select one or more"
           palette={palette}
           onClose={() => setShowTagSheet(false)}

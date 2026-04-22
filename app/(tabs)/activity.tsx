@@ -1211,7 +1211,7 @@ export default function ActivityScreen() {
       )}
 
       {showAccountSheet ? (
-        <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
+        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
           <ChoiceRow
             title="All Accounts"
             selected={selectedAccountId === 'all'}

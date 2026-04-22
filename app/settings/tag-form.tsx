@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import {
@@ -36,7 +36,6 @@ export default function TagFormScreen() {
   const { palette } = useAppTheme();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
-  const navigation = useNavigation();
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
 
@@ -52,12 +51,6 @@ export default function TagFormScreen() {
       setDraft(EMPTY_DRAFT);
     }
   }, [id, tags]);
-
-  useEffect(() => {
-    navigation.setOptions({
-      title: isEditing ? (draft.name || 'Edit Tag') : 'New Tag',
-    });
-  }, [draft.name, isEditing, navigation]);
 
   async function onSave() {
     const name = draft.name.trim();

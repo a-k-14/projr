@@ -26,7 +26,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT, PRIMARY_ACTION } from '../../lib/layoutTokens';
+import { HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
 import { getTransactionById } from '../../services/transactions';
@@ -95,7 +95,7 @@ export default function LoanSettlementModal() {
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const isValid = !!resolvedLoanId && !!accountId && amount !== 0;
-  const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'receipt' : 'repayment'}` : loanDirection === 'lent' ? 'New receipt' : 'New repayment';
+  const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'Receipt' : 'Repayment'}` : loanDirection === 'lent' ? 'New Receipt' : 'New Repayment';
 
   const handleSave = async () => {
     if (!isValid) return;
@@ -155,10 +155,10 @@ export default function LoanSettlementModal() {
     >
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
-          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>{title}</Text>
+          <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>{title}</Text>
         </View>
       </SafeAreaView>
 
@@ -220,7 +220,7 @@ export default function LoanSettlementModal() {
       </View>
 
       {showAccountSheet ? (
-        <BottomSheet title="Select account" palette={palette} onClose={() => setShowAccountSheet(false)}>
+        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)}>
           {accounts.map((account, index) => (
             <ChoiceRow
               key={account.id}

@@ -9,7 +9,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 
 export default function SelectAccountSheet() {
@@ -41,8 +41,8 @@ export default function SelectAccountSheet() {
           />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, paddingHorizontal: SHEET_GUTTER }}>
-          <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>
-            Select account
+          <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>
+            Select Account
           </Text>
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4 }}>
             <Ionicons name="close" size={22} color={palette.textMuted} />

@@ -9,7 +9,7 @@ import { MetricProgressCard } from '../../components/ui/MetricProgressCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { getBudgetTransactionEntries } from '../../services/budget';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -87,10 +87,10 @@ export default function BudgetDetailScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12 }}>
-        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
           <Feather name="arrow-left" size={24} color={palette.text} />
         </TouchableOpacity>
-        <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }} numberOfLines={1}>
+        <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }} numberOfLines={1}>
           {getCategoryFullDisplayName(budget.categoryId, ' › ')}
         </Text>
         <TouchableOpacity delayPressIn={0}

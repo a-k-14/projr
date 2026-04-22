@@ -18,6 +18,7 @@ import {
   HOME_SPACE,
   HOME_TEXT,
   PRIMARY_ACTION,
+  SCREEN_HEADER,
   PROGRESS
 } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
@@ -87,10 +88,10 @@ export default function LoanDetailScreen() {
           backgroundColor: palette.background
         }}
       >
-        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ marginRight: HOME_SPACE.md }}>
+        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
           <Feather name="arrow-left" size={24} color={palette.text} />
         </TouchableOpacity>
-        <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>
+        <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>
           {loan.personName}
         </Text>
         <TouchableOpacity delayPressIn={0}

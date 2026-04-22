@@ -9,7 +9,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 
 export default function SelectTagSheet() {
   const tags = useCategoriesStore((s) => s.tags);
@@ -40,7 +40,7 @@ export default function SelectTagSheet() {
           <View style={{ width: 42, height: 5, borderRadius: 999, backgroundColor: palette.divider, opacity: 0.65 }} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-          <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>Select tags</Text>
+          <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>Select Tags</Text>
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4 }}>
             <Ionicons name="close" size={22} color={palette.textMuted} />
           </TouchableOpacity>

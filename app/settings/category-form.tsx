@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { ScrollView, View , TouchableOpacity } from 'react-native';
@@ -47,7 +47,6 @@ export default function CategoryFormScreen() {
   const { palette } = useAppTheme();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
-  const navigation = useNavigation();
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<string>(CATEGORY_ICONS[0]);
@@ -85,15 +84,6 @@ export default function CategoryFormScreen() {
       }
     }
   }, [id, categories]);
-
-  const typeLabel = type === 'in' ? 'Income' : type === 'out' ? 'Expense' : '';
-
-  useEffect(() => {
-    const action = isEditing ? 'Edit' : 'New';
-    const prefix = typeLabel ? `${action} ${typeLabel}` : action;
-    navigation.setOptions({
-      title: isEditing ? (name || `${prefix} Category`) : `${prefix} Category` });
-  }, [name, isEditing, navigation, typeLabel]);
 
   function addSub() {
     setSubs((s) => [...s, { name: '', deleted: false }]);

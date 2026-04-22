@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
 import {
@@ -48,7 +48,6 @@ export default function AccountFormScreen() {
   const { palette } = useAppTheme();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
-  const navigation = useNavigation();
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showTypePicker, setShowTypePicker] = useState(false);
@@ -69,12 +68,6 @@ export default function AccountFormScreen() {
       setDraft(EMPTY_DRAFT);
     }
   }, [id, accounts]);
-
-  useEffect(() => {
-    navigation.setOptions({
-      title: isEditing ? (draft.name || 'Edit Account') : 'New Account',
-    });
-  }, [draft.name, isEditing, navigation]);
 
   async function onSave() {
     const name = draft.name.trim();

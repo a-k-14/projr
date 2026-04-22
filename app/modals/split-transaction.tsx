@@ -9,7 +9,7 @@ import { SectionCard } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT, PRIMARY_ACTION } from '../../lib/layoutTokens';
+import { HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -114,10 +114,10 @@ export default function SplitTransactionModal() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
-          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
+          <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             Split Transaction
           </Text>
         </View>
