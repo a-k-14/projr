@@ -95,7 +95,7 @@ export default function CategoriesScreen() {
                 >
                   <CategoryIconBadge icon={cat.icon ?? 'tag'} size={20} bgSize={40} palette={palette} />
                   <Text
-                    style={{ flex: 1, fontSize: TYPE.section, fontWeight: '500', color: palette.text }}
+                    style={{ flex: 1, fontSize: TYPE.rowLabel, fontWeight: '400', color: palette.text }}
                     numberOfLines={1}
                   >
                     {cat.name}
@@ -149,7 +149,7 @@ export default function CategoriesScreen() {
                           borderTopColor: palette.divider }}
                       >
                         <Text
-                          style={{ flex: 1, fontSize: TYPE.section, color: palette.text, fontWeight: '400' }}
+                          style={{ flex: 1, fontSize: TYPE.section, color: palette.textSecondary, fontWeight: '400' }}
                           numberOfLines={1}
                         >
                           {sub.name}

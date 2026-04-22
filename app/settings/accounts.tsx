@@ -53,6 +53,7 @@ export default function AccountsScreen() {
             label={formatAccountDisplayName(account.name, account.accountNumber)}
             subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatDisplayCurrency(account.initialBalance, symbolFor(account.currency))}`}
             palette={palette}
+            labelStyle={{ fontSize: TYPE.rowLabel, fontWeight: '400' }}
             leftElement={<Feather name="menu" size={18} color={palette.textSoft} />}
             onPress={() => router.push({ pathname: '/settings/account-form', params: { id: account.id } })}
             noBorder={index === accounts.length - 1}

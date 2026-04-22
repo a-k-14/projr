@@ -163,8 +163,8 @@ export default function SplitTransactionModal() {
                   <Text
                     numberOfLines={1}
                     style={{
-                      fontSize: HOME_TEXT.sectionTitle,
-                      fontWeight: row.categoryId ? '500' : '400',
+                      fontSize: HOME_TEXT.rowLabel,
+                      fontWeight: '400',
                       color: row.categoryId ? palette.text : palette.textMuted }}
                   >
                     {getCategoryName(categories, row.categoryId)}

@@ -126,7 +126,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           backgroundColor: cfg.bg,
           alignItems: 'center',
           justifyContent: 'center',
-          marginRight: HOME_SPACE.sm + 2 }}
+          marginRight: HOME_SPACE.md }}
       >
         {inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
           <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
@@ -146,16 +146,16 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       </View>
 
       <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
-        <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.listText, marginBottom: 2 }}>
+        <Text numberOfLines={1} style={{ fontSize: 15.5, fontWeight: '400', letterSpacing: -0.2, color: palette.text, marginBottom: 2 }}>
           {title}
           {titleSecondaryText ? (
-            <Text appWeight="medium" style={{ color: palette.listText }}>
+            <Text style={{ color: palette.text }}>
               {' '}
-              {'\u2022'} {titleSecondaryText}
+              › {titleSecondaryText}
             </Text>
           ) : null}
         </Text>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, lineHeight: 18 }}>
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, color: palette.textSecondary, lineHeight: 18, fontWeight: '400' }}>
           {subtitle}
         </Text>
         {noteLine ? (
@@ -181,7 +181,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       </View>
 
       <View style={{ alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'center', paddingVertical: 1 }}>
-        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: displayAmountColor }}>
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: displayAmountColor }}>
           {amountPrefix ? `${amountPrefix} ${formatCurrency(Math.abs(amountValue), sym)}` : formatCurrency(Math.abs(amountValue), sym)}
         </Text>
       </View>

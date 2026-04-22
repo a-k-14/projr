@@ -48,6 +48,7 @@ export default function TagsScreen() {
             icon="tag"
             label={tag.name}
             palette={palette}
+            labelStyle={{ fontSize: TYPE.rowLabel, fontWeight: '400' }}
             onPress={() => router.push({ pathname: '/settings/tag-form', params: { id: tag.id } })}
             noBorder={index === tags.length - 1}
             rightElement={

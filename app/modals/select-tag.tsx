@@ -72,7 +72,7 @@ export default function SelectTagSheet() {
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />
-                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>{tag.name}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>{tag.name}</Text>
                 </View>
                 {selected ? <Ionicons name="checkmark" size={18} color={palette.tabActive} /> : null}
               </TouchableOpacity>

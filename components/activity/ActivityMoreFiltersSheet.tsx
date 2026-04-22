@@ -167,7 +167,7 @@ export function ActivityMoreFiltersSheet({
                           activeOpacity={0.75}
                           style={{ flex: 1, minWidth: 0 }}
                         >
-                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
+                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>
                             {child.name}
                           </Text>
                         </TouchableOpacity>
@@ -262,7 +262,7 @@ function MoreCategoryRow({
       </TouchableOpacity>
       <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
         <CategoryIconBadge icon={category.icon} palette={palette} />
-        <Text numberOfLines={1} style={{ marginLeft: 14, flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
+        <Text numberOfLines={1} style={{ marginLeft: 14, flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>
           {category.name}
         </Text>
       </View>
@@ -291,7 +291,7 @@ function MoreTagRow({ tag, count, selected, palette, onToggleSelected }: MoreTag
       </TouchableOpacity>
       <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color, marginRight: 14 }} />
       <TouchableOpacity delayPressIn={0} onPress={onToggleSelected} activeOpacity={0.75} style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '500', color: palette.text }}>
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>
           {tag.name}
         </Text>
       </TouchableOpacity>

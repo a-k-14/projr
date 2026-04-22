@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/AppText';
 import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
-import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
+import { CARD_PADDING, SCREEN_GUTTER, TYPE } from '../../lib/design';
 import { HOME_TEXT } from '../../lib/layoutTokens';
 import { isEmojiIcon } from '../../lib/ui-format';
 import type { AppThemePalette } from '../../lib/theme';
@@ -308,7 +308,7 @@ export function CategoryTreeList({
                       gap: CATEGORY_TREE_ROW.rowGap }}
                   >
                     <CategoryIconBadge icon={parent.icon || 'tag'} palette={palette} />
-                    <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
+                    <Text numberOfLines={1} style={{ fontSize: TYPE.rowLabel, fontWeight: '400', color: palette.text, flex: 1 }}>
                       {parent.name}
                     </Text>
                     {hasChildren ? (
@@ -351,7 +351,10 @@ export function CategoryTreeList({
                               borderTopColor: palette.divider,
                               backgroundColor: childSelected ? palette.brandSoft : 'transparent' }}
                           >
-                            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text, flex: 1 }} numberOfLines={1}>
+                            <Text
+                              style={{ flex: 1, fontSize: TYPE.section, color: palette.textSecondary, fontWeight: '400' }}
+                              numberOfLines={1}
+                            >
                               {child.name}
                             </Text>
                             {childSelected ? (
