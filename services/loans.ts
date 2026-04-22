@@ -45,13 +45,6 @@ async function enrichLoan(loan: Loan): Promise<LoanWithSummary> {
   };
 }
 
-async function getOriginTransaction(loan: Loan) {
-  const loanTransactions = await getTransactions({ loanId: loan.id });
-  return (
-    loanTransactions.find((tx) => getTransactionCashflowImpact(tx) === getLoanOriginImpact(loan.direction)) ?? null
-  );
-}
-
 export async function getLoans(filters: LoanFilters = {}): Promise<LoanWithSummary[]> {
   const conditions = [];
   if (filters.accountId) conditions.push(eq(loans.accountId, filters.accountId));
@@ -119,12 +112,23 @@ export async function updateLoanOrigin(
   const existing = await getLoanById(id);
   if (!existing) throw new Error('Loan not found');
 
+  const loanTransactions = await getTransactions({ loanId: id });
+  const originTransaction =
+    loanTransactions.find((tx) =>
+      getTransactionCashflowImpact(tx) === getLoanOriginImpact(existing.direction) &&
+      tx.date === existing.date &&
+      Math.abs(tx.amount - existing.givenAmount) < 0.000001
+    ) ??
+    loanTransactions.findLast((tx) => getTransactionCashflowImpact(tx) === getLoanOriginImpact(existing.direction));
+  const nextOriginAmount = data.givenAmount ?? originTransaction?.amount ?? existing.givenAmount;
+  const originDelta = originTransaction ? nextOriginAmount - originTransaction.amount : 0;
+  const nextGivenAmount = data.givenAmount !== undefined ? existing.givenAmount + originDelta : existing.givenAmount;
   const next: Loan = {
     ...existing,
     personName: data.personName ?? existing.personName,
     direction: data.direction ?? existing.direction,
     accountId: data.accountId ?? existing.accountId,
-    givenAmount: data.givenAmount ?? existing.givenAmount,
+    givenAmount: nextGivenAmount,
     note: data.note ?? existing.note,
     tags: data.tags ?? existing.tags,
     date: data.date ?? existing.date,
@@ -140,18 +144,19 @@ export async function updateLoanOrigin(
     date: next.date,
   }).where(eq(loans.id, id));
 
-  const loanTransactions = await getTransactions({ loanId: id });
+  if (originTransaction) {
+    await updateTransaction(originTransaction.id, {
+      type: 'loan',
+      amount: nextOriginAmount,
+      accountId: next.accountId,
+      date: next.date,
+      note: getLoanOriginLabel(next.direction, next.personName),
+    });
+  }
+
   for (const tx of loanTransactions) {
     const impact = getTransactionCashflowImpact(tx);
-    if (impact === getLoanOriginImpact(existing.direction)) {
-      await updateTransaction(tx.id, {
-        type: 'loan',
-        amount: next.givenAmount,
-        accountId: next.accountId,
-        date: next.date,
-        note: getLoanOriginLabel(next.direction, next.personName),
-      });
-    } else if (impact === getLoanSettlementImpact(existing.direction)) {
+    if (impact === getLoanSettlementImpact(existing.direction)) {
       await updateTransaction(tx.id, {
         type: 'loan',
         note: getLoanSettlementLabel(next.direction, next.personName),
@@ -161,6 +166,32 @@ export async function updateLoanOrigin(
 
   const rows = await db.select().from(loans).where(eq(loans.id, id));
   return rowToLoan(rows[0]);
+}
+
+export async function addLoanPrincipal(
+  loanId: string,
+  amount: number,
+  accountId: string,
+  date: string,
+  note?: string
+): Promise<void> {
+  const loan = await getLoanById(loanId);
+  if (!loan) throw new Error('Loan not found');
+  const label = getLoanOriginLabel(loan.direction, loan.personName);
+
+  await createTransaction({
+    type: 'loan',
+    amount,
+    accountId,
+    loanId,
+    note: note?.trim() ? `${label} · ${note.trim()}` : label,
+    date,
+  });
+
+  await db
+    .update(loans)
+    .set({ givenAmount: loan.givenAmount + amount })
+    .where(eq(loans.id, loanId));
 }
 
 export async function recordLoanPayment(

@@ -2,7 +2,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View , TouchableOpacity } from 'react-native';
-import { formatCurrency, getLoanDisplayLabel, getTransactionBalanceDelta, getTransactionCashflowImpact } from '../lib/derived';
+import { formatCurrency, getLoanDisplayLabel, getTransactionCashflowImpact } from '../lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
@@ -63,6 +63,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;
   const cashflowImpact = getTransactionCashflowImpact(tx);
+  const displayImpact = getTransactionCashflowImpact(tx, { includeTransfers: true });
 
   function isKnownFeatherIcon(icon: string) {
     return Object.prototype.hasOwnProperty.call(Feather.glyphMap, icon);
@@ -95,10 +96,9 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   }
 
   const amountValue = displayAmount ?? tx.amount;
-  const balanceDelta = getTransactionBalanceDelta(tx);
-  const amountPrefix = showAmountSign ? (balanceDelta > 0 ? '+' : balanceDelta < 0 ? '-' : '') : '';
+  const amountPrefix = getAmountPrefix(amountValue, displayImpact, showAmountSign);
   const amountColor = useTypeAmountColor
-    ? (balanceDelta > 0 ? palette.brand : balanceDelta < 0 ? palette.negative : palette.text)
+    ? (displayImpact === 'in' ? palette.brand : displayImpact === 'out' ? palette.negative : palette.text)
     : palette.text;
   const displayAmountColor = amountColor === palette.text ? palette.listText : amountColor;
   const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && category?.icon ? category.icon : null;
@@ -182,7 +182,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
 
       <View style={{ alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'center', paddingVertical: 1 }}>
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: displayAmountColor }}>
-          {amountPrefix ? `${amountPrefix} ${formatCurrency(amountValue, sym)}` : formatCurrency(amountValue, sym)}
+          {amountPrefix ? `${amountPrefix} ${formatCurrency(Math.abs(amountValue), sym)}` : formatCurrency(Math.abs(amountValue), sym)}
         </Text>
       </View>
     </View>
@@ -197,3 +197,11 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   }
   return inner;
 });
+
+function getAmountPrefix(amount: number, impact: 'in' | 'out' | 'neutral', showAmountSign: boolean) {
+  if (amount < 0) return '-';
+  if (!showAmountSign) return '';
+  if (impact === 'in') return '+';
+  if (impact === 'out') return '-';
+  return '';
+}

@@ -21,6 +21,7 @@ export function getActivityDrilldownTransactions(
 export function getActivityDisplayedCashflow(
   filteredTransactions: Transaction[],
   categoryDrilldown: ActivityDrilldownLike,
+  includeTransfers = false,
 ): CashflowSummary {
-  return getCashflowFromList(getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown));
+  return getCashflowFromList(getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown), includeTransfers);
 }

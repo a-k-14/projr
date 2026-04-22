@@ -10,6 +10,7 @@ interface LoansStore {
   load: (filters?: LoanFilters) => Promise<void>;
   reset: () => void;
   add: (data: CreateLoanInput) => Promise<void>;
+  addPrincipal: (loanId: string, amount: number, accountId: string, date: string, note?: string) => Promise<void>;
   update: (id: string, data: Partial<LoanWithSummary>) => Promise<void>;
   updateOrigin: (id: string, data: Partial<CreateLoanInput>) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -51,6 +52,12 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
 
   add: async (data) => {
     await loansService.createLoan(data);
+    await get().load(get().filters);
+    await useTransactionsStore.getState().load();
+  },
+
+  addPrincipal: async (loanId, amount, accountId, date, note) => {
+    await loansService.addLoanPrincipal(loanId, amount, accountId, date, note);
     await get().load(get().filters);
     await useTransactionsStore.getState().load();
   },

@@ -369,13 +369,7 @@ export default function ActivityScreen() {
 
     if (periodParam === 'day' || periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
       setPeriod(periodParam);
-      if (fromParam && toParam) {
-        setPeriod('custom');
-        setCustomFrom(fromParam);
-        setCustomTo(toParam);
-      } else {
-        setPeriodOffset(0);
-      }
+      setPeriodOffset(0);
     } else if (periodParam === 'custom') {
       setPeriod('custom');
       setCustomFrom(fromParam);
@@ -488,8 +482,10 @@ export default function ActivityScreen() {
         .forEach((child) => selectedCategoryAndDescendants.add(child.id));
     });
 
+    const includeTransfers = selectedAccountId !== 'all';
+
     return transactions.filter((tx) => {
-      const impact = getTransactionCashflowImpact(tx);
+      const impact = getTransactionCashflowImpact(tx, { includeTransfers });
 
       // Account filter
       if (selectedAccountId !== 'all' && tx.accountId !== selectedAccountId) {
@@ -564,8 +560,8 @@ export default function ActivityScreen() {
     [categoryDrilldown, filteredTransactions],
   );
   const displayedCashflow = useMemo(
-    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown),
-    [categoryDrilldown, filteredTransactions],
+    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, selectedAccountId !== 'all'),
+    [categoryDrilldown, filteredTransactions, selectedAccountId],
   );
 
   const moreActiveCount =
@@ -653,11 +649,11 @@ export default function ActivityScreen() {
         groupKey: group.dateKey,
         title: date,
         subtitle: label || undefined,
-        net: getCashflowFromList(group.items).net,
+        net: getCashflowFromList(group.items, selectedAccountId !== 'all').net,
         items: group.items
       };
     });
-  }, [categoryDrilldown, drilldownTransactions, filteredTransactions]);
+  }, [categoryDrilldown, drilldownTransactions, filteredTransactions, selectedAccountId]);
 
   const categoryHierarchy = useMemo(() => {
     const parentMap = new Map<
@@ -755,12 +751,12 @@ export default function ActivityScreen() {
         parentLabel: entry.parentLabel,
         parentIcon: entry.parentIcon,
         parentSyntheticType: entry.parentSyntheticType,
-        total: getCashflowFromList(entry.transactions).net,
+        total: getCashflowFromList(entry.transactions, selectedAccountId !== 'all').net,
         subcategories: Array.from(entry.subMap.values())
           .map((sub) => ({
             subKey: sub.subKey,
             subLabel: sub.subLabel,
-            total: getCashflowFromList(sub.transactions).net,
+            total: getCashflowFromList(sub.transactions, selectedAccountId !== 'all').net,
             transactions: sub.transactions
           }))
           .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
@@ -771,7 +767,7 @@ export default function ActivityScreen() {
         if (a.familyOrder !== b.familyOrder) return a.familyOrder - b.familyOrder;
         return a.parentLabel.localeCompare(b.parentLabel, 'en', { sensitivity: 'base' });
       });
-  }, [categoryById, filteredTransactions]);
+  }, [categoryById, filteredTransactions, selectedAccountId]);
 
   const hierarchySections = useMemo(
     () =>
@@ -1386,7 +1382,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
-    borderBottomWidth: 1
+    borderBottomWidth: 0
   },
   topBarMainRow: {
     flexDirection: 'row',

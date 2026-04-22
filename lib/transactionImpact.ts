@@ -2,8 +2,13 @@ export function getTransactionCashflowImpact(tx: {
   type: string;
   note?: string | null;
   transferPairId?: string | null;
+}, options?: {
+  // Transfer impact is relative to the concrete transfer leg represented by tx.type.
+  includeTransfers?: boolean;
 }): 'in' | 'out' | 'neutral' {
-  if (tx.transferPairId) return 'neutral';
+  if (tx.transferPairId) {
+    return options?.includeTransfers && (tx.type === 'in' || tx.type === 'out') ? tx.type : 'neutral';
+  }
   if (tx.type === 'in') return 'in';
   if (tx.type === 'out') return 'out';
   if (tx.type === 'loan') {

@@ -66,14 +66,17 @@ export default function AddTransactionModal() {
     accountId: sourceAccountId,
     type: initialType,
     loanId: routeLoanId,
-    settlement } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string }>();
+    settlement,
+    addMore } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string }>();
   const isEditing = !!editId;
+  const isLoanAddMore = !isEditing && !!routeLoanId && addMore === '1';
 
   const addTransaction = useTransactionsStore((s) => s.add);
   const updateTransaction = useTransactionsStore((s) => s.update);
   const removeTransaction = useTransactionsStore((s) => s.remove);
   const reloadTransactions = useTransactionsStore((s) => s.load);
   const addLoan = useLoansStore((s) => s.add);
+  const addLoanPrincipal = useLoansStore((s) => s.addPrincipal);
   const updateLoanOrigin = useLoansStore((s) => s.updateOrigin);
   const removeLoan = useLoansStore((s) => s.remove);
   const accounts = useAccountsStore((s) => s.accounts);
@@ -303,12 +306,12 @@ export default function AddTransactionModal() {
   }, [editId, isEditing]);
 
   useEffect(() => {
-    if (isEditing || !routeLoanId || settlement !== '1') return;
+    if (isEditing || !routeLoanId || (settlement !== '1' && addMore !== '1')) return;
     const task = InteractionManager.runAfterInteractions(() => {
       getLoanById(routeLoanId).then((loan) => {
         if (!loan) return;
         setType('loan');
-        setLoanEditMode('settlement');
+        setLoanEditMode(settlement === '1' ? 'settlement' : 'origin');
         setEditingLoanId(loan.id);
         setPersonName(loan.personName);
         setLoanDirection(loan.direction);
@@ -317,7 +320,7 @@ export default function AddTransactionModal() {
       });
     });
     return () => task.cancel();
-  }, [isEditing, routeLoanId, settlement]);
+  }, [addMore, isEditing, routeLoanId, settlement]);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
@@ -367,6 +370,8 @@ export default function AddTransactionModal() {
   const isValid =
     type === 'transfer'
       ? amount > 0 && accountId && linkedAccountId && accountId !== linkedAccountId
+      : isLoanAddMore
+        ? amount > 0 && accountId && personName.trim().length > 0
       : type === 'loan'
         ? hasNonZeroAmount && accountId && personName.trim().length > 0
         : usableSplitRows.length > 0
@@ -375,6 +380,8 @@ export default function AddTransactionModal() {
 
   const actionLabel = isEditing
     ? 'Save Changes'
+    : isLoanAddMore
+      ? 'Add More'
     : type === 'loan' && routeLoanId && settlement === '1'
       ? loanDirection === 'lent'
         ? 'Add Receipt'
@@ -464,6 +471,8 @@ export default function AddTransactionModal() {
           loanId: routeLoanId,
           note: getLoanSettlementLabel(loanDirection, personName),
           date });
+      } else if (type === 'loan' && isLoanAddMore && routeLoanId) {
+        await addLoanPrincipal(routeLoanId, amount, accountId, date, note || undefined);
       } else if (type === 'loan') {
         await addLoan({
           personName,
@@ -633,7 +642,7 @@ export default function AddTransactionModal() {
             <Ionicons name="close" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
-            {isEditing ? 'Edit Transaction' : 'New Transaction'}
+            {isEditing ? 'Edit Transaction' : isLoanAddMore ? 'Add More' : 'New Transaction'}
           </Text>
         </View>
       </SafeAreaView>
@@ -904,7 +913,8 @@ export default function AddTransactionModal() {
                           return (
                             <TouchableOpacity delayPressIn={0}
                               key={d}
-                              onPress={() => setLoanDirection(d)}
+                              onPress={isLoanAddMore ? undefined : () => setLoanDirection(d)}
+                              disabled={isLoanAddMore}
                               style={{
                                 flex: 1,
                                 paddingVertical: 11,
@@ -928,14 +938,22 @@ export default function AddTransactionModal() {
                       </View>
                     </FieldRow>
                   </View>
-                  <TextInputRow
-                    label="Person"
-                    value={personName}
-                    onChangeText={setPersonName}
-                    placeholder="Name"
-                    palette={palette}
-                    accentColor={activeConfig.color}
-                  />
+                  {isLoanAddMore ? (
+                    <FieldRow label="Person" palette={palette}>
+                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text }}>
+                        {personName}
+                      </Text>
+                    </FieldRow>
+                  ) : (
+                    <TextInputRow
+                      label="Person"
+                      value={personName}
+                      onChangeText={setPersonName}
+                      placeholder="Name"
+                      palette={palette}
+                      accentColor={activeConfig.color}
+                    />
+                  )}
                 </>
               )}
               <AmountRow

@@ -113,6 +113,7 @@ export default function HomeScreen() {
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [globalScrollResetTick, setGlobalScrollResetTick] = useState(0);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const previousAccountCountRef = useRef(accounts.length);
 
   const displayAccounts = useMemo<AccountTab[]>(() => [
     { id: 'all', name: 'All' },
@@ -131,6 +132,21 @@ export default function HomeScreen() {
   const [pagerHeight, setPagerHeight] = useState(0);
 
   useEffect(() => {
+    const previousCount = previousAccountCountRef.current;
+    previousAccountCountRef.current = accounts.length;
+    if (selectedAccountId === 'add' && accounts.length > previousCount && accounts.length > 0) {
+      const nextAccountId = accounts[accounts.length - 1].id;
+      setSelectedAccountId(nextAccountId);
+      const nextIndex = displayAccounts.findIndex((account) => account.id === nextAccountId);
+      if (nextIndex >= 0) {
+        const targetX = nextIndex * width;
+        settledAccountPageIndex.value = nextIndex;
+        accountPagerScrollX.value = targetX;
+        pagerRef.current?.scrollTo({ x: targetX, animated: false });
+      }
+      return;
+    }
+
     if (
       selectedAccountId !== 'all' &&
       selectedAccountId !== 'add' &&
@@ -139,7 +155,7 @@ export default function HomeScreen() {
       setSelectedAccountId('all');
       pagerRef.current?.scrollTo({ x: 0, animated: true });
     }
-  }, [accounts, selectedAccountId]);
+  }, [accountPagerScrollX, accounts, displayAccounts, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
 
   useEffect(() => {
     if (homeAccountViewMode !== 'swipe') return;
@@ -654,7 +670,7 @@ function AccountSummaryCard({
 }) {
   const isNetPositive = todayCashflow.net >= 0;
   const netColor = isNetPositive ? palette.brand : palette.negative;
-  const balanceColor = balance < 0 ? palette.negative : palette.text;
+  const balanceColor = palette.text;
 
   const content = (
     <View
@@ -780,7 +796,7 @@ function AccountSummaryCard({
                   adjustsFontSizeToFit
                   style={{ fontSize: HOME_TEXT.cardContent, fontWeight: '500', color: item.color, marginTop: HOME_SPACE.xs }}
                 >
-                  {formatCurrency(Math.abs(item.value), currencySymbol)}
+                  {formatTodayMetricValue(item.key, item.value, currencySymbol)}
                 </Text>
               </View>
             );
@@ -817,6 +833,11 @@ function AccountSummaryCard({
       {content}
     </TouchableOpacity>
   );
+}
+
+function formatTodayMetricValue(key: 'in' | 'out' | 'net', value: number, currencySymbol: string) {
+  if (key === 'net') return formatCurrency(Math.abs(value), currencySymbol);
+  return `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`;
 }
 
 function HomeAccountsList({
@@ -970,7 +991,11 @@ function PageDashIndicator({
 
     const currentScroll = verticalScrolls.value[anchorIndex] ?? 0;
     const y = indicatorY.value;
-    const addPageOpacity = Math.min(Math.max(safePageCount - 1 - progress, 0), 1);
+    const addIndex = safePageCount - 1;
+    const addSwipeThreshold = Math.max(addIndex - 1 + 0.04, 0);
+    const movingTowardAdd = settledIndex < addIndex && progress > addSwipeThreshold;
+    const settledOnAdd = settledIndex === addIndex;
+    const addPageOpacity = movingTowardAdd || settledOnAdd ? 0 : 1;
     const targetReady = (y > 0 && pageCount > 1) ? 1 : 0;
     const hideFlag = hidden ? 0 : 1;
     const swipeVisibility = HIDE_SCROLLED_INDICATOR_DURING_SWIPE ? gestureOpacity.value : 1;
@@ -1018,7 +1043,8 @@ function PageDashIndicator({
                 width: inactiveWidth,
                 height: dashHeight,
                 borderRadius: HOME_RADIUS.full,
-                backgroundColor: palette.divider,
+                backgroundColor: palette.textSoft,
+                opacity: 0.72,
               }}
             />
           ))}
@@ -1076,7 +1102,7 @@ function AddAccountPage({
           padding: CARD_PADDING,
         }}
       >
-        <Ionicons name="add-circle-outline" size={34} color={palette.text} />
+        <Ionicons name="add-outline" size={31} color={palette.text} />
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, marginTop: 12 }}>
           Add Account
         </Text>
@@ -1164,6 +1190,10 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   useEffect(() => {
     if (isSelected && resetTick > 0 && mainScrollRef.current) {
       mainScrollRef.current.scrollTo({ y: 0, animated: true });
+    }
+    if (resetTick > 0) {
+      setPeriod('week');
+      setActiveView('out');
     }
   }, [isSelected, resetTick]);
 
@@ -1255,7 +1285,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   );
   const openTodayActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
-      router.navigate({
+      router.push({
         pathname: '/(tabs)/activity',
         params: {
           source: 'home-today',
@@ -1271,7 +1301,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   );
   const openPeriodActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
-      router.navigate({
+      router.push({
         pathname: '/(tabs)/activity',
         params: {
           source: 'home-period',
@@ -1297,7 +1327,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const openSliceActivity = useCallback(
     (range: { from: string; to: string }, bucket: 'in' | 'out' | 'net') => {
-      router.navigate({
+      router.push({
         pathname: '/(tabs)/activity',
         params: {
           source: 'home-slice',
@@ -1351,6 +1381,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               This
             </Text>
             <View
+              onStartShouldSetResponder={() => true}
               onLayout={(event) => setPeriodControlWidth(event.nativeEvent.layout.width)}
               style={{
                 flex: 1,

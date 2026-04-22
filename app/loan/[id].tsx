@@ -4,9 +4,8 @@ import { View,
   ScrollView,
   
   Alert,
-  KeyboardAvoidingView,
-  Platform , TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  TouchableOpacity } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MetricProgressCard } from '../../components/ui/MetricProgressCard';
@@ -35,6 +34,8 @@ export default function LoanDetailScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const actionBottomPadding = Math.max(Math.min(insets.bottom, 34), 12) + 12;
 
   const loan = loans.find((l) => l.id === id);
 
@@ -74,7 +75,7 @@ export default function LoanDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       {/* Header */}
       <View
         style={{
@@ -102,11 +103,8 @@ export default function LoanDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: loan.status === 'open' ? 156 : 24 }}>
           <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             {/* Person card */}
             <View
@@ -230,39 +228,52 @@ export default function LoanDetailScreen() {
           </View>
         </ScrollView>
 
-        {loan.status === 'open' && loan.pendingAmount > 0 && (
+        {loan.status === 'open' && (
           <View
             style={{
               position: 'absolute',
-              bottom: 0,
               left: 0,
               right: 0,
+              bottom: 0,
               paddingHorizontal: SCREEN_GUTTER,
-              paddingBottom: 28,
-              paddingTop: HOME_SPACE.md,
+              paddingBottom: actionBottomPadding,
+              paddingTop: 8,
               backgroundColor: palette.background }}
           >
-            <TouchableOpacity delayPressIn={0}
+            {loan.pendingAmount > 0 ? (
+              <TouchableOpacity delayPressIn={0}
+                onPress={() =>
+                  router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
+                }
+                style={{
+                  backgroundColor: isLent ? palette.negative : palette.brand,
+                  borderRadius: HOME_RADIUS.card,
+                  paddingVertical: HOME_SPACE.xl,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: HOME_SPACE.sm }}
+              >
+                <Ionicons name="arrow-down" size={18} color={palette.surface} />
+                <Text style={{ color: palette.surface, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+                  {isLent ? 'Record receipt' : 'Record repayment'} · {formatCurrency(loan.pendingAmount, sym)} pending
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              delayPressIn={0}
               onPress={() =>
-                router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
+                router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } })
               }
-              style={{
-                backgroundColor: isLent ? palette.negative : palette.brand,
-                borderRadius: HOME_RADIUS.card,
-                paddingVertical: HOME_SPACE.xl,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: HOME_SPACE.sm }}
+              style={{ alignItems: 'center', paddingVertical: 10, marginTop: loan.pendingAmount > 0 ? 4 : 0 }}
             >
-              <Ionicons name="arrow-down" size={18} color={palette.surface} />
-              <Text style={{ color: palette.surface, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
-                {isLent ? 'Record receipt' : 'Record repayment'} · {formatCurrency(loan.pendingAmount, sym)} pending
+              <Text appWeight="medium" style={{ color: palette.brand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+                Add More
               </Text>
             </TouchableOpacity>
           </View>
         )}
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

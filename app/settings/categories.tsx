@@ -243,7 +243,7 @@ export default function CategoriesScreen() {
           <View style={{ width }}>{renderCategoryList('out')}</View>
         </Animated.ScrollView>
       </View>
-      <FixedBottomActions palette={palette}>
+      <FixedBottomActions palette={palette} useBudgetSpacing>
         <TouchableOpacity delayPressIn={0}
           onPress={() =>
             router.push({ pathname: '/settings/category-form', params: { type: tab } })

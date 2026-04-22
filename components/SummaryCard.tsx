@@ -43,12 +43,17 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
               { color: category.color },
             ]}
           >
-            {formatCurrency(Math.abs(cashflow[category.key]), sym)}
+            {formatSummaryValue(category.key, cashflow[category.key], sym)}
           </Text>
         </TouchableOpacity>
       ))}
     </View>
   );
+}
+
+function formatSummaryValue(key: 'in' | 'out' | 'net', value: number, sym: string) {
+  if (key === 'net') return formatCurrency(Math.abs(value), sym);
+  return `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), sym)}`;
 }
 
 const styles = StyleSheet.create({

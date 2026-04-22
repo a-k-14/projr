@@ -517,9 +517,11 @@ export function ActionButton({
 
 export function FixedBottomActions({
   children,
-  palette }: {
+  palette,
+  useBudgetSpacing = false }: {
   children: ReactNode;
   palette: AppThemePalette;
+  useBudgetSpacing?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   return (
@@ -531,7 +533,7 @@ export function FixedBottomActions({
         right: 0,
         paddingHorizontal: SCREEN_GUTTER,
         paddingTop: 12,
-        paddingBottom: (insets.bottom || 16) + 4,
+        paddingBottom: useBudgetSpacing ? Math.max(insets.bottom, 12) + 12 : (insets.bottom || 16) + 4,
         backgroundColor: palette.background,
         gap: 12 }}
     >

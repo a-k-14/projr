@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
-    borderBottomWidth: 1 },
+    borderBottomWidth: 0 },
   topBarMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
