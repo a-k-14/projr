@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import {
   ActionButton,
   ColorGrid,
@@ -9,6 +9,7 @@ import {
   InputField,
   SettingsFormLayout,
 } from '../../components/settings-ui';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import { ENTITY_COLORS } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -33,6 +34,7 @@ export default function TagFormScreen() {
   const updateTag = useCategoriesStore((s) => s.updateTag);
   const removeTag = useCategoriesStore((s) => s.removeTag);
   const { palette } = useAppTheme();
+  const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -60,7 +62,7 @@ export default function TagFormScreen() {
   async function onSave() {
     const name = draft.name.trim();
     if (!name) {
-      Alert.alert('Missing name', 'Please enter a tag name.');
+      showAlert('Missing Name', 'Please enter a tag name.');
       return;
     }
     if (isEditing && id) {
@@ -74,72 +76,67 @@ export default function TagFormScreen() {
   async function onDelete() {
     if (!id) return;
     const tag = tags.find((t) => t.id === id);
-    Alert.alert(
-      'Delete tag?',
-      `"${tag?.name}" will be removed from all transactions. This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await removeTag(id);
-              router.back();
-            } catch (error) {
-              Alert.alert(
-                'Unable to delete',
-                error instanceof Error ? error.message : 'This tag could not be deleted.',
-              );
-            }
-          },
-        },
-      ],
-    );
+    showConfirm({
+      title: 'Delete Tag',
+      message: `"${tag?.name}" will be removed from all transactions. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await removeTag(id);
+          router.back();
+        } catch (error) {
+          showAlert('Unable To Delete', error instanceof Error ? error.message : 'This tag could not be deleted.');
+        }
+      },
+    });
   }
 
   return (
-    <SettingsFormLayout
-      palette={palette}
-      bottomActions={
-        <FixedBottomActions palette={palette}>
-          <ActionButton
-            label={isEditing ? 'Save Tag' : 'Create Tag'}
-            variant="primary"
-            palette={palette}
-            onPress={onSave}
-          />
-          {isEditing && (
+    <>
+      <SettingsFormLayout
+        palette={palette}
+        bottomActions={
+          <FixedBottomActions palette={palette}>
             <ActionButton
-              label="Delete Tag"
-              variant="danger"
+              label={isEditing ? 'Save Tag' : 'Create Tag'}
+              variant="primary"
               palette={palette}
-              onPress={onDelete}
+              onPress={onSave}
             />
-          )}
-        </FixedBottomActions>
-      }
-    >
-      <View style={{ marginBottom: 16 }}>
-        <FieldLabel label="Tag Name" palette={palette} />
-        <InputField
-          palette={palette}
-          value={draft.name}
-          onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
-          placeholder="e.g. Travel"
-          autoFocus={!isEditing}
-        />
-      </View>
+            {isEditing && (
+              <ActionButton
+                label="Delete Tag"
+                variant="danger"
+                palette={palette}
+                onPress={onDelete}
+              />
+            )}
+          </FixedBottomActions>
+        }
+      >
+        <View style={{ marginBottom: 16 }}>
+          <FieldLabel label="Tag Name" palette={palette} />
+          <InputField
+            palette={palette}
+            value={draft.name}
+            onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
+            placeholder="e.g. Travel"
+            autoFocus={!isEditing}
+          />
+        </View>
 
-      <View style={{ marginBottom: 16 }}>
-        <FieldLabel label="Color" palette={palette} />
-        <ColorGrid
-          colors={ENTITY_COLORS}
-          selectedColor={draft.color}
-          onSelect={(color) => setDraft((s) => ({ ...s, color }))}
-          palette={palette}
-        />
-      </View>
-    </SettingsFormLayout>
+        <View style={{ marginBottom: 16 }}>
+          <FieldLabel label="Color" palette={palette} />
+          <ColorGrid
+            colors={ENTITY_COLORS}
+            selectedColor={draft.color}
+            onSelect={(color) => setDraft((s) => ({ ...s, color }))}
+            palette={palette}
+          />
+        </View>
+      </SettingsFormLayout>
+      {dialog}
+    </>
   );
 }

@@ -18,6 +18,7 @@ export function AppConfirmDialog({
   confirm,
   cancelLabel = 'Cancel',
   onCancel,
+  showCancel = true,
 }: {
   visible: boolean;
   title: string;
@@ -26,6 +27,7 @@ export function AppConfirmDialog({
   confirm: ConfirmAction;
   cancelLabel?: string;
   onCancel: () => void;
+  showCancel?: boolean;
 }) {
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onCancel}>
@@ -67,15 +69,17 @@ export function AppConfirmDialog({
               {title}
             </Text>
           </View>
-          <Text style={{ fontSize: HOME_TEXT.body, lineHeight: 19, color: palette.textMuted }}>
+          <Text style={{ fontSize: HOME_TEXT.body, lineHeight: 19, color: palette.text }}>
             {message}
           </Text>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: HOME_SPACE.lg }}>
-            <TouchableOpacity delayPressIn={0} onPress={onCancel} style={{ paddingHorizontal: 12, paddingVertical: 8 }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary }}>
-                {cancelLabel}
-              </Text>
-            </TouchableOpacity>
+            {showCancel ? (
+              <TouchableOpacity delayPressIn={0} onPress={onCancel} style={{ paddingHorizontal: 12, paddingVertical: 8 }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary }}>
+                  {cancelLabel}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity
               delayPressIn={0}
               onPress={confirm.onPress}

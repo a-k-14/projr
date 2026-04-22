@@ -1,11 +1,12 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { AppState, View, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
+import { AppState, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useUIStore } from '../stores/useUIStore';
 import { useAppTheme } from '../lib/theme';
 import { FinanceEmptyMascot } from './ui/FinanceEmptyMascot';
 import { HOME_TEXT } from '../lib/layoutTokens';
+import { useAppDialog } from './ui/useAppDialog';
 
 const GRACE_PERIOD_MS = 10000; // 10 seconds
 const AUTH_PROMPT_STALE_MS = 30000;
@@ -36,6 +37,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
   const authAttemptIdRef = useRef(0);
   const authWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { palette } = useAppTheme();
+  const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   
   const appState = useRef(AppState.currentState);
   const lastBackgroundTime = useRef<number | null>(null);
@@ -99,21 +101,17 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
       if (!hasHardware || !isEnrolled) {
-        Alert.alert(
-          'Biometrics Unavailable',
-          'Your device biometric enrollment has changed or is unavailable. To protect your data, the app remains locked.\n\nDo you want to disable the app lock?',
-          [
-            { text: 'Keep Locked', style: 'cancel' },
-            { 
-              text: 'Disable Lock',
-              style: 'destructive',
-              onPress: () => {
-                useUIStore.getState().updateSettings({ biometricLock: false });
-                setLocked(false);
-              }
-            }
-          ]
-        );
+        showConfirm({
+          title: 'Biometrics Unavailable',
+          message: 'Your device biometric enrollment has changed or is unavailable. To protect your data, the app remains locked.\n\nDo you want to disable the app lock?',
+          cancelLabel: 'Keep Locked',
+          confirmLabel: 'Disable Lock',
+          destructive: true,
+          onConfirm: () => {
+            useUIStore.getState().updateSettings({ biometricLock: false });
+            setLocked(false);
+          },
+        });
         return;
       }
 
@@ -126,15 +124,15 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
       if (result.success) {
         setLocked(false);
       } else if (shouldShowAuthFailure(result.error)) {
-        Alert.alert('Unlock Failed', authFailureMessage(result.error));
+        showAlert('Unlock Failed', authFailureMessage(result.error));
       }
     } catch (error) {
       console.error('Biometric auth failed', error);
-      Alert.alert('Authentication Error', 'An unexpected error occurred accessing biometric unlocking. If this persists, try restarting the app or checking device security settings.');
+      showAlert('Authentication Error', 'An unexpected error occurred accessing biometric unlocking. If this persists, try restarting the app or checking device security settings.');
     } finally {
       finishAuthAttempt(attemptId);
     }
-  }, [cancelNativeAuth, clearAuthWatchdog, finishAuthAttempt, setLocked]);
+  }, [cancelNativeAuth, clearAuthWatchdog, finishAuthAttempt, setLocked, showAlert, showConfirm]);
 
   useEffect(() => {
     if (isAuthEnabled) {
@@ -218,11 +216,17 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
             </Text>
           </TouchableOpacity>
         </View>
+        {dialog}
       </View>
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {dialog}
+    </>
+  );
 }
 
 const styles = StyleSheet.create({

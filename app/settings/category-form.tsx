@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Alert, ScrollView, View , TouchableOpacity } from 'react-native';
+import { ScrollView, View , TouchableOpacity } from 'react-native';
 import {
   ActionButton,
   ChoiceRow,
@@ -15,6 +15,7 @@ import {
   SettingsFormLayout } from '../../components/settings-ui';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
 import { CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
@@ -44,6 +45,7 @@ export default function CategoryFormScreen() {
   const updateCategory = useCategoriesStore((s) => s.updateCategory);
   const removeCategory = useCategoriesStore((s) => s.removeCategory);
   const { palette } = useAppTheme();
+  const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -111,7 +113,7 @@ export default function CategoryFormScreen() {
   async function onSave() {
     const trimmed = name.trim();
     if (!trimmed) {
-      Alert.alert('Missing name', 'Please enter a category name.');
+      showAlert('Missing Name', 'Please enter a category name.');
       return;
     }
 
@@ -152,10 +154,7 @@ export default function CategoryFormScreen() {
           }
         }
       } catch (error) {
-        Alert.alert(
-          'Could not update all subcategories',
-          error instanceof Error ? error.message : 'An error occurred during save.'
-        );
+        showAlert('Could Not Update All Subcategories', error instanceof Error ? error.message : 'An error occurred during save.');
         return;
       }
     }
@@ -171,27 +170,20 @@ export default function CategoryFormScreen() {
       childCount > 0
         ? ` It has ${childCount} subcategor${childCount === 1 ? 'y' : 'ies'} that will also be removed.`
         : '';
-    Alert.alert(
-      'Delete category?',
-      `"${cat?.name}" will be permanently removed.${childNote} This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await removeCategory(id);
-              router.back();
-            } catch (error) {
-              Alert.alert(
-                'Unable to delete',
-                error instanceof Error ? error.message : 'Could not delete.',
-              );
-            }
-          } },
-      ],
-    );
+    showConfirm({
+      title: 'Delete Category',
+      message: `"${cat?.name}" will be permanently removed.${childNote} This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await removeCategory(id);
+          router.back();
+        } catch (error) {
+          showAlert('Unable To Delete', error instanceof Error ? error.message : 'Could not delete.');
+        }
+      },
+    });
   }
 
   const visibleSubs = subs
@@ -374,6 +366,7 @@ export default function CategoryFormScreen() {
           </View>
         </BottomSheet>
       )}
+      {dialog}
     </>
   );
 }

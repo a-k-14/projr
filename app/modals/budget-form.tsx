@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Alert, Keyboard, ScrollView, View , TouchableOpacity } from 'react-native';
+import { Keyboard, ScrollView, View , TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
@@ -15,6 +15,7 @@ import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import type { BudgetWithSpent } from '../../types';
 
 export default function BudgetFormModal() {
@@ -30,6 +31,7 @@ export default function BudgetFormModal() {
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const { showAlert, showConfirm, dialog } = useAppDialog(palette);
 
   const draftCategoryId = useBudgetDraftStore((s) => s.categoryId);
   const setDraftCategoryId = useBudgetDraftStore((s) => s.setCategoryId);
@@ -102,23 +104,23 @@ export default function BudgetFormModal() {
       resetDraft();
       router.back();
     } catch (error) {
-      Alert.alert('Error', String(error));
+      showAlert('Error', String(error));
     }
   };
 
   const handleDelete = () => {
     if (!editingBudget) return;
-    Alert.alert('Delete budget', 'This budget will be removed for its covered month(s).', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await removeBudget(editingBudget.id, month);
-          resetDraft();
-          router.back();
-        } },
-    ]);
+    showConfirm({
+      title: 'Delete Budget',
+      message: 'This budget will be removed for its covered month(s).',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        await removeBudget(editingBudget.id, month);
+        resetDraft();
+        router.back();
+      },
+    });
   };
 
   const handleOpenCalculator = () => {
@@ -221,6 +223,7 @@ export default function BudgetFormModal() {
           setAmountStr(formatIndianNumberStr(finalValue));
         }}
       />
+      {dialog}
     </View>
   );
 }

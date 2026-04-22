@@ -2,8 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Alert,
-  Image,
+import { Image,
   InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
@@ -51,6 +50,7 @@ import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore'
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import type {
   Account,
   Category,
@@ -89,6 +89,7 @@ export default function AddTransactionModal() {
   const sym = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const { palette } = useAppTheme();
+  const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const draftCategoryId = useTransactionDraftStore((s) => s.categoryId);
   const setDraftCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
@@ -500,28 +501,28 @@ export default function AddTransactionModal() {
       // Background refresh after navigation
       Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => {});
     } catch (e) {
-      Alert.alert('Error', String(e));
+      showAlert('Error', String(e));
     }
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete transaction', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          if (type === 'loan' && loanEditMode === 'origin' && editingLoanId) {
-            await removeLoan(editingLoanId);
-          } else if (editId) {
-            await removeTransaction(editId);
-          }
-          await refreshAccounts();
-          setEditingSplitGroupId('');
-          clearSplitRows();
-          router.back();
-        } },
-    ]);
+    showConfirm({
+      title: 'Delete Transaction',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        if (type === 'loan' && loanEditMode === 'origin' && editingLoanId) {
+          await removeLoan(editingLoanId);
+        } else if (editId) {
+          await removeTransaction(editId);
+        }
+        await refreshAccounts();
+        setEditingSplitGroupId('');
+        clearSplitRows();
+        router.back();
+      },
+    });
   };
 
   const toggleTag = (tagId: string) => {
@@ -548,7 +549,7 @@ export default function AddTransactionModal() {
   const takeReceiptPhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Camera permission needed', 'Allow camera access to take receipt photos.');
+      showAlert('Camera Permission Needed', 'Allow camera access to take receipt photos.');
       return;
     }
 
@@ -562,7 +563,7 @@ export default function AddTransactionModal() {
   const chooseReceiptImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync(false);
     if (!permission.granted) {
-      Alert.alert('Photo permission needed', 'Allow photo access to attach a receipt image.');
+      showAlert('Photo Permission Needed', 'Allow photo access to attach a receipt image.');
       return;
     }
 
@@ -1398,6 +1399,7 @@ export default function AddTransactionModal() {
           </View>
         </GestureHandlerRootView>
       </Modal>
+      {dialog}
     </KeyboardAvoidingView>
   );
 }

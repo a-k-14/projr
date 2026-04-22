@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Alert, Keyboard, Platform, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
+import { Keyboard, Platform, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { SectionCard } from '../../components/ui/transaction-form-primitives';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { HOME_TEXT } from '../../lib/layoutTokens';
@@ -41,6 +42,7 @@ export default function SplitTransactionModal() {
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
   const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
   const { palette } = useAppTheme();
+  const { showAlert, dialog } = useAppDialog(palette);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
@@ -101,7 +103,7 @@ export default function SplitTransactionModal() {
       (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
     );
     if (!valid) {
-      Alert.alert('Complete all line items', 'Choose a category and amount for each split line.');
+      showAlert('Complete All Line Items', 'Choose a category and amount for each split line.');
       return;
     }
     setSplitRows(filledRows);
@@ -262,6 +264,7 @@ export default function SplitTransactionModal() {
           onSelect={selectCategoryForSheetRow}
         />
       ) : null}
+      {dialog}
     </View>
   );
 }

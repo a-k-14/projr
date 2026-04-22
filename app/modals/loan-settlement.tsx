@@ -2,8 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Alert,
-  InteractionManager,
+import { InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -35,6 +34,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 
 export default function LoanSettlementModal() {
   const { editId, loanId } = useLocalSearchParams<{ editId?: string; loanId?: string }>();
@@ -50,6 +50,7 @@ export default function LoanSettlementModal() {
   const displaySym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const { showAlert, showConfirm, dialog } = useAppDialog(palette);
 
   const [resolvedLoanId, setResolvedLoanId] = useState(loanId ?? '');
   const [personName, setPersonName] = useState('');
@@ -115,23 +116,23 @@ export default function LoanSettlementModal() {
       // Background refresh after navigation
       Promise.all([refreshAccounts(), loadLoans()]).catch(() => {});
     } catch (e) {
-      Alert.alert('Error', String(e));
+      showAlert('Error', String(e));
     }
   };
 
   const handleDelete = () => {
     if (!editId) return;
-    Alert.alert('Delete transaction', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await removeTransaction(editId);
-          router.back();
-          Promise.all([refreshAccounts(), loadLoans()]).catch(() => {});
-        } },
-    ]);
+    showConfirm({
+      title: 'Delete Transaction',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        await removeTransaction(editId);
+        router.back();
+        Promise.all([refreshAccounts(), loadLoans()]).catch(() => {});
+      },
+    });
   };
 
   const openDate = () => {
@@ -245,6 +246,7 @@ export default function LoanSettlementModal() {
         onClose={() => setShowDatePicker(false)}
         onConfirm={(nextDate) => setDate(nextDate.toISOString())}
       />
+      {dialog}
     </KeyboardAvoidingView>
   );
 }

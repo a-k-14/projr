@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Keyboard, ScrollView, Switch, View, Alert, TouchableWithoutFeedback } from 'react-native';
+import { Keyboard, ScrollView, Switch, View, TouchableWithoutFeedback } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -12,6 +12,7 @@ import { useAppTheme } from '../../lib/theme';
 import { CardSection, ScreenTitle, SectionLabel, SettingsRow, ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import {
   CURRENCIES,
   MONTHS,
@@ -34,6 +35,7 @@ export default function SettingsScreen() {
   const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
   const loadCategories = useCategoriesStore((s) => s.load);
   const { palette } = useAppTheme();
+  const { showAlert, dialog } = useAppDialog(palette);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const [picker, setPicker] = useState<PickerKind>(null);
@@ -66,12 +68,12 @@ export default function SettingsScreen() {
     if (value) {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       if (!hasHardware) {
-        Alert.alert('Not Supported', 'Your device does not support biometric authentication.');
+        showAlert('Not Supported', 'Your device does not support biometric authentication.');
         return;
       }
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       if (!isEnrolled) {
-        Alert.alert('Not Enrolled', 'No biometrics are enrolled on this device. Please set up a screen lock or biometrics in your device settings.');
+        showAlert('Not Enrolled', 'No biometrics are enrolled on this device. Please set up a screen lock or biometrics in your device settings.');
         return;
       }
     }
@@ -320,6 +322,7 @@ export default function SettingsScreen() {
             : null}
         </BottomSheet>
       ) : null}
+      {dialog}
     </View>
   );
 }

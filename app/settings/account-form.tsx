@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import {
   ActionButton,
   ChoiceRow,
@@ -12,6 +12,7 @@ import {
   SettingsFormLayout,
 } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SPACING } from '../../lib/design';
 import { ACCOUNT_ICONS, ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
@@ -45,6 +46,7 @@ export default function AccountFormScreen() {
   const updateAccount = useAccountsStore((s) => s.update);
   const removeAccount = useAccountsStore((s) => s.remove);
   const { palette } = useAppTheme();
+  const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -77,7 +79,7 @@ export default function AccountFormScreen() {
   async function onSave() {
     const name = draft.name.trim();
     if (!name) {
-      Alert.alert('Missing name', 'Please enter an account name.');
+      showAlert('Missing Name', 'Please enter an account name.');
       return;
     }
 
@@ -111,27 +113,20 @@ export default function AccountFormScreen() {
   async function onDelete() {
     if (!id) return;
     const account = accounts.find((a) => a.id === id);
-    Alert.alert(
-      'Delete account?',
-      `"${account?.name}" and all its transaction history will be permanently removed. This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await removeAccount(id);
-              router.back();
-            } catch (error) {
-              Alert.alert(
-                'Unable to delete',
-                error instanceof Error ? error.message : 'This account could not be deleted.',
-              );
-            }
-          } },
-      ],
-    );
+    showConfirm({
+      title: 'Delete Account',
+      message: `"${account?.name}" and all its transaction history will be permanently removed. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await removeAccount(id);
+          router.back();
+        } catch (error) {
+          showAlert('Unable To Delete', error instanceof Error ? error.message : 'This account could not be deleted.');
+        }
+      },
+    });
   }
 
   const selectedType = ACCOUNT_TYPES.find((t) => t.key === draft.type);
@@ -272,6 +267,7 @@ export default function AccountFormScreen() {
           ))}
         </BottomSheet>
       )}
+      {dialog}
     </>
   );
 }
