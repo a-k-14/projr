@@ -1,7 +1,7 @@
+import { Text } from '@/components/ui/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Text } from '@/components/ui/AppText';
-import { StyleSheet, View , TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
@@ -32,7 +32,8 @@ export function ActivityPeriodHeader({
         {
           backgroundColor: palette.surface,
           borderColor: palette.divider,
-          flex: 1 },
+          flex: 1
+        },
       ]}
     >
       <TouchableOpacity delayPressIn={0}
@@ -86,19 +87,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: ACTIVITY_LAYOUT.controlRadius,
     borderWidth: 1.5,
-    overflow: 'hidden' },
+    overflow: 'hidden'
+  },
   periodArrow: {
     width: ACTIVITY_LAYOUT.periodArrowWidth,
     height: '100%',
     alignItems: 'center',
-    justifyContent: 'center' },
+    justifyContent: 'center'
+  },
   periodCenter: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center' },
+    justifyContent: 'center'
+  },
   periodCenterTouch: {
     height: '100%',
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8 } });
+    paddingHorizontal: 4
+  }
+});

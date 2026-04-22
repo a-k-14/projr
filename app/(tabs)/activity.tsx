@@ -752,6 +752,7 @@ export default function ActivityScreen() {
         parentIcon: entry.parentIcon,
         parentSyntheticType: entry.parentSyntheticType,
         total: getCashflowFromList(entry.transactions, selectedAccountId !== 'all').net,
+        transactions: entry.transactions,
         subcategories: Array.from(entry.subMap.values())
           .map((sub) => ({
             subKey: sub.subKey,
@@ -970,7 +971,7 @@ export default function ActivityScreen() {
                     </View>
                   ) : null}
 
-                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 4 }} />
+                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
 
                   {groupByMode === 'category' && categoryDrilldown ? (
                     <View
@@ -1053,18 +1054,46 @@ export default function ActivityScreen() {
                 <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
 
                 <View>
-                  {hierarchySections.map((section) => (
+                  {hierarchySections.map((section, sectionIndex) => (
                     <View key={section.key}>
-                      <ListHeading label={section.label} palette={palette} paddingHorizontal={CARD_PADDING} paddingTop={16} paddingBottom={10} />
+                      <ListHeading
+                        label={section.label}
+                        palette={palette}
+                        paddingHorizontal={CARD_PADDING}
+                        paddingTop={sectionIndex === 0 ? 0 : 16}
+                        paddingBottom={10}
+                      />
                       <CardSection palette={palette}>
                         {section.items.map((category, categoryIndex) => {
                           const isExpanded = expandedCategoryIds.includes(category.parentKey);
+                          const isDirectNavigation = category.familyKey === 'loan' || category.familyKey === 'transfer';
                           const isLastCategory = categoryIndex === section.items.length - 1;
                           const syntheticCfg = category.parentSyntheticType ? (txTypeConfig as any)[category.parentSyntheticType] : undefined;
+                          const loanIds = Array.from(new Set(category.transactions.map((tx) => tx.loanId).filter((value): value is string => !!value)));
                           return (
                             <View key={category.parentKey}>
                               <TouchableOpacity delayPressIn={0}
-                                onPress={() => toggleCategoryExpansion(category.parentKey)}
+                                onPress={() => {
+                                  if (category.familyKey === 'loan') {
+                                    if (loanIds.length === 1) {
+                                      router.push(`/loan/${loanIds[0]}`);
+                                    } else {
+                                      setTypeFilter('loan');
+                                      setCashflowBucket('all');
+                                      setGroupByMode('date');
+                                    }
+                                    return;
+                                  }
+
+                                  if (category.familyKey === 'transfer') {
+                                    setTypeFilter('transfer');
+                                    setCashflowBucket('all');
+                                    setGroupByMode('date');
+                                    return;
+                                  }
+
+                                  toggleCategoryExpansion(category.parentKey);
+                                }}
                                 activeOpacity={0.75}
                                 style={{
                                   flexDirection: 'row',
@@ -1072,7 +1101,7 @@ export default function ActivityScreen() {
                                   paddingVertical: 12,
                                   paddingHorizontal: CARD_PADDING,
                                   minHeight: 62,
-                                  borderBottomWidth: isLastCategory && !isExpanded ? 0 : 1,
+                                  borderBottomWidth: isLastCategory && (!isExpanded || isDirectNavigation) ? 0 : 1,
                                   borderBottomColor: palette.divider,
                                   gap: 12
                                 }}
@@ -1101,13 +1130,13 @@ export default function ActivityScreen() {
                                   {signedCurrency(category.total, sym)}
                                 </Text>
                                 <Feather
-                                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                  name={isDirectNavigation ? 'chevron-right' : isExpanded ? 'chevron-up' : 'chevron-down'}
                                   size={18}
                                   color={palette.textSoft}
                                 />
                               </TouchableOpacity>
 
-                              {isExpanded ? (
+                              {isExpanded && !isDirectNavigation ? (
                                 <View
                                   style={{
                                     backgroundColor: palette.inputBg,

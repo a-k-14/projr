@@ -1,23 +1,25 @@
+import { Text } from '@/components/ui/AppText';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { FlatList,
+import {
+  FlatList,
   LayoutAnimation,
   RefreshControl,
   StyleSheet,
   TextInput,
-  
-  View , TouchableOpacity } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FabButton } from '../../components/ui/FabButton';
-import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { FilterChip } from '../../components/ui/FilterChip';
+import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency, getLoanSummary } from '../../lib/derived';
@@ -25,13 +27,14 @@ import { CARD_PADDING } from '../../lib/design';
 import {
   ACTIVITY_LAYOUT,
   HOME_LAYOUT,
-  PROGRESS,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-  getFabBottomOffset } from '../../lib/layoutTokens';
-import { formatDateFull } from '../../lib/ui-format';
+  PROGRESS,
+  getFabBottomOffset
+} from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
+import { formatDateFull } from '../../lib/ui-format';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -192,7 +195,8 @@ export default function LoansScreen() {
           setToDate(endOfDayIso(date));
         }
         setFromDate(nextFrom);
-      } });
+      }
+    });
   };
 
   const openToDatePicker = () => {
@@ -206,7 +210,8 @@ export default function LoansScreen() {
           setFromDate(startOfDayIso(date));
         }
         setToDate(nextTo);
-      } });
+      }
+    });
   };
 
   return (
@@ -266,7 +271,7 @@ export default function LoansScreen() {
         windowSize={5}
         ListHeaderComponent={
           <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-            <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
+            <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: 12 }}>
               <LoanSummaryCard
                 lent={summary.youLent}
                 borrowed={summary.youOwe}
@@ -283,7 +288,8 @@ export default function LoansScreen() {
                 {
                   paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
                   marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom,
-                  gap: ACTIVITY_LAYOUT.controlChipGap },
+                  gap: ACTIVITY_LAYOUT.controlChipGap
+                },
               ]}
             >
               <TouchableOpacity delayPressIn={0}
@@ -295,7 +301,8 @@ export default function LoansScreen() {
                     borderColor: palette.divider,
                     flex: 1,
                     flexBasis: 0,
-                    minWidth: 0 },
+                    minWidth: 0
+                  },
                 ]}
               >
                 <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
@@ -314,13 +321,14 @@ export default function LoansScreen() {
                     flexBasis: 0,
                     minWidth: 0,
                     backgroundColor: moreActiveCount > 0 ? palette.brandSoft : palette.surface,
-                    borderColor: moreActiveCount > 0 ? palette.brand : palette.divider },
+                    borderColor: moreActiveCount > 0 ? palette.brand : palette.divider
+                  },
                 ]}
               >
-                <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.textMuted }}>
-                  {moreActiveCount > 0 ? `More ${moreActiveCount}` : 'More'}
+                <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.text }}>
+                  More
                 </Text>
-                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.textMuted} />
+                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.text} />
               </TouchableOpacity>
             </View>
 
@@ -511,13 +519,13 @@ function LoanSummaryCard({
   netPositive,
   sym,
   palette }: {
-  lent: number;
-  borrowed: number;
-  net: number;
-  netPositive: boolean;
-  sym: string;
-  palette: AppThemePalette;
-}) {
+    lent: number;
+    borrowed: number;
+    net: number;
+    netPositive: boolean;
+    sym: string;
+    palette: AppThemePalette;
+  }) {
   const badgeLabel = borrowed === 0 && lent === 0 ? 'No loans' : borrowed === 0 ? 'Net lent' : lent === 0 ? 'Net borrowed' : netPositive ? 'Net lent' : 'Net borrowed';
 
   return (
@@ -547,13 +555,13 @@ function LoanRow({
   palette,
   isLast,
   onPress }: {
-  loan: LoanWithSummary;
-  accountName?: string;
-  sym: string;
-  palette: AppThemePalette;
-  isLast: boolean;
-  onPress: () => void;
-}) {
+    loan: LoanWithSummary;
+    accountName?: string;
+    sym: string;
+    palette: AppThemePalette;
+    isLast: boolean;
+    onPress: () => void;
+  }) {
   const isLent = loan.direction === 'lent';
   const dirColor = isLent ? palette.negative : palette.brand;
   const dirBg = isLent ? palette.outBg : palette.inBg;
@@ -568,7 +576,8 @@ function LoanRow({
           backgroundColor: palette.surface,
           borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
           marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-          overflow: 'hidden' }}
+          overflow: 'hidden'
+        }}
       >
         <TouchableOpacity delayPressIn={0} activeOpacity={0.6} onPress={onPress}>
           <View
@@ -579,7 +588,8 @@ function LoanRow({
               paddingTop: loan.status === 'closed' ? HOME_LAYOUT.listRowPaddingY + 14 : HOME_LAYOUT.listRowPaddingY,
               paddingBottom: loan.status === 'closed' ? HOME_LAYOUT.listRowPaddingY + 2 : HOME_LAYOUT.listRowPaddingY,
               borderBottomWidth: isLast ? 0 : 0,
-              position: 'relative' }}
+              position: 'relative'
+            }}
           >
             <View
               style={{
@@ -589,7 +599,8 @@ function LoanRow({
                 backgroundColor: dirBg,
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginRight: HOME_SPACE.sm + 2 }}
+                marginRight: HOME_SPACE.sm + 2
+              }}
             >
               <Ionicons
                 name={isLent ? 'arrow-up' : 'arrow-down'}
@@ -611,7 +622,8 @@ function LoanRow({
                   backgroundColor: palette.inputBg,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  zIndex: 2 }}
+                  zIndex: 2
+                }}
               >
                 <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textSecondary }}>Closed</Text>
               </View>
@@ -641,14 +653,16 @@ function LoanRow({
                   backgroundColor: palette.divider,
                   borderRadius: PROGRESS.radius,
                   marginTop: 6,
-                  overflow: 'hidden' }}
+                  overflow: 'hidden'
+                }}
               >
                 <View
                   style={{
                     height: PROGRESS.cardHeight,
                     width: `${progressPercent}%`,
                     backgroundColor: dirColor,
-                    borderRadius: PROGRESS.radius }}
+                    borderRadius: PROGRESS.radius
+                  }}
                 />
               </View>
             </View>
@@ -664,11 +678,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
-    borderBottomWidth: 0 },
+    borderBottomWidth: 0
+  },
   topBarMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10 },
+    gap: 10
+  },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -676,7 +692,8 @@ const styles = StyleSheet.create({
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderWidth: 1.5 },
+    borderWidth: 1.5
+  },
   iconBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -688,10 +705,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1 },
+    elevation: 1
+  },
   row: {
     flexDirection: 'row',
-    alignItems: 'center' },
+    alignItems: 'center'
+  },
   accountPicker: {
     minWidth: 0,
     flexDirection: 'row',
@@ -706,7 +725,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1 },
+    elevation: 1
+  },
   moreChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -714,6 +734,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 12,
     paddingVertical: 7,
+    height: ACTIVITY_LAYOUT.controlHeight,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     borderWidth: 1.5,
     flexShrink: 0,
@@ -721,17 +742,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 1 },
+    elevation: 1
+  },
   clearAllButton: {
     paddingHorizontal: 8,
     paddingVertical: 6,
-    marginRight: -4 },
+    marginRight: -4
+  },
   dateField: {
     flex: 1,
     borderRadius: 12,
     borderWidth: 1.5,
     paddingHorizontal: 14,
-    paddingVertical: 10 },
+    paddingVertical: 10
+  },
   amountField: {
     flex: 1,
     borderRadius: 12,
@@ -739,13 +763,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: HOME_TEXT.body,
-    fontWeight: '700' },
+    fontWeight: '700'
+  },
   sheetChipRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: ACTIVITY_LAYOUT.controlChipGap,
     paddingHorizontal: CARD_PADDING,
-    paddingBottom: 8 } });
+    paddingBottom: 8
+  }
+});
 
 function startOfDayIso(date: Date) {
   const next = new Date(date);
@@ -763,5 +790,6 @@ function formatLoanRowDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric' });
+    year: 'numeric'
+  });
 }

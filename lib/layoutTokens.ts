@@ -143,7 +143,7 @@ export const ACTIVITY_LAYOUT = {
   accountChipGap: 8,
   accountChipHorizontalPadding: 13,
   accountChipScrollPaddingRight: 4,
-  accountPickerWidth: '36%',
+  accountPickerWidth: '37%',
   filterChipHeight: 38,
   filterChipHorizontalPadding: 12,
   filterChipVerticalPadding: 7,

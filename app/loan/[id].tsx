@@ -7,8 +7,7 @@ import { View,
   TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { MetricProgressCard } from '../../components/ui/MetricProgressCard';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -86,7 +85,7 @@ export default function LoanDetailScreen() {
           backgroundColor: palette.background }}
       >
         <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ marginRight: HOME_SPACE.md }}>
-          <Ionicons name="chevron-back" size={24} color={palette.text} />
+          <Feather name="arrow-left" size={24} color={palette.text} />
         </TouchableOpacity>
         <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '700', color: palette.text, flex: 1 }}>
           {loan.personName}
@@ -106,7 +105,7 @@ export default function LoanDetailScreen() {
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: loan.status === 'open' ? 156 : 24 }}>
           <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-            {/* Person card */}
+            {/* Loan details */}
             <View
               style={{
                 backgroundColor: palette.surface,
@@ -145,46 +144,67 @@ export default function LoanDetailScreen() {
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>
                 {isLent ? 'You lent' : 'You borrowed'} · {account?.name} · {formatDateShort(loan.date)}
               </Text>
-            </View>
 
-            {/* Summary card */}
-            <MetricProgressCard
-              palette={palette}
-              metrics={[
-                { key: 'given', label: isLent ? 'GIVEN' : 'BORROWED', value: formatCurrency(loan.givenAmount, sym), valueColor: palette.text },
-                { key: 'settled', label: isLent ? 'RECEIVED' : 'REPAID', value: formatCurrency(loan.settledAmount, sym), valueColor: progressColor },
-                { key: 'pending', label: 'PENDING', value: formatCurrency(loan.pendingAmount, sym), valueColor: isLent ? palette.loan : palette.textSecondary },
-              ]}
-              progressPercent={loan.repaidPercent}
-              progressColor={progressColor}
-              progressLabelLeft={isLent ? 'Received' : 'Repaid'}
-              progressLabelRight={`${loan.repaidPercent}%`}
-              footerLeft={{ text: isLent ? `${formatCurrency(loan.pendingAmount, sym)} due` : `${formatCurrency(loan.pendingAmount, sym)} left`, color: isLent ? palette.negative : palette.textSecondary }}
-              footerRight={{ text: loan.status === 'closed' ? 'Closed' : 'Open', color: loan.status === 'closed' ? palette.textSecondary : (isLent ? palette.negative : palette.positive) }}
-            />
-
-            {/* Note */}
-            {loan.note ? (
-              <View
-                style={{
-                  backgroundColor: palette.surface,
-                  borderRadius: HOME_RADIUS.card,
-                  padding: HOME_SPACE.xl,
-                  marginBottom: HOME_SPACE.md }}
-              >
-                <Text
-                  style={{
-                    fontSize: HOME_TEXT.tiny + 1,
-                    color: palette.textMuted,
-                    fontWeight: '600',
-                    letterSpacing: 0.5,
-                    marginBottom: HOME_SPACE.sm }}
-                >
-                  NOTE
-                </Text>
-                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{loan.note}</Text>
+              <View style={{ flexDirection: 'row', marginTop: HOME_SPACE.lg }}>
+                {[
+                  { key: 'given', label: isLent ? 'GIVEN' : 'BORROWED', value: formatCurrency(loan.givenAmount, sym), color: palette.text },
+                  { key: 'settled', label: isLent ? 'RECEIVED' : 'REPAID', value: formatCurrency(loan.settledAmount, sym), color: progressColor },
+                  { key: 'pending', label: 'PENDING', value: formatCurrency(loan.pendingAmount, sym), color: isLent ? palette.loan : palette.textSecondary },
+                ].map((item, index) => (
+                  <View
+                    key={item.key}
+                    style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      borderRightWidth: index < 2 ? 1 : 0,
+                      borderRightColor: palette.inputBg,
+                    }}
+                  >
+                    <Text appWeight="medium" style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5 }}>
+                      {item.label}
+                    </Text>
+                    <Text appWeight="medium" style={{ fontSize: HOME_TEXT.heroLabel, fontWeight: '700', color: item.color, marginTop: HOME_SPACE.xs }}>
+                      {item.value}
+                    </Text>
+                  </View>
+                ))}
               </View>
-            ) : null}
+
+              <View style={{ marginTop: HOME_SPACE.md }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: HOME_SPACE.xs }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>{isLent ? 'Received' : 'Repaid'}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>{loan.repaidPercent}%</Text>
+                </View>
+                <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
+                  <View
+                    style={{
+                      height: PROGRESS.cardHeight,
+                      width: `${Math.min(Math.max(loan.repaidPercent, 0), 100)}%`,
+                      backgroundColor: progressColor,
+                      borderRadius: PROGRESS.radius,
+                    }}
+                  />
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: isLent ? palette.negative : palette.textSecondary }}>
+                  {isLent ? `${formatCurrency(loan.pendingAmount, sym)} due` : `${formatCurrency(loan.pendingAmount, sym)} left`}
+                </Text>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: loan.status === 'closed' ? palette.textSecondary : (isLent ? palette.negative : palette.positive) }}>
+                  {loan.status === 'closed' ? 'Closed' : 'Open'}
+                </Text>
+              </View>
+
+              {loan.note ? (
+                <View style={{ marginTop: HOME_SPACE.md, paddingTop: HOME_SPACE.md, borderTopWidth: 1, borderTopColor: palette.inputBg }}>
+                  <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5, marginBottom: HOME_SPACE.sm }}>
+                    NOTE
+                  </Text>
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{loan.note}</Text>
+                </View>
+              ) : null}
+            </View>
 
             {/* Transaction history */}
             <Text
@@ -267,7 +287,7 @@ export default function LoanDetailScreen() {
               }
               style={{ alignItems: 'center', paddingVertical: 10, marginTop: loan.pendingAmount > 0 ? 4 : 0 }}
             >
-              <Text appWeight="medium" style={{ color: palette.brand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
+              <Text appWeight="medium" style={{ color: isLent ? palette.negative : palette.brand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
                 Add More
               </Text>
             </TouchableOpacity>
