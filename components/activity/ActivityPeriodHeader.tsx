@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1.5,
+    borderWidth: 1,
     overflow: 'hidden'
   },
   periodArrow: {

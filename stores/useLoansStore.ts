@@ -32,9 +32,6 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
       if (loan.pendingAmount <= 0 && loan.status === 'open') {
         await loansService.updateLoan(loan.id, { status: 'closed' });
         needsRefetch = true;
-      } else if (loan.pendingAmount > 0 && loan.status === 'closed') {
-        await loansService.updateLoan(loan.id, { status: 'open' });
-        needsRefetch = true;
       }
     }
 

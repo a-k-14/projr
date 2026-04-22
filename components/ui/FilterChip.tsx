@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 7,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
-    borderWidth: 1.5,
+    borderWidth: 1.0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

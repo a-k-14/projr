@@ -692,13 +692,13 @@ const styles = StyleSheet.create({
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderWidth: 1.5
+    borderWidth: 1
   },
   iconBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
-    borderWidth: 1.5,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
     height: ACTIVITY_LAYOUT.controlHeight,
     paddingHorizontal: ACTIVITY_LAYOUT.accountChipHorizontalPadding,
     borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1.5,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOpacity: 0.04,
     shadowRadius: 2,
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     height: ACTIVITY_LAYOUT.controlHeight,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
-    borderWidth: 1.5,
+    borderWidth: 1,
     flexShrink: 0,
     shadowColor: '#000',
     shadowOpacity: 0.04,
@@ -752,14 +752,14 @@ const styles = StyleSheet.create({
   dateField: {
     flex: 1,
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10
   },
   amountField: {
     flex: 1,
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: HOME_TEXT.body,

@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: ACTIVITY_LAYOUT.accountChipHorizontalPadding,
     borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1.5
+    borderWidth: 1
   },
   chipRow: {
     flexDirection: 'row',
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
-    borderWidth: 1.5,
+    borderWidth: 1,
     minWidth: 84,
     flexShrink: 0,
     gap: 6

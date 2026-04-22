@@ -12,6 +12,8 @@ export function getActivityDrilldownTransactions(
   if (!categoryDrilldown) return filteredTransactions;
   return filteredTransactions.filter((tx) => {
     if (!tx.categoryId) {
+      if (categoryDrilldown.subKey === 'type:transfer') return !!tx.transferPairId || tx.type === 'transfer';
+      if (categoryDrilldown.subKey === 'type:loan') return tx.type === 'loan';
       return categoryDrilldown.subKey === `type:${tx.type}`;
     }
     return tx.categoryId === categoryDrilldown.subKey;

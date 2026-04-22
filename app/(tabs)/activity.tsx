@@ -70,6 +70,7 @@ type CategoryDrilldown = {
   parentLabel: string;
   subKey: string;
   subLabel: string;
+  compactLabel?: boolean;
 };
 type HierarchyFamily = 'out' | 'in' | 'loan' | 'transfer';
 
@@ -693,7 +694,9 @@ export default function ActivityScreen() {
         ? parent.id
         : category
           ? category.id
-          : `type:${tx.type}`;
+          : tx.transferPairId
+            ? 'type:transfer'
+            : `type:${tx.type}`;
       const parentLabel = parent
         ? parent.name
         : category
@@ -710,7 +713,7 @@ export default function ActivityScreen() {
         : category
           ? category.icon
           : undefined;
-      const subKey = category?.id ?? `type:${tx.type}`;
+      const subKey = category?.id ?? (tx.transferPairId ? 'type:transfer' : `type:${tx.type}`);
       const subLabel = category
         ? parent
           ? category.name
@@ -994,7 +997,9 @@ export default function ActivityScreen() {
                           numberOfLines={1}
                           style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
                         >
-                          {categoryDrilldown.parentLabel} › {categoryDrilldown.subLabel}
+                          {categoryDrilldown.compactLabel
+                            ? categoryDrilldown.parentLabel
+                            : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -1069,26 +1074,29 @@ export default function ActivityScreen() {
                           const isDirectNavigation = category.familyKey === 'loan' || category.familyKey === 'transfer';
                           const isLastCategory = categoryIndex === section.items.length - 1;
                           const syntheticCfg = category.parentSyntheticType ? (txTypeConfig as any)[category.parentSyntheticType] : undefined;
-                          const loanIds = Array.from(new Set(category.transactions.map((tx) => tx.loanId).filter((value): value is string => !!value)));
                           return (
                             <View key={category.parentKey}>
                               <TouchableOpacity delayPressIn={0}
                                 onPress={() => {
                                   if (category.familyKey === 'loan') {
-                                    if (loanIds.length === 1) {
-                                      router.push(`/loan/${loanIds[0]}`);
-                                    } else {
-                                      setTypeFilter('loan');
-                                      setCashflowBucket('all');
-                                      setGroupByMode('date');
-                                    }
+                                    setCategoryDrilldown({
+                                      parentKey: category.parentKey,
+                                      parentLabel: 'Loans',
+                                      subKey: 'type:loan',
+                                      subLabel: 'Loans',
+                                      compactLabel: true
+                                    });
                                     return;
                                   }
 
                                   if (category.familyKey === 'transfer') {
-                                    setTypeFilter('transfer');
-                                    setCashflowBucket('all');
-                                    setGroupByMode('date');
+                                    setCategoryDrilldown({
+                                      parentKey: category.parentKey,
+                                      parentLabel: 'Transfers',
+                                      subKey: 'type:transfer',
+                                      subLabel: 'Transfers',
+                                      compactLabel: true
+                                    });
                                     return;
                                   }
 
@@ -1426,13 +1434,13 @@ const styles = StyleSheet.create({
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderWidth: 1.5
+    borderWidth: 1
   },
   iconBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
-    borderWidth: 1.5,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1448,7 +1456,7 @@ const styles = StyleSheet.create({
   dateField: {
     flex: 1,
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10
   },
