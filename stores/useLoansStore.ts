@@ -12,7 +12,7 @@ interface LoansStore {
   add: (data: CreateLoanInput) => Promise<void>;
   addPrincipal: (loanId: string, amount: number, accountId: string, date: string, note?: string) => Promise<void>;
   update: (id: string, data: Partial<LoanWithSummary>) => Promise<void>;
-  updateOrigin: (id: string, data: Partial<CreateLoanInput>) => Promise<void>;
+  updateOrigin: (id: string, data: Partial<CreateLoanInput>, originTransactionId?: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
   setFilters: (filters: LoanFilters) => void;
   getById: (id: string) => LoanWithSummary | undefined;
@@ -65,8 +65,8 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
     await useTransactionsStore.getState().load();
   },
 
-  updateOrigin: async (id, data) => {
-    await loansService.updateLoanOrigin(id, data);
+  updateOrigin: async (id, data, originTransactionId) => {
+    await loansService.updateLoanOrigin(id, data, originTransactionId);
     await get().load(get().filters);
     await useTransactionsStore.getState().load();
   },

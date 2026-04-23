@@ -28,6 +28,18 @@ export function getLoanSettlementLabel(direction: Loan['direction'], personName:
   return direction === 'lent' ? `Receipt from ${personName}` : `Repayment to ${personName}`;
 }
 
+export function mergeLoanTransactionNote(label: string, note?: string | null) {
+  const trimmed = note?.trim();
+  return trimmed ? `${label} · ${trimmed}` : label;
+}
+
+export function getLoanTransactionUserNote(note?: string | null) {
+  if (!note) return '';
+  const separator = ' · ';
+  const separatorIndex = note.indexOf(separator);
+  return separatorIndex >= 0 ? note.slice(separatorIndex + separator.length).trim() : '';
+}
+
 export function getLoanTransactionKind(
   tx: { type: string; note?: string | null },
   direction: Loan['direction']

@@ -789,6 +789,16 @@ export default function ActivityScreen() {
     [categoryHierarchy],
   );
 
+  const toggleSectionExpansion = useCallback((parentKeys: string[]) => {
+    if (parentKeys.length === 0) return;
+    setExpandedCategoryIds((prev) => {
+      const allExpanded = parentKeys.every((key) => prev.includes(key));
+      return allExpanded
+        ? prev.filter((key) => !parentKeys.includes(key))
+        : Array.from(new Set([...prev, ...parentKeys]));
+    });
+  }, []);
+
   const renderGroupItem = useCallback(
     ({ item }: { item: ActivityGroup }) => {
       const groupNet = item.net;
@@ -1061,13 +1071,54 @@ export default function ActivityScreen() {
                 <View>
                   {hierarchySections.map((section, sectionIndex) => (
                     <View key={section.key}>
-                      <ListHeading
-                        label={section.label}
-                        palette={palette}
-                        paddingHorizontal={CARD_PADDING}
-                        paddingTop={sectionIndex === 0 ? 0 : 16}
-                        paddingBottom={10}
-                      />
+                      {(() => {
+                        const expandableParentKeys = section.items
+                          .filter((category) => category.familyKey !== 'loan' && category.familyKey !== 'transfer')
+                          .map((category) => category.parentKey);
+                        const allExpanded =
+                          expandableParentKeys.length > 0 &&
+                          expandableParentKeys.every((key) => expandedCategoryIds.includes(key));
+
+                        return (
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              paddingHorizontal: CARD_PADDING,
+                              paddingTop: sectionIndex === 0 ? 0 : 6,
+                              paddingBottom: 7,
+                            }}
+                          >
+                            <Text
+                              appWeight="medium"
+                              style={{
+                                flex: 1,
+                                fontSize: HOME_TEXT.tiny,
+                                fontWeight: '800',
+                                letterSpacing: 0.8,
+                                textTransform: 'uppercase',
+                                color: palette.textMuted,
+                              }}
+                            >
+                              {section.label}
+                            </Text>
+                            {expandableParentKeys.length > 0 ? (
+                              <TouchableOpacity
+                                delayPressIn={0}
+                                onPress={() => toggleSectionExpansion(expandableParentKeys)}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                style={{ marginRight: 2 }}
+                              >
+                                <Feather
+                                  name={allExpanded ? 'chevrons-up' : 'chevrons-down'}
+                                  size={14}
+                                  color={palette.textMuted}
+                                />
+                              </TouchableOpacity>
+                            ) : null}
+                          </View>
+                        );
+                      })()}
                       <CardSection palette={palette}>
                         {section.items.map((category, categoryIndex) => {
                           const isExpanded = expandedCategoryIds.includes(category.parentKey);
@@ -1124,7 +1175,7 @@ export default function ActivityScreen() {
                                   palette={palette}
                                   iconColor={syntheticCfg?.color}
                                 />
-                                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
+                                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text, flex: 1 }} numberOfLines={1}>
                                   {category.parentLabel}
                                 </Text>
                                 <Text
@@ -1175,7 +1226,7 @@ export default function ActivityScreen() {
                                         borderTopColor: palette.divider
                                       }}
                                     >
-                                      <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
+                                      <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
                                         {sub.subLabel}
                                       </Text>
                                       <Text

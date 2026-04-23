@@ -146,20 +146,20 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       </View>
 
       <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
-        <Text numberOfLines={1} style={{ fontSize: 15.5, fontWeight: '400', letterSpacing: -0.2, color: palette.text, marginBottom: 2 }}>
+        <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 14, color: palette.listText, marginBottom: 2 }}>
           {title}
           {titleSecondaryText ? (
-            <Text style={{ color: palette.text }}>
+            <Text appWeight="medium" style={{ color: palette.listText }}>
               {' '}
               › {titleSecondaryText}
             </Text>
           ) : null}
         </Text>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, color: palette.textSecondary, lineHeight: 18, fontWeight: '400' }}>
+        <Text numberOfLines={1} style={{ fontSize: 14, color: palette.listText, lineHeight: 18 }}>
           {subtitle}
         </Text>
         {noteLine ? (
-          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, marginTop: 4, lineHeight: 18 }}>
+          <Text numberOfLines={1} style={{ fontSize: 13, color: palette.textSecondary, marginTop: 4, lineHeight: 18 }}>
             {noteLine}
           </Text>
         ) : null}
@@ -172,7 +172,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
               <Ionicons name="image-outline" size={13} color={palette.textSecondary} />
             ) : null}
             {tertiaryText ? (
-              <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, lineHeight: 18 }}>
+              <Text numberOfLines={1} style={{ flex: 1, fontSize: 13, color: palette.textSecondary, lineHeight: 18 }}>
                 {tertiaryText}
               </Text>
             ) : null}
@@ -181,7 +181,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       </View>
 
       <View style={{ alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'center', paddingVertical: 1 }}>
-        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: displayAmountColor }}>
+        <Text appWeight="medium" style={{ fontSize: 14, fontWeight: '500', color: displayAmountColor }}>
           {amountPrefix ? `${amountPrefix} ${formatCurrency(Math.abs(amountValue), sym)}` : formatCurrency(Math.abs(amountValue), sym)}
         </Text>
       </View>

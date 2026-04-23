@@ -36,6 +36,7 @@ import {
   formatCurrency,
   formatIndianNumberStr,
   getLoanSettlementLabel,
+  getLoanTransactionUserNote,
   getLoanTransactionKind,
   parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -295,10 +296,10 @@ export default function AddTransactionModal() {
           setLoanEditMode(kind === 'origin' ? 'origin' : 'settlement');
 
           if (kind === 'origin') {
-            setAmountStr(formatIndianNumberStr(String(loan.givenAmount)));
-            setAccountId(loan.accountId);
-            setDate(loan.date);
-            setNote(loan.note ?? '');
+            setAmountStr(formatIndianNumberStr(String(tx.amount)));
+            setAccountId(tx.accountId);
+            setDate(tx.date);
+            setNote(getLoanTransactionUserNote(tx.note));
           }
         }
       });
@@ -472,7 +473,8 @@ export default function AddTransactionModal() {
           givenAmount: amount,
           note: note || undefined,
           tags: selectedTagIds,
-          date });
+          date,
+        }, editId);
       } else if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
         await updateTransaction(editId, {
           type: 'loan',
