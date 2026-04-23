@@ -184,9 +184,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
-      if (navigation.isFocused()) {
-        resetHomeToAll();
-      }
+      resetHomeToAll();
     });
     return unsubscribe;
   }, [navigation, resetHomeToAll]);
@@ -1133,23 +1131,23 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   resetTick,
   onBottomSheetChange,
 }: {
-    pageHeight: number;
-    accountId: string | 'all';
-    accountName: string;
-    accountTypeLabel: string;
-    settingsYearStart: number;
-    currencySymbol: string;
-    customRange?: { from: Date; to: Date };
-    onOpenCustomRange: () => void;
-    totalBalance: number;
-    onRefresh: () => Promise<void>;
-    isSelected: boolean;
-    pageIndex: number;
-    verticalScrolls: SharedValue<number[]>;
-    indicatorY: SharedValue<number>;
-    resetTick: number;
-    onBottomSheetChange?: (visible: boolean) => void;
-  }) {
+  pageHeight: number;
+  accountId: string | 'all';
+  accountName: string;
+  accountTypeLabel: string;
+  settingsYearStart: number;
+  currencySymbol: string;
+  customRange?: { from: Date; to: Date };
+  onOpenCustomRange: () => void;
+  totalBalance: number;
+  onRefresh: () => Promise<void>;
+  isSelected: boolean;
+  pageIndex: number;
+  verticalScrolls: SharedValue<number[]>;
+  indicatorY: SharedValue<number>;
+  resetTick: number;
+  onBottomSheetChange?: (visible: boolean) => void;
+}) {
   const { palette } = useAppTheme();
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const accounts = useAccountsStore((s) => s.accounts);
@@ -1741,6 +1739,23 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 })
               )}
             </ScrollView>
+          </View>
+
+          <View style={{ width: '100%', alignItems: 'center', marginBottom: -70 }}>
+            <Text
+              style={{
+                fontSize: 180,
+                fontWeight: '900',
+                color: palette.text,
+                opacity: 0.05,
+                textAlign: 'center',
+                letterSpacing: -6,
+                lineHeight: 180,
+                width: '140%',
+              }}
+            >
+              reni
+            </Text>
           </View>
         </View>
       </Animated.ScrollView>

@@ -101,12 +101,12 @@ export function BottomSheet({
   const commitHeight = useCallback(() => {
     let nextHeight = Math.min(headerHeight.current + contentHeight.current + footerHeight.current + modalHeightBoost, maxSheetHeight);
     if (fixedHeightRatio) {
-       nextHeight = maxSheetHeight;
+      nextHeight = Math.min(screenHeight * fixedHeightRatio, maxSheetHeight);
     }
     if (nextHeight > 0) {
       sheetHeight.setValue(nextHeight);
     }
-  }, [maxSheetHeight, modalHeightBoost, sheetHeight, fixedHeightRatio]);
+  }, [fixedHeightRatio, maxSheetHeight, modalHeightBoost, screenHeight, sheetHeight]);
 
   useEffect(() => {
     Animated.parallel([

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { View, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,6 +15,7 @@ import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useAppTheme } from '../lib/theme';
 import { HOME_TEXT } from '../lib/layoutTokens';
 import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/settings';
+import { FilledButton } from '../components/ui/AppButton';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -96,22 +97,12 @@ export default function RootLayout() {
         >
           {initError}
         </Text>
-        <TouchableOpacity delayPressIn={0}
+        <FilledButton
+          label="Try again"
           onPress={init}
-          activeOpacity={0.85}
-          style={{
-            minWidth: 140,
-            minHeight: 48,
-            borderRadius: 14,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: palette.brand,
-            paddingHorizontal: 20 }}
-        >
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.onBrand }}>
-            Try again
-          </Text>
-        </TouchableOpacity>
+          palette={palette}
+          style={{ minWidth: 140 }}
+        />
       </View>
     );
   }

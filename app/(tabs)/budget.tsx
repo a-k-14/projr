@@ -55,6 +55,7 @@ export default function BudgetScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       if (navigation.isFocused()) {
         resetBudgetView();
       }
@@ -204,10 +205,10 @@ function BudgetOverviewCard({
   const isOver = hasBudgetSet && totalRemaining < 0;
   const progress = totalBudgeted > 0 ? Math.min(totalSpent / totalBudgeted, 1) : 0;
   const usageText = totalBudgeted > 0 ? `${Math.round((totalSpent / totalBudgeted) * 100)}% used` : 'Not set';
-  const statusLabel = hasBudgetSet ? (isOver ? 'Over budget' : 'Left to spend') : 'Not set';
+  const statusLabel = hasBudgetSet ? (isOver ? 'Over' : 'Left') : 'No budget set';
   const statusValue = hasBudgetSet
     ? formatCurrency(Math.abs(totalRemaining), sym)
-    : formatCurrency(totalSpent, sym);
+    : '';
 
   return (
     <OverviewHeroCard
@@ -294,7 +295,7 @@ function BudgetCard({
               {Math.round(budget.percent)}%
             </Text>
             <Text style={{ fontSize: CARD_TEXT.tertiary, color: isOver ? palette.negative : palette.textMuted }}>
-              {isOver ? formatCurrency(Math.abs(budget.remaining), sym) : formatCurrency(budget.remaining, sym)}
+              {isOver ? `Over ${formatCurrency(Math.abs(budget.remaining), sym)}` : `Left ${formatCurrency(budget.remaining, sym)}`}
             </Text>
           </View>
         </>

@@ -12,6 +12,7 @@ function getFilledColors(palette: AppThemePalette, tone: FilledTone, disabled?: 
   if (disabled) {
     return { backgroundColor: palette.textSoft, textColor: palette.textMuted };
   }
+
   switch (tone) {
     case 'loan':
       return { backgroundColor: palette.loan, textColor: palette.onLoan };
@@ -72,7 +73,7 @@ export function FilledButton({
       style={[
         {
           minHeight: PRIMARY_ACTION.height,
-          borderRadius: PRIMARY_ACTION.radius,
+          borderRadius: 14,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: colors.backgroundColor,

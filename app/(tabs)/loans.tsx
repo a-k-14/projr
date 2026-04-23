@@ -104,6 +104,7 @@ export default function LoansScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       if (navigation.isFocused()) {
         resetLoanView();
       }
@@ -323,7 +324,6 @@ export default function LoansScreen() {
               />
             </View>
 
-            <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 4 }} />
 
             {SHOW_EMPTY_STATE_PREVIEW ? (
               <View style={{ paddingTop: 8, paddingBottom: 22, paddingHorizontal: 24 }}>
@@ -680,11 +680,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: ACTIVITY_LAYOUT.accountChipHorizontalPadding,
     borderRadius: ACTIVITY_LAYOUT.controlRadius,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1
   },
   moreChip: {
     flexDirection: 'row',

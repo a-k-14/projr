@@ -163,6 +163,7 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', (e: any) => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       if (navigation.isFocused()) {
         resetAllFilters();
       }
