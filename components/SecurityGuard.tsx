@@ -260,4 +260,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28 },
   buttonText: {
     fontSize: HOME_TEXT.rowLabel,
-    fontWeight: '700' } });
+    fontWeight: '500' } });

@@ -9,11 +9,13 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionListItem } from '../../components/TransactionListItem';
+import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
 import { formatDate, formatDateShort } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, groupTransactionsByDate } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import {
+  BUTTON_TOKENS,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
@@ -263,37 +265,25 @@ export default function LoanDetailScreen() {
             }}
           >
             {loan.pendingAmount > 0 ? (
-              <TouchableOpacity delayPressIn={0}
+              <FilledButton
+                label={isLent ? 'Record Receipt' : 'Record Repayment'}
                 onPress={() =>
                   router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
                 }
-                style={{
-                  backgroundColor: palette.loan,
-                  borderRadius: PRIMARY_ACTION.radius,
-                  minHeight: PRIMARY_ACTION.height,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: HOME_SPACE.sm
-                }}
-              >
-                <Ionicons name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />
-                <Text style={{ color: palette.onLoan, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500' }}>
-                  {isLent ? 'Record Receipt' : 'Record Repayment'}
-                </Text>
-              </TouchableOpacity>
+                palette={palette}
+                tone="loan"
+                startIcon={<Ionicons name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />}
+              />
             ) : null}
-            <TouchableOpacity
-              delayPressIn={0}
+            <TextButton
+              label="Add More"
               onPress={() =>
                 router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } })
               }
-              style={{ alignItems: 'center', paddingVertical: 10, marginTop: loan.pendingAmount > 0 ? 4 : 0 }}
-            >
-              <Text appWeight="medium" style={{ color: palette.loan, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
-                Add More
-              </Text>
-            </TouchableOpacity>
+              palette={palette}
+              tone="loan"
+              style={{ marginTop: loan.pendingAmount > 0 ? 4 : 0 }}
+            />
           </View>
         )}
       </View>

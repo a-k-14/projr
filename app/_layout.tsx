@@ -108,7 +108,7 @@ export default function RootLayout() {
             backgroundColor: palette.brand,
             paddingHorizontal: 20 }}
         >
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.onBrand }}>
+          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.onBrand }}>
             Try again
           </Text>
         </TouchableOpacity>

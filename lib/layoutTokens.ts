@@ -64,7 +64,7 @@ export const HOME_SURFACE = {
   cardPaddingBottom: 10,
   cardGap: SPACING.md,
   sectionGap: SPACING.sm,
-  heroTop: 8,
+  heroTop: 4,
   heroBottom: 0,
   heroDividerTop: 10,
   heroDividerBottom: 8,
@@ -81,6 +81,13 @@ export const HOME_SURFACE = {
   chartBottomGap: 10,
   listMaxHeight: 400,
   tableMaxHeight: 310,
+} as const;
+
+// ─── Card row tokens ─────────────────────────────────────────────────────────────
+export const CARD_TEXT = {
+  line1: 13.5,
+  line2: 13.5,
+  tertiary: 12.5,
 } as const;
 
 // ─── Spacing tokens ────────────────────────────────────────────────────────────
@@ -125,11 +132,22 @@ export const HOME_LAYOUT = {
   handleHeight: 4,
 } as const;
 
-export const PRIMARY_ACTION = {
-  height: 48,
-  radius: 14,
-  labelSize: HOME_TEXT.sectionTitle,
+export const BUTTON_TOKENS = {
+  filled: {
+    height: 48,
+    radius: 22,
+    labelSize: HOME_TEXT.sectionTitle,
+    labelWeight: '400' as const,
+  },
+  text: {
+    labelWeight: '600' as const,
+    labelSize: HOME_TEXT.sectionTitle,
+    compactLabelSize: HOME_TEXT.body,
+    compactLabelWeight: '600' as const,
+  },
 } as const;
+
+export const PRIMARY_ACTION = BUTTON_TOKENS.filled;
 
 export const SCREEN_HEADER = {
   titleSize: 18,

@@ -9,7 +9,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
-import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { BUTTON_TOKENS, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 
 export default function SelectTagSheet() {
   const tags = useCategoriesStore((s) => s.tags);
@@ -91,7 +91,7 @@ export default function SelectTagSheet() {
             alignItems: 'center',
             marginTop: 4 }}
         >
-          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '700' }}>Done</Text>
+          <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.sectionTitle, fontWeight: BUTTON_TOKENS.filled.labelWeight }}>Done</Text>
         </TouchableOpacity>
       </View>
     </View>

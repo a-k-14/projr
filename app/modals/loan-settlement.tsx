@@ -12,6 +12,7 @@ import { InteractionManager,
   View , TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../../components/settings-ui';
+import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
 import {
@@ -26,7 +27,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
 import { getTransactionById } from '../../services/transactions';
@@ -197,25 +198,16 @@ export default function LoanSettlementModal() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: Math.max(insets.bottom, 12) + 12, paddingTop: 8 }}>
-        <TouchableOpacity delayPressIn={0}
+        <FilledButton
+          label={isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           onPress={handleSave}
           disabled={!isValid}
-          style={{
-            backgroundColor: isValid ? palette.loan : palette.textSoft,
-            borderRadius: PRIMARY_ACTION.radius,
-            minHeight: PRIMARY_ACTION.height,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 12 }}
-        >
-          <Text style={{ color: isValid ? palette.onLoan : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500' }}>
-            {isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
-          </Text>
-        </TouchableOpacity>
+          palette={palette}
+          tone="loan"
+          style={{ marginBottom: 12 }}
+        />
         {isEditing ? (
-          <TouchableOpacity delayPressIn={0} onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>Delete transaction</Text>
-          </TouchableOpacity>
+          <TextButton label="Delete transaction" onPress={handleDelete} palette={palette} tone="danger" />
         ) : null}
       </View>
 

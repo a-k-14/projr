@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -19,13 +19,17 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FabButton } from '../../components/ui/FabButton';
 import { FilterChip } from '../../components/ui/FilterChip';
+import { FilterMoreButton } from '../../components/ui/FilterMoreButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
+import { AppCard, CardTitleRow, CardSubtitleRow } from '../../components/ui/AppCard';
 import { formatCurrency, getLoanSummary } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import {
   ACTIVITY_LAYOUT,
+  BUTTON_TOKENS,
+  CARD_TEXT,
   HOME_LAYOUT,
   HOME_RADIUS,
   HOME_SPACE,
@@ -236,7 +240,7 @@ export default function LoansScreen() {
             ) : null}
           </View>
           <TouchableOpacity delayPressIn={0} onPress={() => toggleSearch(false)}>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.text.compactLabelWeight, color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -311,25 +315,12 @@ export default function LoansScreen() {
                 <Ionicons name="chevron-down" size={13} color={palette.textMuted} />
               </TouchableOpacity>
 
-              <TouchableOpacity delayPressIn={0}
+              <FilterMoreButton
+                palette={palette}
+                moreActiveCount={moreActiveCount}
                 onPress={() => setShowMoreSheet(true)}
-                activeOpacity={0.75}
-                style={[
-                  styles.moreChip,
-                  {
-                    flex: 1,
-                    flexBasis: 0,
-                    minWidth: 0,
-                    backgroundColor: moreActiveCount > 0 ? palette.brandSoft : palette.surface,
-                    borderColor: moreActiveCount > 0 ? palette.brand : palette.divider
-                  },
-                ]}
-              >
-                <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.text }}>
-                  More
-                </Text>
-                <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.text} />
-              </TouchableOpacity>
+                flex
+              />
             </View>
 
             <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 4 }} />
@@ -410,7 +401,7 @@ export default function LoansScreen() {
                 style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
                 activeOpacity={0.85}
               >
-                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>Apply filters</Text>
               </TouchableOpacity>
             </View>
           }
@@ -427,7 +418,7 @@ export default function LoansScreen() {
               hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
               style={styles.clearAllButton}
             >
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: BUTTON_TOKENS.text.labelWeight, color: palette.brand }}>Clear all</Text>
             </TouchableOpacity>
           }
         >
@@ -526,13 +517,13 @@ function LoanSummaryCard({
     sym: string;
     palette: AppThemePalette;
   }) {
-  const badgeLabel = borrowed === 0 && lent === 0 ? 'No loans' : borrowed === 0 ? 'Net lent' : lent === 0 ? 'Net borrowed' : netPositive ? 'Net lent' : 'Net borrowed';
+  const badgeLabel = borrowed === 0 && lent === 0 ? 'No Loans' : borrowed === 0 ? 'Net Lent' : lent === 0 ? 'Net Borrowed' : netPositive ? 'Net Lent' : 'Net Borrowed';
 
   return (
     <OverviewHeroCard
       palette={palette}
-      eyebrow="Loans overview"
-      title="Current position"
+      eyebrow="Loans Overview"
+      title="Current Position"
       badgeLabel={badgeLabel}
       badgeBg={palette.loanSoft}
       badgeColor={palette.loan}
@@ -570,105 +561,73 @@ function LoanRow({
   const balanceAmount = loan.status === 'closed' ? 0 : loan.pendingAmount;
 
   return (
-    <View style={{ marginBottom: 12 }}>
-      <View
+    <View style={{ marginBottom: 12, position: 'relative' }}>
+      <AppCard
+        palette={palette}
+        onPress={onPress}
         style={{
-          backgroundColor: palette.surface,
-          borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
           marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-          overflow: 'hidden'
+          borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
+          paddingTop: loan.status === 'closed' ? 28 : 14,
+          paddingBottom: loan.status === 'closed' ? 16 : 14,
         }}
-      >
-        <TouchableOpacity delayPressIn={0} activeOpacity={0.6} onPress={onPress}>
+        icon={<Ionicons name={isLent ? 'arrow-up' : 'arrow-down'} size={Math.round(HOME_LAYOUT.listIconSize * 0.45)} color={dirColor} />}
+        iconBg={dirBg}
+        topRow={
+          <CardTitleRow
+            title={loan.personName}
+            secondary={directionLabel}
+            secondarySeparator=" • "
+            amount={formatCurrency(loan.givenAmount, sym)}
+            palette={palette}
+          />
+        }
+        bottomRow={
+          <CardSubtitleRow
+            text={`${formatLoanRowDate(loan.date)} \u2022 ${accountName ?? 'Unknown account'}`}
+            rightText={`Bal ${formatCurrency(balanceAmount, sym)}`}
+            palette={palette}
+          />
+        }
+        footer={
           <View
             style={{
-              flexDirection: 'row',
-              alignItems: 'flex-start',
-              paddingHorizontal: HOME_LAYOUT.listRowPaddingX,
-              paddingTop: loan.status === 'closed' ? HOME_LAYOUT.listRowPaddingY + 14 : HOME_LAYOUT.listRowPaddingY,
-              paddingBottom: loan.status === 'closed' ? HOME_LAYOUT.listRowPaddingY + 2 : HOME_LAYOUT.listRowPaddingY,
-              borderBottomWidth: isLast ? 0 : 0,
-              position: 'relative'
+              height: PROGRESS.cardHeight,
+              backgroundColor: palette.divider,
+              borderRadius: PROGRESS.radius,
+              overflow: 'hidden'
             }}
           >
             <View
               style={{
-                width: HOME_LAYOUT.listIconSize,
-                height: HOME_LAYOUT.listIconSize,
-                borderRadius: HOME_RADIUS.small,
-                backgroundColor: dirBg,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: HOME_SPACE.sm + 2
+                height: PROGRESS.cardHeight,
+                width: `${progressPercent}%`,
+                backgroundColor: dirColor,
+                borderRadius: PROGRESS.radius
               }}
-            >
-              <Ionicons
-                name={isLent ? 'arrow-up' : 'arrow-down'}
-                size={Math.round(HOME_LAYOUT.listIconSize * 0.45)}
-                color={dirColor}
-              />
-            </View>
-
-            {loan.status === 'closed' ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  minHeight: 22,
-                  paddingHorizontal: 8,
-                  borderTopRightRadius: ACTIVITY_LAYOUT.groupCardRadius,
-                  borderBottomLeftRadius: HOME_RADIUS.small,
-                  backgroundColor: palette.inputBg,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 2
-                }}
-              >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textSecondary }}>Closed</Text>
-              </View>
-            ) : null}
-
-            <View style={{ flex: 1, paddingRight: CARD_PADDING - 4 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, color: palette.listText, marginBottom: 1 }}>
-                  {loan.personName}
-                  <Text appWeight="medium" style={{ color: palette.listText }}> {'\u2022'} {directionLabel}</Text>
-                </Text>
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.listText, textAlign: 'right' }}>
-                  {formatCurrency(loan.givenAmount, sym)}
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 1 }}>
-                <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
-                  {formatLoanRowDate(loan.date)} {'\u2022'} {accountName}
-                </Text>
-                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginTop: 1, textAlign: 'right' }}>
-                  Bal {formatCurrency(balanceAmount, sym)}
-                </Text>
-              </View>
-              <View
-                style={{
-                  height: PROGRESS.cardHeight,
-                  backgroundColor: palette.divider,
-                  borderRadius: PROGRESS.radius,
-                  marginTop: 6,
-                  overflow: 'hidden'
-                }}
-              >
-                <View
-                  style={{
-                    height: PROGRESS.cardHeight,
-                    width: `${progressPercent}%`,
-                    backgroundColor: dirColor,
-                    borderRadius: PROGRESS.radius
-                  }}
-                />
-              </View>
-            </View>
+            />
           </View>
-        </TouchableOpacity>
-      </View>
+        }
+      />
+      {loan.status === 'closed' && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: ACTIVITY_LAYOUT.headerPaddingX,
+            minHeight: 22,
+            paddingHorizontal: 8,
+            borderTopRightRadius: ACTIVITY_LAYOUT.groupCardRadius,
+            borderBottomLeftRadius: HOME_RADIUS.small,
+            backgroundColor: palette.inputBg,
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2
+          }}
+        >
+          <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textSecondary }}>Closed</Text>
+        </View>
+      )}
     </View>
   );
 }

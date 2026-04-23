@@ -17,6 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { ChoiceRow } from '../../components/settings-ui';
+import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
@@ -30,7 +31,7 @@ import {
   SectionCard,
   TextInputRow } from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { formatDate, nowUTC } from '../../lib/dateUtils';
 import {
   formatCurrency,
@@ -1042,25 +1043,16 @@ export default function AddTransactionModal() {
           paddingTop: 12,
           backgroundColor: palette.background }}
       >
-        <TouchableOpacity delayPressIn={0}
+        <FilledButton
+          label={actionLabel}
           onPress={handleSubmit}
           disabled={!isValid}
-          style={{
-            backgroundColor: isValid ? actionButtonColor : palette.textSoft,
-            borderRadius: PRIMARY_ACTION.radius,
-            minHeight: PRIMARY_ACTION.height,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 12 }}
-        >
-          <Text style={{ color: isValid ? actionButtonTextColor : palette.textMuted, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500' }}>{actionLabel}</Text>
-        </TouchableOpacity>
+          palette={palette}
+          tone={type === 'loan' ? 'loan' : type === 'out' ? 'danger' : 'brand'}
+          style={{ marginBottom: 12, backgroundColor: isValid ? actionButtonColor : palette.textSoft }}
+        />
         {isEditing && (
-          <TouchableOpacity delayPressIn={0} onPress={handleDelete} style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <Text style={{ color: palette.negative, fontSize: HOME_TEXT.sectionTitle, fontWeight: '500' }}>
-              Delete transaction
-            </Text>
-          </TouchableOpacity>
+          <TextButton label="Delete transaction" onPress={handleDelete} palette={palette} tone="danger" />
         )}
       </View>
 
@@ -1205,7 +1197,7 @@ export default function AddTransactionModal() {
                   alignItems: 'center',
                   justifyContent: 'center' }}
               >
-                <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: '700' }}>Done</Text>
+                <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: PRIMARY_ACTION.labelWeight }}>Done</Text>
               </TouchableOpacity>
             </View>
           }
@@ -1289,7 +1281,7 @@ export default function AddTransactionModal() {
                   onPress={() => setShowReceiptSheet(false)}
                   style={{ paddingVertical: 14, alignItems: 'center', backgroundColor: palette.inputBg, borderRadius: 12 }}
                 >
-                  <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: '700' }}>Cancel</Text>
+                  <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: BUTTON_TOKENS.text.labelWeight }}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </View>

@@ -45,7 +45,7 @@ import {
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
 import * as transactionsService from '../../services/transactions';
@@ -778,8 +778,8 @@ export default function ActivityScreen() {
       ([
         { key: 'out', label: 'Expenses' },
         { key: 'in', label: 'Income' },
-        { key: 'loan', label: 'Loan' },
-        { key: 'transfer', label: 'Transfer' },
+        { key: 'loan', label: 'Loans' },
+        { key: 'transfer', label: 'Transfers' },
       ] as const)
         .map((section) => ({
           ...section,
@@ -808,24 +808,22 @@ export default function ActivityScreen() {
             style={[
               styles.groupHeader,
               {
-                paddingLeft: ACTIVITY_LAYOUT.headerPaddingX,
-                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + HOME_LAYOUT.listRowPaddingX,
+                paddingLeft: ACTIVITY_LAYOUT.headerPaddingX + 6,
+                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
                 marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom,
               },
             ]}
           >
             <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.text }}>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
                 {item.title}
               </Text>
               {item.subtitle ? (
                 <>
-                  <Text
-                    style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.textMuted, marginHorizontal: 6 }}
-                  >
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>
                     •
                   </Text>
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted }}>
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
                     {item.subtitle}
                   </Text>
                 </>
@@ -836,6 +834,7 @@ export default function ActivityScreen() {
                 appWeight="medium"
                 style={{
                   fontSize: HOME_TEXT.cardContent,
+                  fontWeight: '600',
                   color: groupNet > 0 ? palette.brand : palette.negative
                 }}
               >
@@ -912,7 +911,7 @@ export default function ActivityScreen() {
             ) : null}
           </View>
           <TouchableOpacity delayPressIn={0} onPress={() => toggleSearch(false)}>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand, marginLeft: 12 }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.text.compactLabelWeight, color: palette.brand, marginLeft: 12 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -1410,7 +1409,7 @@ export default function ActivityScreen() {
               ]}
               activeOpacity={0.8}
             >
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: palette.onBrand }}>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>
                 Apply
               </Text>
             </TouchableOpacity>

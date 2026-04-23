@@ -3,8 +3,8 @@ import { ReactNode, RefObject } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FilledButton, TextButton } from './ui/AppButton';
 import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
-import { PRIMARY_ACTION } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 
 export function ScreenTitle({
@@ -488,27 +488,22 @@ export function ActionButton({
   palette: AppThemePalette;
 }) {
   const styles = {
-    primary: { backgroundColor: palette.tabActive, color: palette.onBrand },
-    danger: { backgroundColor: 'transparent', color: palette.negative },
-    secondary: { backgroundColor: palette.card, color: palette.text } } as const;
-  const picked = styles[variant];
+    primary: 'brand',
+    danger: 'danger',
+    secondary: 'default',
+  } as const;
+
+  if (variant === 'primary') {
+    return <FilledButton label={label} onPress={onPress} palette={palette} tone={styles.primary} />;
+  }
+
   return (
-    <TouchableOpacity delayPressIn={0}
+    <TextButton
+      label={label}
       onPress={onPress}
-      activeOpacity={0.8}
-      style={{
-        minHeight: variant === 'danger' ? 0 : PRIMARY_ACTION.height,
-        paddingVertical: variant === 'danger' ? 8 : 0,
-        borderRadius: PRIMARY_ACTION.radius,
-        backgroundColor: picked.backgroundColor,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: variant === 'secondary' ? 1 : 0,
-        borderColor: variant === 'secondary' ? palette.border : 'transparent',
-        paddingHorizontal: 20 }}
-    >
-      <Text style={{ fontSize: variant === 'primary' ? PRIMARY_ACTION.labelSize : TYPE.section, fontWeight: '500', color: picked.color }}>{label}</Text>
-    </TouchableOpacity>
+      palette={palette}
+      tone={variant === 'danger' ? styles.danger : styles.secondary}
+    />
   );
 }
 

@@ -43,6 +43,7 @@ import {
 import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
+  BUTTON_TOKENS,
   getFabBottomOffset,
   HOME_LAYOUT,
   HOME_RADIUS,
@@ -573,7 +574,7 @@ export default function HomeScreen() {
                   justifyContent: 'center'
                 }}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>Cancel</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.text.compactLabelWeight, color: palette.text }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity delayPressIn={0}
                 onPress={handleCustomRangeDone}
@@ -586,7 +587,7 @@ export default function HomeScreen() {
                   justifyContent: 'center'
                 }}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.onBrand }}>Done</Text>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>Done</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -1706,7 +1707,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                   })
                 }
               >
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '700' }}>View all</Text>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: BUTTON_TOKENS.text.labelWeight }}>View all</Text>
               </TouchableOpacity>
             </View>
             <ScrollView

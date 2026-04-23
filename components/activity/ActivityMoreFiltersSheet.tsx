@@ -6,7 +6,7 @@ import { BottomSheet } from '../ui/BottomSheet';
 import { FilterChip } from '../ui/FilterChip';
 import { ListHeading } from '../ui/ListHeading';
 import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import type { Category, Transaction } from '../../types';
 import { CategoryIconBadge, Checkbox } from './ActivityUI';
@@ -81,7 +81,7 @@ export function ActivityMoreFiltersSheet({
             }}
             style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
           >
-            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '800', color: palette.onBrand }}>Apply filters</Text>
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>Apply filters</Text>
           </TouchableOpacity>
         </View>
       }
@@ -91,7 +91,7 @@ export function ActivityMoreFiltersSheet({
           hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
           style={styles.clearAllButton}
         >
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.brand }}>Clear all</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: BUTTON_TOKENS.text.labelWeight, color: palette.brand }}>Clear all</Text>
         </TouchableOpacity>
       }
     >

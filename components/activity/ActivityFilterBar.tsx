@@ -1,9 +1,10 @@
 import { Text } from '@/components/ui/AppText';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
+import { FilterMoreButton } from '../ui/FilterMoreButton';
 import { TransactionType } from '../../types';
 import { FilterChip } from '../ui/FilterChip';
 
@@ -96,23 +97,11 @@ export function ActivityFilterBar({
             ))}
           </View>
         </ScrollView>
-        <TouchableOpacity delayPressIn={0}
+        <FilterMoreButton
+          palette={palette}
+          moreActiveCount={moreActiveCount}
           onPress={() => setShowMoreSheet(true)}
-          activeOpacity={0.75}
-          style={[
-            styles.moreChip,
-            {
-              backgroundColor: moreActiveCount > 0 ? moreActiveBg : palette.surface,
-              borderColor: moreActiveCount > 0 ? moreActiveBorder : palette.divider,
-              marginLeft: ACTIVITY_LAYOUT.moreButtonGap
-            },
-          ]}
-        >
-          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: moreActiveCount > 0 ? palette.brand : palette.text }}>
-            More
-          </Text>
-          <MaterialIcons name="filter-list" size={17} color={moreActiveCount > 0 ? palette.brand : palette.text} />
-        </TouchableOpacity>
+        />
       </View>
     </View>
   );

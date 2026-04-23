@@ -12,6 +12,7 @@ import {
 } from '../lib/calculatorMath';
 import { SCREEN_GUTTER } from '../lib/design';
 import { AppThemePalette } from '../lib/theme';
+import { BUTTON_TOKENS, PRIMARY_ACTION } from '../lib/layoutTokens';
 
 interface CalculatorSheetProps {
   visible: boolean;
@@ -199,7 +200,7 @@ function CalcButton({
         <Text
           style={{
             fontSize: label === 'OK' ? 16 : 18,
-            fontWeight: '700',
+            fontWeight: primary ? PRIMARY_ACTION.labelWeight : BUTTON_TOKENS.text.labelWeight,
             color: primary ? (brandOnColor || palette.onBrand) : palette.text,
           }}
         >

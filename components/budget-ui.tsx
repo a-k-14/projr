@@ -81,7 +81,7 @@ export function BudgetMonthField({
           alignItems: 'center'
         }}
       >
-        <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, textAlign: 'center' }}>
+        <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, textAlign: 'center' }}>
           {formatBudgetMonthLabel(value)}
         </Text>
         {!onPrev && !onNext ? <Ionicons name="chevron-down" size={15} color={palette.textMuted} /> : null}

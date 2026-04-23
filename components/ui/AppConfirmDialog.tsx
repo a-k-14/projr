@@ -1,6 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { Feather } from '@expo/vector-icons';
-import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, View } from 'react-native';
+import { TextButton } from './AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -74,26 +75,14 @@ export function AppConfirmDialog({
           </Text>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: HOME_SPACE.lg }}>
             {showCancel ? (
-              <TouchableOpacity delayPressIn={0} onPress={onCancel} style={{ paddingHorizontal: 12, paddingVertical: 8 }}>
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary }}>
-                  {cancelLabel}
-                </Text>
-              </TouchableOpacity>
+              <TextButton label={cancelLabel} onPress={onCancel} palette={palette} tone="muted" />
             ) : null}
-            <TouchableOpacity
-              delayPressIn={0}
+            <TextButton
+              label={confirm.label}
               onPress={confirm.onPress}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: confirm.destructive ? palette.negative : palette.brand }}>
-                {confirm.label}
-              </Text>
-            </TouchableOpacity>
+              palette={palette}
+              tone={confirm.destructive ? 'danger' : 'brand'}
+            />
           </View>
         </Pressable>
       </Pressable>

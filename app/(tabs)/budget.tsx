@@ -1,10 +1,10 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Text } from '@/components/ui/AppText';
+import { Feather } from '@expo/vector-icons';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { RefreshControl, ScrollView, View , TouchableOpacity } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
 import { ScreenTitle } from '../../components/settings-ui';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
@@ -13,9 +13,11 @@ import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS, getFabBottomOffset } from '../../lib/layoutTokens';
-import { isEmojiIcon } from '../../lib/ui-format';
+import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS, getFabBottomOffset } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
+import { isEmojiIcon } from '../../lib/ui-format';
+import { AppCard, CardTitleRow, CardSubtitleRow } from '../../components/ui/AppCard';
+import { FilterMoreButton } from '../../components/ui/FilterMoreButton';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
@@ -140,7 +142,8 @@ export default function BudgetScreen() {
                 onPress={() =>
                   router.push({
                     pathname: '/budget/[id]',
-                    params: { id: budget.id, month: selectedMonth } })
+                    params: { id: budget.id, month: selectedMonth }
+                  })
                 }
               />
             ))}
@@ -165,7 +168,8 @@ export default function BudgetScreen() {
         onPress={() =>
           router.push({
             pathname: '/modals/budget-form',
-            params: { month: selectedMonth } })
+            params: { month: selectedMonth }
+          })
         }
       />
       <BudgetMonthSheet
@@ -188,14 +192,14 @@ function BudgetOverviewCard({
   totalRemaining,
   overBudgetCount,
   sym }: {
-  palette: AppThemePalette;
-  monthLabel: string;
-  totalBudgeted: number;
-  totalSpent: number;
-  totalRemaining: number;
-  overBudgetCount: number;
-  sym: string;
-}) {
+    palette: AppThemePalette;
+    monthLabel: string;
+    totalBudgeted: number;
+    totalSpent: number;
+    totalRemaining: number;
+    overBudgetCount: number;
+    sym: string;
+  }) {
   const hasBudgetSet = totalBudgeted > 0;
   const isOver = hasBudgetSet && totalRemaining < 0;
   const progress = totalBudgeted > 0 ? Math.min(totalSpent / totalBudgeted, 1) : 0;
@@ -241,79 +245,61 @@ function BudgetCard({
   palette,
   categoryLabel,
   onPress }: {
-  budget: BudgetWithSpent;
-  sym: string;
-  palette: AppThemePalette;
-  categoryLabel: string;
-  onPress: () => void;
-}) {
+    budget: BudgetWithSpent;
+    sym: string;
+    palette: AppThemePalette;
+    categoryLabel: string;
+    onPress: () => void;
+  }) {
   const isOver = budget.amount > 0 && budget.remaining < 0;
-  const progressColor = palette.budget;
 
   return (
-    <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPress} style={[styles.budgetCard, { backgroundColor: palette.surface }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-        <View
-          style={{
-            width: HOME_LAYOUT.listIconSize,
-            height: HOME_LAYOUT.listIconSize,
-            borderRadius: HOME_RADIUS.small,
-            backgroundColor: palette.inputBg,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: HOME_SPACE.sm + 2 }}
-        >
-          {isEmojiIcon(budget.categoryIcon) ? (
-            <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{budget.categoryIcon}</Text>
-          ) : (
-            <Feather name={budget.categoryIcon as keyof typeof Feather.glyphMap} size={17} color={palette.iconTint} />
-          )}
-        </View>
-
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.bodySmall, color: palette.listText }}>
-              {categoryLabel}
-            </Text>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.listText, textAlign: 'right' }}>
-              {formatCurrency(budget.amount, sym)}
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 1 }}>
-            <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
-              {budget.repeat ? 'Repeats monthly' : `One-time • ${formatBudgetMonthLabel(budget.startDate)}`}
-            </Text>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, textAlign: 'right' }}>
-              Spent {formatCurrency(budget.spent, sym)}
-            </Text>
-          </View>
-          <View
-            style={{
-              height: PROGRESS.cardHeight,
-              backgroundColor: palette.divider,
-              borderRadius: PROGRESS.radius,
-              marginTop: 6,
-              overflow: 'hidden' }}
-          >
+    <AppCard
+      palette={palette}
+      onPress={onPress}
+      style={{ marginBottom: HOME_SPACE.md }}
+      icon={isEmojiIcon(budget.categoryIcon) ? (
+        <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{budget.categoryIcon}</Text>
+      ) : (
+        <Feather name={budget.categoryIcon as any} size={17} color={palette.iconTint} />
+      )}
+      topRow={
+        <CardTitleRow
+          title={categoryLabel}
+          amount={formatCurrency(budget.amount, sym)}
+          palette={palette}
+        />
+      }
+      bottomRow={
+        <CardSubtitleRow
+          text={budget.repeat ? 'Repeats monthly' : `One-time • ${formatBudgetMonthLabel(budget.startDate)}`}
+          rightText={`Spent ${formatCurrency(budget.spent, sym)}`}
+          palette={palette}
+        />
+      }
+      footer={
+        <>
+          <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
             <View
               style={{
                 height: PROGRESS.cardHeight,
                 width: `${Math.min(Math.max(budget.percent, 0), 100)}%`,
-                backgroundColor: progressColor,
-                borderRadius: PROGRESS.radius }}
+                backgroundColor: palette.budget,
+                borderRadius: PROGRESS.radius
+              }}
             />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
+            <Text style={{ fontSize: CARD_TEXT.tertiary, color: isOver ? palette.negative : palette.textMuted }}>
               {Math.round(budget.percent)}%
             </Text>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: isOver ? palette.negative : palette.textMuted }}>
+            <Text style={{ fontSize: CARD_TEXT.tertiary, color: isOver ? palette.negative : palette.textMuted }}>
               {isOver ? formatCurrency(Math.abs(budget.remaining), sym) : formatCurrency(budget.remaining, sym)}
             </Text>
           </View>
-        </View>
-      </View>
-    </TouchableOpacity>
+        </>
+      }
+    />
   );
 }
 
@@ -322,4 +308,6 @@ const styles = {
     borderRadius: HOME_RADIUS.card,
     paddingHorizontal: CARD_PADDING,
     paddingVertical: 14,
-    marginBottom: HOME_SPACE.md } };
+    marginBottom: HOME_SPACE.md
+  }
+};

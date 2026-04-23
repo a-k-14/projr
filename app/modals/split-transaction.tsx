@@ -4,12 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Keyboard, Platform, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { SectionCard } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -130,10 +131,7 @@ export default function SplitTransactionModal() {
       >
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 4 }}>
           <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
-            <TouchableOpacity delayPressIn={0} onPress={addRow} activeOpacity={0.75} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="add" size={14} color={palette.brand} />
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Add Line Item</Text>
-            </TouchableOpacity>
+            <TextButton label="Add Line Item" onPress={addRow} palette={palette} tone="brand" compact />
           </View>
 
           <SectionCard palette={palette} horizontalInset={0}>
@@ -240,18 +238,7 @@ export default function SplitTransactionModal() {
           <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '600' }}>Total</Text>
           <Text style={{ fontSize: HOME_TEXT.rowLabel, color: palette.text, fontWeight: '700' }}>{formatIndianNumberStr(String(total || 0))}</Text>
         </View>
-        <TouchableOpacity delayPressIn={0}
-          onPress={handleDone}
-          activeOpacity={0.85}
-          style={{
-            backgroundColor: palette.brand,
-            borderRadius: PRIMARY_ACTION.radius,
-            minHeight: PRIMARY_ACTION.height,
-            alignItems: 'center',
-            justifyContent: 'center' }}
-        >
-          <Text style={{ color: palette.onBrand, fontSize: PRIMARY_ACTION.labelSize, fontWeight: '500' }}>Done</Text>
-        </TouchableOpacity>
+        <FilledButton label="Done" onPress={handleDone} palette={palette} tone="brand" />
       </View>
       {categorySheetRowId ? (
         <CategoryPickerSheet

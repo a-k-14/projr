@@ -178,7 +178,7 @@ export default function ResetScreen() {
                       style={{
                         color: canReset ? palette.onBrand : palette.textMuted,
                         fontSize: TYPE.section,
-                        fontWeight: '700',
+                        fontWeight: '500',
                       }}
                     >
                       Erase Everything
@@ -203,7 +203,7 @@ export default function ResetScreen() {
                   style={{
                     color: isResetting ? palette.textSoft : palette.textMuted,
                     fontSize: TYPE.section,
-                    fontWeight: '700',
+                    fontWeight: '600',
                   }}
                 >
                   Cancel

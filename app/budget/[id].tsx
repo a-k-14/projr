@@ -101,7 +101,7 @@ export default function BudgetDetailScreen() {
           }
           style={{ padding: 6 }}
         >
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.brand }}>Edit</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Edit</Text>
         </TouchableOpacity>
       </View>
 
@@ -125,11 +125,11 @@ export default function BudgetDetailScreen() {
         {grouped.map((group) => (
           <View key={group.key} style={{ marginBottom: 12 }}>
             <View style={{ paddingHorizontal: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.text }}>{group.title}</Text>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>{group.title}</Text>
               {group.subtitle ? (
                 <>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted }}>{group.subtitle}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>{group.subtitle}</Text>
                 </>
               ) : null}
             </View>
