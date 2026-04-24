@@ -18,6 +18,7 @@ import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
 import {
   AmountRow,
   InteractiveDateTimeRow,
+  NotesSection,
   PickerRow,
   ROW_COLUMN_GAP,
   ROW_LABEL_WIDTH,
@@ -25,7 +26,7 @@ import {
   SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
-import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, parseFormattedNumber } from '../../lib/derived';
+import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
@@ -58,6 +59,7 @@ export default function LoanSettlementModal() {
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
   const [date, setDate] = useState(nowUTC());
+  const [note, setNote] = useState('');
   const [loading] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -76,6 +78,7 @@ export default function LoanSettlementModal() {
           setAmountStr(formatIndianNumberStr(String(tx.amount)));
           setAccountId(tx.accountId);
           setDate(tx.date);
+          setNote(getLoanTransactionUserNote(tx.note));
         });
         return;
       }
@@ -105,7 +108,7 @@ export default function LoanSettlementModal() {
         amount,
         accountId,
         loanId: resolvedLoanId,
-        note: getLoanSettlementLabel(loanDirection, personName),
+        note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
         date };
       if (isEditing && editId) {
         await updateTransaction(editId, payload);
@@ -191,6 +194,12 @@ export default function LoanSettlementModal() {
                 Keyboard.dismiss();
                 InteractionManager.runAfterInteractions(() => setShowAccountSheet(true));
               }}
+            />
+            <NotesSection
+              note={note}
+              onChangeNote={setNote}
+              palette={palette}
+              accentColor={palette.loan}
             />
           </SectionCard>
         </View>

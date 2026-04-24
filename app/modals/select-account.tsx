@@ -10,6 +10,7 @@ import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore'
 import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
 import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 
 export default function SelectAccountSheet() {
@@ -56,7 +57,7 @@ export default function SelectAccountSheet() {
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account.name, account.accountNumber)}
-                  subtitle={account.type.charAt(0).toUpperCase() + account.type.slice(1)}
+                  subtitle={getAccountTypeLabel(account.type)}
                   selected={selected}
                   palette={palette}
                   horizontalPadding={16}

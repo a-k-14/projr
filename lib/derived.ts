@@ -37,7 +37,18 @@ export function getLoanTransactionUserNote(note?: string | null) {
   if (!note) return '';
   const separator = ' · ';
   const separatorIndex = note.indexOf(separator);
-  return separatorIndex >= 0 ? note.slice(separatorIndex + separator.length).trim() : '';
+  if (separatorIndex >= 0) {
+    return note.slice(separatorIndex + separator.length).trim();
+  }
+  
+  // If no separator, it might be a legacy note or a user note without a label.
+  // We only hide it if it looks like a system label.
+  const trimmed = note.trim();
+  const systemPatterns = [/^Lent to /i, /^Borrowed from /i, /^Receipt from /i, /^Repayment to /i];
+  if (systemPatterns.some(p => p.test(trimmed))) {
+    return '';
+  }
+  return trimmed;
 }
 
 export function getLoanTransactionKind(

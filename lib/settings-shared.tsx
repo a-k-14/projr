@@ -42,6 +42,10 @@ export const ACCOUNT_TYPES = [
   { key: 'other', label: 'Other' },
 ] as const;
 
+export function getAccountTypeLabel(type?: string): string {
+  return ACCOUNT_TYPES.find((item) => item.key === type)?.label ?? 'Account';
+}
+
 export const ACCOUNT_ICONS = [
   'credit-card',
   'smartphone',

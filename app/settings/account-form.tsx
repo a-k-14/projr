@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, TextInput, View } from 'react-native';
 import {
   ActionButton,
   ChoiceRow,
@@ -51,6 +51,8 @@ export default function AccountFormScreen() {
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const accountNumberRef = useRef<TextInput>(null);
+  const openingBalanceRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (id) {
@@ -155,6 +157,9 @@ export default function AccountFormScreen() {
             onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
             placeholder="e.g. HDFC Bank"
             autoFocus={!isEditing}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => accountNumberRef.current?.focus()}
           />
         </View>
 
@@ -162,11 +167,15 @@ export default function AccountFormScreen() {
         <View style={{ marginBottom: SPACING.lg }}>
           <FieldLabel label="Account Number (Last 4)" palette={palette} />
           <InputField
+            ref={accountNumberRef}
             palette={palette}
             value={draft.accountNumber}
             onChangeText={(v) => setDraft((s) => ({ ...s, accountNumber: v }))}
             placeholder="e.g. 1234"
             keyboardType="numeric"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => openingBalanceRef.current?.focus()}
           />
         </View>
 
@@ -182,6 +191,7 @@ export default function AccountFormScreen() {
         <View style={{ marginBottom: SPACING.lg }}>
           <FieldLabel label="Opening Balance" palette={palette} />
           <InputField
+            ref={openingBalanceRef}
             palette={palette}
             value={draft.balance}
             onChangeText={(v) => {
@@ -200,6 +210,7 @@ export default function AccountFormScreen() {
             }}
             placeholder="0.00"
             keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
+            returnKeyType="done"
           />
         </View>
       </SettingsFormLayout>

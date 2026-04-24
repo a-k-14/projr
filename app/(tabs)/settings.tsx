@@ -1,25 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Feather } from '@expo/vector-icons';
-import { Keyboard, ScrollView, Switch, View, TouchableWithoutFeedback } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
-import { useUIStore } from '../../stores/useUIStore';
-import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useAppTheme } from '../../lib/theme';
-import { CardSection, ScreenTitle, SectionLabel, SettingsRow, ChoiceRow } from '../../components/settings-ui';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, ScrollView, Switch, TouchableWithoutFeedback, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CardSection, ChoiceRow, ScreenTitle, SectionLabel, SettingsRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { useAppDialog } from '../../components/ui/useAppDialog';
+import { formatCurrency } from '../../lib/derived';
 import {
   CURRENCIES,
   MONTHS,
   THEMES,
 } from '../../lib/settings-shared';
-import { formatCurrency } from '../../lib/derived';
+import { useAppTheme } from '../../lib/theme';
+import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 type PickerKind = 'year-start' | 'default-account' | 'currency' | 'theme' | null;
 
@@ -98,7 +98,6 @@ export default function SettingsScreen() {
         <ScrollView
           ref={scrollViewRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
         >
           <View>
@@ -248,88 +247,88 @@ export default function SettingsScreen() {
         >
           {picker === 'year-start'
             ? MONTHS.map((month, index) => (
-                <ChoiceRow
-                  key={month}
-                  title={month}
-                  selected={settings.yearStart === index}
-                  palette={palette}
-                  onPress={() => {
-                    updateSettings({ yearStart: index }, 'year-start');
-                    setPicker(null);
-                  }}
-                  noBorder={index === MONTHS.length - 1}
-                />
-              ))
+              <ChoiceRow
+                key={month}
+                title={month}
+                selected={settings.yearStart === index}
+                palette={palette}
+                onPress={() => {
+                  updateSettings({ yearStart: index }, 'year-start');
+                  setPicker(null);
+                }}
+                noBorder={index === MONTHS.length - 1}
+              />
+            ))
             : null}
 
           {picker === 'default-account'
             ? [
+              <ChoiceRow
+                key="none"
+                title="None"
+                subtitle="Prompt every time"
+                selected={!settings.defaultAccountId}
+                palette={palette}
+                onPress={() => {
+                  updateSettings({ defaultAccountId: '' }, 'default-account-none');
+                  setPicker(null);
+                }}
+              />,
+              ...accounts.map((account, index) => (
                 <ChoiceRow
-                  key="none"
-                  title="None"
-                  subtitle="Prompt every time"
-                  selected={!settings.defaultAccountId}
+                  key={account.id}
+                  title={account.name}
+                  subtitle={`${capitalize(account.type)} · ${formatCurrency(account.balance, displaySymbol)}`}
+                  selected={settings.defaultAccountId === account.id}
                   palette={palette}
                   onPress={() => {
-                    updateSettings({ defaultAccountId: '' }, 'default-account-none');
+                    updateSettings({ defaultAccountId: account.id }, 'default-account');
                     setPicker(null);
                   }}
-                />,
-                ...accounts.map((account, index) => (
-                  <ChoiceRow
-                    key={account.id}
-                    title={account.name}
-                    subtitle={`${capitalize(account.type)} · ${formatCurrency(account.balance, displaySymbol)}`}
-                    selected={settings.defaultAccountId === account.id}
-                    palette={palette}
-                    onPress={() => {
-                      updateSettings({ defaultAccountId: account.id }, 'default-account');
-                      setPicker(null);
-                    }}
-                    noBorder={index === accounts.length - 1}
-                  />
-                )),
-              ]
+                  noBorder={index === accounts.length - 1}
+                />
+              )),
+            ]
             : null}
 
           {picker === 'currency'
             ? CURRENCIES.map((currency, index) => (
-                <ChoiceRow
-                  key={currency.code}
-                  title={`${currency.symbol} ${currency.code}`}
-                  subtitle={currency.name}
-                  selected={settings.currency === currency.code}
-                  palette={palette}
-                  onPress={() => {
-                    updateSettings({ currency: currency.code, currencySymbol: currency.symbol }, 'currency');
-                    setPicker(null);
-                  }}
-                  noBorder={index === CURRENCIES.length - 1}
-                />
-              ))
+              <ChoiceRow
+                key={currency.code}
+                title={`${currency.symbol} ${currency.code}`}
+                subtitle={currency.name}
+                selected={settings.currency === currency.code}
+                palette={palette}
+                onPress={() => {
+                  updateSettings({ currency: currency.code, currencySymbol: currency.symbol }, 'currency');
+                  setPicker(null);
+                }}
+                noBorder={index === CURRENCIES.length - 1}
+              />
+            ))
             : null}
 
           {picker === 'theme'
             ? THEMES.map((theme, index) => (
-                <ChoiceRow
-                  key={theme.key}
-                  title={theme.label}
-                  subtitle={
-                    theme.key === 'auto'
-                      ? 'Follow the device setting'
-                      : theme.key === 'light'
-                        ? 'Always use light mode'
-                        : 'Always use dark mode'
-                  }
-                  selected={settings.theme === theme.key}
-                  palette={palette}
-                  onPress={() => {
-                    updateSettings({ theme: theme.key }, 'theme');
-                    setPicker(null);
-                  }}
-                  noBorder={index === THEMES.length - 1}
-                />
-              ))
+              <ChoiceRow
+                key={theme.key}
+                title={theme.label}
+                subtitle={
+                  theme.key === 'auto'
+                    ? 'Follow the device setting'
+                    : theme.key === 'light'
+                      ? 'Always use light mode'
+                      : 'Always use dark mode'
+                }
+                selected={settings.theme === theme.key}
+                palette={palette}
+                onPress={() => {
+                  updateSettings({ theme: theme.key }, 'theme');
+                  setPicker(null);
+                }}
+                noBorder={index === THEMES.length - 1}
+              />
+            ))
             : null}
         </BottomSheet>
       ) : null}

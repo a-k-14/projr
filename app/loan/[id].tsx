@@ -13,7 +13,7 @@ import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
 import { formatDate, formatDateShort, getRelativeDateLabel } from '../../lib/dateUtils';
-import { formatCurrency, getLoanTransactionKind, groupTransactionsByDate } from '../../lib/derived';
+import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import {
   ACTIVITY_LAYOUT,
@@ -27,6 +27,7 @@ import {
 } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { LoanWithSummary } from '../../types';
@@ -41,6 +42,7 @@ export default function LoanDetailScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
+  const tags = useCategoriesStore((s) => s.tags);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const loan = loans.find((l) => l.id === id);
@@ -49,17 +51,23 @@ export default function LoanDetailScreen() {
     loadLoans();
   }, []);
 
+  useEffect(() => {
+    if (!loan && id) {
+      router.back();
+    }
+  }, [loan, id]);
+
   if (!loan) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: palette.textMuted }}>Loading…</Text>
-      </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: palette.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={palette.brand} />
+      </View>
     );
   }
 
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const progressColor = isLent ? palette.negative : palette.brand;
+  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.brand : palette.negative);
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const grouped = groupTransactionsByDate(loan.transactions);
   const originTx = loan.transactions
@@ -216,7 +224,7 @@ export default function LoanDetailScreen() {
                   <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5, marginBottom: HOME_SPACE.sm }}>
                     NOTE
                   </Text>
-                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{originTx.note}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{getLoanTransactionUserNote(originTx.note)}</Text>
                 </View>
               ) : null}
             </View>
@@ -253,6 +261,16 @@ export default function LoanDetailScreen() {
                       isLast={i === items.length - 1}
                       accountName={account?.name}
                       showAmountSign={false}
+                      loanPersonName={loan.personName}
+                      loanDirection={loan.direction}
+                      tertiaryText={
+                        tx.tags.length > 0
+                          ? tx.tags
+                            .map((tagId) => tags.find((tag) => tag.id === tagId)?.name)
+                            .filter((value): value is string => !!value)
+                            .join(' • ') || undefined
+                          : undefined
+                      }
                       onPress={() =>
                         router.push({
                           pathname:

@@ -2,7 +2,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
-import { formatCurrency, getLoanDisplayLabel, getTransactionCashflowImpact } from '../lib/derived';
+import { formatCurrency, getLoanDisplayLabel, getLoanTransactionUserNote, getTransactionCashflowImpact } from '../lib/derived';
 import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
@@ -25,6 +25,7 @@ interface Props {
   tertiaryText?: string;
   showAmountSign?: boolean;
   useTypeAmountColor?: boolean;
+  hideNote?: boolean;
   paddingX?: number;
   paddingY?: number;
   /** Icon box size — defaults to the shared compact list icon size */
@@ -47,6 +48,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   tertiaryText,
   showAmountSign = true,
   useTypeAmountColor = true,
+  hideNote = false,
   paddingX = HOME_LAYOUT.listRowPaddingX,
   paddingY = HOME_LAYOUT.listRowPaddingY,
   iconSize = HOME_LAYOUT.listIconSize,
@@ -76,16 +78,21 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     titleSecondaryText = tx.type === 'out' ? 'Out' : 'In';
     const from = tx.type === 'out' ? accountNameSelected : linkedAccountName;
     const to = tx.type === 'out' ? linkedAccountName : accountNameSelected;
-    subtitle = `${from} \u2022 ${to}`;
+    subtitle = `${from} \u2192 ${to}`;
   } else if (tx.type === 'loan' && loanPersonName) {
     const loanLabel = loanDirection ? getLoanDisplayLabel(loanDirection, cashflowImpact).replace(/^Loan - /, '') : 'Loan';
     title = 'Loan';
     titleSecondaryText = loanLabel;
     subtitle = [accountNameSelected, loanPersonName].filter(Boolean).join(' \u2022 ');
+    noteLine = getLoanTransactionUserNote(tx.note) || undefined;
   } else if (tx.type === 'in' || tx.type === 'out') {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     subtitle = [accountNameSelected, tx.payee].filter(Boolean).join(' \u2022 ');
-    noteLine = tx.note?.trim() || undefined;
+    noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
+  }
+
+  if (hideNote) {
+    noteLine = undefined;
   }
 
   const amountValue = displayAmount ?? tx.amount;

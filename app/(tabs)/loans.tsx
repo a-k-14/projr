@@ -24,7 +24,7 @@ import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../../components/ui/AppCard';
-import { formatCurrency, getLoanSummary } from '../../lib/derived';
+import { formatCurrency, getLoanSummary, getLoanTransactionKind, getLoanTransactionUserNote } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import {
   ACTIVITY_LAYOUT,
@@ -562,10 +562,12 @@ function LoanRow({
   }) {
   const isLent = loan.direction === 'lent';
   const dirColor = isLent ? palette.negative : palette.brand;
-  const progressColor = palette.loan;
+  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.brand : palette.negative);
   const directionLabel = isLent ? 'Lent' : 'Borrowed';
-  const progressPercent = loan.status === 'closed' ? 100 : loan.repaidPercent;
-  const balanceAmount = loan.status === 'closed' ? 0 : loan.pendingAmount;
+  const progressPercent = loan.repaidPercent;
+  const balanceAmount = loan.pendingAmount;
+  const originTx = loan.transactions.find(tx => getLoanTransactionKind(tx, loan.direction) === 'origin');
+  const userNote = originTx ? getLoanTransactionUserNote(originTx.note) : undefined;
 
   return (
     <View style={{ marginBottom: 12, position: 'relative' }}>
@@ -595,6 +597,11 @@ function LoanRow({
             palette={palette}
           />
         }
+        tertiaryRow={userNote ? (
+          <Text numberOfLines={1} style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary }}>
+            {userNote}
+          </Text>
+        ) : null}
         footer={
           <View
             style={{

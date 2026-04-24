@@ -1,21 +1,25 @@
+import { Text } from '@/components/ui/AppText';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { Image,
+import {
+  Image,
   InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
+  LayoutAnimation,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
-  View,
-  LayoutAnimation , TouchableOpacity } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -30,20 +34,24 @@ import {
   PickerRow,
   ROW_LABEL_WIDTH,
   SectionCard,
-  TextInputRow } from '../../components/ui/transaction-form-primitives';
+  TextInputRow
+} from '../../components/ui/transaction-form-primitives';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
-import { formatDate, nowUTC } from '../../lib/dateUtils';
+import { nowUTC } from '../../lib/dateUtils';
 import {
   formatCurrency,
   formatIndianNumberStr,
   getLoanSettlementLabel,
-  getLoanTransactionUserNote,
   getLoanTransactionKind,
-  parseFormattedNumber } from '../../lib/derived';
+  getLoanTransactionUserNote,
+  parseFormattedNumber
+} from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
+import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
+import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { getLoanById } from '../../services/loans';
 import { createSplitTransactionGroup, getRecentNotes, getRecentPayees, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -52,14 +60,13 @@ import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { CalculatorSheet } from '../../components/CalculatorSheet';
-import { useAppDialog } from '../../components/ui/useAppDialog';
 import type {
   Account,
   Category,
   CreateTransactionInput,
   Tag,
-  TransactionType } from '../../types';
+  TransactionType
+} from '../../types';
 
 // We compute TYPE_CONFIG dynamically inside the component to use the derived palette
 
@@ -149,7 +156,8 @@ export default function AddTransactionModal() {
     in: { label: 'In', color: palette.positive, onColor: palette.onBrand, borderColor: palette.positive, bg: palette.inBg },
     out: { label: 'Out', color: palette.negative, onColor: palette.onBrand, borderColor: palette.negative, bg: palette.outBg },
     transfer: { label: 'Transfer', color: palette.transferText, onColor: palette.onBrand, borderColor: palette.transferText, bg: palette.transferBg },
-    loan: { label: 'Loan', color: palette.loan, onColor: palette.onLoan, borderColor: palette.loan, bg: palette.loanBg } };
+    loan: { label: 'Loan', color: palette.loan, onColor: palette.onLoan, borderColor: palette.loan, bg: palette.loanBg }
+  };
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
@@ -167,7 +175,7 @@ export default function AddTransactionModal() {
   // We guard with a ref so that our own setCategoryId calls don't re-trigger.
   const isSyncingCategory = useRef(false);
   const skipInitialDraftCategorySync = useRef(true);
-  
+
   // Clear category draft on mount for new transactions
   useEffect(() => {
     setDraftCategoryId('');
@@ -270,7 +278,8 @@ export default function AddTransactionModal() {
                 .map((item) => ({
                   id: `split-${splitIdSeed.current++}`,
                   categoryId: item.categoryId ?? '',
-                  amountStr: formatIndianNumberStr(String(item.amount)) }))
+                  amountStr: formatIndianNumberStr(String(item.amount))
+                }))
             );
           }
         }
@@ -297,6 +306,11 @@ export default function AddTransactionModal() {
           setLoanEditMode(kind === 'origin' ? 'origin' : 'settlement');
 
           if (kind === 'origin') {
+            setAmountStr(formatIndianNumberStr(String(tx.amount)));
+            setAccountId(tx.accountId);
+            setDate(tx.date);
+            setNote(getLoanTransactionUserNote(tx.note));
+          } else if (tx.type === 'loan' && kind === 'settlement') {
             setAmountStr(formatIndianNumberStr(String(tx.amount)));
             setAccountId(tx.accountId);
             setDate(tx.date);
@@ -372,30 +386,30 @@ export default function AddTransactionModal() {
   const hasNonZeroAmount = Number.isFinite(amount) && amount !== 0;
   const isValid =
     type === 'transfer'
-      ? amount > 0 && accountId && linkedAccountId && accountId !== linkedAccountId
+      ? amount > 0 && accountId && linkedAccountId
       : isLoanAddMore
         ? amount > 0 && accountId && personName.trim().length > 0
-      : type === 'loan'
-        ? hasNonZeroAmount && accountId && personName.trim().length > 0
-        : usableSplitRows.length > 0
-          ? splitTotal !== 0 && accountId
-          : hasNonZeroAmount && accountId && categoryId;
+        : type === 'loan'
+          ? hasNonZeroAmount && accountId && personName.trim().length > 0
+          : usableSplitRows.length > 0
+            ? splitTotal !== 0 && accountId
+            : hasNonZeroAmount && accountId && categoryId;
 
   const actionLabel = isEditing
     ? 'Save Changes'
     : isLoanAddMore
       ? 'Add More'
-    : type === 'loan' && routeLoanId && settlement === '1'
-      ? loanDirection === 'lent'
-        ? 'Add Receipt'
-        : 'Add Repayment'
-    : type === 'in'
-      ? 'Add Income'
-      : type === 'transfer'
-        ? 'Move Money'
-        : type === 'loan'
-        ? 'Add Loan'
-          : 'Add Expense';
+      : type === 'loan' && routeLoanId && settlement === '1'
+        ? loanDirection === 'lent'
+          ? 'Add Receipt'
+          : 'Add Repayment'
+        : type === 'in'
+          ? 'Add Income'
+          : type === 'transfer'
+            ? 'Move Money'
+            : type === 'loan'
+              ? 'Add Loan'
+              : 'Add Expense';
   const actionButtonColor = activeConfig.color;
   const actionButtonTextColor = activeConfig.onColor;
   const screenTitle = isEditing
@@ -419,7 +433,7 @@ export default function AddTransactionModal() {
     setShowDatePicker(false);
     try {
       if (!isEditing && accountId) {
-        updateSettings({ lastUsedAccountId: accountId }).catch(() => {});
+        updateSettings({ lastUsedAccountId: accountId }).catch(() => { });
       }
 
       const data: CreateTransactionInput = {
@@ -432,12 +446,14 @@ export default function AddTransactionModal() {
         categoryId: categoryId || undefined,
         payee: payee.trim() || undefined,
         tags: selectedTagIds,
-        linkedAccountId: type === 'transfer' ? linkedAccountId : undefined };
+        linkedAccountId: type === 'transfer' ? linkedAccountId : undefined
+      };
 
       if ((type === 'in' || type === 'out') && usableSplitRows.length > 0) {
         const splitItems = usableSplitRows.map((row) => ({
           categoryId: row.categoryId,
-          amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0 }));
+          amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0
+        }));
 
         if (isEditing && editId && editingSplitGroupId) {
           await updateSplitTransactionGroup(editingSplitGroupId, {
@@ -448,7 +464,8 @@ export default function AddTransactionModal() {
             receiptImageUris,
             tags: selectedTagIds,
             date,
-            items: splitItems });
+            items: splitItems
+          });
         } else {
           await createSplitTransactionGroup({
             type,
@@ -458,12 +475,13 @@ export default function AddTransactionModal() {
             receiptImageUris,
             tags: selectedTagIds,
             date,
-            items: splitItems });
+            items: splitItems
+          });
         }
         clearSplitRows();
         router.back();
         // Background refresh after navigation
-        Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => {});
+        Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => { });
         return;
       }
 
@@ -483,16 +501,18 @@ export default function AddTransactionModal() {
           amount,
           accountId,
           loanId: editingLoanId,
-          note: getLoanSettlementLabel(loanDirection, personName),
-          date });
+          note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
+          date
+        });
       } else if (type === 'loan' && routeLoanId && settlement === '1') {
         await addTransaction({
           type: 'loan',
           amount,
           accountId,
           loanId: routeLoanId,
-          note: getLoanSettlementLabel(loanDirection, personName),
-          date });
+          note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
+          date
+        });
       } else if (type === 'loan' && isLoanAddMore && routeLoanId) {
         await addLoanPrincipal(routeLoanId, amount, accountId, date, note || undefined);
       } else if (type === 'loan') {
@@ -503,7 +523,8 @@ export default function AddTransactionModal() {
           givenAmount: amount,
           note: note || undefined,
           tags: selectedTagIds,
-          date });
+          date
+        });
       } else if (isEditing && editId && isTransferEdit) {
         await updateTransferTransaction(editId, {
           amount,
@@ -511,7 +532,8 @@ export default function AddTransactionModal() {
           linkedAccountId,
           date,
           note: note || undefined,
-          payee: payee.trim() || undefined });
+          payee: payee.trim() || undefined
+        });
       } else if (isEditing && editId) {
         await updateTransaction(editId, data);
       } else {
@@ -520,21 +542,24 @@ export default function AddTransactionModal() {
       clearSplitRows();
       router.back();
       // Background refresh after navigation
-      Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => {});
+      Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => { });
     } catch (e) {
       showAlert('Error', String(e));
     }
   };
 
   const handleDelete = () => {
+    const isLoanOrigin = type === 'loan' && loanEditMode === 'origin' && editingLoanId;
     showConfirm({
-      title: 'Delete Transaction',
-      message: 'This cannot be undone.',
+      title: isLoanOrigin ? 'Delete Loan' : 'Delete Transaction',
+      message: isLoanOrigin 
+        ? 'This will delete the loan and all its recorded entries. This cannot be undone.' 
+        : 'This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        if (type === 'loan' && loanEditMode === 'origin' && editingLoanId) {
-          await removeLoan(editingLoanId);
+        if (isLoanOrigin) {
+          await removeLoan(editingLoanId!);
         } else if (editId) {
           await removeTransaction(editId);
         }
@@ -658,7 +683,8 @@ export default function AddTransactionModal() {
             alignItems: 'center',
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: 8,
-            paddingBottom: 12 }}
+            paddingBottom: 12
+          }}
         >
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
             <Ionicons name="close" size={24} color={palette.text} />
@@ -689,13 +715,15 @@ export default function AddTransactionModal() {
                     alignItems: 'center',
                     borderColor: type === t ? TYPE_CONFIG[t].borderColor : palette.border,
                     backgroundColor: type === t ? TYPE_CONFIG[t].bg : palette.surface,
-                    opacity: lockTypeSelection && t !== type ? 0.35 : 1 }}
+                    opacity: lockTypeSelection && t !== type ? 0.35 : 1
+                  }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '700',
-                      color: type === t ? TYPE_CONFIG[t].color : palette.textMuted }}
+                      color: type === t ? TYPE_CONFIG[t].color : palette.textMuted
+                    }}
                   >
                     {TYPE_CONFIG[t].label}
                   </Text>
@@ -787,7 +815,8 @@ export default function AddTransactionModal() {
                             borderRadius: 11,
                             backgroundColor: palette.inputBg,
                             borderWidth: 1,
-                            borderColor: palette.divider }}
+                            borderColor: palette.divider
+                          }}
                         >
                           <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
                         </TouchableOpacity>
@@ -810,10 +839,10 @@ export default function AddTransactionModal() {
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowTagSheet(true))}
               />
-              <NotesSection 
-                note={note} 
-                onChangeNote={setNote} 
-                palette={palette} 
+              <NotesSection
+                note={note}
+                onChangeNote={setNote}
+                palette={palette}
                 accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
@@ -831,7 +860,8 @@ export default function AddTransactionModal() {
                             borderRadius: 11,
                             backgroundColor: palette.inputBg,
                             borderWidth: 1,
-                            borderColor: palette.divider }}
+                            borderColor: palette.divider
+                          }}
                         >
                           <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
                         </TouchableOpacity>
@@ -864,7 +894,8 @@ export default function AddTransactionModal() {
                     borderRadius: 10,
                     backgroundColor: activeConfig.bg,
                     alignItems: 'center',
-                    justifyContent: 'center' }}
+                    justifyContent: 'center'
+                  }}
                 >
                   <Ionicons name="swap-vertical" size={16} color={activeConfig.color} />
                 </TouchableOpacity>
@@ -876,6 +907,13 @@ export default function AddTransactionModal() {
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowToAccountSheet(true))}
               />
+              {accountId && linkedAccountId && accountId === linkedAccountId ? (
+                <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 4 }}>
+                  <Text style={{ marginLeft: ROW_LABEL_WIDTH + 4, fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>
+                    Heads up: Same account transfer.
+                  </Text>
+                </View>
+              ) : null}
               <AmountRow
                 sym={displaySym}
                 amountStr={amountStr}
@@ -885,10 +923,10 @@ export default function AddTransactionModal() {
                 accentColor={activeConfig.color}
                 autoFocus
               />
-              <NotesSection 
-                note={note} 
-                onChangeNote={setNote} 
-                palette={palette} 
+              <NotesSection
+                note={note}
+                onChangeNote={setNote}
+                palette={palette}
                 accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
@@ -906,7 +944,8 @@ export default function AddTransactionModal() {
                             borderRadius: 11,
                             backgroundColor: palette.inputBg,
                             borderWidth: 1,
-                            borderColor: palette.divider }}
+                            borderColor: palette.divider
+                          }}
                         >
                           <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
                         </TouchableOpacity>
@@ -944,13 +983,15 @@ export default function AddTransactionModal() {
                                 alignItems: 'center',
                                 borderWidth: 1.5,
                                 borderColor: active ? activeConfig.borderColor : palette.border,
-                                backgroundColor: active ? activeConfig.bg : palette.surface }}
+                                backgroundColor: active ? activeConfig.bg : palette.surface
+                              }}
                             >
                               <Text
                                 style={{
                                   fontSize: HOME_TEXT.bodySmall,
                                   fontWeight: '700',
-                                  color: active ? activeConfig.color : palette.textMuted }}
+                                  color: active ? activeConfig.color : palette.textMuted
+                                }}
                               >
                                 {d === 'lent' ? 'I lent' : 'I borrowed'}
                               </Text>
@@ -994,15 +1035,13 @@ export default function AddTransactionModal() {
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
               />
-              {loanEditMode !== 'settlement' ? (
-                <NotesSection 
-                  note={note} 
-                  onChangeNote={setNote} 
-                  palette={palette} 
-                  accentColor={activeConfig.color}
-                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
-                />
-              ) : null}
+              <NotesSection
+                note={note}
+                onChangeNote={setNote}
+                palette={palette}
+                accentColor={activeConfig.color}
+                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+              />
               {noteSuggestions.length > 0 && (
                 <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
                   <View style={{ maxHeight: 200 }}>
@@ -1017,7 +1056,8 @@ export default function AddTransactionModal() {
                             borderRadius: 11,
                             backgroundColor: palette.inputBg,
                             borderWidth: 1,
-                            borderColor: palette.divider }}
+                            borderColor: palette.divider
+                          }}
                         >
                           <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
                         </TouchableOpacity>
@@ -1066,7 +1106,7 @@ export default function AddTransactionModal() {
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, displaySym)}`}
+                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={accountId === account.id}
                   palette={palette}
                   onPress={() => {
@@ -1096,12 +1136,11 @@ export default function AddTransactionModal() {
             <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
             accounts.map((account, index) => {
-              if (account.id === linkedAccountId) return null;
               return (
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, displaySym)}`}
+                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={accountId === account.id}
                   palette={palette}
                   onPress={() => {
@@ -1131,12 +1170,11 @@ export default function AddTransactionModal() {
             <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
             accounts.map((account, index) => {
-              if (account.id === accountId) return null;
               return (
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, displaySym)}`}
+                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={linkedAccountId === account.id}
                   palette={palette}
                   onPress={() => {
@@ -1177,7 +1215,8 @@ export default function AddTransactionModal() {
                 paddingBottom: 10,
                 borderTopWidth: 1,
                 borderTopColor: palette.divider,
-                backgroundColor: palette.surface }}
+                backgroundColor: palette.surface
+              }}
             >
               <TouchableOpacity delayPressIn={0}
                 onPress={() => setShowTagSheet(false)}
@@ -1186,7 +1225,8 @@ export default function AddTransactionModal() {
                   borderRadius: 18,
                   minHeight: 54,
                   alignItems: 'center',
-                  justifyContent: 'center' }}
+                  justifyContent: 'center'
+                }}
               >
                 <Text style={{ color: palette.onBrand, fontSize: HOME_TEXT.rowLabel, fontWeight: PRIMARY_ACTION.labelWeight }}>Done</Text>
               </TouchableOpacity>
@@ -1231,7 +1271,10 @@ export default function AddTransactionModal() {
         brandColor={activeConfig.color}
         brandSoft={activeConfig.bg}
         brandOnColor={activeConfig.onColor}
-        onClose={(finalValue) => {
+        onClose={() => {
+          setShowCalculator(false);
+        }}
+        onApply={(finalValue) => {
           setShowCalculator(false);
           setAmountStr(formatIndianNumberStr(finalValue));
         }}

@@ -8,7 +8,6 @@ import { FinanceEmptyMascot } from './ui/FinanceEmptyMascot';
 import { HOME_TEXT } from '../lib/layoutTokens';
 import { useAppDialog } from './ui/useAppDialog';
 
-const GRACE_PERIOD_MS = 10000; // 10 seconds
 const AUTH_PROMPT_STALE_MS = 30000;
 
 function shouldShowAuthFailure(error?: string) {
@@ -40,8 +39,6 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   
   const appState = useRef(AppState.currentState);
-  const lastBackgroundTime = useRef<number | null>(null);
-
   const clearAuthWatchdog = useCallback(() => {
     if (authWatchdogRef.current) {
       clearTimeout(authWatchdogRef.current);
@@ -65,7 +62,6 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
       clearAuthWatchdog();
       setIsAuthenticating(false);
       isAuthenticatingRef.current = false;
-      lastBackgroundTime.current = null;
     },
     [clearAuthWatchdog],
   );
@@ -162,20 +158,14 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
-        // App has come to the foreground
         if (isAuthEnabled) {
-          const now = Date.now();
-          const shouldReauth =
-            isLockedRef.current ||
-            (lastBackgroundTime.current !== null && now - lastBackgroundTime.current > GRACE_PERIOD_MS);
-          if (shouldReauth) {
-            setLocked(true);
-            void authenticate();
-          }
+          setLocked(true);
+          void authenticate();
         }
       } else if (nextAppState.match(/inactive|background/)) {
-        // App has gone to the background
-        lastBackgroundTime.current = Date.now();
+        if (isAuthEnabled) {
+          setLocked(true);
+        }
       }
 
       appState.current = nextAppState;

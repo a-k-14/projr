@@ -21,14 +21,14 @@ interface CalculatorSheetProps {
   brandColor?: string;
   brandSoft?: string;
   brandOnColor?: string;
-  onClose: (finalValue: string) => void;
+  onClose: () => void;
+  onApply: (finalValue: string) => void;
 }
 
 const BUTTONS = [
-  ['7', '8', '9', '÷'],
-  ['4', '5', '6', '×'],
-  ['1', '2', '3', '−'],
-  ['0', '.', '%', '+'],
+  ['7', '8', '9', '×'],
+  ['4', '5', '6', '−'],
+  ['1', '2', '3', '+'],
 ] as const;
 
 export function CalculatorSheet({
@@ -39,6 +39,7 @@ export function CalculatorSheet({
   brandSoft,
   brandOnColor,
   onClose,
+  onApply,
 }: CalculatorSheetProps) {
   const [display, setDisplay] = useState(prettifyCalculatorValue(value) || '0');
 
@@ -63,10 +64,19 @@ export function CalculatorSheet({
 
   const evaluate = () => evaluateCalculatorExpression(display);
 
-  const handleDone = () => {
+  const handleApply = () => {
     const final = evaluate();
-    onClose(final);
+    onApply(final);
   };
+
+  const handleClear = () => {
+    setDisplay('0');
+  };
+
+  const handleEvaluate = () => {
+    setDisplay(prettifyCalculatorValue(evaluate()));
+  };
+
   const displayMetrics = getCalculatorDisplayMetrics(display, 36);
   const previewResult = getCalculatorPreviewResult(display);
 
@@ -75,7 +85,7 @@ export function CalculatorSheet({
       title="Calculator"
       showHeaderTitle={false}
       palette={palette}
-      onClose={() => handleDone()}
+      onClose={onClose}
     >
       <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 20 }}>
         <View style={{ minHeight: 118, justifyContent: 'center', alignItems: 'flex-end', marginBottom: 16 }}>
@@ -113,6 +123,27 @@ export function CalculatorSheet({
         </View>
 
         <View style={{ gap: 10 }}>
+          {/* Row 1: C, Backspace, %, ÷ */}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <CalcButton label="C" onPress={handleClear} palette={palette} />
+            <CalcButton label="⌫" onPress={backspace} palette={palette} />
+            <CalcButton
+              label="%"
+              onPress={() => appendToken('%')}
+              palette={palette}
+              brandSoft={brandSoft}
+              brandOnColor={brandOnColor}
+            />
+            <CalcButton
+              label="÷"
+              onPress={() => appendToken('÷')}
+              palette={palette}
+              brandSoft={brandSoft}
+              brandOnColor={brandOnColor}
+            />
+          </View>
+
+          {/* Middle Rows: Numbers 1-9 and Operators ×, −, + */}
           {BUTTONS.map((row, idx) => (
             <View key={idx} style={{ flexDirection: 'row', gap: 10 }}>
               {row.map((label) => (
@@ -127,19 +158,21 @@ export function CalculatorSheet({
               ))}
             </View>
           ))}
+
+          {/* Last Row: ., 0, =, OK */}
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <CalcButton label="C" onPress={() => setDisplay('0')} palette={palette} />
-            <CalcButton label="⌫" onPress={backspace} palette={palette} />
+            <CalcButton label="." onPress={() => appendToken('.')} palette={palette} />
+            <CalcButton label="0" onPress={() => appendToken('0')} palette={palette} />
             <CalcButton
               label="="
-              onPress={() => setDisplay(prettifyCalculatorValue(evaluate()))}
+              onPress={handleEvaluate}
               palette={palette}
               brandSoft={brandSoft}
               brandOnColor={brandOnColor}
             />
             <CalcButton
               label="OK"
-              onPress={handleDone}
+              onPress={handleApply}
               palette={palette}
               brandColor={brandColor}
               brandOnColor={brandOnColor}
@@ -183,6 +216,7 @@ function CalcButton({
     <TouchableOpacity
       delayPressIn={0}
       onPress={onPress}
+      activeOpacity={0.4}
       style={{
         flex: 1,
         minHeight: 58,

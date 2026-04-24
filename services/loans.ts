@@ -95,7 +95,7 @@ export async function createLoan(data: CreateLoanInput): Promise<Loan> {
       amount: data.givenAmount,
       accountId: data.accountId,
       loanId: id,
-      note: label,
+      note: mergeLoanTransactionNote(label, data.note),
       date: data.date,
     });
   } catch (error) {

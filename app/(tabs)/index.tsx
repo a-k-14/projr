@@ -52,6 +52,7 @@ import {
   HOME_SURFACE,
   HOME_TEXT
 } from '../../lib/layoutTokens';
+import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
@@ -116,20 +117,22 @@ export default function HomeScreen() {
   const [globalScrollResetTick, setGlobalScrollResetTick] = useState(0);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const previousAccountCountRef = useRef(accounts.length);
+  const showAllAccountsTab = accounts.length !== 1;
+  const homeRootAccountId = showAllAccountsTab ? 'all' : (accounts[0]?.id ?? 'all');
 
   const displayAccounts = useMemo<AccountTab[]>(() => [
-    { id: 'all', name: 'All' },
+    ...(showAllAccountsTab ? [{ id: 'all' as const, name: 'All' }] : []),
     ...accounts.map((a) => ({ id: a.id, name: formatAccountDisplayName(a.name, a.accountNumber) })),
     { id: 'add', name: 'Add Account' },
-  ], [accounts]);
+  ], [accounts, showAllAccountsTab]);
   const accountCards = useMemo<AccountCardItem[]>(() => [
-    { id: 'all', name: 'All Accounts', accountTypeLabel: '' },
+    ...(showAllAccountsTab ? [{ id: 'all' as const, name: 'All Accounts', accountTypeLabel: '' }] : []),
     ...accounts.map((a) => ({
       id: a.id,
       name: formatAccountDisplayName(a.name, a.accountNumber),
-      accountTypeLabel: formatAccountTypeLabel(a.type),
+      accountTypeLabel: getAccountTypeLabel(a.type),
     })),
-  ], [accounts]);
+  ], [accounts, showAllAccountsTab]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all' | 'add'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
 
@@ -154,10 +157,16 @@ export default function HomeScreen() {
       selectedAccountId !== 'add' &&
       !accounts.some((account) => account.id === selectedAccountId)
     ) {
-      setSelectedAccountId('all');
+      setSelectedAccountId(homeRootAccountId);
       pagerRef.current?.scrollTo({ x: 0, animated: true });
     }
-  }, [accountPagerScrollX, accounts, displayAccounts, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
+  }, [accountPagerScrollX, accounts, displayAccounts, homeRootAccountId, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
+
+  useEffect(() => {
+    if (selectedAccountId === 'all' && !showAllAccountsTab && accounts[0]) {
+      setSelectedAccountId(accounts[0].id);
+    }
+  }, [accounts, selectedAccountId, showAllAccountsTab]);
 
   useEffect(() => {
     if (homeAccountViewMode !== 'swipe') return;
@@ -173,7 +182,7 @@ export default function HomeScreen() {
   }, [accountPagerScrollX, displayAccounts, homeAccountViewMode, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
 
   const resetHomeToAll = useCallback(() => {
-    setSelectedAccountId('all');
+    setSelectedAccountId(homeRootAccountId);
     if (homeAccountViewMode === 'list') {
       updateSettings({ homeAccountViewMode: 'swipe' }, 'home-tab-reset').catch(() => undefined);
     }
@@ -181,7 +190,7 @@ export default function HomeScreen() {
     accountPagerScrollX.value = 0;
     pagerRef.current?.scrollTo({ x: 0, animated: true });
     setGlobalScrollResetTick(v => v + 1);
-  }, [accountPagerScrollX, homeAccountViewMode, pagerRef, settledAccountPageIndex, updateSettings]);
+  }, [accountPagerScrollX, homeAccountViewMode, homeRootAccountId, pagerRef, settledAccountPageIndex, updateSettings]);
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
@@ -361,33 +370,18 @@ export default function HomeScreen() {
           >
             Create an account to start tracking balances and transactions.
           </Text>
-          <TouchableOpacity
-            delayPressIn={0}
-            activeOpacity={0.85}
+          <FilledButton
+            label="Add Account"
             onPress={() => router.push('/settings/account-form')}
+            palette={palette}
+            startIcon={<Ionicons name="add" size={18} color={palette.onBrand} />}
             style={{
-              minHeight: 48,
+              width: '100%',
+              alignSelf: 'stretch',
               marginTop: 24,
-              paddingHorizontal: CARD_PADDING,
-              borderRadius: HOME_RADIUS.card,
-              backgroundColor: palette.brand,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
+              borderRadius: 14,
             }}
-          >
-            <Ionicons name="add" size={19} color={palette.onBrand} />
-            <Text
-              style={{
-                fontSize: HOME_TEXT.rowLabel,
-                fontWeight: '700',
-                color: palette.onBrand,
-              }}
-            >
-              Add Account
-            </Text>
-          </TouchableOpacity>
+          />
         </View>
       </View>
     );
@@ -457,7 +451,7 @@ export default function HomeScreen() {
                         accountTypeLabel={
                           account.id === 'all'
                             ? ''
-                            : formatAccountTypeLabel(accounts.find((item) => item.id === account.id)?.type)
+                            : getAccountTypeLabel(accounts.find((item) => item.id === account.id)?.type)
                         }
                         settingsYearStart={settingsYearStart}
                         currencySymbol={showCurrencySymbol ? currencySymbol : ''}
@@ -503,12 +497,10 @@ export default function HomeScreen() {
         iconColor={palette.isDark ? palette.listText : palette.surface}
         style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
         onPress={() =>
-          selectedAccountId === 'add'
-            ? router.push('/settings/account-form')
-            : router.push({
-              pathname: '/modals/add-transaction',
-              params: selectedAccountId === 'all' ? undefined : { accountId: selectedAccountId }
-            })
+          router.push({
+            pathname: '/modals/add-transaction',
+            params: selectedAccountId === 'all' || selectedAccountId === 'add' ? undefined : { accountId: selectedAccountId }
+          })
         }
       />
 
@@ -1173,7 +1165,7 @@ function AddAccountPage({
           padding: CARD_PADDING,
         }}
       >
-        <Ionicons name="add-outline" size={31} color={palette.text} />
+        <Ionicons name="add-circle-outline" size={22} color={palette.text} />
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, marginTop: 12 }}>
           Add Account
         </Text>
@@ -1876,25 +1868,6 @@ function getDaysBetween(fromIso: string, toIso: string): number {
   const to = new Date(toIso);
   const msPerDay = 1000 * 60 * 60 * 24;
   return Math.max(0, Math.floor((to.getTime() - from.getTime()) / msPerDay));
-}
-
-function formatAccountTypeLabel(type?: Account['type']): string {
-  switch (type) {
-    case 'savings':
-      return 'Savings';
-    case 'credit':
-      return 'Credit';
-    case 'cash':
-      return 'Cash';
-    case 'wallet':
-      return 'Wallet';
-    case 'investment':
-      return 'Investment';
-    case 'other':
-      return 'Other';
-    default:
-      return 'Account';
-  }
 }
 
 function buildCashflowDrilldownRanges(

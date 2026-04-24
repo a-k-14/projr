@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { Feather } from '@expo/vector-icons';
-import { ReactNode, RefObject } from 'react';
+import { forwardRef, ReactNode, RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
@@ -318,16 +318,16 @@ export function IconBtn({
   );
 }
 
-export function InputField({
+export const InputField = forwardRef<TextInput, React.ComponentProps<typeof TextInput> & {
+  palette: AppThemePalette;
+  isNumeric?: boolean;
+  rightElement?: ReactNode;
+}>(function InputField({
   palette,
   isNumeric,
   rightElement,
   ...props
-}: React.ComponentProps<typeof TextInput> & {
-  palette: AppThemePalette;
-  isNumeric?: boolean;
-  rightElement?: ReactNode;
-}) {
+}, ref) {
   return (
     <View
       style={{
@@ -342,6 +342,7 @@ export function InputField({
       }}
     >
       <TextInput
+        ref={ref}
         {...props}
         style={[
           {
@@ -358,7 +359,7 @@ export function InputField({
       {rightElement}
     </View>
   );
-}
+});
 
 export function SelectTrigger({
   label,

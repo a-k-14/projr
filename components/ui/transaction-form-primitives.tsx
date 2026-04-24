@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { RefObject, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Platform, TextInput, View , TouchableOpacity } from 'react-native';
 import { formatDate } from '../../lib/dateUtils';
@@ -340,7 +340,12 @@ export function AmountRow({
   onOpenCalculator,
   autoFocus = false,
   calculatorButtonVariant = 'large',
-  editable = true }: {
+  editable = true,
+  inputRef,
+  returnKeyType,
+  onSubmitEditing,
+  blurOnSubmit,
+}: {
   sym: string;
   amountStr: string;
   setAmountStr: (value: string) => void;
@@ -350,6 +355,10 @@ export function AmountRow({
   autoFocus?: boolean;
   calculatorButtonVariant?: 'compact' | 'large';
   editable?: boolean;
+  inputRef?: RefObject<TextInput | null>;
+  returnKeyType?: React.ComponentProps<typeof TextInput>['returnKeyType'];
+  onSubmitEditing?: React.ComponentProps<typeof TextInput>['onSubmitEditing'];
+  blurOnSubmit?: boolean;
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const isLargeButton = calculatorButtonVariant === 'large';
@@ -383,6 +392,7 @@ export function AmountRow({
             alignItems: 'center' }}
         >
           <TextInput
+            ref={inputRef}
             value={amountStr}
             onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
             keyboardType="decimal-pad"
@@ -406,6 +416,9 @@ export function AmountRow({
             onBlur={() => editable && setIsFocused(false)}
             cursorColor={editable ? accentColor : palette.text}
             autoFocus={autoFocus}
+            returnKeyType={returnKeyType}
+            onSubmitEditing={onSubmitEditing}
+            blurOnSubmit={blurOnSubmit}
           />
         </View>
         {onOpenCalculator ? (
@@ -447,13 +460,24 @@ export function TextInputRow({
   onChangeText,
   palette,
   placeholder,
-  accentColor }: {
+  accentColor,
+  autoFocus = false,
+  inputRef,
+  returnKeyType,
+  onSubmitEditing,
+  blurOnSubmit,
+}: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   palette: AppThemePalette;
   placeholder?: string;
   accentColor?: string;
+  autoFocus?: boolean;
+  inputRef?: RefObject<TextInput | null>;
+  returnKeyType?: React.ComponentProps<typeof TextInput>['returnKeyType'];
+  onSubmitEditing?: React.ComponentProps<typeof TextInput>['onSubmitEditing'];
+  blurOnSubmit?: boolean;
 }) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -485,11 +509,16 @@ export function TextInputRow({
           alignItems: 'center' }}
       >
         <TextInput
+          ref={inputRef}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={palette.textSoft}
           cursorColor={accentColor || palette.tabActive}
+          autoFocus={autoFocus}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          blurOnSubmit={blurOnSubmit}
           style={{
             flex: 1,
             minWidth: 0,
