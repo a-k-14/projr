@@ -1,13 +1,14 @@
 import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 import type { AppThemePalette } from '../../lib/theme';
 
-type MascotVariant = 'budget' | 'loan' | 'activity' | 'security' | 'account';
+type MascotVariant = 'budget' | 'loan' | 'activity' | 'security' | 'account' | 'danger';
 type MascotMood = 'calm' | 'curious' | 'sleepy' | 'flat' | 'bright';
 
 const VARIANT_MOOD: Record<MascotVariant, MascotMood> = {
   account: 'curious',
   activity: 'sleepy',
   budget: 'bright',
+  danger: 'flat',
   loan: 'flat',
   security: 'calm',
 };
@@ -21,9 +22,23 @@ export function FinanceEmptyMascot({
   variant: MascotVariant;
   mood?: MascotMood;
 }) {
-  const accent = variant === 'budget' ? palette.budget : variant === 'loan' ? palette.loan : palette.brand;
-  const soft = variant === 'budget' ? palette.budgetSoft : variant === 'loan' ? palette.loanSoft : palette.brandSoft;
-  const ink = palette.textSecondary;
+  const accent =
+    variant === 'budget'
+      ? palette.budget
+      : variant === 'loan'
+        ? palette.loan
+        : variant === 'danger'
+          ? palette.negative
+          : palette.brand;
+  const soft =
+    variant === 'budget'
+      ? palette.budgetSoft
+      : variant === 'loan'
+        ? palette.loanSoft
+        : variant === 'danger'
+          ? palette.outBg
+          : palette.brandSoft;
+  const ink = variant === 'danger' ? palette.negative : palette.textSecondary;
   const body = palette.isDark ? palette.card : palette.surface;
   const side = palette.isDark ? palette.inputBg : soft;
   const cheek = variant === 'activity' ? palette.inputBg : soft;

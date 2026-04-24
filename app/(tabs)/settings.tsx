@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
+import { Feather } from '@expo/vector-icons';
 import { Keyboard, ScrollView, Switch, View, TouchableWithoutFeedback } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,7 +18,6 @@ import {
   CURRENCIES,
   MONTHS,
   THEMES,
-  symbolFor,
 } from '../../lib/settings-shared';
 import { formatCurrency } from '../../lib/derived';
 
@@ -27,6 +27,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const settings = useUIStore((s) => s.settings);
   const updateSettings = useUIStore((s) => s.updateSettings);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const accounts = useAccountsStore((s) => s.accounts);
   const accountsLoaded = useAccountsStore((s) => s.isLoaded);
   const loadAccounts = useAccountsStore((s) => s.load);
@@ -71,6 +73,7 @@ export default function SettingsScreen() {
     () => accounts.find((account) => account.id === settings.defaultAccountId),
     [accounts, settings.defaultAccountId],
   );
+  const displaySymbol = showCurrencySymbol ? currencySymbol : '';
 
   const handleBiometricToggle = async (value: boolean) => {
     if (value) {
@@ -206,7 +209,7 @@ export default function SettingsScreen() {
                 palette={palette}
               />
               <SettingsRow
-                icon="refresh-cw"
+                leftElement={<Feather name="refresh-cw" size={18} color={palette.negative} />}
                 label="Reset App"
                 labelStyle={{ color: palette.negative }}
                 value="Erase everything"
@@ -276,7 +279,7 @@ export default function SettingsScreen() {
                   <ChoiceRow
                     key={account.id}
                     title={account.name}
-                    subtitle={`${capitalize(account.type)} · ${formatCurrency(account.balance, symbolFor(account.currency))}`}
+                    subtitle={`${capitalize(account.type)} · ${formatCurrency(account.balance, displaySymbol)}`}
                     selected={settings.defaultAccountId === account.id}
                     palette={palette}
                     onPress={() => {

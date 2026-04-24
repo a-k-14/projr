@@ -9,7 +9,7 @@ import { MetricProgressCard } from '../../components/ui/MetricProgressCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, groupTransactionsByDate } from '../../lib/derived';
-import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { getBudgetTransactionEntries } from '../../services/budget';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -123,8 +123,16 @@ export default function BudgetDetailScreen() {
         </View>
 
         {grouped.map((group) => (
-          <View key={group.key} style={{ marginBottom: 12 }}>
-            <View style={{ paddingHorizontal: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
+          <View key={group.key} style={{ marginBottom: ACTIVITY_LAYOUT.groupCardMarginBottom }}>
+            <View
+              style={{
+                paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
+                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
+                marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom,
+                flexDirection: 'row',
+                alignItems: 'center'
+              }}
+            >
               <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>{group.title}</Text>
               {group.subtitle ? (
                 <>
@@ -133,7 +141,14 @@ export default function BudgetDetailScreen() {
                 </>
               ) : null}
             </View>
-            <View style={{ backgroundColor: palette.surface, borderRadius: 16, marginHorizontal: 14, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: palette.surface,
+                borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
+                marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+                overflow: 'hidden'
+              }}
+            >
               {group.items.map((entry, index) => {
                 const account = accounts.find((item) => item.id === entry.transaction.accountId);
                 return (

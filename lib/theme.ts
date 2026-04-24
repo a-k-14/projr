@@ -25,7 +25,7 @@ const TAB_INACTIVE_DARK = '#555555';
 const ICON_TINT_LIGHT = '#8C94AF';
 const ICON_TINT_DARK = '#8E8E93';
 const SURFACE_RAISED_LIGHT = '#202845';
-const SURFACE_RAISED_DARK = '#202024';
+const SURFACE_RAISED_DARK = '#25252A';
 const TEXT_SECONDARY_LIGHT = '#6B7280';
 const TEXT_SECONDARY_DARK = '#A1A1A6';
 const BORDER_SOFT_LIGHT = '#D8DDE8';
@@ -33,11 +33,11 @@ const BORDER_SOFT_DARK = '#303033';
 const INACTIVE_LIGHT = '#B2B8C2';
 const INACTIVE_DARK = '#555555';
 const CHART_BAR_MUTED_LIGHT = '#D9DDE7';
-const CHART_BAR_MUTED_DARK = '#2F2F31';
+const CHART_BAR_MUTED_DARK = '#34343A';
 const HERO_BAR_LIGHT = '#202845';
-const HERO_BAR_DARK = '#202020';
+const HERO_BAR_DARK = '#4A5563';
 const TODAY_DOT_LIGHT = '#1F2A44';
-const TODAY_DOT_DARK = '#F5F5F7';
+const TODAY_DOT_DARK = '#D5DAE2';
 
 function hexToRgb(hex: string) {
   const normalized = hex.replace('#', '');
@@ -124,20 +124,20 @@ export function resolveTheme(theme: Theme, systemScheme: ColorSchemeName): AppTh
 
 export function getThemePalette(mode: AppThemeMode): AppThemePalette {
   if (mode === 'dark') {
-    const budgetSoft = tint(BUDGET_DARK, 0.12, 0.2, mode);
-    const budgetBg = tint(BUDGET_DARK, 0.08, 0.16, mode);
+    const budgetSoft = tint(BUDGET_DARK, 0.1, 0.14, mode);
+    const budgetBg = tint(BUDGET_DARK, 0.06, 0.1, mode);
 
     return {
       isDark: true,
       background: APP_DARK_BACKGROUND,
-      surface: '#121214',
-      card: '#18181A',
+      surface: '#141416',
+      card: '#1A1A1D',
       border: '#232327',
       divider: '#1F1F23',
-      text: '#E8EAEE',
-      listText: '#D5DAE2',
-      textMuted: '#9AA3B2',
-      textSoft: '#667085',
+      text: '#D8DDE5',
+      listText: '#C9D0DA',
+      textMuted: '#98A0AD',
+      textSoft: '#66707D',
       brand: BRAND_DARK,
       onBrand: ON_DARK_ACCENT,
       positive: BRAND_DARK,
@@ -145,7 +145,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       tabActive: BRAND_DARK,
       chartBar: BRAND_DARK,
       negative: NEGATIVE_DARK,
-      brandSoft: tint(BRAND_DARK, 0.12, 0.2, mode),
+      brandSoft: tint(BRAND_DARK, 0.1, 0.14, mode),
       loan: BUDGET_DARK,
       loanSoft: budgetSoft,
       onLoan: ON_BUDGET,
@@ -157,16 +157,16 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       statusBarStyle: 'light',
       navigationButtonStyle: 'light',
       surfaceRaised: SURFACE_RAISED_DARK,
-      textSecondary: TEXT_SECONDARY_DARK,
+      textSecondary: '#A6ADB8',
       borderSoft: BORDER_SOFT_DARK,
       inactive: INACTIVE_DARK,
-      neutral: '#E8EAEE',
+      neutral: '#D8DDE5',
       chartBarMuted: CHART_BAR_MUTED_DARK,
       heroBar: HERO_BAR_DARK,
       todayDot: TODAY_DOT_DARK,
-      inBg: tint(BRAND_DARK, 0.08, 0.16, mode),
-      outBg: tint(NEGATIVE_DARK, 0.08, 0.16, mode),
-      transferBg: tint(TRANSFER_TEXT_DARK, 0.08, 0.14, mode),
+      inBg: tint(BRAND_DARK, 0.06, 0.1, mode),
+      outBg: tint(NEGATIVE_DARK, 0.06, 0.1, mode),
+      transferBg: tint(TRANSFER_TEXT_DARK, 0.06, 0.1, mode),
       loanBg: budgetBg,
       budgetBg,
       transferText: TRANSFER_TEXT_DARK,

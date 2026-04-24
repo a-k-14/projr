@@ -10,12 +10,16 @@ import {
   SettingsScreenLayout } from '../../components/settings-ui';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { TYPE } from '../../lib/design';
-import { formatDisplayCurrency, symbolFor } from '../../lib/settings-shared';
+import { formatDisplayCurrency } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 export default function AccountsScreen() {
   const { accounts, load, isLoaded } = useAccountsStore();
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const displaySymbol = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const router = useRouter();
 
@@ -51,7 +55,7 @@ export default function AccountsScreen() {
           <SettingsRow
             key={account.id}
             label={formatAccountDisplayName(account.name, account.accountNumber)}
-            subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatDisplayCurrency(account.initialBalance, symbolFor(account.currency))}`}
+            subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatDisplayCurrency(account.initialBalance, displaySymbol)}`}
             palette={palette}
             labelStyle={{ fontSize: TYPE.rowLabel, fontWeight: '400' }}
             leftElement={<Feather name="menu" size={18} color={palette.textSoft} />}

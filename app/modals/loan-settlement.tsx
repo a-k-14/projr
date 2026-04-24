@@ -10,8 +10,8 @@ import { InteractionManager,
   TextInput,
   
   View , TouchableOpacity } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChoiceRow } from '../../components/settings-ui';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
@@ -50,7 +50,6 @@ export default function LoanSettlementModal() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const displaySym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
-  const insets = useSafeAreaInsets();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
 
   const [resolvedLoanId, setResolvedLoanId] = useState(loanId ?? '');
@@ -197,19 +196,18 @@ export default function LoanSettlementModal() {
         </View>
       </ScrollView>
 
-      <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: Math.max(insets.bottom, 12) + 12, paddingTop: 8 }}>
+      <FixedBottomActions palette={palette}>
         <FilledButton
           label={isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
           onPress={handleSave}
           disabled={!isValid}
           palette={palette}
           tone="loan"
-          style={{ marginBottom: 12 }}
         />
         {isEditing ? (
           <TextButton label="Delete transaction" onPress={handleDelete} palette={palette} tone="danger" />
         ) : null}
-      </View>
+      </FixedBottomActions>
 
       {showAccountSheet ? (
         <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)}>

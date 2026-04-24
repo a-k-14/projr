@@ -170,8 +170,9 @@ export default function BudgetScreen() {
       <FabButton
         bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
-        backgroundColor={palette.budget}
-        iconColor={palette.onBudget}
+        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.budget}
+        iconColor={palette.isDark ? palette.listText : palette.onBudget}
+        style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
         onPress={() =>
           router.push({
             pathname: '/modals/budget-form',

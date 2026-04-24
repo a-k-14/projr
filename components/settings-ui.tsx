@@ -1,22 +1,22 @@
+import { Text } from '@/components/ui/AppText';
 import { Feather } from '@expo/vector-icons';
 import { ReactNode, RefObject } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FilledButton, TextButton } from './ui/AppButton';
-import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SHEET_GUTTER, SPACING, TYPE } from '../lib/design';
+import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
+import { FilledButton, TextButton } from './ui/AppButton';
 
 export function ScreenTitle({
   title,
   subtitle,
   palette,
   right }: {
-  title: string;
-  subtitle?: string;
-  palette: AppThemePalette;
-  right?: ReactNode;
-}) {
+    title: string;
+    subtitle?: string;
+    palette: AppThemePalette;
+    right?: ReactNode;
+  }) {
   return (
     <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: SPACING.md }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.md }}>
@@ -44,7 +44,8 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
         color: palette.textMuted,
         marginHorizontal: 14,
         marginBottom: 6,
-        marginTop: 4 }}
+        marginTop: 4
+      }}
     >
       {label}
     </Text>
@@ -54,9 +55,9 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
 export function CardSection({
   children,
   palette }: {
-  children: ReactNode;
-  palette: AppThemePalette;
-}) {
+    children: ReactNode;
+    palette: AppThemePalette;
+  }) {
   return (
     <View
       style={{
@@ -66,7 +67,8 @@ export function CardSection({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: palette.border,
-        marginBottom: SPACING.lg }}
+        marginBottom: SPACING.lg
+      }}
     >
       {children}
     </View>
@@ -84,17 +86,17 @@ export function SettingsRow({
   subtitle,
   labelStyle,
   leftElement }: {
-  icon?: keyof typeof Feather.glyphMap;
-  label: string;
-  subtitle?: string;
-  labelStyle?: any;
-  value?: string;
-  palette: AppThemePalette;
-  onPress?: () => void;
-  noBorder?: boolean;
-  rightElement?: ReactNode;
-  leftElement?: ReactNode;
-}) {
+    icon?: keyof typeof Feather.glyphMap;
+    label: string;
+    subtitle?: string;
+    labelStyle?: any;
+    value?: string;
+    palette: AppThemePalette;
+    onPress?: () => void;
+    noBorder?: boolean;
+    rightElement?: ReactNode;
+    leftElement?: ReactNode;
+  }) {
   const content = (
     <>
       {leftElement ? (
@@ -106,8 +108,7 @@ export function SettingsRow({
         <Text
           style={[
             {
-              fontSize: TYPE.section,
-              fontWeight: '500',
+              fontSize: 15,
               color: palette.text,
             },
             labelStyle,
@@ -121,7 +122,8 @@ export function SettingsRow({
               fontSize: TYPE.body,
               color: palette.textMuted,
               marginTop: 2,
-              fontWeight: '400' }}
+              fontWeight: '400'
+            }}
           >
             {subtitle}
           </Text>
@@ -144,7 +146,8 @@ export function SettingsRow({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     borderBottomWidth: noBorder ? 0 : 1,
-    borderBottomColor: palette.divider };
+    borderBottomColor: palette.divider
+  };
 
   if (onPress) {
     return (
@@ -166,16 +169,16 @@ export function ChoiceRow({
   leftElement,
   rightElement,
   horizontalPadding = CARD_PADDING }: {
-  title: string;
-  subtitle?: string;
-  selected?: boolean;
-  palette: AppThemePalette;
-  onPress: () => void;
-  noBorder?: boolean;
-  leftElement?: ReactNode;
-  rightElement?: ReactNode;
-  horizontalPadding?: number;
-}) {
+    title: string;
+    subtitle?: string;
+    selected?: boolean;
+    palette: AppThemePalette;
+    onPress: () => void;
+    noBorder?: boolean;
+    leftElement?: ReactNode;
+    rightElement?: ReactNode;
+    horizontalPadding?: number;
+  }) {
   return (
     <TouchableOpacity delayPressIn={0}
       onPress={onPress}
@@ -188,15 +191,17 @@ export function ChoiceRow({
         alignItems: 'center',
         backgroundColor: selected ? palette.brandSoft : 'transparent',
         borderBottomWidth: noBorder ? 0 : 1,
-        borderBottomColor: palette.divider }}
-      >
+        borderBottomColor: palette.divider
+      }}
+    >
       {leftElement && <View style={{ marginRight: 14 }}>{leftElement}</View>}
       <View style={{ flex: 1 }}>
         <Text
           style={{
             fontSize: TYPE.rowLabel,
             fontWeight: selected ? '500' : '400',
-            color: selected ? palette.tabActive : palette.text }}
+            color: selected ? palette.tabActive : palette.text
+          }}
         >
           {title}
         </Text>
@@ -207,7 +212,8 @@ export function ChoiceRow({
               color: palette.textMuted,
               marginTop: 2,
               lineHeight: 18,
-              fontWeight: '400' }}
+              fontWeight: '400'
+            }}
           >
             {subtitle}
           </Text>
@@ -222,7 +228,8 @@ export function ChoiceRow({
             borderRadius: 11,
             backgroundColor: palette.tabActive,
             alignItems: 'center',
-            justifyContent: 'center' }}
+            justifyContent: 'center'
+          }}
         >
           <Feather name="check" size={13} color={palette.onBrand} />
         </View>
@@ -236,11 +243,11 @@ export function PickerChip({
   selected,
   palette,
   onPress }: {
-  label: string;
-  selected?: boolean;
-  palette: AppThemePalette;
-  onPress: () => void;
-}) {
+    label: string;
+    selected?: boolean;
+    palette: AppThemePalette;
+    onPress: () => void;
+  }) {
   return (
     <TouchableOpacity delayPressIn={0}
       onPress={onPress}
@@ -251,7 +258,8 @@ export function PickerChip({
         borderColor: selected ? palette.tabActive : palette.border,
         backgroundColor: selected ? palette.brandSoft : palette.surface,
         paddingHorizontal: SPACING.lg,
-        justifyContent: 'center' }}
+        justifyContent: 'center'
+      }}
     >
       <Text style={{ fontSize: TYPE.rowValue, fontWeight: '500', color: palette.text }}>{label}</Text>
     </TouchableOpacity>
@@ -265,7 +273,8 @@ export function FieldLabel({ label, palette }: { label: string; palette: AppThem
         fontSize: TYPE.body,
         fontWeight: '700',
         color: palette.textMuted,
-        marginBottom: 8 }}
+        marginBottom: 8
+      }}
     >
       {label}
     </Text>
@@ -282,12 +291,12 @@ export function IconBtn({
   variant = 'default',
   palette,
   hitSlop }: {
-  onPress: () => void;
-  children: ReactNode;
-  variant?: 'default' | 'danger';
-  palette: AppThemePalette;
-  hitSlop?: { top: number; bottom: number; left: number; right: number };
-}) {
+    onPress: () => void;
+    children: ReactNode;
+    variant?: 'default' | 'danger';
+    palette: AppThemePalette;
+    hitSlop?: { top: number; bottom: number; left: number; right: number };
+  }) {
   return (
     <TouchableOpacity delayPressIn={0}
       onPress={onPress}
@@ -301,7 +310,8 @@ export function IconBtn({
         borderWidth: 1,
         borderColor: palette.border,
         alignItems: 'center',
-        justifyContent: 'center' }}
+        justifyContent: 'center'
+      }}
     >
       {children}
     </TouchableOpacity>
@@ -328,7 +338,8 @@ export function InputField({
         borderWidth: 1,
         borderColor: palette.border,
         backgroundColor: palette.surface,
-        paddingHorizontal: CARD_PADDING }}
+        paddingHorizontal: CARD_PADDING
+      }}
     >
       <TextInput
         {...props}
@@ -337,7 +348,8 @@ export function InputField({
             flex: 1,
             color: palette.text,
             fontSize: TYPE.rowLabel,
-            paddingVertical: 12 },
+            paddingVertical: 12
+          },
           props.style as any,
         ]}
         placeholderTextColor={palette.textSoft}
@@ -396,11 +408,11 @@ export function ColorGrid({
   selectedColor,
   onSelect,
   palette }: {
-  colors: readonly string[];
-  selectedColor: string;
-  onSelect: (color: string) => void;
-  palette: AppThemePalette;
-}) {
+    colors: readonly string[];
+    selectedColor: string;
+    onSelect: (color: string) => void;
+    palette: AppThemePalette;
+  }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>
       {colors.map((color) => {
@@ -418,7 +430,8 @@ export function ColorGrid({
               borderWidth: 2,
               borderColor: isSelected ? palette.text : 'transparent',
               alignItems: 'center',
-              justifyContent: 'center' }}
+              justifyContent: 'center'
+            }}
           >
             {isSelected && (
               <View
@@ -426,7 +439,8 @@ export function ColorGrid({
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: palette.onBrand }}
+                  backgroundColor: palette.onBrand
+                }}
               />
             )}
           </TouchableOpacity>
@@ -441,11 +455,11 @@ export function IconGrid({
   selectedIcon,
   onSelect,
   palette }: {
-  icons: readonly string[];
-  selectedIcon: string;
-  onSelect: (icon: string) => void;
-  palette: AppThemePalette;
-}) {
+    icons: readonly string[];
+    selectedIcon: string;
+    onSelect: (icon: string) => void;
+    palette: AppThemePalette;
+  }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
       {icons.map((icon) => {
@@ -463,7 +477,8 @@ export function IconGrid({
               borderColor: isSelected ? palette.tabActive : palette.border,
               backgroundColor: isSelected ? palette.brandSoft : palette.surface,
               alignItems: 'center',
-              justifyContent: 'center' }}
+              justifyContent: 'center'
+            }}
           >
             <Feather
               name={icon as any}
@@ -482,11 +497,11 @@ export function ActionButton({
   onPress,
   variant = 'primary',
   palette }: {
-  label: string;
-  onPress: () => void;
-  variant?: 'primary' | 'danger' | 'secondary';
-  palette: AppThemePalette;
-}) {
+    label: string;
+    onPress: () => void;
+    variant?: 'primary' | 'danger' | 'secondary';
+    palette: AppThemePalette;
+  }) {
   const styles = {
     primary: 'brand',
     danger: 'danger',
@@ -515,10 +530,10 @@ export function FixedBottomActions({
   children,
   palette,
   useBudgetSpacing = false }: {
-  children: ReactNode;
-  palette: AppThemePalette;
-  useBudgetSpacing?: boolean;
-}) {
+    children: ReactNode;
+    palette: AppThemePalette;
+    useBudgetSpacing?: boolean;
+  }) {
   const insets = useSafeAreaInsets();
   return (
     <View
@@ -528,10 +543,13 @@ export function FixedBottomActions({
         left: 0,
         right: 0,
         paddingHorizontal: SCREEN_GUTTER,
-        paddingTop: 12,
-        paddingBottom: useBudgetSpacing ? Math.max(insets.bottom, 12) + 12 : (insets.bottom || 16) + 4,
+        paddingTop: 8,
+        paddingBottom: useBudgetSpacing
+          ? Math.max(Math.min(insets.bottom, 34), 12) + 18
+          : Math.max(Math.min(insets.bottom, 34), 12) + 18,
         backgroundColor: palette.background,
-        gap: 12 }}
+        gap: 4
+      }}
     >
       {children}
     </View>
@@ -542,10 +560,10 @@ export function SettingsScreenLayout({
   children,
   palette,
   bottomAction }: {
-  children: ReactNode;
-  palette: AppThemePalette;
-  bottomAction?: ReactNode;
-}) {
+    children: ReactNode;
+    palette: AppThemePalette;
+    bottomAction?: ReactNode;
+  }) {
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
@@ -564,11 +582,11 @@ export function SettingsFormLayout({
   palette,
   bottomActions,
   scrollRef }: {
-  children: ReactNode;
-  palette: AppThemePalette;
-  bottomActions?: ReactNode;
-  scrollRef?: RefObject<ScrollView | null>;
-}) {
+    children: ReactNode;
+    palette: AppThemePalette;
+    bottomActions?: ReactNode;
+    scrollRef?: RefObject<ScrollView | null>;
+  }) {
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <KeyboardAvoidingView
@@ -582,7 +600,7 @@ export function SettingsFormLayout({
           contentContainerStyle={{
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: SPACING.md,
-            paddingBottom: 150,
+            paddingBottom: 170,
           }}
           keyboardShouldPersistTaps="handled"
         >

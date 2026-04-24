@@ -57,7 +57,6 @@ export function OverviewHeroCard({
   return (
     <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
       <View style={[styles.glowLarge, { backgroundColor: decorativeColor }]} />
-      <View style={[styles.glowSmall, { backgroundColor: decorativeColor }]} />
 
       <View style={styles.header}>
         <View>
@@ -133,15 +132,6 @@ const styles = {
     top: -42,
     right: -34,
     opacity: 0.24,
-  },
-  glowSmall: {
-    position: 'absolute' as const,
-    width: 76,
-    height: 76,
-    borderRadius: 999,
-    bottom: -22,
-    right: 28,
-    opacity: 0.12,
   },
   header: {
     flexDirection: 'row' as const,

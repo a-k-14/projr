@@ -13,10 +13,10 @@ import { Image,
   View,
   LayoutAnimation , TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { ChoiceRow } from '../../components/settings-ui';
+import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
@@ -98,7 +98,6 @@ export default function AddTransactionModal() {
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
   const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
   const clearSplitRows = useTransactionDraftStore((s) => s.clearSplitRows);
-  const insets = useSafeAreaInsets();
   const [type, setType] = useState<TransactionType>((initialType as TransactionType) || 'out');
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -1034,29 +1033,19 @@ export default function AddTransactionModal() {
         </View>
       </ScrollView>
 
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingBottom: (insets.bottom || 16) + 4,
-          paddingTop: 12,
-          backgroundColor: palette.background }}
-      >
+      <FixedBottomActions palette={palette}>
         <FilledButton
           label={actionLabel}
           onPress={handleSubmit}
           disabled={!isValid}
           palette={palette}
           tone={type === 'loan' ? 'loan' : type === 'out' ? 'danger' : 'brand'}
-          style={{ marginBottom: 12, backgroundColor: isValid ? actionButtonColor : palette.textSoft }}
+          style={{ backgroundColor: isValid ? actionButtonColor : palette.textSoft }}
         />
         {isEditing && (
           <TextButton label="Delete transaction" onPress={handleDelete} palette={palette} tone="danger" />
         )}
-      </View>
+      </FixedBottomActions>
 
       {showAccountSheet ? (
         <BottomSheet
@@ -1435,7 +1424,7 @@ function ReceiptSection({
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
-      <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, color: palette.textMuted, marginBottom: 10 }}>
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
         Receipt
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, alignItems: 'center' }}>

@@ -15,10 +15,11 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SPACING } from '../../lib/design';
-import { ACCOUNT_ICONS, ACCOUNT_TYPES, CURRENCIES, ENTITY_COLORS } from '../../lib/settings-shared';
+import { ACCOUNT_ICONS, ACCOUNT_TYPES, ENTITY_COLORS } from '../../lib/settings-shared';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useUIStore } from '../../stores/useUIStore';
 import { Account, AccountType, CreateAccountInput } from '../../types';
 
 type Draft = {
@@ -26,7 +27,6 @@ type Draft = {
   accountNumber: string;
   type: AccountType;
   balance: string;
-  currency: string;
 };
 
 const EMPTY_DRAFT: Draft = {
@@ -34,7 +34,6 @@ const EMPTY_DRAFT: Draft = {
   accountNumber: '',
   type: 'savings',
   balance: '',
-  currency: 'INR',
 };
 
 export default function AccountFormScreen() {
@@ -45,13 +44,13 @@ export default function AccountFormScreen() {
   const addAccount = useAccountsStore((s) => s.add);
   const updateAccount = useAccountsStore((s) => s.update);
   const removeAccount = useAccountsStore((s) => s.remove);
+  const appCurrency = useUIStore((s) => s.settings.currency);
   const { palette } = useAppTheme();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showTypePicker, setShowTypePicker] = useState(false);
-  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -62,7 +61,7 @@ export default function AccountFormScreen() {
           accountNumber: account.accountNumber ?? '',
           type: account.type,
           balance: formatIndianNumberStr(String(account.initialBalance ?? 0)),
-          currency: account.currency });
+        });
       }
     } else {
       setDraft(EMPTY_DRAFT);
@@ -84,7 +83,7 @@ export default function AccountFormScreen() {
         accountNumber: draft.accountNumber.trim() || undefined,
         type: draft.type,
         initialBalance,
-        currency: draft.currency,
+        currency: appCurrency,
       };
       await updateAccount(id, updateData);
     } else {
@@ -94,7 +93,7 @@ export default function AccountFormScreen() {
         type: draft.type,
         initialBalance,
         balance: initialBalance,
-        currency: draft.currency,
+        currency: appCurrency,
         color: ENTITY_COLORS[0],
         icon: ACCOUNT_ICONS[0],
       };
@@ -123,7 +122,6 @@ export default function AccountFormScreen() {
   }
 
   const selectedType = ACCOUNT_TYPES.find((t) => t.key === draft.type);
-  const selectedCurrency = CURRENCIES.find((c) => c.code === draft.currency) ?? CURRENCIES[0];
 
   return (
     <>
@@ -201,20 +199,11 @@ export default function AccountFormScreen() {
               setDraft((s) => ({ ...s, balance: formatIndianNumberStr(`${isNegative ? '-' : ''}${clean}`) }));
             }}
             placeholder="0.00"
-            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
+            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
           />
         </View>
-
-        {/* Currency */}
-        <SelectTrigger
-          label="Currency"
-          valueLabel={`${selectedCurrency.symbol} ${selectedCurrency.code}`}
-          onPress={() => runAfterKeyboardDismiss(() => setShowCurrencyPicker(true))}
-          palette={palette}
-        />
       </SettingsFormLayout>
 
-      {/* Root-level BottomSheets avoid clipping in SettingsFormLayout ScrollView */}
       {showTypePicker && (
         <BottomSheet
           title="Account Type"
@@ -231,30 +220,6 @@ export default function AccountFormScreen() {
               onPress={() => {
                 setDraft((s) => ({ ...s, type: t.key }));
                 setShowTypePicker(false);
-              }}
-            />
-          ))}
-        </BottomSheet>
-      )}
-
-      {showCurrencyPicker && (
-        <BottomSheet
-          title="Currency"
-          subtitle="Pick the currency for this account"
-          palette={palette}
-          onClose={() => setShowCurrencyPicker(false)}
-        >
-          {CURRENCIES.map((c, i) => (
-            <ChoiceRow
-              key={c.code}
-              title={`${c.symbol} ${c.code}`}
-              subtitle={c.name}
-              selected={draft.currency === c.code}
-              palette={palette}
-              noBorder={i === CURRENCIES.length - 1}
-              onPress={() => {
-                setDraft((s) => ({ ...s, currency: c.code }));
-                setShowCurrencyPicker(false);
               }}
             />
           ))}

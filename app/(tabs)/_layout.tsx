@@ -98,14 +98,14 @@ function AppTabBar({
                 paddingTop: 9,
               }}
             >
-              <Feather name={item.icon} size={20} color={focused ? palette.text : palette.tabInactive} />
+              <Feather name={item.icon} size={20} color={focused ? palette.listText : palette.textSecondary} />
               <Text
                 numberOfLines={1}
                 style={{
                   fontSize: HOME_TEXT.tiny,
                   lineHeight: 13,
                   marginTop: 8,
-                  color: focused ? palette.text : palette.tabInactive,
+                  color: focused ? palette.listText : palette.textSecondary,
                   fontWeight: '500',
                   textAlign: 'center',
                   includeFontPadding: false,

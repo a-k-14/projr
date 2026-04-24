@@ -67,6 +67,7 @@ export default function SettingsLayout() {
           title: (route.params as { id?: string } | undefined)?.id ? 'Edit Tag' : 'New Tag',
         })}
       />
+      <Stack.Screen name="reset" options={{ title: 'Reset App' }} />
     </Stack>
   );
 }

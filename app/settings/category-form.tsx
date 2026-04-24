@@ -97,7 +97,20 @@ export default function CategoryFormScreen() {
   }
 
   function deleteSub(idx: number) {
-    setSubs((s) => s.map((sub, i) => (i === idx ? { ...sub, deleted: true } : sub)));
+    const target = subs[idx];
+    if (!target) return;
+    const subName = target.name.trim();
+    showConfirm({
+      title: 'Delete Subcategory',
+      message: subName
+        ? `"${subName}" will be removed from this category.`
+        : 'This subcategory will be removed from this category.',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: () => {
+        setSubs((current) => current.map((sub, i) => (i === idx ? { ...sub, deleted: true } : sub)));
+      },
+    });
   }
 
   async function onSave() {
@@ -195,6 +208,14 @@ export default function CategoryFormScreen() {
               palette={palette}
               onPress={onSave}
             />
+            {isEditing ? (
+              <ActionButton
+                label="Delete Category"
+                variant="danger"
+                palette={palette}
+                onPress={onDelete}
+              />
+            ) : null}
           </FixedBottomActions>
         }
       >
@@ -221,16 +242,6 @@ export default function CategoryFormScreen() {
                 autoFocus={!isEditing}
               />
             </View>
-            {isEditing && (
-              <IconBtn
-                onPress={onDelete}
-                variant="danger"
-                palette={palette}
-                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-              >
-                <Feather name="trash-2" size={18} color={palette.negative} />
-              </IconBtn>
-            )}
           </View>
 
           {!hideTypePicker && (

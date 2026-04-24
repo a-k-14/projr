@@ -361,8 +361,9 @@ export default function LoansScreen() {
       <FabButton
         bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
-        backgroundColor={palette.loan}
-        iconColor={palette.onLoan}
+        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.loan}
+        iconColor={palette.isDark ? palette.listText : palette.onLoan}
+        style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
         onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'loan' } })}
       />
 

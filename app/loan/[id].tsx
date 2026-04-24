@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { FixedBottomActions } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
@@ -40,8 +41,6 @@ export default function LoanDetailScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
-  const insets = useSafeAreaInsets();
-  const actionBottomPadding = Math.max(Math.min(insets.bottom, 34), 12) + 12;
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const loan = loans.find((l) => l.id === id);
@@ -63,7 +62,9 @@ export default function LoanDetailScreen() {
   const progressColor = isLent ? palette.negative : palette.brand;
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const grouped = groupTransactionsByDate(loan.transactions);
-  const originTx = loan.transactions.find((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin');
+  const originTx = loan.transactions
+    .filter((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin')
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
   const loanMetrics = [
     { key: 'given', label: isLent ? 'LENT' : 'BORROWED', value: formatCurrency(loan.givenAmount, sym), color: palette.text },
     { key: 'balance', label: 'BALANCE', value: formatCurrency(loan.pendingAmount, sym), color: balanceColor },
@@ -132,7 +133,7 @@ export default function LoanDetailScreen() {
               >
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }} numberOfLines={1}>
-                    {isLent ? 'You lent' : 'You borrowed'} · {account?.name} · {formatDateShort(loan.date)}
+                    {isLent ? 'You Lent' : 'You Borrowed'} · {account?.name} · {formatDate(loan.date)}
                   </Text>
                   <Text appWeight="medium" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text, marginTop: HOME_SPACE.xs }} numberOfLines={1}>
                     {loan.personName}
@@ -210,12 +211,12 @@ export default function LoanDetailScreen() {
                 </View>
               </View>
 
-              {loan.note ? (
+              {originTx?.note ? (
                 <View style={{ marginTop: HOME_SPACE.md, paddingTop: HOME_SPACE.md, borderTopWidth: 1, borderTopColor: palette.inputBg }}>
                   <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5, marginBottom: HOME_SPACE.sm }}>
                     NOTE
                   </Text>
-                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{loan.note}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{originTx.note}</Text>
                 </View>
               ) : null}
             </View>
@@ -271,18 +272,7 @@ export default function LoanDetailScreen() {
         </ScrollView>
 
         {loan.status === 'open' && (
-          <View
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              paddingHorizontal: SCREEN_GUTTER,
-              paddingBottom: actionBottomPadding,
-              paddingTop: 8,
-              backgroundColor: palette.background
-            }}
-          >
+          <FixedBottomActions palette={palette}>
             {loan.pendingAmount > 0 ? (
               <FilledButton
                 label={isLent ? 'Record Receipt' : 'Record Repayment'}
@@ -301,9 +291,8 @@ export default function LoanDetailScreen() {
               }
               palette={palette}
               tone="loan"
-              style={{ marginTop: loan.pendingAmount > 0 ? 4 : 0 }}
             />
-          </View>
+          </FixedBottomActions>
         )}
       </View>
       <AppConfirmDialog

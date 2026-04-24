@@ -94,6 +94,17 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const amountColor = useTypeAmountColor
     ? (displayImpact === 'in' ? palette.brand : displayImpact === 'out' ? palette.negative : palette.text)
     : palette.text;
+  const tertiaryDetail = [tertiaryText, noteLine].filter((value): value is string => !!value).join(' • ') || undefined;
+  const supportIcons = tx.splitGroupId || hasReceipt ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
+      {tx.splitGroupId ? (
+        <Ionicons name="layers-outline" size={12} color={palette.textSecondary} />
+      ) : null}
+      {hasReceipt ? (
+        <Ionicons name="image-outline" size={12} color={palette.textSecondary} />
+      ) : null}
+    </View>
+  ) : null;
 
   const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && category?.icon ? category.icon : null;
   const iconName =
@@ -133,25 +144,17 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         />
       }
       bottomRow={
-        <CardSubtitleRow
-          text={subtitle}
-          palette={palette}
-        />
-      }
-      tertiaryRow={(tx.splitGroupId || hasReceipt || tertiaryText || noteLine) ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-          {tx.splitGroupId ? (
-            <Ionicons name="layers-outline" size={12} color={palette.textSecondary} />
-          ) : null}
-          {hasReceipt ? (
-            <Ionicons name="image-outline" size={12} color={palette.textSecondary} />
-          ) : null}
-          {(tertiaryText || noteLine) ? (
-            <Text numberOfLines={1} style={{ flex: 1, fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}>
-              {tertiaryText || noteLine}
-            </Text>
-          ) : null}
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <Text numberOfLines={1} style={{ flex: 1, fontSize: CARD_TEXT.line2, color: palette.textSecondary }}>
+            {subtitle}
+          </Text>
+          {supportIcons ? <View style={{ minWidth: 28 }}>{supportIcons}</View> : null}
         </View>
+      }
+      tertiaryRow={tertiaryDetail ? (
+        <Text numberOfLines={2} ellipsizeMode="tail" style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}>
+          {tertiaryDetail}
+        </Text>
       ) : null}
       style={{
         paddingVertical: paddingY,

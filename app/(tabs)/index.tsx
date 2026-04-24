@@ -30,6 +30,7 @@ import { ChoiceRow, ScreenTitle } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { FabButton } from '../../components/ui/FabButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { formatAccountDisplayName } from '../../lib/account-utils';
@@ -415,17 +416,19 @@ export default function HomeScreen() {
         }}
       >
         {homeAccountViewMode === 'list' ? (
-          <HomeAccountsList
-            pageHeight={pagerHeight}
-            accounts={accountCards}
-            rawAccounts={accounts}
-            currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-            palette={palette}
-            onOpenAccount={openAccountInSwipeMode}
-            onRefresh={refreshAccounts}
-          />
+          <View style={{ flex: 1 }}>
+            <HomeAccountsList
+              pageHeight={pagerHeight}
+              accounts={accountCards}
+              rawAccounts={accounts}
+              currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+              palette={palette}
+              onOpenAccount={openAccountInSwipeMode}
+              onRefresh={refreshAccounts}
+            />
+          </View>
         ) : (
-          <>
+          <View style={{ flex: 1 }}>
             <Animated.ScrollView
               ref={pagerRef}
               horizontal
@@ -489,15 +492,16 @@ export default function HomeScreen() {
               gestureOpacity={indicatorGestureOpacity}
               hidden={bottomSheetVisible}
             />
-          </>
+          </View>
         )}
       </View>
 
       <FabButton
         bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
-        backgroundColor={palette.text}
-        iconColor={palette.surface}
+        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.text}
+        iconColor={palette.isDark ? palette.listText : palette.surface}
+        style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
         onPress={() =>
           selectedAccountId === 'add'
             ? router.push('/settings/account-form')
@@ -526,9 +530,11 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => { }}
             style={{
-              backgroundColor: palette.surface,
+              backgroundColor: palette.card,
               borderRadius: HOME_RADIUS.large,
-              padding: HOME_SPACE.xxl
+              padding: HOME_SPACE.xxl,
+              borderWidth: 1,
+              borderColor: palette.divider,
             }}
           >
             <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginBottom: 8 }}>
@@ -543,6 +549,7 @@ export default function HomeScreen() {
                 style={{
                   borderWidth: 1,
                   borderColor: palette.divider,
+                  backgroundColor: palette.inputBg,
                   borderRadius: HOME_RADIUS.card,
                   paddingHorizontal: HOME_SPACE.lg,
                   paddingVertical: 12
@@ -558,6 +565,7 @@ export default function HomeScreen() {
                 style={{
                   borderWidth: 1,
                   borderColor: palette.divider,
+                  backgroundColor: palette.inputBg,
                   borderRadius: HOME_RADIUS.card,
                   paddingHorizontal: HOME_SPACE.lg,
                   paddingVertical: 12
@@ -570,32 +578,28 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg }}>
-              <TouchableOpacity delayPressIn={0}
-                onPress={() => setCustomRangeOpen(false)}
-                style={{
-                  flex: 1,
-                  minHeight: 48,
-                  borderRadius: HOME_RADIUS.tab,
-                  backgroundColor: palette.divider,
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.text.compactLabelWeight, color: palette.text }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity delayPressIn={0}
-                onPress={handleCustomRangeDone}
-                style={{
-                  flex: 1,
-                  minHeight: 48,
-                  borderRadius: HOME_RADIUS.tab,
-                  backgroundColor: palette.brand,
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>Done</Text>
-              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <TextButton
+                  label="Cancel"
+                  onPress={() => setCustomRangeOpen(false)}
+                  palette={palette}
+                  tone="default"
+                  style={{
+                    minHeight: 48,
+                    borderRadius: HOME_RADIUS.tab,
+                    backgroundColor: palette.inputBg,
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <FilledButton
+                  label="Done"
+                  onPress={handleCustomRangeDone}
+                  palette={palette}
+                  tone="brand"
+                  style={{ borderRadius: HOME_RADIUS.tab }}
+                />
+              </View>
             </View>
           </Pressable>
         </Pressable>
@@ -706,20 +710,6 @@ function AccountSummaryCard({
           opacity: 0.24,
         }}
       />
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          width: 82,
-          height: 82,
-          borderRadius: 999,
-          bottom: -28,
-          right: 34,
-          backgroundColor: palette.brandSoft,
-          opacity: 0.12,
-        }}
-      />
-
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -912,10 +902,9 @@ function HomeAccountsList({
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
       {accounts.map((account) => (
-        <AccountSummaryCard
+        <CompactAccountListCard
           key={account.id}
           accountName={account.name}
-          accountTypeLabel={account.accountTypeLabel}
           balance={
             account.id === 'all'
               ? getTotalBalance(rawAccounts)
@@ -948,6 +937,80 @@ function HomeAccountsList({
         </Text>
       </TouchableOpacity>
     </ScrollView>
+  );
+}
+
+function CompactAccountListCard({
+  accountName,
+  balance,
+  todayCashflow,
+  currencySymbol,
+  palette,
+  onPress,
+}: {
+  accountName: string;
+  balance: number;
+  todayCashflow: CashflowSummary;
+  currencySymbol: string;
+  palette: AppThemePalette;
+  onPress: () => void;
+}) {
+  const netColor = todayCashflow.net >= 0 ? palette.brand : palette.negative;
+
+  return (
+    <TouchableOpacity
+      delayPressIn={0}
+      activeOpacity={0.8}
+      onPress={onPress}
+      style={{
+        backgroundColor: palette.surface,
+        borderColor: palette.divider,
+        borderWidth: 1,
+        borderRadius: HOME_RADIUS.card,
+        paddingHorizontal: CARD_PADDING,
+        paddingVertical: 14,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            appWeight="medium"
+            numberOfLines={1}
+            style={{ fontSize: HOME_TEXT.sectionTitle, lineHeight: 20, fontWeight: '600', color: palette.text }}
+          >
+            {accountName}
+          </Text>
+          <Text style={{ marginTop: 4, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+            Current balance
+          </Text>
+        </View>
+
+        <View style={{ alignItems: 'flex-end', maxWidth: '48%' }}>
+          <Text
+            appWeight="medium"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={{ fontSize: HOME_TEXT.rowLabel, lineHeight: 22, fontWeight: '600', color: palette.text, textAlign: 'right' }}
+          >
+            {balance < 0 ? '-' : ''}{formatCurrency(Math.abs(balance), currencySymbol)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: palette.divider, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <Text style={{ fontSize: HOME_TEXT.cardContent, color: palette.textMuted, fontWeight: '500' }}>
+          Today's Net
+        </Text>
+        <Text
+          appWeight="medium"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={{ fontSize: HOME_TEXT.cardContent, fontWeight: '600', color: netColor, textAlign: 'right' }}
+        >
+          {formatTodayMetricValue('net', todayCashflow.net, currencySymbol)}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -1051,8 +1114,8 @@ function PageDashIndicator({
                 width: inactiveWidth,
                 height: dashHeight,
                 borderRadius: HOME_RADIUS.full,
-                backgroundColor: palette.textSoft,
-                opacity: 0.72,
+                backgroundColor: palette.textSecondary,
+                opacity: palette.isDark ? 0.42 : 0.6,
               }}
             />
           ))}
@@ -1065,8 +1128,8 @@ function PageDashIndicator({
               width: activeWidth,
               height: dashHeight,
               borderRadius: HOME_RADIUS.full,
-              backgroundColor: palette.text,
-              opacity: 0.85,
+              backgroundColor: palette.listText,
+              opacity: palette.isDark ? 0.68 : 0.82,
             },
             activeStyle,
           ]}

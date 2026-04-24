@@ -3,8 +3,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Keyboard, ScrollView, View , TouchableOpacity } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
+import { FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
@@ -31,7 +32,6 @@ export default function BudgetFormModal() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
-  const insets = useSafeAreaInsets();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
 
   const draftCategoryId = useBudgetDraftStore((s) => s.categoryId);
@@ -179,18 +179,12 @@ export default function BudgetFormModal() {
         </SectionCard>
       </ScrollView>
 
-      <View
-        style={{
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingBottom: Math.max(insets.bottom, 12) + 12,
-          paddingTop: 8,
-          backgroundColor: palette.background }}
-      >
+      <FixedBottomActions palette={palette} useBudgetSpacing>
         <FilledButton label={editingBudget ? 'Save changes' : 'Add budget'} onPress={handleSave} disabled={!isValid} palette={palette} tone="budget" />
         {editingBudget ? (
-          <TextButton label="Delete budget" onPress={handleDelete} palette={palette} tone="danger" style={{ marginTop: 12 }} />
+          <TextButton label="Delete budget" onPress={handleDelete} palette={palette} tone="danger" />
         ) : null}
-      </View>
+      </FixedBottomActions>
       <BudgetMonthSheet
         visible={showMonthSheet}
         palette={palette}
