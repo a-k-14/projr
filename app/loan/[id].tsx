@@ -11,10 +11,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
-import { formatDate, formatDateShort } from '../../lib/dateUtils';
+import { formatDate, formatDateShort, getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, groupTransactionsByDate } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import {
+  ACTIVITY_LAYOUT,
   BUTTON_TOKENS,
   HOME_RADIUS,
   HOME_SPACE,
@@ -59,21 +60,8 @@ export default function LoanDetailScreen() {
 
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const directionMeta = isLent
-    ? {
-        originLabel: 'You lent',
-        originIcon: 'arrow-up',
-        settlementLabel: 'Received',
-        settlementIcon: 'arrow-down',
-      }
-    : {
-        originLabel: 'You borrowed',
-        originIcon: 'arrow-down',
-        settlementLabel: 'Repaid',
-        settlementIcon: 'arrow-up',
-      };
-  const progressColor = palette.loan;
-  const balanceColor = palette.loan;
+  const progressColor = isLent ? palette.negative : palette.brand;
+  const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const grouped = groupTransactionsByDate(loan.transactions);
   const originTx = loan.transactions.find((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin');
   const loanMetrics = [
@@ -142,32 +130,13 @@ export default function LoanDetailScreen() {
                   marginBottom: HOME_SPACE.md
                 }}
               >
-                <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'flex-start' }}>
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: HOME_RADIUS.small,
-                      backgroundColor: palette.loanBg,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: HOME_SPACE.md,
-                    }}
-                  >
-                    <Ionicons
-                      name={directionMeta.originIcon as keyof typeof Ionicons.glyphMap}
-                      size={18}
-                      color={palette.loan}
-                    />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }} numberOfLines={1}>
-                      {directionMeta.originLabel} · {account?.name} · {formatDateShort(loan.date)}
-                    </Text>
-                    <Text appWeight="medium" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text, marginTop: HOME_SPACE.xs }} numberOfLines={1}>
-                      {loan.personName}
-                    </Text>
-                  </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }} numberOfLines={1}>
+                    {isLent ? 'You lent' : 'You borrowed'} · {account?.name} · {formatDateShort(loan.date)}
+                  </Text>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text, marginTop: HOME_SPACE.xs }} numberOfLines={1}>
+                    {loan.personName}
+                  </Text>
                 </View>
                 <TouchableOpacity delayPressIn={0}
                   onPress={handleToggleStatus}
@@ -175,14 +144,14 @@ export default function LoanDetailScreen() {
                     paddingHorizontal: HOME_SPACE.md,
                     paddingVertical: HOME_SPACE.xs,
                     borderRadius: HOME_RADIUS.small,
-                    backgroundColor: loan.status === 'open' ? palette.loanSoft : palette.inputBg
+                    backgroundColor: loan.status === 'open' ? (isLent ? palette.outBg : palette.inBg) : palette.inputBg
                   }}
                 >
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
                       fontWeight: '600',
-                      color: loan.status === 'open' ? palette.loan : palette.textSecondary
+                      color: loan.status === 'open' ? (isLent ? palette.negative : palette.positive) : palette.textSecondary
                     }}
                   >
                     {loan.status === 'open' ? 'Open' : 'Closed'}
@@ -224,16 +193,9 @@ export default function LoanDetailScreen() {
 
               <View style={{ paddingTop: HOME_SPACE.sm, paddingBottom: HOME_SPACE.xs }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: HOME_SPACE.sm }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 0 }}>
-                    <Ionicons
-                      name={directionMeta.settlementIcon as keyof typeof Ionicons.glyphMap}
-                      size={12}
-                      color={palette.loan}
-                    />
-                    <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.textMuted, marginLeft: 6 }}>
-                      {directionMeta.settlementLabel} · {formatCurrency(loan.settledAmount, sym)}
-                    </Text>
-                  </View>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.textMuted }}>
+                    {isLent ? 'Received' : 'Repaid'} · {formatCurrency(loan.settledAmount, sym)}
+                  </Text>
                   <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>{loan.repaidPercent}%</Text>
                 </View>
                 <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
@@ -258,14 +220,31 @@ export default function LoanDetailScreen() {
               ) : null}
             </View>
 
-            {grouped.map(({ dateKey, items }) => (
-              <View key={dateKey} style={{ marginBottom: HOME_SPACE.sm }}>
-                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: HOME_SPACE.sm }}>
-                  {formatDate(dateKey + 'T00:00:00.000Z')}
-                </Text>
-                <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, overflow: 'hidden' }}>
-                  {items.map((tx, i) => (
-                    <TransactionListItem
+            {grouped.map(({ dateKey, items }) => {
+              const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00.000Z');
+              return (
+                <View key={dateKey} style={{ marginBottom: HOME_SPACE.sm + 4 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: HOME_SPACE.sm,
+                      paddingHorizontal: ACTIVITY_LAYOUT.groupHeaderPaddingX - SCREEN_GUTTER
+                    }}
+                  >
+                    <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                      {date}
+                    </Text>
+                    {label ? (
+                      <>
+                        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
+                        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>{label}</Text>
+                      </>
+                    ) : null}
+                  </View>
+                  <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, overflow: 'hidden' }}>
+                    {items.map((tx, i) => (
+                      <TransactionListItem
                       key={tx.id}
                       tx={{ ...tx, payee: describeLoanDetailTransaction(loan, tx) }}
                       sym={sym}
@@ -284,9 +263,10 @@ export default function LoanDetailScreen() {
                       }
                     />
                   ))}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </ScrollView>
 

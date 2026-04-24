@@ -60,7 +60,7 @@ export const HOME_RADIUS = {
 // ─── Home surface tokens ─────────────────────────────────────────────────────
 export const HOME_SURFACE = {
   cardPaddingX: CARD_PADDING,
-  cardPaddingY: 14,
+  cardPaddingY: 18,
   cardPaddingBottom: 10,
   cardGap: SPACING.md,
   sectionGap: SPACING.sm,
@@ -182,6 +182,7 @@ export const ACTIVITY_LAYOUT = {
   periodArrowWidth: 36,
   summaryPaddingTop: 6,
   summaryPaddingBottom: 14,
+  groupHeaderPaddingX: 12,
   groupHeaderBottom: 8,
   groupCardMarginBottom: 16,
   groupCardRadius: HOME_RADIUS.card,

@@ -1,4 +1,4 @@
-import { Modal, Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -32,6 +32,9 @@ export function DateTimePickerPopup({
       onChange={(event, date) => {
         if (event.type === 'set' && date) {
           onConfirm(date);
+          if (Platform.OS === 'android') {
+            onClose();
+          }
         } else {
           onClose(); // Handles 'dismissed' on Android or Cancel
         }

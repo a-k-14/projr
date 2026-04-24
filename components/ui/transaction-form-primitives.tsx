@@ -61,8 +61,77 @@ export function PickerRow({
   custom?: boolean;
 }) {
   return (
-    <TouchableOpacity delayPressIn={0}
+    <TouchableOpacity
+      delayPressIn={0}
       onPress={onPress}
+      style={{
+        paddingHorizontal: SCREEN_GUTTER,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        appWeight="medium"
+        numberOfLines={1}
+        style={{
+          fontSize: HOME_TEXT.body,
+          fontWeight: '700',
+          color: palette.textMuted,
+          width: ROW_LABEL_WIDTH,
+          paddingRight: ROW_COLUMN_GAP,
+        }}
+      >
+        {label}
+      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flex: 1,
+          minWidth: 0,
+          minHeight: ROW_MIN_HEIGHT,
+          paddingLeft: 4,
+        }}
+      >
+        {custom ? (
+          <View style={{ flex: 1 }}>{value}</View>
+        ) : (
+          <>
+            <Text
+              style={{
+                fontSize: HOME_TEXT.sectionTitle,
+                fontWeight: '400',
+                color: placeholder ? palette.textMuted : palette.text,
+                textAlign: 'left',
+                flexShrink: 1,
+              }}
+              numberOfLines={1}
+            >
+              {value}
+            </Text>
+            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
+              <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
+            </View>
+          </>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+export function DisplayRow({
+  label,
+  value,
+  palette,
+}: {
+  label: string;
+  value: string;
+  palette: AppThemePalette;
+}) {
+  return (
+    <View
       style={{
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
@@ -85,34 +154,24 @@ export function PickerRow({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
           flex: 1,
           minWidth: 0,
           minHeight: ROW_MIN_HEIGHT,
           paddingLeft: 4 }}
       >
-        {custom ? (
-          <View style={{ flex: 1 }}>{value}</View>
-        ) : (
-          <>
-            <Text
-              style={{
-                fontSize: HOME_TEXT.sectionTitle,
-                fontWeight: '400',
-                color: placeholder ? palette.textMuted : palette.text,
-                textAlign: 'left',
-                flexShrink: 1 }}
-              numberOfLines={1}
-            >
-              {value}
-            </Text>
-            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-              <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
-            </View>
-          </>
-        )}
+        <Text
+          style={{
+            fontSize: HOME_TEXT.sectionTitle,
+            fontWeight: '400',
+            color: palette.text,
+            textAlign: 'left',
+            flexShrink: 1 }}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 

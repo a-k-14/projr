@@ -104,13 +104,19 @@ export default function LoansScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       if (navigation.isFocused()) {
         resetLoanView();
       }
     });
     return unsubscribe;
   }, [navigation, resetLoanView]);
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener('blur', () => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     loadLoans();
@@ -555,7 +561,7 @@ function LoanRow({
   }) {
   const isLent = loan.direction === 'lent';
   const dirColor = isLent ? palette.negative : palette.brand;
-  const dirBg = isLent ? palette.outBg : palette.inBg;
+  const progressColor = palette.loan;
   const directionLabel = isLent ? 'Lent' : 'Borrowed';
   const progressPercent = loan.status === 'closed' ? 100 : loan.repaidPercent;
   const balanceAmount = loan.status === 'closed' ? 0 : loan.pendingAmount;
@@ -572,12 +578,11 @@ function LoanRow({
           paddingBottom: loan.status === 'closed' ? 16 : 14,
         }}
         icon={<Ionicons name={isLent ? 'arrow-up' : 'arrow-down'} size={Math.round(HOME_LAYOUT.listIconSize * 0.45)} color={dirColor} />}
-        iconBg={dirBg}
+        iconBg={isLent ? palette.outBg : palette.inBg}
         topRow={
           <CardTitleRow
             title={loan.personName}
             secondary={directionLabel}
-            secondarySeparator=" • "
             amount={formatCurrency(loan.givenAmount, sym)}
             palette={palette}
           />
@@ -602,7 +607,7 @@ function LoanRow({
               style={{
                 height: PROGRESS.cardHeight,
                 width: `${progressPercent}%`,
-                backgroundColor: dirColor,
+                backgroundColor: progressColor,
                 borderRadius: PROGRESS.radius
               }}
             />

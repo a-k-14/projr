@@ -184,10 +184,19 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
-      resetHomeToAll();
+      if (navigation.isFocused()) {
+        resetHomeToAll();
+      }
     });
     return unsubscribe;
   }, [navigation, resetHomeToAll]);
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener('blur', () => {
+      setGlobalScrollResetTick((v) => v + 1);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const customRangeMemo = useMemo(
     () => ({ from: new Date(customRangeFrom), to: new Date(customRangeTo) }),

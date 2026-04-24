@@ -55,13 +55,19 @@ export default function BudgetScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       if (navigation.isFocused()) {
         resetBudgetView();
       }
     });
     return unsubscribe;
   }, [navigation, resetBudgetView]);
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener('blur', () => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     if (!categoriesLoaded) loadCategories().catch(() => undefined);

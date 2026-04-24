@@ -163,13 +163,19 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', (e: any) => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       if (navigation.isFocused()) {
         resetAllFilters();
       }
     });
     return unsubscribe;
   }, [navigation, resetAllFilters]);
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener('blur', () => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const toggleSearch = useCallback((active: boolean) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -809,8 +815,10 @@ export default function ActivityScreen() {
             style={[
               styles.groupHeader,
               {
-                paddingLeft: ACTIVITY_LAYOUT.headerPaddingX + 6,
+                // paddingHorizontal: ACTIVITY_LAYOUT.groupHeaderPaddingX,
+                paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
                 paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
+
                 marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom,
               },
             ]}

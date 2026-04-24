@@ -43,8 +43,18 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     const unsubscribe = (navigation as any).addListener('tabPress', () => {
+      if (navigation.isFocused()) {
+        setPicker(null);
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener('blur', () => {
       setPicker(null);
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     });
     return unsubscribe;
   }, [navigation]);

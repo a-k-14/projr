@@ -23,6 +23,7 @@ import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
 import {
   AmountRow,
+  DisplayRow,
   FieldRow,
   InteractiveDateTimeRow,
   NotesSection,
@@ -416,6 +417,7 @@ export default function AddTransactionModal() {
 
   const handleSubmit = async () => {
     if (!isValid) return;
+    setShowDatePicker(false);
     try {
       if (!isEditing && accountId) {
         updateSettings({ lastUsedAccountId: accountId }).catch(() => {});
@@ -960,11 +962,11 @@ export default function AddTransactionModal() {
                     </FieldRow>
                   </View>
                   {isLoanAddMore ? (
-                    <FieldRow label="Person" palette={palette}>
-                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text }}>
-                        {personName}
-                      </Text>
-                    </FieldRow>
+                    <DisplayRow
+                      label="Person"
+                      value={personName}
+                      palette={palette}
+                    />
                   ) : (
                     <TextInputRow
                       label="Person"
@@ -1228,7 +1230,9 @@ export default function AddTransactionModal() {
         palette={palette}
         accentColor={activeConfig.color}
         onClose={() => setShowDatePicker(false)}
-        onConfirm={(nextDate) => setDate(nextDate.toISOString())}
+        onConfirm={(nextDate) => {
+          setDate(nextDate.toISOString());
+        }}
       />
 
       <CalculatorSheet

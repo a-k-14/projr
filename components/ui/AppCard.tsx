@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
-    marginTop: 2,
+    marginTop: 4,
   },
   tertiaryRow: {
     marginTop: 4,
