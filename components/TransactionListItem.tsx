@@ -97,7 +97,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const amountColor = useTypeAmountColor
     ? (displayImpact === 'in' ? palette.brand : displayImpact === 'out' ? palette.negative : palette.text)
     : palette.text;
-  const tertiaryDetail = [tertiaryText, noteLine].filter((value): value is string => !!value).join(' • ') || undefined;
+  const tertiaryDetail = [tertiaryText, noteLine].filter((value): value is string => !!value).join('  |  ') || undefined;
   const supportIcons = tx.splitGroupId || hasReceipt ? (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
       {tx.splitGroupId ? (

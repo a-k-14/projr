@@ -149,7 +149,7 @@ export default function BudgetFormModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 120 }}>
         <SectionCard palette={palette}>
           <PickerRow
             label="Month"

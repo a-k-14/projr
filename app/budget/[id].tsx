@@ -15,6 +15,7 @@ import { getBudgetTransactionEntries } from '../../services/budget';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 
@@ -26,6 +27,9 @@ export default function BudgetDetailScreen() {
   const budgets = useBudgetStore((s) => s.budgets);
   const loadBudgets = useBudgetStore((s) => s.load);
   const accounts = useAccountsStore((s) => s.accounts);
+  const categories = useCategoriesStore((s) => s.categories);
+  const tags = useCategoriesStore((s) => s.tags);
+  const loans = useLoansStore((s) => s.loans);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const storeTransactions = useTransactionsStore((s) => s.transactions);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
@@ -34,6 +38,10 @@ export default function BudgetDetailScreen() {
   const { palette } = useAppTheme();
   const [entries, setEntries] = useState<BudgetEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const accountsById = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
+  const categoriesById = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
+  const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
+  const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
 
   useEffect(() => {
     if (month) loadBudgets(month).catch(() => undefined);
@@ -149,24 +157,33 @@ export default function BudgetDetailScreen() {
                 overflow: 'hidden'
               }}
             >
-              {group.items.map((entry, index) => {
-                const account = accounts.find((item) => item.id === entry.transaction.accountId);
-                return (
-                  <TransactionListItem
-                    key={entry.transaction.id}
-                    tx={entry.transaction}
-                    displayAmount={entry.countedAmount}
-                    sym={sym}
-                    palette={palette}
-                    isLast={index === group.items.length - 1}
-                    categoryName={entry.transaction.categoryId ? getCategoryFullDisplayName(entry.transaction.categoryId, ' › ') : undefined}
-                    accountName={account?.name}
-                    showAmountSign={false}
-                    useTypeAmountColor
-                    onPress={(tx) => router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } })}
-                  />
-                );
-              })}
+              {group.items.map((entry, index) => (
+                <TransactionListItem
+                  key={entry.transaction.id}
+                  tx={entry.transaction}
+                  displayAmount={entry.countedAmount}
+                  sym={sym}
+                  palette={palette}
+                  isLast={index === group.items.length - 1}
+                  categoryName={entry.transaction.categoryId ? getCategoryFullDisplayName(entry.transaction.categoryId, ' › ') : undefined}
+                  categoryIcon={entry.transaction.categoryId ? categoriesById.get(entry.transaction.categoryId)?.icon : undefined}
+                  accountName={accountsById.get(entry.transaction.accountId)}
+                  linkedAccountName={entry.transaction.linkedAccountId ? accountsById.get(entry.transaction.linkedAccountId) : undefined}
+                  loanPersonName={entry.transaction.loanId ? loansById.get(entry.transaction.loanId)?.personName : undefined}
+                  loanDirection={entry.transaction.loanId ? loansById.get(entry.transaction.loanId)?.direction : undefined}
+                  tertiaryText={
+                    entry.transaction.tags.length > 0
+                      ? entry.transaction.tags
+                        .map((tagId) => tagNamesById.get(tagId))
+                        .filter((value): value is string => !!value)
+                        .join(' • ') || undefined
+                      : undefined
+                  }
+                  showAmountSign={false}
+                  useTypeAmountColor
+                  onPress={(tx) => router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } })}
+                />
+              ))}
             </View>
           </View>
         ))}

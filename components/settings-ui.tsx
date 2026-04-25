@@ -560,19 +560,28 @@ export function FixedBottomActions({
 export function SettingsScreenLayout({
   children,
   palette,
-  bottomAction }: {
+  bottomAction,
+  scrollEnabled = true,
+  useScrollView = true }: {
     children: ReactNode;
     palette: AppThemePalette;
     bottomAction?: ReactNode;
+    scrollEnabled?: boolean;
+    useScrollView?: boolean;
   }) {
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: 8 }}
-      >
-        {children}
-      </ScrollView>
+      {useScrollView ? (
+        <ScrollView
+          style={{ flex: 1 }}
+          scrollEnabled={scrollEnabled}
+          contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: bottomAction ? 100 : 8 }}
+        >
+          {children}
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1 }}>{children}</View>
+      )}
       {bottomAction}
     </SafeAreaView>
   );
@@ -603,6 +612,7 @@ export function SettingsFormLayout({
             paddingTop: SPACING.md,
             paddingBottom: 170,
           }}
+          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

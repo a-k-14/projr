@@ -53,6 +53,7 @@ export default function ResetScreen() {
             paddingBottom: 40,
             paddingHorizontal: SCREEN_GUTTER,
           }}
+          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
         >
 
@@ -101,6 +102,7 @@ export default function ResetScreen() {
               }}
               autoCapitalize="none"
               autoCorrect={false}
+              autoFocus
               editable={!isResetting}
               returnKeyType="done"
               style={{

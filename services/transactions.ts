@@ -429,10 +429,16 @@ export async function updateSplitTransactionGroup(
     data.receiptImageUris === undefined
       ? existing[0].receiptImageUris ?? []
       : await persistReceiptImagesForOwner(splitGroupId, data.receiptImageUris);
-  const baseCreatedAt = Date.now();
+  const existingCreatedAts = existing.map((tx) => tx.createdAt);
+  const oldestExistingTime = existingCreatedAts.reduce(
+    (oldest, createdAt) => Math.min(oldest, new Date(createdAt).getTime()),
+    Date.now(),
+  );
 
   const rows = items.map((item, index) => {
-    const createdAt = new Date(baseCreatedAt + (items.length - index)).toISOString();
+    const createdAt =
+      existingCreatedAts[index] ??
+      new Date(oldestExistingTime - (index - existingCreatedAts.length + 1)).toISOString();
     return {
       id: generateId(),
       type: data.type,

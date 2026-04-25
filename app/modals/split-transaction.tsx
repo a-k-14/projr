@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Keyboard, Platform, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
+import { Keyboard, Platform, ScrollView, TextInput, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
@@ -127,100 +127,104 @@ export default function SplitTransactionModal() {
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: insets.bottom + 128 }}
-        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 4 }}>
-          <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
-            <TextButton label="Add Line Item" onPress={addRow} palette={palette} tone="brand" compact />
-          </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 4 }}>
+            <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
+              <TextButton label="Add Line Item" onPress={addRow} palette={palette} tone="brand" compact />
+            </View>
 
-          <SectionCard palette={palette} horizontalInset={0}>
-            {splitRows.map((row, index) => (
-              <View
-                key={row.id}
-                style={{
-                  minHeight: 62,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: SCREEN_GUTTER,
-                  borderBottomWidth: index === splitRows.length - 1 ? 0 : 1,
-                  borderBottomColor: palette.divider }}
-              >
-                <TouchableOpacity delayPressIn={0}
-                  onPress={() => {
-                    if (Keyboard.isVisible()) {
-                      Keyboard.dismiss();
-                      setTimeout(() => setCategorySheetRowId(row.id), 100);
-                    } else {
-                      setCategorySheetRowId(row.id);
-                    }
-                  }}
-                  activeOpacity={0.75}
-                  style={{ flex: 1, minWidth: 0, paddingRight: 8 }}
-                >
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontSize: HOME_TEXT.rowLabel,
-                      fontWeight: '400',
-                      color: row.categoryId ? palette.text : palette.textMuted }}
-                  >
-                    {getCategoryName(categories, row.categoryId)}
-                  </Text>
-                </TouchableOpacity>
-
+            <SectionCard palette={palette} horizontalInset={0}>
+              {splitRows.map((row, index) => (
                 <View
+                  key={row.id}
                   style={{
-                    width: 112,
+                    minHeight: 62,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    borderBottomWidth: 1,
-                    borderBottomColor: focusedRowId === row.id ? palette.textSecondary : palette.borderSoft ?? palette.border,
-                    paddingBottom: 4 }}
+                    paddingHorizontal: SCREEN_GUTTER,
+                    borderBottomWidth: index === splitRows.length - 1 ? 0 : 1,
+                    borderBottomColor: palette.divider }}
                 >
-                  <TextInput
-                    value={row.amountStr}
-                    onChangeText={(value) =>
-                      updateRow(row.id, {
-                        amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })
-                    }
-                    placeholder="0"
-                    placeholderTextColor={palette.textSoft}
-                    keyboardType="decimal-pad"
-                    onFocus={() => {
-                      setFocusedRowId(row.id);
-                      requestAnimationFrame(() => {
-                        scrollRef.current?.scrollToEnd({ animated: true });
-                      });
+                  <TouchableOpacity delayPressIn={0}
+                    onPress={() => {
+                      if (Keyboard.isVisible()) {
+                        Keyboard.dismiss();
+                        setTimeout(() => setCategorySheetRowId(row.id), 100);
+                      } else {
+                        setCategorySheetRowId(row.id);
+                      }
                     }}
-                    onBlur={() => setFocusedRowId((current) => (current === row.id ? null : current))}
-                    style={{
-                      flex: 1,
-                      fontSize: HOME_TEXT.sectionTitle,
-                      fontWeight: '500',
-                      color: palette.text,
-                      textAlign: 'right',
-                      paddingVertical: 0 }}
-                  />
-                </View>
+                    activeOpacity={0.75}
+                    style={{ flex: 1, minWidth: 0, paddingRight: 8 }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: HOME_TEXT.rowLabel,
+                        fontWeight: '400',
+                        color: row.categoryId ? palette.text : palette.textMuted }}
+                    >
+                      {getCategoryName(categories, row.categoryId)}
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity delayPressIn={0}
-                  onPress={() => removeRow(row.id)}
-                  style={{
-                    width: 34,
-                    height: 34,
-                    marginLeft: 8,
-                    borderRadius: 12,
-                    backgroundColor: palette.inputBg,
-                    alignItems: 'center',
-                    justifyContent: 'center' }}
-                >
-                  <Ionicons name="trash-outline" size={16} color={palette.negative} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </SectionCard>
-        </View>
+                  <View
+                    style={{
+                      width: 112,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      borderBottomWidth: 1,
+                      borderBottomColor: focusedRowId === row.id ? palette.textSecondary : palette.borderSoft ?? palette.border,
+                      paddingBottom: 4 }}
+                  >
+                    <TextInput
+                      autoFocus={index === 0}
+                      value={row.amountStr}
+                      onChangeText={(value) =>
+                        updateRow(row.id, {
+                          amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })
+                      }
+                      placeholder="0"
+                      placeholderTextColor={palette.textSoft}
+                      keyboardType="decimal-pad"
+                      onFocus={() => {
+                        setFocusedRowId(row.id);
+                        requestAnimationFrame(() => {
+                          scrollRef.current?.scrollToEnd({ animated: true });
+                        });
+                      }}
+                      onBlur={() => setFocusedRowId((current) => (current === row.id ? null : current))}
+                      style={{
+                        flex: 1,
+                        fontSize: HOME_TEXT.sectionTitle,
+                        fontWeight: '500',
+                        color: palette.text,
+                        textAlign: 'right',
+                        paddingVertical: 0 }}
+                    />
+                  </View>
+
+                  <TouchableOpacity delayPressIn={0}
+                    onPress={() => removeRow(row.id)}
+                    style={{
+                      width: 34,
+                      height: 34,
+                      marginLeft: 8,
+                      borderRadius: 12,
+                      backgroundColor: palette.inputBg,
+                      alignItems: 'center',
+                      justifyContent: 'center' }}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={palette.negative} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </SectionCard>
+          </View>
+        </TouchableWithoutFeedback>
       </ScrollView>
 
       <View

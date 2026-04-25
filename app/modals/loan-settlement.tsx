@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { InteractionManager,
   Keyboard,
@@ -64,6 +64,7 @@ export default function LoanSettlementModal() {
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const amountInputRef = useRef<TextInput | null>(null);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -95,6 +96,13 @@ export default function LoanSettlementModal() {
     });
     return () => task.cancel();
   }, [editId, isEditing, loanId]);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      amountInputRef.current?.focus();
+    });
+    return () => task.cancel();
+  }, []);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const isValid = !!resolvedLoanId && !!accountId && amount !== 0;
@@ -165,7 +173,7 @@ export default function LoanSettlementModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 132 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 132 }}>
         <View style={{ paddingBottom: 20 }}>
           <SectionCard palette={palette}>
             <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
@@ -179,11 +187,13 @@ export default function LoanSettlementModal() {
               </Text>
             </FieldRow>
             <AmountRow
+              inputRef={amountInputRef}
               sym={displaySym}
               amountStr={amountStr}
               setAmountStr={setAmountStr}
               palette={palette}
               accentColor={palette.loan}
+              autoFocus
             />
             <PickerRow
               label="Account"

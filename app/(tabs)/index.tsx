@@ -916,6 +916,7 @@ function HomeAccountsList({
           borderWidth: 1,
           borderStyle: 'dashed',
           borderColor: palette.borderSoft,
+          backgroundColor: palette.surface,
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,

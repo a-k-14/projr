@@ -303,13 +303,7 @@ export default function SettingsScreen() {
               <ChoiceRow
                 key={theme.key}
                 title={theme.label}
-                subtitle={
-                  theme.key === 'auto'
-                    ? 'Follow the device setting'
-                    : theme.key === 'light'
-                      ? 'Always use light mode'
-                      : 'Always use dark mode'
-                }
+                leftElement={<Feather name={themeIcon(theme.key)} size={18} color={settings.theme === theme.key ? palette.tabActive : palette.textMuted} />}
                 selected={settings.theme === theme.key}
                 palette={palette}
                 onPress={() => {
@@ -359,4 +353,10 @@ function pickerSubtitle(kind: PickerKind) {
 
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function themeIcon(theme: (typeof THEMES)[number]['key']): keyof typeof Feather.glyphMap {
+  if (theme === 'light') return 'sun';
+  if (theme === 'dark') return 'moon';
+  return 'monitor';
 }

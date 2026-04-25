@@ -13,6 +13,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -54,7 +55,7 @@ import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { getLoanById } from '../../services/loans';
-import { createSplitTransactionGroup, getRecentNotes, getRecentPayees, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
+import { createSplitTransactionGroup, deleteTransaction, getRecentNotes, getRecentPayees, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
@@ -99,6 +100,7 @@ export default function AddTransactionModal() {
   const updateSettings = useUIStore((s) => s.updateSettings);
   const sym = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const beginPrivacyGrace = useUIStore((s) => s.beginPrivacyGrace);
   const { palette } = useAppTheme();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const draftCategoryId = useTransactionDraftStore((s) => s.categoryId);
@@ -132,6 +134,7 @@ export default function AddTransactionModal() {
   const [showTagSheet, setShowTagSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const personInputRef = useRef<TextInput | null>(null);
   const [payeeSuggestions, setPayeeSuggestions] = useState<string[]>([]);
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -479,6 +482,9 @@ export default function AddTransactionModal() {
             date,
             items: splitItems
           });
+          if (isEditing && editId) {
+            await deleteTransaction(editId);
+          }
         }
         clearSplitRows();
         router.back();
@@ -602,22 +608,28 @@ export default function AddTransactionModal() {
   };
 
   const takeReceiptPhoto = async () => {
+    beginPrivacyGrace(5 * 60 * 1000);
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
+      beginPrivacyGrace(15000);
       showAlert('Camera Permission Needed', 'Allow camera access to take receipt photos.');
       return;
     }
 
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
+      cameraType: ImagePicker.CameraType.back,
       quality: 0.85,
     });
+    beginPrivacyGrace(15000);
     setPickedReceipt(result);
   };
 
   const chooseReceiptImage = async () => {
+    beginPrivacyGrace(5 * 60 * 1000);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync(false);
     if (!permission.granted) {
+      beginPrivacyGrace(15000);
       showAlert('Photo Permission Needed', 'Allow photo access to attach a receipt image.');
       return;
     }
@@ -627,6 +639,7 @@ export default function AddTransactionModal() {
       allowsMultipleSelection: true,
       quality: 0.85,
     });
+    beginPrivacyGrace(15000);
     setPickedReceipt(result);
   };
 
@@ -704,7 +717,12 @@ export default function AddTransactionModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView ref={scrollViewRef} contentContainerStyle={{ paddingBottom: 132 + keyboardHeight }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={{ paddingBottom: 132 + keyboardHeight }}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={{ paddingBottom: 20 }}>
           <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1018,12 +1036,14 @@ export default function AddTransactionModal() {
                     />
                   ) : (
                     <TextInputRow
+                      inputRef={personInputRef}
                       label="Person"
                       value={personName}
                       onChangeText={setPersonName}
                       placeholder="Name"
                       palette={palette}
                       accentColor={activeConfig.color}
+                      autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
                     />
                   )}
                 </>
@@ -1035,7 +1055,7 @@ export default function AddTransactionModal() {
                 onOpenCalculator={handleOpenCalculator}
                 palette={palette}
                 accentColor={activeConfig.color}
-                autoFocus
+                autoFocus={type !== 'loan' || loanEditMode === 'settlement'}
               />
               <PickerRow
                 label="Account"
@@ -1304,9 +1324,11 @@ export default function AddTransactionModal() {
                   setShowReceiptSheet(false);
                   void takeReceiptPhoto();
                 }}
-                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: palette.border, backgroundColor: palette.surface, gap: 10 }}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: palette.border, backgroundColor: palette.surface, gap: 12 }}
               >
-                <Ionicons name="camera" size={24} color={palette.brand} />
+                <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="camera-outline" size={20} color={palette.textSecondary} />
+                </View>
                 <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '600' }}>Take Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1315,9 +1337,11 @@ export default function AddTransactionModal() {
                   setShowReceiptSheet(false);
                   void chooseReceiptImage();
                 }}
-                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, backgroundColor: palette.surface, gap: 10 }}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, backgroundColor: palette.surface, gap: 12 }}
               >
-                <Ionicons name="image" size={24} color={palette.brand} />
+                <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="image-outline" size={20} color={palette.textSecondary} />
+                </View>
                 <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '600' }}>Choose Photo</Text>
               </TouchableOpacity>
               <View style={{ padding: 16, backgroundColor: palette.surface }}>

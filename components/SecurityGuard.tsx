@@ -1,4 +1,5 @@
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as ScreenCapture from 'expo-screen-capture';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { AppState, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
@@ -9,6 +10,7 @@ import { HOME_TEXT } from '../lib/layoutTokens';
 import { useAppDialog } from './ui/useAppDialog';
 
 const AUTH_PROMPT_STALE_MS = 30000;
+const LOCK_AFTER_BACKGROUND_MS = 60000;
 
 function shouldShowAuthFailure(error?: string) {
   return !!error && !['user_cancel', 'system_cancel', 'app_cancel', 'authentication_failed'].includes(error);
@@ -30,15 +32,18 @@ function authFailureMessage(error?: string) {
 export function SecurityGuard({ children }: { children: React.ReactNode }) {
   const isAuthEnabled = useUIStore((s) => s.settings.biometricLock);
   const [isLocked, setIsLockedState] = useState(isAuthEnabled);
+  const [isPrivacyHidden, setIsPrivacyHidden] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const isLockedRef = useRef(isAuthEnabled);
   const isAuthenticatingRef = useRef(false);
   const authAttemptIdRef = useRef(0);
   const authWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backgroundedAtRef = useRef<number | null>(null);
   const { palette } = useAppTheme();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   
   const appState = useRef(AppState.currentState);
+  const isInPrivacyGrace = useCallback(() => Date.now() < useUIStore.getState().privacyGraceUntil, []);
   const clearAuthWatchdog = useCallback(() => {
     if (authWatchdogRef.current) {
       clearTimeout(authWatchdogRef.current);
@@ -54,6 +59,9 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
   const setLocked = useCallback((locked: boolean) => {
     isLockedRef.current = locked;
     setIsLockedState(locked);
+    if (locked) {
+      setIsPrivacyHidden(false);
+    }
   }, []);
 
   const finishAuthAttempt = useCallback(
@@ -77,7 +85,6 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (AppState.currentState !== 'active') {
-      setLocked(true);
       return;
     }
     
@@ -119,6 +126,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
 
       if (result.success) {
         setLocked(false);
+        setIsPrivacyHidden(false);
       } else if (shouldShowAuthFailure(result.error)) {
         showAlert('Unlock Failed', authFailureMessage(result.error));
       }
@@ -144,11 +152,29 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
       setIsAuthenticating(false);
       void cancelNativeAuth();
       setLocked(false);
+      setIsPrivacyHidden(false);
     }
   }, [authenticate, cancelNativeAuth, clearAuthWatchdog, isAuthEnabled, setLocked]);
 
   useEffect(() => {
+    if (!isAuthEnabled) {
+      ScreenCapture.allowScreenCaptureAsync().catch(() => undefined);
+      return;
+    }
+    ScreenCapture.preventScreenCaptureAsync().catch(() => undefined);
+    return () => {
+      ScreenCapture.allowScreenCaptureAsync().catch(() => undefined);
+    };
+  }, [isAuthEnabled]);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
+      const inPrivacyGrace = isInPrivacyGrace();
+
+      if (isAuthEnabled && nextAppState.match(/inactive|background/) && !inPrivacyGrace) {
+        setIsPrivacyHidden(true);
+      }
+
       if (isAuthenticatingRef.current) {
         appState.current = nextAppState;
         return;
@@ -159,12 +185,24 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
         nextAppState === 'active'
       ) {
         if (isAuthEnabled) {
-          setLocked(true);
-          void authenticate();
+          if (inPrivacyGrace) {
+            backgroundedAtRef.current = null;
+            setIsPrivacyHidden(false);
+            appState.current = nextAppState;
+            return;
+          }
+          const awayMs = backgroundedAtRef.current ? Date.now() - backgroundedAtRef.current : LOCK_AFTER_BACKGROUND_MS;
+          backgroundedAtRef.current = null;
+          if (isLockedRef.current || awayMs >= LOCK_AFTER_BACKGROUND_MS) {
+            setLocked(true);
+            void authenticate();
+          } else {
+            setIsPrivacyHidden(false);
+          }
         }
       } else if (nextAppState.match(/inactive|background/)) {
         if (isAuthEnabled) {
-          setLocked(true);
+          backgroundedAtRef.current = Date.now();
         }
       }
 
@@ -174,7 +212,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.remove();
     };
-  }, [authenticate, isAuthEnabled, setLocked]);
+  }, [authenticate, isAuthEnabled, isInPrivacyGrace, setLocked]);
 
   useEffect(() => {
     return () => {
@@ -184,38 +222,48 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
     };
   }, [cancelNativeAuth, clearAuthWatchdog]);
 
-  if (isLocked) {
-    return (
-      <View style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={styles.content}>
-          <View style={styles.illustrationContainer}>
-            <FinanceEmptyMascot palette={palette} variant="security" />
-          </View>
-          <Text style={[styles.title, { color: palette.text }]}>App Locked</Text>
-          <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
-            Authentication required to access your data
-          </Text>
-          
-          <TouchableOpacity delayPressIn={0}
-            onPress={() => void authenticate({ force: true })}
-            activeOpacity={0.8}
-            style={[styles.button, { backgroundColor: palette.brand }]}
-          >
-            <Text style={[styles.buttonText, { color: palette.onBrand }]}>
-              {isAuthenticating ? 'Retry unlock' : 'Unlock'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {dialog}
-      </View>
-    );
-  }
+  const securityOverlayBg = palette.isDark ? '#050505' : palette.background;
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
       {children}
+      {isLocked ? (
+        <View style={[StyleSheet.absoluteFillObject, styles.container, { backgroundColor: securityOverlayBg }]}>
+          <View style={styles.content}>
+            <View style={styles.illustrationContainer}>
+              <FinanceEmptyMascot palette={palette} variant="security" />
+            </View>
+            <Text style={[styles.title, { color: palette.text }]}>App Locked</Text>
+            <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
+              Authentication required to access your data
+            </Text>
+
+            <TouchableOpacity delayPressIn={0}
+              onPress={() => void authenticate({ force: true })}
+              activeOpacity={0.8}
+              style={[styles.button, { backgroundColor: palette.brand }]}
+            >
+              <Text style={[styles.buttonText, { color: palette.onBrand }]}>
+                Unlock
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : isPrivacyHidden ? (
+        <View style={[StyleSheet.absoluteFillObject, styles.container, { backgroundColor: securityOverlayBg }]}>
+          <View style={styles.content}>
+            <View style={styles.illustrationContainer}>
+              <FinanceEmptyMascot palette={palette} variant="security" />
+            </View>
+            <Text style={[styles.title, { color: palette.text }]}>App Hidden</Text>
+            <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
+              Your financial data is hidden while the app is away
+            </Text>
+          </View>
+        </View>
+      ) : null}
       {dialog}
-    </>
+    </View>
   );
 }
 

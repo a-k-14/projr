@@ -7,8 +7,10 @@ interface UIStore {
   settings: Settings;
   isLoaded: boolean;
   loadError: string | null;
+  privacyGraceUntil: number;
   load: () => Promise<void>;
   reset: () => void;
+  beginPrivacyGrace: (durationMs: number) => void;
   updateSettings: (data: Partial<Settings>, metricContext?: string) => Promise<void>;
 }
 
@@ -16,6 +18,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
   settings: DEFAULT_SETTINGS,
   isLoaded: false,
   loadError: null,
+  privacyGraceUntil: 0,
 
   load: async () => {
     try {
@@ -29,7 +32,11 @@ export const useUIStore = create<UIStore>((set, get) => ({
   },
 
   reset: () => {
-    set({ settings: DEFAULT_SETTINGS, isLoaded: false, loadError: null });
+    set({ settings: DEFAULT_SETTINGS, isLoaded: false, loadError: null, privacyGraceUntil: 0 });
+  },
+
+  beginPrivacyGrace: (durationMs) => {
+    set({ privacyGraceUntil: Date.now() + durationMs });
   },
 
   updateSettings: async (data, metricContext) => {
