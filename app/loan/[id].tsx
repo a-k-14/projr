@@ -1,8 +1,9 @@
 import { Text } from '@/components/ui/AppText';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   TouchableOpacity,
   View
@@ -43,6 +44,7 @@ export default function LoanDetailScreen() {
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const tags = useCategoriesStore((s) => s.tags);
+  const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const loan = loans.find((l) => l.id === id);
@@ -266,7 +268,7 @@ export default function LoanDetailScreen() {
                       tertiaryText={
                         tx.tags.length > 0
                           ? tx.tags
-                            .map((tagId) => tags.find((tag) => tag.id === tagId)?.name)
+                            .map((tagId) => tagNamesById.get(tagId))
                             .filter((value): value is string => !!value)
                             .join(' • ') || undefined
                           : undefined

@@ -1,6 +1,5 @@
 import { Text } from '@/components/ui/AppText';
 import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -16,6 +15,7 @@ import {
   MONTHS,
   THEMES,
 } from '../../lib/settings-shared';
+import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -39,27 +39,17 @@ export default function SettingsScreen() {
   const { palette } = useAppTheme();
   const { showAlert, dialog } = useAppDialog(palette);
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
   const [picker, setPicker] = useState<PickerKind>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    const unsubscribe = (navigation as any).addListener('tabPress', () => {
-      if (navigation.isFocused()) {
+    return registerTabReset('settings', ({ mode, animated }) => {
+      if (mode === 'full') {
         setPicker(null);
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       }
+      scrollViewRef.current?.scrollTo({ y: 0, animated });
     });
-    return unsubscribe;
-  }, [navigation]);
-
-  useEffect(() => {
-    const unsubscribe = (navigation as any).addListener('blur', () => {
-      setPicker(null);
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    });
-    return unsubscribe;
-  }, [navigation]);
+  }, []);
 
   useEffect(() => {
     if (!accountsLoaded) loadAccounts().catch(() => undefined);

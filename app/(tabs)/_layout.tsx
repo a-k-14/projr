@@ -1,11 +1,12 @@
 import { Text } from '@/components/ui/AppText';
 import { Feather } from '@expo/vector-icons';
-import { router, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { useEffect } from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
+import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 
 const TAB_ITEMS: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
@@ -14,6 +15,14 @@ const TAB_ITEMS: Record<string, { icon: keyof typeof Feather.glyphMap; label: st
   loans: { icon: 'credit-card', label: 'Loans' },
   budget: { icon: 'pie-chart', label: 'Budget' },
   settings: { icon: 'settings', label: 'Settings' },
+};
+
+const BACKGROUND_RESET_ENABLED: Record<string, boolean> = {
+  index: true,
+  activity: true,
+  loans: true,
+  budget: true,
+  settings: true,
 };
 
 function AppTabBar({
@@ -75,14 +84,31 @@ function AppTabBar({
           const item = TAB_ITEMS[route.name] ?? TAB_ITEMS.index;
 
           const onPress = () => {
+            const leavingRouteName = state.routes[state.index]?.name;
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
               canPreventDefault: true,
             });
 
-            if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
+            if (event.defaultPrevented) {
+              return;
+            }
+
+            if (focused) {
+              getTabReset(route.name)?.({ mode: 'full', animated: true });
+              return;
+            }
+
+            navigation.navigate(route.name, route.params);
+            if (leavingRouteName && BACKGROUND_RESET_ENABLED[leavingRouteName]) {
+              runAfterTabHidden(() => {
+                const latestState = navigation.getState?.();
+                const latestRouteName = latestState?.routes?.[latestState.index]?.name;
+                if (latestRouteName !== leavingRouteName) {
+                  getTabReset(leavingRouteName)?.({ mode: 'background', animated: false });
+                }
+              });
             }
           };
 
@@ -145,22 +171,8 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="activity" />
-      <Tabs.Screen
-        name="loans"
-        listeners={{
-          tabPress: () => {
-            router.navigate('/(tabs)/loans');
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="budget"
-        listeners={{
-          tabPress: () => {
-            router.navigate('/(tabs)/budget');
-          },
-        }}
-      />
+      <Tabs.Screen name="loans" />
+      <Tabs.Screen name="budget" />
       <Tabs.Screen name="settings" />
     </Tabs>
   );

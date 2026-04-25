@@ -45,6 +45,7 @@ import {
   getLoanSettlementLabel,
   getLoanTransactionKind,
   getLoanTransactionUserNote,
+  mergeLoanTransactionNote,
   parseFormattedNumber
 } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -448,6 +449,7 @@ export default function AddTransactionModal() {
         tags: selectedTagIds,
         linkedAccountId: type === 'transfer' ? linkedAccountId : undefined
       };
+      let shouldReloadTransactions = false;
 
       if ((type === 'in' || type === 'out') && usableSplitRows.length > 0) {
         const splitItems = usableSplitRows.map((row) => ({
@@ -495,6 +497,7 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         }, editId);
+        shouldReloadTransactions = true;
       } else if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
         await updateTransaction(editId, {
           type: 'loan',
@@ -515,6 +518,7 @@ export default function AddTransactionModal() {
         });
       } else if (type === 'loan' && isLoanAddMore && routeLoanId) {
         await addLoanPrincipal(routeLoanId, amount, accountId, date, note || undefined);
+        shouldReloadTransactions = true;
       } else if (type === 'loan') {
         await addLoan({
           personName,
@@ -525,6 +529,7 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date
         });
+        shouldReloadTransactions = true;
       } else if (isEditing && editId && isTransferEdit) {
         await updateTransferTransaction(editId, {
           amount,
@@ -534,6 +539,7 @@ export default function AddTransactionModal() {
           note: note || undefined,
           payee: payee.trim() || undefined
         });
+        shouldReloadTransactions = true;
       } else if (isEditing && editId) {
         await updateTransaction(editId, data);
       } else {
@@ -542,7 +548,10 @@ export default function AddTransactionModal() {
       clearSplitRows();
       router.back();
       // Background refresh after navigation
-      Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => { });
+      Promise.all([
+        shouldReloadTransactions ? reloadTransactions() : Promise.resolve(),
+        refreshAccounts()
+      ]).catch(() => { });
     } catch (e) {
       showAlert('Error', String(e));
     }

@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -47,6 +47,7 @@ import {
 } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getFabBottomOffset, getTxTypeConfig } from '../../lib/layoutTokens';
+import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
 import * as transactionsService from '../../services/transactions';
@@ -77,7 +78,6 @@ type HierarchyFamily = 'out' | 'in' | 'loan' | 'transfer';
 
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
-  const navigation = useNavigation();
   const routeParams = useLocalSearchParams<{
     source?: string;
     period?: string;
@@ -113,6 +113,7 @@ export default function ActivityScreen() {
   const sym = showCurrencySymbol ? currencySymbol : '';
   const txTypeConfig = useMemo(() => getTxTypeConfig(palette), [palette]);
   const accountsById = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
+  const categoriesById = useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
 
@@ -142,8 +143,16 @@ export default function ActivityScreen() {
   const [showMoreSheet, setShowMoreSheet] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const pendingListResetRef = useRef(false);
+  const [listResetKey, setListResetKey] = useState(0);
 
-  const resetAllFilters = useCallback(() => {
+  const scrollToTop = useCallback((animated: boolean) => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated });
+    scrollViewRef.current?.scrollTo({ y: 0, animated });
+  }, []);
+
+  const resetAllFilters = useCallback((animated: boolean) => {
     setPeriod('all');
     setPeriodOffset(0);
     setCustomFrom(undefined);
@@ -159,24 +168,25 @@ export default function ActivityScreen() {
     setGroupByMode('date');
     setCategoryDrilldown(null);
     setIsSearchActive(false);
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  }, []);
+    scrollToTop(animated);
+  }, [scrollToTop]);
 
   useEffect(() => {
-    const unsubscribe = (navigation as any).addListener('tabPress', (e: any) => {
-      if (navigation.isFocused()) {
-        resetAllFilters();
+    return registerTabReset('activity', ({ mode, animated }) => {
+      if (mode === 'background') {
+        pendingListResetRef.current = true;
+      } else {
+        pendingListResetRef.current = false;
+        resetAllFilters(animated);
       }
     });
-    return unsubscribe;
-  }, [navigation, resetAllFilters]);
+  }, [resetAllFilters, scrollToTop]);
 
   useEffect(() => {
-    const unsubscribe = (navigation as any).addListener('blur', () => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-    });
-    return unsubscribe;
-  }, [navigation]);
+    if (!isFocused || !pendingListResetRef.current) return;
+    pendingListResetRef.current = false;
+    setListResetKey((value) => value + 1);
+  }, [isFocused]);
 
   const toggleSearch = useCallback((active: boolean) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -816,10 +826,8 @@ export default function ActivityScreen() {
             style={[
               styles.groupHeader,
               {
-                // paddingHorizontal: ACTIVITY_LAYOUT.groupHeaderPaddingX,
                 paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
                 paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
-
                 marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom,
               },
             ]}
@@ -862,9 +870,10 @@ export default function ActivityScreen() {
             }}
           >
             {item.items.map((tx, index) => {
-              const account = accounts.find((a) => a.id === tx.accountId);
-              const linkedAccount = tx.linkedAccountId ? accounts.find((a) => a.id === tx.linkedAccountId) : undefined;
-              const loan = tx.loanId ? loans.find((l) => l.id === tx.loanId) : undefined;
+              const accountName = accountsById.get(tx.accountId);
+              const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
+              const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
+              const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
 
               return (
                 <TransactionListItem
@@ -874,14 +883,15 @@ export default function ActivityScreen() {
                   palette={palette}
                   isLast={index === item.items.length - 1}
                   categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined}
-                  accountName={account?.name}
-                  linkedAccountName={linkedAccount?.name}
+                  categoryIcon={category?.icon}
+                  accountName={accountName}
+                  linkedAccountName={linkedAccountName}
                   loanPersonName={loan?.personName}
                   loanDirection={loan?.direction}
                   tertiaryText={
                     tx.tags.length > 0
                       ? tx.tags
-                        .map((tagId) => tags.find((tag) => tag.id === tagId)?.name)
+                        .map((tagId) => tagNamesById.get(tagId))
                         .filter((value): value is string => !!value)
                         .join(' • ') || undefined
                       : undefined
@@ -896,7 +906,7 @@ export default function ActivityScreen() {
         </View>
       );
     },
-    [accounts, loans, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
+    [accountsById, categoriesById, loansById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
   );
 
   return (
@@ -953,6 +963,7 @@ export default function ActivityScreen() {
         <>
           {groupByMode === 'date' || categoryDrilldown ? (
             <FlatList
+              key={`activity-${listResetKey}`}
               ref={flatListRef}
               data={grouped}
               keyExtractor={(item) => item.groupKey}
@@ -962,6 +973,7 @@ export default function ActivityScreen() {
               initialNumToRender={10}
               maxToRenderPerBatch={10}
               windowSize={5}
+              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
               ListHeaderComponent={
                 <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
@@ -1025,7 +1037,6 @@ export default function ActivityScreen() {
                   ) : null}
                 </View>
               }
-              renderItem={renderGroupItem}
               ListEmptyComponent={
                 !refreshing ? (
                   <View style={{ paddingTop: 4, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
@@ -1038,11 +1049,13 @@ export default function ActivityScreen() {
                   </View>
                 ) : null
               }
+              renderItem={renderGroupItem}
             />
           ) : null}
 
           {groupByMode === 'category' && !categoryDrilldown ? (
             <ScrollView
+              ref={scrollViewRef}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
             >
@@ -1474,8 +1487,10 @@ export default function ActivityScreen() {
   );
 }
 
-function signedCurrency(amount: number, sym: string) {
-  return formatCurrency(Math.abs(amount), sym);
+function signedCurrency(value: number, sym: string) {
+  const abs = Math.abs(value);
+  const formatted = formatCurrency(abs, sym);
+  return value > 0 ? `+${formatted}` : value < 0 ? `-${formatted}` : formatted;
 }
 
 function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {

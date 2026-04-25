@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { Feather } from '@expo/vector-icons';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
@@ -14,6 +14,7 @@ import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS, getFabBottomOffset } from '../../lib/layoutTokens';
+import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { isEmojiIcon } from '../../lib/ui-format';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../../components/ui/AppCard';
@@ -41,33 +42,30 @@ export default function BudgetScreen() {
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
 
   const [selectedMonth, setSelectedMonth] = useState(() => monthStartIso(new Date()));
   const [refreshing, setRefreshing] = useState(false);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const resetBudgetView = useCallback(() => {
-    setSelectedMonth(monthStartIso(new Date()));
-    setShowMonthSheet(false);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  const scrollToTop = useCallback((animated: boolean) => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated });
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = (navigation as any).addListener('tabPress', () => {
-      if (navigation.isFocused()) {
-        resetBudgetView();
-      }
-    });
-    return unsubscribe;
-  }, [navigation, resetBudgetView]);
+  const resetBudgetView = useCallback((animated: boolean) => {
+    setSelectedMonth(monthStartIso(new Date()));
+    setShowMonthSheet(false);
+    scrollToTop(animated);
+  }, [scrollToTop]);
 
   useEffect(() => {
-    const unsubscribe = (navigation as any).addListener('blur', () => {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    return registerTabReset('budget', ({ mode, animated }) => {
+      if (mode === 'background') {
+        scrollToTop(animated);
+      } else {
+        resetBudgetView(animated);
+      }
     });
-    return unsubscribe;
-  }, [navigation]);
+  }, [resetBudgetView, scrollToTop]);
 
   useEffect(() => {
     if (!categoriesLoaded) loadCategories().catch(() => undefined);

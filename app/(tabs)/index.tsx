@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -53,6 +53,7 @@ import {
   HOME_TEXT
 } from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
+import { registerTabReset, type TabResetMode } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
@@ -100,7 +101,6 @@ export default function HomeScreen() {
   const homeAccountViewMode = useUIStore((s) => s.settings.homeAccountViewMode);
   const updateSettings = useUIStore((s) => s.updateSettings);
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const pagerRef = useAnimatedRef<Animated.ScrollView>();
   const accountPagerScrollX = useSharedValue(0);
@@ -114,7 +114,11 @@ export default function HomeScreen() {
   const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
-  const [globalScrollResetTick, setGlobalScrollResetTick] = useState(0);
+  const [globalScrollResetTick, setGlobalScrollResetTick] = useState<{ count: number; animated: boolean; mode: TabResetMode }>({
+    count: 0,
+    animated: false,
+    mode: 'background',
+  });
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const previousAccountCountRef = useRef(accounts.length);
   const showAllAccountsTab = accounts.length !== 1;
@@ -181,32 +185,26 @@ export default function HomeScreen() {
     }
   }, [accountPagerScrollX, displayAccounts, homeAccountViewMode, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
 
-  const resetHomeToAll = useCallback(() => {
+  const resetHomeToAll = useCallback((mode: TabResetMode, animated: boolean) => {
     setSelectedAccountId(homeRootAccountId);
-    if (homeAccountViewMode === 'list') {
+    if (mode === 'full' && homeAccountViewMode === 'list') {
       updateSettings({ homeAccountViewMode: 'swipe' }, 'home-tab-reset').catch(() => undefined);
     }
     settledAccountPageIndex.value = 0;
     accountPagerScrollX.value = 0;
-    pagerRef.current?.scrollTo({ x: 0, animated: true });
-    setGlobalScrollResetTick(v => v + 1);
-  }, [accountPagerScrollX, homeAccountViewMode, homeRootAccountId, pagerRef, settledAccountPageIndex, updateSettings]);
+    if (mode === 'background') {
+      verticalScrolls.value = verticalScrolls.value.map(() => 0);
+      indicatorGestureOpacity.value = 1;
+    }
+    pagerRef.current?.scrollTo({ x: 0, animated });
+    setGlobalScrollResetTick(v => ({ count: v.count + 1, animated, mode }));
+  }, [accountPagerScrollX, homeAccountViewMode, homeRootAccountId, indicatorGestureOpacity, pagerRef, settledAccountPageIndex, updateSettings, verticalScrolls]);
 
   useEffect(() => {
-    const unsubscribe = (navigation as any).addListener('tabPress', () => {
-      if (navigation.isFocused()) {
-        resetHomeToAll();
-      }
+    return registerTabReset('index', ({ mode, animated }) => {
+      resetHomeToAll(mode, animated);
     });
-    return unsubscribe;
-  }, [navigation, resetHomeToAll]);
-
-  useEffect(() => {
-    const unsubscribe = (navigation as any).addListener('blur', () => {
-      setGlobalScrollResetTick((v) => v + 1);
-    });
-    return unsubscribe;
-  }, [navigation]);
+  }, [resetHomeToAll]);
 
   const customRangeMemo = useMemo(
     () => ({ from: new Date(customRangeFrom), to: new Date(customRangeTo) }),
@@ -1209,13 +1207,17 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   pageIndex: number;
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
-  resetTick: number;
+  resetTick: { count: number; animated: boolean; mode: TabResetMode };
   onBottomSheetChange?: (visible: boolean) => void;
 }) {
   const { palette } = useAppTheme();
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const accounts = useAccountsStore((s) => s.accounts);
+  const categories = useCategoriesStore((s) => s.categories);
+  const accountsById = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
+  const categoriesById = useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
   const loans = useLoansStore((s) => s.loans);
+  const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
   const loadLoans = useLoansStore((s) => s.load);
   const [period, setPeriod] = useState<PeriodType>('week');
@@ -1242,19 +1244,11 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
 
   useEffect(() => {
-    if (isSelected || !mainScrollRef.current) return;
-
-    const arr = verticalScrolls.value.slice();
-    arr[pageIndex] = 0;
-    verticalScrolls.value = arr;
-    mainScrollRef.current.scrollTo({ y: 0, animated: false });
-  }, [isSelected, pageIndex, verticalScrolls]);
-
-  useEffect(() => {
-    if (isSelected && resetTick > 0 && mainScrollRef.current) {
-      mainScrollRef.current.scrollTo({ y: 0, animated: true });
+    const shouldScroll = resetTick.mode === 'background' || isSelected;
+    if (shouldScroll && resetTick.count > 0 && mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ y: 0, animated: resetTick.animated });
     }
-    if (resetTick > 0) {
+    if (resetTick.mode === 'full' && resetTick.count > 0) {
       setPeriod('week');
       setActiveView('out');
     }
@@ -1778,30 +1772,36 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: HOME_SURFACE.cardPaddingBottom }}
             >
-              {transactions.length === 0 ? (
-                <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
-                  No transactions yet
-                </Text>
-              ) : (
-                transactions.map((transaction, index) => {
-                  return (
-                    <TransactionListItem
-                      key={transaction.id}
-                      tx={transaction}
-                      sym={currencySymbol}
-                      palette={palette}
-                      isLast={index === transactions.length - 1}
-                      categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
-                      accountName={accounts.find((account) => account.id === transaction.accountId)?.name}
-                      linkedAccountName={transaction.linkedAccountId ? accounts.find((account) => account.id === transaction.linkedAccountId)?.name : undefined}
-                      loanPersonName={transaction.loanId ? loans.find((loan) => loan.id === transaction.loanId)?.personName : undefined}
-                      loanDirection={transaction.loanId ? loans.find((loan) => loan.id === transaction.loanId)?.direction : undefined}
-                      showAmountSign={false}
-                      onPress={handleTransactionPress}
-                    />
-                  );
-                })
-              )}
+                {transactions.length === 0 ? (
+                  <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
+                    No transactions yet
+                  </Text>
+                ) : (
+                  transactions.map((transaction, index) => {
+                    const accountName = accountsById.get(transaction.accountId);
+                    const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
+                    const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
+                    const category = transaction.categoryId ? categoriesById.get(transaction.categoryId) : undefined;
+
+                    return (
+                      <TransactionListItem
+                        key={transaction.id}
+                        tx={transaction}
+                        sym={currencySymbol}
+                        palette={palette}
+                        isLast={index === transactions.length - 1}
+                        categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
+                        categoryIcon={category?.icon}
+                        accountName={accountName}
+                        linkedAccountName={linkedAccountName}
+                        loanPersonName={loan?.personName}
+                        loanDirection={loan?.direction}
+                        showAmountSign={false}
+                        onPress={handleTransactionPress}
+                      />
+                    );
+                  })
+                )}
             </ScrollView>
           </View>
 

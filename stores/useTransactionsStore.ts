@@ -61,15 +61,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   },
 
   update: async (id, data) => {
-    await transactionsService.updateTransaction(id, data);
-    if (get().isLoaded) {
-      await get().load(get().filters);
-      return;
-    }
-    const updated = await transactionsService.getTransactionById(id);
+    const updated = await transactionsService.updateTransaction(id, data);
     if (!updated) return;
     set((state) => ({
-      transactions: state.transactions.map((t) => (t.id === id ? updated : t)),
+      transactions: patchTransaction(state.transactions, id, updated),
     }));
   },
 
@@ -85,3 +80,19 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   setFilters: (filters) =>
     set((state) => ({ filters: { ...state.filters, ...filters } })),
 }));
+
+function patchTransaction(items: Transaction[], id: string, updated: Transaction) {
+  const existing = items.find((item) => item.id === id);
+  if (!existing) return items;
+
+  const next = items.map((item) => (item.id === id ? updated : item));
+  if (existing.date === updated.date && existing.createdAt === updated.createdAt) {
+    return next;
+  }
+
+  return next.sort((a, b) => {
+    const dateDelta = new Date(b.date).getTime() - new Date(a.date).getTime();
+    if (dateDelta !== 0) return dateDelta;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}

@@ -7,8 +7,6 @@ import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, getTxTypeConfig } from
 import { isEmojiIcon } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
 import { AppCard, CardSubtitleRow, CardTitleRow } from './ui/AppCard';
-import { useAccountsStore } from '../stores/useAccountsStore';
-import { useCategoriesStore } from '../stores/useCategoriesStore';
 import type { Transaction } from '../types';
 
 interface Props {
@@ -18,6 +16,7 @@ interface Props {
   isLast: boolean;
   displayAmount?: number;
   categoryName?: string;
+  categoryIcon?: string;
   accountName?: string;
   linkedAccountName?: string;
   loanPersonName?: string;
@@ -41,6 +40,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   isLast,
   displayAmount,
   categoryName,
+  categoryIcon,
   accountName,
   linkedAccountName,
   loanPersonName,
@@ -54,12 +54,8 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   iconSize = HOME_LAYOUT.listIconSize,
   onPress }: Props) {
   const effectiveType = tx.transferPairId ? 'transfer' : tx.type;
-  const accountNameSelected = useAccountsStore((state) =>
-    accountName ?? state.accounts.find((account) => account.id === tx.accountId)?.name,
-  );
-  const category = useCategoriesStore((state) =>
-    tx.categoryId ? state.categories.find((item) => item.id === tx.categoryId) : undefined,
-  );
+  const accountNameSelected = accountName;
+  const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && categoryIcon ? categoryIcon : null;
 
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;
@@ -113,7 +109,6 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     </View>
   ) : null;
 
-  const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && category?.icon ? category.icon : null;
   const iconName =
     tx.type === 'loan'
       ? 'card-outline'
