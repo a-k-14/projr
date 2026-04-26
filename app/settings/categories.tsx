@@ -217,7 +217,7 @@ export default function CategoriesScreen() {
                   fontWeight: '600',
                   color: tab === t ? palette.brand : palette.textMuted }}
               >
-                {t === 'in' ? 'Income' : 'Expense'}
+                {t === 'in' ? 'Income' : 'Expense'} ({visibleByTab[t].length})
               </Text>
             </TouchableOpacity>
           ))}

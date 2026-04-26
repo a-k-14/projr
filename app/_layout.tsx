@@ -135,6 +135,8 @@ export default function RootLayout() {
             <Stack.Screen name="settings" options={{ headerShown: false }} />
             <Stack.Screen name="budget/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="chart-prototype" options={{ headerShown: false }} />
+            <Stack.Screen name="net-worth-prototype" options={{ headerShown: false }} />
             <Stack.Screen
               name="modals/add-transaction"
               options={{ headerShown: false }}

@@ -94,6 +94,7 @@ interface CardTitleRowProps {
   titleStyle?: StyleProp<TextStyle>;
   amountStyle?: StyleProp<TextStyle>;
   secondarySeparator?: string;
+  onPressAmount?: () => void;
 }
 
 /** Standard Line 1 content: [Title › Secondary] [Amount] */
@@ -105,13 +106,25 @@ export function CardTitleRow({
   amountColor,
   titleStyle,
   amountStyle,
+  onPressAmount,
   secondarySeparator = ' \u203A ',
 }: CardTitleRowProps) {
+  const amountContent = amount !== undefined ? (
+    <Text
+      appWeight="medium"
+      style={[
+        { fontSize: CARD_TEXT.line1, color: amountColor || palette.listText, textAlign: 'right' },
+        amountStyle
+      ]}
+    >
+      {amount}
+    </Text>
+  ) : null;
+
   return (
     <>
       <Text
         appWeight="medium"
-        numberOfLines={1}
         style={[{ flex: 1, fontSize: CARD_TEXT.line1, color: palette.listText }, titleStyle]}
       >
         {title}
@@ -121,16 +134,19 @@ export function CardTitleRow({
           </Text>
         ) : null}
       </Text>
-      {amount !== undefined && (
-        <Text
-          appWeight="medium"
-          style={[
-            { fontSize: CARD_TEXT.line1, color: amountColor || palette.listText, textAlign: 'right' },
-            amountStyle
-          ]}
-        >
-          {amount}
-        </Text>
+      {amountContent && (
+        onPressAmount ? (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onPressAmount();
+            }}
+            activeOpacity={0.6}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            {amountContent}
+          </TouchableOpacity>
+        ) : amountContent
       )}
     </>
   );

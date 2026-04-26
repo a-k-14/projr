@@ -46,4 +46,15 @@ describe('calculator math', () => {
     expect(evaluateCalculatorExpression('200×10%')).toBe('20');
     expect(getCalculatorPreviewResult('200×10%')).toBe('20');
   });
+
+  it('formats typed operands and preview results with Indian commas', () => {
+    let display = '0';
+    for (const token of ['1', '2', '3', '4', '5', '6', '7', '+', '8', '9', '0', '0', '0']) {
+      display = appendCalculatorToken(display, token);
+    }
+
+    expect(display).toBe('12,34,567+89,000');
+    expect(getCalculatorPreviewResult(display)).toBe('13,23,567');
+    expect(prettifyCalculatorValue('100000+50000')).toBe('1,00,000+50,000');
+  });
 });

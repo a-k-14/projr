@@ -393,11 +393,30 @@ export default function HomeScreen() {
         title="Accounts"
         palette={palette}
         right={
-          <HomeAccountViewToggle
-            mode={homeAccountViewMode}
-            palette={palette}
-            onChange={setHomeViewMode}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              delayPressIn={0}
+              activeOpacity={0.72}
+              onPress={() => router.push('/net-worth-prototype')}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: palette.divider,
+                backgroundColor: palette.surface,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="analytics-outline" size={17} color={palette.text} />
+            </TouchableOpacity>
+            <HomeAccountViewToggle
+              mode={homeAccountViewMode}
+              palette={palette}
+              onChange={setHomeViewMode}
+            />
+          </View>
         }
       />
 
@@ -823,9 +842,13 @@ function AccountSummaryCard({
   );
 }
 
+function formatSignedCurrency(value: number, currencySymbol: string) {
+  return `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`;
+}
+
 function formatTodayMetricValue(key: 'in' | 'out' | 'net', value: number, currencySymbol: string) {
   if (key === 'net') return formatCurrency(Math.abs(value), currencySymbol);
-  return `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`;
+  return formatSignedCurrency(value, currencySymbol);
 }
 
 function HomeAccountsList({
@@ -981,9 +1004,15 @@ function CompactAccountListCard({
             appWeight="medium"
             numberOfLines={1}
             adjustsFontSizeToFit
-            style={{ fontSize: HOME_TEXT.rowLabel, lineHeight: 22, fontWeight: '600', color: palette.text, textAlign: 'right' }}
+            style={{
+              fontSize: HOME_TEXT.rowLabel,
+              lineHeight: 22,
+              fontWeight: '600',
+              color: palette.text,
+              textAlign: 'right',
+            }}
           >
-            {balance < 0 ? '-' : ''}{formatCurrency(Math.abs(balance), currencySymbol)}
+            {formatSignedCurrency(balance, currencySymbol)}
           </Text>
         </View>
       </View>
@@ -1852,6 +1881,17 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               noBorder={index === 2}
             />
           ))}
+          <ChoiceRow
+            title="Chart Prototype"
+            subtitle="Open the new interactive category pie concept"
+            selected={false}
+            palette={palette}
+            onPress={() => {
+              setShowViewPicker(false);
+              router.push('/chart-prototype');
+            }}
+            noBorder
+          />
         </BottomSheet>
       )}
     </View>

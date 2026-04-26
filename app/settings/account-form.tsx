@@ -1,12 +1,14 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, TextInput, View } from 'react-native';
+import { CalculatorSheet } from '../../components/CalculatorSheet';
 import {
   ActionButton,
   ChoiceRow,
   FieldLabel,
   FixedBottomActions,
+  IconBtn,
   InputField,
   SelectTrigger,
   SettingsFormLayout,
@@ -51,6 +53,7 @@ export default function AccountFormScreen() {
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const accountNumberRef = useRef<TextInput>(null);
   const openingBalanceRef = useRef<TextInput>(null);
 
@@ -190,28 +193,39 @@ export default function AccountFormScreen() {
         {/* Balance */}
         <View style={{ marginBottom: SPACING.lg }}>
           <FieldLabel label="Opening Balance" palette={palette} />
-          <InputField
-            ref={openingBalanceRef}
-            palette={palette}
-            value={draft.balance}
-            onChangeText={(v) => {
-              const isNegative = v.trim().startsWith('-');
-              let clean = v.replace(/[^0-9.]/g, '');
-              if (!clean) {
-                setDraft((s) => ({ ...s, balance: isNegative ? '-' : '' }));
-                return;
-              }
-              const parts = clean.split('.');
-              if (parts.length > 2) clean = parts[0] + '.' + parts.slice(1).join('');
-              if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
-                clean = clean.substring(1);
-              }
-              setDraft((s) => ({ ...s, balance: formatIndianNumberStr(`${isNegative ? '-' : ''}${clean}`) }));
-            }}
-            placeholder="0.00"
-            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
-            returnKeyType="done"
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <InputField
+                ref={openingBalanceRef}
+                palette={palette}
+                value={draft.balance}
+                onChangeText={(v) => {
+                  const isNegative = v.trim().startsWith('-');
+                  let clean = v.replace(/[^0-9.]/g, '');
+                  if (!clean) {
+                    setDraft((s) => ({ ...s, balance: isNegative ? '-' : '' }));
+                    return;
+                  }
+                  const parts = clean.split('.');
+                  if (parts.length > 2) clean = parts[0] + '.' + parts.slice(1).join('');
+                  if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
+                    clean = clean.substring(1);
+                  }
+                  setDraft((s) => ({ ...s, balance: formatIndianNumberStr(`${isNegative ? '-' : ''}${clean}`) }));
+                }}
+                placeholder="0.00"
+                keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
+                returnKeyType="done"
+              />
+            </View>
+            <IconBtn
+              palette={palette}
+              onPress={() => setShowCalculator(true)}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="calculator-outline" size={20} color={palette.textMuted} />
+            </IconBtn>
+          </View>
         </View>
       </SettingsFormLayout>
 
@@ -236,6 +250,16 @@ export default function AccountFormScreen() {
           ))}
         </BottomSheet>
       )}
+      <CalculatorSheet
+        visible={showCalculator}
+        value={draft.balance.replace(/,/g, '')}
+        palette={palette}
+        onClose={() => setShowCalculator(false)}
+        onApply={(finalValue) => {
+          setShowCalculator(false);
+          setDraft((s) => ({ ...s, balance: formatIndianNumberStr(finalValue) }));
+        }}
+      />
       {dialog}
     </>
   );

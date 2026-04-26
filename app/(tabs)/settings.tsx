@@ -63,6 +63,10 @@ export default function SettingsScreen() {
     () => accounts.find((account) => account.id === settings.defaultAccountId),
     [accounts, settings.defaultAccountId],
   );
+  const parentCategoryCount = useMemo(
+    () => categories.filter((category) => !category.parentId).length,
+    [categories],
+  );
   const displaySymbol = showCurrencySymbol ? currencySymbol : '';
 
   const handleBiometricToggle = async (value: boolean) => {
@@ -152,7 +156,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="grid"
                 label="Categories"
-                value={String(categories.length)}
+                value={String(parentCategoryCount)}
                 palette={palette}
                 onPress={() => router.push('/settings/categories')}
               />

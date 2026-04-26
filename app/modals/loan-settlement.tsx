@@ -11,6 +11,7 @@ import { InteractionManager,
   
   View , TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -63,6 +64,7 @@ export default function LoanSettlementModal() {
   const [loading] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const amountInputRef = useRef<TextInput | null>(null);
 
@@ -194,6 +196,10 @@ export default function LoanSettlementModal() {
               palette={palette}
               accentColor={palette.loan}
               autoFocus
+              onOpenCalculator={() => {
+                Keyboard.dismiss();
+                setShowCalculator(true);
+              }}
             />
             <PickerRow
               label="Account"
@@ -246,6 +252,20 @@ export default function LoanSettlementModal() {
           ))}
         </BottomSheet>
       ) : null}
+
+      <CalculatorSheet
+        visible={showCalculator}
+        value={amountStr.replace(/,/g, '')}
+        palette={palette}
+        brandColor={palette.loan}
+        brandSoft={palette.loanSoft}
+        brandOnColor={palette.onLoan}
+        onClose={() => setShowCalculator(false)}
+        onApply={(finalValue) => {
+          setShowCalculator(false);
+          setAmountStr(formatIndianNumberStr(finalValue));
+        }}
+      />
 
       <DateTimePickerPopup
         visible={showDatePicker}

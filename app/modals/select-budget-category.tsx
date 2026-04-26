@@ -12,6 +12,11 @@ export default function SelectBudgetCategoryScreen() {
   const { palette } = useAppTheme();
   const [search, setSearch] = useState('');
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === selectedCategoryId),
+    [categories, selectedCategoryId],
+  );
+  const selectedParentId = selectedCategory?.parentId ?? selectedCategory?.id;
 
   const sections = useMemo(() => {
     return buildCategoryPickerSections({
@@ -25,8 +30,10 @@ export default function SelectBudgetCategoryScreen() {
   useEffect(() => {
     if (search.trim().length > 0) {
       setExpandedParentIds(new Set(sections.map((section) => section.parent.id)));
+    } else if (selectedParentId) {
+      setExpandedParentIds(new Set([selectedParentId]));
     }
-  }, [search, sections]);
+  }, [search, sections, selectedParentId]);
 
   return (
     <CategoryTreePicker

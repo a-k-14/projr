@@ -247,6 +247,16 @@ export default function AddTransactionModal() {
 
   useEffect(() => {
     if (!isEditing || !editId) return;
+    setEditingSplitGroupId('');
+    setIsTransferEdit(false);
+    setLoanEditMode('new');
+    setEditingLoanId('');
+    clearSplitRows();
+    setCategoryId('');
+    setPayee('');
+    setSelectedTagIds([]);
+    setNote('');
+    setReceiptImageUris([]);
     const task = InteractionManager.runAfterInteractions(() => {
       getTransactionById(editId).then(async (tx) => {
         if (!tx) return;
@@ -266,8 +276,10 @@ export default function AddTransactionModal() {
           const group = await getTransactionsBySplitGroup(tx.splitGroupId);
           if (group.length > 0) {
             const first = group[0];
+            const total = group.reduce((sum, item) => sum + item.amount, 0);
             setEditingSplitGroupId(tx.splitGroupId);
             setType(first.type);
+            setAmountStr(formatIndianNumberStr(String(total)));
             setAccountId(first.accountId);
             setDate(first.date);
             setPayee(first.payee ?? '');
@@ -324,7 +336,7 @@ export default function AddTransactionModal() {
       });
     });
     return () => task.cancel();
-  }, [editId, isEditing]);
+  }, [clearSplitRows, editId, isEditing]);
 
   useEffect(() => {
     if (isEditing || !routeLoanId || (settlement !== '1' && addMore !== '1')) return;
@@ -778,7 +790,15 @@ export default function AddTransactionModal() {
                 sym={displaySym}
                 amountStr={amountStr}
                 setAmountStr={setAmountStr}
-                onOpenCalculator={handleOpenCalculator}
+                onOpenCalculator={usableSplitRows.length === 0 ? handleOpenCalculator : undefined}
+                onPressAmount={
+                  usableSplitRows.length > 0
+                    ? () =>
+                      runAfterKeyboardDismiss(() =>
+                        router.push({ pathname: '/modals/split-transaction', params: { type } })
+                      )
+                    : undefined
+                }
                 palette={palette}
                 accentColor={activeConfig.color}
                 autoFocus
@@ -804,6 +824,7 @@ export default function AddTransactionModal() {
                 <PickerRow
                   label="Category"
                   value="Split"
+                  subtitle="Edit line items"
                   palette={palette}
                   onPress={() =>
                     runAfterKeyboardDismiss(() =>
@@ -814,7 +835,8 @@ export default function AddTransactionModal() {
               ) : (
                 <PickerRow
                   label="Category"
-                  value={getCategoryName(categories, categoryId)}
+                  value={getCategoryDisplayParts(categories, categoryId).name}
+                  subtitle={getCategoryDisplayParts(categories, categoryId).parentName}
                   placeholder={!categoryId}
                   palette={palette}
                   onPress={openCategorySheet}
@@ -1665,10 +1687,12 @@ function getAccountName(accounts: Account[], accountId: string) {
   return accounts.find((account) => account.id === accountId)?.name ?? 'Select account';
 }
 
-function getCategoryName(categories: Category[], categoryId: string) {
+function getCategoryDisplayParts(categories: Category[], categoryId: string): { name: string; parentName?: string } {
   const category = categories.find((item) => item.id === categoryId);
-  if (!category) return 'Select Category';
-  return category.parentId
-    ? `${categories.find((item) => item.id === category.parentId)?.name ?? 'Category'} › ${category.name}`
-    : category.name;
+  if (!category) return { name: 'Select Category' };
+  if (!category.parentId) return { name: category.name };
+  return {
+    name: category.name,
+    parentName: categories.find((item) => item.id === category.parentId)?.name ?? 'Category',
+  };
 }

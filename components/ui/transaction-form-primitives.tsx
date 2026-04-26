@@ -49,12 +49,14 @@ export function SectionCard({
 export function PickerRow({
   label,
   value,
+  subtitle,
   placeholder,
   onPress,
   palette,
   custom = false }: {
   label: string;
   value: string | React.ReactNode;
+  subtitle?: string;
   placeholder?: boolean;
   onPress: () => void;
   palette: AppThemePalette;
@@ -99,18 +101,32 @@ export function PickerRow({
           <View style={{ flex: 1 }}>{value}</View>
         ) : (
           <>
-            <Text
-              style={{
-                fontSize: HOME_TEXT.sectionTitle,
-                fontWeight: '400',
-                color: placeholder ? palette.textMuted : palette.text,
-                textAlign: 'left',
-                flexShrink: 1,
-              }}
-              numberOfLines={1}
-            >
-              {value}
-            </Text>
+            <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+              <Text
+                style={{
+                  fontSize: HOME_TEXT.sectionTitle,
+                  fontWeight: '400',
+                  color: placeholder ? palette.textMuted : palette.text,
+                  textAlign: 'left',
+                }}
+                numberOfLines={1}
+              >
+                {value}
+              </Text>
+              {subtitle ? (
+                <Text
+                  style={{
+                    fontSize: HOME_TEXT.bodySmall,
+                    color: palette.textMuted,
+                    marginTop: 2,
+                    lineHeight: 17,
+                  }}
+                  numberOfLines={1}
+                >
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
             <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
               <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
             </View>
@@ -338,6 +354,7 @@ export function AmountRow({
   palette,
   accentColor,
   onOpenCalculator,
+  onPressAmount,
   autoFocus = false,
   calculatorButtonVariant = 'large',
   editable = true,
@@ -352,6 +369,7 @@ export function AmountRow({
   palette: AppThemePalette;
   accentColor: string;
   onOpenCalculator?: () => void;
+  onPressAmount?: () => void;
   autoFocus?: boolean;
   calculatorButtonVariant?: 'compact' | 'large';
   editable?: boolean;
@@ -398,7 +416,8 @@ export function AmountRow({
             keyboardType="decimal-pad"
             placeholder="0"
             placeholderTextColor={palette.textSoft}
-            editable={editable}
+            editable={editable && !onPressAmount}
+            onPressIn={onPressAmount}
             style={{
               flex: 1,
               fontSize: HOME_TEXT.sectionTitle,
@@ -415,7 +434,7 @@ export function AmountRow({
             onFocus={() => editable && setIsFocused(true)}
             onBlur={() => editable && setIsFocused(false)}
             cursorColor={editable ? accentColor : palette.text}
-            autoFocus={autoFocus}
+            autoFocus={autoFocus && !onPressAmount}
             returnKeyType={returnKeyType}
             onSubmitEditing={onSubmitEditing}
             blurOnSubmit={blurOnSubmit}

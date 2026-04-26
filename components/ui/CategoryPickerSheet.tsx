@@ -29,6 +29,11 @@ export function CategoryPickerSheet({
 }) {
   const [search, setSearch] = useState('');
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === selectedCategoryId),
+    [categories, selectedCategoryId],
+  );
+  const selectedParentId = selectedCategory?.parentId ?? selectedCategory?.id;
 
   const sections = useMemo(() => {
     return buildCategoryPickerSections({
@@ -46,8 +51,10 @@ export function CategoryPickerSheet({
       setExpandedParentIds(new Set(sections.map((section) => section.parent.id)));
     } else if (sections.length === 1) {
       setExpandedParentIds(new Set([sections[0].parent.id]));
+    } else if (selectedParentId) {
+      setExpandedParentIds(new Set([selectedParentId]));
     }
-  }, [search, sections]);
+  }, [search, sections, selectedParentId]);
 
   return (
     <BottomSheet

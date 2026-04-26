@@ -69,7 +69,7 @@ function normalizeExpressionNumbers(expression: string) {
 
 export function prettifyCalculatorValue(value: string) {
   if (!value) return '';
-  const normalized = normalizeExpressionNumbers(toDisplay(value));
+  const normalized = normalizeExpressionNumbers(toDisplay(value).replace(/,/g, ''));
   const segments = normalized.split(/([+−×÷%*\/-])/);
   return segments
     .map((segment) => {
@@ -113,7 +113,7 @@ export function appendCalculatorToken(current: string, token: string) {
     }
   }
 
-  return `${base}${token}`;
+  return prettifyCalculatorValue(`${base}${token}`);
 }
 
 export function evaluateCalculatorExpression(input: string) {

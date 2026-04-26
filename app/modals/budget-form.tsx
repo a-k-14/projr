@@ -18,7 +18,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { useAppDialog } from '../../components/ui/useAppDialog';
-import type { BudgetWithSpent } from '../../types';
+import type { BudgetWithSpent, Category } from '../../types';
 
 export default function BudgetFormModal() {
   const { budgetId, month } = useLocalSearchParams<{ budgetId?: string; month?: string }>();
@@ -27,7 +27,6 @@ export default function BudgetFormModal() {
   const updateBudget = useBudgetStore((s) => s.update);
   const removeBudget = useBudgetStore((s) => s.remove);
   const categories = useCategoriesStore((s) => s.categories);
-  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
@@ -160,7 +159,8 @@ export default function BudgetFormModal() {
           />
           <PickerRow
             label="Category"
-            value={selectedCategory ? getCategoryFullDisplayName(selectedCategory.id, ' › ') : 'Select Category'}
+            value={getCategoryDisplayParts(categories, categoryId).name}
+            subtitle={getCategoryDisplayParts(categories, categoryId).parentName}
             placeholder={!selectedCategory}
             palette={palette}
             onPress={openCategoryPicker}
@@ -208,6 +208,19 @@ export default function BudgetFormModal() {
       {dialog}
     </View>
   );
+}
+
+function getCategoryDisplayParts(
+  categories: Category[],
+  categoryId: string,
+): { name: string; parentName?: string } {
+  const category = categories.find((item) => item.id === categoryId);
+  if (!category) return { name: 'Select Category' };
+  if (!category.parentId) return { name: category.name };
+  return {
+    name: category.name,
+    parentName: categories.find((item) => item.id === category.parentId)?.name ?? 'Category',
+  };
 }
 
 function RepeatRow({
