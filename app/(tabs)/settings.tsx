@@ -98,14 +98,14 @@ export default function SettingsScreen() {
             <SectionLabel label="GENERAL" palette={palette} />
             <CardSection palette={palette}>
               <SettingsRow
-                icon="calendar"
+                icon="calendar-plus"
                 label="Year Start"
                 value={MONTHS[settings.yearStart]}
                 palette={palette}
                 onPress={() => setPicker('year-start')}
               />
               <SettingsRow
-                icon="credit-card"
+                icon="wallet"
                 label="Default Account"
                 value={selectedAccount?.name ?? 'None'}
                 palette={palette}
@@ -154,7 +154,7 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/settings/accounts')}
               />
               <SettingsRow
-                icon="grid"
+                icon="layout-grid"
                 label="Categories"
                 value={String(parentCategoryCount)}
                 palette={palette}
@@ -362,5 +362,5 @@ function capitalize(value: string) {
 function themeIcon(theme: (typeof THEMES)[number]['key']): IconName {
   if (theme === 'light') return 'sun';
   if (theme === 'dark') return 'moon';
-  return 'smartphone';
+  return 'monitor-smartphone';
 }

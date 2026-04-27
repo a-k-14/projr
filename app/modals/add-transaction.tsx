@@ -946,7 +946,7 @@ export default function AddTransactionModal() {
                     justifyContent: 'center'
                   }}
                 >
-                  <AppIcon name="repeat" size={16} color={activeConfig.color} />
+                  <AppIcon name="arrow-up-down" size={16} color={activeConfig.color} />
                 </TouchableOpacity>
               </View>
               <PickerRow

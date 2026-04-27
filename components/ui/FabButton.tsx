@@ -43,10 +43,10 @@ export function FabButton({
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    right: ACTIVITY_LAYOUT.fabRightSpacing,
-    width: ACTIVITY_LAYOUT.fabSize,
-    height: ACTIVITY_LAYOUT.fabSize,
-    borderRadius: ACTIVITY_LAYOUT.fabRadius,
+    right: HOME_LAYOUT.fabRightOffset,
+    width: HOME_LAYOUT.fabSize,
+    height: HOME_LAYOUT.fabSize,
+    borderRadius: HOME_LAYOUT.fabSize / 2,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,

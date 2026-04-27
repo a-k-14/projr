@@ -409,7 +409,7 @@ export default function HomeScreen() {
                 justifyContent: 'center',
               }}
             >
-              <AppIcon name="bar-chart-2" size={17} color={palette.text} />
+              <AppIcon name="chart-spline" size={17} color={palette.text} />
             </TouchableOpacity>
             <HomeAccountViewToggle
               mode={homeAccountViewMode}
@@ -638,7 +638,7 @@ function HomeAccountViewToggle({
       }}
     >
       {([
-        { key: 'swipe', icon: 'layers' },
+        { key: 'swipe', icon: 'gallery-vertical-end' },
         { key: 'list', icon: 'list' },
       ] as const).map((item) => {
         const selected = mode === item.key;

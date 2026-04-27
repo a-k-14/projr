@@ -75,6 +75,7 @@ export default function LoanDetailScreen() {
   const originTx = loan.transactions
     .filter((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin')
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+  const originTxNote = originTx ? getLoanTransactionUserNote(originTx.note) : '';
   const loanMetrics = [
     { key: 'given', label: isLent ? 'LENT' : 'BORROWED', value: formatCurrency(loan.givenAmount, sym), color: palette.text },
     { key: 'balance', label: 'BALANCE', value: formatCurrency(loan.pendingAmount, sym), color: balanceColor },
@@ -221,12 +222,12 @@ export default function LoanDetailScreen() {
                 </View>
               </View>
 
-              {originTx?.note ? (
+              {originTxNote ? (
                 <View style={{ marginTop: HOME_SPACE.md, paddingTop: HOME_SPACE.md, borderTopWidth: 1, borderTopColor: palette.inputBg }}>
                   <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5, marginBottom: HOME_SPACE.sm }}>
                     NOTE
                   </Text>
-                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{getLoanTransactionUserNote(originTx.note)}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{originTxNote}</Text>
                 </View>
               ) : null}
             </View>

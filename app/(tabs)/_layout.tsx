@@ -10,9 +10,9 @@ import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 
 const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
-  index: { icon: 'grid', label: 'Home' },
+  index: { icon: 'layout-panel-left', label: 'Home' },
   activity: { icon: 'activity', label: 'Activity' },
-  loans: { icon: 'dollar-sign', label: 'Loans' },
+  loans: { icon: 'credit-card', label: 'Loans' },
   budget: { icon: 'pie-chart', label: 'Budget' },
   settings: { icon: 'settings', label: 'Settings' },
 };

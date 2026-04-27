@@ -1,27 +1,29 @@
 import React from 'react';
-import { Feather } from '@expo/vector-icons';
 import { StyleProp, ViewStyle } from 'react-native';
+import * as icons from 'lucide-react-native';
 
-export type IconName = keyof typeof Feather.glyphMap;
+export type IconName = string;
 
 interface AppIconProps {
-  name: string; // Use string to allow for library-specific names during transition
+  name: string;
   size?: number;
   color?: string;
   style?: StyleProp<ViewStyle>;
 }
 
+function kebabToPascal(str: string) {
+  return str.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+}
+
 /**
  * Centralized Icon component for the app.
- * Fallback to Feather for now due to environment constraints.
  */
 export function AppIcon({ name, size = 20, color, style }: AppIconProps) {
-  // Safe name check for Feather
-  const safeName = (isValidIcon(name) ? name : 'help-circle') as IconName;
+  const pascalName = kebabToPascal(name);
+  const IconComponent = (icons as any)[pascalName] || icons.HelpCircle;
   
   return (
-    <Feather
-      name={safeName}
+    <IconComponent
       size={size}
       color={color}
       style={style}
@@ -30,8 +32,10 @@ export function AppIcon({ name, size = 20, color, style }: AppIconProps) {
 }
 
 /**
- * Helper to check if an icon name is valid in the current library.
+ * Helper to check if an icon name is valid.
  */
 export function isValidIcon(name: any): name is IconName {
-  return typeof name === 'string' && name in Feather.glyphMap;
+  if (typeof name !== 'string') return false;
+  const pascalName = kebabToPascal(name);
+  return !!(icons as any)[pascalName];
 }
