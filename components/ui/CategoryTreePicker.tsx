@@ -101,11 +101,17 @@ export function CategoryIconBadge({
     >
       {isEmojiIcon(icon) ? (
         <Text style={{ fontSize: size }}>{icon}</Text>
-      ) : (
+      ) : isKnownFeatherIcon(icon) ? (
         <Feather name={icon as any} size={size} color={iconColor ?? palette.iconTint} />
+      ) : (
+        <Feather name="tag" size={size} color={iconColor ?? palette.iconTint} />
       )}
     </View>
   );
+}
+
+function isKnownFeatherIcon(name: string): name is keyof typeof Feather.glyphMap {
+  return name in Feather.glyphMap;
 }
 
 export function CategoryTreePicker({
@@ -312,8 +318,7 @@ export function CategoryTreeList({
                       {parent.name}
                     </Text>
                     {hasChildren ? (
-                      <Feather
-                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'}
                         size={18}
                         color={palette.textSoft}
                       />

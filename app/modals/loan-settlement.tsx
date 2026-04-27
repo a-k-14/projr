@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
@@ -169,7 +169,7 @@ export default function LoanSettlementModal() {
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
-            <Ionicons name="close" size={24} color={palette.text} />
+            <Feather name="x" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>{title}</Text>
         </View>

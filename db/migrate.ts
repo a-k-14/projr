@@ -98,4 +98,80 @@ export async function runMigrations() {
   } catch (err) {
     console.warn('Migration patch error:', err);
   }
+
+  // Migrate any stored Ionicons icon names to Feather equivalents
+  try {
+    const iconMap: Record<string, string> = {
+      'cart-outline': 'shopping-cart',
+      'bag-outline': 'shopping-bag',
+      'pricetag-outline': 'tag',
+      'gift-outline': 'gift',
+      'cube-outline': 'box',
+      'archive-outline': 'archive',
+      'cafe-outline': 'coffee',
+      'restaurant-outline': 'feather',
+      'thermometer-outline': 'thermometer',
+      'star-outline': 'star',
+      'home-outline': 'home',
+      'flash-outline': 'zap',
+      'water-outline': 'droplet',
+      'wifi-outline': 'wifi',
+      'call-outline': 'phone',
+      'tv-outline': 'tv',
+      'construct-outline': 'tool',
+      'settings-outline': 'settings',
+      'car-outline': 'truck',
+      'navigate-outline': 'navigation',
+      'location-outline': 'map-pin',
+      'map-outline': 'map',
+      'boat-outline': 'anchor',
+      'card-outline': 'credit-card',
+      'cash-outline': 'dollar-sign',
+      'briefcase-outline': 'briefcase',
+      'trending-up-outline': 'trending-up',
+      'trending-down-outline': 'trending-down',
+      'bar-chart-outline': 'bar-chart-2',
+      'pie-chart-outline': 'pie-chart',
+      'heart-outline': 'heart',
+      'pulse-outline': 'activity',
+      'shield-outline': 'shield',
+      'add-circle-outline': 'plus-circle',
+      'person-outline': 'user',
+      'musical-notes-outline': 'music',
+      'film-outline': 'film',
+      'camera-outline': 'camera',
+      'headset-outline': 'headphones',
+      'book-outline': 'book',
+      'library-outline': 'book-open',
+      'globe-outline': 'globe',
+      'desktop-outline': 'monitor',
+      'phone-portrait-outline': 'smartphone',
+      'compass-outline': 'compass',
+      'umbrella-outline': 'umbrella',
+      'sunny-outline': 'sun',
+      'cloud-outline': 'cloud',
+      'flag-outline': 'wind',
+      'create-outline': 'edit',
+      'clipboard-outline': 'clipboard',
+      'trophy-outline': 'award',
+      'file-tray-full-outline': 'archive',
+      'file-tray-outline': 'inbox',
+      'layers-outline': 'layers',
+      'grid-outline': 'grid',
+      'ellipsis-horizontal-outline': 'more-horizontal',
+      'ellipsis-horizontal': 'more-horizontal',
+    };
+    for (const [ionIcon, featherIcon] of Object.entries(iconMap)) {
+      await sqlite.runAsync(
+        `UPDATE categories SET icon = ? WHERE icon = ?`,
+        [featherIcon, ionIcon]
+      );
+      await sqlite.runAsync(
+        `UPDATE accounts SET icon = ? WHERE icon = ?`,
+        [featherIcon, ionIcon]
+      );
+    }
+  } catch (err) {
+    console.warn('Icon migration patch error:', err);
+  }
 }

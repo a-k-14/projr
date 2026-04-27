@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -301,7 +301,7 @@ export default function LoanDetailScreen() {
                 }
                 palette={palette}
                 tone="loan"
-                startIcon={<Ionicons name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />}
+                startIcon={<Feather name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />}
               />
             ) : null}
             <TextButton

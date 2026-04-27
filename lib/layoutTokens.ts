@@ -32,14 +32,14 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
       color: palette.transferText,
       bg: palette.transferBg,
       borderColor: palette.transferText,
-      iconName: 'swap-horizontal',
+      iconName: 'repeat',
     },
     loan: {
       label: 'Loan',
       color: palette.loan,
       bg: palette.loanBg,
       borderColor: palette.loan,
-      iconName: 'card-outline',
+      iconName: 'credit-card',
     },
   };
 }

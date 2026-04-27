@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { RefObject, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Platform, TextInput, View , TouchableOpacity } from 'react-native';
@@ -128,7 +128,7 @@ export function PickerRow({
               ) : null}
             </View>
             <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-              <Ionicons name="chevron-forward" size={15} color={palette.textSoft} />
+              <Feather name="chevron-right" size={15} color={palette.textSoft} />
             </View>
           </>
         )}
@@ -407,7 +407,8 @@ export function AmountRow({
             flex: 1,
             minWidth: 0,
             flexDirection: 'row',
-            alignItems: 'center' }}
+            alignItems: 'center',
+            position: 'relative' }}
         >
           <TextInput
             ref={inputRef}
@@ -417,7 +418,6 @@ export function AmountRow({
             placeholder="0"
             placeholderTextColor={palette.textSoft}
             editable={editable && !onPressAmount}
-            onPressIn={onPressAmount}
             style={{
               flex: 1,
               fontSize: HOME_TEXT.sectionTitle,
@@ -439,6 +439,20 @@ export function AmountRow({
             onSubmitEditing={onSubmitEditing}
             blurOnSubmit={blurOnSubmit}
           />
+          {onPressAmount ? (
+            <TouchableOpacity
+              delayPressIn={0}
+              activeOpacity={0.72}
+              onPress={onPressAmount}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+              }}
+            />
+          ) : null}
         </View>
         {onOpenCalculator ? (
           <TouchableOpacity delayPressIn={0}
@@ -460,8 +474,7 @@ export function AmountRow({
                 alignItems: 'center',
                 justifyContent: 'center' }}
             >
-              <Ionicons
-                name="calculator-outline"
+              <Feather name="grid"
                 size={isLargeButton ? 22 : 18}
                 color={isLargeButton ? palette.text : palette.textMuted}
               />

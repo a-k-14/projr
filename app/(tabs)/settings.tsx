@@ -362,5 +362,5 @@ function capitalize(value: string) {
 function themeIcon(theme: (typeof THEMES)[number]['key']): keyof typeof Feather.glyphMap {
   if (theme === 'light') return 'sun';
   if (theme === 'dark') return 'moon';
-  return 'monitor';
+  return 'smartphone';
 }

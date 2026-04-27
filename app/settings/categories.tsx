@@ -120,8 +120,7 @@ export default function CategoriesScreen() {
                   >
                     <Feather name="edit-2" size={14} color={palette.iconTint} />
                   </TouchableOpacity>
-                  <Feather
-                    name={isOpen ? 'chevron-up' : 'chevron-down'}
+                  <Feather name={isOpen ? 'chevron-up' : 'chevron-down'}
                     size={18}
                     color={palette.textSoft}
                   />

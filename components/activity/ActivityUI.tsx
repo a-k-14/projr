@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { StyleSheet, View } from 'react-native';
@@ -38,19 +38,27 @@ export function CategoryIconBadge({
         justifyContent: 'center',
       }}
     >
-      {ioniconName ? (
-        <Ionicons name={ioniconName as any} size={iconSize} color={iconColor ?? palette.iconTint} />
+      {ioniconName && isKnownFeatherIcon(ioniconName) ? (
+        <Feather name={ioniconName as any} size={iconSize} color={iconColor ?? palette.iconTint} />
       ) : isEmoji ? (
         <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{icon}</Text>
+      ) : icon && isKnownFeatherIcon(icon) ? (
+        <Feather name={icon as keyof typeof Feather.glyphMap}
+          size={iconSize}
+          color={iconColor ?? palette.iconTint}
+        />
       ) : (
-        <Feather
-          name={(icon ?? 'tag') as keyof typeof Feather.glyphMap}
+        <Feather name="tag"
           size={iconSize}
           color={iconColor ?? palette.iconTint}
         />
       )}
     </View>
   );
+}
+
+function isKnownFeatherIcon(name: string): name is keyof typeof Feather.glyphMap {
+  return name in Feather.glyphMap;
 }
 
 /**
@@ -76,7 +84,7 @@ export function Checkbox({ selected, partial = false, palette }: CheckboxProps) 
         justifyContent: 'center',
       }}
     >
-      {selected && <Ionicons name="checkmark" size={15} color={palette.onBrand} />}
+      {selected && <Feather name="check" size={15} color={palette.onBrand} />}
       {partial && <View style={{ width: 10, height: 2.5, borderRadius: 99, backgroundColor: palette.brand }} />}
     </View>
   );

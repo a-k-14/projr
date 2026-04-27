@@ -1,5 +1,5 @@
 export function isEmojiIcon(icon?: string | null): boolean {
-  return !!icon && !/^[a-z-]+$/i.test(icon);
+  return !!icon && !/^[a-z0-9-]+$/i.test(icon);
 }
 
 function formatIfValid(

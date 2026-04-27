@@ -1,0 +1,1655 @@
+diff --git a/app/(tabs)/_layout.tsx b/app/(tabs)/_layout.tsx
+index 1092f1e..dd16221 100644
+--- a/app/(tabs)/_layout.tsx
++++ b/app/(tabs)/_layout.tsx
+@@ -1,5 +1,5 @@
+ import { Text } from '@/components/ui/AppText';
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { Tabs } from 'expo-router';
+ import { useEffect } from 'react';
+ import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
+@@ -9,12 +9,12 @@ import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
+ import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
+ import { AppThemePalette, useAppTheme } from '../../lib/theme';
+ 
+-const TAB_ITEMS: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
+-  index: { icon: 'grid', label: 'Home' },
+-  activity: { icon: 'activity', label: 'Activity' },
+-  loans: { icon: 'credit-card', label: 'Loans' },
+-  budget: { icon: 'pie-chart', label: 'Budget' },
+-  settings: { icon: 'settings', label: 'Settings' },
++const TAB_ITEMS: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
++  index: { icon: 'grid-outline', label: 'Home' },
++  activity: { icon: 'pulse-outline', label: 'Activity' },
++  loans: { icon: 'card-outline', label: 'Loans' },
++  budget: { icon: 'pie-chart-outline', label: 'Budget' },
++  settings: { icon: 'settings-outline', label: 'Settings' },
+ };
+ 
+ const BACKGROUND_RESET_ENABLED: Record<string, boolean> = {
+@@ -124,7 +124,7 @@ function AppTabBar({
+                 paddingTop: 9,
+               }}
+             >
+-              <Feather name={item.icon} size={20} color={focused ? palette.listText : palette.textSecondary} />
++              <Ionicons name={item.icon} size={20} color={focused ? palette.listText : palette.textSecondary} />
+               <Text
+                 numberOfLines={1}
+                 style={{
+diff --git a/app/(tabs)/activity.tsx b/app/(tabs)/activity.tsx
+index 69c64d6..1c90619 100644
+--- a/app/(tabs)/activity.tsx
++++ b/app/(tabs)/activity.tsx
+@@ -1,5 +1,5 @@
+ import { Text } from '@/components/ui/AppText';
+-import { Feather, Ionicons } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+ import { useIsFocused } from '@react-navigation/native';
+ import { router, useLocalSearchParams } from 'expo-router';
+@@ -1023,7 +1023,7 @@ export default function ActivityScreen() {
+                           gap: 8
+                         }}
+                       >
+-                        <Feather name="chevron-left" size={16} color={palette.textMuted} />
++                        <Ionicons name="chevron-back" size={16} color={palette.textMuted} />
+                         <Text
+                           numberOfLines={1}
+                           style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
+@@ -1131,8 +1131,8 @@ export default function ActivityScreen() {
+                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                 style={{ marginRight: 2 }}
+                               >
+-                                <Feather
+-                                  name={allExpanded ? 'chevrons-up' : 'chevrons-down'}
++                                <Ionicons
++                                  name={allExpanded ? 'chevron-up' : 'chevron-down'}
+                                   size={14}
+                                   color={palette.textMuted}
+                                 />
+@@ -1210,8 +1210,8 @@ export default function ActivityScreen() {
+                                 >
+                                   {signedCurrency(category.total, sym)}
+                                 </Text>
+-                                <Feather
+-                                  name={isDirectNavigation ? 'chevron-right' : isExpanded ? 'chevron-up' : 'chevron-down'}
++                                <Ionicons
++                                  name={isDirectNavigation ? 'chevron-forward' : isExpanded ? 'chevron-up' : 'chevron-down'}
+                                   size={18}
+                                   color={palette.textSoft}
+                                 />
+@@ -1261,8 +1261,8 @@ export default function ActivityScreen() {
+                                       >
+                                         {signedCurrency(sub.total, sym)}
+                                       </Text>
+-                                      <Feather
+-                                        name="chevron-right"
++                                      <Ionicons
++                                        name="chevron-forward"
+                                         size={16}
+                                         color={palette.textSoft}
+                                       />
+diff --git a/app/(tabs)/budget.tsx b/app/(tabs)/budget.tsx
+index d0ec3fa..7de6b80 100644
+--- a/app/(tabs)/budget.tsx
++++ b/app/(tabs)/budget.tsx
+@@ -1,5 +1,5 @@
+ import { Text } from '@/components/ui/AppText';
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { useIsFocused } from '@react-navigation/native';
+ import { router } from 'expo-router';
+ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+@@ -267,7 +267,7 @@ function BudgetCard({
+       icon={isEmojiIcon(budget.categoryIcon) ? (
+         <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{budget.categoryIcon}</Text>
+       ) : (
+-        <Feather name={budget.categoryIcon as any} size={17} color={palette.iconTint} />
++        <Ionicons name={budget.categoryIcon as any} size={17} color={palette.iconTint} />
+       )}
+       topRow={
+         <CardTitleRow
+diff --git a/app/(tabs)/settings.tsx b/app/(tabs)/settings.tsx
+index ceb86e7..4da57ff 100644
+--- a/app/(tabs)/settings.tsx
++++ b/app/(tabs)/settings.tsx
+@@ -1,5 +1,5 @@
+ import { Text } from '@/components/ui/AppText';
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import * as LocalAuthentication from 'expo-local-authentication';
+ import { useRouter } from 'expo-router';
+ import { useEffect, useMemo, useRef, useState } from 'react';
+@@ -98,28 +98,28 @@ export default function SettingsScreen() {
+             <SectionLabel label="GENERAL" palette={palette} />
+             <CardSection palette={palette}>
+               <SettingsRow
+-                icon="calendar"
++                icon="calendar-outline"
+                 label="Year Start"
+                 value={MONTHS[settings.yearStart]}
+                 palette={palette}
+                 onPress={() => setPicker('year-start')}
+               />
+               <SettingsRow
+-                icon="credit-card"
++                icon="card-outline"
+                 label="Default Account"
+                 value={selectedAccount?.name ?? 'None'}
+                 palette={palette}
+                 onPress={() => setPicker('default-account')}
+               />
+               <SettingsRow
+-                icon="dollar-sign"
++                icon="cash-outline"
+                 label="Currency"
+                 value={`${settings.currency} ${settings.currencySymbol}`}
+                 palette={palette}
+                 onPress={() => setPicker('currency')}
+               />
+               <SettingsRow
+-                icon="eye"
++                icon="eye-outline"
+                 label="Show Currency Symbol"
+                 value={settings.showCurrencySymbol ? 'On' : 'Off'}
+                 palette={palette}
+@@ -133,7 +133,7 @@ export default function SettingsScreen() {
+                 }
+               />
+               <SettingsRow
+-                icon="sun"
++                icon="sunny-outline"
+                 label="Theme"
+                 value={capitalize(settings.theme)}
+                 palette={palette}
+@@ -147,21 +147,21 @@ export default function SettingsScreen() {
+             <SectionLabel label="MANAGE" palette={palette} />
+             <CardSection palette={palette}>
+               <SettingsRow
+-                icon="layers"
++                icon="layers-outline"
+                 label="Accounts"
+                 value={String(accounts.length)}
+                 palette={palette}
+                 onPress={() => router.push('/settings/accounts')}
+               />
+               <SettingsRow
+-                icon="grid"
++                icon="grid-outline"
+                 label="Categories"
+                 value={String(parentCategoryCount)}
+                 palette={palette}
+                 onPress={() => router.push('/settings/categories')}
+               />
+               <SettingsRow
+-                icon="tag"
++                icon="pricetag-outline"
+                 label="Tags"
+                 value={String(tags.length)}
+                 palette={palette}
+@@ -175,7 +175,7 @@ export default function SettingsScreen() {
+             <SectionLabel label="SECURITY" palette={palette} />
+             <CardSection palette={palette}>
+               <SettingsRow
+-                icon="lock"
++                icon="lock-closed-outline"
+                 label="Biometric Lock"
+                 value={settings.biometricLock ? 'Enabled' : 'Disabled'}
+                 palette={palette}
+@@ -196,13 +196,13 @@ export default function SettingsScreen() {
+             <SectionLabel label="DATA" palette={palette} />
+             <CardSection palette={palette}>
+               <SettingsRow
+-                icon="cloud-off"
++                icon="cloud-offline-outline"
+                 label="Cloud Backup"
+                 value="Not available"
+                 palette={palette}
+               />
+               <SettingsRow
+-                leftElement={<Feather name="refresh-cw" size={18} color={palette.negative} />}
++                leftElement={<Ionicons name="refresh" size={18} color={palette.negative} />}
+                 label="Reset App"
+                 labelStyle={{ color: palette.negative }}
+                 value="Erase everything"
+@@ -307,7 +307,7 @@ export default function SettingsScreen() {
+               <ChoiceRow
+                 key={theme.key}
+                 title={theme.label}
+-                leftElement={<Feather name={themeIcon(theme.key)} size={18} color={settings.theme === theme.key ? palette.tabActive : palette.textMuted} />}
++                leftElement={<Ionicons name={themeIcon(theme.key)} size={18} color={settings.theme === theme.key ? palette.tabActive : palette.textMuted} />}
+                 selected={settings.theme === theme.key}
+                 palette={palette}
+                 onPress={() => {
+@@ -359,8 +359,8 @@ function capitalize(value: string) {
+   return value.charAt(0).toUpperCase() + value.slice(1);
+ }
+ 
+-function themeIcon(theme: (typeof THEMES)[number]['key']): keyof typeof Feather.glyphMap {
+-  if (theme === 'light') return 'sun';
+-  if (theme === 'dark') return 'moon';
+-  return 'monitor';
++function themeIcon(theme: (typeof THEMES)[number]['key']): keyof typeof Ionicons.glyphMap {
++  if (theme === 'light') return 'sunny-outline';
++  if (theme === 'dark') return 'moon-outline';
++  return 'phone-portrait-outline';
+ }
+diff --git a/app/budget/[id].tsx b/app/budget/[id].tsx
+index 5923405..1ca8a08 100644
+--- a/app/budget/[id].tsx
++++ b/app/budget/[id].tsx
+@@ -1,4 +1,4 @@
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { useIsFocused } from '@react-navigation/native';
+ import { useLocalSearchParams, router } from 'expo-router';
+ import { useEffect, useMemo, useState } from 'react';
+@@ -96,7 +96,7 @@ export default function BudgetDetailScreen() {
+     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
+       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12 }}>
+         <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
+-          <Feather name="arrow-left" size={24} color={palette.text} />
++          <Ionicons name="arrow-back" size={24} color={palette.text} />
+         </TouchableOpacity>
+         <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }} numberOfLines={1}>
+           {getCategoryFullDisplayName(budget.categoryId, ' › ')}
+diff --git a/app/chart-prototype.tsx b/app/chart-prototype.tsx
+index e9fb3a2..e520816 100644
+--- a/app/chart-prototype.tsx
++++ b/app/chart-prototype.tsx
+@@ -6,7 +6,6 @@ import {
+   StyleSheet,
+   Text,
+   TouchableOpacity,
+-  useColorScheme,
+   View,
+ } from 'react-native';
+ import Svg, { G, Path } from 'react-native-svg';
+@@ -127,18 +126,18 @@ const data: Record<Mode, { title: string; subtitle: string; nodes: ChartNode[];
+       { id: 'e6', categoryId: 'fuel', title: 'Shell', amount: 3200, date: 'Apr 11, 7:30 PM', account: 'Credit Card' },
+       { id: 'e7', categoryId: 'bills', title: 'Electricity', amount: 4100, date: 'Apr 10, 9:00 AM', account: 'HDFC' },
+       { id: 'e8', categoryId: 'shopping', title: 'Uniqlo', amount: 5200, date: 'Apr 8, 6:18 PM', account: 'Credit Card' },
+-      { id: 'e9', categoryId: 'health', title: 'Pharmacy', amount: 940, date: 'Apr 7, 12:30 PM', account: 'HDFC' },
+-      { id: 'e10', categoryId: 'rent', title: 'Apartment rent', amount: 42000, date: 'Apr 5, 10:00 AM', account: 'HDFC' },
+-      { id: 'e11', categoryId: 'movies', title: 'PVR', amount: 880, date: 'Apr 6, 8:20 PM', account: 'Credit Card' },
+-      { id: 'e12', categoryId: 'music', title: 'Spotify', amount: 119, date: 'Apr 2, 7:10 AM', account: 'Credit Card' },
+-      { id: 'e13', categoryId: 'course', title: 'Design course', amount: 3700, date: 'Apr 9, 1:40 PM', account: 'HDFC' },
+-      { id: 'e14', categoryId: 'books', title: 'Kindle book', amount: 499, date: 'Apr 12, 5:42 PM', account: 'Wallet' },
+-      { id: 'e15', categoryId: 'gym', title: 'Cult membership', amount: 2200, date: 'Apr 1, 6:00 AM', account: 'Credit Card' },
+-      { id: 'e16', categoryId: 'sport', title: 'Badminton court', amount: 640, date: 'Apr 18, 7:30 PM', account: 'UPI' },
++      { id: 'e9', categoryId: 'health', title: 'Pharmacy', amount: 2940, date: 'Apr 7, 12:30 PM', account: 'HDFC' },
++      { id: 'e10', categoryId: 'rent', title: 'Apartment rent', amount: 7800, date: 'Apr 5, 10:00 AM', account: 'HDFC' },
++      { id: 'e11', categoryId: 'movies', title: 'PVR', amount: 3800, date: 'Apr 6, 8:20 PM', account: 'Credit Card' },
++      { id: 'e12', categoryId: 'music', title: 'Spotify', amount: 2100, date: 'Apr 2, 7:10 AM', account: 'Credit Card' },
++      { id: 'e13', categoryId: 'course', title: 'Design course', amount: 4600, date: 'Apr 9, 1:40 PM', account: 'HDFC' },
++      { id: 'e14', categoryId: 'books', title: 'Kindle book', amount: 1800, date: 'Apr 12, 5:42 PM', account: 'Wallet' },
++      { id: 'e15', categoryId: 'gym', title: 'Cult membership', amount: 3200, date: 'Apr 1, 6:00 AM', account: 'Credit Card' },
++      { id: 'e16', categoryId: 'sport', title: 'Badminton court', amount: 1600, date: 'Apr 18, 7:30 PM', account: 'UPI' },
+       { id: 'e17', categoryId: 'gifts', title: 'Birthday gift', amount: 3100, date: 'Apr 19, 2:10 PM', account: 'HDFC' },
+-      { id: 'e18', categoryId: 'saas', title: 'Notion', amount: 830, date: 'Apr 20, 9:00 AM', account: 'Credit Card' },
+-      { id: 'e19', categoryId: 'streaming', title: 'Netflix', amount: 649, date: 'Apr 21, 9:00 AM', account: 'Credit Card' },
+-      { id: 'e20', categoryId: 'personal-care', title: 'Haircut', amount: 700, date: 'Apr 22, 11:30 AM', account: 'Cash' },
++      { id: 'e18', categoryId: 'saas', title: 'Notion', amount: 1830, date: 'Apr 20, 9:00 AM', account: 'Credit Card' },
++      { id: 'e19', categoryId: 'streaming', title: 'Netflix', amount: 949, date: 'Apr 21, 9:00 AM', account: 'Credit Card' },
++      { id: 'e20', categoryId: 'personal-care', title: 'Haircut', amount: 2700, date: 'Apr 22, 11:30 AM', account: 'Cash' },
+       { id: 'e21', categoryId: 'charity', title: 'Donation', amount: 1500, date: 'Apr 23, 8:05 PM', account: 'UPI' },
+     ],
+   },
+@@ -214,31 +213,60 @@ function buildSlices(nodes: ChartNode[], transactions: Tx[]): ChartSlice[] {
+ }
+ 
+ export default function ChartPrototypeScreen() {
+-  const scheme = useColorScheme();
+-  const dark = scheme === 'dark';
+-  const theme = dark ? darkTheme : lightTheme;
++  const theme = lightTheme;
+   const [mode, setMode] = useState<Mode>('expense');
+   const current = data[mode];
+-  const slices = useMemo(() => buildSlices(current.nodes, current.transactions), [current.nodes, current.transactions]);
+-  const [selectedId, setSelectedId] = useState(() => slices[0]?.id ?? '');
+-  const selected = slices.find((slice) => slice.id === selectedId) ?? slices[0];
+-  const selectedNode = current.nodes.find((node) => node.id === selected?.id);
+-  const selectedIds = selectedNode ? new Set(collectIds(selectedNode)) : new Set<string>();
+-  const selectedTransactions = current.transactions.filter((tx) => selectedIds.has(tx.categoryId));
+-  const childSlices = useMemo(
+-    () => (selectedNode?.children?.length ? buildSlices(selectedNode.children, current.transactions) : []),
+-    [current.transactions, selectedNode],
++  const parentSlices = useMemo(
++    () => buildSlices(current.nodes, current.transactions),
++    [current.nodes, current.transactions],
+   );
+-  const total = slices.reduce((sum, slice) => sum + slice.amount, 0);
++  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
++  const [drillParentId, setDrillParentId] = useState<string | null>(null);
++  const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
++  const selectedParent = selectedParentId ? current.nodes.find((node) => node.id === selectedParentId) ?? null : null;
++  const selectedParentSlice = selectedParentId ? parentSlices.find((slice) => slice.id === selectedParentId) ?? null : null;
++  const subSlices = useMemo(
++    () => (drillParentId && selectedParent ? buildSlices(selectedParent.children ?? [], current.transactions) : []),
++    [current.transactions, drillParentId, selectedParent],
++  );
++  const selectedSubNode = drillParentId
++    ? selectedParent?.children?.find((node) => node.id === selectedSubId) ?? null
++    : null;
++  const selectedNode = selectedSubNode ?? (drillParentId ? selectedParent : null);
++  const selectedIds = selectedNode ? new Set(collectIds(selectedNode)) : null;
++  const selectedTransactions = selectedIds
++    ? current.transactions.filter((tx) => selectedIds.has(tx.categoryId))
++    : current.transactions;
++  const total = parentSlices.reduce((sum, slice) => sum + slice.amount, 0);
++  const drillToParent = (parentId: string) => {
++    const target = current.nodes.find((node) => node.id === parentId);
++    if (!target) return;
++    setSelectedParentId(parentId);
++    setDrillParentId(parentId);
++    setSelectedSubId(null);
++  };
+ 
+   const selectSlice = (id: string) => {
+-    setSelectedId(id);
++    if (drillParentId && selectedParentId === id) {
++      goUpToParents();
++      return;
++    }
++    drillToParent(id);
++  };
++
++  const goUpToParents = () => {
++    setDrillParentId(null);
++    setSelectedSubId(null);
++    setSelectedParentId(null);
+   };
+ 
++  const chartSelectedId = drillParentId && selectedParentSlice ? selectedParentSlice.id : undefined;
++
+   const switchMode = (next: Mode) => {
+     setMode(next);
+-    const nextSlices = buildSlices(data[next].nodes, data[next].transactions);
+-    setSelectedId(nextSlices[0]?.id ?? '');
++    setSelectedParentId(null);
++    setDrillParentId(null);
++    setSelectedSubId(null);
+   };
+ 
+   return (
+@@ -256,91 +284,143 @@ export default function ChartPrototypeScreen() {
+         <Text style={[styles.title, { color: theme.text }]}>Category flow</Text>
+         <Text style={[styles.subtitle, { color: theme.muted }]}>Tap a slice for subcategories and matching transactions</Text>
+ 
+-        <View style={[styles.switcher, { backgroundColor: theme.surface }]}>
+-          {(['expense', 'income'] as const).map((item) => {
+-            const active = mode === item;
+-            return (
+-              <Pressable key={item} onPress={() => switchMode(item)} style={[styles.switchOption, active && { backgroundColor: theme.text }]}>
+-                <Text style={[styles.switchText, { color: active ? theme.bg : theme.muted }]}>
+-                  {item === 'expense' ? 'Expenses' : 'Income'}
+-                </Text>
+-              </Pressable>
+-            );
+-          })}
+-        </View>
+-
+         <View style={[styles.chartPanel, { backgroundColor: theme.card, shadowColor: theme.shadow }]}>
+-          <View style={styles.panelHeader}>
+-            <View>
+-              <Text style={[styles.panelTitle, { color: theme.text }]}>{current.title}</Text>
+-              <Text style={[styles.panelSub, { color: theme.muted }]}>{current.subtitle} · {formatMoney(total)}</Text>
+-            </View>
++          <View style={[styles.switcher, { backgroundColor: theme.surface, borderColor: theme.border }]}>
++            {(['expense', 'income'] as const).map((item) => {
++              const active = mode === item;
++              return (
++                <Pressable
++                  key={item}
++                  onPress={() => switchMode(item)}
++                  style={[
++                    styles.switchOption,
++                    active && { backgroundColor: theme.inputBg, borderColor: theme.border },
++                  ]}
++                >
++                  <Text style={[styles.switchText, { color: active ? theme.text : theme.muted, fontWeight: active ? '700' : '600' }]}>
++                    {item === 'expense' ? 'Expense' : 'Income'}
++                  </Text>
++                </Pressable>
++              );
++            })}
+           </View>
+ 
+           <View style={styles.chartWrap}>
+-            <DonutChart slices={slices} selectedId={selected?.id} theme={theme} onSelect={selectSlice} />
++            <DonutChart slices={parentSlices} selectedId={chartSelectedId} theme={theme} onSelect={selectSlice} />
+             <View pointerEvents="none" style={styles.centerLabel}>
+-              <Text style={styles.centerIcon}>{selected?.icon}</Text>
+-              <Text style={[styles.centerAmount, { color: theme.text }]}>{formatMoney(selected?.amount ?? total)}</Text>
+-              <Text style={[styles.centerMeta, { color: theme.muted }]}>{Math.round((selected?.percent ?? 1) * 100)}% of total</Text>
++              <Text style={styles.centerIcon}>{drillParentId && selectedParentSlice ? selectedParentSlice.icon : '◎'}</Text>
++              <Text numberOfLines={1} style={[styles.centerName, { color: theme.text }]}>
++                {drillParentId && selectedParentSlice ? selectedParentSlice.label : 'All'}
++              </Text>
++              <Text style={[styles.centerAmount, { color: theme.text }]}>
++                {formatMoney(drillParentId && selectedParentSlice ? selectedParentSlice.amount : total)}
++              </Text>
++              <Text style={[styles.centerMeta, { color: theme.muted }]}>
++                {drillParentId && selectedParentSlice
++                  ? `${Math.round(selectedParentSlice.percent * 100)}% of total`
++                  : '100% of total'}
++              </Text>
+             </View>
+           </View>
+ 
+-          <View style={styles.legend}>
+-            {slices.map((slice) => {
+-              const active = slice.id === selected?.id;
+-              return (
+-                <TouchableOpacity
+-                  key={slice.id}
+-                  activeOpacity={0.8}
+-                  onPress={() => selectSlice(slice.id)}
+-                  style={[
+-                    styles.legendRow,
+-                    { backgroundColor: active ? theme.surfaceStrong : 'transparent', borderColor: active ? theme.border : 'transparent' },
+-                  ]}
+-                >
+-                  <View style={[styles.legendDot, { backgroundColor: slice.color }]} />
+-                  <Text numberOfLines={1} style={[styles.legendName, { color: theme.text }]}>{slice.label}</Text>
+-                  <Text style={[styles.legendValue, { color: theme.muted }]}>{formatMoney(slice.amount)}</Text>
++          <View style={[styles.breadcrumbRow, { backgroundColor: theme.surface }]}>
++            {drillParentId ? (
++              <>
++                <TouchableOpacity onPress={goUpToParents} activeOpacity={0.8}>
++                  <Text style={[styles.breadcrumbLink, { color: theme.accent }]}>All</Text>
+                 </TouchableOpacity>
+-              );
+-            })}
++                <Text style={[styles.breadcrumbSep, { color: theme.muted }]}>/</Text>
++                <Text numberOfLines={1} style={[styles.breadcrumbCurrent, { color: theme.text }]}>
++                  {selectedParent?.icon} {selectedParent?.label}
++                </Text>
++              </>
++            ) : (
++              <Text numberOfLines={1} style={[styles.breadcrumbCurrent, { color: theme.text }]}>All</Text>
++            )}
++            <View style={[styles.breadcrumbMeta, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
++              <Text style={[styles.breadcrumbMetaText, { color: theme.text }]}>
++                {drillParentId
++                  ? `${formatMoney(selectedParentSlice?.amount ?? 0)} · ${Math.round((selectedParentSlice?.percent ?? 0) * 100)}%`
++                  : `${formatMoney(total)} · 100%`}
++              </Text>
++            </View>
+           </View>
+ 
+-          <View style={[styles.splitPanel, { backgroundColor: theme.surface }]}>
+-            <View style={styles.splitHeader}>
+-              <View>
+-                <Text style={[styles.splitTitle, { color: theme.text }]}>Subcategory split</Text>
+-                <Text style={[styles.splitSub, { color: theme.muted }]}>{selected?.label ?? 'Selected category'}</Text>
+-              </View>
+-              <Text style={[styles.splitTotal, { color: selected?.color ?? theme.accent }]}>{formatMoney(selected?.amount ?? 0)}</Text>
+-            </View>
+-            {childSlices.length ? (
++          <View style={styles.listSection}>
++            {drillParentId ? (
+               <View style={styles.splitRows}>
+-                {childSlices.map((slice) => (
+-                  <View key={slice.id} style={styles.splitRow}>
+-                    <View style={styles.splitRowTop}>
+-                      <Text numberOfLines={1} style={[styles.splitName, { color: theme.text }]}>
++                {subSlices.length ? (
++                  subSlices.map((slice) => {
++                    const isActive = slice.id === selectedSubNode?.id;
++                    return (
++                      <View key={slice.id} style={styles.splitRow}>
++                        <TouchableOpacity
++                          activeOpacity={0.8}
++                          onPress={() => setSelectedSubId(isActive ? null : slice.id)}
++                          style={[
++                            styles.splitRowTop,
++                            {
++                              backgroundColor: isActive ? theme.surfaceStrong : 'transparent',
++                              borderColor: isActive ? theme.border : 'transparent',
++                            },
++                          ]}
++                        >
++                          <Text numberOfLines={1} style={[styles.splitName, { color: theme.ink }]}>
++                            {slice.icon} {slice.label}
++                          </Text>
++                          <Text style={[styles.splitValue, { color: theme.muted }]}>
++                            {formatMoney(slice.amount)} · {Math.round(slice.percent * 100)}%
++                          </Text>
++                        </TouchableOpacity>
++                        <View style={[styles.progressTrack, { backgroundColor: theme.progressTrack }]}>
++                          <View style={[styles.progressFill, { backgroundColor: slice.color, width: `${Math.max(7, slice.percent * 100)}%` }]} />
++                        </View>
++                      </View>
++                    );
++                  })
++                ) : (
++                  <Text style={[styles.noSplitText, { color: theme.muted }]}>No subcategories available for this category.</Text>
++                )}
++              </View>
++            ) : (
++              <View style={styles.categoryList}>
++                {parentSlices.map((slice) => {
++                  const isActive = false;
++                  return (
++                    <TouchableOpacity
++                      key={slice.id}
++                      activeOpacity={0.8}
++                      onPress={() => drillToParent(slice.id)}
++                      style={[
++                        styles.categoryRow,
++                        {
++                          backgroundColor: isActive ? theme.surfaceStrong : 'transparent',
++                          borderColor: isActive ? theme.border : 'transparent',
++                        },
++                      ]}
++                    >
++                      <Text numberOfLines={1} style={[styles.splitName, { color: theme.ink }]}>
+                         {slice.icon} {slice.label}
+                       </Text>
+-                      <Text style={[styles.splitValue, { color: theme.muted }]}>{formatMoney(slice.amount)}</Text>
+-                    </View>
+-                    <View style={[styles.progressTrack, { backgroundColor: theme.progressTrack }]}>
+-                      <View style={[styles.progressFill, { backgroundColor: slice.color, width: `${Math.max(7, slice.percent * 100)}%` }]} />
+-                    </View>
+-                  </View>
+-                ))}
++                      <Text style={[styles.splitValue, { color: theme.muted }]}>
++                        {formatMoney(slice.amount)} · {Math.round(slice.percent * 100)}%
++                      </Text>
++                    </TouchableOpacity>
++                  );
++                })}
+               </View>
+-            ) : (
+-              <Text style={[styles.noSplitText, { color: theme.muted }]}>No subcategories yet. Transactions roll up directly here.</Text>
+             )}
+           </View>
+         </View>
+ 
+         <View style={styles.transactionsHeader}>
+           <View>
+-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Relevant transactions</Text>
+-            <Text style={[styles.sectionSub, { color: theme.muted }]}>{selected?.label ?? 'Selected category'}</Text>
++            <Text style={[styles.sectionTitle, { color: theme.text }]}>Transactions</Text>
++            <Text style={[styles.sectionSub, { color: theme.muted }]}>
++              {drillParentId
++                ? `All / ${selectedParent?.label ?? ''}${selectedSubNode ? ` / ${selectedSubNode.label}` : ''}`
++                : 'All'}
++            </Text>
+           </View>
+           <Text style={[styles.countBadge, { color: theme.text, backgroundColor: theme.surface }]}>{selectedTransactions.length}</Text>
+         </View>
+@@ -389,16 +469,19 @@ function DonutChart({
+           const active = slice.id === selectedId;
+           const outer = active ? 126 : 116;
+           const inner = active ? 73 : 80;
++          const visiblePath = donutPath(cx, cy, outer, inner, start, Math.max(start + 1, end));
++          const touchPath = donutPath(cx, cy, 143, 46, start, Math.max(start + 1, end));
+           return (
+-            <Path
+-              key={slice.id}
+-              d={donutPath(cx, cy, outer, inner, start, Math.max(start + 1, end))}
+-              fill={slice.color}
+-              opacity={active ? 1 : 0.72}
+-              stroke={theme.bg}
+-              strokeWidth={active ? 4 : 2}
+-              onPress={() => onSelect(slice.id)}
+-            />
++            <G key={slice.id} onPress={() => onSelect(slice.id)} onPressIn={() => onSelect(slice.id)}>
++              <Path d={touchPath} fill={theme.bg} opacity={0.01} />
++              <Path
++                d={visiblePath}
++                fill={slice.color}
++                opacity={active ? 1 : 0.72}
++                stroke={theme.bg}
++                strokeWidth={active ? 4 : 2}
++              />
++            </G>
+           );
+         })}
+       </G>
+@@ -411,27 +494,16 @@ const lightTheme = {
+   card: '#FFFFFF',
+   surface: '#EEF2F8',
+   surfaceStrong: '#F2F5FA',
++  inputBg: '#FFFFFF',
+   progressTrack: '#DDE4F0',
+   border: '#DFE5EF',
+   text: '#15213E',
++  ink: '#111111',
+   muted: '#7C8498',
+   accent: '#2457FF',
+   shadow: '#1C2744',
+ };
+ 
+-const darkTheme = {
+-  bg: '#080A12',
+-  card: '#111521',
+-  surface: '#1A2030',
+-  surfaceStrong: '#20283A',
+-  progressTrack: '#2A3244',
+-  border: '#2A3244',
+-  text: '#F3F6FF',
+-  muted: '#949DB3',
+-  accent: '#8FB1FF',
+-  shadow: '#000000',
+-};
+-
+ const styles = StyleSheet.create({
+   screen: { flex: 1 },
+   content: { paddingHorizontal: 10, paddingTop: 10, paddingBottom: 44 },
+@@ -442,9 +514,26 @@ const styles = StyleSheet.create({
+   periodText: { fontSize: 13, fontWeight: '800', letterSpacing: 0.2 },
+   title: { fontSize: 36, fontWeight: '900', letterSpacing: -0.5 },
+   subtitle: { fontSize: 16, fontWeight: '600', lineHeight: 22, marginTop: 8, marginBottom: 22 },
+-  switcher: { flexDirection: 'row', borderRadius: 22, padding: 5, marginBottom: 18 },
+-  switchOption: { flex: 1, minHeight: 46, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+-  switchText: { fontSize: 15, fontWeight: '800' },
++  switcher: {
++    flexDirection: 'row',
++    borderRadius: 22,
++    padding: 3,
++    marginBottom: 10,
++    width: 170,
++    borderWidth: 1,
++    overflow: 'hidden',
++    alignSelf: 'flex-start',
++  },
++  switchOption: {
++    flex: 1,
++    minHeight: 36,
++    borderRadius: 18,
++    alignItems: 'center',
++    justifyContent: 'center',
++    borderWidth: 1,
++    borderColor: 'transparent',
++  },
++  switchText: { fontSize: 12, textAlign: 'center' },
+   chartPanel: {
+     borderRadius: 30,
+     padding: 14,
+@@ -453,39 +542,63 @@ const styles = StyleSheet.create({
+     shadowOffset: { width: 0, height: 14 },
+     elevation: 4,
+   },
+-  panelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
+-  panelTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.2 },
+-  panelSub: { fontSize: 14, fontWeight: '700', marginTop: 3 },
+   chartWrap: { height: 310, alignItems: 'center', justifyContent: 'center' },
+   centerLabel: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+   centerIcon: { fontSize: 30, marginBottom: 4 },
+-  centerAmount: { fontSize: 25, fontWeight: '900', letterSpacing: -0.3 },
+-  centerMeta: { fontSize: 12, fontWeight: '800', marginTop: 3 },
+-  legend: { gap: 6, marginTop: 2 },
+-  legendRow: {
+-    minHeight: 46,
++  centerName: { maxWidth: 130, fontSize: 12, fontWeight: '800', marginBottom: 2, textAlign: 'center' },
++  centerAmount: { fontSize: 24, fontWeight: '900', letterSpacing: -0.3 },
++  centerMeta: { fontSize: 11.5, fontWeight: '800', marginTop: 2 },
++  listSection: { marginTop: 12 },
++  categoryList: { gap: 6 },
++  categoryRow: {
++    minHeight: 44,
+     borderRadius: 16,
+     borderWidth: 1,
++    borderColor: 'transparent',
+     paddingHorizontal: 12,
+     flexDirection: 'row',
+     alignItems: 'center',
++    justifyContent: 'space-between',
++    gap: 12,
+   },
+-  legendDot: { width: 11, height: 11, borderRadius: 6, marginRight: 10 },
+-  legendName: { flex: 1, fontSize: 14, fontWeight: '800' },
+-  legendValue: { fontSize: 13, fontWeight: '800' },
+-  splitPanel: { borderRadius: 22, marginTop: 14, padding: 14 },
+-  splitHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+-  splitTitle: { fontSize: 16, fontWeight: '900' },
+-  splitSub: { fontSize: 12.5, fontWeight: '800', marginTop: 2 },
+-  splitTotal: { fontSize: 16, fontWeight: '900' },
+-  splitRows: { gap: 12, marginTop: 14 },
+-  splitRow: { gap: 7 },
+-  splitRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+-  splitName: { flex: 1, fontSize: 13.5, fontWeight: '900' },
+-  splitValue: { fontSize: 12.5, fontWeight: '900' },
++  splitRows: { gap: 10, marginTop: 6 },
++  splitRow: { gap: 6 },
++  splitRowTop: {
++    minHeight: 44,
++    borderRadius: 14,
++    borderWidth: 1,
++    borderColor: 'transparent',
++    paddingHorizontal: 10,
++    flexDirection: 'row',
++    alignItems: 'center',
++    justifyContent: 'space-between',
++    gap: 12,
++  },
++  splitName: { flex: 1, fontSize: 15, fontWeight: '400' },
++  splitValue: { fontSize: 13, fontWeight: '800' },
+   progressTrack: { height: 9, borderRadius: 999, overflow: 'hidden' },
+   progressFill: { height: 9, borderRadius: 999 },
+   noSplitText: { fontSize: 13, fontWeight: '700', lineHeight: 19, marginTop: 12 },
++  breadcrumbRow: {
++    marginTop: 8,
++    marginBottom: 4,
++    borderRadius: 999,
++    paddingHorizontal: 10,
++    paddingVertical: 10,
++    flexDirection: 'row',
++    alignItems: 'center',
++    gap: 6,
++  },
++  breadcrumbLink: { fontSize: 12.5, fontWeight: '800' },
++  breadcrumbSep: { fontSize: 12, fontWeight: '700' },
++  breadcrumbCurrent: { flex: 1, fontSize: 13, fontWeight: '700' },
++  breadcrumbMeta: {
++    borderWidth: 1,
++    borderRadius: 999,
++    paddingHorizontal: 8,
++    paddingVertical: 3,
++  },
++  breadcrumbMetaText: { fontSize: 11.5, fontWeight: '800' },
+   transactionsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 12 },
+   sectionTitle: { fontSize: 22, fontWeight: '900' },
+   sectionSub: { fontSize: 14, fontWeight: '700', marginTop: 2 },
+diff --git a/app/loan/[id].tsx b/app/loan/[id].tsx
+index e46fa9a..da250b5 100644
+--- a/app/loan/[id].tsx
++++ b/app/loan/[id].tsx
+@@ -1,5 +1,5 @@
+ import { Text } from '@/components/ui/AppText';
+-import { Feather, Ionicons } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { router, useLocalSearchParams } from 'expo-router';
+ import { useEffect, useMemo, useState } from 'react';
+ import {
+@@ -103,7 +103,7 @@ export default function LoanDetailScreen() {
+         }}
+       >
+         <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
+-          <Feather name="arrow-left" size={24} color={palette.text} />
++          <Ionicons name="arrow-back" size={24} color={palette.text} />
+         </TouchableOpacity>
+         <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>
+           {loan.personName}
+diff --git a/app/modals/add-transaction.tsx b/app/modals/add-transaction.tsx
+index 7503209..af601ce 100644
+--- a/app/modals/add-transaction.tsx
++++ b/app/modals/add-transaction.tsx
+@@ -804,7 +804,7 @@ export default function AddTransactionModal() {
+                 autoFocus
+                 editable={usableSplitRows.length === 0}
+               />
+-              <View style={{ paddingHorizontal: SCREEN_GUTTER, marginTop: -4, marginBottom: 2, alignItems: 'flex-end' }}>
++              <View style={{ paddingHorizontal: SCREEN_GUTTER, marginTop: -8, marginBottom: -6, alignItems: 'flex-end' }}>
+                 <TouchableOpacity delayPressIn={0}
+                   onPress={() =>
+                     runAfterKeyboardDismiss(() =>
+diff --git a/app/settings/_layout.tsx b/app/settings/_layout.tsx
+index 4f4fe07..4a0575a 100644
+--- a/app/settings/_layout.tsx
++++ b/app/settings/_layout.tsx
+@@ -1,4 +1,4 @@
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { router, Stack } from 'expo-router';
+ import { Text } from '@/components/ui/AppText';
+ import { TouchableOpacity, View } from 'react-native';
+@@ -31,7 +31,7 @@ export default function SettingsLayout() {
+                 onPress={() => router.back()}
+                 style={{ marginRight: SCREEN_HEADER.iconTitleGap }}
+               >
+-                <Feather name="arrow-left" size={24} color={palette.text} />
++                <Ionicons name="arrow-back" size={24} color={palette.text} />
+               </TouchableOpacity>
+               <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
+                 {options.title}
+diff --git a/app/settings/account-form.tsx b/app/settings/account-form.tsx
+index 12a2519..8138574 100644
+--- a/app/settings/account-form.tsx
++++ b/app/settings/account-form.tsx
+@@ -1,4 +1,4 @@
+-import { Feather, Ionicons } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { useLocalSearchParams, useRouter } from 'expo-router';
+ import { useEffect, useRef, useState } from 'react';
+ import { Platform, TextInput, View } from 'react-native';
+diff --git a/app/settings/accounts.tsx b/app/settings/accounts.tsx
+index fa9d1a3..b45f9c2 100644
+--- a/app/settings/accounts.tsx
++++ b/app/settings/accounts.tsx
+@@ -1,4 +1,4 @@
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { useRouter } from 'expo-router';
+ import { useEffect, useState } from 'react';
+ import { Text } from '@/components/ui/AppText';
+@@ -165,7 +165,7 @@ function AccountReorderRow({
+             justifyContent: 'center',
+           }}
+         >
+-          <Feather name="menu" size={18} color={palette.textSoft} />
++          <Ionicons name="menu-outline" size={18} color={palette.textSoft} />
+         </TouchableOpacity>
+         <TouchableOpacity
+           delayPressIn={0}
+@@ -196,7 +196,7 @@ function AccountReorderRow({
+               {getAccountTypeLabel(item.type)} · {formatDisplayCurrency(item.initialBalance, displaySymbol)}
+             </Text>
+           </View>
+-          <Feather name="chevron-right" size={18} color={palette.textSoft} />
++          <Ionicons name="chevron-forward" size={18} color={palette.textSoft} />
+         </TouchableOpacity>
+       </View>
+     </View>
+diff --git a/app/settings/categories.tsx b/app/settings/categories.tsx
+index fd6566a..788023e 100644
+--- a/app/settings/categories.tsx
++++ b/app/settings/categories.tsx
+@@ -1,4 +1,4 @@
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { useRouter } from 'expo-router';
+ import { useEffect, useMemo, useRef, useState } from 'react';
+ import { Text } from '@/components/ui/AppText';
+@@ -93,7 +93,7 @@ export default function CategoriesScreen() {
+                     borderBottomColor: palette.divider,
+                     gap: CATEGORY_TREE_ROW.rowGap }}
+                 >
+-                  <CategoryIconBadge icon={cat.icon ?? 'tag'} size={20} bgSize={40} palette={palette} />
++                  <CategoryIconBadge icon={cat.icon ?? 'pricetag-outline'} size={20} bgSize={40} palette={palette} />
+                   <Text
+                     style={{ flex: 1, fontSize: TYPE.rowLabel, fontWeight: '400', color: palette.text }}
+                     numberOfLines={1}
+@@ -118,9 +118,9 @@ export default function CategoriesScreen() {
+                       alignItems: 'center',
+                       justifyContent: 'center' }}
+                   >
+-                    <Feather name="edit-2" size={14} color={palette.iconTint} />
++                    <Ionicons name="create-outline" size={14} color={palette.iconTint} />
+                   </TouchableOpacity>
+-                  <Feather
++                  <Ionicons
+                     name={isOpen ? 'chevron-up' : 'chevron-down'}
+                     size={18}
+                     color={palette.textSoft}
+diff --git a/app/settings/category-form.tsx b/app/settings/category-form.tsx
+index e88d401..8825c1d 100644
+--- a/app/settings/category-form.tsx
++++ b/app/settings/category-form.tsx
+@@ -1,4 +1,4 @@
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { useLocalSearchParams, useRouter } from 'expo-router';
+ import { useEffect, useRef, useState } from 'react';
+ import { Text } from '@/components/ui/AppText';
+@@ -18,8 +18,9 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
+ import { useAppDialog } from '../../components/ui/useAppDialog';
+ import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
+ import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
+-import { CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
++import { CATEGORY_EMOJIS, CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
+ import { useAppTheme } from '../../lib/theme';
++import { isEmojiIcon } from '../../lib/ui-format';
+ import { useCategoriesStore } from '../../stores/useCategoriesStore';
+ 
+ type SubDraft = {
+@@ -57,6 +58,8 @@ export default function CategoryFormScreen() {
+   const hideTypePicker = !!typeParam || isEditing;
+   const [subs, setSubs] = useState<SubDraft[]>([]);
+   const [showIconPicker, setShowIconPicker] = useState(false);
++  const [iconPickerTab, setIconPickerTab] = useState<'icons' | 'emojis'>('icons');
++  const [customEmoji, setCustomEmoji] = useState('');
+   const [showTypePicker, setShowTypePicker] = useState(false);
+   const formScrollRef = useRef<ScrollView | null>(null);
+ 
+@@ -268,7 +271,7 @@ export default function CategoryFormScreen() {
+                   activeOpacity={0.7}
+                   style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                 >
+-                  <Feather name="plus" size={14} color={palette.brand} />
++                  <Ionicons name="add" size={14} color={palette.brand} />
+                   <Text
+                     appWeight="medium"
+                     style={{
+@@ -315,7 +318,7 @@ export default function CategoryFormScreen() {
+                       palette={palette}
+                       hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                     >
+-                      <Feather name="trash-2" size={18} color={palette.negative} />
++                      <Ionicons name="trash-outline" size={18} color={palette.negative} />
+                     </IconBtn>
+                   </View>
+                 ))}
+@@ -355,11 +358,53 @@ export default function CategoryFormScreen() {
+           onClose={() => setShowIconPicker(false)}
+         >
+           <View style={{ padding: SPACING.md }}>
++            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
++              {(['icons', 'emojis'] as const).map((tab) => {
++                const selected = iconPickerTab === tab;
++                return (
++                  <TouchableOpacity
++                    delayPressIn={0}
++                    key={tab}
++                    onPress={() => setIconPickerTab(tab)}
++                    style={{
++                      flex: 1,
++                      minHeight: 38,
++                      borderRadius: 12,
++                      alignItems: 'center',
++                      justifyContent: 'center',
++                      borderWidth: 1,
++                      borderColor: selected ? palette.tabActive : palette.border,
++                      backgroundColor: selected ? palette.brandSoft : palette.surface,
++                    }}
++                  >
++                    <Text appWeight="medium" style={{ fontSize: TYPE.body, fontWeight: '700', color: selected ? palette.tabActive : palette.textMuted }}>
++                      {tab === 'icons' ? 'Icons' : 'Emojis'}
++                    </Text>
++                  </TouchableOpacity>
++                );
++              })}
++            </View>
++            {iconPickerTab === 'emojis' ? (
++              <View style={{ marginBottom: 12 }}>
++                <InputField
++                  palette={palette}
++                  value={customEmoji}
++                  onChangeText={(value) => {
++                    setCustomEmoji(value);
++                    const nextEmoji = value.trim();
++                    if (nextEmoji) setIcon(nextEmoji);
++                  }}
++                  placeholder={isEmojiIcon(icon) ? icon : 'Emoji'}
++                  autoCapitalize="none"
++                />
++              </View>
++            ) : null}
+             <IconGrid
+-              icons={CATEGORY_ICONS}
++              icons={iconPickerTab === 'icons' ? CATEGORY_ICONS : CATEGORY_EMOJIS}
+               selectedIcon={icon}
+               onSelect={(ic) => {
+                 setIcon(ic);
++                if (isEmojiIcon(ic)) setCustomEmoji(ic);
+                 setShowIconPicker(false);
+               }}
+               palette={palette}
+diff --git a/app/settings/reset.tsx b/app/settings/reset.tsx
+index bebe22f..c4e3a44 100644
+--- a/app/settings/reset.tsx
++++ b/app/settings/reset.tsx
+@@ -1,5 +1,5 @@
+ import { Text } from '@/components/ui/AppText';
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { router } from 'expo-router';
+ import React, { useState } from 'react';
+ import {
+@@ -153,7 +153,7 @@ export default function ResetScreen() {
+                 <ActivityIndicator color={palette.onBrand} />
+               ) : (
+                 <>
+-                  <Feather name="refresh-cw" size={18} color={canReset ? palette.onBrand : palette.textMuted} />
++                  <Ionicons name="refresh" size={18} color={canReset ? palette.onBrand : palette.textMuted} />
+                   <Text
+                     style={{
+                       color: canReset ? palette.onBrand : palette.textMuted,
+diff --git a/app/settings/tags.tsx b/app/settings/tags.tsx
+index daafb21..adf1ce1 100644
+--- a/app/settings/tags.tsx
++++ b/app/settings/tags.tsx
+@@ -45,7 +45,7 @@ export default function TagsScreen() {
+         {tags.map((tag, index) => (
+           <SettingsRow
+             key={tag.id}
+-            icon="tag"
++            icon="pricetag-outline"
+             label={tag.name}
+             palette={palette}
+             labelStyle={{ fontSize: TYPE.rowLabel, fontWeight: '400' }}
+diff --git a/components/TransactionListItem.tsx b/components/TransactionListItem.tsx
+index 4b4ccfc..35b157b 100644
+--- a/components/TransactionListItem.tsx
++++ b/components/TransactionListItem.tsx
+@@ -1,8 +1,7 @@
+-import { Feather, Ionicons } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import React from 'react';
+ import { Text } from '@/components/ui/AppText';
+ import { View } from 'react-native';
+-import { router } from 'expo-router';
+ import { formatCurrency, getLoanDisplayLabel, getLoanTransactionUserNote, getTransactionCashflowImpact } from '../lib/derived';
+ import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, getTxTypeConfig } from '../lib/layoutTokens';
+ import { isEmojiIcon } from '../lib/ui-format';
+@@ -68,7 +67,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
+   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' \u2022 ');
+   let noteLine: string | undefined;
+   const hasReceipt = (tx.receiptImageUris?.length ?? 0) > 0;
+-  const categoryParts = splitCategoryName(categoryName);
++  const shouldAllowCategoryWrap = !!categoryName?.includes(' › ');
+ 
+   // specialized Title/Subtitle based on type
+   if (tx.transferPairId && linkedAccountName) {
+@@ -84,13 +83,8 @@ export const TransactionListItem = React.memo(function TransactionListItem({
+     subtitle = [accountNameSelected, loanPersonName].filter(Boolean).join(' \u2022 ');
+     noteLine = getLoanTransactionUserNote(tx.note) || undefined;
+   } else if (tx.type === 'in' || tx.type === 'out') {
+-    if (categoryParts?.parentName) {
+-      title = categoryParts.parentName;
+-      titleSecondaryText = categoryParts.name;
+-    } else {
+-      title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
+-      titleSecondaryText = undefined;
+-    }
++    title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
++    titleSecondaryText = undefined;
+     subtitle = [accountNameSelected, tx.payee].filter(Boolean).join(' \u2022 ');
+     noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
+   }
+@@ -105,8 +99,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
+   const amountColor = useTypeAmountColor
+     ? (displayImpact === 'in' ? palette.brand : displayImpact === 'out' ? palette.negative : palette.text)
+     : palette.text;
+-  const metadataLine = undefined;
+-  const tertiaryLines = [metadataLine, tertiaryText, noteLine].filter((value): value is string => !!value);
++  const tertiaryLines = [tertiaryText, noteLine].filter((value): value is string => !!value);
+   const supportIcons = tx.splitGroupId || hasReceipt ? (
+     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
+       {tx.splitGroupId ? (
+@@ -121,7 +114,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
+   const iconName =
+     tx.type === 'loan'
+       ? 'card-outline'
+-      : inOutCategoryIcon && !isEmojiIcon(inOutCategoryIcon) && isKnownFeatherIcon(inOutCategoryIcon)
++      : inOutCategoryIcon && !isEmojiIcon(inOutCategoryIcon) && isKnownIonicon(inOutCategoryIcon)
+         ? inOutCategoryIcon
+         : cfg.iconName;
+ 
+@@ -131,8 +124,8 @@ export const TransactionListItem = React.memo(function TransactionListItem({
+       onPress={() => onPress && onPress(tx)}
+       icon={inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
+         <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
+-      ) : inOutCategoryIcon && isKnownFeatherIcon(inOutCategoryIcon) ? (
+-        <Feather
++      ) : inOutCategoryIcon && isKnownIonicon(inOutCategoryIcon) ? (
++        <Ionicons
+           name={inOutCategoryIcon as any}
+           size={Math.round(iconSize * 0.45)}
+           color={cfg.color}
+@@ -152,7 +145,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
+           amount={amountDisplay}
+           amountColor={amountColor}
+           palette={palette}
+-          onPressAmount={() => router.push({ pathname: '/modals/split-transaction', params: { id: tx.id } })}
++          titleNumberOfLines={shouldAllowCategoryWrap ? 2 : 1}
+         />
+       }
+       bottomRow={
+@@ -188,18 +181,8 @@ export const TransactionListItem = React.memo(function TransactionListItem({
+   );
+ });
+ 
+-function isKnownFeatherIcon(name: string): name is keyof typeof Feather.glyphMap {
+-  return name in Feather.glyphMap;
+-}
+-
+-function splitCategoryName(categoryName?: string): { name: string; parentName?: string } | undefined {
+-  if (!categoryName) return undefined;
+-  const parts = categoryName.split(' › ').map((part) => part.trim()).filter(Boolean);
+-  if (parts.length < 2) return { name: categoryName };
+-  return {
+-    parentName: parts.slice(0, -1).join(' › '),
+-    name: parts[parts.length - 1],
+-  };
++function isKnownIonicon(name: string): name is keyof typeof Ionicons.glyphMap {
++  return name in Ionicons.glyphMap;
+ }
+ 
+ function getAmountPrefix(amount: number, impact: 'in' | 'out' | 'neutral', showAmountSign: boolean) {
+diff --git a/components/activity/ActivityMoreFiltersSheet.tsx b/components/activity/ActivityMoreFiltersSheet.tsx
+index e540fc4..8dca316 100644
+--- a/components/activity/ActivityMoreFiltersSheet.tsx
++++ b/components/activity/ActivityMoreFiltersSheet.tsx
+@@ -1,4 +1,4 @@
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import React from 'react';
+ import { Text } from '@/components/ui/AppText';
+ import { StyleSheet, TextInput, View , TouchableOpacity } from 'react-native';
+@@ -267,7 +267,7 @@ function MoreCategoryRow({
+         </Text>
+       </View>
+       {hasChildren ? (
+-        <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} style={{ marginLeft: 8 }} />
++        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} style={{ marginLeft: 8 }} />
+       ) : (
+         <View style={{ width: 26 }} />
+       )}
+diff --git a/components/activity/ActivityUI.tsx b/components/activity/ActivityUI.tsx
+index 433381f..7bc7660 100644
+--- a/components/activity/ActivityUI.tsx
++++ b/components/activity/ActivityUI.tsx
+@@ -1,4 +1,4 @@
+-import { Feather, Ionicons } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import React from 'react';
+ import { Text } from '@/components/ui/AppText';
+ import { StyleSheet, View } from 'react-native';
+@@ -43,8 +43,8 @@ export function CategoryIconBadge({
+       ) : isEmoji ? (
+         <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{icon}</Text>
+       ) : (
+-        <Feather
+-          name={(icon ?? 'tag') as keyof typeof Feather.glyphMap}
++        <Ionicons
++          name={(icon ?? 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
+           size={iconSize}
+           color={iconColor ?? palette.iconTint}
+         />
+diff --git a/components/settings-ui.tsx b/components/settings-ui.tsx
+index c38619e..be82be9 100644
+--- a/components/settings-ui.tsx
++++ b/components/settings-ui.tsx
+@@ -1,10 +1,11 @@
+ import { Text } from '@/components/ui/AppText';
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { forwardRef, ReactNode, RefObject } from 'react';
+ import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+ import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
+ import type { AppThemePalette } from '../lib/theme';
++import { isEmojiIcon } from '../lib/ui-format';
+ import { FilledButton, TextButton } from './ui/AppButton';
+ 
+ export function ScreenTitle({
+@@ -86,7 +87,7 @@ export function SettingsRow({
+   subtitle,
+   labelStyle,
+   leftElement }: {
+-    icon?: keyof typeof Feather.glyphMap;
++    icon?: keyof typeof Ionicons.glyphMap;
+     label: string;
+     subtitle?: string;
+     labelStyle?: any;
+@@ -102,7 +103,7 @@ export function SettingsRow({
+       {leftElement ? (
+         leftElement
+       ) : icon ? (
+-        <Feather name={icon} size={18} color={palette.iconTint} />
++        <Ionicons name={icon} size={18} color={palette.iconTint} />
+       ) : null}
+       <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
+         <Text
+@@ -135,7 +136,7 @@ export function SettingsRow({
+           {value}
+         </Text>
+       ) : null}
+-      {onPress && !rightElement ? <Feather name="chevron-right" size={18} color={palette.textSoft} /> : null}
++      {onPress && !rightElement ? <Ionicons name="chevron-forward" size={18} color={palette.textSoft} /> : null}
+     </>
+   );
+ 
+@@ -231,7 +232,7 @@ export function ChoiceRow({
+             justifyContent: 'center'
+           }}
+         >
+-          <Feather name="check" size={13} color={palette.onBrand} />
++          <Ionicons name="checkmark" size={13} color={palette.onBrand} />
+         </View>
+       )}
+     </TouchableOpacity>
+@@ -398,7 +399,7 @@ export function SelectTrigger({
+         <Text style={{ color: valueLabel ? palette.text : palette.textSoft, fontSize: TYPE.rowLabel }}>
+           {valueLabel ?? placeholder}
+         </Text>
+-        <Feather name="chevron-down" size={20} color={palette.textSoft} />
++        <Ionicons name="chevron-down" size={20} color={palette.textSoft} />
+       </TouchableOpacity>
+     </View>
+   );
+@@ -465,6 +466,7 @@ export function IconGrid({
+     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+       {icons.map((icon) => {
+         const isSelected = selectedIcon === icon;
++        const isEmoji = isEmojiIcon(icon);
+         return (
+           <TouchableOpacity delayPressIn={0}
+             key={icon}
+@@ -481,11 +483,15 @@ export function IconGrid({
+               justifyContent: 'center'
+             }}
+           >
+-            <Feather
+-              name={icon as any}
+-              size={24}
+-              color={isSelected ? palette.tabActive : palette.iconTint}
+-            />
++            {isEmoji ? (
++              <Text style={{ fontSize: 24 }}>{icon}</Text>
++            ) : (
++              <Ionicons
++                name={icon as any}
++                size={24}
++                color={isSelected ? palette.tabActive : palette.iconTint}
++              />
++            )}
+           </TouchableOpacity>
+         );
+       })}
+diff --git a/components/ui/AppCard.tsx b/components/ui/AppCard.tsx
+index 764354a..ed7646c 100644
+--- a/components/ui/AppCard.tsx
++++ b/components/ui/AppCard.tsx
+@@ -95,6 +95,7 @@ interface CardTitleRowProps {
+   amountStyle?: StyleProp<TextStyle>;
+   secondarySeparator?: string;
+   onPressAmount?: () => void;
++  titleNumberOfLines?: number;
+ }
+ 
+ /** Standard Line 1 content: [Title › Secondary] [Amount] */
+@@ -108,6 +109,7 @@ export function CardTitleRow({
+   amountStyle,
+   onPressAmount,
+   secondarySeparator = ' \u203A ',
++  titleNumberOfLines = 1,
+ }: CardTitleRowProps) {
+   const amountContent = amount !== undefined ? (
+     <Text
+@@ -125,6 +127,7 @@ export function CardTitleRow({
+     <>
+       <Text
+         appWeight="medium"
++        numberOfLines={titleNumberOfLines}
+         style={[{ flex: 1, fontSize: CARD_TEXT.line1, color: palette.listText }, titleStyle]}
+       >
+         {title}
+diff --git a/components/ui/AppConfirmDialog.tsx b/components/ui/AppConfirmDialog.tsx
+index ba8596c..02d403b 100644
+--- a/components/ui/AppConfirmDialog.tsx
++++ b/components/ui/AppConfirmDialog.tsx
+@@ -1,5 +1,5 @@
+ import { Text } from '@/components/ui/AppText';
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { Modal, Pressable, View } from 'react-native';
+ import { TextButton } from './AppButton';
+ import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
+@@ -64,7 +64,7 @@ export function AppConfirmDialog({
+                 justifyContent: 'center',
+               }}
+             >
+-              <Feather name="alert-circle" size={16} color={confirm.destructive ? palette.negative : palette.brand} />
++              <Ionicons name="alert-circle-outline" size={16} color={confirm.destructive ? palette.negative : palette.brand} />
+             </View>
+             <Text appWeight="medium" style={{ flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text }}>
+               {title}
+diff --git a/components/ui/CategoryTreePicker.tsx b/components/ui/CategoryTreePicker.tsx
+index a6c1790..a9f50c5 100644
+--- a/components/ui/CategoryTreePicker.tsx
++++ b/components/ui/CategoryTreePicker.tsx
+@@ -1,4 +1,4 @@
+-import { Feather } from '@expo/vector-icons';
++import { Ionicons } from '@expo/vector-icons';
+ import { router } from 'expo-router';
+ import { Text } from '@/components/ui/AppText';
+ import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
+@@ -102,7 +102,7 @@ export function CategoryIconBadge({
+       {isEmojiIcon(icon) ? (
+         <Text style={{ fontSize: size }}>{icon}</Text>
+       ) : (
+-        <Feather name={icon as any} size={size} color={iconColor ?? palette.iconTint} />
++        <Ionicons name={icon as any} size={size} color={iconColor ?? palette.iconTint} />
+       )}
+     </View>
+   );
+@@ -141,7 +141,7 @@ export function CategoryTreePicker({
+       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
+         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
+           <TouchableOpacity delayPressIn={0} onPress={onBack} style={{ padding: 4, marginRight: 12 }}>
+-            <Feather name="arrow-left" size={24} color={palette.text} />
++            <Ionicons name="arrow-back" size={24} color={palette.text} />
+           </TouchableOpacity>
+           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, flex: 1 }}>
+             {title}
+@@ -243,7 +243,7 @@ export function CategorySearchBox({
+           borderWidth: 1,
+           borderColor: palette.divider }}
+       >
+-        <Feather name="search" size={16} color={palette.textMuted} />
++        <Ionicons name="search" size={16} color={palette.textMuted} />
+         <TextInput
+           value={search}
+           onChangeText={onSearchChange}
+@@ -307,12 +307,12 @@ export function CategoryTreeList({
+                       backgroundColor: selected ? palette.brandSoft : 'transparent',
+                       gap: CATEGORY_TREE_ROW.rowGap }}
+                   >
+-                    <CategoryIconBadge icon={parent.icon || 'tag'} palette={palette} />
++                    <CategoryIconBadge icon={parent.icon || 'pricetag-outline'} palette={palette} />
+                     <Text numberOfLines={1} style={{ fontSize: TYPE.rowLabel, fontWeight: '400', color: palette.text, flex: 1 }}>
+                       {parent.name}
+                     </Text>
+                     {hasChildren ? (
+-                      <Feather
++                      <Ionicons
+                         name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                         size={18}
+                         color={palette.textSoft}
+@@ -327,7 +327,7 @@ export function CategoryTreeList({
+                           alignItems: 'center',
+                           justifyContent: 'center' }}
+                       >
+-                        <Feather name="check" size={13} color={palette.onBrand} />
++                        <Ionicons name="checkmark" size={13} color={palette.onBrand} />
+                       </View>
+                     ) : null}
+                   </TouchableOpacity>
+@@ -367,7 +367,7 @@ export function CategoryTreeList({
+                                   alignItems: 'center',
+                                   justifyContent: 'center' }}
+                               >
+-                                <Feather name="check" size={13} color={palette.onBrand} />
++                                <Ionicons name="checkmark" size={13} color={palette.onBrand} />
+                               </View>
+                             ) : null}
+                           </TouchableOpacity>
+@@ -381,7 +381,7 @@ export function CategoryTreeList({
+           </CardSection>
+         ) : (
+           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+-            <Feather name="search" size={48} color={palette.divider} style={{ marginBottom: 12 }} />
++            <Ionicons name="search" size={48} color={palette.divider} style={{ marginBottom: 12 }} />
+             <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted }}>{emptyMessage}</Text>
+           </View>
+         )}
+diff --git a/components/ui/transaction-form-primitives.tsx b/components/ui/transaction-form-primitives.tsx
+index 8dc9bb8..5c8f214 100644
+--- a/components/ui/transaction-form-primitives.tsx
++++ b/components/ui/transaction-form-primitives.tsx
+@@ -407,7 +407,8 @@ export function AmountRow({
+             flex: 1,
+             minWidth: 0,
+             flexDirection: 'row',
+-            alignItems: 'center' }}
++            alignItems: 'center',
++            position: 'relative' }}
+         >
+           <TextInput
+             ref={inputRef}
+@@ -417,7 +418,6 @@ export function AmountRow({
+             placeholder="0"
+             placeholderTextColor={palette.textSoft}
+             editable={editable && !onPressAmount}
+-            onPressIn={onPressAmount}
+             style={{
+               flex: 1,
+               fontSize: HOME_TEXT.sectionTitle,
+@@ -439,6 +439,20 @@ export function AmountRow({
+             onSubmitEditing={onSubmitEditing}
+             blurOnSubmit={blurOnSubmit}
+           />
++          {onPressAmount ? (
++            <TouchableOpacity
++              delayPressIn={0}
++              activeOpacity={0.72}
++              onPress={onPressAmount}
++              style={{
++                position: 'absolute',
++                left: 0,
++                right: 0,
++                top: 0,
++                bottom: 0,
++              }}
++            />
++          ) : null}
+         </View>
+         {onOpenCalculator ? (
+           <TouchableOpacity delayPressIn={0}
+diff --git a/lib/settings-shared.tsx b/lib/settings-shared.tsx
+index b6f3882..2591327 100644
+--- a/lib/settings-shared.tsx
++++ b/lib/settings-shared.tsx
+@@ -47,16 +47,16 @@ export function getAccountTypeLabel(type?: string): string {
+ }
+ 
+ export const ACCOUNT_ICONS = [
+-  'credit-card',
+-  'smartphone',
+-  'briefcase',
+-  'home',
+-  'dollar-sign',
+-  'shopping-cart',
+-  'truck',
+-  'coffee',
+-  'box',
+-  'archive',
++  'card-outline',
++  'phone-portrait-outline',
++  'briefcase-outline',
++  'home-outline',
++  'cash-outline',
++  'cart-outline',
++  'car-outline',
++  'cafe-outline',
++  'cube-outline',
++  'archive-outline',
+ ] as const;
+ 
+ // Single palette shared by accounts, categories, and tags.
+@@ -74,74 +74,152 @@ export const ENTITY_COLORS = [
+ /** @deprecated use ENTITY_COLORS */
+ export const ACCOUNT_COLORS = ENTITY_COLORS;
+ 
++export const CATEGORY_EMOJIS = [
++  '🍽️',
++  '☕',
++  '🛒',
++  '🏠',
++  '🚗',
++  '✈️',
++  '🎬',
++  '🎵',
++  '📚',
++  '💊',
++  '💼',
++  '💰',
++  '🎁',
++  '🐾',
++  '⚡',
++  '📱',
++  '🍔',
++  '🍕',
++  '🍜',
++  '🍱',
++  '🥗',
++  '🥦',
++  '🍎',
++  '🥛',
++  '🧾',
++  '🏦',
++  '💳',
++  '🪙',
++  '📈',
++  '📉',
++  '🧰',
++  '🛠️',
++  '🧹',
++  '🧺',
++  '🛏️',
++  '🛋️',
++  '🚕',
++  '🚌',
++  '🚆',
++  '⛽',
++  '🅿️',
++  '🏥',
++  '🩺',
++  '🧘',
++  '🏋️',
++  '🎮',
++  '🎟️',
++  '🎤',
++  '🏨',
++  '🧳',
++  '🏖️',
++  '🏫',
++  '✏️',
++  '💻',
++  '🖥️',
++  '🖨️',
++  '👶',
++  '🧸',
++  '🐶',
++  '🐱',
++  '💇',
++  '🧴',
++  '👕',
++  '👟',
++  '💎',
++  '🪴',
++  '🔧',
++  '🚑',
++  '🚲',
++  '🏍️',
++  '🎓',
++  '🧑‍🍳',
++  '🧑‍💻',
++  '🧑‍🏫',
++  '🧑‍⚕️',
++] as const;
++
+ export const CATEGORY_ICONS = [
+   // Shopping & retail
+-  'shopping-cart',
+-  'shopping-bag',
+-  'tag',
+-  'gift',
+-  'package',
+-  'box',
++  'cart-outline',
++  'bag-outline',
++  'pricetag-outline',
++  'gift-outline',
++  'cube-outline',
++  'archive-outline',
+   // Food & drink
+-  'coffee',
+-  'feather',
+-  'thermometer',
+-  'star',
++  'cafe-outline',
++  'restaurant-outline',
++  'thermometer-outline',
++  'star-outline',
+   // Home & utilities
+-  'home',
+-  'zap',
+-  'droplet',
+-  'wifi',
+-  'phone',
+-  'tv',
+-  'tool',
+-  'settings',
++  'home-outline',
++  'flash-outline',
++  'water-outline',
++  'wifi-outline',
++  'call-outline',
++  'tv-outline',
++  'construct-outline',
++  'settings-outline',
+   // Transport
+-  'truck',
+-  'navigation',
+-  'map-pin',
+-  'map',
+-  'anchor',
++  'car-outline',
++  'navigate-outline',
++  'location-outline',
++  'map-outline',
++  'boat-outline',
+   // Finance
+-  'credit-card',
+-  'dollar-sign',
+-  'briefcase',
+-  'trending-up',
+-  'trending-down',
+-  'bar-chart-2',
+-  'pie-chart',
++  'card-outline',
++  'cash-outline',
++  'briefcase-outline',
++  'trending-up-outline',
++  'trending-down-outline',
++  'bar-chart-outline',
++  'pie-chart-outline',
+   // Health & wellness
+-  'heart',
+-  'activity',
+-  'shield',
+-  'plus-circle',
+-  'user',
++  'heart-outline',
++  'pulse-outline',
++  'shield-outline',
++  'add-circle-outline',
++  'person-outline',
+   // Entertainment & lifestyle
+-  'music',
+-  'film',
+-  'camera',
+-  'headphones',
+-  'book',
+-  'book-open',
+-  'globe',
+-  'monitor',
+-  'smartphone',
++  'musical-notes-outline',
++  'film-outline',
++  'camera-outline',
++  'headset-outline',
++  'book-outline',
++  'library-outline',
++  'globe-outline',
++  'desktop-outline',
++  'phone-portrait-outline',
+   // Travel
+-  'compass',
+-  'umbrella',
+-  'sun',
+-  'cloud',
+-  'wind',
++  'compass-outline',
++  'umbrella-outline',
++  'sunny-outline',
++  'cloud-outline',
++  'flag-outline',
+   // Education
+-  'edit',
+-  'clipboard',
+-  'award',
++  'create-outline',
++  'clipboard-outline',
++  'trophy-outline',
+   // Misc
+-  'archive',
+-  'inbox',
+-  'layers',
+-  'grid',
+-  'more-horizontal',
++  'file-tray-full-outline',
++  'file-tray-outline',
++  'layers-outline',
++  'grid-outline',
++  'ellipsis-horizontal',
+ ] as const;
+ 
+ /** @deprecated use ENTITY_COLORS */

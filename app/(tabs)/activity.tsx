@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -914,7 +914,7 @@ export default function ActivityScreen() {
       {isSearchActive ? (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}>
           <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
-            <Ionicons name="search" size={15} color={palette.textMuted} />
+            <Feather name="search" size={15} color={palette.textMuted} />
             <TextInput
               autoFocus
               placeholder="Search transactions…"
@@ -926,7 +926,7 @@ export default function ActivityScreen() {
             />
             {search.length > 0 ? (
               <TouchableOpacity delayPressIn={0} onPress={() => setSearch('')}>
-                <Ionicons name="close-circle" size={16} color={palette.textSoft} />
+                <Feather name="x-circle" size={16} color={palette.textSoft} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -949,7 +949,7 @@ export default function ActivityScreen() {
               onPress={() => toggleSearch(true)}
               style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
             >
-              <Ionicons name="search" size={17} color={palette.textMuted} />
+              <Feather name="search" size={17} color={palette.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1131,8 +1131,7 @@ export default function ActivityScreen() {
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                                 style={{ marginRight: 2 }}
                               >
-                                <Feather
-                                  name={allExpanded ? 'chevrons-up' : 'chevrons-down'}
+                                <Feather name={allExpanded ? 'chevron-up' : 'chevron-down'}
                                   size={14}
                                   color={palette.textMuted}
                                 />
@@ -1188,11 +1187,10 @@ export default function ActivityScreen() {
                                 }}
                               >
                                 <CategoryIconBadge
-                                  icon={category.parentIcon}
-                                  ioniconName={
+                                  icon={
                                     category.parentSyntheticType === 'loan'
-                                      ? 'card-outline'
-                                      : syntheticCfg?.iconName
+                                      ? 'credit-card'
+                                      : syntheticCfg?.iconName || category.parentIcon
                                   }
                                   palette={palette}
                                   iconColor={syntheticCfg?.color}
@@ -1210,8 +1208,7 @@ export default function ActivityScreen() {
                                 >
                                   {signedCurrency(category.total, sym)}
                                 </Text>
-                                <Feather
-                                  name={isDirectNavigation ? 'chevron-right' : isExpanded ? 'chevron-up' : 'chevron-down'}
+                                <Feather name={isDirectNavigation ? 'chevron-forward' : isExpanded ? 'chevron-up' : 'chevron-down'}
                                   size={18}
                                   color={palette.textSoft}
                                 />
@@ -1261,8 +1258,7 @@ export default function ActivityScreen() {
                                       >
                                         {signedCurrency(sub.total, sym)}
                                       </Text>
-                                      <Feather
-                                        name="chevron-right"
+                                      <Feather name="chevron-right"
                                         size={16}
                                         color={palette.textSoft}
                                       />
@@ -1392,7 +1388,7 @@ export default function ActivityScreen() {
                   {customFrom ? formatDateFull(customFrom) : 'Select...'}
                 </Text>
               </TouchableOpacity>
-              <Ionicons name="arrow-forward" size={18} color={palette.textSoft} />
+              <Feather name="arrow-right" size={18} color={palette.textSoft} />
               <TouchableOpacity delayPressIn={0}
                 onPress={openCustomToPicker}
                 style={[

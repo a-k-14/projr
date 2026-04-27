@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -372,7 +372,7 @@ export default function HomeScreen() {
             label="Add Account"
             onPress={() => router.push('/settings/account-form')}
             palette={palette}
-            startIcon={<Ionicons name="add" size={18} color={palette.onBrand} />}
+            startIcon={<Feather name="plus" size={18} color={palette.onBrand} />}
             style={{
               width: '100%',
               alignSelf: 'stretch',
@@ -409,7 +409,7 @@ export default function HomeScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="analytics-outline" size={17} color={palette.text} />
+              <Feather name="bar-chart-2" size={17} color={palette.text} />
             </TouchableOpacity>
             <HomeAccountViewToggle
               mode={homeAccountViewMode}
@@ -638,8 +638,8 @@ function HomeAccountViewToggle({
       }}
     >
       {([
-        { key: 'swipe', icon: 'albums-outline' },
-        { key: 'list', icon: 'list-outline' },
+        { key: 'swipe', icon: 'layers' },
+        { key: 'list', icon: 'list' },
       ] as const).map((item) => {
         const selected = mode === item.key;
         return (
@@ -656,8 +656,7 @@ function HomeAccountViewToggle({
               backgroundColor: selected ? palette.inputBg : 'transparent',
             }}
           >
-            <Ionicons
-              name={item.icon}
+            <Feather name={item.icon}
               size={18}
               color={selected ? palette.text : palette.textMuted}
             />
@@ -945,7 +944,7 @@ function HomeAccountsList({
           gap: 8,
         }}
       >
-        <Ionicons name="add-circle-outline" size={22} color={palette.text} />
+        <Feather name="plus-circle" size={22} color={palette.text} />
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.cardContent, color: palette.text }}>
           Add Account
         </Text>
@@ -1193,7 +1192,7 @@ function AddAccountPage({
           padding: CARD_PADDING,
         }}
       >
-        <Ionicons name="add-circle-outline" size={22} color={palette.text} />
+        <Feather name="plus-circle" size={22} color={palette.text} />
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, marginTop: 12 }}>
           Add Account
         </Text>
@@ -1573,7 +1572,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
                 {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow'}
               </Text>
-              <Ionicons name="chevron-down" size={16} color={palette.textMuted} />
+              <Feather name="chevron-down" size={16} color={palette.textMuted} />
             </TouchableOpacity>
 
             {activeView === 'table' ? (

@@ -18,8 +18,9 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
-import { CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
+import { CATEGORY_EMOJIS, CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
+import { isEmojiIcon } from '../../lib/ui-format';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 
 type SubDraft = {
@@ -57,6 +58,8 @@ export default function CategoryFormScreen() {
   const hideTypePicker = !!typeParam || isEditing;
   const [subs, setSubs] = useState<SubDraft[]>([]);
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [iconPickerTab, setIconPickerTab] = useState<'icons' | 'emojis'>('icons');
+  const [customEmoji, setCustomEmoji] = useState('');
   const [showTypePicker, setShowTypePicker] = useState(false);
   const formScrollRef = useRef<ScrollView | null>(null);
 
@@ -355,11 +358,53 @@ export default function CategoryFormScreen() {
           onClose={() => setShowIconPicker(false)}
         >
           <View style={{ padding: SPACING.md }}>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              {(['icons', 'emojis'] as const).map((tab) => {
+                const selected = iconPickerTab === tab;
+                return (
+                  <TouchableOpacity
+                    delayPressIn={0}
+                    key={tab}
+                    onPress={() => setIconPickerTab(tab)}
+                    style={{
+                      flex: 1,
+                      minHeight: 38,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 1,
+                      borderColor: selected ? palette.tabActive : palette.border,
+                      backgroundColor: selected ? palette.brandSoft : palette.surface,
+                    }}
+                  >
+                    <Text appWeight="medium" style={{ fontSize: TYPE.body, fontWeight: '700', color: selected ? palette.tabActive : palette.textMuted }}>
+                      {tab === 'icons' ? 'Icons' : 'Emojis'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {iconPickerTab === 'emojis' ? (
+              <View style={{ marginBottom: 12 }}>
+                <InputField
+                  palette={palette}
+                  value={customEmoji}
+                  onChangeText={(value) => {
+                    setCustomEmoji(value);
+                    const nextEmoji = value.trim();
+                    if (nextEmoji) setIcon(nextEmoji);
+                  }}
+                  placeholder={isEmojiIcon(icon) ? icon : 'Emoji'}
+                  autoCapitalize="none"
+                />
+              </View>
+            ) : null}
             <IconGrid
-              icons={CATEGORY_ICONS}
+              icons={iconPickerTab === 'icons' ? CATEGORY_ICONS : CATEGORY_EMOJIS}
               selectedIcon={icon}
               onSelect={(ic) => {
                 setIcon(ic);
+                if (isEmojiIcon(ic)) setCustomEmoji(ic);
                 setShowIconPicker(false);
               }}
               palette={palette}

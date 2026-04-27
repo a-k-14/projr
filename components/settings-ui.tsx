@@ -5,6 +5,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, Toucha
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
 import type { AppThemePalette } from '../lib/theme';
+import { isEmojiIcon } from '../lib/ui-format';
 import { FilledButton, TextButton } from './ui/AppButton';
 
 export function ScreenTitle({
@@ -465,6 +466,7 @@ export function IconGrid({
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
       {icons.map((icon) => {
         const isSelected = selectedIcon === icon;
+        const isEmoji = isEmojiIcon(icon);
         return (
           <TouchableOpacity delayPressIn={0}
             key={icon}
@@ -481,11 +483,14 @@ export function IconGrid({
               justifyContent: 'center'
             }}
           >
-            <Feather
-              name={icon as any}
-              size={24}
-              color={isSelected ? palette.tabActive : palette.iconTint}
-            />
+            {isEmoji ? (
+              <Text style={{ fontSize: 24 }}>{icon}</Text>
+            ) : (
+              <Feather name={icon as any}
+                size={24}
+                color={isSelected ? palette.tabActive : palette.iconTint}
+              />
+            )}
           </TouchableOpacity>
         );
       })}

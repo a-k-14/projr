@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { StyleProp, ViewStyle , TouchableOpacity} from 'react-native';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
@@ -44,7 +44,7 @@ export function FabButton({
         style,
       ]}
     >
-      <Ionicons name="add" size={iconSize} color={iconColor} />
+      <Feather name="plus" size={iconSize} color={iconColor} />
     </TouchableOpacity>
   );
 }

@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/AppText';
@@ -45,8 +45,7 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex }: Fi
       >
         More
       </Text>
-      <Ionicons
-        name="funnel-outline"
+      <Feather name="filter"
         size={13}
         color={moreActiveCount > 0 ? palette.brand : palette.textMuted}
       />

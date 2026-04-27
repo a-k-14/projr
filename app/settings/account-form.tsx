@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, TextInput, View } from 'react-native';
@@ -223,7 +223,7 @@ export default function AccountFormScreen() {
               onPress={() => setShowCalculator(true)}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons name="calculator-outline" size={20} color={palette.textMuted} />
+              <Feather name="grid" size={20} color={palette.textMuted} />
             </IconBtn>
           </View>
         </View>

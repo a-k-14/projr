@@ -95,6 +95,7 @@ interface CardTitleRowProps {
   amountStyle?: StyleProp<TextStyle>;
   secondarySeparator?: string;
   onPressAmount?: () => void;
+  titleNumberOfLines?: number;
 }
 
 /** Standard Line 1 content: [Title › Secondary] [Amount] */
@@ -108,6 +109,7 @@ export function CardTitleRow({
   amountStyle,
   onPressAmount,
   secondarySeparator = ' \u203A ',
+  titleNumberOfLines = 1,
 }: CardTitleRowProps) {
   const amountContent = amount !== undefined ? (
     <Text
@@ -125,6 +127,7 @@ export function CardTitleRow({
     <>
       <Text
         appWeight="medium"
+        numberOfLines={titleNumberOfLines}
         style={[{ flex: 1, fontSize: CARD_TEXT.line1, color: palette.listText }, titleStyle]}
       >
         {title}

@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { View, ScrollView, Pressable , TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SCREEN_GUTTER, SHEET_GUTTER, RADIUS, SPACING } from '../../lib/design';
@@ -46,7 +46,7 @@ export default function SelectAccountSheet() {
             Select Account
           </Text>
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4 }}>
-            <Ionicons name="close" size={22} color={palette.textMuted} />
+            <Feather name="x" size={22} color={palette.textMuted} />
           </TouchableOpacity>
         </View>
         <ScrollView showsVerticalScrollIndicator={false}>

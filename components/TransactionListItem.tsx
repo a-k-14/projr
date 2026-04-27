@@ -1,8 +1,7 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
-import { router } from 'expo-router';
 import { formatCurrency, getLoanDisplayLabel, getLoanTransactionUserNote, getTransactionCashflowImpact } from '../lib/derived';
 import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
@@ -68,7 +67,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' \u2022 ');
   let noteLine: string | undefined;
   const hasReceipt = (tx.receiptImageUris?.length ?? 0) > 0;
-  const categoryParts = splitCategoryName(categoryName);
+  const shouldAllowCategoryWrap = !!categoryName?.includes(' › ');
 
   // specialized Title/Subtitle based on type
   if (tx.transferPairId && linkedAccountName) {
@@ -84,13 +83,8 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     subtitle = [accountNameSelected, loanPersonName].filter(Boolean).join(' \u2022 ');
     noteLine = getLoanTransactionUserNote(tx.note) || undefined;
   } else if (tx.type === 'in' || tx.type === 'out') {
-    if (categoryParts?.parentName) {
-      title = categoryParts.parentName;
-      titleSecondaryText = categoryParts.name;
-    } else {
-      title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
-      titleSecondaryText = undefined;
-    }
+    title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
+    titleSecondaryText = undefined;
     subtitle = [accountNameSelected, tx.payee].filter(Boolean).join(' \u2022 ');
     noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
   }
@@ -105,22 +99,21 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const amountColor = useTypeAmountColor
     ? (displayImpact === 'in' ? palette.brand : displayImpact === 'out' ? palette.negative : palette.text)
     : palette.text;
-  const metadataLine = undefined;
-  const tertiaryLines = [metadataLine, tertiaryText, noteLine].filter((value): value is string => !!value);
+  const tertiaryLines = [tertiaryText, noteLine].filter((value): value is string => !!value);
   const supportIcons = tx.splitGroupId || hasReceipt ? (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
       {tx.splitGroupId ? (
-        <Ionicons name="layers-outline" size={12} color={palette.textSecondary} />
+        <Feather name="layers" size={12} color={palette.textSecondary} />
       ) : null}
       {hasReceipt ? (
-        <Ionicons name="image-outline" size={12} color={palette.textSecondary} />
+        <Feather name="image" size={12} color={palette.textSecondary} />
       ) : null}
     </View>
   ) : null;
 
   const iconName =
     tx.type === 'loan'
-      ? 'card-outline'
+      ? 'credit-card'
       : inOutCategoryIcon && !isEmojiIcon(inOutCategoryIcon) && isKnownFeatherIcon(inOutCategoryIcon)
         ? inOutCategoryIcon
         : cfg.iconName;
@@ -132,14 +125,12 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       icon={inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
         <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
       ) : inOutCategoryIcon && isKnownFeatherIcon(inOutCategoryIcon) ? (
-        <Feather
-          name={inOutCategoryIcon as any}
+        <Feather name={inOutCategoryIcon as any}
           size={Math.round(iconSize * 0.45)}
           color={cfg.color}
         />
       ) : (
-        <Ionicons
-          name={iconName as never}
+        <Feather name={iconName as never}
           size={Math.round(iconSize * 0.45)}
           color={cfg.color}
         />
@@ -152,7 +143,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           amount={amountDisplay}
           amountColor={amountColor}
           palette={palette}
-          onPressAmount={() => router.push({ pathname: '/modals/split-transaction', params: { id: tx.id } })}
+          titleNumberOfLines={shouldAllowCategoryWrap ? 2 : 1}
         />
       }
       bottomRow={
@@ -190,16 +181,6 @@ export const TransactionListItem = React.memo(function TransactionListItem({
 
 function isKnownFeatherIcon(name: string): name is keyof typeof Feather.glyphMap {
   return name in Feather.glyphMap;
-}
-
-function splitCategoryName(categoryName?: string): { name: string; parentName?: string } | undefined {
-  if (!categoryName) return undefined;
-  const parts = categoryName.split(' › ').map((part) => part.trim()).filter(Boolean);
-  if (parts.length < 2) return { name: categoryName };
-  return {
-    parentName: parts.slice(0, -1).join(' › '),
-    name: parts[parts.length - 1],
-  };
 }
 
 function getAmountPrefix(amount: number, impact: 'in' | 'out' | 'neutral', showAmountSign: boolean) {
