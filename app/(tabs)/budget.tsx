@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -267,7 +267,7 @@ function BudgetCard({
       icon={isEmojiIcon(budget.categoryIcon) ? (
         <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{budget.categoryIcon}</Text>
       ) : (
-        <Feather name={budget.categoryIcon as any} size={17} color={palette.iconTint} />
+        <AppIcon name={budget.categoryIcon as any} size={17} color={palette.iconTint} />
       )}
       topRow={
         <CardTitleRow

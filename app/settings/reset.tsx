@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -153,7 +153,7 @@ export default function ResetScreen() {
                 <ActivityIndicator color={palette.onBrand} />
               ) : (
                 <>
-                  <Feather name="refresh-cw" size={18} color={canReset ? palette.onBrand : palette.textMuted} />
+                  <AppIcon name="refresh-cw" size={18} color={canReset ? palette.onBrand : palette.textMuted} />
                   <Text
                     style={{
                       color: canReset ? palette.onBrand : palette.textMuted,

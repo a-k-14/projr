@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { useIsFocused } from '@react-navigation/native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -95,8 +95,8 @@ export default function BudgetDetailScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12 }}>
-        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
-          <Feather name="arrow-left" size={24} color={palette.text} />
+        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+          <AppIcon name="arrow-left" size={24} color={palette.text} />
         </TouchableOpacity>
         <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }} numberOfLines={1}>
           {getCategoryFullDisplayName(budget.categoryId, ' › ')}

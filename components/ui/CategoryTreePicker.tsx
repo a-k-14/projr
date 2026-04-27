@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon, IconName, isValidIcon } from './AppIcon';
 import { router } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
 import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
@@ -93,7 +93,7 @@ export function CategoryIconBadge({
         width: bgSize,
         height: bgSize,
         borderRadius: bgSize * 0.28,
-        backgroundColor: backgroundColor ?? palette.inputBg,
+        backgroundColor: backgroundColor ?? palette.loanBg,
         borderWidth: showBorder ? 1 : 0,
         borderColor: borderColor ?? palette.border,
         alignItems: 'center',
@@ -101,17 +101,17 @@ export function CategoryIconBadge({
     >
       {isEmojiIcon(icon) ? (
         <Text style={{ fontSize: size }}>{icon}</Text>
-      ) : isKnownFeatherIcon(icon) ? (
-        <Feather name={icon as any} size={size} color={iconColor ?? palette.iconTint} />
+      ) : isKnownAppIcon(icon) ? (
+        <AppIcon name={icon as any} size={size} color={iconColor ?? palette.iconTint} />
       ) : (
-        <Feather name="tag" size={size} color={iconColor ?? palette.iconTint} />
+        <AppIcon name="tag" size={size} color={iconColor ?? palette.iconTint} />
       )}
     </View>
   );
 }
 
-function isKnownFeatherIcon(name: string): name is keyof typeof Feather.glyphMap {
-  return name in Feather.glyphMap;
+function isKnownAppIcon(name: string): name is IconName {
+  return isValidIcon(name);
 }
 
 export function CategoryTreePicker({
@@ -147,7 +147,7 @@ export function CategoryTreePicker({
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
           <TouchableOpacity delayPressIn={0} onPress={onBack} style={{ padding: 4, marginRight: 12 }}>
-            <Feather name="arrow-left" size={24} color={palette.text} />
+            <AppIcon name="arrow-left" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, flex: 1 }}>
             {title}
@@ -249,7 +249,7 @@ export function CategorySearchBox({
           borderWidth: 1,
           borderColor: palette.divider }}
       >
-        <Feather name="search" size={16} color={palette.textMuted} />
+        <AppIcon name="search" size={16} color={palette.textMuted} />
         <TextInput
           value={search}
           onChangeText={onSearchChange}
@@ -318,7 +318,7 @@ export function CategoryTreeList({
                       {parent.name}
                     </Text>
                     {hasChildren ? (
-                      <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      <AppIcon name={isExpanded ? 'chevron-up' : 'chevron-down'}
                         size={18}
                         color={palette.textSoft}
                       />
@@ -332,7 +332,7 @@ export function CategoryTreeList({
                           alignItems: 'center',
                           justifyContent: 'center' }}
                       >
-                        <Feather name="check" size={13} color={palette.onBrand} />
+                        <AppIcon name="check" size={13} color={palette.onBrand} />
                       </View>
                     ) : null}
                   </TouchableOpacity>
@@ -372,7 +372,7 @@ export function CategoryTreeList({
                                   alignItems: 'center',
                                   justifyContent: 'center' }}
                               >
-                                <Feather name="check" size={13} color={palette.onBrand} />
+                                <AppIcon name="check" size={13} color={palette.onBrand} />
                               </View>
                             ) : null}
                           </TouchableOpacity>
@@ -386,7 +386,7 @@ export function CategoryTreeList({
           </CardSection>
         ) : (
           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-            <Feather name="search" size={48} color={palette.divider} style={{ marginBottom: 12 }} />
+            <AppIcon name="search" size={48} color={palette.divider} style={{ marginBottom: 12 }} />
             <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted }}>{emptyMessage}</Text>
           </View>
         )}

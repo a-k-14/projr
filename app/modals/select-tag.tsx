@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View, ScrollView, Pressable , TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SCREEN_GUTTER, SHEET_GUTTER, RADIUS, SPACING } from '../../lib/design';
@@ -42,7 +42,7 @@ export default function SelectTagSheet() {
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
           <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>Select Tags</Text>
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4 }}>
-            <Feather name="x" size={22} color={palette.textMuted} />
+            <AppIcon name="x" size={22} color={palette.textMuted} />
           </TouchableOpacity>
         </View>
         <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
@@ -74,7 +74,7 @@ export default function SelectTagSheet() {
                   <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />
                   <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>{tag.name}</Text>
                 </View>
-                {selected ? <Feather name="check" size={18} color={palette.tabActive} /> : null}
+                {selected ? <AppIcon name="check" size={18} color={palette.tabActive} /> : null}
               </TouchableOpacity>
             );
           })}

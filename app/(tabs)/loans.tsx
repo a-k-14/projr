@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -91,7 +91,7 @@ function LoanRow({
           paddingTop: loan.status === 'closed' ? 28 : 14,
           paddingBottom: loan.status === 'closed' ? 16 : 14,
         }}
-        icon={<Feather name={isLent ? 'arrow-up' : 'arrow-down'} size={Math.round(HOME_LAYOUT.listIconSize * 0.45)} color={dirColor} />}
+        icon={<AppIcon name={isLent ? 'arrow-up' : 'arrow-down'} size={Math.round(HOME_LAYOUT.listIconSize * 0.45)} color={dirColor} />}
         iconBg={isLent ? palette.outBg : palette.inBg}
         topRow={
           <CardTitleRow
@@ -338,7 +338,7 @@ export default function LoansScreen() {
       {isSearchActive ? (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}>
           <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
-            <Feather name="search" size={15} color={palette.textMuted} />
+            <AppIcon name="search" size={15} color={palette.textMuted} />
             <TextInput
               autoFocus
               placeholder="Search loans…"
@@ -350,7 +350,7 @@ export default function LoansScreen() {
             />
             {search.length > 0 ? (
               <TouchableOpacity delayPressIn={0} onPress={() => setSearch('')}>
-                <Feather name="x-circle" size={16} color={palette.textSoft} />
+                <AppIcon name="x-circle" size={16} color={palette.textSoft} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -371,7 +371,7 @@ export default function LoansScreen() {
               onPress={() => toggleSearch(true)}
               style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
             >
-              <Feather name="search" size={17} color={palette.textMuted} />
+              <AppIcon name="search" size={17} color={palette.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -428,7 +428,7 @@ export default function LoansScreen() {
                 <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
                   {selectedAccountLabel}
                 </Text>
-                <Feather name="chevron-down" size={13} color={palette.textMuted} />
+                <AppIcon name="chevron-down" size={13} color={palette.textMuted} />
               </TouchableOpacity>
 
               <FilterMoreButton
@@ -578,7 +578,7 @@ export default function LoansScreen() {
                   {fromDate ? formatDateFull(fromDate) : 'Select...'}
                 </Text>
               </TouchableOpacity>
-              <Feather name="arrow-right" size={18} color={palette.textSoft} />
+              <AppIcon name="arrow-right" size={18} color={palette.textSoft} />
               <TouchableOpacity delayPressIn={0}
                 onPress={openToDatePicker}
                 style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}

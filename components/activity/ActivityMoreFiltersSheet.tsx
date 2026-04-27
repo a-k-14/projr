@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { StyleSheet, TextInput, View , TouchableOpacity } from 'react-native';
@@ -267,7 +267,7 @@ function MoreCategoryRow({
         </Text>
       </View>
       {hasChildren ? (
-        <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} style={{ marginLeft: 8 }} />
+        <AppIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} style={{ marginLeft: 8 }} />
       ) : (
         <View style={{ width: 26 }} />
       )}

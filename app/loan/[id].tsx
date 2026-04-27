@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -102,8 +102,8 @@ export default function LoanDetailScreen() {
           backgroundColor: palette.background
         }}
       >
-        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
-          <Feather name="arrow-left" size={24} color={palette.text} />
+        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
+          <AppIcon name="arrow-left" size={24} color={palette.text} />
         </TouchableOpacity>
         <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>
           {loan.personName}
@@ -301,7 +301,7 @@ export default function LoanDetailScreen() {
                 }
                 palette={palette}
                 tone="loan"
-                startIcon={<Feather name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />}
+                startIcon={<AppIcon name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />}
               />
             ) : null}
             <TextButton

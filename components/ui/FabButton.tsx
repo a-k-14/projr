@@ -1,50 +1,58 @@
-import { Feather } from '@expo/vector-icons';
-import { StyleProp, ViewStyle , TouchableOpacity} from 'react-native';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SHADOW } from '../../lib/layoutTokens';
+import { StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
+import { AppIcon } from './AppIcon';
+
+interface Props {
+  onPress: () => void;
+  palette: AppThemePalette;
+  bottom?: number;
+  backgroundColor?: string;
+  iconColor?: string;
+  style?: ViewStyle;
+}
 
 export function FabButton({
   onPress,
   palette,
-  bottom,
-  right = HOME_LAYOUT.fabRightOffset,
-  size = HOME_LAYOUT.fabSize,
-  iconSize = 28,
-  activeOpacity = 0.75,
-  backgroundColor = palette.brand,
-  iconColor = palette.onBrand,
-  style }: {
-  onPress: () => void;
-  palette: AppThemePalette;
-  bottom: number;
-  right?: number;
-  size?: number;
-  iconSize?: number;
-  activeOpacity?: number;
-  backgroundColor?: string;
-  iconColor?: string;
-  style?: StyleProp<ViewStyle>;
-}) {
+  bottom = 32,
+  backgroundColor,
+  iconColor,
+  style }: Props) {
+  const iconSize = Math.round(HOME_LAYOUT.listIconSize * 0.55);
+
   return (
-    <TouchableOpacity delayPressIn={0}
-      activeOpacity={activeOpacity}
-      onPress={() => requestAnimationFrame(() => onPress())}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
       style={[
+        styles.fab,
         {
-          position: 'absolute',
           bottom,
-          right,
-          width: size,
-          height: size,
-          borderRadius: HOME_RADIUS.fab,
-          backgroundColor,
-          alignItems: 'center',
-          justifyContent: 'center',
-          ...HOME_SHADOW.card },
+          backgroundColor: backgroundColor ?? palette.brand,
+          shadowColor: palette.brand,
+        },
         style,
       ]}
     >
-      <Feather name="plus" size={iconSize} color={iconColor} />
+      <AppIcon name="plus" size={iconSize} color={iconColor} />
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  fab: {
+    position: 'absolute',
+    right: ACTIVITY_LAYOUT.fabRightSpacing,
+    width: ACTIVITY_LAYOUT.fabSize,
+    height: ACTIVITY_LAYOUT.fabSize,
+    borderRadius: ACTIVITY_LAYOUT.fabRadius,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    zIndex: 10,
+  },
+});

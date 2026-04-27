@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '../../components/ui/AppIcon';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -372,7 +372,7 @@ export default function HomeScreen() {
             label="Add Account"
             onPress={() => router.push('/settings/account-form')}
             palette={palette}
-            startIcon={<Feather name="plus" size={18} color={palette.onBrand} />}
+            startIcon={<AppIcon name="plus" size={18} color={palette.onBrand} />}
             style={{
               width: '100%',
               alignSelf: 'stretch',
@@ -409,7 +409,7 @@ export default function HomeScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Feather name="bar-chart-2" size={17} color={palette.text} />
+              <AppIcon name="bar-chart-2" size={17} color={palette.text} />
             </TouchableOpacity>
             <HomeAccountViewToggle
               mode={homeAccountViewMode}
@@ -656,7 +656,7 @@ function HomeAccountViewToggle({
               backgroundColor: selected ? palette.inputBg : 'transparent',
             }}
           >
-            <Feather name={item.icon}
+            <AppIcon name={item.icon}
               size={18}
               color={selected ? palette.text : palette.textMuted}
             />
@@ -944,7 +944,7 @@ function HomeAccountsList({
           gap: 8,
         }}
       >
-        <Feather name="plus-circle" size={22} color={palette.text} />
+        <AppIcon name="plus-circle" size={22} color={palette.text} />
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.cardContent, color: palette.text }}>
           Add Account
         </Text>
@@ -1192,7 +1192,7 @@ function AddAccountPage({
           padding: CARD_PADDING,
         }}
       >
-        <Feather name="plus-circle" size={22} color={palette.text} />
+        <AppIcon name="plus-circle" size={22} color={palette.text} />
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, marginTop: 12 }}>
           Add Account
         </Text>
@@ -1572,7 +1572,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
                 {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow'}
               </Text>
-              <Feather name="chevron-down" size={16} color={palette.textMuted} />
+              <AppIcon name="chevron-down" size={16} color={palette.textMuted} />
             </TouchableOpacity>
 
             {activeView === 'table' ? (

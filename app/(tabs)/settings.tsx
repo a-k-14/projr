@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon, IconName } from '../../components/ui/AppIcon';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -202,7 +202,7 @@ export default function SettingsScreen() {
                 palette={palette}
               />
               <SettingsRow
-                leftElement={<Feather name="refresh-cw" size={18} color={palette.negative} />}
+                leftElement={<AppIcon name="refresh-cw" size={18} color={palette.negative} />}
                 label="Reset App"
                 labelStyle={{ color: palette.negative }}
                 value="Erase everything"
@@ -307,7 +307,7 @@ export default function SettingsScreen() {
               <ChoiceRow
                 key={theme.key}
                 title={theme.label}
-                leftElement={<Feather name={themeIcon(theme.key)} size={18} color={settings.theme === theme.key ? palette.tabActive : palette.textMuted} />}
+                leftElement={<AppIcon name={themeIcon(theme.key)} size={18} color={settings.theme === theme.key ? palette.tabActive : palette.textMuted} />}
                 selected={settings.theme === theme.key}
                 palette={palette}
                 onPress={() => {
@@ -359,7 +359,7 @@ function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function themeIcon(theme: (typeof THEMES)[number]['key']): keyof typeof Feather.glyphMap {
+function themeIcon(theme: (typeof THEMES)[number]['key']): IconName {
   if (theme === 'light') return 'sun';
   if (theme === 'dark') return 'moon';
   return 'smartphone';

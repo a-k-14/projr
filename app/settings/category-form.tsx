@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
@@ -271,7 +271,7 @@ export default function CategoryFormScreen() {
                   activeOpacity={0.7}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                 >
-                  <Feather name="plus" size={14} color={palette.brand} />
+                  <AppIcon name="plus" size={14} color={palette.brand} />
                   <Text
                     appWeight="medium"
                     style={{
@@ -318,7 +318,7 @@ export default function CategoryFormScreen() {
                       palette={palette}
                       hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                     >
-                      <Feather name="trash-2" size={18} color={palette.negative} />
+                      <AppIcon name="trash-2" size={18} color={palette.negative} />
                     </IconBtn>
                   </View>
                 ))}

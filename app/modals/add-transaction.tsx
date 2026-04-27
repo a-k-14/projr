@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '../../components/ui/AppIcon';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -721,7 +721,7 @@ export default function AddTransactionModal() {
           }}
         >
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
-            <Feather name="x" size={24} color={palette.text} />
+            <AppIcon name="x" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             {screenTitle}
@@ -814,7 +814,7 @@ export default function AddTransactionModal() {
                   style={{ minHeight: 28, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}
                   activeOpacity={0.75}
                 >
-                  <Feather name="layers" size={14} color={palette.brand} />
+                  <AppIcon name="layers" size={14} color={palette.brand} />
                   <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: palette.brand }}>
                     Split
                   </Text>
@@ -946,7 +946,7 @@ export default function AddTransactionModal() {
                     justifyContent: 'center'
                   }}
                 >
-                  <Feather name="repeat" size={16} color={activeConfig.color} />
+                  <AppIcon name="repeat" size={16} color={activeConfig.color} />
                 </TouchableOpacity>
               </View>
               <PickerRow
@@ -1349,7 +1349,7 @@ export default function AddTransactionModal() {
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: palette.border, backgroundColor: palette.surface, gap: 12 }}
               >
                 <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
-                  <Feather name="camera" size={20} color={palette.textSecondary} />
+                  <AppIcon name="camera" size={20} color={palette.textSecondary} />
                 </View>
                 <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '600' }}>Take Photo</Text>
               </TouchableOpacity>
@@ -1362,7 +1362,7 @@ export default function AddTransactionModal() {
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, backgroundColor: palette.surface, gap: 12 }}
               >
                 <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
-                  <Feather name="image" size={20} color={palette.textSecondary} />
+                  <AppIcon name="image" size={20} color={palette.textSecondary} />
                 </View>
                 <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '600' }}>Choose Photo</Text>
               </TouchableOpacity>
@@ -1419,7 +1419,7 @@ export default function AddTransactionModal() {
                 elevation: 8,
               }}
             >
-              <Feather name="chevron-left" size={28} color="#FFFFFF" />
+              <AppIcon name="chevron-left" size={28} color="#FFFFFF" />
             </TouchableOpacity>
             {receiptImageUris[receiptPreviewIndex] ? (
               <>
@@ -1450,7 +1450,7 @@ export default function AddTransactionModal() {
                         opacity: receiptPreviewIndex === 0 ? 0.35 : 1,
                       }}
                     >
-                      <Feather name="chevron-left" size={24} color="#FFFFFF" />
+                              <AppIcon name="chevron-left" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       delayPressIn={0}
@@ -1476,7 +1476,7 @@ export default function AddTransactionModal() {
                         opacity: receiptPreviewIndex === receiptImageUris.length - 1 ? 0.35 : 1,
                       }}
                     >
-                      <Feather name="chevron-right" size={24} color="#FFFFFF" />
+                              <AppIcon name="chevron-right" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                     <View
                       style={{
@@ -1558,7 +1558,7 @@ function ReceiptSection({
                 justifyContent: 'center',
               }}
             >
-              <Feather name="x" size={17} color="#FFFFFF" />
+              <AppIcon name="x" size={17} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         ))}
@@ -1576,7 +1576,7 @@ function ReceiptSection({
             justifyContent: 'center',
           }}
         >
-          <Feather name={receiptImageUris.length ? 'plus' : 'camera'} size={22} color={palette.tabActive} />
+          <AppIcon name={receiptImageUris.length ? 'plus' : 'camera'} size={22} color={palette.tabActive} />
         </TouchableOpacity>
         {!receiptImageUris.length ? (
           <View style={{ justifyContent: 'center' }}>

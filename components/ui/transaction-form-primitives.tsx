@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { RefObject, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Platform, TextInput, View , TouchableOpacity } from 'react-native';
@@ -128,7 +128,7 @@ export function PickerRow({
               ) : null}
             </View>
             <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-              <Feather name="chevron-right" size={15} color={palette.textSoft} />
+              <AppIcon name="chevron-right" size={15} color={palette.textSoft} />
             </View>
           </>
         )}
@@ -474,7 +474,7 @@ export function AmountRow({
                 alignItems: 'center',
                 justifyContent: 'center' }}
             >
-              <Feather name="grid"
+              <AppIcon name="grid"
                 size={isLargeButton ? 22 : 18}
                 color={isLargeButton ? palette.text : palette.textMuted}
               />

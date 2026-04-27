@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { forwardRef, ReactNode, RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -103,7 +103,7 @@ export function SettingsRow({
       {leftElement ? (
         leftElement
       ) : icon ? (
-        <Feather name={icon} size={18} color={palette.iconTint} />
+        <AppIcon name={icon as any} size={18} color={palette.iconTint} />
       ) : null}
       <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
         <Text
@@ -136,7 +136,7 @@ export function SettingsRow({
           {value}
         </Text>
       ) : null}
-      {onPress && !rightElement ? <Feather name="chevron-right" size={18} color={palette.textSoft} /> : null}
+      {onPress && !rightElement ? <AppIcon name="chevron-right" size={18} color={palette.textSoft} /> : null}
     </>
   );
 
@@ -232,12 +232,13 @@ export function ChoiceRow({
             justifyContent: 'center'
           }}
         >
-          <Feather name="check" size={13} color={palette.onBrand} />
+          <AppIcon name="check" size={13} color={palette.onBrand} />
         </View>
       )}
     </TouchableOpacity>
   );
 }
+
 
 export function PickerChip({
   label,
@@ -399,7 +400,7 @@ export function SelectTrigger({
         <Text style={{ color: valueLabel ? palette.text : palette.textSoft, fontSize: TYPE.rowLabel }}>
           {valueLabel ?? placeholder}
         </Text>
-        <Feather name="chevron-down" size={20} color={palette.textSoft} />
+        <AppIcon name="chevron-down" size={20} color={palette.textSoft} />
       </TouchableOpacity>
     </View>
   );
@@ -486,7 +487,7 @@ export function IconGrid({
             {isEmoji ? (
               <Text style={{ fontSize: 24 }}>{icon}</Text>
             ) : (
-              <Feather name={icon as any}
+              <AppIcon name={icon as any}
                 size={24}
                 color={isSelected ? palette.tabActive : palette.iconTint}
               />

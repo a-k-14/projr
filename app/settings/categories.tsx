@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
@@ -118,9 +118,9 @@ export default function CategoriesScreen() {
                       alignItems: 'center',
                       justifyContent: 'center' }}
                   >
-                    <Feather name="edit-2" size={14} color={palette.iconTint} />
+                    <AppIcon name="edit-2" size={14} color={palette.iconTint} />
                   </TouchableOpacity>
-                  <Feather name={isOpen ? 'chevron-up' : 'chevron-down'}
+                  <AppIcon name={isOpen ? 'chevron-up' : 'chevron-down'}
                     size={18}
                     color={palette.textSoft}
                   />

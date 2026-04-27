@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon, IconName, isValidIcon } from '@/components/ui/AppIcon';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { StyleSheet, View } from 'react-native';
@@ -38,17 +38,17 @@ export function CategoryIconBadge({
         justifyContent: 'center',
       }}
     >
-      {ioniconName && isKnownFeatherIcon(ioniconName) ? (
-        <Feather name={ioniconName as any} size={iconSize} color={iconColor ?? palette.iconTint} />
+      {ioniconName && isValidIcon(ioniconName) ? (
+        <AppIcon name={ioniconName} size={iconSize} color={iconColor ?? palette.iconTint} />
       ) : isEmoji ? (
         <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{icon}</Text>
-      ) : icon && isKnownFeatherIcon(icon) ? (
-        <Feather name={icon as keyof typeof Feather.glyphMap}
+      ) : icon && isValidIcon(icon) ? (
+        <AppIcon name={icon}
           size={iconSize}
           color={iconColor ?? palette.iconTint}
         />
       ) : (
-        <Feather name="tag"
+        <AppIcon name="tag"
           size={iconSize}
           color={iconColor ?? palette.iconTint}
         />
@@ -57,9 +57,7 @@ export function CategoryIconBadge({
   );
 }
 
-function isKnownFeatherIcon(name: string): name is keyof typeof Feather.glyphMap {
-  return name in Feather.glyphMap;
-}
+
 
 /**
  * Common Checkbox component for multi-select filters.
@@ -84,7 +82,7 @@ export function Checkbox({ selected, partial = false, palette }: CheckboxProps) 
         justifyContent: 'center',
       }}
     >
-      {selected && <Feather name="check" size={15} color={palette.onBrand} />}
+      {selected && <AppIcon name="check" size={15} color={palette.onBrand} />}
       {partial && <View style={{ width: 10, height: 2.5, borderRadius: 99, backgroundColor: palette.brand }} />}
     </View>
   );

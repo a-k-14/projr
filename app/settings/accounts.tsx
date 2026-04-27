@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '../../components/ui/AppIcon';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
@@ -165,7 +165,7 @@ function AccountReorderRow({
             justifyContent: 'center',
           }}
         >
-          <Feather name="menu" size={18} color={palette.textSoft} />
+          <AppIcon name="menu" size={18} color={palette.textSoft} />
         </TouchableOpacity>
         <TouchableOpacity
           delayPressIn={0}
@@ -196,7 +196,7 @@ function AccountReorderRow({
               {getAccountTypeLabel(item.type)} · {formatDisplayCurrency(item.initialBalance, displaySymbol)}
             </Text>
           </View>
-          <Feather name="chevron-right" size={18} color={palette.textSoft} />
+          <AppIcon name="chevron-right" size={18} color={palette.textSoft} />
         </TouchableOpacity>
       </View>
     </View>

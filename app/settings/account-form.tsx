@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, TextInput, View } from 'react-native';
@@ -223,7 +223,7 @@ export default function AccountFormScreen() {
               onPress={() => setShowCalculator(true)}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Feather name="grid" size={20} color={palette.textMuted} />
+              <AppIcon name="grid" size={20} color={palette.textMuted} />
             </IconBtn>
           </View>
         </View>

@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '../../components/ui/AppIcon';
 import { router, Stack } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
 import { TouchableOpacity, View } from 'react-native';
@@ -31,7 +31,7 @@ export default function SettingsLayout() {
                 onPress={() => router.back()}
                 style={{ marginRight: SCREEN_HEADER.iconTitleGap }}
               >
-                <Feather name="arrow-left" size={24} color={palette.text} />
+                <AppIcon name="arrow-left" size={24} color={palette.text} />
               </TouchableOpacity>
               <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
                 {options.title}

@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
@@ -140,7 +140,7 @@ export default function BudgetFormModal() {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{ marginRight: SCREEN_HEADER.iconTitleGap }}
           >
-            <Feather name="x" size={24} color={palette.text} />
+            <AppIcon name="x" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             {editingBudget ? 'Edit Budget' : 'New Budget'}

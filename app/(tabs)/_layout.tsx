@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon, IconName } from '@/components/ui/AppIcon';
 import { Tabs } from 'expo-router';
 import { useEffect } from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
@@ -9,10 +9,10 @@ import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 
-const TAB_ITEMS: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
+const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
   index: { icon: 'grid', label: 'Home' },
   activity: { icon: 'activity', label: 'Activity' },
-  loans: { icon: 'credit-card', label: 'Loans' },
+  loans: { icon: 'dollar-sign', label: 'Loans' },
   budget: { icon: 'pie-chart', label: 'Budget' },
   settings: { icon: 'settings', label: 'Settings' },
 };
@@ -124,7 +124,11 @@ function AppTabBar({
                 paddingTop: 9,
               }}
             >
-              <Feather name={item.icon} size={20} color={focused ? palette.listText : palette.textSecondary} />
+              <AppIcon
+                name={item.icon as any}
+                size={20}
+                color={focused ? palette.listText : palette.textSecondary}
+              />
               <Text
                 numberOfLines={1}
                 style={{

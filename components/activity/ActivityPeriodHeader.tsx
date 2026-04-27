@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
@@ -42,7 +42,7 @@ export function ActivityPeriodHeader({
         style={[styles.periodArrow, { borderRightColor: palette.divider }]}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <Feather
+        <AppIcon
           name="chevron-left"
           size={14}
           color={palette.text}
@@ -69,7 +69,7 @@ export function ActivityPeriodHeader({
         style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <Feather
+        <AppIcon
           name="chevron-right"
           size={14}
           color={palette.text}

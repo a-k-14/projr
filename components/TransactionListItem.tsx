@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon, IconName, isValidIcon } from '@/components/ui/AppIcon';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
@@ -103,10 +103,10 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const supportIcons = tx.splitGroupId || hasReceipt ? (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
       {tx.splitGroupId ? (
-        <Feather name="layers" size={12} color={palette.textSecondary} />
+        <AppIcon name="layers" size={12} color={palette.textSecondary} />
       ) : null}
       {hasReceipt ? (
-        <Feather name="image" size={12} color={palette.textSecondary} />
+        <AppIcon name="image" size={12} color={palette.textSecondary} />
       ) : null}
     </View>
   ) : null;
@@ -114,7 +114,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const iconName =
     tx.type === 'loan'
       ? 'credit-card'
-      : inOutCategoryIcon && !isEmojiIcon(inOutCategoryIcon) && isKnownFeatherIcon(inOutCategoryIcon)
+      : inOutCategoryIcon && isValidIcon(inOutCategoryIcon)
         ? inOutCategoryIcon
         : cfg.iconName;
 
@@ -124,13 +124,13 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       onPress={() => onPress && onPress(tx)}
       icon={inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
         <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
-      ) : inOutCategoryIcon && isKnownFeatherIcon(inOutCategoryIcon) ? (
-        <Feather name={inOutCategoryIcon as any}
+      ) : inOutCategoryIcon && isValidIcon(inOutCategoryIcon) ? (
+        <AppIcon name={inOutCategoryIcon}
           size={Math.round(iconSize * 0.45)}
           color={cfg.color}
         />
       ) : (
-        <Feather name={iconName as never}
+        <AppIcon name={iconName as IconName}
           size={Math.round(iconSize * 0.45)}
           color={cfg.color}
         />
@@ -179,9 +179,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   );
 });
 
-function isKnownFeatherIcon(name: string): name is keyof typeof Feather.glyphMap {
-  return name in Feather.glyphMap;
-}
+
 
 function getAmountPrefix(amount: number, impact: 'in' | 'out' | 'neutral', showAmountSign: boolean) {
   if (amount < 0) return '-';

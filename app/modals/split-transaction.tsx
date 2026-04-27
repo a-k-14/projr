@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
@@ -116,7 +116,7 @@ export default function SplitTransactionModal() {
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
-            <Feather name="x" size={24} color={palette.text} />
+            <AppIcon name="x" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             Split Transaction
@@ -218,7 +218,7 @@ export default function SplitTransactionModal() {
                       alignItems: 'center',
                       justifyContent: 'center' }}
                   >
-                    <Feather name="trash-2" size={16} color={palette.negative} />
+                    <AppIcon name="trash-2" size={16} color={palette.negative} />
                   </TouchableOpacity>
                 </View>
               ))}

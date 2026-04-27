@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { router } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { ScrollView, TouchableOpacity, View, StyleSheet, Dimensions } from 'react-native';
@@ -69,7 +69,7 @@ export default function NetWorthScreen() {
 
   const composition = useMemo(() => {
     const items = [
-      { id: 'cash', label: 'Cash Balance', icon: 'credit-card', color: palette.brand, amount: cashBalance },
+      { id: 'cash', label: 'Cash Balance', icon: 'wallet', color: palette.brand, amount: cashBalance },
       { id: 'lent', label: 'Money Lent', icon: 'arrow-up-right', color: '#8B5CF6', amount: loanSummary.youLent },
       { id: 'owed', label: 'Money Owed', icon: 'arrow-down-left', color: palette.negative, amount: -loanSummary.youOwe },
     ].filter(item => Math.abs(item.amount) > 0);
@@ -91,7 +91,7 @@ export default function NetWorthScreen() {
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
-          <Feather name="chevron-left" size={26} color={palette.text} />
+          <AppIcon name="chevron-left" size={26} color={palette.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: palette.text }]}>Net Worth</Text>
         <View style={{ width: 40 }} />
@@ -126,7 +126,7 @@ export default function NetWorthScreen() {
             <View style={styles.donutWrapper}>
               <DonutChart slices={donutSlices} palette={palette} size={120} strokeWidth={14} />
               <View style={styles.donutCenter}>
-                 <Feather name="pie-chart" size={24} color={palette.textMuted} />
+                 <AppIcon name="pie-chart" size={24} color={palette.textMuted} />
               </View>
             </View>
           </View>
@@ -147,7 +147,7 @@ export default function NetWorthScreen() {
               composition.map((item, index) => (
                 <View key={item.id} style={[styles.compRow, index < composition.length - 1 && { borderBottomWidth: 1, borderBottomColor: palette.divider }]}>
                   <View style={[styles.compIconBox, { backgroundColor: palette.background }]}>
-                    <Feather name={item.icon as any} size={18} color={item.color} />
+                    <AppIcon name={item.icon as any} size={18} color={item.color} />
                   </View>
                   <View style={styles.compBody}>
                     <View style={styles.compTop}>
@@ -187,7 +187,7 @@ export default function NetWorthScreen() {
               >
                 <View style={styles.accountHeader}>
                    <View style={[styles.smallIconBox, { backgroundColor: palette.background }]}>
-                      <Feather name={account.type === 'credit' ? 'credit-card' : 'hash'} size={14} color={palette.iconTint} />
+                      <AppIcon name={account.type === 'credit' ? 'credit-card' : 'hash'} size={14} color={palette.iconTint} />
                    </View>
                    <Text style={[styles.accountType, { color: palette.textMuted }]}>{account.type.toUpperCase()}</Text>
                 </View>
@@ -199,6 +199,7 @@ export default function NetWorthScreen() {
             ))}
           </View>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );

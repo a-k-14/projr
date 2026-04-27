@@ -1,4 +1,5 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { Animated,
   BackHandler,

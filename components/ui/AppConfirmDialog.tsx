@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Modal, Pressable, View } from 'react-native';
 import { TextButton } from './AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
@@ -64,7 +64,7 @@ export function AppConfirmDialog({
                 justifyContent: 'center',
               }}
             >
-              <Feather name="alert-circle" size={16} color={confirm.destructive ? palette.negative : palette.brand} />
+              <AppIcon name="alert-circle" size={16} color={confirm.destructive ? palette.negative : palette.brand} />
             </View>
             <Text appWeight="medium" style={{ flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text }}>
               {title}
