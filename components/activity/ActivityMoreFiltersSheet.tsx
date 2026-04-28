@@ -1,4 +1,5 @@
 import { AppIcon } from '@/components/ui/AppIcon';
+import { AppChevron } from '@/components/ui/AppChevron';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { StyleSheet, TextInput, View , TouchableOpacity } from 'react-native';
@@ -267,7 +268,7 @@ function MoreCategoryRow({
         </Text>
       </View>
       {hasChildren ? (
-        <AppIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textSoft} style={{ marginLeft: 8 }} />
+        <AppChevron direction={expanded ? 'up' : 'down'} size={18} tone="secondary" palette={palette} style={{ marginLeft: 8 }} />
       ) : (
         <View style={{ width: 26 }} />
       )}

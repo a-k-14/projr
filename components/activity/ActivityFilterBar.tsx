@@ -1,5 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { AppChevron } from '@/components/ui/AppChevron';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
@@ -67,7 +68,7 @@ export function ActivityFilterBar({
           <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
             {accountLabel}
           </Text>
-          <AppIcon name="chevron-down" size={13} color={palette.textMuted} />
+          <AppChevron direction="down" size={15} tone="secondary" palette={palette} />
         </TouchableOpacity>
 
         {periodNavigation}

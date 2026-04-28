@@ -1,4 +1,6 @@
 import { AppIcon } from '@/components/ui/AppIcon';
+import { AppChevron } from '@/components/ui/AppChevron';
+import { CalculatorTrigger } from '@/components/ui/CalculatorTrigger';
 import { RefObject, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Platform, TextInput, View , TouchableOpacity } from 'react-native';
@@ -104,7 +106,7 @@ export function PickerRow({
             <View style={{ flex: 1, minWidth: 0 }}>{value}</View>
             {showChevron ? (
               <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-                <AppIcon name="chevron-right" size={15} color={palette.textSoft} />
+                <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
               </View>
             ) : null}
           </>
@@ -137,7 +139,7 @@ export function PickerRow({
               ) : null}
             </View>
             <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-              <AppIcon name="chevron-right" size={15} color={palette.textSoft} />
+              <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
             </View>
           </>
         )}
@@ -464,8 +466,7 @@ export function AmountRow({
           ) : null}
         </View>
         {onOpenCalculator ? (
-          <TouchableOpacity delayPressIn={0}
-            onPress={onOpenCalculator}
+          <View
             style={{
               marginLeft: isLargeButton ? SCREEN_GUTTER : 0,
               width: isLargeButton ? ROW_TRAILING_WIDTH + 24 : ROW_TRAILING_WIDTH + 16,
@@ -474,21 +475,12 @@ export function AmountRow({
               alignItems: 'center',
               justifyContent: 'center' }}
           >
-            <View
-              style={{
-                width: isLargeButton ? 44 : 34,
-                height: isLargeButton ? 44 : 34,
-                borderRadius: isLargeButton ? 14 : 12,
-                backgroundColor: palette.inputBg,
-                alignItems: 'center',
-                justifyContent: 'center' }}
-            >
-              <AppIcon name="calculator"
-                size={isLargeButton ? 22 : 18}
-                color={isLargeButton ? palette.textSecondary : palette.textMuted}
-              />
-            </View>
-          </TouchableOpacity>
+            <CalculatorTrigger
+              palette={palette}
+              onPress={onOpenCalculator}
+              size={isLargeButton ? 'large' : 'compact'}
+            />
+          </View>
         ) : null}
       </View>
     </View>

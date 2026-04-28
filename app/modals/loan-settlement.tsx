@@ -238,6 +238,7 @@ export default function LoanSettlementModal() {
             <PickerRow
               label="Account"
               value={getAccountName(accounts, accountId) || 'Select...'}
+              subtitle={accountId ? formatCurrency(accounts.find((account) => account.id === accountId)?.balance ?? 0, displaySym) : undefined}
               placeholder={!accountId}
               palette={palette}
               onPress={() => {

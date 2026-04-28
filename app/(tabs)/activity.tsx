@@ -25,6 +25,7 @@ import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
+import { AppChevron } from '../../components/ui/AppChevron';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FabButton } from '../../components/ui/FabButton';
@@ -145,12 +146,26 @@ export default function ActivityScreen() {
   const flatListRef = useRef<FlatList>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const pendingListResetRef = useRef(false);
+  const pendingScrollToTopRef = useRef(false);
   const [listResetKey, setListResetKey] = useState(0);
 
   const scrollToTop = useCallback((animated: boolean) => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated });
     scrollViewRef.current?.scrollTo({ y: 0, animated });
   }, []);
+
+  const queueScrollToTop = useCallback((animated: boolean) => {
+    pendingScrollToTopRef.current = true;
+    requestAnimationFrame(() => {
+      scrollToTop(animated);
+      InteractionManager.runAfterInteractions(() => {
+        if (pendingScrollToTopRef.current) {
+          scrollToTop(animated);
+          pendingScrollToTopRef.current = false;
+        }
+      });
+    });
+  }, [scrollToTop]);
 
   const resetAllFilters = useCallback((animated: boolean) => {
     setPeriod('all');
@@ -168,8 +183,8 @@ export default function ActivityScreen() {
     setGroupByMode('date');
     setCategoryDrilldown(null);
     setIsSearchActive(false);
-    scrollToTop(animated);
-  }, [scrollToTop]);
+    queueScrollToTop(animated);
+  }, [queueScrollToTop]);
 
   useEffect(() => {
     return registerTabReset('activity', ({ mode, animated }) => {
@@ -186,7 +201,8 @@ export default function ActivityScreen() {
     if (!isFocused || !pendingListResetRef.current) return;
     pendingListResetRef.current = false;
     setListResetKey((value) => value + 1);
-  }, [isFocused]);
+    queueScrollToTop(false);
+  }, [isFocused, queueScrollToTop]);
 
   const toggleSearch = useCallback((active: boolean) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -414,7 +430,10 @@ export default function ActivityScreen() {
 
     if (cashflowBucketParam) {
       setCashflowBucket(cashflowBucketParam as any);
-      if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
+      if (
+        (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') &&
+        !sourceParam?.startsWith('home-')
+      ) {
         setTypeFilter(cashflowBucketParam as any);
       }
     }
@@ -443,11 +462,17 @@ export default function ActivityScreen() {
   };
 
   const goPrev = () => {
-    if (period !== 'all' && period !== 'custom') setPeriodOffset((value) => value - 1);
+    if (period !== 'all' && period !== 'custom') {
+      setPeriodOffset((value) => value - 1);
+      queueScrollToTop(false);
+    }
   };
 
   const goNext = () => {
-    if (canGoNext) setPeriodOffset((value) => value + 1);
+    if (canGoNext) {
+      setPeriodOffset((value) => value + 1);
+      queueScrollToTop(false);
+    }
   };
 
   const openCustomFromPicker = () => {
@@ -464,6 +489,7 @@ export default function ActivityScreen() {
         }
         setCustomFrom(pickedFrom);
         setPeriod('custom');
+        queueScrollToTop(false);
       }
     });
   };
@@ -484,6 +510,7 @@ export default function ActivityScreen() {
         }
         setCustomTo(pickedTo);
         setPeriod('custom');
+        queueScrollToTop(false);
       }
     });
   };
@@ -1023,7 +1050,7 @@ export default function ActivityScreen() {
                           gap: 8
                         }}
                       >
-                        <AppIcon name="chevron-left" size={16} color={palette.textMuted} />
+                        <AppChevron direction="left" size={16} tone="secondary" palette={palette} />
                         <Text
                           numberOfLines={1}
                           style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
@@ -1131,10 +1158,7 @@ export default function ActivityScreen() {
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                                 style={{ marginRight: 2 }}
                               >
-                                <AppIcon name={allExpanded ? 'chevron-up' : 'chevron-down'}
-                                  size={14}
-                                  color={palette.textMuted}
-                                />
+                                <AppChevron direction={allExpanded ? 'up' : 'down'} size={14} tone="secondary" palette={palette} />
                               </TouchableOpacity>
                             ) : null}
                           </View>
@@ -1208,10 +1232,7 @@ export default function ActivityScreen() {
                                 >
                                   {signedCurrency(category.total, sym)}
                                 </Text>
-                                <AppIcon name={isDirectNavigation ? 'chevron-right' : isExpanded ? 'chevron-up' : 'chevron-down'}
-                                  size={18}
-                                  color={palette.textSoft}
-                                />
+                                <AppChevron direction={isDirectNavigation ? 'right' : isExpanded ? 'up' : 'down'} size={18} tone="secondary" palette={palette} />
                               </TouchableOpacity>
 
                               {isExpanded && !isDirectNavigation ? (
@@ -1258,10 +1279,7 @@ export default function ActivityScreen() {
                                       >
                                         {signedCurrency(sub.total, sym)}
                                       </Text>
-                                      <AppIcon name="chevron-right"
-                                        size={16}
-                                        color={palette.textSoft}
-                                      />
+                                      <AppChevron direction="right" size={16} tone="secondary" palette={palette} />
                                     </TouchableOpacity>
                                   ))}
                                 </View>
@@ -1288,6 +1306,7 @@ export default function ActivityScreen() {
             onPress={() => {
               setSelectedAccountId('all');
               setShowAccountSheet(false);
+              queueScrollToTop(false);
             }}
             noBorder={accounts.length === 0}
           />
@@ -1300,6 +1319,7 @@ export default function ActivityScreen() {
               onPress={() => {
                 setSelectedAccountId(account.id);
                 setShowAccountSheet(false);
+                queueScrollToTop(false);
               }}
               noBorder={index === accounts.length - 1}
             />
@@ -1322,6 +1342,7 @@ export default function ActivityScreen() {
               setPeriod('all');
               setPeriodOffset(0);
               setShowPeriodSheet(false);
+              queueScrollToTop(false);
             }}
           />
           <ChoiceRow
@@ -1333,6 +1354,7 @@ export default function ActivityScreen() {
               setPeriod('day');
               setPeriodOffset(0);
               setShowPeriodSheet(false);
+              queueScrollToTop(false);
             }}
           />
           <ChoiceRow
@@ -1344,6 +1366,7 @@ export default function ActivityScreen() {
               setPeriod('week');
               setPeriodOffset(0);
               setShowPeriodSheet(false);
+              queueScrollToTop(false);
             }}
           />
           <ChoiceRow
@@ -1355,6 +1378,7 @@ export default function ActivityScreen() {
               setPeriod('month');
               setPeriodOffset(0);
               setShowPeriodSheet(false);
+              queueScrollToTop(false);
             }}
           />
           <ChoiceRow
@@ -1366,6 +1390,7 @@ export default function ActivityScreen() {
               setPeriod('year');
               setPeriodOffset(0);
               setShowPeriodSheet(false);
+              queueScrollToTop(false);
             }}
           />
           <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 16, paddingBottom: 18 }}>
@@ -1418,6 +1443,7 @@ export default function ActivityScreen() {
                   }
                   setPeriod('custom');
                   setShowPeriodSheet(false);
+                  queueScrollToTop(false);
                 }
               }}
               style={[

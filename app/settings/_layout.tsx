@@ -36,6 +36,7 @@ export default function SettingsLayout() {
               <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
                 {options.title}
               </Text>
+              {typeof options.headerRight === 'function' ? options.headerRight() : options.headerRight}
             </View>
           </View>
         ),

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Keyboard, ScrollView, View , TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BudgetMonthField, BudgetMonthSheet } from '../../components/budget-ui';
+import { BudgetMonthSheet, formatBudgetMonthLabel } from '../../components/budget-ui';
 import { FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
@@ -152,10 +152,9 @@ export default function BudgetFormModal() {
         <SectionCard palette={palette}>
           <PickerRow
             label="Month"
+            value={formatBudgetMonthLabel(startMonth)}
             palette={palette}
             onPress={openMonthPicker}
-            custom
-            value={<BudgetMonthField value={startMonth} palette={palette} onPress={openMonthPicker} />}
           />
           <PickerRow
             label="Category"

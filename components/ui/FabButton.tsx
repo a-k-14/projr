@@ -30,7 +30,7 @@ export function FabButton({
         {
           bottom,
           backgroundColor: backgroundColor ?? palette.brand,
-          shadowColor: palette.brand,
+          shadowColor: '#000000',
         },
         style,
       ]}

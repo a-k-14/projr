@@ -1,5 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { AppChevron } from '@/components/ui/AppChevron';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -62,13 +63,11 @@ function LoanRow({
   accountName,
   sym,
   palette,
-  isLast,
   onPressLoan }: {
     loan: LoanWithSummary;
     accountName?: string;
     sym: string;
     palette: AppThemePalette;
-    isLast: boolean;
     onPressLoan: (loanId: string) => void;
   }) {
   const isLent = loan.direction === 'lent';
@@ -295,12 +294,11 @@ export default function LoansScreen() {
           accountName={accountName}
           sym={sym}
           palette={palette}
-          isLast={index === filteredLoans.length - 1}
           onPressLoan={openLoanDetail}
         />
       );
     },
-    [accountsById, filteredLoans.length, openLoanDetail, palette, sym],
+    [accountsById, openLoanDetail, palette, sym],
   );
 
   const openFromDatePicker = () => {
@@ -428,7 +426,7 @@ export default function LoansScreen() {
                 <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
                   {selectedAccountLabel}
                 </Text>
-                <AppIcon name="chevron-down" size={13} color={palette.textMuted} />
+                <AppChevron direction="down" size={15} tone="secondary" palette={palette} />
               </TouchableOpacity>
 
               <FilterMoreButton

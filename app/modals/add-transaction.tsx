@@ -22,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
@@ -369,11 +370,14 @@ export default function AddTransactionModal() {
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
   const lockTypeSelection = isEditing && (isTransferEdit || (type === 'loan' && !!editingLoanId));
+  const lockLoanDirection = isLoanAddMore || (isEditing && type === 'loan' && !!editingLoanId);
   const displaySym = showCurrencySymbol ? sym : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
   const usableSplitRows = splitRows.filter(
     (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
   );
+  const selectedAccount = accounts.find((account) => account.id === accountId);
+  const selectedLinkedAccount = accounts.find((account) => account.id === linkedAccountId);
 
   useEffect(() => {
     if (type !== 'in' && type !== 'out') return;
@@ -795,6 +799,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="Account"
                 value={getAccountName(accounts, accountId)}
+                subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
@@ -944,6 +949,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="From account"
                 value={getAccountName(accounts, accountId) || 'Select...'}
+                subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowFromAccountSheet(true))}
@@ -970,6 +976,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="To account"
                 value={getAccountName(accounts, linkedAccountId) || 'Select...'}
+                subtitle={selectedLinkedAccount ? formatCurrency(selectedLinkedAccount.balance, displaySym) : undefined}
                 placeholder={!linkedAccountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowToAccountSheet(true))}
@@ -1065,8 +1072,8 @@ export default function AddTransactionModal() {
                           return (
                             <TouchableOpacity delayPressIn={0}
                               key={d}
-                              onPress={isLoanAddMore ? undefined : () => setLoanDirection(d)}
-                              disabled={isLoanAddMore}
+                              onPress={lockLoanDirection ? undefined : () => setLoanDirection(d)}
+                              disabled={lockLoanDirection}
                               style={{
                                 flex: 1,
                                 paddingVertical: 11,
@@ -1074,7 +1081,8 @@ export default function AddTransactionModal() {
                                 alignItems: 'center',
                                 borderWidth: 1.5,
                                 borderColor: active ? activeConfig.borderColor : palette.border,
-                                backgroundColor: active ? activeConfig.bg : palette.surface
+                                backgroundColor: active ? activeConfig.bg : palette.surface,
+                                opacity: lockLoanDirection && !active ? 0.5 : 1
                               }}
                             >
                               <Text
@@ -1124,6 +1132,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="Account"
                 value={getAccountName(accounts, accountId) || 'Select...'}
+                subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
@@ -1485,7 +1494,7 @@ export default function AddTransactionModal() {
                 elevation: 8,
               }}
             >
-              <AppIcon name="chevron-left" size={28} color="#FFFFFF" />
+              <AppChevron direction="left" size={28} color="#FFFFFF" palette={palette} />
             </TouchableOpacity>
             {receiptImageUris[receiptPreviewIndex] ? (
               <>
@@ -1516,7 +1525,7 @@ export default function AddTransactionModal() {
                         opacity: receiptPreviewIndex === 0 ? 0.35 : 1,
                       }}
                     >
-                      <AppIcon name="chevron-left" size={24} color="#FFFFFF" />
+                      <AppChevron direction="left" size={24} color="#FFFFFF" palette={palette} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       delayPressIn={0}
@@ -1542,7 +1551,7 @@ export default function AddTransactionModal() {
                         opacity: receiptPreviewIndex === receiptImageUris.length - 1 ? 0.35 : 1,
                       }}
                     >
-                      <AppIcon name="chevron-right" size={24} color="#FFFFFF" />
+                      <AppChevron direction="right" size={24} color="#FFFFFF" palette={palette} />
                     </TouchableOpacity>
                     <View
                       style={{

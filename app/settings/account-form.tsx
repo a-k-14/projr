@@ -8,12 +8,12 @@ import {
   ChoiceRow,
   FieldLabel,
   FixedBottomActions,
-  IconBtn,
   InputField,
   SelectTrigger,
   SettingsFormLayout,
 } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { CalculatorTrigger } from '../../components/ui/CalculatorTrigger';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SPACING } from '../../lib/design';
@@ -218,13 +218,13 @@ export default function AccountFormScreen() {
                 returnKeyType="done"
               />
             </View>
-            <IconBtn
+            <CalculatorTrigger
               palette={palette}
-              onPress={() => setShowCalculator(true)}
+              onPress={() => runAfterKeyboardDismiss(() => setShowCalculator(true))}
+              size="large"
+              height={56}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <AppIcon name="grid" size={20} color={palette.textMuted} />
-            </IconBtn>
+            />
           </View>
         </View>
       </SettingsFormLayout>

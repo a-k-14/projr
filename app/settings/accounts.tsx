@@ -1,4 +1,5 @@
 import { AppIcon } from '../../components/ui/AppIcon';
+import { AppChevron } from '../../components/ui/AppChevron';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
@@ -196,7 +197,7 @@ function AccountReorderRow({
               {getAccountTypeLabel(item.type)} · {formatDisplayCurrency(item.initialBalance, displaySymbol)}
             </Text>
           </View>
-          <AppIcon name="chevron-right" size={18} color={palette.textSoft} />
+          <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
         </TouchableOpacity>
       </View>
     </View>

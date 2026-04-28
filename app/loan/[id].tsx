@@ -1,5 +1,6 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
+import { AppChevron } from '@/components/ui/AppChevron';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -304,7 +305,7 @@ export default function LoanDetailScreen() {
                     </TouchableOpacity>
                   ) : (
                     <View style={{ position: 'absolute', right: 4 }}>
-                      <AppIcon name="chevron-right" size={14} color={palette.textSoft} />
+                      <AppChevron direction="right" size={14} tone="secondary" palette={palette} />
                     </View>
                   )}
                 </TouchableOpacity>

@@ -74,32 +74,100 @@ export const ENTITY_COLORS = [
 /** @deprecated use ENTITY_COLORS */
 export const ACCOUNT_COLORS = ENTITY_COLORS;
 
-export const CATEGORY_EMOJIS = [
-  // Food & Drink
-  '🍽️', '☕', '🍔', '🍕', '🍜', '🍱', '🥗', '🥦', '🍎', '🥛', '🌮', '🍣', '🍦', '🍩', '🍪', '🥑', '🥞', '🥓', '🥪', '🍻', '🍷', '🍹', '🍾',
-  // Shopping
-  '🛒', '🛍️', '🎁', '📦', '💳', '🧾', '🏷️', '💎', '👟', '👕', '👗', '🧥', '👖', '👔', '👓', '👒', '💄', '🧴',
-  // Transport
-  '🚗', '🚕', '🚌', '🚆', '✈️', '⛵', '⛽', '🅿️', '🚲', '🏍️', '🚁', '🛴', '🚇', '🚢',
-  // Home
-  '🏠', '🏡', '🛋️', '🛏️', '🧹', '🧺', '🧽', '🧼', '🧻', '🚽', '🛁', '🚿', '🪴', '💡', '🔦', '🚪',
-  // Entertainment & Leisure
-  '🎬', '🎵', '🎮', '🎟️', '🎤', '🎧', '🎸', '🎹', '🎨', '🎪', '🎢', '🎡', '🎳', '🎯', '🧩', '🎲', '🎰', '📺', '📸', '📹',
-  // Health & Wellness
-  '💊', '🏥', '🩺', '🧘', '🏋️', '🚴', '🏃', '🏊', '🧠', '🩸', '🩹', '🦷', '💪',
-  // Finance
-  '💰', '🏦', '🪙', '📈', '📉', '💸', '💴', '💶', '💷',
-  // Work & Education
-  '💼', '📚', '🏫', '🎓', '✏️', '💻', '🖥️', '🖨️', '📁', '📂', '📊', '📋', '📅', '📆', '📎', '📌', '✂️', '🖋️',
-  // Pets & Kids
-  '🐾', '🐶', '🐱', '🐰', '🐹', '👶', '🧸', '🍼', '🚸',
-  // Travel
-  '🏖️', '🏝️', '🏕️', '⛺', '🗺️', '🧭', '🧳', '🏨', '🗽', '🗼', '⛩️',
-  // Utilities & Services
-  '⚡', '📱', '🔧', '🧰', '🛠️', '🔨', '⛏️', '🪚', '🔩', '⚙️', '⚖️', '🔗', '🔌', '🔋', '📡', '📞', '☎️', '📮', '✉️', '🗑️',
-  // People
-  '🧑‍🍳', '🧑‍💻', '🧑‍🏫', '🧑‍⚕️', '🧑‍🔧', '🧑‍🔬', '🧑‍🎨', '🧑‍🚀', '🧑‍🚒', '👮', '🕵️', '💂', '👷',
-] as const;
+type CategoryEmojiGroup = {
+  emojis: readonly string[];
+  keywords: readonly string[];
+};
+
+const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
+  {
+    emojis: ['🍽️', '☕', '🍔', '🍕', '🍜', '🍱', '🥗', '🥦', '🍎', '🥛', '🌮', '🍣', '🍦', '🍩', '🍪', '🥑', '🥞', '🥓', '🥪', '🍻', '🍷', '🍹', '🍾', '🥤', '🍵', '🧃', '🍇', '🍉', '🍌', '🍓', '🍒', '🍑', '🥭', '🍍', '🥕', '🌽', '🍚', '🍛', '🍝', '🥟', '🍗', '🍖', '🥘', '🥡', '🍲'],
+    keywords: ['food', 'drink', 'coffee', 'tea', 'snack', 'breakfast', 'lunch', 'dinner', 'restaurant', 'cafe', 'grocery', 'groceries', 'meal', 'fruit', 'vegetable'],
+  },
+  {
+    emojis: ['🛒', '🛍️', '🎁', '📦', '💳', '🧾', '🏷️', '💎', '👟', '👕', '👗', '🧥', '👖', '👔', '👓', '👒', '💄', '🧴', '👜', '⌚', '💍', '🪞', '🪑'],
+    keywords: ['shopping', 'shop', 'retail', 'mall', 'buy', 'purchase', 'clothes', 'fashion', 'beauty', 'cosmetic', 'gift', 'parcel'],
+  },
+  {
+    emojis: ['🚗', '🚕', '🚌', '🚆', '✈️', '⛵', '⛽', '🅿️', '🚲', '🏍️', '🚁', '🛴', '🚇', '🚢', '🚙', '🚚', '🚐', '🛺', '🚉', '🛣️', '🛫', '🛬'],
+    keywords: ['transport', 'travel', 'car', 'bike', 'bus', 'train', 'flight', 'fuel', 'gas', 'parking', 'taxi', 'commute', 'metro', 'cab'],
+  },
+  {
+    emojis: ['🏠', '🏡', '🛋️', '🛏️', '🧹', '🧺', '🧽', '🧼', '🧻', '🚽', '🛁', '🚿', '🪴', '💡', '🔦', '🚪', '🪟', '🛒', '🧯', '🪣', '🧴'],
+    keywords: ['home', 'house', 'rent', 'furniture', 'cleaning', 'household', 'laundry', 'bathroom', 'kitchen', 'appliance', 'light'],
+  },
+  {
+    emojis: ['🎬', '🎵', '🎮', '🎟️', '🎤', '🎧', '🎸', '🎹', '🎨', '🎪', '🎢', '🎡', '🎳', '🎯', '🧩', '🎲', '🎰', '📺', '📸', '📹', '🎭', '🎻', '🥁', '🎼', '🕹️', '🪩'],
+    keywords: ['entertainment', 'fun', 'movie', 'music', 'game', 'gaming', 'ticket', 'show', 'photo', 'camera', 'art', 'hobby', 'streaming'],
+  },
+  {
+    emojis: ['💊', '🏥', '🩺', '🧘', '🏋️', '🚴', '🏃', '🏊', '🧠', '🩸', '🩹', '🦷', '💪', '🧴', '😴', '🫀', '🩻', '👓'],
+    keywords: ['health', 'medical', 'doctor', 'hospital', 'medicine', 'fitness', 'gym', 'yoga', 'wellness', 'therapy', 'dental', 'sleep'],
+  },
+  {
+    emojis: ['💰', '🏦', '🪙', '📈', '📉', '💸', '💴', '💶', '💷', '💵', '🧮', '📊', '📌'],
+    keywords: ['money', 'finance', 'bank', 'investment', 'saving', 'savings', 'income', 'expense', 'budget', 'loan', 'cash', 'salary', 'tax'],
+  },
+  {
+    emojis: ['💼', '📚', '🏫', '🎓', '✏️', '💻', '🖥️', '🖨️', '📁', '📂', '📊', '📋', '📅', '📆', '📎', '📌', '✂️', '🖋️', '🧑‍💻', '🧑‍🏫', '🧑‍🔬', '🧑‍⚕️'],
+    keywords: ['work', 'office', 'business', 'study', 'education', 'school', 'college', 'course', 'software', 'laptop', 'computer', 'stationery'],
+  },
+  {
+    emojis: ['🐾', '🐶', '🐱', '🐰', '🐹', '👶', '🧸', '🍼', '🚸', '🎒', '🧒', '🐦', '🐠'],
+    keywords: ['pet', 'pets', 'dog', 'cat', 'baby', 'kids', 'child', 'children', 'school bus', 'toy'],
+  },
+  {
+    emojis: ['🏖️', '🏝️', '🏕️', '⛺', '🗺️', '🧭', '🧳', '🏨', '🗽', '🗼', '⛩️', '🏞️', '🌋', '🛶', '🎒'],
+    keywords: ['trip', 'vacation', 'holiday', 'travel', 'hotel', 'tour', 'camp', 'beach', 'resort', 'outing'],
+  },
+  {
+    emojis: ['⚡', '📱', '🔧', '🧰', '🛠️', '🔨', '⛏️', '🪚', '🔩', '⚙️', '⚖️', '🔗', '🔌', '🔋', '📡', '📞', '☎️', '📮', '✉️', '🗑️', '🌐', '📶'],
+    keywords: ['utility', 'utilities', 'service', 'repair', 'internet', 'wifi', 'phone', 'mobile', 'electricity', 'water', 'gas bill', 'maintenance', 'tools'],
+  },
+  {
+    emojis: ['🧑‍🍳', '🧑‍💻', '🧑‍🏫', '🧑‍⚕️', '🧑‍🔧', '🧑‍🔬', '🧑‍🎨', '🧑‍🚀', '🧑‍🚒', '👮', '🕵️', '💂', '👷', '👩‍⚖️', '🧑‍🌾', '🧑‍💼'],
+    keywords: ['people', 'staff', 'employee', 'worker', 'labor', 'salary', 'service person', 'professional'],
+  },
+  {
+    emojis: ['🌳', '🌿', '🌱', '🌸', '🌧️', '☀️', '🌙', '⭐', '🔥', '💧', '❄️', '🌈'],
+    keywords: ['nature', 'garden', 'plant', 'weather', 'season', 'environment'],
+  },
+  {
+    emojis: ['🏛️', '🪪', '📜', '⚖️', '🛡️', '🚨', '🧾'],
+    keywords: ['government', 'legal', 'document', 'insurance', 'compliance', 'fine', 'bill'],
+  },
+];
+
+export const CATEGORY_EMOJI_OPTIONS = CATEGORY_EMOJI_GROUPS.flatMap((group) =>
+  group.emojis.map((emoji) => ({ emoji, keywords: group.keywords })),
+);
+
+export const CATEGORY_EMOJIS = CATEGORY_EMOJI_OPTIONS.map((option) => option.emoji) as readonly string[];
+
+function normalizeEmojiSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function searchCategoryEmojis(query: string): string[] {
+  const normalized = normalizeEmojiSearch(query);
+  if (!normalized) return [...CATEGORY_EMOJIS];
+  return CATEGORY_EMOJI_OPTIONS
+    .filter(
+      (option) =>
+        option.emoji.includes(normalized) ||
+        option.keywords.some((keyword) => keyword.includes(normalized) || normalized.includes(keyword)),
+    )
+    .map((option) => option.emoji);
+}
+
+export function suggestCategoryEmojis(categoryName: string, limit: number = 12): string[] {
+  const normalized = normalizeEmojiSearch(categoryName);
+  if (!normalized) return [];
+  const matches = CATEGORY_EMOJI_OPTIONS.filter((option) =>
+    option.keywords.some((keyword) => normalized.includes(keyword)),
+  ).map((option) => option.emoji);
+  return Array.from(new Set(matches)).slice(0, limit);
+}
 
 export const CATEGORY_ICONS = [
   // Shopping & retail

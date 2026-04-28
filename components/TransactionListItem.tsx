@@ -107,7 +107,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const amountColor = useTypeAmountColor
     ? (displayImpact === 'in' ? palette.brand : displayImpact === 'out' ? palette.negative : palette.text)
     : palette.text;
-  const tertiaryLines = [tertiaryText, noteLine].filter((value): value is string => !!value);
+  const tertiaryLine = [tertiaryText, noteLine].filter((value): value is string => !!value).join(' | ') || undefined;
   const supportIcons = tx.splitGroupId || hasReceipt ? (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
       {tx.splitGroupId ? (
@@ -162,19 +162,14 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           {supportIcons ? <View style={{ minWidth: 28 }}>{supportIcons}</View> : null}
         </View>
       }
-      tertiaryRow={tertiaryLines.length > 0 ? (
-        <View>
-          {tertiaryLines.map((line, index) => (
-            <Text
-              key={`${index}-${line}`}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-              style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}
-            >
-              {line}
-            </Text>
-          ))}
-        </View>
+      tertiaryRow={tertiaryLine ? (
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}
+        >
+          {tertiaryLine}
+        </Text>
       ) : null}
       style={{
         paddingVertical: paddingY,

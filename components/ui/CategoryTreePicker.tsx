@@ -1,4 +1,5 @@
 import { AppIcon, IconName, isValidIcon } from './AppIcon';
+import { AppChevron } from './AppChevron';
 import { router } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
 import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
@@ -318,10 +319,7 @@ export function CategoryTreeList({
                       {parent.name}
                     </Text>
                     {hasChildren ? (
-                      <AppIcon name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                        size={18}
-                        color={palette.textSoft}
-                      />
+                      <AppChevron direction={isExpanded ? 'up' : 'down'} size={18} tone="secondary" palette={palette} />
                     ) : selected ? (
                       <View
                         style={{

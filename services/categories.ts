@@ -15,6 +15,28 @@ function rowToCategory(row: typeof categories.$inferSelect): Category {
   };
 }
 
+function normalizeCategoryName(name: string): string {
+  return name.replace(/\s+/g, '').toLowerCase();
+}
+
+async function assertNoDuplicateSiblingCategory(
+  name: string,
+  parentId?: string | null,
+  excludeId?: string,
+): Promise<void> {
+  const normalizedName = normalizeCategoryName(name);
+  const allCategories = await getCategories();
+  const hasDuplicate = allCategories.some((category) => {
+    if (excludeId && category.id === excludeId) return false;
+    const sameParent = (category.parentId ?? null) === (parentId ?? null);
+    return sameParent && normalizeCategoryName(category.name) === normalizedName;
+  });
+
+  if (hasDuplicate) {
+    throw new Error('A category with this name already exists at this level.');
+  }
+}
+
 export async function getCategories(): Promise<Category[]> {
   const rows = await db.select().from(categories);
   return rows.map(rowToCategory);
@@ -30,6 +52,7 @@ export async function createCategory(data: Omit<Category, 'id'>): Promise<Catego
     const parent = await getCategoryById(data.parentId);
     if (!parent) throw new Error('Parent category not found.');
   }
+  await assertNoDuplicateSiblingCategory(data.name, data.parentId);
   const id = generateId();
   const row = {
     id,
@@ -50,6 +73,13 @@ export async function updateCategory(id: string, data: Partial<Category>): Promi
     if (data.parentId === id) throw new Error('A category cannot be its own parent.');
     const parent = await getCategoryById(data.parentId);
     if (!parent) throw new Error('Parent category not found.');
+  }
+  if (data.name !== undefined || data.parentId !== undefined) {
+    await assertNoDuplicateSiblingCategory(
+      data.name ?? existing.name,
+      data.parentId ?? existing.parentId,
+      id,
+    );
   }
   await db.update(categories).set(data as any).where(eq(categories.id, id));
   return (await getCategoryById(id))!;

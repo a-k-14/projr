@@ -1,6 +1,6 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { ScrollView, View , TouchableOpacity } from 'react-native';
 import {
@@ -18,7 +18,13 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
-import { CATEGORY_EMOJIS, CATEGORY_ICONS, ENTITY_COLORS } from '../../lib/settings-shared';
+import {
+  CATEGORY_EMOJIS,
+  CATEGORY_ICONS,
+  ENTITY_COLORS,
+  searchCategoryEmojis,
+  suggestCategoryEmojis,
+} from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { isEmojiIcon } from '../../lib/ui-format';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -59,7 +65,7 @@ export default function CategoryFormScreen() {
   const [subs, setSubs] = useState<SubDraft[]>([]);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [iconPickerTab, setIconPickerTab] = useState<'icons' | 'emojis'>('icons');
-  const [customEmoji, setCustomEmoji] = useState('');
+  const [emojiQuery, setEmojiQuery] = useState('');
   const [showTypePicker, setShowTypePicker] = useState(false);
   const formScrollRef = useRef<ScrollView | null>(null);
 
@@ -76,6 +82,7 @@ export default function CategoryFormScreen() {
       if (cat) {
         setName(cat.name);
         setIcon(cat.icon ?? CATEGORY_ICONS[0]);
+        setEmojiQuery(isEmojiIcon(cat.icon) ? cat.icon : '');
         setType(cat.type);
         if (!cat.parentId) {
           setSubs(
@@ -197,6 +204,9 @@ export default function CategoryFormScreen() {
     .filter((sub) => !sub.deleted);
 
   const selectedType = CATEGORY_TYPE_OPTIONS.find((o) => o.key === type);
+  const suggestedEmojis = useMemo(() => suggestCategoryEmojis(name), [name]);
+  const filteredEmojis = useMemo(() => searchCategoryEmojis(emojiQuery), [emojiQuery]);
+  const visibleEmojiOptions = emojiQuery.trim() ? filteredEmojis : CATEGORY_EMOJIS;
 
   return (
     <>
@@ -385,30 +395,52 @@ export default function CategoryFormScreen() {
               })}
             </View>
             {iconPickerTab === 'emojis' ? (
-              <View style={{ marginBottom: 12 }}>
+              <View style={{ marginBottom: 12, gap: 10 }}>
                 <InputField
                   palette={palette}
-                  value={customEmoji}
+                  value={emojiQuery}
                   onChangeText={(value) => {
-                    setCustomEmoji(value);
+                    setEmojiQuery(value);
                     const nextEmoji = value.trim();
-                    if (nextEmoji) setIcon(nextEmoji);
+                    if (nextEmoji && isEmojiIcon(nextEmoji)) setIcon(nextEmoji);
                   }}
-                  placeholder={isEmojiIcon(icon) ? icon : 'Emoji'}
+                  placeholder={isEmojiIcon(icon) ? `${icon} Search or type emoji` : 'Search by word or type emoji'}
                   autoCapitalize="none"
                 />
+                {suggestedEmojis.length > 0 && !emojiQuery.trim() ? (
+                  <View style={{ gap: 8 }}>
+                    <Text style={{ fontSize: TYPE.body, fontWeight: '700', color: palette.textMuted }}>
+                      Suggested For "{name.trim()}"
+                    </Text>
+                    <IconGrid
+                      icons={suggestedEmojis}
+                      selectedIcon={icon}
+                      onSelect={(ic) => {
+                        setIcon(ic);
+                        setEmojiQuery(ic);
+                        setShowIconPicker(false);
+                      }}
+                      palette={palette}
+                    />
+                  </View>
+                ) : null}
               </View>
             ) : null}
             <IconGrid
-              icons={iconPickerTab === 'icons' ? CATEGORY_ICONS : CATEGORY_EMOJIS}
+              icons={iconPickerTab === 'icons' ? CATEGORY_ICONS : visibleEmojiOptions}
               selectedIcon={icon}
               onSelect={(ic) => {
                 setIcon(ic);
-                if (isEmojiIcon(ic)) setCustomEmoji(ic);
+                if (isEmojiIcon(ic)) setEmojiQuery(ic);
                 setShowIconPicker(false);
               }}
               palette={palette}
             />
+            {iconPickerTab === 'emojis' && visibleEmojiOptions.length === 0 ? (
+              <Text style={{ fontSize: TYPE.body, color: palette.textSecondary, paddingTop: 12, textAlign: 'center' }}>
+                No emojis match that search yet.
+              </Text>
+            ) : null}
           </View>
         </BottomSheet>
       )}

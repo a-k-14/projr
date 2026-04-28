@@ -29,6 +29,7 @@ import { ChoiceRow, ScreenTitle } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FabButton } from '../../components/ui/FabButton';
@@ -64,7 +65,10 @@ import { useUIStore } from '../../stores/useUIStore';
 import type {
   Account,
   CashflowSummary,
+  Category,
   DailyCashflow,
+  LoanStatus,
+  LoanWithSummary,
   PeriodType,
   Transaction
 } from '../../types';
@@ -95,6 +99,11 @@ type AccountCardItem = {
 export default function HomeScreen() {
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
+  const categories = useCategoriesStore((s) => s.categories);
+  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
+  const loans = useLoansStore((s) => s.loans);
+  const loansLoaded = useLoansStore((s) => s.isLoaded);
+  const loadLoans = useLoansStore((s) => s.load);
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
@@ -139,6 +148,19 @@ export default function HomeScreen() {
   ], [accounts, showAllAccountsTab]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all' | 'add'>('all');
   const [pagerHeight, setPagerHeight] = useState(0);
+  const [loadedPageIds, setLoadedPageIds] = useState<Set<string | 'all' | 'add'>>(
+    () => new Set([homeRootAccountId]),
+  );
+  const selectedPageIndex = useMemo(
+    () => Math.max(displayAccounts.findIndex((account) => account.id === selectedAccountId), 0),
+    [displayAccounts, selectedAccountId],
+  );
+  const accountsById = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
+  const categoriesById = useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
+  const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
+  const accountTypeById = useMemo(() => new Map(accounts.map((account) => [account.id, getAccountTypeLabel(account.type)])), [accounts]);
+  const accountBalanceById = useMemo(() => new Map(accounts.map((account) => [account.id, account.balance])), [accounts]);
+  const totalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
 
   useEffect(() => {
     const previousCount = previousAccountCountRef.current;
@@ -171,6 +193,19 @@ export default function HomeScreen() {
       setSelectedAccountId(accounts[0].id);
     }
   }, [accounts, selectedAccountId, showAllAccountsTab]);
+
+  useEffect(() => {
+    setLoadedPageIds((prev) => {
+      const next = new Set(prev);
+      const current = displayAccounts[selectedPageIndex];
+      const left = displayAccounts[selectedPageIndex - 1];
+      const right = displayAccounts[selectedPageIndex + 1];
+      if (current) next.add(current.id);
+      if (left) next.add(left.id);
+      if (right) next.add(right.id);
+      return next;
+    });
+  }, [displayAccounts, selectedPageIndex]);
 
   useEffect(() => {
     if (homeAccountViewMode !== 'swipe') return;
@@ -468,7 +503,7 @@ export default function HomeScreen() {
                         accountTypeLabel={
                           account.id === 'all'
                             ? ''
-                            : getAccountTypeLabel(accounts.find((item) => item.id === account.id)?.type)
+                            : (accountTypeById.get(account.id) ?? '')
                         }
                         settingsYearStart={settingsYearStart}
                         currencySymbol={showCurrencySymbol ? currencySymbol : ''}
@@ -476,8 +511,8 @@ export default function HomeScreen() {
                         onOpenCustomRange={openCustomRange}
                         totalBalance={
                           account.id === 'all'
-                            ? getTotalBalance(accounts)
-                            : (accounts.find((item) => item.id === account.id)?.balance ?? 0)
+                            ? totalBalance
+                            : (accountBalanceById.get(account.id) ?? 0)
                         }
                         onRefresh={refreshAccounts}
                         isSelected={account.id === selectedAccountId}
@@ -486,6 +521,13 @@ export default function HomeScreen() {
                         indicatorY={indicatorY}
                         resetTick={globalScrollResetTick}
                         onBottomSheetChange={setBottomSheetVisible}
+                        isPageReady={loadedPageIds.has(account.id) || Math.abs(index - selectedPageIndex) <= 1}
+                        accountsById={accountsById}
+                        categoriesById={categoriesById}
+                        loansById={loansById}
+                        getCategoryFullDisplayName={getCategoryFullDisplayName}
+                        loansLoaded={loansLoaded}
+                        loadLoans={loadLoans}
                       />
                     )}
                   </View>
@@ -1223,6 +1265,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   indicatorY,
   resetTick,
   onBottomSheetChange,
+  isPageReady,
+  accountsById,
+  categoriesById,
+  loansById,
+  getCategoryFullDisplayName,
+  loansLoaded,
+  loadLoans,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1240,17 +1289,15 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   indicatorY: SharedValue<number>;
   resetTick: { count: number; animated: boolean; mode: TabResetMode };
   onBottomSheetChange?: (visible: boolean) => void;
+  isPageReady: boolean;
+  accountsById: Map<string, string>;
+  categoriesById: Map<string, Category>;
+  loansById: Map<string, LoanWithSummary>;
+  getCategoryFullDisplayName: (categoryId: string, separator?: string) => string;
+  loansLoaded: boolean;
+  loadLoans: (filters?: { accountId?: string; status?: LoanStatus }) => Promise<void>;
 }) {
   const { palette } = useAppTheme();
-  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
-  const accounts = useAccountsStore((s) => s.accounts);
-  const categories = useCategoriesStore((s) => s.categories);
-  const accountsById = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
-  const categoriesById = useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
-  const loans = useLoansStore((s) => s.loans);
-  const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
-  const loansLoaded = useLoansStore((s) => s.isLoaded);
-  const loadLoans = useLoansStore((s) => s.load);
   const [period, setPeriod] = useState<PeriodType>('week');
   const [activeView, setActiveView] = useState<'out' | 'in' | 'table'>('out');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
@@ -1324,6 +1371,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   }, []);
 
   const loadPageData = useCallback(async () => {
+    if (!isPageReady) return;
     const accountFilter = accountId === 'all' ? undefined : accountId;
     const [periodSnapshot, recentTransactions, todaySnapshot] = await Promise.all([
       getCashflowSnapshot(accountId, from, to),
@@ -1346,17 +1394,17 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     setDailyData(dailySummary);
     setTransactions(recentTransactions);
     setTodayCashflow(todaySummary);
-  }, [accountId, from, to, today, todayEnd, todayKey]);
+  }, [accountId, from, isPageReady, to, today, todayEnd, todayKey]);
 
   useEffect(() => {
-    if (!isScreenFocused || !isSelected) return;
+    if (!isPageReady || !isScreenFocused || !isSelected) return;
     loadPageData();
-  }, [isScreenFocused, isSelected, loadPageData]);
+  }, [isPageReady, isScreenFocused, isSelected, loadPageData]);
 
   useEffect(() => {
-    if (!isScreenFocused || !isSelected || loansLoaded) return;
+    if (!isPageReady || !isScreenFocused || !isSelected || loansLoaded) return;
     loadLoans().catch(() => undefined);
-  }, [isScreenFocused, isSelected, loadLoans, loansLoaded]);
+  }, [isPageReady, isScreenFocused, isSelected, loadLoans, loansLoaded]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -1576,7 +1624,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
                 {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow'}
               </Text>
-              <AppIcon name="chevron-down" size={16} color={palette.textMuted} />
+              <AppChevron direction="down" size={16} tone="secondary" palette={palette} />
             </TouchableOpacity>
 
             {activeView === 'table' ? (
@@ -1836,6 +1884,21 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 })
               )}
             </ScrollView>
+          </View>
+
+          <View style={{ alignItems: 'center', marginTop: 2, marginBottom: 22 }}>
+            <TouchableOpacity delayPressIn={0} onPress={() => router.push('/loan-prototype')}>
+              <Text
+                appWeight="medium"
+                style={{
+                  fontSize: HOME_TEXT.bodySmall,
+                  color: palette.brand,
+                  fontWeight: BUTTON_TOKENS.text.labelWeight,
+                }}
+              >
+                Open Loan Prototype
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={{ width: '100%', alignItems: 'center', marginBottom: -70 }}>

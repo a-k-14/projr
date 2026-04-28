@@ -1,12 +1,15 @@
 import { AppIcon } from '@/components/ui/AppIcon';
-import { useRouter } from 'expo-router';
+import { AppChevron } from '@/components/ui/AppChevron';
+import { useRouter, Stack } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Animated, Pressable, ScrollView, View,  useWindowDimensions , TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CardSection,
-  FixedBottomActions } from '../../components/settings-ui';
+  ScreenTitle,
+  FixedBottomActions,
+} from '../../components/settings-ui';
 import { CategoryIconBadge, CATEGORY_TREE_ROW } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, TYPE } from '../../lib/design';
 import { useAppTheme } from '../../lib/theme';
@@ -17,6 +20,7 @@ type Tab = 'in' | 'out';
 export default function CategoriesScreen() {
   const { categories, load, isLoaded } = useCategoriesStore();
   const { palette } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('in');
@@ -61,7 +65,7 @@ export default function CategoriesScreen() {
     return (
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 4, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 120 }}
         showsVerticalScrollIndicator={false}
       >
         <CardSection palette={palette}>
@@ -120,10 +124,7 @@ export default function CategoriesScreen() {
                   >
                     <AppIcon name="edit-2" size={14} color={palette.iconTint} />
                   </TouchableOpacity>
-                  <AppIcon name={isOpen ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={palette.textSoft}
-                  />
+                  <AppChevron direction={isOpen ? 'up' : 'down'} size={18} tone="secondary" palette={palette} />
                 </TouchableOpacity>
 
                 {isOpen && (
@@ -180,6 +181,27 @@ export default function CategoriesScreen() {
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <View style={{ flex: 1 }}>
+        <Stack.Screen
+          options={{
+            title: 'Categories',
+            headerRight: () => (
+              <TouchableOpacity
+                delayPressIn={0}
+                onPress={() =>
+                  router.push({ pathname: '/settings/category-form', params: { type: tab } })
+                }
+                style={{ marginRight: 16 }}
+              >
+                <Text
+                  appWeight="medium"
+                  style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}
+                >
+                  Add
+                </Text>
+              </TouchableOpacity>
+            ),
+          }}
+        />
         <View
           style={{
             flexDirection: 'row',
@@ -241,26 +263,11 @@ export default function CategoriesScreen() {
           <View style={{ width }}>{renderCategoryList('in')}</View>
           <View style={{ width }}>{renderCategoryList('out')}</View>
         </Animated.ScrollView>
+
+        <FixedBottomActions palette={palette}>
+          <View style={{ height: 0 }} />
+        </FixedBottomActions>
       </View>
-      <FixedBottomActions palette={palette} useBudgetSpacing>
-        <TouchableOpacity delayPressIn={0}
-          onPress={() =>
-            router.push({ pathname: '/settings/category-form', params: { type: tab } })
-          }
-          activeOpacity={0.7}
-          style={{
-            minHeight: 48,
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: palette.brand,
-            alignItems: 'center',
-            justifyContent: 'center' }}
-        >
-          <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
-            + Add {tab === 'in' ? 'Income' : 'Expense'} Category
-          </Text>
-        </TouchableOpacity>
-      </FixedBottomActions>
     </SafeAreaView>
   );
 }

@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
+import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel } from '../../components/budget-ui';
 import { ScreenTitle } from '../../components/settings-ui';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FabButton } from '../../components/ui/FabButton';
@@ -130,8 +130,6 @@ export default function BudgetScreen() {
             value={selectedMonth}
             palette={palette}
             onPress={() => setShowMonthSheet(true)}
-            onPrev={() => setSelectedMonth((current) => shiftBudgetMonth(current, -1))}
-            onNext={() => setSelectedMonth((current) => shiftBudgetMonth(current, 1))}
           />
         </View>
 

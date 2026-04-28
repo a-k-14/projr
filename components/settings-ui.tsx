@@ -1,5 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { AppChevron } from '@/components/ui/AppChevron';
 import { forwardRef, ReactNode, RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -136,7 +137,7 @@ export function SettingsRow({
           {value}
         </Text>
       ) : null}
-      {onPress && !rightElement ? <AppIcon name="chevron-right" size={18} color={palette.textSoft} /> : null}
+      {onPress && !rightElement ? <AppChevron direction="right" size={18} tone="secondary" palette={palette} /> : null}
     </>
   );
 
@@ -308,9 +309,9 @@ export function IconBtn({
         width: 52,
         height: 56,
         borderRadius: RADIUS.md,
-        backgroundColor: palette.inputBg,
+        backgroundColor: palette.surface,
         borderWidth: 1,
-        borderColor: palette.border,
+        borderColor: palette.divider,
         alignItems: 'center',
         justifyContent: 'center'
       }}
@@ -400,7 +401,7 @@ export function SelectTrigger({
         <Text style={{ color: valueLabel ? palette.text : palette.textSoft, fontSize: TYPE.rowLabel }}>
           {valueLabel ?? placeholder}
         </Text>
-        <AppIcon name="chevron-down" size={20} color={palette.textSoft} />
+        <AppChevron direction="down" size={22} tone="secondary" palette={palette} />
       </TouchableOpacity>
     </View>
   );

@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '@/components/ui/AppIcon';
+import { AppChevron } from '@/components/ui/AppChevron';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
@@ -24,6 +24,7 @@ export function ActivityPeriodHeader({
   setShowPeriodSheet,
   palette }: ActivityPeriodHeaderProps) {
   const isDisabled = period === 'custom' || period === 'all';
+  const disabledOpacity = palette.isDark ? 0.74 : 0.58;
 
   return (
     <View
@@ -37,16 +38,16 @@ export function ActivityPeriodHeader({
       ]}
     >
       <TouchableOpacity delayPressIn={0}
-        onPress={goPrev}
-        disabled={isDisabled}
+        onPress={isDisabled ? undefined : goPrev}
         style={[styles.periodArrow, { borderRightColor: palette.divider }]}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <AppIcon
-          name="chevron-left"
-          size={14}
-          color={palette.text}
-          style={{ opacity: isDisabled ? 0.2 : 1 }}
+        <AppChevron
+          direction="left"
+          size={16}
+          tone={isDisabled ? 'secondary' : 'primary'}
+          opacity={isDisabled ? disabledOpacity : 1}
+          palette={palette}
         />
       </TouchableOpacity>
 
@@ -64,16 +65,16 @@ export function ActivityPeriodHeader({
       </View>
 
       <TouchableOpacity delayPressIn={0}
-        onPress={goNext}
-        disabled={!canGoNext}
+        onPress={canGoNext ? goNext : undefined}
         style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <AppIcon
-          name="chevron-right"
-          size={14}
-          color={palette.text}
-          style={{ opacity: canGoNext ? 1 : 0.2 }}
+        <AppChevron
+          direction="right"
+          size={16}
+          tone={canGoNext ? 'primary' : 'secondary'}
+          opacity={canGoNext ? 1 : disabledOpacity}
+          palette={palette}
         />
       </TouchableOpacity>
     </View>
