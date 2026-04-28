@@ -1,15 +1,17 @@
 import { AppIcon } from '@/components/ui/AppIcon';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { InteractionManager,
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import {
+  InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   TextInput,
-  
-  View , TouchableOpacity } from 'react-native';
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
@@ -24,12 +26,14 @@ import {
   ROW_COLUMN_GAP,
   ROW_LABEL_WIDTH,
   ROW_MIN_HEIGHT,
-  SectionCard } from '../../components/ui/transaction-form-primitives';
+  SectionCard
+} from '../../components/ui/transaction-form-primitives';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
 import { getTransactionById } from '../../services/transactions';
@@ -37,7 +41,6 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { useAppDialog } from '../../components/ui/useAppDialog';
 
 export default function LoanSettlementModal() {
   const { editId, loanId } = useLocalSearchParams<{ editId?: string; loanId?: string }>();
@@ -61,7 +64,8 @@ export default function LoanSettlementModal() {
   const [accountId, setAccountId] = useState('');
   const [date, setDate] = useState(nowUTC());
   const [note, setNote] = useState('');
-  const [loading] = useState(false);
+  const [loanTransactionType, setLoanTransactionType] = useState<'principal' | 'interest' | 'others'>('principal');
+  const [showTypeSheet, setShowTypeSheet] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -82,6 +86,14 @@ export default function LoanSettlementModal() {
           setAccountId(tx.accountId);
           setDate(tx.date);
           setNote(getLoanTransactionUserNote(tx.note));
+          const type = tx.loanTransactionType || 'principal';
+          setLoanTransactionType(
+            type === 'interest' || type === 'others'
+              ? type
+              : type === 'principal'
+                ? 'principal'
+                : 'others'
+          );
         });
         return;
       }
@@ -101,14 +113,16 @@ export default function LoanSettlementModal() {
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
-      amountInputRef.current?.focus();
+      setTimeout(() => {
+        amountInputRef.current?.focus();
+      }, 250);
     });
     return () => task.cancel();
   }, []);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const isValid = !!resolvedLoanId && !!accountId && amount !== 0;
-  const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'Receipt' : 'Repayment'}` : loanDirection === 'lent' ? 'New Receipt' : 'New Repayment';
+  const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'Receipt' : 'Payment'}` : loanDirection === 'lent' ? 'New Receipt' : 'New Payment';
 
   const handleSave = async () => {
     if (!isValid) return;
@@ -118,8 +132,10 @@ export default function LoanSettlementModal() {
         amount,
         accountId,
         loanId: resolvedLoanId,
+        loanTransactionType,
         note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
-        date };
+        date
+      };
       if (isEditing && editId) {
         await updateTransaction(editId, payload);
       } else {
@@ -127,7 +143,7 @@ export default function LoanSettlementModal() {
       }
       router.back();
       // Background refresh after navigation
-      Promise.all([refreshAccounts(), loadLoans()]).catch(() => {});
+      Promise.all([refreshAccounts(), loadLoans()]).catch(() => { });
     } catch (e) {
       showAlert('Error', String(e));
     }
@@ -143,7 +159,7 @@ export default function LoanSettlementModal() {
       onConfirm: async () => {
         await removeTransaction(editId);
         router.back();
-        Promise.all([refreshAccounts(), loadLoans()]).catch(() => {});
+        Promise.all([refreshAccounts(), loadLoans()]).catch(() => { });
       },
     });
   };
@@ -179,15 +195,33 @@ export default function LoanSettlementModal() {
         <View style={{ paddingBottom: 20 }}>
           <SectionCard palette={palette}>
             <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
-            <FieldRow label="Loan" palette={palette}>
-              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text }}>
-                {personName || 'Loan'}
-                <Text style={{ color: palette.textSecondary, fontWeight: '400' }}>
-                  {' '}
-                  {'\u2022'} {loanDirection === 'lent' ? 'Receipt' : 'Repayment'}
-                </Text>
+            <FieldRow label="Person" palette={palette}>
+              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
+                {personName || 'Person'}
               </Text>
             </FieldRow>
+            <PickerRow
+              label="Type"
+              value={
+                loanTransactionType === 'principal'
+                  ? 'Principal'
+                  : loanTransactionType === 'interest'
+                    ? 'Interest'
+                    : 'Others'
+              }
+              palette={palette}
+              onPress={() => {
+                Keyboard.dismiss();
+                InteractionManager.runAfterInteractions(() => setShowTypeSheet(true));
+              }}
+            />
+            {loanTransactionType !== 'principal' && (
+              <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 8 }}>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary }}>
+                  Loan outstanding balance will not be affected.
+                </Text>
+              </View>
+            )}
             <AmountRow
               inputRef={amountInputRef}
               sym={displaySym}
@@ -223,7 +257,7 @@ export default function LoanSettlementModal() {
 
       <FixedBottomActions palette={palette}>
         <FilledButton
-          label={isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add repayment'}
+          label={isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add payment'}
           onPress={handleSave}
           disabled={!isValid}
           palette={palette}
@@ -248,6 +282,30 @@ export default function LoanSettlementModal() {
                 setShowAccountSheet(false);
               }}
               noBorder={index === accounts.length - 1}
+            />
+          ))}
+        </BottomSheet>
+      ) : null}
+
+      {showTypeSheet ? (
+        <BottomSheet title="Select Type" palette={palette} onClose={() => setShowTypeSheet(false)}>
+          {(['principal', 'interest', 'others'] as const).map((type, index, arr) => (
+            <ChoiceRow
+              key={type}
+              title={
+                type === 'principal'
+                  ? 'Principal'
+                  : type === 'interest'
+                    ? 'Interest'
+                    : 'Others'
+              }
+              selected={loanTransactionType === type}
+              palette={palette}
+              onPress={() => {
+                setLoanTransactionType(type);
+                setShowTypeSheet(false);
+              }}
+              noBorder={index === arr.length - 1}
             />
           ))}
         </BottomSheet>
@@ -287,7 +345,7 @@ function FieldRow({ label, children, palette }: { label: string; children: React
       <Text
         appWeight="medium"
         numberOfLines={1}
-        style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, width: ROW_LABEL_WIDTH, paddingRight: ROW_COLUMN_GAP }}
+        style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, width: ROW_LABEL_WIDTH, paddingRight: ROW_COLUMN_GAP }}
       >
         {label}
       </Text>

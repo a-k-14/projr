@@ -1,5 +1,5 @@
-import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { Text } from '@/components/ui/AppText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -13,18 +13,16 @@ import { FixedBottomActions } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
-import { formatDate, formatDateShort, getRelativeDateLabel } from '../../lib/dateUtils';
+import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import {
   ACTIVITY_LAYOUT,
-  BUTTON_TOKENS,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-  PRIMARY_ACTION,
-  SCREEN_HEADER,
-  PROGRESS
+  PROGRESS,
+  SCREEN_HEADER
 } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -46,6 +44,7 @@ export default function LoanDetailScreen() {
   const tags = useCategoriesStore((s) => s.tags);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [filterNonPrincipal, setFilterNonPrincipal] = useState(false);
 
   const loan = loans.find((l) => l.id === id);
 
@@ -69,9 +68,38 @@ export default function LoanDetailScreen() {
 
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.brand : palette.negative);
+  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.brand);
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
-  const grouped = groupTransactionsByDate(loan.transactions);
+  const displayedTransactions = useMemo(() => {
+    if (!loan) return [];
+    if (!filterNonPrincipal) return loan.transactions;
+    return loan.transactions.filter((tx) => {
+      const type = tx.loanTransactionType || 'principal';
+      return type === 'interest' || type === 'others' || type === 'charges' || type === 'adjustment';
+    });
+  }, [loan, filterNonPrincipal]);
+
+  const grouped = groupTransactionsByDate(displayedTransactions);
+
+  const groupedByType = useMemo(() => {
+    if (!filterNonPrincipal) return [];
+    const interestItems = displayedTransactions.filter((tx) => (tx.loanTransactionType || 'principal') === 'interest');
+    const othersItems = displayedTransactions.filter((tx) => {
+      const type = tx.loanTransactionType || 'principal';
+      return type !== 'principal' && type !== 'interest';
+    });
+
+    const result: { title: string; total: number; items: typeof interestItems }[] = [];
+    if (interestItems.length > 0) {
+      const total = interestItems.reduce((sum, t) => sum + t.amount, 0);
+      result.push({ title: 'Interest', total, items: interestItems });
+    }
+    if (othersItems.length > 0) {
+      const total = othersItems.reduce((sum, t) => sum + t.amount, 0);
+      result.push({ title: 'Others', total, items: othersItems });
+    }
+    return result;
+  }, [displayedTransactions, filterNonPrincipal]);
   const originTx = loan.transactions
     .filter((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin')
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
@@ -107,7 +135,7 @@ export default function LoanDetailScreen() {
           <AppIcon name="arrow-left" size={24} color={palette.text} />
         </TouchableOpacity>
         <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>
-          {loan.personName}
+          {loan.personName} {'\u2022'} {isLent ? 'Lent' : 'Borrowed'}
         </Text>
         <TouchableOpacity delayPressIn={0}
           onPress={() => {
@@ -222,73 +250,214 @@ export default function LoanDetailScreen() {
                 </View>
               </View>
 
+              {(loan.interestAmount > 0 || loan.othersAmount > 0) ? (
+                <TouchableOpacity
+                  delayPressIn={0}
+                  onPress={() => setFilterNonPrincipal(!filterNonPrincipal)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: HOME_SPACE.sm,
+                    paddingVertical: HOME_SPACE.sm,
+                    marginBottom: HOME_SPACE.xs,
+                    borderTopWidth: 1,
+                    borderTopColor: palette.inputBg,
+                    minHeight: 32,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingRight: 32, marginTop: HOME_SPACE.xs }}>
+                    {loan.interestAmount > 0 && (
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>
+                        Interest: <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.text }}>{formatCurrency(loan.interestAmount, sym)}</Text>
+                      </Text>
+                    )}
+                    {loan.interestAmount > 0 && loan.othersAmount > 0 && (
+                      <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSoft, marginHorizontal: 6 }}>•</Text>
+                    )}
+                    {loan.othersAmount > 0 && (
+                      <Text style={{ fontSize: HOME_TEXT.caption, color: palette.text }}>
+                        Others: <Text appWeight="medium" style={{ fontWeight: '600', color: palette.text }}>{formatCurrency(loan.othersAmount, sym)}</Text>
+                      </Text>
+                    )}
+                  </View>
+                  {filterNonPrincipal ? (
+                    <TouchableOpacity
+                      delayPressIn={0}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setFilterNonPrincipal(false);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        borderWidth: 1,
+                        borderColor: palette.brand,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <AppIcon name="x" size={12} color={palette.brand} />
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={{ position: 'absolute', right: 4 }}>
+                      <AppIcon name="chevron-right" size={14} color={palette.textSoft} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+
               {originTxNote ? (
-                <View style={{ marginTop: HOME_SPACE.md, paddingTop: HOME_SPACE.md, borderTopWidth: 1, borderTopColor: palette.inputBg }}>
-                  <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, fontWeight: '600', letterSpacing: 0.5, marginBottom: HOME_SPACE.sm }}>
-                    NOTE
-                  </Text>
-                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text }}>{originTxNote}</Text>
+                <View style={{ paddingTop: HOME_SPACE.md, borderTopWidth: 1, borderTopColor: palette.inputBg }}>
+                  <Text style={{ fontSize: HOME_TEXT.body, color: palette.textSecondary }}>{originTxNote}</Text>
                 </View>
               ) : null}
             </View>
 
-            {grouped.map(({ dateKey, items }) => {
-              const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00.000Z');
-              return (
-                <View key={dateKey} style={{ marginBottom: HOME_SPACE.sm + 4 }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginBottom: HOME_SPACE.sm,
-                      paddingHorizontal: ACTIVITY_LAYOUT.groupHeaderPaddingX - SCREEN_GUTTER
-                    }}
-                  >
-                    <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
-                      {date}
-                    </Text>
-                    {label ? (
-                      <>
-                        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
-                        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>{label}</Text>
-                      </>
-                    ) : null}
+            {filterNonPrincipal ? (
+              groupedByType.map(({ title, total, items }) => {
+                const groupedByDateForType = groupTransactionsByDate(items);
+                return (
+                  <View key={title} style={{ marginBottom: HOME_SPACE.md }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom,
+                        paddingRight: 10,
+                      }}
+                    >
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                        {title}
+                      </Text>
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                        {formatCurrency(total, sym)}
+                      </Text>
+                    </View>
+
+                    {groupedByDateForType.map(({ dateKey, items: dateItems }) => {
+                      const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00.000Z');
+                      return (
+                        <View key={dateKey} style={{ marginBottom: HOME_SPACE.sm + 4 }}>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              marginBottom: HOME_SPACE.sm,
+                              paddingHorizontal: ACTIVITY_LAYOUT.groupHeaderPaddingX - SCREEN_GUTTER
+                            }}
+                          >
+                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                              {date}
+                            </Text>
+                            {label ? (
+                              <>
+                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
+                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>{label}</Text>
+                              </>
+                            ) : null}
+                          </View>
+                          <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, overflow: 'hidden' }}>
+                            {dateItems.map((tx, i) => (
+                              <TransactionListItem
+                                key={tx.id}
+                                tx={{ ...tx, payee: describeLoanDetailTransaction(loan, tx) }}
+                                sym={sym}
+                                palette={palette}
+                                isLast={i === dateItems.length - 1}
+                                accountName={account?.name}
+                                showAmountSign={false}
+                                loanPersonName={loan.personName}
+                                loanDirection={loan.direction}
+                                tertiaryText={
+                                  tx.tags.length > 0
+                                    ? tx.tags
+                                      .map((tagId) => tagNamesById.get(tagId))
+                                      .filter((value): value is string => !!value)
+                                      .join(' • ') || undefined
+                                    : undefined
+                                }
+                                onPress={() =>
+                                  router.push({
+                                    pathname:
+                                      getLoanTransactionKind(tx, loan.direction) === 'settlement'
+                                        ? '/modals/loan-settlement'
+                                        : '/modals/add-transaction',
+                                    params: { editId: tx.id }
+                                  })
+                                }
+                              />
+                            ))}
+                          </View>
+                        </View>
+                      );
+                    })}
                   </View>
-                  <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, overflow: 'hidden' }}>
-                    {items.map((tx, i) => (
-                      <TransactionListItem
-                      key={tx.id}
-                      tx={{ ...tx, payee: describeLoanDetailTransaction(loan, tx) }}
-                      sym={sym}
-                      palette={palette}
-                      isLast={i === items.length - 1}
-                      accountName={account?.name}
-                      showAmountSign={false}
-                      loanPersonName={loan.personName}
-                      loanDirection={loan.direction}
-                      tertiaryText={
-                        tx.tags.length > 0
-                          ? tx.tags
-                            .map((tagId) => tagNamesById.get(tagId))
-                            .filter((value): value is string => !!value)
-                            .join(' • ') || undefined
-                          : undefined
-                      }
-                      onPress={() =>
-                        router.push({
-                          pathname:
-                            getLoanTransactionKind(tx, loan.direction) === 'settlement'
-                              ? '/modals/loan-settlement'
-                              : '/modals/add-transaction',
-                          params: { editId: tx.id }
-                        })
-                      }
-                    />
-                  ))}
+                );
+              })
+            ) : (
+              grouped.map(({ dateKey, items }) => {
+                const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00.000Z');
+                return (
+                  <View key={dateKey} style={{ marginBottom: HOME_SPACE.sm + 4 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: HOME_SPACE.sm,
+                        paddingHorizontal: ACTIVITY_LAYOUT.groupHeaderPaddingX - SCREEN_GUTTER
+                      }}
+                    >
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                        {date}
+                      </Text>
+                      {label ? (
+                        <>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>{label}</Text>
+                        </>
+                      ) : null}
+                    </View>
+                    <View style={{ backgroundColor: palette.surface, borderRadius: HOME_RADIUS.card, overflow: 'hidden' }}>
+                      {items.map((tx, i) => (
+                        <TransactionListItem
+                          key={tx.id}
+                          tx={{ ...tx, payee: describeLoanDetailTransaction(loan, tx) }}
+                          sym={sym}
+                          palette={palette}
+                          isLast={i === items.length - 1}
+                          accountName={account?.name}
+                          showAmountSign={false}
+                          loanPersonName={loan.personName}
+                          loanDirection={loan.direction}
+                          tertiaryText={
+                            tx.tags.length > 0
+                              ? tx.tags
+                                .map((tagId) => tagNamesById.get(tagId))
+                                .filter((value): value is string => !!value)
+                                .join(' • ') || undefined
+                              : undefined
+                          }
+                          onPress={() =>
+                            router.push({
+                              pathname:
+                                getLoanTransactionKind(tx, loan.direction) === 'settlement'
+                                  ? '/modals/loan-settlement'
+                                  : '/modals/add-transaction',
+                              params: { editId: tx.id }
+                            })
+                          }
+                        />
+                      ))}
+                    </View>
                   </View>
-                </View>
-              );
-            })}
+                );
+              })
+            )}
           </View>
         </ScrollView>
 
@@ -296,7 +465,7 @@ export default function LoanDetailScreen() {
           <FixedBottomActions palette={palette}>
             {loan.pendingAmount > 0 ? (
               <FilledButton
-                label={isLent ? 'Record Receipt' : 'Record Repayment'}
+                label={isLent ? 'Record Receipt' : 'Record Payment'}
                 onPress={() =>
                   router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
                 }
@@ -319,7 +488,7 @@ export default function LoanDetailScreen() {
       <AppConfirmDialog
         visible={showCloseConfirm}
         title="Close Loan"
-        message="This will mark the loan as closed. No further receipts or repayments can be recorded until you reopen it."
+        message="This will mark the loan as closed. No further receipts or payments can be recorded until you reopen it."
         palette={palette}
         onCancel={() => setShowCloseConfirm(false)}
         confirm={{
@@ -338,6 +507,15 @@ export default function LoanDetailScreen() {
 function describeLoanDetailTransaction(loan: LoanWithSummary, tx: LoanWithSummary['transactions'][number]) {
   const kind = getLoanTransactionKind(tx, loan.direction);
   if (kind === 'origin') return loan.direction === 'lent' ? 'Lent' : 'Borrowed';
-  if (kind === 'settlement') return loan.direction === 'lent' ? 'Receipt' : 'Repayment';
+  if (kind === 'settlement') {
+    const subType = tx.loanTransactionType || 'principal';
+    const subTypeLabel = subType === 'principal'
+      ? ''
+      : subType === 'interest'
+        ? 'Interest '
+        : 'Others ';
+    const actionLabel = loan.direction === 'lent' ? 'Receipt' : 'Payment';
+    return `${subTypeLabel}${actionLabel}`;
+  }
   return 'Loan';
 }

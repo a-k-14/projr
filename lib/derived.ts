@@ -25,7 +25,7 @@ export function getLoanOriginLabel(direction: Loan['direction'], personName: str
 }
 
 export function getLoanSettlementLabel(direction: Loan['direction'], personName: string) {
-  return direction === 'lent' ? `Receipt from ${personName}` : `Repayment to ${personName}`;
+  return direction === 'lent' ? `Receipt from ${personName}` : `Payment to ${personName}`;
 }
 
 export function mergeLoanTransactionNote(label: string, note?: string | null) {
@@ -44,7 +44,7 @@ export function getLoanTransactionUserNote(note?: string | null) {
   // If no separator, it might be a legacy note or a user note without a label.
   // We only hide it if it looks like a system label.
   const trimmed = note.trim();
-  const systemPatterns = [/^Lent to /i, /^Borrowed from /i, /^Receipt from /i, /^Repayment to /i];
+  const systemPatterns = [/^Lent to /i, /^Borrowed from /i, /^Receipt from /i, /^Repayment to /i, /^Payment to /i];
   if (systemPatterns.some(p => p.test(trimmed))) {
     return '';
   }
@@ -62,13 +62,24 @@ export function getLoanTransactionKind(
   return 'other';
 }
 
+/** Returns the human-readable sub-type label for a loan settlement transaction. */
+export function getLoanTransactionSubtype(
+  tx: { loanTransactionType?: string | null }
+): 'principal' | 'interest' | 'others' {
+  const t = tx.loanTransactionType;
+  if (t === 'interest' || t === 'others') return t;
+  // Map legacy subtypes to 'others'
+  if (t === 'charges' || t === 'adjustment') return 'others';
+  return 'principal';
+}
+
 export function getLoanDisplayLabel(direction: Loan['direction'], impact: 'in' | 'out' | 'neutral') {
   if (direction === 'lent') {
     if (impact === 'out') return 'Loan - Lent';
     if (impact === 'in') return 'Loan - Receipt';
   } else {
     if (impact === 'in') return 'Loan - Borrowed';
-    if (impact === 'out') return 'Loan - Repaid';
+    if (impact === 'out') return 'Loan - Payment';
   }
   return 'Loan';
 }

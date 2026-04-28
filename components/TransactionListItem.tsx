@@ -67,7 +67,6 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' \u2022 ');
   let noteLine: string | undefined;
   const hasReceipt = (tx.receiptImageUris?.length ?? 0) > 0;
-  const shouldAllowCategoryWrap = !!categoryName?.includes(' › ');
 
   // specialized Title/Subtitle based on type
   if (tx.transferPairId && linkedAccountName) {
@@ -77,12 +76,21 @@ export const TransactionListItem = React.memo(function TransactionListItem({
     const to = tx.type === 'out' ? linkedAccountName : accountNameSelected;
     subtitle = `${from} \u2192 ${to}`;
   } else if (tx.type === 'loan' && loanPersonName) {
-    const loanLabel = loanDirection ? getLoanDisplayLabel(loanDirection, cashflowImpact).replace(/^Loan - /, '') : 'Loan';
-    title = 'Loan';
-    titleSecondaryText = loanLabel;
+    const rawType = tx.loanTransactionType || 'principal';
+    const typeLabel = rawType === 'principal'
+      ? 'Principal'
+      : rawType === 'interest'
+        ? 'Interest'
+        : 'Others';
+    title = `Loan › ${typeLabel}`;
+    titleSecondaryText = undefined;
     subtitle = [accountNameSelected, loanPersonName].filter(Boolean).join(' \u2022 ');
     noteLine = getLoanTransactionUserNote(tx.note) || undefined;
-  } else if (tx.type === 'in' || tx.type === 'out') {
+  }
+
+  const shouldAllowCategoryWrap = !!categoryName?.includes(' › ') || title.includes(' › ');
+
+  if (tx.type === 'in' || tx.type === 'out') {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     titleSecondaryText = undefined;
     subtitle = [accountNameSelected, tx.payee].filter(Boolean).join(' \u2022 ');

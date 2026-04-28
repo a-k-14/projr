@@ -1,5 +1,4 @@
 import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '../../components/ui/AppIcon';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -29,8 +28,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow, ScreenTitle } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
-import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { AppIcon } from '../../components/ui/AppIcon';
+import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FabButton } from '../../components/ui/FabButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { formatAccountDisplayName } from '../../lib/account-utils';
@@ -638,7 +638,7 @@ function HomeAccountViewToggle({
       }}
     >
       {([
-        { key: 'swipe', icon: 'gallery-vertical-end' },
+        { key: 'swipe', icon: 'gallery-thumbnails' },
         { key: 'list', icon: 'list' },
       ] as const).map((item) => {
         const selected = mode === item.key;
@@ -647,7 +647,9 @@ function HomeAccountViewToggle({
             delayPressIn={0}
             key={item.key}
             activeOpacity={0.8}
-            onPress={() => onChange(item.key)}
+            onPress={() => {
+              onChange(item.key);
+            }}
             style={{
               width: 42,
               height: 34,
@@ -1503,12 +1505,14 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 <TouchableOpacity delayPressIn={0}
                   key={value}
                   onPress={
-                    value === 'custom'
-                      ? () => {
+                    () => {
+                      if (value === 'custom') {
                         setPeriod('custom');
                         onOpenCustomRange();
+                      } else {
+                        setPeriod(value);
                       }
-                      : () => setPeriod(value)
+                    }
                   }
                   style={{
                     flex: 1,
@@ -1801,36 +1805,36 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: HOME_SURFACE.cardPaddingBottom }}
             >
-                {transactions.length === 0 ? (
-                  <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
-                    No transactions yet
-                  </Text>
-                ) : (
-                  transactions.map((transaction, index) => {
-                    const accountName = accountsById.get(transaction.accountId);
-                    const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
-                    const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
-                    const category = transaction.categoryId ? categoriesById.get(transaction.categoryId) : undefined;
+              {transactions.length === 0 ? (
+                <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
+                  No transactions yet
+                </Text>
+              ) : (
+                transactions.map((transaction, index) => {
+                  const accountName = accountsById.get(transaction.accountId);
+                  const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
+                  const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
+                  const category = transaction.categoryId ? categoriesById.get(transaction.categoryId) : undefined;
 
-                    return (
-                      <TransactionListItem
-                        key={transaction.id}
-                        tx={transaction}
-                        sym={currencySymbol}
-                        palette={palette}
-                        isLast={index === transactions.length - 1}
-                        categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
-                        categoryIcon={category?.icon}
-                        accountName={accountName}
-                        linkedAccountName={linkedAccountName}
-                        loanPersonName={loan?.personName}
-                        loanDirection={loan?.direction}
-                        showAmountSign={false}
-                        onPress={handleTransactionPress}
-                      />
-                    );
-                  })
-                )}
+                  return (
+                    <TransactionListItem
+                      key={transaction.id}
+                      tx={transaction}
+                      sym={currencySymbol}
+                      palette={palette}
+                      isLast={index === transactions.length - 1}
+                      categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
+                      categoryIcon={category?.icon}
+                      accountName={accountName}
+                      linkedAccountName={linkedAccountName}
+                      loanPersonName={loan?.personName}
+                      loanDirection={loan?.direction}
+                      showAmountSign={false}
+                      onPress={handleTransactionPress}
+                    />
+                  );
+                })
+              )}
             </ScrollView>
           </View>
 

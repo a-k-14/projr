@@ -35,17 +35,35 @@ async function enrichLoan(loan: Loan): Promise<LoanWithSummary> {
   const loanTransactions = await getTransactions({ loanId: loan.id });
   const originImpact = getLoanOriginImpact(loan.direction);
   const settlementImpact = getLoanSettlementImpact(loan.direction);
+
   const givenAmount = loanTransactions.reduce((sum, t) => {
     return getTransactionCashflowImpact(t) === originImpact ? sum + t.amount : sum;
   }, 0);
-  const settledAmount = loanTransactions.reduce((sum, t) => {
-    return getTransactionCashflowImpact(t) === settlementImpact ? sum + t.amount : sum;
-  }, 0);
+
+  let settledAmount = 0;
+  let interestAmount = 0;
+  let othersAmount = 0;
+
+  for (const t of loanTransactions) {
+    if (getTransactionCashflowImpact(t) === settlementImpact) {
+      const subType = t.loanTransactionType || 'principal';
+      if (subType === 'principal') {
+        settledAmount += t.amount;
+      } else if (subType === 'interest') {
+        interestAmount += t.amount;
+      } else {
+        othersAmount += t.amount;
+      }
+    }
+  }
+
   const { pending, percent } = getLoanOutstanding({ ...loan, givenAmount }, settledAmount);
   return {
     ...loan,
     givenAmount,
     settledAmount,
+    interestAmount,
+    othersAmount,
     pendingAmount: pending,
     repaidPercent: percent,
     transactions: loanTransactions,

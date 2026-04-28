@@ -154,7 +154,7 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/settings/accounts')}
               />
               <SettingsRow
-                icon="layout-grid"
+                icon="calculator"
                 label="Categories"
                 value={String(parentCategoryCount)}
                 palette={palette}

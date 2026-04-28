@@ -73,7 +73,7 @@ function LoanRow({
   }) {
   const isLent = loan.direction === 'lent';
   const dirColor = isLent ? palette.negative : palette.brand;
-  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.brand : palette.negative);
+  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.brand);
   const directionLabel = isLent ? 'Lent' : 'Borrowed';
   const progressPercent = loan.repaidPercent;
   const balanceAmount = loan.pendingAmount;
@@ -445,7 +445,7 @@ export default function LoansScreen() {
                 <EmptyStateCard
                   palette={palette}
                   title="No loans found"
-                  subtitle="Add a lent or borrowed loan to track balances, receipts, and repayments."
+                  subtitle="Add a lent or borrowed loan to track balances, receipts, and payments."
                   illustration={<FinanceEmptyMascot palette={palette} variant="loan" />}
                 />
               </View>
@@ -458,7 +458,7 @@ export default function LoansScreen() {
               <EmptyStateCard
                 palette={palette}
                 title="No loans found"
-                subtitle="Add a lent or borrowed loan to track balances, receipts, and repayments."
+                subtitle="Add a lent or borrowed loan to track balances, receipts, and payments."
                 illustration={<FinanceEmptyMascot palette={palette} variant="loan" />}
               />
             </View>

@@ -1,5 +1,4 @@
 import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '../../components/ui/AppIcon';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -23,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
@@ -34,6 +34,7 @@ import {
   NotesSection,
   PickerRow,
   ROW_LABEL_WIDTH,
+  ROW_MIN_HEIGHT,
   SectionCard,
   TextInputRow
 } from '../../components/ui/transaction-form-primitives';
@@ -134,6 +135,8 @@ export default function AddTransactionModal() {
   const [showTagSheet, setShowTagSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const [loanTransactionType, setLoanTransactionType] = useState<'principal' | 'interest' | 'others'>('principal');
+  const [showTypeSheet, setShowTypeSheet] = useState(false);
   const personInputRef = useRef<TextInput | null>(null);
   const [payeeSuggestions, setPayeeSuggestions] = useState<string[]>([]);
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
@@ -331,6 +334,14 @@ export default function AddTransactionModal() {
             setAccountId(tx.accountId);
             setDate(tx.date);
             setNote(getLoanTransactionUserNote(tx.note));
+            const type = tx.loanTransactionType || 'principal';
+            setLoanTransactionType(
+              type === 'interest' || type === 'others'
+                ? type
+                : type === 'principal'
+                  ? 'principal'
+                  : 'others'
+            );
           }
         }
       });
@@ -418,7 +429,7 @@ export default function AddTransactionModal() {
       : type === 'loan' && routeLoanId && settlement === '1'
         ? loanDirection === 'lent'
           ? 'Add Receipt'
-          : 'Add Repayment'
+          : 'Add Payment'
         : type === 'in'
           ? 'Add Income'
           : type === 'transfer'
@@ -438,7 +449,7 @@ export default function AddTransactionModal() {
           : loanEditMode === 'settlement'
             ? loanDirection === 'lent'
               ? 'Edit Receipt'
-              : 'Edit Repayment'
+              : 'Edit Payment'
             : 'Edit Loan'
     : isLoanAddMore
       ? 'Add More'
@@ -511,7 +522,7 @@ export default function AddTransactionModal() {
           direction: loanDirection,
           accountId,
           givenAmount: amount,
-          note: note || undefined,
+          note: note.trim(),
           tags: selectedTagIds,
           date,
         }, editId);
@@ -522,6 +533,7 @@ export default function AddTransactionModal() {
           amount,
           accountId,
           loanId: editingLoanId,
+          loanTransactionType,
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
           date
         });
@@ -531,11 +543,12 @@ export default function AddTransactionModal() {
           amount,
           accountId,
           loanId: routeLoanId,
+          loanTransactionType,
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
           date
         });
       } else if (type === 'loan' && isLoanAddMore && routeLoanId) {
-        await addLoanPrincipal(routeLoanId, amount, accountId, date, note || undefined);
+        await addLoanPrincipal(routeLoanId, amount, accountId, date, note.trim());
         shouldReloadTransactions = true;
       } else if (type === 'loan') {
         await addLoan({
@@ -543,7 +556,7 @@ export default function AddTransactionModal() {
           direction: loanDirection,
           accountId,
           givenAmount: amount,
-          note: note || undefined,
+          note: note.trim(),
           tags: selectedTagIds,
           date
         });
@@ -554,7 +567,7 @@ export default function AddTransactionModal() {
           accountId,
           linkedAccountId,
           date,
-          note: note || undefined,
+          note: note.trim(),
           payee: payee.trim() || undefined
         });
         shouldReloadTransactions = true;
@@ -579,8 +592,8 @@ export default function AddTransactionModal() {
     const isLoanOrigin = type === 'loan' && loanEditMode === 'origin' && editingLoanId;
     showConfirm({
       title: isLoanOrigin ? 'Delete Loan' : 'Delete Transaction',
-      message: isLoanOrigin 
-        ? 'This will delete the loan and all its recorded entries. This cannot be undone.' 
+      message: isLoanOrigin
+        ? 'This will delete the loan and all its recorded entries. This cannot be undone.'
         : 'This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
@@ -804,7 +817,7 @@ export default function AddTransactionModal() {
                 autoFocus
                 editable={usableSplitRows.length === 0}
               />
-              <View style={{ paddingHorizontal: SCREEN_GUTTER, marginTop: -8, marginBottom: -6, alignItems: 'flex-end' }}>
+              <View style={{ paddingRight: SCREEN_GUTTER + 6, marginBottom: -6, alignItems: 'flex-end' }}>
                 <TouchableOpacity delayPressIn={0}
                   onPress={() =>
                     runAfterKeyboardDismiss(() =>
@@ -835,11 +848,16 @@ export default function AddTransactionModal() {
               ) : (
                 <PickerRow
                   label="Category"
-                  value={getCategoryDisplayParts(categories, categoryId).name}
-                  subtitle={getCategoryDisplayParts(categories, categoryId).parentName}
+                  value={
+                    <CategoryPickerValue
+                      category={getCategoryDisplayParts(categories, categoryId)}
+                      palette={palette}
+                    />
+                  }
                   placeholder={!categoryId}
                   palette={palette}
                   onPress={openCategorySheet}
+                  custom
                 />
               )}
               <TextInputRow
@@ -1008,11 +1026,35 @@ export default function AddTransactionModal() {
             <SectionCard palette={palette}>
               <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
               {loanEditMode === 'settlement' ? (
-                <FieldRow label="Loan" palette={palette}>
-                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '500', color: palette.text }}>
-                    {personName} {'\u2022'} {loanDirection === 'lent' ? 'Receipt' : 'Repayment'}
-                  </Text>
-                </FieldRow>
+                <>
+                  <DisplayRow
+                    label="Person"
+                    value={personName}
+                    palette={palette}
+                  />
+                  <PickerRow
+                    label="Type"
+                    value={
+                      loanTransactionType === 'principal'
+                        ? 'Principal'
+                        : loanTransactionType === 'interest'
+                          ? 'Interest'
+                          : 'Others'
+                    }
+                    palette={palette}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      InteractionManager.runAfterInteractions(() => setShowTypeSheet(true));
+                    }}
+                  />
+                  {loanTransactionType !== 'principal' && (
+                    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 8 }}>
+                      <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
+                        Loan outstanding balance will not be affected
+                      </Text>
+                    </View>
+                  )}
+                </>
               ) : (
                 <>
                   <View style={{ marginTop: -8 }}>
@@ -1137,6 +1179,30 @@ export default function AddTransactionModal() {
           <TextButton label="Delete transaction" onPress={handleDelete} palette={palette} tone="danger" />
         )}
       </FixedBottomActions>
+
+      {showTypeSheet ? (
+        <BottomSheet title="Select Type" palette={palette} onClose={() => setShowTypeSheet(false)}>
+          {(['principal', 'interest', 'others'] as const).map((type, index, arr) => (
+            <ChoiceRow
+              key={type}
+              title={
+                type === 'principal'
+                  ? 'Principal'
+                  : type === 'interest'
+                    ? 'Interest'
+                    : 'Others'
+              }
+              selected={loanTransactionType === type}
+              palette={palette}
+              onPress={() => {
+                setLoanTransactionType(type);
+                setShowTypeSheet(false);
+              }}
+              noBorder={index === arr.length - 1}
+            />
+          ))}
+        </BottomSheet>
+      ) : null}
 
       {showAccountSheet ? (
         <BottomSheet
@@ -1450,7 +1516,7 @@ export default function AddTransactionModal() {
                         opacity: receiptPreviewIndex === 0 ? 0.35 : 1,
                       }}
                     >
-                              <AppIcon name="chevron-left" size={24} color="#FFFFFF" />
+                      <AppIcon name="chevron-left" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       delayPressIn={0}
@@ -1476,7 +1542,7 @@ export default function AddTransactionModal() {
                         opacity: receiptPreviewIndex === receiptImageUris.length - 1 ? 0.35 : 1,
                       }}
                     >
-                              <AppIcon name="chevron-right" size={24} color="#FFFFFF" />
+                      <AppIcon name="chevron-right" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                     <View
                       style={{
@@ -1687,12 +1753,45 @@ function getAccountName(accounts: Account[], accountId: string) {
   return accounts.find((account) => account.id === accountId)?.name ?? 'Select account';
 }
 
-function getCategoryDisplayParts(categories: Category[], categoryId: string): { name: string; parentName?: string } {
+function getCategoryDisplayParts(
+  categories: Category[],
+  categoryId: string,
+): { name: string; parentName?: string; fullName: string; icon: string } {
   const category = categories.find((item) => item.id === categoryId);
-  if (!category) return { name: 'Select Category' };
-  if (!category.parentId) return { name: category.name };
+  if (!category) return { name: 'Select Category', fullName: 'Select Category', icon: 'tag' };
+  if (!category.parentId) return { name: category.name, fullName: category.name, icon: category.icon || 'tag' };
+  const parentName = categories.find((item) => item.id === category.parentId)?.name ?? 'Category';
   return {
     name: category.name,
-    parentName: categories.find((item) => item.id === category.parentId)?.name ?? 'Category',
+    parentName,
+    fullName: `${parentName} • ${category.name}`,
+    icon: category.icon || 'tag',
   };
+}
+
+function CategoryPickerValue({
+  category,
+  palette,
+}: {
+  category: ReturnType<typeof getCategoryDisplayParts>;
+  palette: AppThemePalette;
+}) {
+  const isPlaceholder = category.fullName === 'Select Category';
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: ROW_MIN_HEIGHT, paddingVertical: 10 }}>
+      <Text
+        style={{
+          flex: 1,
+          fontSize: HOME_TEXT.sectionTitle,
+          fontWeight: '400',
+          color: isPlaceholder ? palette.textMuted : palette.text,
+          lineHeight: 21,
+        }}
+        numberOfLines={2}
+      >
+        {category.fullName}
+      </Text>
+    </View>
+  );
 }

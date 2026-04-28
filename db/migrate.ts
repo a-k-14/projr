@@ -99,6 +99,16 @@ export async function runMigrations() {
     console.warn('Migration patch error:', err);
   }
 
+  try {
+    const tableInfo2 = await sqlite.getAllAsync<{ name: string }>('PRAGMA table_info(transactions);');
+    const hasLoanTxTypeCol = tableInfo2.some((col) => col.name === 'loan_transaction_type');
+    if (!hasLoanTxTypeCol) {
+      await sqlite.execAsync('ALTER TABLE transactions ADD COLUMN loan_transaction_type TEXT;');
+    }
+  } catch (err) {
+    console.warn('Migration patch (loan_transaction_type) error:', err);
+  }
+
   // Migrate any stored Ionicons icon names to Feather equivalents
   try {
     const iconMap: Record<string, string> = {

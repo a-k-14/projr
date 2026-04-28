@@ -37,6 +37,7 @@ export const transactions = sqliteTable('transactions', {
   splitGroupId: text('split_group_id'),
   linkedAccountId: text('linked_account_id'),
   loanId: text('loan_id'),
+  loanTransactionType: text('loan_transaction_type'),
   categoryId: text('category_id'),
   payee: text('payee'),
   tags: text('tags').notNull().default('[]'),

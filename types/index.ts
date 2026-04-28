@@ -2,6 +2,7 @@ export type AccountType = 'savings' | 'credit' | 'cash' | 'wallet' | 'investment
 export type TransactionType = 'in' | 'out' | 'transfer' | 'loan';
 export type LoanDirection = 'lent' | 'borrowed';
 export type LoanStatus = 'open' | 'closed';
+export type LoanTransactionType = 'principal' | 'interest' | 'others' | 'charges' | 'adjustment';
 export type Theme = 'light' | 'dark' | 'auto';
 export type PeriodType = 'week' | 'month' | 'year' | 'custom';
 
@@ -27,6 +28,7 @@ export interface Transaction {
   splitGroupId?: string;
   linkedAccountId?: string;
   loanId?: string;
+  loanTransactionType?: LoanTransactionType;
   categoryId?: string;
   payee?: string;
   tags: string[];
@@ -54,6 +56,8 @@ export interface LoanWithSummary extends Loan {
   settledAmount: number;
   pendingAmount: number;
   repaidPercent: number;
+  interestAmount: number;
+  othersAmount: number;
   transactions: Transaction[];
 }
 
@@ -165,6 +169,7 @@ export interface CreateTransactionInput {
   splitGroupId?: string;
   linkedAccountId?: string;
   loanId?: string;
+  loanTransactionType?: LoanTransactionType;
   categoryId?: string;
   payee?: string;
   tags?: string[];

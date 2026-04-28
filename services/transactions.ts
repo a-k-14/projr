@@ -39,6 +39,7 @@ function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
     splitGroupId: row.splitGroupId ?? undefined,
     linkedAccountId: row.linkedAccountId ?? undefined,
     loanId: row.loanId ?? undefined,
+    loanTransactionType: (row.loanTransactionType as Transaction['loanTransactionType']) ?? undefined,
     categoryId: row.categoryId ?? undefined,
     payee: row.payee ?? undefined,
     tags: JSON.parse(row.tags),
@@ -175,6 +176,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     splitGroupId: data.splitGroupId ?? null,
     linkedAccountId: data.linkedAccountId ?? null,
     loanId: data.loanId ?? null,
+    loanTransactionType: data.loanTransactionType ?? null,
     categoryId: data.categoryId ?? null,
     payee: data.payee ?? null,
     tags: JSON.stringify(data.tags ?? []),
@@ -206,6 +208,7 @@ export async function updateTransaction(
   const updateData: Record<string, any> = {};
   if (data.type !== undefined) updateData.type = data.type;
   if (data.amount !== undefined) updateData.amount = data.amount;
+  if (data.loanTransactionType !== undefined) updateData.loanTransactionType = data.loanTransactionType;
   if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
   if (data.payee !== undefined) updateData.payee = data.payee;
   if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);

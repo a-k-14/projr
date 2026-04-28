@@ -53,7 +53,8 @@ export function PickerRow({
   placeholder,
   onPress,
   palette,
-  custom = false }: {
+  custom = false,
+  showChevron = true }: {
   label: string;
   value: string | React.ReactNode;
   subtitle?: string;
@@ -61,6 +62,7 @@ export function PickerRow({
   onPress: () => void;
   palette: AppThemePalette;
   custom?: boolean;
+  showChevron?: boolean;
 }) {
   return (
     <TouchableOpacity
@@ -98,7 +100,14 @@ export function PickerRow({
         }}
       >
         {custom ? (
-          <View style={{ flex: 1 }}>{value}</View>
+          <>
+            <View style={{ flex: 1, minWidth: 0 }}>{value}</View>
+            {showChevron ? (
+              <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
+                <AppIcon name="chevron-right" size={15} color={palette.textSoft} />
+              </View>
+            ) : null}
+          </>
         ) : (
           <>
             <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
@@ -474,9 +483,9 @@ export function AmountRow({
                 alignItems: 'center',
                 justifyContent: 'center' }}
             >
-              <AppIcon name="grid"
+              <AppIcon name="calculator"
                 size={isLargeButton ? 22 : 18}
-                color={isLargeButton ? palette.text : palette.textMuted}
+                color={isLargeButton ? palette.textSecondary : palette.textMuted}
               />
             </View>
           </TouchableOpacity>
