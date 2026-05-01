@@ -41,17 +41,18 @@ export type PrototypeLoan = {
 };
 
 export const loanPrototypeTheme = {
-  bg: '#F4F7FB',
-  text: '#13203A',
-  textSoft: '#6E7A91',
-  textFaint: '#96A0B4',
-  card: 'rgba(255,255,255,0.80)',
-  cardStrong: 'rgba(255,255,255,0.94)',
-  border: 'rgba(24,43,82,0.08)',
-  borderStrong: 'rgba(24,43,82,0.14)',
+  bg: '#F5F7FB',
+  text: '#15213E',
+  textSoft: '#7C8498',
+  textFaint: '#97A1B3',
+  card: '#FFFFFF',
+  cardStrong: '#FFFFFF',
+  surface: '#EEF2F8',
+  border: '#DFE5EF',
+  borderStrong: '#D3DBE7',
   blurTint: 'light' as const,
-  shadow: '#112348',
-  track: '#DBE4F0',
+  shadow: '#1C2744',
+  track: '#DDE4F0',
   success: '#0FA968',
   warning: '#F59E0B',
   danger: '#EB5757',
@@ -186,4 +187,3 @@ export function getPortfolioMetrics() {
   const deployed = openLoans.reduce((sum, loan) => sum + loan.principal, 0);
   return { receivables, payables, deployed };
 }
-

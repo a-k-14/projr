@@ -147,6 +147,7 @@ export default function ActivityScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const pendingListResetRef = useRef(false);
   const pendingScrollToTopRef = useRef(false);
+  const scrollToTopRequestRef = useRef(0);
   const [listResetKey, setListResetKey] = useState(0);
 
   const scrollToTop = useCallback((animated: boolean) => {
@@ -155,15 +156,21 @@ export default function ActivityScreen() {
   }, []);
 
   const queueScrollToTop = useCallback((animated: boolean) => {
+    const requestId = ++scrollToTopRequestRef.current;
     pendingScrollToTopRef.current = true;
     requestAnimationFrame(() => {
       scrollToTop(animated);
       InteractionManager.runAfterInteractions(() => {
-        if (pendingScrollToTopRef.current) {
+        if (pendingScrollToTopRef.current && scrollToTopRequestRef.current === requestId) {
+          scrollToTop(animated);
+        }
+      });
+      setTimeout(() => {
+        if (pendingScrollToTopRef.current && scrollToTopRequestRef.current === requestId) {
           scrollToTop(animated);
           pendingScrollToTopRef.current = false;
         }
-      });
+      }, 120);
     });
   }, [scrollToTop]);
 
@@ -258,6 +265,8 @@ export default function ActivityScreen() {
   const accountLabel = selectedAccount ? selectedAccount.name : 'All Accounts';
   const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
   const ts = typeof routeParams.ts === 'string' ? routeParams.ts : undefined;
+  const searchQuery = search.trim().toLowerCase();
+  const ignoreFiltersForSearch = searchQuery.length > 0;
 
   // A view is default ONLY if we haven't come from a specific source, OR we have finished syncing params
   const isDefaultView =
@@ -272,15 +281,16 @@ export default function ActivityScreen() {
     !amountMinStr &&
     !amountMaxStr;
   const needsFullDataset =
-    period === 'all' &&
-    (!!search.trim() ||
+    ignoreFiltersForSearch ||
+    (period === 'all' &&
+      (!!searchQuery ||
       selectedCategoryIds.length > 0 ||
       selectedTagIds.length > 0 ||
       !!amountMinStr ||
       !!amountMaxStr ||
       cashflowBucket !== 'all' ||
       groupByMode === 'category' ||
-      categoryDrilldown !== null);
+      categoryDrilldown !== null));
 
   const loadData = useMemo(
     () => async (isInitial: boolean) => {
@@ -298,10 +308,10 @@ export default function ActivityScreen() {
                 ? undefined
                 : typeFilter;
         const filters: TransactionFilters = {
-          accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
-          type: effectiveTypeFilter,
-          fromDate: dateRange?.from,
-          toDate: dateRange?.to,
+          accountId: ignoreFiltersForSearch || selectedAccountId === 'all' ? undefined : selectedAccountId,
+          type: ignoreFiltersForSearch ? undefined : effectiveTypeFilter,
+          fromDate: ignoreFiltersForSearch ? undefined : dateRange?.from,
+          toDate: ignoreFiltersForSearch ? undefined : dateRange?.to,
           limit: period === 'all' && !needsFullDataset ? TRANSACTIONS_PAGE_SIZE : undefined,
           offset: period === 'all' && !needsFullDataset ? currentOffset : 0
         };
@@ -323,7 +333,7 @@ export default function ActivityScreen() {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, dateRange?.from, dateRange?.to, needsFullDataset, period, selectedAccountId, typeFilter],
+    [cashflowBucket, dateRange?.from, dateRange?.to, ignoreFiltersForSearch, needsFullDataset, period, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
@@ -520,7 +530,6 @@ export default function ActivityScreen() {
     const maxAmount = amountMaxStr ? Number(amountMaxStr) : undefined;
     const selectedTagSet = new Set(selectedTagIds);
     const selectedCategoryAndDescendants = new Set<string>();
-    const query = search.trim().toLowerCase();
     selectedCategoryIds.forEach((id) => {
       selectedCategoryAndDescendants.add(id);
       categories
@@ -531,6 +540,24 @@ export default function ActivityScreen() {
     const includeTransfers = selectedAccountId !== 'all';
 
     return transactions.filter((tx) => {
+      if (searchQuery) {
+        const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
+        const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
+        const searchable = [
+          tx.note,
+          tx.payee,
+          tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined,
+          accountsById.get(tx.accountId),
+          linkedAccountName,
+          loan?.personName,
+          tx.tags.map((tagId) => tagNamesById.get(tagId)).filter(Boolean).join(' • '),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return searchable.includes(searchQuery);
+      }
+
       const impact = getTransactionCashflowImpact(tx, { includeTransfers });
 
       // Account filter
@@ -579,27 +606,9 @@ export default function ActivityScreen() {
       if (minAmount !== undefined && !Number.isNaN(minAmount) && tx.amount < minAmount) return false;
       if (maxAmount !== undefined && !Number.isNaN(maxAmount) && tx.amount > maxAmount) return false;
 
-      // Search filter
-      if (query) {
-        const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
-        const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
-        const searchable = [
-          tx.note,
-          tx.payee,
-          tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined,
-          accountsById.get(tx.accountId),
-          linkedAccountName,
-          loan?.personName,
-          tx.tags.map((tagId) => tagNamesById.get(tagId)).filter(Boolean).join(' • '),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        if (!searchable.includes(query)) return false;
-      }
       return true;
     });
-  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, transactions, typeFilter, selectedAccountId]);
+  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, categories, getCategoryFullDisplayName, loansById, searchQuery, selectedCategoryIds, selectedTagIds, tagNamesById, transactions, typeFilter, selectedAccountId]);
 
   const drilldownTransactions = useMemo(
     () => getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown),
@@ -1000,7 +1009,6 @@ export default function ActivityScreen() {
               initialNumToRender={10}
               maxToRenderPerBatch={10}
               windowSize={5}
-              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
               ListHeaderComponent={
                 <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>

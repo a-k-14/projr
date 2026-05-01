@@ -1773,7 +1773,7 @@ function getCategoryDisplayParts(
   return {
     name: category.name,
     parentName,
-    fullName: `${parentName} • ${category.name}`,
+    fullName: `${parentName} › ${category.name}`,
     icon: category.icon || 'tag',
   };
 }

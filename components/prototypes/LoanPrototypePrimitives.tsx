@@ -9,7 +9,6 @@ import {
 } from 'lucide-react-native';
 import type { PropsWithChildren, ReactNode } from 'react';
 import {
-  Dimensions,
   Platform,
   Pressable,
   StyleSheet,
@@ -19,8 +18,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { loanPrototypeTheme } from '@/lib/loanPrototype';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function PrototypeScreen({
   children,
@@ -51,14 +48,8 @@ export function PrototypeScreen({
 function Backdrop() {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[styles.glow, styles.glowTop]} />
-      <View style={[styles.glow, styles.glowMid]} />
-      <View style={[styles.glow, styles.glowBottom]} />
-      <Svg width={SCREEN_WIDTH} height={220} style={styles.wave}>
-        <Path
-          d={`M0 124C92 76 178 74 262 104C312 122 359 149 ${SCREEN_WIDTH} 136V220H0Z`}
-          fill="rgba(255,255,255,0.58)"
-        />
+      <Svg width="100%" height={120} style={styles.wave}>
+        <Path d="M0 120H900V24C760 10 620 8 480 18C320 29 160 43 0 30Z" fill="rgba(255,255,255,0.35)" />
       </Svg>
     </View>
   );
@@ -212,7 +203,7 @@ const styles = StyleSheet.create({
   glow: {
     position: 'absolute',
     borderRadius: 999,
-    opacity: 0.95,
+    opacity: 0.5,
   },
   glowTop: {
     width: 260,
@@ -237,48 +228,48 @@ const styles = StyleSheet.create({
   },
   wave: {
     position: 'absolute',
-    top: 86,
-    opacity: 0.65,
+    top: 64,
+    opacity: 0.42,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 14,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: loanPrototypeTheme.surface,
     borderWidth: 1,
     borderColor: loanPrototypeTheme.border,
   },
   kicker: {
     fontFamily: 'Outfit_600SemiBold',
     fontSize: 12,
-    color: loanPrototypeTheme.accent,
+    color: loanPrototypeTheme.textSoft,
     textTransform: 'uppercase',
     letterSpacing: 1.1,
   },
   title: {
     fontFamily: 'Outfit_700Bold',
-    fontSize: 24,
+    fontSize: 34,
     color: loanPrototypeTheme.text,
-    marginTop: 1,
+    letterSpacing: -0.4,
   },
   badge: {
-    minHeight: 38,
+    minHeight: 36,
     borderRadius: 999,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: loanPrototypeTheme.surface,
     borderWidth: 1,
     borderColor: loanPrototypeTheme.border,
   },
@@ -288,21 +279,21 @@ const styles = StyleSheet.create({
     color: loanPrototypeTheme.text,
   },
   cardShell: {
-    borderRadius: 28,
+    borderRadius: 30,
     overflow: 'hidden',
     backgroundColor: loanPrototypeTheme.card,
     borderWidth: 1,
     borderColor: loanPrototypeTheme.border,
     shadowColor: loanPrototypeTheme.shadow,
-    shadowOpacity: 0.09,
+    shadowOpacity: 0.12,
     shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 5,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 4,
   },
-  blur: { borderRadius: 28 },
+  blur: { borderRadius: 30 },
   cardInner: {
-    padding: 18,
-    backgroundColor: 'rgba(255,255,255,0.34)',
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.95)',
   },
   sectionRow: {
     flexDirection: 'row',
@@ -321,7 +312,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: 'Outfit_700Bold',
-    fontSize: 22,
+    fontSize: 21,
     color: loanPrototypeTheme.text,
   },
   sectionMeta: {
@@ -418,4 +409,3 @@ const styles = StyleSheet.create({
     color: loanPrototypeTheme.textSoft,
   },
 });
-

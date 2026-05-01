@@ -11,6 +11,7 @@ import { useAccountsStore } from '../stores/useAccountsStore';
 import { useLoansStore } from '../stores/useLoansStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useAppTheme } from '../lib/theme';
+import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -128,7 +129,7 @@ function DonutChart({ slices, size, strokeWidth, theme }: { slices: { color: str
 }
 
 export default function NetWorthScreen() {
-  const { mode } = useAppTheme();
+  const { mode, palette } = useAppTheme();
   const SLEEK = mode === 'dark' ? SLEEK_DARK : SLEEK_LIGHT;
   
   const VIBRANT_PALETTE = [
@@ -269,6 +270,44 @@ export default function NetWorthScreen() {
               </View>
             ))}
           </GlassCard>
+        </View>
+
+        {/* Breakdown (Card Design) */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: SLEEK.textMuted }]}>Breakdown (Card Design)</Text>
+          <View style={{ gap: 12 }}>
+            {composition.map((item) => (
+              <AppCard
+                key={`card-${item.id}`}
+                palette={palette}
+                style={{
+                  borderRadius: 24,
+                  paddingTop: 16,
+                  paddingBottom: 16,
+                  borderWidth: 1,
+                  borderColor: SLEEK.cardBorder,
+                  backgroundColor: SLEEK.card,
+                }}
+                icon={<AppIcon name={item.icon as any} size={22} color={item.color} />}
+                iconBg={SLEEK.glass}
+                topRow={
+                  <CardTitleRow
+                    title={item.label}
+                    secondary={`${Math.round(item.percent * 100)}%`}
+                    amount={formatMoney(item.amount)}
+                    palette={palette}
+                  />
+                }
+                bottomRow={
+                  <CardSubtitleRow
+                    text={item.id === 'cash' ? 'Available' : 'Pending'}
+                    rightText={`Ratio`}
+                    palette={palette}
+                  />
+                }
+              />
+            ))}
+          </View>
         </View>
 
         {/* Monthly Velocity */}

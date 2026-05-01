@@ -1,7 +1,7 @@
-import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '@/components/ui/AppIcon';
 import { AppChevron } from '@/components/ui/AppChevron';
-import { forwardRef, ReactNode, RefObject } from 'react';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { Text } from '@/components/ui/AppText';
+import { forwardRef, ReactNode, RefObject, useEffect, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
@@ -292,28 +292,32 @@ export function IconBtn({
   onPress,
   children,
   variant = 'default',
+  size = 'default',
   palette,
   hitSlop }: {
     onPress: () => void;
     children: ReactNode;
     variant?: 'default' | 'danger';
+    size?: 'default' | 'compact';
     palette: AppThemePalette;
     hitSlop?: { top: number; bottom: number; left: number; right: number };
   }) {
+  const isCompact = size === 'compact';
   return (
     <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       activeOpacity={0.7}
       hitSlop={hitSlop}
       style={{
-        width: 52,
+        width: 50,
         height: 56,
         borderRadius: RADIUS.md,
         backgroundColor: palette.surface,
         borderWidth: 1,
         borderColor: palette.divider,
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        flexShrink: 0,
       }}
     >
       {children}
@@ -604,6 +608,25 @@ export function SettingsFormLayout({
     bottomActions?: ReactNode;
     scrollRef?: RefObject<ScrollView | null>;
   }) {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <KeyboardAvoidingView
@@ -617,7 +640,7 @@ export function SettingsFormLayout({
           contentContainerStyle={{
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: SPACING.md,
-            paddingBottom: 170,
+            paddingBottom: 170 + keyboardHeight,
           }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"

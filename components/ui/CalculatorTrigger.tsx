@@ -9,6 +9,7 @@ interface CalculatorTriggerProps {
   size?: 'compact' | 'large';
   hitSlop?: { top: number; bottom: number; left: number; right: number };
   height?: number;
+  width?: number;
 }
 
 export function CalculatorTrigger({
@@ -17,6 +18,7 @@ export function CalculatorTrigger({
   size = 'large',
   hitSlop,
   height,
+  width,
 }: CalculatorTriggerProps) {
   const isLarge = size === 'large';
 
@@ -26,16 +28,17 @@ export function CalculatorTrigger({
       onPress={onPress}
       hitSlop={hitSlop}
       style={{
-        width: height ?? (isLarge ? 48 : 40),
-        height: height ?? (isLarge ? 48 : 40),
+        width: width ?? height ?? (isLarge ? 48 : 36),
+        height: height ?? (isLarge ? 48 : 36),
         alignItems: 'center',
         justifyContent: 'center',
+        flexShrink: 0,
       }}
     >
       <View
         style={{
-          width: height ?? (isLarge ? 44 : 34),
-          height: height ?? (isLarge ? 44 : 34),
+          width: width ?? height ?? (isLarge ? 44 : 30),
+          height: height ?? (isLarge ? 44 : 30),
           borderRadius: isLarge ? 14 : 12,
           backgroundColor: palette.surface,
           borderWidth: 1,

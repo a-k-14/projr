@@ -319,12 +319,13 @@ export default function CategoryFormScreen() {
                         onChangeText={(v) => updateSubName(sub.originalIdx, v)}
                         placeholder={`Subcategory ${renderIdx + 1}`}
                         autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
-                        onFocus={() => requestAnimationFrame(() => formScrollRef.current?.scrollToEnd({ animated: true }))}
+                        onFocus={() => setTimeout(() => formScrollRef.current?.scrollToEnd({ animated: true }), 250)}
                       />
                     </View>
                     <IconBtn
                       onPress={() => deleteSub(sub.originalIdx)}
                       variant="danger"
+                      size="compact"
                       palette={palette}
                       hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                     >

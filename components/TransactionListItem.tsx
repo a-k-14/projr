@@ -90,7 +90,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
 
   const shouldAllowCategoryWrap = !!categoryName?.includes(' › ') || title.includes(' › ');
 
-  if (tx.type === 'in' || tx.type === 'out') {
+  if (!tx.transferPairId && (tx.type === 'in' || tx.type === 'out')) {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     titleSecondaryText = undefined;
     subtitle = [accountNameSelected, tx.payee].filter(Boolean).join(' \u2022 ');

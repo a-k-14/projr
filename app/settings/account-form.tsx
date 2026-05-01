@@ -221,8 +221,8 @@ export default function AccountFormScreen() {
             <CalculatorTrigger
               palette={palette}
               onPress={() => runAfterKeyboardDismiss(() => setShowCalculator(true))}
-              size="large"
               height={56}
+              width={50}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             />
           </View>
@@ -254,6 +254,9 @@ export default function AccountFormScreen() {
         visible={showCalculator}
         value={draft.balance.replace(/,/g, '')}
         palette={palette}
+        brandColor={palette.transferText}
+        brandSoft={palette.transferBg}
+        brandOnColor={palette.onBrand}
         onClose={() => setShowCalculator(false)}
         onApply={(finalValue) => {
           setShowCalculator(false);

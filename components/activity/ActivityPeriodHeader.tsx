@@ -24,7 +24,6 @@ export function ActivityPeriodHeader({
   setShowPeriodSheet,
   palette }: ActivityPeriodHeaderProps) {
   const isDisabled = period === 'custom' || period === 'all';
-  const disabledOpacity = palette.isDark ? 0.74 : 0.58;
 
   return (
     <View
@@ -46,7 +45,7 @@ export function ActivityPeriodHeader({
           direction="left"
           size={16}
           tone={isDisabled ? 'secondary' : 'primary'}
-          opacity={isDisabled ? disabledOpacity : 1}
+          opacity={1}
           palette={palette}
         />
       </TouchableOpacity>
@@ -73,7 +72,7 @@ export function ActivityPeriodHeader({
           direction="right"
           size={16}
           tone={canGoNext ? 'primary' : 'secondary'}
-          opacity={canGoNext ? 1 : disabledOpacity}
+          opacity={1}
           palette={palette}
         />
       </TouchableOpacity>
