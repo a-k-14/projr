@@ -110,6 +110,11 @@ export function BottomSheet({
   }, [fixedHeightRatio, maxSheetHeight, modalHeightBoost, screenHeight, sheetHeight]);
 
   useEffect(() => {
+    if (!fixedHeightRatio) return;
+    sheetHeight.setValue(Math.min(screenHeight * fixedHeightRatio, maxSheetHeight));
+  }, [fixedHeightRatio, maxSheetHeight, screenHeight, sheetHeight]);
+
+  useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, { toValue: BACKDROP_OPACITY, duration: OPEN_ANIMATION_DURATION_MS, useNativeDriver: true }),
       Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 220, friction: 22 }),
@@ -264,7 +269,7 @@ export function BottomSheet({
               </ScrollView>
             ) : (
               <View
-                style={{ width: '100%' }}
+                style={[{ width: '100%' }, fixedHeightRatio ? { flex: 1 } : null]}
                 collapsable={false}
                 onLayout={(event) => {
                   const next = Math.round(event.nativeEvent.layout.height);

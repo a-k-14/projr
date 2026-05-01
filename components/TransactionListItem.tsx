@@ -105,7 +105,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   const amountPrefix = getAmountPrefix(amountValue, displayImpact, showAmountSign);
   const amountDisplay = amountPrefix ? `${amountPrefix}${formatCurrency(Math.abs(amountValue), sym)}` : formatCurrency(Math.abs(amountValue), sym);
   const amountColor = useTypeAmountColor
-    ? (displayImpact === 'in' ? palette.brand : displayImpact === 'out' ? palette.negative : palette.text)
+    ? (displayImpact === 'in' ? palette.positive : displayImpact === 'out' ? palette.negative : palette.text)
     : palette.text;
   const tertiaryLine = [tertiaryText, noteLine].filter((value): value is string => !!value).join(' | ') || undefined;
   const supportIcons = tx.splitGroupId || hasReceipt ? (
@@ -143,7 +143,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           color={cfg.color}
         />
       )}
-      iconBg={cfg.bg}
+      iconBg={effectiveType === 'transfer' || effectiveType === 'loan' ? palette.background : cfg.bg}
       topRow={
         <CardTitleRow
           title={title}

@@ -219,8 +219,8 @@ function BudgetOverviewCard({
       eyebrow="Budget overview"
       title={monthLabel}
       badgeLabel={monthBudgetsLabel(totalBudgeted, overBudgetCount)}
-      badgeBg={palette.budgetSoft}
-      badgeColor={palette.budget}
+      badgeBg={palette.background}
+      badgeColor={palette.textSecondary}
       metrics={[
         { key: 'budgeted', label: 'Budgeted', value: formatCurrency(totalBudgeted, sym), valueColor: palette.text },
         { key: 'spent', label: 'Spent', value: formatCurrency(totalSpent, sym), valueColor: isOver ? palette.negative : palette.text },

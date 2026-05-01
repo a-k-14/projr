@@ -104,7 +104,7 @@ export function SettingsRow({
       {leftElement ? (
         leftElement
       ) : icon ? (
-        <AppIcon name={icon as any} size={18} color={palette.iconTint} />
+        <AppIcon name={icon as any} size={18} color={palette.text} />
       ) : null}
       <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
         <Text

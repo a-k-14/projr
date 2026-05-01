@@ -74,7 +74,7 @@ function AppTabBar({
               borderRadius: HOME_RADIUS.tab,
               borderWidth: 1,
               borderColor: palette.borderSoft,
-              backgroundColor: palette.inputBg,
+              backgroundColor: palette.background,
             },
             indicatorStyle,
           ]}
