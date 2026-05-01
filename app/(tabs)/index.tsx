@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import HomePrototypeScreen from '@/components/prototypes/HomePrototypeScreen';
+import HomeScreenContent from '@/components/HomeScreen';
 import { FilledButton } from '@/components/ui/AppButton';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { FinanceEmptyMascot } from '@/components/ui/FinanceEmptyMascot';
@@ -82,5 +82,5 @@ export default function HomeScreen() {
     );
   }
 
-  return <HomePrototypeScreen resetTick={resetTick} />;
+  return <HomeScreenContent resetTick={resetTick} />;
 }

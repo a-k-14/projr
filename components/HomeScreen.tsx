@@ -12,14 +12,15 @@ import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT, getFabBottomOffset } from '@/lib/l
 import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
 import { getTransactions } from '@/services/transactions';
 import { useAccountsStore } from '@/stores/useAccountsStore';
-import { HomeDonutChartBlock } from '../HomeDonutChartBlock';
+import { HomeDonutChartBlock } from './HomeDonutChartBlock';
 import { useCategoriesStore } from '@/stores/useCategoriesStore';
 import { useUIStore } from '@/stores/useUIStore';
 import type { Category, PeriodType, Transaction } from '@/types';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  InteractionManager,
   LayoutChangeEvent,
   PanResponder,
   Pressable,
@@ -27,16 +28,15 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import PagerView from 'react-native-pager-view';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLoansStore } from '@/stores/useLoansStore';
-import Svg, { G, Path } from 'react-native-svg';
 import type { TabResetMode } from '@/lib/tabResetRegistry';
 
-type Mode = 'expense' | 'income';
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+
 type AccountSurfaceTab = {
   id: string | 'all';
   name: string;
@@ -58,6 +58,8 @@ const lightTheme = {
   shadow: '#4F46E5',
 };
 const HOME_FAB_COLOR = '#24324F';
+const SWITCH_INSET = 2;
+const SWIPE_INDICATOR_STEP = 28;
 
 const UNCATEGORIZED_ICON = ':o';
 
@@ -67,6 +69,37 @@ function formatMetricValue(value: number, currencySymbol: string) {
 
 function getMetricColor(value: number, activeColor: string, neutralColor: string) {
   return value === 0 ? neutralColor : activeColor;
+}
+
+function getRecentTransactions(transactions: Transaction[]) {
+  return transactions
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10);
+}
+
+function getTodayCashflow(transactions: Transaction[]) {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  let totalIn = 0;
+  let totalOut = 0;
+  transactions.forEach((tx) => {
+    if (!tx.date.startsWith(todayKey)) return;
+    const impact = getTransactionCashflowImpact(tx);
+    if (impact === 'in') totalIn += tx.amount;
+    if (impact === 'out') totalOut += tx.amount;
+  });
+  return { in: totalIn, out: totalOut, net: totalIn - totalOut };
+}
+
+function getCashflow(transactions: Transaction[]) {
+  let totalIn = 0;
+  let totalOut = 0;
+  transactions.forEach((tx) => {
+    const impact = getTransactionCashflowImpact(tx);
+    if (impact === 'in') totalIn += tx.amount;
+    if (impact === 'out') totalOut += tx.amount;
+  });
+  return { in: totalIn, out: totalOut, net: totalIn - totalOut };
 }
 
 function categoryPathForTx(tx: Transaction, categoriesById: Map<string, Category>) {
@@ -137,18 +170,20 @@ function HomeSegmentedControl({
   width?: number | '100%';
 }) {
   const [controlWidth, setControlWidth] = useState(0);
-  const indicatorLeft = useRef(new Animated.Value(0)).current;
+  const indicatorX = useRef(new Animated.Value(0)).current;
   const selectedIndex = Math.max(0, options.findIndex((option) => option.key === value));
   const segmentWidth = controlWidth > 0 ? controlWidth / options.length : 0;
 
   useEffect(() => {
     if (segmentWidth <= 0) return;
-    Animated.timing(indicatorLeft, {
+    Animated.spring(indicatorX, {
       toValue: selectedIndex * segmentWidth,
-      duration: 180,
+      damping: 20,
+      mass: 0.7,
+      stiffness: 220,
       useNativeDriver: false,
     }).start();
-  }, [indicatorLeft, selectedIndex, segmentWidth]);
+  }, [indicatorX, selectedIndex, segmentWidth]);
 
   return (
     <View
@@ -158,7 +193,6 @@ function HomeSegmentedControl({
         styles.segmentedControl,
         {
           backgroundColor: theme.surface,
-          borderColor: '#CBD5E1',
           width: width ?? '100%',
         },
       ]}
@@ -169,33 +203,44 @@ function HomeSegmentedControl({
           style={[
           styles.segmentedHighlight,
           {
-            left: Animated.add(indicatorLeft, 1),
-            width: segmentWidth - 2,
+            width: segmentWidth - SWITCH_INSET * 2,
             backgroundColor: theme.inputBg,
             borderColor: theme.border,
+            transform: [{ translateX: Animated.add(indicatorX, SWITCH_INSET) }],
             },
           ]}
         />
       ) : null}
       {options.map((option) => {
-        const active = value === option.key;
+        const optionIndex = options.findIndex((item) => item.key === option.key);
+        const textColor = segmentWidth > 0
+          ? indicatorX.interpolate({
+            inputRange: [
+              Math.max(0, optionIndex - 1) * segmentWidth,
+              optionIndex * segmentWidth,
+              Math.min(options.length - 1, optionIndex + 1) * segmentWidth,
+            ],
+            outputRange: [theme.muted, theme.text, theme.muted],
+            extrapolate: 'clamp',
+          })
+          : theme.muted;
         return (
           <Pressable
             key={option.key}
             onPress={() => onChange(option.key)}
             style={styles.segmentedOption}
           >
-          <Text
+          <Animated.Text
               style={[
                 styles.switchText,
                 {
-                  color: active ? theme.text : theme.muted,
-                  fontWeight: active ? '700' : '600',
+                  color: textColor as any,
+                  fontWeight: '500',
                 },
               ]}
             >
               {option.label}
-            </Text>
+            </Animated.Text>
           </Pressable>
         );
       })}
@@ -203,13 +248,12 @@ function HomeSegmentedControl({
   );
 }
 
-export default function HomePrototypeScreen({
+export default function HomeScreen({
   resetTick,
 }: {
   resetTick?: { count: number; animated: boolean; mode: TabResetMode };
 }) {
   const theme = lightTheme;
-  const { width } = useWindowDimensions();
   const accounts = useAccountsStore((s) => s.accounts);
   const accountsLoaded = useAccountsStore((s) => s.isLoaded);
   const loadAccounts = useAccountsStore((s) => s.load);
@@ -236,15 +280,19 @@ export default function HomePrototypeScreen({
   ], [accounts, showAllAccountsTab]);
   const rootAccountId = showAllAccountsTab ? 'all' : (accounts[0]?.id ?? 'all');
 
-  const [mode, setMode] = useState<Mode>('expense');
   const [period, setPeriod] = useState<PeriodType>('month');
+  const [uiPeriod, setUiPeriod] = useState<PeriodType>('month');
   const [refreshing, setRefreshing] = useState(false);
-  const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
+  const [periodTransactionsByAccount, setPeriodTransactionsByAccount] = useState<Record<string, Transaction[]>>({});
+  const [pageResetCounts, setPageResetCounts] = useState<Record<string, number>>({});
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>(rootAccountId);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
-  const [chartExpanded, setChartExpanded] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const [chartExpandedAccountId, setChartExpandedAccountId] = useState<string | 'all' | null>(null);
+  const scrollRef = useRef<ScrollView | null>(null);
   const accountsPagerRef = useRef<PagerView>(null);
+  const headerScrollY = useRef(new Animated.Value(0)).current;
+  const pagerIndicatorX = useRef(new Animated.Value(0)).current;
 
   const dateRange = useMemo(() => getDateRange(period, yearStart), [period, yearStart]);
   const rangeFrom = useMemo(() => new Date(dateRange.from), [dateRange.from]);
@@ -267,64 +315,18 @@ export default function HomePrototypeScreen({
     }
   }, [accounts, rootAccountId, selectedAccountId, showAllAccountsTab]);
 
-  const selectedAccount = useMemo(
-    () => (selectedAccountId === 'all' ? null : accounts.find((account) => account.id === selectedAccountId) ?? null),
-    [accounts, selectedAccountId],
-  );
-
-  const totalBalance = useMemo(
-    () => (selectedAccountId === 'all' ? accounts.reduce((sum, account) => sum + account.balance, 0) : (selectedAccount?.balance ?? 0)),
-    [accounts, selectedAccount, selectedAccountId],
-  );
-
-  const filteredModeTransactions = useMemo(
-    () => periodTransactions.filter((tx) => getTransactionCashflowImpact(tx) === (mode === 'income' ? 'in' : 'out')),
-    [mode, periodTransactions],
-  );
-
-
-  const recentTransactions = useMemo(
-    () =>
-      periodTransactions
-        .slice()
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 10),
-    [periodTransactions],
-  );
-
-
-
-  const todayCashflow = useMemo(() => {
-    const todayKey = new Date().toISOString().slice(0, 10);
-    let totalIn = 0;
-    let totalOut = 0;
-    periodTransactions.forEach((tx) => {
-      if (!tx.date.startsWith(todayKey)) return;
-      const impact = getTransactionCashflowImpact(tx);
-      if (impact === 'in') totalIn += tx.amount;
-      if (impact === 'out') totalOut += tx.amount;
-    });
-    return { in: totalIn, out: totalOut, net: totalIn - totalOut };
-  }, [periodTransactions]);
-
-  const cashflow = useMemo(() => {
-    let totalIn = 0;
-    let totalOut = 0;
-    periodTransactions.forEach((tx) => {
-      const impact = getTransactionCashflowImpact(tx);
-      if (impact === 'in') totalIn += tx.amount;
-      if (impact === 'out') totalOut += tx.amount;
-    });
-    return { in: totalIn, out: totalOut, net: totalIn - totalOut };
-  }, [periodTransactions]);
-
   const loadData = async () => {
-    const scopedTxs = await getTransactions({
-      fromDate: dateRange.from,
-      toDate: dateRange.to,
-      accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
-    });
-    setPeriodTransactions(scopedTxs);
+    const entries = await Promise.all(
+      displayAccounts.map(async (account) => {
+        const scopedTxs = await getTransactions({
+          fromDate: dateRange.from,
+          toDate: dateRange.to,
+          accountId: account.id === 'all' ? undefined : account.id,
+        });
+        return [account.id, scopedTxs] as const;
+      }),
+    );
+    setPeriodTransactionsByAccount(Object.fromEntries(entries));
   };
 
   useEffect(() => {
@@ -335,42 +337,38 @@ export default function HomePrototypeScreen({
 
   useEffect(() => {
     loadData().catch(() => undefined);
-  }, [dateRange.from, dateRange.to, selectedAccountId]);
+  }, [dateRange.from, dateRange.to, displayAccounts]);
+
+  useEffect(() => {
+    const nextIndex = Math.max(0, displayAccounts.findIndex((account) => account.id === selectedAccountId));
+    setCurrentPageIndex(nextIndex);
+    pagerIndicatorX.setValue(nextIndex * SWIPE_INDICATOR_STEP);
+    if (homeAccountViewMode === 'swipe') {
+      accountsPagerRef.current?.setPageWithoutAnimation?.(nextIndex);
+    }
+  }, [displayAccounts, homeAccountViewMode, pagerIndicatorX, selectedAccountId]);
+
+  const resetAccountSurface = (accountId: string | 'all', animated: boolean) => {
+    scrollRef.current?.scrollTo({ y: 0, animated });
+    setPageResetCounts((current) => ({
+      ...current,
+      [accountId]: (current[accountId] ?? 0) + 1,
+    }));
+    setChartExpandedAccountId((current) => (current === accountId ? null : current));
+  };
 
   useEffect(() => {
     if (!resetTick || resetTick.count === 0) return;
-    scrollRef.current?.scrollTo({ y: 0, animated: resetTick.animated });
     accountsPagerRef.current?.setPage?.(0);
-    setChartExpanded(false);
     setPeriod('month');
+    setUiPeriod('month');
+    displayAccounts.forEach((account) => resetAccountSurface(account.id, resetTick.animated));
     setSelectedAccountId(rootAccountId);
-  }, [resetTick, rootAccountId]);
+  }, [displayAccounts, resetTick, rootAccountId]);
 
-  const pageSwipeResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponderCapture: () => false,
-        onMoveShouldSetPanResponderCapture: (_, gesture) =>
-          Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
-        onPanResponderRelease: (_, gesture) => {
-          const nextIndex = displayAccounts.findIndex((account) => account.id === selectedAccountId);
-          if (gesture.dx < -50 && nextIndex < displayAccounts.length - 1) {
-            const next = displayAccounts[nextIndex + 1];
-            if (next) {
-              setSelectedAccountId(next.id);
-              accountsPagerRef.current?.setPage(nextIndex + 1);
-            }
-          } else if (gesture.dx > 50 && nextIndex > 0) {
-            const next = displayAccounts[nextIndex - 1];
-            if (next) {
-              setSelectedAccountId(next.id);
-              accountsPagerRef.current?.setPage(nextIndex - 1);
-            }
-          }
-        },
-      }),
-    [accountsPagerRef, displayAccounts, selectedAccountId],
-  );
+  useEffect(() => {
+    setUiPeriod(period);
+  }, [period]);
 
 
 
@@ -384,199 +382,118 @@ export default function HomePrototypeScreen({
     setRefreshing(false);
   };
 
-
-
-
-
   const insets = useSafeAreaInsets();
+  const expandedChartTransactions = chartExpandedAccountId ? (periodTransactionsByAccount[chartExpandedAccountId] ?? []) : [];
+  const selectedHeaderAccount = displayAccounts[currentPageIndex] ?? displayAccounts[0] ?? { id: rootAccountId, name: 'Accounts', subtitle: '' };
+  const accountTitleOpacity = headerScrollY.interpolate({
+    inputRange: [36, 84],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const accountsTitleOpacity = headerScrollY.interpolate({
+    inputRange: [20, 68],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const accountTitleTranslateY = headerScrollY.interpolate({
+    inputRange: [36, 84],
+    outputRange: [10, 0],
+    extrapolate: 'clamp',
+  });
+  const accountsTitleTranslateY = headerScrollY.interpolate({
+    inputRange: [20, 68],
+    outputRange: [0, -10],
+    extrapolate: 'clamp',
+  });
 
-  return (
-    <View style={[styles.screen, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
-      <View style={styles.headerRow}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Accounts</Text>
-        <View style={[styles.headerToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          {(['swipe', 'list'] as const).map((item) => {
-            const active = homeAccountViewMode === item;
-            return (
-              <Pressable
-                key={item}
-                onPress={() => updateSettings({ homeAccountViewMode: item }, 'home-prototype-view-mode').catch(() => undefined)}
+  const renderHeroCard = (account: AccountSurfaceTab) => {
+    const transactions = periodTransactionsByAccount[account.id] ?? [];
+    const todayCashflow = getTodayCashflow(transactions);
+    const balance = account.id === 'all'
+      ? accounts.reduce((sum, item) => sum + item.balance, 0)
+      : (accounts.find((item) => item.id === account.id)?.balance ?? 0);
+
+    return (
+      <View style={[styles.heroCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <View style={styles.heroHeader}>
+          <View style={styles.heroLeft}>
+            <View style={styles.heroLabelRow}>
+              <Text style={[styles.heroLabel, { color: theme.muted }]}>Account</Text>
+              <Text style={[styles.heroLabelDot, { color: theme.muted }]}>•</Text>
+              <Text style={[styles.heroLabel, { color: theme.muted }]}>
+                {account.id === 'all' ? `${accounts.length} accounts` : account.subtitle}
+              </Text>
+            </View>
+            <Text numberOfLines={2} style={[styles.heroTitle, { color: theme.text }]}>{account.name}</Text>
+          </View>
+          <View style={styles.heroRight}>
+            <Text style={[styles.heroBalanceLabel, { color: theme.muted }]}>Current balance</Text>
+            <Text numberOfLines={1} style={[styles.heroBalance, { color: theme.text }]}>
+              {formatCurrency(balance, sym)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.heroTodaySection}>
+          <Text style={[styles.heroTodayLabel, { color: theme.muted }]}>Today</Text>
+          <Text style={[styles.heroTodayDate, { color: theme.muted }]}>· {todayLabel}</Text>
+        </View>
+
+        <View style={styles.heroStatsRow}>
+          {([
+            { key: 'in', label: 'In', value: todayCashflow.in, color: theme.positive },
+            { key: 'out', label: 'Out', value: todayCashflow.out, color: theme.negative },
+            { key: 'net', label: 'Net', value: Math.abs(todayCashflow.net), color: todayCashflow.net >= 0 ? theme.accent : theme.negative },
+          ] as const).map((item, index) => (
+            <View key={item.key} style={styles.heroStatsItemWrap}>
+              {index > 0 ? <View style={[styles.heroMetricDivider, { backgroundColor: theme.border }]} /> : null}
+              <View
                 style={[
-                  styles.headerToggleItem,
-                  active && { backgroundColor: theme.inputBg },
+                  styles.heroStatCard,
+                  index === 0 ? styles.heroStatStart : index === 2 ? styles.heroStatEnd : styles.heroStatCenter,
                 ]}
               >
-                <AppIcon
-                  name={item === 'list' ? 'list' : 'gallery-thumbnails'}
-                  size={18}
-                  color={active ? theme.text : theme.muted}
-                />
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[styles.content, { paddingBottom: HOME_LAYOUT.fabContentBottomPadding + 90 }]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />}
-      >
-        {homeAccountViewMode === 'swipe' ? (
-          <PagerView
-            ref={accountsPagerRef}
-            style={styles.accountPager}
-            initialPage={Math.max(0, displayAccounts.findIndex((account) => account.id === selectedAccountId))}
-            onPageSelected={(event) => {
-              const next = displayAccounts[event.nativeEvent.position];
-              if (next) setSelectedAccountId(next.id);
-            }}
-          >
-            {displayAccounts.map((account) => (
-              <View key={account.id} style={styles.accountPagerPage}>
-                <View style={[styles.heroCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <View style={styles.heroHeader}>
-                    <View style={styles.heroLeft}>
-                      <View style={styles.heroLabelRow}>
-                        <Text style={[styles.heroLabel, { color: theme.muted }]}>Account</Text>
-                        <Text style={[styles.heroLabelDot, { color: theme.muted }]}>•</Text>
-                        <Text style={[styles.heroLabel, { color: theme.muted }]}>
-                          {account.id === 'all' ? `${accounts.length} accounts` : account.subtitle}
-                        </Text>
-                      </View>
-                      <Text numberOfLines={2} style={[styles.heroTitle, { color: theme.text }]}>{account.name}</Text>
-                    </View>
-                    <View style={styles.heroRight}>
-                      <Text style={[styles.heroBalanceLabel, { color: theme.muted }]}>Current balance</Text>
-                      <Text numberOfLines={1} style={[styles.heroBalance, { color: theme.text }]}>
-                        {formatCurrency(
-                          account.id === 'all'
-                            ? accounts.reduce((sum, item) => sum + item.balance, 0)
-                            : (accounts.find((item) => item.id === account.id)?.balance ?? 0),
-                          sym,
-                        )}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.heroTodaySection}>
-                    <Text style={[styles.heroTodayLabel, { color: theme.muted }]}>Today</Text>
-                    <Text style={[styles.heroTodayDate, { color: theme.muted }]}>· {todayLabel}</Text>
-                  </View>
-
-                  <View style={styles.heroStatsRow}>
-                    {([
-                      { key: 'in', label: 'In', value: todayCashflow.in, color: theme.positive },
-                      { key: 'out', label: 'Out', value: todayCashflow.out, color: theme.negative },
-                      { key: 'net', label: 'Net', value: Math.abs(todayCashflow.net), color: todayCashflow.net >= 0 ? theme.accent : theme.negative },
-                    ] as const).map((item, index) => (
-                      <View key={item.key} style={styles.heroStatsItemWrap}>
-                        {index > 0 ? <View style={[styles.heroMetricDivider, { backgroundColor: theme.border }]} /> : null}
-                        <View
-                          style={[
-                            styles.heroStatCard,
-                            index === 0 ? styles.heroStatStart : index === 2 ? styles.heroStatEnd : styles.heroStatCenter,
-                          ]}
-                        >
-                          <Text style={[styles.heroStatLabel, { color: theme.muted }]}>{item.label}</Text>
-                          <Text numberOfLines={1} style={[styles.heroStatValue, { color: getMetricColor(item.value, item.color, theme.muted) }]}>
-                            {formatMetricValue(item.value, sym)}
-                          </Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-            ))}
-          </PagerView>
-        ) : (
-          <View style={styles.accountList}>
-            {displayAccounts.map((account) => (
-              <View key={account.id} style={[styles.heroCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <View style={styles.heroHeader}>
-                  <View style={styles.heroLeft}>
-                    <View style={styles.heroLabelRow}>
-                      <Text style={[styles.heroLabel, { color: theme.muted }]}>Account</Text>
-                      <Text style={[styles.heroLabelDot, { color: theme.muted }]}>•</Text>
-                      <Text style={[styles.heroLabel, { color: theme.muted }]}>
-                        {account.id === 'all' ? `${accounts.length} accounts` : account.subtitle}
-                      </Text>
-                    </View>
-                    <Text numberOfLines={2} style={[styles.heroTitle, { color: theme.text }]}>{account.name}</Text>
-                  </View>
-                  <View style={styles.heroRight}>
-                    <Text style={[styles.heroBalanceLabel, { color: theme.muted }]}>Current balance</Text>
-                    <Text numberOfLines={1} style={[styles.heroBalance, { color: theme.text }]}>
-                      {formatCurrency(
-                        account.id === 'all'
-                          ? accounts.reduce((sum, item) => sum + item.balance, 0)
-                          : (accounts.find((item) => item.id === account.id)?.balance ?? 0),
-                        sym,
-                      )}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.heroTodaySection}>
-                  <Text style={[styles.heroTodayLabel, { color: theme.muted }]}>Today</Text>
-                  <Text style={[styles.heroTodayDate, { color: theme.muted }]}>· {todayLabel}</Text>
-                </View>
-
-                <View style={styles.heroStatsRow}>
-                  {([
-                    { key: 'in', label: 'In', value: todayCashflow.in, color: theme.positive },
-                    { key: 'out', label: 'Out', value: todayCashflow.out, color: theme.negative },
-                    { key: 'net', label: 'Net', value: Math.abs(todayCashflow.net), color: todayCashflow.net >= 0 ? theme.accent : theme.negative },
-                  ] as const).map((item, index) => (
-                    <View key={item.key} style={styles.heroStatsItemWrap}>
-                      {index > 0 ? <View style={[styles.heroMetricDivider, { backgroundColor: theme.border }]} /> : null}
-                      <View
-                        style={[
-                          styles.heroStatCard,
-                          index === 0 ? styles.heroStatStart : index === 2 ? styles.heroStatEnd : styles.heroStatCenter,
-                        ]}
-                      >
-                        <Text style={[styles.heroStatLabel, { color: theme.muted }]}>{item.label}</Text>
-                        <Text numberOfLines={1} style={[styles.heroStatValue, { color: getMetricColor(item.value, item.color, theme.muted) }]}>
-                          {formatMetricValue(item.value, sym)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {homeAccountViewMode === 'swipe' ? (
-          <View style={styles.swipeIndicatorWrap}>
-            <View style={[styles.swipeIndicatorTrack, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <View style={styles.swipeIndicatorDots}>
-                {displayAccounts.map((account, index) => {
-                  const active = account.id === selectedAccountId;
-                  return (
-                    <View
-                      key={account.id}
-                      style={[
-                        styles.swipeIndicatorDot,
-                        {
-                          width: active ? 20 : 6,
-                          backgroundColor: active ? theme.accent : theme.border,
-                          opacity: active ? 1 : 0.9,
-                          marginRight: index === displayAccounts.length - 1 ? 0 : 8,
-                        },
-                      ]}
-                    />
-                  );
-                })}
+                <Text style={[styles.heroStatLabel, { color: theme.muted }]}>{item.label}</Text>
+                <Text numberOfLines={1} style={[styles.heroStatValue, { color: getMetricColor(item.value, item.color, theme.muted) }]}>
+                  {formatMetricValue(item.value, sym)}
+                </Text>
               </View>
             </View>
-          </View>
-        ) : null}
+          ))}
+        </View>
+      </View>
+    );
+  };
 
+  const renderSwipeIndicator = () => (
+    <View style={styles.swipeIndicatorWrap}>
+      <View style={styles.swipeIndicatorDots}>
+        {displayAccounts.map((pageAccount) => (
+          <View key={pageAccount.id} style={styles.swipeIndicatorSlot}>
+            <View style={[styles.swipeIndicatorDot, { backgroundColor: theme.border }]} />
+          </View>
+        ))}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.swipeIndicatorActive,
+            {
+              backgroundColor: HOME_FAB_COLOR,
+              transform: [{ translateX: pagerIndicatorX }],
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+
+  const renderHomeSections = (account: AccountSurfaceTab) => {
+    const transactions = periodTransactionsByAccount[account.id] ?? [];
+    const cashflow = getCashflow(transactions);
+    const recentTransactions = getRecentTransactions(transactions);
+
+    return (
+      <>
         <View style={styles.periodSection}>
           <View style={styles.summaryTopRow}>
             <Text style={[styles.summaryLead, { color: theme.muted }]}>This</Text>
@@ -592,8 +509,16 @@ export default function HomePrototypeScreen({
               { key: 'year', label: 'Year' },
               { key: 'custom', label: 'Custom' },
             ]}
-            value={period}
-            onChange={(next) => setPeriod(next as PeriodType)}
+            value={uiPeriod}
+            onChange={(next) => {
+              const nextPeriod = next as PeriodType;
+              setUiPeriod(nextPeriod);
+              InteractionManager.runAfterInteractions(() => {
+                startTransition(() => {
+                  setPeriod(nextPeriod);
+                });
+              });
+            }}
             theme={theme}
             width="100%"
           />
@@ -617,12 +542,14 @@ export default function HomePrototypeScreen({
 
           <View style={styles.chartBody}>
             <HomeDonutChartBlock
-              transactions={periodTransactions}
+              transactions={transactions}
               categoriesById={categoriesById}
               sym={sym}
               theme={theme}
               expanded={false}
-              onExpand={() => setChartExpanded(true)}
+              onExpand={() => setChartExpandedAccountId(account.id)}
+              resetTrigger={pageResetCounts[account.id] ?? 0}
+              accountsById={accountsById}
             />
           </View>
         </View>
@@ -635,18 +562,17 @@ export default function HomePrototypeScreen({
           </View>
 
           <View style={styles.txList}>
-            {recentTransactions.map((tx, index) => {
+            {recentTransactions.map((tx) => {
               const path = categoryPathForTx(tx, categoriesById);
               const accountLabel = accountsById.get(tx.accountId) ?? 'Account';
               const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
               const amountColor = getTransactionCashflowImpact(tx) === 'in' ? theme.positive : theme.negative;
-              
               const isTransfer = !!tx.transferPairId;
               const isLoan = tx.type === 'loan';
-              
+
               let displayTitle = tx.payee || 'Transaction';
               let displaySubtitle = [path.display, accountLabel].filter(Boolean).join(' \u2022 ');
-              let noteLine = tx.note?.trim() || undefined;
+              const noteLine = tx.note?.trim() || undefined;
               let iconName = path.icon;
               let iconColor = path.color;
 
@@ -671,13 +597,7 @@ export default function HomePrototypeScreen({
               }
 
               return (
-                <View
-                  key={tx.id}
-                  style={[
-                    styles.txCard,
-                    { backgroundColor: theme.card },
-                  ]}
-                >
+                <View key={tx.id} style={[styles.txCard, { backgroundColor: theme.card }]}>
                   <HomeIconBadge icon={iconName} color={iconColor} size={40} />
                   <View style={styles.txBody}>
                     <Text style={[styles.txDate, { color: theme.muted }]}>{formatDate(tx.date)}</Text>
@@ -731,8 +651,156 @@ export default function HomePrototypeScreen({
             reni
           </Text>
         </View>
-      </ScrollView>
-      <View pointerEvents="box-none" style={StyleSheet.absoluteFill} {...pageSwipeResponder.panHandlers} />
+      </>
+    );
+  };
+
+  const pageSwipeResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponderCapture: () => false,
+        onMoveShouldSetPanResponderCapture: (_, gesture) =>
+          Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+        onPanResponderRelease: (_, gesture) => {
+          if (homeAccountViewMode !== 'swipe') return;
+          if (gesture.dx < -50 && currentPageIndex < displayAccounts.length - 1) {
+            const next = displayAccounts[currentPageIndex + 1];
+            if (next) {
+              resetAccountSurface(selectedAccountId, false);
+              setCurrentPageIndex(currentPageIndex + 1);
+              setSelectedAccountId(next.id);
+              accountsPagerRef.current?.setPage(currentPageIndex + 1);
+            }
+          } else if (gesture.dx > 50 && currentPageIndex > 0) {
+            const next = displayAccounts[currentPageIndex - 1];
+            if (next) {
+              resetAccountSurface(selectedAccountId, false);
+              setCurrentPageIndex(currentPageIndex - 1);
+              setSelectedAccountId(next.id);
+              accountsPagerRef.current?.setPage(currentPageIndex - 1);
+            }
+          }
+        },
+      }),
+    [currentPageIndex, displayAccounts, homeAccountViewMode, resetAccountSurface, selectedAccountId],
+  );
+
+  return (
+      <View style={[styles.screen, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
+      <View style={styles.headerRow}>
+        <View style={styles.headerTitleWrap}>
+          <Animated.Text
+            style={[
+              styles.headerTitle,
+              {
+                color: theme.text,
+                opacity: accountsTitleOpacity,
+                transform: [{ translateY: accountsTitleTranslateY }],
+              },
+            ]}
+          >
+            Accounts
+          </Animated.Text>
+          <Animated.Text
+            numberOfLines={1}
+            style={[
+              styles.headerTitle,
+              styles.headerTitleOverlay,
+              {
+                color: theme.text,
+                opacity: accountTitleOpacity,
+                transform: [{ translateY: accountTitleTranslateY }],
+              },
+            ]}
+          >
+            {selectedHeaderAccount.name}
+          </Animated.Text>
+        </View>
+        <View style={[styles.headerToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {(['swipe', 'list'] as const).map((item) => {
+            const active = homeAccountViewMode === item;
+            return (
+              <Pressable
+                key={item}
+                onPress={() => updateSettings({ homeAccountViewMode: item }, 'home-view-mode').catch(() => undefined)}
+                style={[
+                  styles.headerToggleItem,
+                  active && { backgroundColor: theme.inputBg },
+                ]}
+              >
+                <AppIcon
+                  name={item === 'list' ? 'list' : 'gallery-thumbnails'}
+                  size={18}
+                  color={active ? theme.text : theme.muted}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {homeAccountViewMode === 'swipe' ? (
+        <AnimatedScrollView
+          ref={(node) => {
+            scrollRef.current = node as ScrollView | null;
+          }}
+          contentContainerStyle={[styles.content, styles.homeScrollContent, { paddingBottom: HOME_LAYOUT.fabContentBottomPadding + 90 }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: headerScrollY } } }],
+            { useNativeDriver: true },
+          )}
+        >
+          <PagerView
+            ref={accountsPagerRef}
+            style={styles.accountPager}
+            initialPage={Math.max(0, displayAccounts.findIndex((account) => account.id === selectedAccountId))}
+            onPageScroll={(event) => {
+              pagerIndicatorX.setValue((event.nativeEvent.position + event.nativeEvent.offset) * SWIPE_INDICATOR_STEP);
+            }}
+            onPageSelected={(event) => {
+              const nextIndex = event.nativeEvent.position;
+              const previous = displayAccounts[currentPageIndex];
+              const next = displayAccounts[nextIndex];
+              if (previous && previous.id !== next?.id) {
+                resetAccountSurface(previous.id, false);
+              }
+              if (next) {
+                scrollRef.current?.scrollTo({ y: 0, animated: false });
+                setCurrentPageIndex(nextIndex);
+                setSelectedAccountId(next.id);
+              }
+            }}
+          >
+            {displayAccounts.map((account) => (
+              <View key={account.id} style={styles.accountPagerPage}>
+                {renderHeroCard(account)}
+              </View>
+            ))}
+          </PagerView>
+          {renderSwipeIndicator()}
+          {renderHomeSections(selectedHeaderAccount)}
+        </AnimatedScrollView>
+      ) : (
+        <AnimatedScrollView
+          ref={(node) => {
+            scrollRef.current = node as ScrollView | null;
+          }}
+          contentContainerStyle={[styles.content, { paddingBottom: HOME_LAYOUT.fabContentBottomPadding + 90 }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: headerScrollY } } }],
+            { useNativeDriver: true },
+          )}
+        >
+          {renderHeroCard(displayAccounts[currentPageIndex] ?? displayAccounts[0] ?? { id: rootAccountId, name: 'Accounts', subtitle: '' })}
+          {renderHomeSections(displayAccounts[currentPageIndex] ?? displayAccounts[0] ?? { id: rootAccountId, name: 'Accounts', subtitle: '' })}
+        </AnimatedScrollView>
+      )}
       <FabButton
         onPress={() => router.push('/modals/add-transaction')}
         palette={{
@@ -787,7 +855,7 @@ export default function HomePrototypeScreen({
         backgroundColor={HOME_FAB_COLOR}
         iconColor="#FFFFFF"
       />
-      {chartExpanded ? (
+      {chartExpandedAccountId ? (
         <BottomSheet
           title=""
           palette={{
@@ -838,22 +906,31 @@ export default function HomePrototypeScreen({
             scrimHeavy: 'rgba(0, 0, 0, 0.55)',
             pressedBg: 'rgba(0, 0, 0, 0.04)',
           }}
-          onClose={() => setChartExpanded(false)}
+          onClose={() => setChartExpandedAccountId(null)}
           showHeaderTitle={false}
-          scrollEnabled={false}
-          fixedHeightRatio={0.62}
+          horizontalPadding={0}
+          scrollEnabled={true}
+          fixedHeightRatio={0.92}
         >
           <View style={styles.sheetInner}>
             <HomeDonutChartBlock
-              transactions={periodTransactions}
+              transactions={expandedChartTransactions}
               categoriesById={categoriesById}
               sym={sym}
               theme={theme}
               expanded={true}
-              onExpand={() => setChartExpanded(true)}
+              onExpand={() => setChartExpandedAccountId(chartExpandedAccountId)}
+              resetTrigger={chartExpandedAccountId ? (pageResetCounts[chartExpandedAccountId] ?? 0) : 0}
+              accountsById={accountsById}
             />
           </View>
         </BottomSheet>
+      ) : null}
+      {homeAccountViewMode === 'swipe' ? (
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill} {...pageSwipeResponder.panHandlers} />
+      ) : null}
+      {homeAccountViewMode === 'swipe' ? (
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill} {...pageSwipeResponder.panHandlers} />
       ) : null}
     </View>
   );
@@ -861,10 +938,13 @@ export default function HomePrototypeScreen({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 52 },
+  content: { paddingHorizontal: 10, paddingTop: 2, paddingBottom: 52 },
+  homeScrollContent: { paddingTop: 0 },
   periodSection: { marginBottom: 12, paddingHorizontal: 2 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 16 },
+  headerTitleWrap: { flex: 1, minHeight: 36, justifyContent: 'center', marginRight: 12 },
   headerTitle: { fontSize: 28, fontWeight: '400', letterSpacing: -0.5 },
+  headerTitleOverlay: { position: 'absolute', left: 0, right: 0 },
   headerToggle: { flexDirection: 'row', borderRadius: 14, overflow: 'hidden', borderWidth: 1 },
   headerToggleItem: {
     width: 42,
@@ -928,9 +1008,10 @@ const styles = StyleSheet.create({
   segmentedControl: {
     flexDirection: 'row',
     borderRadius: HOME_RADIUS.tab + 3,
-    borderWidth: 1,
+    borderWidth: 0,
+    padding: 2,
     overflow: 'hidden',
-    height: HOME_LAYOUT.periodHeight,
+    height: 32,
     position: 'relative',
   },
   segmentedHighlight: {
@@ -942,7 +1023,7 @@ const styles = StyleSheet.create({
   },
   segmentedOption: {
     flex: 1,
-    height: HOME_LAYOUT.periodHeight,
+    height: 32,
     borderRadius: HOME_RADIUS.tab,
     alignItems: 'center',
     justifyContent: 'center',
@@ -960,11 +1041,12 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   expandPlaceholder: { width: HOME_LAYOUT.periodHeight, height: HOME_LAYOUT.periodHeight, marginLeft: 12 },
-  switchText: { fontSize: HOME_TEXT.caption, fontWeight: '600', textAlign: 'center', includeFontPadding: false },
-  swipeIndicatorWrap: { paddingHorizontal: 2, marginTop: 8, marginBottom: 8 },
-  swipeIndicatorTrack: { height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden', justifyContent: 'center' },
-  swipeIndicatorDots: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 },
-  swipeIndicatorDot: { height: 6, borderRadius: 999 },
+  switchText: { fontSize: HOME_TEXT.caption, fontWeight: '500', textAlign: 'center', includeFontPadding: false },
+  swipeIndicatorWrap: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, marginTop: 2, marginBottom: 14, alignSelf: 'center' },
+  swipeIndicatorDots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', position: 'relative', alignSelf: 'center' },
+  swipeIndicatorSlot: { width: SWIPE_INDICATOR_STEP, alignItems: 'center', justifyContent: 'center' },
+  swipeIndicatorDot: { width: 6, height: 3, borderRadius: 999 },
+  swipeIndicatorActive: { position: 'absolute', left: (SWIPE_INDICATOR_STEP - 20) / 2, width: 20, height: 3, borderRadius: 999 },
   summaryStrip: {
     flexDirection: 'row',
     marginTop: 0,
@@ -1075,5 +1157,5 @@ const styles = StyleSheet.create({
   accountList: { gap: 10 },
   expandedChartContent: { flex: 1 },
   expandedChartInner: { paddingBottom: 8 },
-  sheetInner: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24 },
+  sheetInner: { paddingHorizontal: 10, paddingTop: 10, paddingBottom: 28 },
 });

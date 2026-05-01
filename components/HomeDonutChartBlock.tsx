@@ -1,14 +1,16 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, LayoutChangeEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { formatDate } from '@/lib/dateUtils';
 import { formatCurrency, getTransactionCashflowImpact } from '@/lib/derived';
 import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
 import { HOME_TEXT } from '@/lib/layoutTokens';
 import type { Category, Transaction } from '@/types';
 
 type Mode = 'expense' | 'income';
+const SWITCH_INSET = 2;
 
 type HomeNode = {
   id: string;
@@ -194,6 +196,8 @@ export function HomeDonutChartBlock({
   theme,
   expanded = false,
   onExpand,
+  resetTrigger = 0,
+  accountsById,
 }: {
   transactions: Transaction[];
   categoriesById: Map<string, Category>;
@@ -201,10 +205,27 @@ export function HomeDonutChartBlock({
   theme: any;
   expanded?: boolean;
   onExpand?: () => void;
+  resetTrigger?: number;
+  accountsById?: Map<string, string>;
 }) {
   const [mode, setMode] = useState<Mode>('expense');
   const [drillParentId, setDrillParentId] = useState<string | null>(null);
   const [selectedSliceId, setSelectedSliceId] = useState<string | null>(null);
+  const [switchWidth, setSwitchWidth] = useState(0);
+  const switchIndicatorLeft = useRef(new Animated.Value(0)).current;
+  const modeTransactions = useMemo(
+    () => transactions.filter((tx) => getTransactionCashflowImpact(tx) === (mode === 'income' ? 'in' : 'out')),
+    [mode, transactions],
+  );
+  const switchOptions = useMemo(
+    () => ([
+      { key: 'income', label: 'Income' },
+      { key: 'expense', label: 'Expense' },
+    ] as const),
+    [],
+  );
+  const selectedModeIndex = Math.max(0, switchOptions.findIndex((item) => item.key === mode));
+  const switchSegmentWidth = switchWidth > 0 ? switchWidth / switchOptions.length : 0;
   const hierarchy = useMemo(
     () => buildModeHierarchy(mode, transactions, categoriesById),
     [mode, transactions, categoriesById],
@@ -220,6 +241,27 @@ export function HomeDonutChartBlock({
     ? buildSlices(selectedParent.children, transactions, mode)
     : parentSlices;
   const isSubcategoryLevel = !!drillParentId;
+  const selectedSubcategoryNode = drillParentId && selectedSliceId
+    ? selectedParent?.children?.find((node) => node.id === selectedSliceId) ?? null
+    : null;
+  const selectionNode = selectedSubcategoryNode ?? selectedParent ?? null;
+  const selectedIds = useMemo(
+    () => (selectionNode ? new Set(collectIds(selectionNode)) : null),
+    [selectionNode],
+  );
+  const selectedTransactions = useMemo(
+    () =>
+      modeTransactions.filter((tx) => {
+        if (!selectedIds) {
+          return true;
+        }
+        if (selectionNode?.id === 'uncategorized') {
+          return !tx.categoryId;
+        }
+        return tx.categoryId ? selectedIds.has(tx.categoryId) : false;
+      }),
+    [modeTransactions, selectedIds, selectionNode],
+  );
 
   const switchMode = (next: Mode) => {
     setMode(next);
@@ -231,6 +273,23 @@ export function HomeDonutChartBlock({
     setDrillParentId(null);
     setSelectedSliceId(null);
   };
+
+  useEffect(() => {
+    setMode('expense');
+    setDrillParentId(null);
+    setSelectedSliceId(null);
+  }, [resetTrigger]);
+
+  useEffect(() => {
+    if (switchSegmentWidth <= 0) return;
+    Animated.spring(switchIndicatorLeft, {
+      toValue: selectedModeIndex * switchSegmentWidth,
+      damping: 20,
+      mass: 0.7,
+      stiffness: 220,
+      useNativeDriver: false,
+    }).start();
+  }, [selectedModeIndex, switchIndicatorLeft, switchSegmentWidth]);
 
   const drillToParent = (id: string) => {
     const target = hierarchy.find((node) => node.id === id);
@@ -252,22 +311,33 @@ export function HomeDonutChartBlock({
   return (
     <View style={[expanded ? styles.expandedChartContent : undefined, expanded && styles.expandedChartInner]}>
       <View style={[styles.chartTopRow, expanded && styles.chartTopRowExpanded]}>
-        <View style={[styles.segmentedControl, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          {([
-            { key: 'income', label: 'Income' },
-            { key: 'expense', label: 'Expense' },
-          ] as const).map((item) => {
+        <View
+          onLayout={(event: LayoutChangeEvent) => setSwitchWidth(event.nativeEvent.layout.width)}
+          style={[styles.segmentedControl, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        >
+          {switchSegmentWidth > 0 ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.segmentedHighlight,
+                {
+                  width: switchSegmentWidth - SWITCH_INSET * 2,
+                  backgroundColor: theme.inputBg,
+                  borderColor: theme.border,
+                  transform: [{ translateX: Animated.add(switchIndicatorLeft, SWITCH_INSET) }],
+                },
+              ]}
+            />
+          ) : null}
+          {switchOptions.map((item) => {
             const active = mode === item.key;
             return (
               <TouchableOpacity
                 key={item.key}
                 onPress={() => switchMode(item.key)}
-                style={[
-                  styles.segmentedOption,
-                  active && { backgroundColor: theme.inputBg, borderColor: theme.border, borderWidth: 1 },
-                ]}
+                style={styles.segmentedOption}
               >
-                <Text appWeight="medium" style={[styles.switchText, { color: active ? theme.text : theme.muted, fontWeight: active ? '700' : '600' }]}>
+                <Text appWeight="medium" style={[styles.switchText, { color: active ? theme.text : theme.muted, fontWeight: active ? '500' : '500' }]}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -370,6 +440,44 @@ export function HomeDonutChartBlock({
           );
         })}
       </View>
+
+      {expanded ? (
+        <>
+          <View style={styles.transactionsHeader}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Transactions</Text>
+              <Text style={[styles.sectionSub, { color: theme.muted }]}>
+                {selectionNode
+                  ? `All / ${selectedParent?.label ?? selectionNode.label}${selectedSubcategoryNode ? ` / ${selectedSubcategoryNode.label}` : ''}`
+                  : 'All'}
+              </Text>
+            </View>
+            <Text style={[styles.countBadge, { color: theme.text, backgroundColor: theme.surface }]}>
+              {selectedTransactions.length}
+            </Text>
+          </View>
+
+          <View style={styles.txList}>
+            {selectedTransactions.map((tx) => {
+              const accountLabel = accountsById?.get(tx.accountId) ?? 'Account';
+              const title = tx.payee?.trim() || (tx.categoryId ? categoriesById.get(tx.categoryId)?.name : 'Uncategorized') || 'Transaction';
+              return (
+                <View key={tx.id} style={[styles.txCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                  <View style={styles.txTextWrap}>
+                    <Text numberOfLines={1} style={[styles.txTitle, { color: theme.text }]}>{title}</Text>
+                    <Text numberOfLines={1} style={[styles.txMeta, { color: theme.muted }]}>
+                      {formatDate(tx.date)} · {accountLabel}
+                    </Text>
+                  </View>
+                  <Text style={[styles.txAmount, { color: mode === 'income' ? theme.positive : theme.negative }]}>
+                    {mode === 'income' ? '+' : '-'}{formatCurrency(tx.amount, sym)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -377,13 +485,14 @@ export function HomeDonutChartBlock({
 const styles = StyleSheet.create({
   expandedChartContent: { flex: 1 },
   expandedChartInner: { paddingBottom: 8 },
-  chartTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 4, paddingHorizontal: 14, marginBottom: 2 },
-  chartTopRowExpanded: { paddingTop: 8 },
-  segmentedControl: { width: 136, flexDirection: 'row', borderRadius: 13, borderWidth: 1, height: 32, padding: 1.5 },
-  segmentedOption: { flex: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  switchText: { fontSize: HOME_TEXT.caption, fontWeight: '600', textAlign: 'center', includeFontPadding: false },
+  chartTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 2, paddingHorizontal: 10, marginBottom: 0 },
+  chartTopRowExpanded: { paddingTop: 0, paddingHorizontal: 0, marginBottom: 4 },
+  segmentedControl: { width: 136, flexDirection: 'row', borderRadius: 13, borderWidth: 0, height: 32, padding: 2, position: 'relative', overflow: 'hidden' },
+  segmentedHighlight: { position: 'absolute', top: 2, bottom: 2, borderRadius: 12, borderWidth: 1 },
+  segmentedOption: { flex: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
+  switchText: { fontSize: HOME_TEXT.caption, fontWeight: '500', textAlign: 'center', includeFontPadding: false },
   expandButton: { width: 34, height: 34, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  chartWrap: { height: 304, alignItems: 'center', justifyContent: 'center', marginTop: -2, marginBottom: -4 },
+  chartWrap: { height: 304, alignItems: 'center', justifyContent: 'center', marginTop: -6, marginBottom: -8 },
   centerLabel: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   centerIcon: { fontSize: 24, marginBottom: 4 },
   centerName: { fontSize: 13, fontWeight: '700', textAlign: 'center', maxWidth: 108 },
@@ -392,7 +501,7 @@ const styles = StyleSheet.create({
   breadcrumbRow: {
     marginTop: 0,
     marginHorizontal: 14,
-    marginBottom: 2,
+    marginBottom: 8,
     borderRadius: 14,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -410,7 +519,7 @@ const styles = StyleSheet.create({
   breadcrumbMetaText: { fontSize: 11.5, fontWeight: '800' },
   listViewport: { width: '100%' },
   listViewportCollapsed: { maxHeight: 120 },
-  listViewportExpanded: { maxHeight: 260 },
+  listViewportExpanded: { marginTop: 18 },
   categoryList: { paddingHorizontal: 14, gap: 4 },
   categoryRow: { gap: 4, paddingVertical: 2 },
   rowTopLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
@@ -424,4 +533,14 @@ const styles = StyleSheet.create({
   progressTrack: { height: 6, borderRadius: 999, overflow: 'hidden' },
   progressTrackIndented: { marginLeft: 48 },
   progressFill: { height: 6, borderRadius: 999 },
+  transactionsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 12, paddingHorizontal: 4 },
+  sectionTitle: { fontSize: 22, fontWeight: '900' },
+  sectionSub: { fontSize: 14, fontWeight: '700', marginTop: 2 },
+  countBadge: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 13, paddingVertical: 7, fontSize: 13, fontWeight: '900' },
+  txList: { gap: 10, paddingBottom: 6 },
+  txCard: { minHeight: 78, borderRadius: 22, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  txTextWrap: { flex: 1, minWidth: 0 },
+  txTitle: { fontSize: 16, fontWeight: '900' },
+  txMeta: { fontSize: 12.5, fontWeight: '700', marginTop: 5 },
+  txAmount: { fontSize: 17, fontWeight: '900' },
 });
