@@ -109,6 +109,7 @@ beforeEach(() => {
       split_group_id TEXT,
       linked_account_id TEXT,
       loan_id TEXT,
+      loan_transaction_type TEXT,
       category_id TEXT,
       tags TEXT NOT NULL DEFAULT '[]',
       payee TEXT,
@@ -191,6 +192,8 @@ describe('local reset', () => {
       settledAmount: 0,
       pendingAmount: 300,
       repaidPercent: 0,
+      interestAmount: 0,
+      othersAmount: 0,
       transactions: [],
     };
     const budget: BudgetWithSpent = {

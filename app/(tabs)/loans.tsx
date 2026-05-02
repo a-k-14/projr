@@ -468,8 +468,8 @@ export default function LoansScreen() {
       <FabButton
         bottom={getFabBottomOffset(insets.bottom)}
         palette={palette}
-        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.loan}
-        iconColor={palette.isDark ? palette.listText : palette.onLoan}
+        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.text}
+        iconColor={palette.isDark ? palette.listText : palette.surface}
         style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
         onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'loan' } })}
       />
@@ -631,7 +631,8 @@ function LoanSummaryCard({
     sym: string;
     palette: AppThemePalette;
   }) {
-  const badgeLabel = borrowed === 0 && lent === 0 ? 'No Loans' : borrowed === 0 ? 'Net Lent' : lent === 0 ? 'Net Borrowed' : netPositive ? 'Net Lent' : 'Net Borrowed';
+  const badgeLabel = borrowed === 0 && lent === 0 ? 'No Loans' : netPositive ? 'Net Lent' : 'Net Owed';
+  const footerLabel = borrowed === 0 && lent === 0 ? 'Net' : netPositive ? 'Net Lent' : 'Net Owed';
 
   return (
     <OverviewHeroCard
@@ -639,16 +640,16 @@ function LoanSummaryCard({
       eyebrow="Loans Overview"
       title="Current Position"
       badgeLabel={badgeLabel}
-      badgeBg={palette.background}
-      badgeColor={palette.textSecondary}
+      badgeBg={borrowed === 0 && lent === 0 ? palette.background : netPositive ? palette.inBg : palette.outBg}
+      badgeColor={borrowed === 0 && lent === 0 ? palette.textSecondary : netPositive ? palette.positive : palette.negative}
       metrics={[
         { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
         { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },
       ]}
-      footerLabel="Net"
+      footerLabel={footerLabel}
       footerValue={formatCurrency(Math.abs(net), sym)}
-      footerValueColor={netPositive ? palette.brand : palette.negative}
-      decorativeColor={palette.loanBg}
+      footerValueColor={netPositive ? palette.positive : palette.negative}
+      decorativeColor="#F8FAFD"
     />
   );
 }

@@ -12,6 +12,23 @@ test('loan settlement labels map to the right cashflow direction', () => {
   assert.equal(getTransactionCashflowImpact({ type: 'loan', note: 'Repayment to Ravi' }), 'out');
 });
 
+test('income expense reporting can exclude loans', () => {
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'loan', note: 'Borrowed from Ravi' },
+      { includeLoans: false },
+    ),
+    'neutral',
+  );
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'loan', note: 'Lent to Ravi' },
+      { includeLoans: false },
+    ),
+    'neutral',
+  );
+});
+
 test('balance deltas follow cashflow impact for normal and loan transactions', () => {
   assert.equal(getTransactionBalanceDelta({ type: 'in', amount: 500 }), 500);
   assert.equal(getTransactionBalanceDelta({ type: 'out', amount: 500 }), -500);

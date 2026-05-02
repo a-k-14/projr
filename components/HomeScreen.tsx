@@ -53,6 +53,7 @@ const lightTheme = {
   text: '#15213E',
   muted: '#7C8498',
   accent: '#4F46E5',
+  brand: '#4F46E5',
   positive: '#047857',
   negative: '#A11C1C',
   shadow: '#4F46E5',

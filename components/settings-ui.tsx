@@ -1,7 +1,7 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
-import { forwardRef, ReactNode, RefObject, useEffect, useState } from 'react';
+import { forwardRef, ReactNode, RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
@@ -41,12 +41,13 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
     <Text
       appWeight="medium"
       style={{
-        fontSize: TYPE.body,
+        fontSize: 12,
         fontWeight: '700',
-        color: palette.textMuted,
+        color: palette.textSecondary,
         marginHorizontal: 14,
         marginBottom: 6,
-        marginTop: 4
+        marginTop: 4,
+        letterSpacing: 0.3
       }}
     >
       {label}
@@ -88,7 +89,7 @@ export function SettingsRow({
   subtitle,
   labelStyle,
   leftElement }: {
-    icon?: keyof typeof Feather.glyphMap;
+    icon?: string;
     label: string;
     subtitle?: string;
     labelStyle?: any;
@@ -133,7 +134,11 @@ export function SettingsRow({
       </View>
       {rightElement ? rightElement : null}
       {!rightElement && value ? (
-        <Text style={{ fontSize: TYPE.body, color: palette.textMuted, marginRight: 10 }} numberOfLines={1}>
+        <Text
+          appWeight="medium"
+          style={{ fontSize: TYPE.rowValue, color: palette.textSecondary, marginRight: 10 }}
+          numberOfLines={1}
+        >
           {value}
         </Text>
       ) : null}
@@ -292,32 +297,28 @@ export function IconBtn({
   onPress,
   children,
   variant = 'default',
-  size = 'default',
   palette,
   hitSlop }: {
     onPress: () => void;
     children: ReactNode;
     variant?: 'default' | 'danger';
-    size?: 'default' | 'compact';
     palette: AppThemePalette;
     hitSlop?: { top: number; bottom: number; left: number; right: number };
   }) {
-  const isCompact = size === 'compact';
   return (
     <TouchableOpacity delayPressIn={0}
       onPress={onPress}
       activeOpacity={0.7}
       hitSlop={hitSlop}
       style={{
-        width: 50,
+        width: 52,
         height: 56,
         borderRadius: RADIUS.md,
         backgroundColor: palette.surface,
         borderWidth: 1,
         borderColor: palette.divider,
         alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
+        justifyContent: 'center'
       }}
     >
       {children}
@@ -608,25 +609,6 @@ export function SettingsFormLayout({
     bottomActions?: ReactNode;
     scrollRef?: RefObject<ScrollView | null>;
   }) {
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSub = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates?.height ?? 0);
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <KeyboardAvoidingView
@@ -640,7 +622,7 @@ export function SettingsFormLayout({
           contentContainerStyle={{
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: SPACING.md,
-            paddingBottom: 170 + keyboardHeight,
+            paddingBottom: 170,
           }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"

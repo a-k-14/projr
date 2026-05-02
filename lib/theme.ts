@@ -7,7 +7,7 @@ const BRAND_LIGHT = '#1E293B';
 const BRAND_DARK = '#CBD5E1';
 const POSITIVE_LIGHT = '#047857';
 const POSITIVE_DARK = '#34D399';
-const NEGATIVE_LIGHT = '#A11C1C';
+const NEGATIVE_LIGHT = '#B32020';
 const NEGATIVE_DARK = '#FCA5A5';
 const WHITE = '#FFFFFF';
 const ON_DARK_ACCENT = '#07100B';
@@ -148,7 +148,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       chartBar: POSITIVE_DARK,
       negative: NEGATIVE_DARK,
       brandSoft: tint(BRAND_DARK, 0.1, 0.14, mode),
-      loan: '#9CA3AF',
+      loan: '#F1F5F9',
       loanSoft: budgetSoft,
       onLoan: ON_BUDGET,
       budget: BUDGET_DARK,
@@ -171,7 +171,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       transferBg: tint(TRANSFER_TEXT_DARK, 0.06, 0.1, mode),
       loanBg: budgetBg,
       budgetBg,
-      transferText: '#9CA3AF',
+      transferText: '#F1F5F9',
       inputBg: INPUT_BG_DARK,
       scrim: SCRIM,
       scrimHeavy: SCRIM_HEAVY,
@@ -198,7 +198,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     chartBar: POSITIVE_LIGHT,
     negative: NEGATIVE_LIGHT,
     brandSoft: tint(BRAND_LIGHT, 0.12, 0.18, mode),
-    loan: TEXT_SECONDARY_LIGHT,
+    loan: '#334155',
     loanSoft: tint(BUDGET_LIGHT, 0.12, 0.18, mode),
     onLoan: WHITE,
     budget: BUDGET_LIGHT,
@@ -221,7 +221,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     transferBg: tint(TRANSFER_TEXT_LIGHT, 0.08, 0.14, mode),
     loanBg: tint(BUDGET_LIGHT, 0.08, 0.16, mode),
     budgetBg: tint(BUDGET_LIGHT, 0.08, 0.16, mode),
-    transferText: TEXT_SECONDARY_LIGHT,
+    transferText: '#334155',
     inputBg: INPUT_BG_LIGHT,
     scrim: SCRIM,
     scrimHeavy: SCRIM_HEAVY,

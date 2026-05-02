@@ -3,10 +3,11 @@ import { AppIcon, IconName } from '../../components/ui/AppIcon';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, ScrollView, Switch, TouchableWithoutFeedback, View } from 'react-native';
+import { Keyboard, ScrollView, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection, ChoiceRow, ScreenTitle, SectionLabel, SettingsRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { AppSwitch } from '../../components/ui/AppSwitch';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatCurrency } from '../../lib/derived';
@@ -124,11 +125,10 @@ export default function SettingsScreen() {
                 value={settings.showCurrencySymbol ? 'On' : 'Off'}
                 palette={palette}
                 rightElement={
-                  <Switch
+                  <AppSwitch
                     value={settings.showCurrencySymbol}
                     onValueChange={(value) => updateSettings({ showCurrencySymbol: value })}
-                    trackColor={{ false: palette.border, true: palette.tabActive }}
-                    thumbColor={settings.showCurrencySymbol ? palette.onBrand : palette.surface}
+                    palette={palette}
                   />
                 }
               />
@@ -180,11 +180,10 @@ export default function SettingsScreen() {
                 value={settings.biometricLock ? 'Enabled' : 'Disabled'}
                 palette={palette}
                 rightElement={
-                  <Switch
+                  <AppSwitch
                     value={settings.biometricLock}
                     onValueChange={handleBiometricToggle}
-                    trackColor={{ false: palette.border, true: palette.tabActive }}
-                    thumbColor={settings.biometricLock ? palette.onBrand : palette.surface}
+                    palette={palette}
                   />
                 }
                 noBorder

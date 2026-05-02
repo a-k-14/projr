@@ -161,8 +161,8 @@ export default function AddTransactionModal() {
   }, []);
 
   const TYPE_CONFIG = {
-    in: { label: 'In', color: palette.positive, onColor: palette.onBrand, borderColor: palette.positive, bg: palette.inBg },
-    out: { label: 'Out', color: palette.negative, onColor: palette.onBrand, borderColor: palette.negative, bg: palette.outBg },
+    in: { label: 'Income', color: palette.positive, onColor: palette.onBrand, borderColor: palette.positive, bg: palette.inBg },
+    out: { label: 'Expense', color: palette.negative, onColor: palette.onBrand, borderColor: palette.negative, bg: palette.outBg },
     transfer: { label: 'Transfer', color: palette.transferText, onColor: palette.onBrand, borderColor: palette.transferText, bg: palette.transferBg },
     loan: { label: 'Loan', color: palette.loan, onColor: palette.onLoan, borderColor: palette.loan, bg: palette.loanBg }
   };
@@ -441,7 +441,7 @@ export default function AddTransactionModal() {
             : type === 'loan'
               ? 'Add Loan'
               : 'Add Expense';
-  const actionButtonColor = activeConfig.color;
+  const actionButtonColor = type === 'loan' ? palette.brand : activeConfig.color;
   const actionButtonTextColor = activeConfig.onColor;
   const screenTitle = isEditing
     ? type === 'in'
@@ -1181,7 +1181,7 @@ export default function AddTransactionModal() {
           onPress={handleSubmit}
           disabled={!isValid}
           palette={palette}
-          tone={type === 'loan' ? 'loan' : type === 'out' ? 'danger' : 'brand'}
+          tone={type === 'out' ? 'danger' : 'brand'}
           style={{ backgroundColor: isValid ? actionButtonColor : palette.textSoft }}
         />
         {isEditing && (

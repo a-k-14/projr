@@ -51,7 +51,7 @@ export async function getCashflowSnapshot(
     const dateKey = safeLocalDateKey(row.date);
     if (!dateKey) continue;
     if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
-    const impact = getTransactionCashflowImpact(row, { includeTransfers: accountId !== 'all' });
+    const impact = getTransactionCashflowImpact(row, { includeTransfers: false, includeLoans: false });
     if (impact === 'in') {
       inTotal += row.amount;
       byDate[dateKey].in += row.amount;
@@ -77,7 +77,7 @@ export async function getDailySpending(
 
   const byDate: Record<string, number> = {};
   for (const row of rows) {
-    if (getTransactionCashflowImpact(row, { includeTransfers: accountId !== 'all' }) !== 'out') continue;
+    if (getTransactionCashflowImpact(row, { includeTransfers: false, includeLoans: false }) !== 'out') continue;
     const dateKey = safeLocalDateKey(row.date);
     if (!dateKey) continue;
     byDate[dateKey] = (byDate[dateKey] ?? 0) + row.amount;
@@ -108,7 +108,7 @@ export async function getCategoryBreakdown(
 
   const byCat: Record<string, number> = {};
   for (const row of rows) {
-    if (getTransactionCashflowImpact(row, { includeTransfers: accountId !== 'all' }) !== 'out') continue;
+    if (getTransactionCashflowImpact(row, { includeTransfers: false, includeLoans: false }) !== 'out') continue;
     if (!row.categoryId) continue;
     byCat[row.categoryId] = (byCat[row.categoryId] ?? 0) + row.amount;
   }

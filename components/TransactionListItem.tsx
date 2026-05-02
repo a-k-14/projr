@@ -31,6 +31,10 @@ interface Props {
   iconSize?: number;
   /** Optional: navigate to edit screen when tapped */
   onPress?: (tx: Transaction) => void;
+  /** Optional: custom container style */
+  style?: any;
+  /** If true, renders as a standalone card with borders/radius rather than a list item */
+  isCard?: boolean;
 }
 
 export const TransactionListItem = React.memo(function TransactionListItem({
@@ -52,7 +56,9 @@ export const TransactionListItem = React.memo(function TransactionListItem({
   paddingX = HOME_LAYOUT.listRowPaddingX,
   paddingY = HOME_LAYOUT.listRowPaddingY,
   iconSize = HOME_LAYOUT.listIconSize,
-  onPress }: Props) {
+  onPress,
+  style,
+  isCard = false }: Props) {
   const effectiveType = tx.transferPairId ? 'transfer' : tx.type;
   const accountNameSelected = accountName;
   const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && categoryIcon ? categoryIcon : null;
@@ -171,13 +177,20 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           {tertiaryLine}
         </Text>
       ) : null}
-      style={{
-        paddingVertical: paddingY,
-        borderRadius: 0,
-        backgroundColor: 'transparent',
-        borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: palette.divider,
-      }}
+      style={[
+        {
+          paddingVertical: paddingY,
+          borderRadius: isCard ? HOME_RADIUS.card : 0,
+          backgroundColor: isCard ? palette.surface : 'transparent',
+          borderBottomWidth: isCard ? 1 : (isLast ? 0 : 1),
+          borderBottomColor: palette.divider,
+        },
+        isCard && {
+          borderWidth: 1,
+          borderColor: palette.border,
+        },
+        style
+      ]}
     />
   );
 });

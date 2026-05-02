@@ -69,7 +69,7 @@ export default function LoanDetailScreen() {
 
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.brand);
+  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.positive);
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const displayedTransactions = useMemo(() => {
     if (!loan) return [];
@@ -471,8 +471,7 @@ export default function LoanDetailScreen() {
                   router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
                 }
                 palette={palette}
-                tone="loan"
-                startIcon={<AppIcon name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />}
+                tone="brand"
               />
             ) : null}
             <TextButton
@@ -481,7 +480,7 @@ export default function LoanDetailScreen() {
                 router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } })
               }
               palette={palette}
-              tone="loan"
+              tone="brand"
             />
           </FixedBottomActions>
         )}

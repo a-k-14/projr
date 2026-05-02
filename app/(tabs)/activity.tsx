@@ -147,7 +147,7 @@ export default function ActivityScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const pendingListResetRef = useRef(false);
   const pendingScrollToTopRef = useRef(false);
-  const scrollToTopRequestRef = useRef(0);
+  const lastFilterScrollSignatureRef = useRef<string | null>(null);
   const [listResetKey, setListResetKey] = useState(0);
 
   const scrollToTop = useCallback((animated: boolean) => {
@@ -156,21 +156,15 @@ export default function ActivityScreen() {
   }, []);
 
   const queueScrollToTop = useCallback((animated: boolean) => {
-    const requestId = ++scrollToTopRequestRef.current;
     pendingScrollToTopRef.current = true;
     requestAnimationFrame(() => {
       scrollToTop(animated);
       InteractionManager.runAfterInteractions(() => {
-        if (pendingScrollToTopRef.current && scrollToTopRequestRef.current === requestId) {
-          scrollToTop(animated);
-        }
-      });
-      setTimeout(() => {
-        if (pendingScrollToTopRef.current && scrollToTopRequestRef.current === requestId) {
+        if (pendingScrollToTopRef.current) {
           scrollToTop(animated);
           pendingScrollToTopRef.current = false;
         }
-      }, 120);
+      });
     });
   }, [scrollToTop]);
 
@@ -210,6 +204,44 @@ export default function ActivityScreen() {
     setListResetKey((value) => value + 1);
     queueScrollToTop(false);
   }, [isFocused, queueScrollToTop]);
+
+  useEffect(() => {
+    if (!isFocused || !isInitialParamSyncComplete) return;
+    const signature = [
+      period,
+      periodOffset,
+      customFrom ?? '',
+      customTo ?? '',
+      selectedAccountId,
+      typeFilter,
+      cashflowBucket,
+      groupByMode,
+      categoryDrilldown ? `${categoryDrilldown.parentKey}:${categoryDrilldown.subKey}` : '',
+    ].join('|');
+
+    if (lastFilterScrollSignatureRef.current === null) {
+      lastFilterScrollSignatureRef.current = signature;
+      return;
+    }
+
+    if (lastFilterScrollSignatureRef.current !== signature) {
+      lastFilterScrollSignatureRef.current = signature;
+      queueScrollToTop(false);
+    }
+  }, [
+    cashflowBucket,
+    categoryDrilldown,
+    customFrom,
+    customTo,
+    groupByMode,
+    isFocused,
+    isInitialParamSyncComplete,
+    period,
+    periodOffset,
+    queueScrollToTop,
+    selectedAccountId,
+    typeFilter,
+  ]);
 
   const toggleSearch = useCallback((active: boolean) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -265,8 +297,6 @@ export default function ActivityScreen() {
   const accountLabel = selectedAccount ? selectedAccount.name : 'All Accounts';
   const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
   const ts = typeof routeParams.ts === 'string' ? routeParams.ts : undefined;
-  const searchQuery = search.trim().toLowerCase();
-  const ignoreFiltersForSearch = searchQuery.length > 0;
 
   // A view is default ONLY if we haven't come from a specific source, OR we have finished syncing params
   const isDefaultView =
@@ -281,16 +311,15 @@ export default function ActivityScreen() {
     !amountMinStr &&
     !amountMaxStr;
   const needsFullDataset =
-    ignoreFiltersForSearch ||
-    (period === 'all' &&
-      (!!searchQuery ||
+    period === 'all' &&
+    (!!search.trim() ||
       selectedCategoryIds.length > 0 ||
       selectedTagIds.length > 0 ||
       !!amountMinStr ||
       !!amountMaxStr ||
       cashflowBucket !== 'all' ||
       groupByMode === 'category' ||
-      categoryDrilldown !== null));
+      categoryDrilldown !== null);
 
   const loadData = useMemo(
     () => async (isInitial: boolean) => {
@@ -308,10 +337,10 @@ export default function ActivityScreen() {
                 ? undefined
                 : typeFilter;
         const filters: TransactionFilters = {
-          accountId: ignoreFiltersForSearch || selectedAccountId === 'all' ? undefined : selectedAccountId,
-          type: ignoreFiltersForSearch ? undefined : effectiveTypeFilter,
-          fromDate: ignoreFiltersForSearch ? undefined : dateRange?.from,
-          toDate: ignoreFiltersForSearch ? undefined : dateRange?.to,
+          accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
+          type: effectiveTypeFilter,
+          fromDate: dateRange?.from,
+          toDate: dateRange?.to,
           limit: period === 'all' && !needsFullDataset ? TRANSACTIONS_PAGE_SIZE : undefined,
           offset: period === 'all' && !needsFullDataset ? currentOffset : 0
         };
@@ -333,7 +362,7 @@ export default function ActivityScreen() {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, dateRange?.from, dateRange?.to, ignoreFiltersForSearch, needsFullDataset, period, selectedAccountId, typeFilter],
+    [cashflowBucket, dateRange?.from, dateRange?.to, needsFullDataset, period, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
@@ -440,10 +469,7 @@ export default function ActivityScreen() {
 
     if (cashflowBucketParam) {
       setCashflowBucket(cashflowBucketParam as any);
-      if (
-        (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') &&
-        !sourceParam?.startsWith('home-')
-      ) {
+      if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
         setTypeFilter(cashflowBucketParam as any);
       }
     }
@@ -530,6 +556,7 @@ export default function ActivityScreen() {
     const maxAmount = amountMaxStr ? Number(amountMaxStr) : undefined;
     const selectedTagSet = new Set(selectedTagIds);
     const selectedCategoryAndDescendants = new Set<string>();
+    const query = search.trim().toLowerCase();
     selectedCategoryIds.forEach((id) => {
       selectedCategoryAndDescendants.add(id);
       categories
@@ -537,28 +564,8 @@ export default function ActivityScreen() {
         .forEach((child) => selectedCategoryAndDescendants.add(child.id));
     });
 
-    const includeTransfers = selectedAccountId !== 'all';
-
     return transactions.filter((tx) => {
-      if (searchQuery) {
-        const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
-        const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
-        const searchable = [
-          tx.note,
-          tx.payee,
-          tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined,
-          accountsById.get(tx.accountId),
-          linkedAccountName,
-          loan?.personName,
-          tx.tags.map((tagId) => tagNamesById.get(tagId)).filter(Boolean).join(' • '),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return searchable.includes(searchQuery);
-      }
-
-      const impact = getTransactionCashflowImpact(tx, { includeTransfers });
+      const incomeExpenseImpact = getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false });
 
       // Account filter
       if (selectedAccountId !== 'all' && tx.accountId !== selectedAccountId) {
@@ -569,25 +576,14 @@ export default function ActivityScreen() {
       if (typeFilter === 'transfer') {
         if (!tx.transferPairId) return false;
       } else if (typeFilter !== 'all') {
-        if (tx.transferPairId) return false;
-
-        // Handle Loan transactions as In/Out if impact matches
-        if (tx.type !== typeFilter) {
-          if (tx.type === 'loan') {
-            if (impact !== typeFilter) return false;
-          } else {
-            return false;
-          }
-        }
+        if (tx.transferPairId || tx.type === 'loan' || tx.type !== typeFilter) return false;
       }
 
-      // Cashflow bucket filter (Inflow, Outflow, Net)
+      // Income/expense bucket filter.
       if (cashflowBucket !== 'all') {
         if (cashflowBucket === 'net') {
-          if (impact === 'neutral') return false;
-        } else if (impact !== cashflowBucket) {
-          // IMPORTANT: If we are specifically drilling for 'in' (Inflow), 
-          // we ONLY show transactions where impact is 'in'.
+          if (incomeExpenseImpact === 'neutral') return false;
+        } else if (incomeExpenseImpact !== cashflowBucket) {
           return false;
         }
       }
@@ -606,17 +602,35 @@ export default function ActivityScreen() {
       if (minAmount !== undefined && !Number.isNaN(minAmount) && tx.amount < minAmount) return false;
       if (maxAmount !== undefined && !Number.isNaN(maxAmount) && tx.amount > maxAmount) return false;
 
+      // Search filter
+      if (query) {
+        const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
+        const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
+        const searchable = [
+          tx.note,
+          tx.payee,
+          tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined,
+          accountsById.get(tx.accountId),
+          linkedAccountName,
+          loan?.personName,
+          tx.tags.map((tagId) => tagNamesById.get(tagId)).filter(Boolean).join(' • '),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!searchable.includes(query)) return false;
+      }
       return true;
     });
-  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, categories, getCategoryFullDisplayName, loansById, searchQuery, selectedCategoryIds, selectedTagIds, tagNamesById, transactions, typeFilter, selectedAccountId]);
+  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, transactions, typeFilter, selectedAccountId]);
 
   const drilldownTransactions = useMemo(
     () => getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown),
     [categoryDrilldown, filteredTransactions],
   );
   const displayedCashflow = useMemo(
-    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, selectedAccountId !== 'all'),
-    [categoryDrilldown, filteredTransactions, selectedAccountId],
+    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, false),
+    [categoryDrilldown, filteredTransactions],
   );
 
   const moreActiveCount =
@@ -945,6 +959,69 @@ export default function ActivityScreen() {
     [accountsById, categoriesById, loansById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
   );
 
+  const activityHeader = (
+    <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
+      <ActivityFilterBar
+        accountLabel={accountLabel}
+        setShowAccountSheet={setShowAccountSheet}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        setCashflowBucket={setCashflowBucket}
+        setShowMoreSheet={setShowMoreSheet}
+        moreActiveCount={moreActiveCount}
+        palette={palette}
+        periodNavigation={
+          <ActivityPeriodHeader
+            period={period}
+            periodLabel={periodLabel}
+            goPrev={goPrev}
+            goNext={goNext}
+            canGoNext={canGoNext}
+            setShowPeriodSheet={setShowPeriodSheet}
+            palette={palette}
+          />
+        }
+      />
+
+      {period !== 'all' ? (
+        <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+          <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
+        </View>
+      ) : null}
+
+      <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
+
+      {groupByMode === 'category' && categoryDrilldown ? (
+        <View
+          style={{
+            paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+            marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom
+          }}
+        >
+          <TouchableOpacity delayPressIn={0}
+            onPress={() => setCategoryDrilldown(null)}
+            activeOpacity={0.75}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <AppChevron direction="left" size={16} tone="secondary" palette={palette} />
+            <Text
+              numberOfLines={1}
+              style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
+            >
+              {categoryDrilldown.compactLabel
+                ? categoryDrilldown.parentLabel
+                : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       {isSearchActive ? (
@@ -1010,68 +1087,7 @@ export default function ActivityScreen() {
               maxToRenderPerBatch={10}
               windowSize={5}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
-              ListHeaderComponent={
-                <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-                  <ActivityFilterBar
-                    accountLabel={accountLabel}
-                    setShowAccountSheet={setShowAccountSheet}
-                    typeFilter={typeFilter}
-                    setTypeFilter={setTypeFilter}
-                    setCashflowBucket={setCashflowBucket}
-                    setShowMoreSheet={setShowMoreSheet}
-                    moreActiveCount={moreActiveCount}
-                    palette={palette}
-                    periodNavigation={
-                      <ActivityPeriodHeader
-                        period={period}
-                        periodLabel={periodLabel}
-                        goPrev={goPrev}
-                        goNext={goNext}
-                        canGoNext={canGoNext}
-                        setShowPeriodSheet={setShowPeriodSheet}
-                        palette={palette}
-                      />
-                    }
-                  />
-
-                  {period !== 'all' ? (
-                    <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-                      <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
-                    </View>
-                  ) : null}
-
-                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
-
-                  {groupByMode === 'category' && categoryDrilldown ? (
-                    <View
-                      style={{
-                        paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                        marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom
-                      }}
-                    >
-                      <TouchableOpacity delayPressIn={0}
-                        onPress={() => setCategoryDrilldown(null)}
-                        activeOpacity={0.75}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 8
-                        }}
-                      >
-                        <AppChevron direction="left" size={16} tone="secondary" palette={palette} />
-                        <Text
-                          numberOfLines={1}
-                          style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
-                        >
-                          {categoryDrilldown.compactLabel
-                            ? categoryDrilldown.parentLabel
-                            : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : null}
-                </View>
-              }
+              ListHeaderComponent={activityHeader}
               ListEmptyComponent={
                 !refreshing ? (
                   <View style={{ paddingTop: 4, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
@@ -1094,37 +1110,8 @@ export default function ActivityScreen() {
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
             >
-              <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-                <ActivityFilterBar
-                  accountLabel={accountLabel}
-                  setShowAccountSheet={setShowAccountSheet}
-                  typeFilter={typeFilter}
-                  setTypeFilter={setTypeFilter}
-                  setCashflowBucket={setCashflowBucket}
-                  setShowMoreSheet={setShowMoreSheet}
-                  moreActiveCount={moreActiveCount}
-                  palette={palette}
-                  periodNavigation={
-                    <ActivityPeriodHeader
-                      period={period}
-                      periodLabel={periodLabel}
-                      goPrev={goPrev}
-                      goNext={goNext}
-                      canGoNext={canGoNext}
-                      setShowPeriodSheet={setShowPeriodSheet}
-                      palette={palette}
-                    />
-                  }
-                />
-
-                {period !== 'all' ? (
-                  <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-                    <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
-                  </View>
-                ) : null}
-
-                <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
-
+              <>
+                {activityHeader}
                 <View>
                   {hierarchySections.map((section, sectionIndex) => (
                     <View key={section.key}>
@@ -1299,7 +1286,7 @@ export default function ActivityScreen() {
                     </View>
                   ))}
                 </View>
-              </View>
+              </>
             </ScrollView>
           ) : null}
         </>

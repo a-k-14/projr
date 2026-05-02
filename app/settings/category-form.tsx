@@ -325,7 +325,6 @@ export default function CategoryFormScreen() {
                     <IconBtn
                       onPress={() => deleteSub(sub.originalIdx)}
                       variant="danger"
-                      size="compact"
                       palette={palette}
                       hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                     >

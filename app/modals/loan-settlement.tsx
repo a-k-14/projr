@@ -262,7 +262,7 @@ export default function LoanSettlementModal() {
           onPress={handleSave}
           disabled={!isValid}
           palette={palette}
-          tone="loan"
+          tone="brand"
         />
         {isEditing ? (
           <TextButton label="Delete transaction" onPress={handleDelete} palette={palette} tone="danger" />

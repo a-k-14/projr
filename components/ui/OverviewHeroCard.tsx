@@ -27,6 +27,8 @@ export function OverviewHeroCard({
   footerLabel,
   footerValue,
   footerValueColor,
+  footerNote,
+  footerNoteColor,
   decorativeColor,
 }: {
   palette: AppThemePalette;
@@ -44,6 +46,8 @@ export function OverviewHeroCard({
   footerLabel: string;
   footerValue: string;
   footerValueColor: string;
+  footerNote?: string;
+  footerNoteColor?: string;
   decorativeColor: string;
 }) {
   const showProgress =
@@ -59,7 +63,7 @@ export function OverviewHeroCard({
       <View style={[styles.glowLarge, { backgroundColor: decorativeColor }]} />
 
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerCopy}>
           <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: '400' }}>
             {eyebrow}
           </Text>
@@ -67,8 +71,8 @@ export function OverviewHeroCard({
             {title}
           </Text>
         </View>
-        <View style={[styles.pill, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: badgeColor }}>
+        <View style={[styles.pill, { backgroundColor: badgeBg, borderColor: badgeBg }]}>
+          <Text numberOfLines={1} appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: badgeColor }}>
             {badgeLabel}
           </Text>
         </View>
@@ -104,13 +108,20 @@ export function OverviewHeroCard({
         </View>
       ) : null}
 
-      <View style={[styles.footer, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
-        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
-          {footerLabel}
-        </Text>
-        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: footerValueColor }}>
-          {footerValue}
-        </Text>
+      <View style={[styles.footerBlock, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
+        <View style={styles.footer}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
+            {footerLabel}
+          </Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: footerValueColor }}>
+            {footerValue}
+          </Text>
+        </View>
+        {footerNote ? (
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '500', color: footerNoteColor ?? palette.textSecondary, marginTop: 5 }}>
+            {footerNote}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -131,7 +142,7 @@ const styles = {
     borderRadius: 999,
     top: -42,
     right: -34,
-    opacity: 0.24,
+    opacity: 1,
   },
   header: {
     flexDirection: 'row' as const,
@@ -139,11 +150,17 @@ const styles = {
     alignItems: 'flex-start' as const,
     gap: HOME_SPACE.md,
   },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   pill: {
     minHeight: 30,
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
+    flexShrink: 1,
+    maxWidth: 132,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
@@ -191,6 +208,9 @@ const styles = {
   progressFill: {
     height: PROGRESS.heroHeight,
     borderRadius: 999,
+  },
+  footerBlock: {
+    gap: 0,
   },
   footer: {
     flexDirection: 'row' as const,

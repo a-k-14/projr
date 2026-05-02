@@ -46,10 +46,8 @@ export function FilterChip({
 
 const styles = StyleSheet.create({
   chip: {
-    // minHeight: 34,
-    // minWidth: 52,
-    paddingHorizontal: 20,
-    paddingVertical: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     borderWidth: 1.0,
     alignItems: 'center',

@@ -21,6 +21,8 @@ describe('activity cashflow drilldown summary', () => {
       tx({ id: 'expense', type: 'out', amount: 125, categoryId: 'food' }),
       tx({ id: 'transfer-out', type: 'out', amount: 100, transferPairId: 'pair1' }),
       tx({ id: 'transfer-in', type: 'in', amount: 100, transferPairId: 'pair1' }),
+      tx({ id: 'loan-out', type: 'loan', amount: 300, note: 'Lent to Ravi' }),
+      tx({ id: 'loan-in', type: 'loan', amount: 200, note: 'Borrowed from Meena' }),
     ];
 
     expect(getActivityDisplayedCashflow(transactions, null)).toEqual({
