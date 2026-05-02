@@ -14,8 +14,8 @@ interface SummaryCardProps {
 
 export function SummaryCard({ cashflow, sym, palette, onPressCategory }: SummaryCardProps) {
   const categories = [
-    { key: 'in', label: 'In', color: palette.positive },
-    { key: 'out', label: 'Out', color: palette.negative },
+    { key: 'in', label: 'Income', color: palette.positive },
+    { key: 'out', label: 'Expense', color: palette.negative },
     { key: 'net', label: 'Net', color: cashflow.net < 0 ? palette.negative : palette.positive },
   ] as const;
 

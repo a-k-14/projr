@@ -113,11 +113,11 @@ export function getLoanOutstanding(
   return { given: loan.givenAmount, settled: settledAmount, pending, percent };
 }
 
-export function getCashflowFromList(transactions: Transaction[], includeTransfers = false): CashflowSummary {
+export function getCashflowFromList(transactions: Transaction[], includeTransfers = false, includeLoans = false): CashflowSummary {
   let inTotal = 0;
   let outTotal = 0;
   for (const t of transactions) {
-    const impact = getTransactionCashflowImpact(t, { includeTransfers });
+    const impact = getTransactionCashflowImpact(t, { includeTransfers, includeLoans });
     if (impact === 'in') inTotal += t.amount;
     else if (impact === 'out') outTotal += t.amount;
   }

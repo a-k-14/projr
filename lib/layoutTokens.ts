@@ -14,14 +14,14 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
 > {
   return {
     in: {
-      label: 'In',
+      label: 'Income',
       color: palette.positive,
       bg: palette.inBg,
       borderColor: palette.positive,
       iconName: 'arrow-down',
     },
     out: {
-      label: 'Out',
+      label: 'Expense',
       color: palette.negative,
       bg: palette.outBg,
       borderColor: palette.negative,

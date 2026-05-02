@@ -469,10 +469,7 @@ export default function ActivityScreen() {
 
     if (cashflowBucketParam) {
       setCashflowBucket(cashflowBucketParam as any);
-      if (
-        (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') &&
-        !sourceParam?.startsWith('home-')
-      ) {
+      if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
         setTypeFilter(cashflowBucketParam as any);
       }
     }
@@ -567,10 +564,8 @@ export default function ActivityScreen() {
         .forEach((child) => selectedCategoryAndDescendants.add(child.id));
     });
 
-    const includeTransfers = selectedAccountId !== 'all';
-
     return transactions.filter((tx) => {
-      const impact = getTransactionCashflowImpact(tx, { includeTransfers });
+      const incomeExpenseImpact = getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false });
 
       // Account filter
       if (selectedAccountId !== 'all' && tx.accountId !== selectedAccountId) {
@@ -581,25 +576,14 @@ export default function ActivityScreen() {
       if (typeFilter === 'transfer') {
         if (!tx.transferPairId) return false;
       } else if (typeFilter !== 'all') {
-        if (tx.transferPairId) return false;
-
-        // Handle Loan transactions as In/Out if impact matches
-        if (tx.type !== typeFilter) {
-          if (tx.type === 'loan') {
-            if (impact !== typeFilter) return false;
-          } else {
-            return false;
-          }
-        }
+        if (tx.transferPairId || tx.type === 'loan' || tx.type !== typeFilter) return false;
       }
 
-      // Cashflow bucket filter (Inflow, Outflow, Net)
+      // Income/expense bucket filter.
       if (cashflowBucket !== 'all') {
         if (cashflowBucket === 'net') {
-          if (impact === 'neutral') return false;
-        } else if (impact !== cashflowBucket) {
-          // IMPORTANT: If we are specifically drilling for 'in' (Inflow), 
-          // we ONLY show transactions where impact is 'in'.
+          if (incomeExpenseImpact === 'neutral') return false;
+        } else if (incomeExpenseImpact !== cashflowBucket) {
           return false;
         }
       }
@@ -645,8 +629,8 @@ export default function ActivityScreen() {
     [categoryDrilldown, filteredTransactions],
   );
   const displayedCashflow = useMemo(
-    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, selectedAccountId !== 'all'),
-    [categoryDrilldown, filteredTransactions, selectedAccountId],
+    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, false),
+    [categoryDrilldown, filteredTransactions],
   );
 
   const moreActiveCount =

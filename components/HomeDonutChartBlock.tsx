@@ -3,7 +3,7 @@ import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
 import { formatCurrency, getTransactionCashflowImpact } from '@/lib/derived';
-import { BUTTON_TOKENS, CARD_PADDING, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_SURFACE, HOME_TEXT } from '@/lib/layoutTokens';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '@/lib/layoutTokens';
 import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
 import type { AppThemePalette } from '@/lib/theme';
 import type { Category, LoanWithSummary, Transaction } from '@/types';
@@ -77,7 +77,7 @@ function buildModeHierarchy(
   const parentMap = new Map<string, HomeNode & { childMap: Map<string, HomeNode> }>();
 
   transactions.forEach((tx) => {
-    const impact = getTransactionCashflowImpact(tx);
+    const impact = getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false });
     if (impact !== targetImpact) return;
 
     const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
@@ -196,6 +196,7 @@ export function HomeDonutChartBlock({
   listPalette,
   expanded = false,
   onExpand,
+  initialMode = 'expense',
   resetTrigger = 0,
   accountsById,
   loansById,
@@ -220,20 +221,21 @@ export function HomeDonutChartBlock({
   };
   listPalette?: AppThemePalette;
   expanded?: boolean;
-  onExpand?: () => void;
+  onExpand?: (mode: Mode) => void;
+  initialMode?: Mode;
   resetTrigger?: number | string;
   accountsById?: Map<string, string>;
   loansById?: Map<string, LoanWithSummary>;
   getCategoryFullDisplayName?: (categoryId: string, separator?: string) => string;
 }) {
-  const [mode, setMode] = useState<Mode>('income');
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [drillParentId, setDrillParentId] = useState<string | null>(null);
   const [selectedSliceId, setSelectedSliceId] = useState<string | null>(null);
   const listScrollRef = useRef<ScrollView | null>(null);
   const txPalette = listPalette ?? (theme as unknown as AppThemePalette);
   const switchOptions = useMemo(() => ([
-    { key: 'income', label: 'Income' },
     { key: 'expense', label: 'Expense' },
+    { key: 'income', label: 'Income' },
   ] as const), []);
 
   const hierarchy = useMemo(() => buildModeHierarchy(mode, transactions, categoriesById), [mode, transactions, categoriesById]);
@@ -251,7 +253,7 @@ export function HomeDonutChartBlock({
   const selectionNode = selectedSubcategoryNode ?? selectedParent ?? null;
   const selectedIds = useMemo(() => (selectionNode ? new Set(collectIds(selectionNode)) : null), [selectionNode]);
   const modeTransactions = useMemo(
-    () => transactions.filter((tx) => getTransactionCashflowImpact(tx) === (mode === 'income' ? 'in' : 'out')),
+    () => transactions.filter((tx) => getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false }) === (mode === 'income' ? 'in' : 'out')),
     [mode, transactions],
   );
   const selectedTransactions = useMemo(
@@ -268,11 +270,11 @@ export function HomeDonutChartBlock({
   const selectedSlicePercent = visibleListSlices.find((slice) => slice.id === selectedSliceId)?.percent;
 
   useEffect(() => {
-    setMode('income');
+    setMode(initialMode);
     setDrillParentId(null);
     setSelectedSliceId(null);
     listScrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, [resetTrigger]);
+  }, [initialMode, resetTrigger]);
 
   const handleModeChange = (next: Mode) => {
     setMode(next);
@@ -364,7 +366,7 @@ export function HomeDonutChartBlock({
           backgroundColor={theme.surface}
           pillColor={theme.inputBg}
           borderColor={theme.border}
-          itemMinWidth={72}
+          itemMinWidth={64}
           activeTextColor={theme.text}
           inactiveTextColor={theme.muted}
           style={styles.chartSwitch}
@@ -376,7 +378,7 @@ export function HomeDonutChartBlock({
           <TouchableOpacity
             activeOpacity={0.8}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={onExpand}
+            onPress={() => onExpand(mode)}
             style={styles.expandButton}
           >
             <AppIcon name="maximize-2" size={15} color={theme.textMuted ?? theme.muted} />
@@ -418,10 +420,10 @@ export function HomeDonutChartBlock({
               </Text>
               <Text style={[styles.centerMeta, { color: theme.muted }]}>
                 {selectedSliceId
-                  ? `${Math.round((selectedSlicePercent ?? 0) * 100)}% of total`
+                  ? `${Math.round((selectedSlicePercent ?? 0) * 100)}% of Total`
                   : selectedParentSlice
-                    ? `${Math.round(selectedParentSlice.percent * 100)}% of total`
-                    : '100% of total'}
+                    ? `${Math.round(selectedParentSlice.percent * 100)}% of Total`
+                    : '100% of Total'}
               </Text>
             </View>
           </>
@@ -460,21 +462,21 @@ export function HomeDonutChartBlock({
       </View>
 
       {expanded ? (
-        <ScrollView 
+        <ScrollView
           ref={listScrollRef}
-          style={styles.expandedScroll} 
+          style={styles.expandedScroll}
           contentContainerStyle={styles.expandedScrollContent}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled
         >
           {categoryList}
-          
+
           <View style={[styles.transactionsDivider, { backgroundColor: theme.border }]} />
-          
+
           <View style={styles.transactionsHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Transactions</Text>
           </View>
-          
+
           <View style={styles.txListCards}>
             {selectedTransactions.map((tx, index) => (
               <TransactionListItem
@@ -512,7 +514,7 @@ const styles = StyleSheet.create({
   expandedChartInner: { paddingBottom: 2 },
   chartTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 2, paddingHorizontal: 10, marginBottom: -2, zIndex: 10 },
   chartTopRowExpanded: { paddingTop: 0, paddingHorizontal: 10, marginBottom: -4, zIndex: 10 },
-  chartSwitch: { alignSelf: 'flex-start', minWidth: 170 },
+  chartSwitch: { alignSelf: 'flex-start', minWidth: 150 },
   expandButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: -2 },
   chartWrap: { height: 304, alignItems: 'center', justifyContent: 'center', marginTop: -14, marginBottom: 0 },
   emptyChart: { width: 248, minHeight: 248, borderRadius: 124, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 26 },

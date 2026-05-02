@@ -23,8 +23,8 @@ interface ActivityFilterBarProps {
 
 const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
   { label: 'All', value: 'all' },
-  { label: 'In', value: 'in' },
-  { label: 'Out', value: 'out' },
+  { label: 'Income', value: 'in' },
+  { label: 'Expense', value: 'out' },
   { label: 'Transfer', value: 'transfer' },
   { label: 'Loan', value: 'loan' },
 ];

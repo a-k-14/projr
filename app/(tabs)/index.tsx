@@ -134,6 +134,7 @@ export default function HomeScreen() {
   const [expandedChartState, setExpandedChartState] = useState<{
     accountId: string | 'all';
     transactions: Transaction[];
+    mode: 'expense' | 'income';
     resetTrigger: number;
   } | null>(null);
   const previousAccountCountRef = useRef(accounts.length);
@@ -582,8 +583,8 @@ export default function HomeScreen() {
                         indicatorY={indicatorY}
                         resetTick={globalScrollResetTick}
                         backgroundResetTick={pageBackgroundResetTicks[account.id] ?? 0}
-                        onOpenChartExpanded={(transactions, resetTrigger) => {
-                          setExpandedChartState({ accountId: account.id, transactions, resetTrigger });
+                        onOpenChartExpanded={(transactions, mode, resetTrigger) => {
+                          setExpandedChartState({ accountId: account.id, transactions, mode, resetTrigger });
                           setBottomSheetVisible(true);
                         }}
                         isPageReady={loadedPageIds.has(account.id) || Math.abs(index - selectedPageIndex) <= 1}
@@ -757,6 +758,7 @@ export default function HomeScreen() {
                 negative: palette.negative,
               }}
               expanded
+              initialMode={expandedChartState.mode}
               resetTrigger={expandedChartState.resetTrigger}
               accountsById={accountsById}
               loansById={loansById}
@@ -939,8 +941,8 @@ function AccountSummaryCard({
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'stretch', marginTop: HOME_SPACE.sm }}>
           {([
-            { key: 'in', label: 'In', value: todayCashflow.in, color: palette.positive },
-            { key: 'out', label: 'Out', value: todayCashflow.out, color: palette.negative },
+            { key: 'in', label: 'Income', value: todayCashflow.in, color: palette.positive },
+            { key: 'out', label: 'Expense', value: todayCashflow.out, color: palette.negative },
             { key: 'net', label: 'Net', value: todayCashflow.net, color: netColor },
           ] as const).map((item, index) => {
             const metric = (
@@ -1398,7 +1400,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   indicatorY: SharedValue<number>;
   resetTick: { count: number; animated: boolean; mode: TabResetMode };
   backgroundResetTick: number;
-  onOpenChartExpanded?: (transactions: Transaction[], resetTrigger: number) => void;
+  onOpenChartExpanded?: (transactions: Transaction[], mode: 'expense' | 'income', resetTrigger: number) => void;
   isPageReady: boolean;
   accountsById: Map<string, string>;
   categoriesById: Map<string, Category>;
@@ -1671,7 +1673,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               resetTrigger={`${resetTick.count}:${backgroundResetTick}`}
               accountsById={accountsById}
               loansById={loansById}
-              onExpand={() => onOpenChartExpanded?.(periodTransactions, resetTick.count)}
+              onExpand={(mode) => onOpenChartExpanded?.(periodTransactions, mode, resetTick.count)}
             />
           </View>
 
