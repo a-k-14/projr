@@ -145,6 +145,7 @@ export default function AddTransactionModal() {
   const splitIdSeed = useRef(0);
   const hadSplitRows = useRef(false);
   const previousType = useRef<TransactionType>((initialType as TransactionType) || 'out');
+  const isHydratingEditRef = useRef(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -251,6 +252,7 @@ export default function AddTransactionModal() {
 
   useEffect(() => {
     if (!isEditing || !editId) return;
+    isHydratingEditRef.current = true;
     setEditingSplitGroupId('');
     setIsTransferEdit(false);
     setLoanEditMode('new');
@@ -293,8 +295,6 @@ export default function AddTransactionModal() {
             setCategoryId('');
             setSplitRows(
               group
-                .slice()
-                .reverse()
                 .map((item) => ({
                   id: `split-${splitIdSeed.current++}`,
                   categoryId: item.categoryId ?? '',
@@ -345,9 +345,14 @@ export default function AddTransactionModal() {
             );
           }
         }
+      }).finally(() => {
+        isHydratingEditRef.current = false;
       });
     });
-    return () => task.cancel();
+    return () => {
+      isHydratingEditRef.current = false;
+      task.cancel();
+    };
   }, [clearSplitRows, editId, isEditing]);
 
   useEffect(() => {
@@ -398,6 +403,7 @@ export default function AddTransactionModal() {
   }, [categoryId, setDraftCategoryId, splitTotal, type, usableSplitRows.length]);
 
   useEffect(() => {
+    if (isHydratingEditRef.current) return;
     const previous = previousType.current;
     previousType.current = type;
 
@@ -777,7 +783,7 @@ export default function AddTransactionModal() {
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
-                      fontWeight: '700',
+                      fontWeight: '600',
                       color: type === t ? TYPE_CONFIG[t].color : palette.textMuted
                     }}
                   >

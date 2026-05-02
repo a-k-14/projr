@@ -229,7 +229,7 @@ function CalcButton({
       }}
     >
       {label === '⌫' ? (
-        <AppIcon name="delete" size={22} color={primary ? (brandOnColor || palette.onBrand) : palette.text} />
+        <AppIcon name="delete" size={22} color={primary ? (brandOnColor || palette.onBrand) : palette.text} strokeWidth={1.9} />
       ) : (
         <Text
           style={{

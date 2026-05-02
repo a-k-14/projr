@@ -300,6 +300,7 @@ export function InteractiveDateTimeRow({
   const dt = new Date(date);
   const dateStr = formatDate(date);
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+  const chipBg = palette.isDark ? palette.surfaceRaised : palette.surface;
 
   return (
     <View
@@ -333,7 +334,7 @@ export function InteractiveDateTimeRow({
           onPress={onOpenDate}
           style={{
             flex: 1.5,
-            backgroundColor: palette.inputBg,
+            backgroundColor: chipBg,
             paddingVertical: 9,
             borderRadius: 12,
             alignItems: 'center',
@@ -345,7 +346,7 @@ export function InteractiveDateTimeRow({
           onPress={onOpenTime}
           style={{
             flex: 0.9,
-            backgroundColor: palette.inputBg,
+            backgroundColor: chipBg,
             paddingVertical: 9,
             borderRadius: 12,
             alignItems: 'center',

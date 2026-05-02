@@ -86,7 +86,9 @@ function LoanRow({
         onPress={() => onPressLoan(loan.id)}
         style={{
           marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-          borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
+          borderRadius: HOME_RADIUS.card,
+          borderWidth: 1,
+          borderColor: palette.border,
           paddingTop: loan.status === 'closed' ? 28 : 14,
           paddingBottom: loan.status === 'closed' ? 16 : 14,
         }}

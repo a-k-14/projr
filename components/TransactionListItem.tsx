@@ -131,6 +131,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       : inOutCategoryIcon && isValidIcon(inOutCategoryIcon)
         ? inOutCategoryIcon
         : cfg.iconName;
+  const iconColor = palette.brand;
 
   return (
     <AppCard
@@ -141,15 +142,16 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       ) : inOutCategoryIcon && isValidIcon(inOutCategoryIcon) ? (
         <AppIcon name={inOutCategoryIcon}
           size={Math.round(iconSize * 0.45)}
-          color={cfg.color}
+          color={iconColor}
+          strokeWidth={1.8}
         />
       ) : (
         <AppIcon name={iconName as IconName}
           size={Math.round(iconSize * 0.45)}
-          color={cfg.color}
+          color={iconColor}
+          strokeWidth={1.8}
         />
       )}
-      iconBg={effectiveType === 'transfer' || effectiveType === 'loan' ? palette.background : cfg.bg}
       topRow={
         <CardTitleRow
           title={title}
@@ -170,7 +172,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       }
       tertiaryRow={tertiaryLine ? (
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
           ellipsizeMode="tail"
           style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}
         >
@@ -182,7 +184,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           paddingVertical: paddingY,
           borderRadius: isCard ? HOME_RADIUS.card : 0,
           backgroundColor: isCard ? palette.surface : 'transparent',
-          borderBottomWidth: isCard ? 1 : (isLast ? 0 : 1),
+          borderBottomWidth: isCard ? 0 : (isLast ? 0 : 1),
           borderBottomColor: palette.divider,
         },
         isCard && {

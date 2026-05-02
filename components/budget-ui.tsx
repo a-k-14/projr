@@ -52,7 +52,7 @@ export function BudgetMonthField({
     <View
       style={{
         minHeight: 40,
-        borderRadius: 14,
+        borderRadius: HOME_RADIUS.card,
         borderWidth: 1.5,
         borderColor: palette.divider,
         backgroundColor: palette.surface,

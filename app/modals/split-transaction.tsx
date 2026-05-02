@@ -2,7 +2,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Keyboard, Platform, ScrollView, TextInput, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
@@ -59,6 +59,7 @@ export default function SplitTransactionModal() {
     (sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0),
     0,
   );
+  const amountColor = txType === 'in' ? palette.positive : palette.negative;
 
   const updateRow = (id: string, patch: Partial<SplitDraftRow>) => {
     setSplitRows(splitRows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -164,7 +165,6 @@ export default function SplitTransactionModal() {
                       numberOfLines={1}
                       style={{
                         fontSize: HOME_TEXT.rowLabel,
-                        fontWeight: '400',
                         color: row.categoryId ? palette.text : palette.textMuted }}
                     >
                       {getCategoryName(categories, row.categoryId)}
@@ -177,7 +177,7 @@ export default function SplitTransactionModal() {
                       flexDirection: 'row',
                       alignItems: 'center',
                       borderBottomWidth: 1,
-                      borderBottomColor: focusedRowId === row.id ? palette.textSecondary : palette.borderSoft ?? palette.border,
+                      borderBottomColor: focusedRowId === row.id ? amountColor : palette.borderSoft ?? palette.border,
                       paddingBottom: 4 }}
                   >
                     <TextInput
@@ -201,25 +201,26 @@ export default function SplitTransactionModal() {
                         flex: 1,
                         fontSize: HOME_TEXT.sectionTitle,
                         fontWeight: '500',
-                        color: palette.text,
+                        color: row.amountStr ? amountColor : palette.text,
                         textAlign: 'right',
-                        paddingVertical: 0 }}
+                        paddingVertical: 0,
+                        paddingRight: 8 }}
                     />
                   </View>
 
-                  <TouchableOpacity delayPressIn={0}
+                  <Pressable
                     onPress={() => removeRow(row.id)}
-                    style={{
+                    style={({ pressed }) => ({
                       width: 34,
                       height: 34,
-                      marginLeft: 8,
+                      marginLeft: 14,
                       borderRadius: 12,
-                      backgroundColor: palette.inputBg,
+                      backgroundColor: pressed ? palette.surface : palette.background,
                       alignItems: 'center',
-                      justifyContent: 'center' }}
+                      justifyContent: 'center' })}
                   >
-                    <AppIcon name="trash-2" size={16} color={palette.negative} />
-                  </TouchableOpacity>
+                    <AppIcon name="trash-2" size={16} color={palette.negative} strokeWidth={1.8} />
+                  </Pressable>
                 </View>
               ))}
             </SectionCard>

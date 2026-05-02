@@ -126,7 +126,7 @@ export const HOME_LAYOUT = {
   chartBarHeight: 74,
   fabSize: 56,
   fabRightOffset: 20,
-  fabBottomOffset: -24,
+  fabBottomOffset: -30,
   fabContentBottomPadding: 20,
   handleWidth: 42,
   handleHeight: 4,

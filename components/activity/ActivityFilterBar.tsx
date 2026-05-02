@@ -39,9 +39,6 @@ export function ActivityFilterBar({
   moreActiveCount,
   palette,
   periodNavigation }: ActivityFilterBarProps) {
-  const moreActiveBg = palette.brandSoft;
-  const moreActiveBorder = palette.brand;
-
   return (
     <View>
       <View
@@ -102,6 +99,7 @@ export function ActivityFilterBar({
           palette={palette}
           moreActiveCount={moreActiveCount}
           onPress={() => setShowMoreSheet(true)}
+          iconOnly
         />
       </View>
     </View>

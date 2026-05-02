@@ -16,6 +16,7 @@ import {
   View
 } from 'react-native';
 import Animated, {
+  runOnJS,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -23,7 +24,7 @@ import Animated, {
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HomeDonutChartBlock } from '../../components/HomeDonutChartBlock';
+import { HomeDonutChartBlock, type HomeChartMode } from '../../components/HomeDonutChartBlock';
 import { ScreenTitle } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
@@ -41,7 +42,7 @@ import {
   toLocalDayEndISO,
   toLocalDayStartISO
 } from '../../lib/dateUtils';
-import { formatCurrency, getTotalBalance } from '../../lib/derived';
+import { formatCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
   BUTTON_TOKENS,
@@ -68,7 +69,8 @@ import type {
   LoanStatus,
   LoanWithSummary,
   PeriodType,
-  Transaction
+  Transaction,
+  AccountType
 } from '../../types';
 
 const PERIODS: PeriodType[] = ['week', 'month', 'year', 'custom'];
@@ -78,13 +80,21 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   year: 'Year',
   custom: 'Custom'
 };
+const ACCOUNT_TYPE_SORT_ORDER: Record<AccountType, number> = {
+  savings: 0,
+  cash: 1,
+  wallet: 2,
+  investment: 3,
+  credit: 4,
+  other: 5,
+};
 
 // Set false to restore the previous behavior where the indicator stays visible
 // during horizontal swipes, even when the current page is vertically scrolled.
 const HIDE_SCROLLED_INDICATOR_DURING_SWIPE = true;
 
 type AccountTab = {
-  id: string | 'all' | 'add';
+  id: string | 'all' | 'add' | 'net-worth';
   name: string;
 };
 
@@ -107,8 +117,11 @@ export default function HomeScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const homeAccountViewMode = useUIStore((s) => s.settings.homeAccountViewMode);
   const updateSettings = useUIStore((s) => s.updateSettings);
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const showAllAccountsTab = accounts.length !== 1;
+  const homeRootAccountId = showAllAccountsTab ? 'all' : (accounts[0]?.id ?? 'all');
   const pagerRef = useAnimatedRef<Animated.ScrollView>();
   const accountPagerScrollX = useSharedValue(0);
   const settledAccountPageIndex = useSharedValue(0);
@@ -116,8 +129,10 @@ export default function HomeScreen() {
   const indicatorY = useSharedValue(0);
   const indicatorGestureOpacity = useSharedValue(1);
   const isPagerInteractingRef = useRef(false);
-  const pendingPagerSyncAccountIdRef = useRef<string | 'all' | 'add' | null>(null);
-  const selectedAccountIdRef = useRef<string | 'all' | 'add'>('all');
+  const didPositionInitialPagerRef = useRef(false);
+  const wasFocusedRef = useRef(false);
+  const pendingPagerSyncAccountIdRef = useRef<string | 'all' | 'add' | 'net-worth' | null>(null);
+  const selectedAccountIdRef = useRef<string | 'all' | 'add' | 'net-worth'>('all');
   const { palette } = useAppTheme();
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
@@ -132,16 +147,14 @@ export default function HomeScreen() {
   const [pageBackgroundResetTicks, setPageBackgroundResetTicks] = useState<Record<string, number>>({});
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [expandedChartState, setExpandedChartState] = useState<{
-    accountId: string | 'all';
     transactions: Transaction[];
-    mode: 'expense' | 'income';
+    mode: HomeChartMode;
     resetTrigger: number;
   } | null>(null);
   const previousAccountCountRef = useRef(accounts.length);
-  const showAllAccountsTab = accounts.length !== 1;
-  const homeRootAccountId = showAllAccountsTab ? 'all' : (accounts[0]?.id ?? 'all');
 
   const displayAccounts = useMemo<AccountTab[]>(() => [
+    ...(showAllAccountsTab ? [{ id: 'net-worth' as const, name: 'Net Worth' }] : []),
     ...(showAllAccountsTab ? [{ id: 'all' as const, name: 'All' }] : []),
     ...accounts.map((a) => ({ id: a.id, name: formatAccountDisplayName(a.name, a.accountNumber) })),
     { id: 'add', name: 'Add Account' },
@@ -154,9 +167,11 @@ export default function HomeScreen() {
       accountTypeLabel: getAccountTypeLabel(a.type),
     })),
   ], [accounts, showAllAccountsTab]);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | 'all' | 'add'>('all');
+  const [selectedAccountId, setSelectedAccountId] = useState<string | 'all' | 'add' | 'net-worth'>(homeRootAccountId);
+  const [headerAccountId, setHeaderAccountId] = useState<string | 'all' | 'add' | 'net-worth'>(homeRootAccountId);
   const [pagerHeight, setPagerHeight] = useState(0);
-  const [loadedPageIds, setLoadedPageIds] = useState<Set<string | 'all' | 'add'>>(
+  const [isPagerReady, setIsPagerReady] = useState(homeRootAccountId === 'all' && width <= 0);
+  const [loadedPageIds, setLoadedPageIds] = useState<Set<string | 'all' | 'add' | 'net-worth'>>(
     () => new Set([homeRootAccountId]),
   );
   const selectedPageIndex = useMemo(
@@ -169,10 +184,43 @@ export default function HomeScreen() {
   const accountTypeById = useMemo(() => new Map(accounts.map((account) => [account.id, getAccountTypeLabel(account.type)])), [accounts]);
   const accountBalanceById = useMemo(() => new Map(accounts.map((account) => [account.id, account.balance])), [accounts]);
   const totalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
+  const loanSummary = useMemo(() => getLoanSummary(loans), [loans]);
+  const netWorth = totalBalance + loanSummary.net;
 
   useEffect(() => {
     selectedAccountIdRef.current = selectedAccountId;
+    setHeaderAccountId(selectedAccountId);
   }, [selectedAccountId]);
+
+  const updateHeaderPreviewById = useCallback((nextId: string | 'all' | 'add' | 'net-worth') => {
+    setHeaderAccountId((current) => (current === nextId ? current : nextId));
+  }, []);
+
+  useEffect(() => {
+    if (isFocused && !wasFocusedRef.current) {
+      wasFocusedRef.current = true;
+      if (selectedAccountId !== homeRootAccountId) {
+        const rootIndex = Math.max(0, displayAccounts.findIndex((account) => account.id === homeRootAccountId));
+        selectedAccountIdRef.current = homeRootAccountId;
+        setSelectedAccountId(homeRootAccountId);
+        settledAccountPageIndex.value = rootIndex;
+        accountPagerScrollX.value = rootIndex * width;
+        pagerRef.current?.scrollTo({ x: rootIndex * width, animated: false });
+      }
+    } else if (!isFocused) {
+      wasFocusedRef.current = false;
+    }
+  }, [accountPagerScrollX, displayAccounts, homeRootAccountId, isFocused, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
+
+  useEffect(() => {
+    if (didPositionInitialPagerRef.current || width <= 0 || displayAccounts.length === 0) return;
+    didPositionInitialPagerRef.current = true;
+    const targetX = selectedPageIndex * width;
+    settledAccountPageIndex.value = selectedPageIndex;
+    accountPagerScrollX.value = targetX;
+    pagerRef.current?.scrollTo({ x: targetX, animated: false });
+    setIsPagerReady(true);
+  }, [accountPagerScrollX, displayAccounts.length, pagerRef, selectedPageIndex, settledAccountPageIndex, width]);
 
   useEffect(() => {
     const previousCount = previousAccountCountRef.current;
@@ -193,10 +241,12 @@ export default function HomeScreen() {
     if (
       selectedAccountId !== 'all' &&
       selectedAccountId !== 'add' &&
+      selectedAccountId !== 'net-worth' &&
       !accounts.some((account) => account.id === selectedAccountId)
     ) {
       setSelectedAccountId(homeRootAccountId);
-      pagerRef.current?.scrollTo({ x: 0, animated: true });
+      const rootIndex = Math.max(0, displayAccounts.findIndex((account) => account.id === homeRootAccountId));
+      pagerRef.current?.scrollTo({ x: rootIndex * width, animated: true });
     }
   }, [accountPagerScrollX, accounts, displayAccounts, homeRootAccountId, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
 
@@ -240,18 +290,20 @@ export default function HomeScreen() {
     if (mode === 'full' && homeAccountViewMode === 'list') {
       updateSettings({ homeAccountViewMode: 'swipe' }, 'home-tab-reset').catch(() => undefined);
     }
-    settledAccountPageIndex.value = 0;
-    accountPagerScrollX.value = 0;
+    const rootIndex = Math.max(0, displayAccounts.findIndex((account) => account.id === homeRootAccountId));
+    const targetX = rootIndex * width;
+    settledAccountPageIndex.value = rootIndex;
+    accountPagerScrollX.value = targetX;
     if (mode === 'background') {
       verticalScrolls.value = verticalScrolls.value.map(() => 0);
       indicatorGestureOpacity.value = 1;
     }
-    pagerRef.current?.scrollTo({ x: 0, animated });
+    pagerRef.current?.scrollTo({ x: targetX, animated });
     setGlobalScrollResetTick(v => ({ count: v.count + 1, animated, mode }));
-  }, [accountPagerScrollX, homeAccountViewMode, homeRootAccountId, indicatorGestureOpacity, pagerRef, settledAccountPageIndex, updateSettings, verticalScrolls]);
+  }, [accountPagerScrollX, displayAccounts, homeAccountViewMode, homeRootAccountId, indicatorGestureOpacity, pagerRef, settledAccountPageIndex, updateSettings, verticalScrolls, width]);
 
-  const resetPageInBackground = useCallback((accountId: string | 'all' | 'add') => {
-    if (accountId === 'add') return;
+  const resetPageInBackground = useCallback((accountId: string | 'all' | 'add' | 'net-worth') => {
+    if (accountId === 'add' || accountId === 'net-worth') return;
     setPageBackgroundResetTicks((prev) => ({
       ...prev,
       [accountId]: (prev[accountId] ?? 0) + 1,
@@ -280,6 +332,7 @@ export default function HomeScreen() {
       if (next && next.id !== currentSelectedAccountId) {
         resetPageInBackground(currentSelectedAccountId);
         selectedAccountIdRef.current = next.id;
+        setHeaderAccountId(next.id);
         setSelectedAccountId(next.id);
       }
     },
@@ -310,6 +363,12 @@ export default function HomeScreen() {
       const pageWidthValue = Math.max(width, 1);
       const progress = event.contentOffset.x / pageWidthValue;
       const settledIndex = Math.max(0, Math.round(settledAccountPageIndex.value));
+      const delta = progress - settledIndex;
+      let previewIndex = settledIndex;
+      if (delta < -0.005) previewIndex = Math.max(0, settledIndex - 1);
+      if (delta > 0.005) previewIndex = Math.min(displayAccounts.length - 1, settledIndex + 1);
+      const previewId = displayAccounts[previewIndex]?.id ?? homeRootAccountId;
+      runOnJS(updateHeaderPreviewById)(previewId);
       const hasMovedHorizontally = Math.abs(progress - settledIndex) > 0.01;
       const currentScroll = verticalScrolls.value[settledIndex] ?? 0;
 
@@ -317,7 +376,7 @@ export default function HomeScreen() {
         indicatorGestureOpacity.value = 0;
       }
     },
-  });
+  }, [displayAccounts, homeRootAccountId, indicatorGestureOpacity, settledAccountPageIndex, updateHeaderPreviewById, verticalScrolls, width]);
 
   const handlePagerMomentumEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -464,27 +523,13 @@ export default function HomeScreen() {
       style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}
     >
       <ScreenTitle
-        title="Accounts"
+        title={headerAccountId === 'net-worth' ? 'Net Worth' : 'Accounts'}
         palette={palette}
         right={
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <TouchableOpacity
-              delayPressIn={0}
-              activeOpacity={0.72}
-              onPress={() => router.push('/net-worth-prototype')}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: palette.divider,
-                backgroundColor: palette.surface,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <AppIcon name="chart-spline" size={17} color={palette.text} />
-            </TouchableOpacity>
+          <View
+            pointerEvents={headerAccountId === 'net-worth' ? 'none' : 'auto'}
+            style={{ width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, opacity: headerAccountId === 'net-worth' ? 0 : 1 }}
+          >
             <HomeAccountViewToggle
               mode={homeAccountViewMode}
               palette={palette}
@@ -531,7 +576,7 @@ export default function HomeScreen() {
               right: 0,
               bottom: 0,
               left: 0,
-              opacity: homeAccountViewMode === 'swipe' ? 1 : 0,
+              opacity: homeAccountViewMode === 'swipe' && isPagerReady ? 1 : 0,
               zIndex: homeAccountViewMode === 'swipe' ? 2 : 0,
             }}
           >
@@ -552,7 +597,21 @@ export default function HomeScreen() {
               {displayAccounts.map((account, index) => {
                 return (
                   <View key={account.id} style={{ width, height: pagerHeight || undefined }}>
-                    {account.id === 'add' ? (
+                    {account.id === 'net-worth' ? (
+                      <HomeNetWorthPage
+                        pageHeight={pagerHeight}
+                        palette={palette}
+                        currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+                        accounts={accounts}
+                        loanSummary={loanSummary}
+                        netWorth={netWorth}
+                        pageIndex={index}
+                        verticalScrolls={verticalScrolls}
+                        indicatorY={indicatorY}
+                        resetTick={globalScrollResetTick}
+                        onOpenAccount={openAccountInSwipeMode}
+                      />
+                    ) : account.id === 'add' ? (
                       <AddAccountPage
                         pageHeight={pagerHeight}
                         palette={palette}
@@ -583,8 +642,8 @@ export default function HomeScreen() {
                         indicatorY={indicatorY}
                         resetTick={globalScrollResetTick}
                         backgroundResetTick={pageBackgroundResetTicks[account.id] ?? 0}
-                        onOpenChartExpanded={(transactions, mode, resetTrigger) => {
-                          setExpandedChartState({ accountId: account.id, transactions, mode, resetTrigger });
+                        onOpenChartExpanded={(transactions, mode, range, resetTrigger) => {
+                          setExpandedChartState({ transactions, mode, resetTrigger });
                           setBottomSheetVisible(true);
                         }}
                         isPageReady={loadedPageIds.has(account.id) || Math.abs(index - selectedPageIndex) <= 1}
@@ -621,12 +680,12 @@ export default function HomeScreen() {
         backgroundColor={palette.isDark ? palette.surfaceRaised : palette.text}
         iconColor={palette.isDark ? palette.listText : palette.surface}
         style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
-        onPress={() =>
-          router.push({
-            pathname: '/modals/add-transaction',
-            params: selectedAccountId === 'all' || selectedAccountId === 'add' ? undefined : { accountId: selectedAccountId }
-          })
-        }
+            onPress={() =>
+              router.push({
+                pathname: '/modals/add-transaction',
+                params: selectedAccountId === 'all' || selectedAccountId === 'add' || selectedAccountId === 'net-worth' ? undefined : { accountId: selectedAccountId }
+              })
+            }
       />
 
       <Modal
@@ -728,6 +787,8 @@ export default function HomeScreen() {
         <BottomSheet
           title="Category Breakdown"
           palette={palette}
+          backgroundColor={palette.background}
+          disableShadow
           onClose={() => {
             setExpandedChartState(null);
             setBottomSheetVisible(false);
@@ -736,33 +797,35 @@ export default function HomeScreen() {
           fixedHeightRatio={0.80}
           hasNavBar
         >
-          <View style={{ paddingBottom: 0 }}>
-            <HomeDonutChartBlock
-              transactions={expandedChartState.transactions}
-              categoriesById={categoriesById}
-              sym={showCurrencySymbol ? currencySymbol : ''}
-              listPalette={palette}
-              getCategoryFullDisplayName={getCategoryFullDisplayName}
-              theme={{
-                brand: palette.brand,
-                card: palette.card,
-                surface: '#EEF2F8',
-                inputBg: '#FFFFFF',
-                progressTrack: '#DDE4F0',
-                border: '#DFE5EF',
-                text: palette.text,
-                muted: '#7C8498',
-                textMuted: palette.textMuted,
-                accent: palette.brand,
-                positive: palette.positive,
-                negative: palette.negative,
-              }}
-              expanded
-              initialMode={expandedChartState.mode}
-              resetTrigger={expandedChartState.resetTrigger}
-              accountsById={accountsById}
-              loansById={loansById}
-            />
+          <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 0, backgroundColor: palette.background }}>
+            <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, overflow: 'hidden' }}>
+              <HomeDonutChartBlock
+                transactions={expandedChartState.transactions}
+                categoriesById={categoriesById}
+                sym={showCurrencySymbol ? currencySymbol : ''}
+                listPalette={palette}
+                getCategoryFullDisplayName={getCategoryFullDisplayName}
+                theme={{
+                  brand: palette.brand,
+                  card: palette.card,
+                  surface: '#EEF2F8',
+                  inputBg: '#FFFFFF',
+                  progressTrack: '#DDE4F0',
+                  border: '#DFE5EF',
+                  text: palette.text,
+                  muted: '#7C8498',
+                  textMuted: palette.textMuted,
+                  accent: palette.brand,
+                  positive: palette.positive,
+                  negative: palette.negative,
+                }}
+                expanded
+                initialMode={expandedChartState.mode}
+                resetTrigger={expandedChartState.resetTrigger}
+                accountsById={accountsById}
+                loansById={loansById}
+              />
+            </View>
           </View>
         </BottomSheet>
       ) : null}
@@ -818,6 +881,329 @@ function HomeAccountViewToggle({
         );
       })}
     </View>
+  );
+}
+
+function NetWorthBalanceByToggle({
+  mode,
+  palette,
+  onChange,
+}: {
+  mode: 'balance' | 'type';
+  palette: AppThemePalette;
+  onChange: (mode: 'balance' | 'type') => void;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        backgroundColor: '#F0F3F9',
+        borderRadius: 14,
+        alignItems: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      {([
+        { key: 'balance', label: 'Account' },
+        { key: 'type', label: 'Type' },
+      ] as const).map((item) => {
+        const selected = mode === item.key;
+        return (
+          <TouchableOpacity
+            delayPressIn={0}
+            key={item.key}
+            activeOpacity={0.8}
+            onPress={() => onChange(item.key)}
+            style={{
+              minWidth: 72,
+              height: 34,
+              paddingHorizontal: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: selected ? palette.surface : 'transparent',
+            }}
+          >
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: selected ? '#1F2A44' : '#8C94AF' }}>
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+function HomeNetWorthPage({
+  pageHeight,
+  palette,
+  currencySymbol,
+  accounts,
+  loanSummary,
+  netWorth,
+  pageIndex,
+  verticalScrolls,
+  indicatorY,
+  resetTick,
+  onOpenAccount,
+}: {
+  pageHeight: number;
+  palette: AppThemePalette;
+  currencySymbol: string;
+  accounts: Account[];
+  loanSummary: { youLent: number; youOwe: number; net: number };
+  netWorth: number;
+  pageIndex: number;
+  verticalScrolls: SharedValue<number[]>;
+  indicatorY: SharedValue<number>;
+  resetTick: { count: number; animated: boolean; mode: TabResetMode };
+  onOpenAccount: (accountId: string | 'all') => void;
+}) {
+  const [accountViewMode, setAccountViewMode] = useState<'balance' | 'type'>('balance');
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const positiveAccountTotal = accounts.reduce((sum, account) => sum + Math.max(account.balance, 0), 0);
+  const negativeAccountTotal = accounts.reduce((sum, account) => sum + Math.abs(Math.min(account.balance, 0)), 0);
+  const assetTotal = positiveAccountTotal + loanSummary.youLent;
+  const liabilityTotal = negativeAccountTotal + loanSummary.youOwe;
+  const totalExposure = Math.max(assetTotal + liabilityTotal, 1);
+  const assetShare = assetTotal / totalExposure;
+  const liabilityShare = liabilityTotal / totalExposure;
+  const sortedAccounts = useMemo(() => {
+    return accounts.slice().sort((a, b) => {
+      const balanceDiff = b.balance - a.balance;
+      if (balanceDiff !== 0) return balanceDiff;
+      return formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
+        formatAccountDisplayName(b.name, b.accountNumber),
+        'en',
+        { sensitivity: 'base' },
+      );
+    });
+  }, [accounts]);
+  const groupedAccounts = useMemo(() => {
+    const groups = new Map<AccountType, Account[]>();
+    sortedAccounts.forEach((account) => {
+      const next = groups.get(account.type) ?? [];
+      next.push(account);
+      groups.set(account.type, next);
+    });
+    return Array.from(groups.entries())
+      .map(([type, group]) => ({
+        type,
+        accounts: group,
+        balance: group.reduce((sum, account) => sum + account.balance, 0),
+      }))
+      .sort((a, b) => ACCOUNT_TYPE_SORT_ORDER[a.type] - ACCOUNT_TYPE_SORT_ORDER[b.type]);
+  }, [sortedAccounts]);
+  const largestAccountBalance = Math.max(...accounts.map((account) => Math.abs(account.balance)), 1);
+  const largestTypeBalance = Math.max(...groupedAccounts.map((group) => Math.abs(group.balance)), 1);
+  const assetPercent = Math.round(assetShare * 100);
+  const liabilityPercent = Math.round(liabilityShare * 100);
+  const positionRows = [
+    {
+      key: 'assets',
+      label: 'Liquid assets',
+      note: `${accounts.filter((account) => account.balance > 0).length} funded accounts`,
+      value: positiveAccountTotal,
+      color: palette.positive,
+      icon: 'wallet',
+    },
+    {
+      key: 'receivable',
+      label: 'Receivables',
+      note: 'Money you should receive',
+      value: loanSummary.youLent,
+      color: palette.brand,
+      icon: 'arrow-down-left',
+    },
+    {
+      key: 'liability',
+      label: 'Liabilities',
+      note: 'Borrowed and negative balances',
+      value: liabilityTotal,
+      color: palette.negative,
+      icon: 'arrow-up-right',
+    },
+  ] as const;
+
+  useEffect(() => {
+    if (resetTick.count <= 0) return;
+    scrollRef.current?.scrollTo({ y: 0, animated: resetTick.animated });
+    const nextScrolls = verticalScrolls.value.slice();
+    nextScrolls[pageIndex] = 0;
+    verticalScrolls.value = nextScrolls;
+  }, [pageIndex, resetTick, scrollRef, verticalScrolls]);
+
+  const verticalScrollHandler = useAnimatedScrollHandler((event) => {
+    'worklet';
+    const arr = verticalScrolls.value.slice();
+    arr[pageIndex] = event.contentOffset.y;
+    verticalScrolls.value = arr;
+  });
+
+  const renderAccountRow = (account: Account, isFirstInSection: boolean) => {
+    const isNegative = account.balance < 0;
+    return (
+      <Pressable
+        key={account.id}
+        onPress={() => onOpenAccount(account.id)}
+        style={({ pressed }) => ({
+          minHeight: 72,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderTopWidth: isFirstInSection ? 0 : 1,
+          borderTopColor: palette.divider,
+          backgroundColor: pressed ? palette.inputBg : 'transparent',
+        })}
+      >
+        {({ pressed }) => (
+          <View style={{ transform: [{ scale: pressed ? 0.995 : 1 }] }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.inputBg }}>
+                <AppIcon name={account.type === 'credit' ? 'credit-card' : 'wallet'} size={16} color={isNegative ? palette.negative : palette.brand} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.text }}>
+                  {formatAccountDisplayName(account.name, account.accountNumber)}
+                </Text>
+                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
+                  {getAccountTypeLabel(account.type)}
+                </Text>
+              </View>
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
+                {isNegative ? '-' : ''}{formatCurrency(Math.abs(account.balance), currencySymbol)}
+              </Text>
+            </View>
+            <View style={{ height: 3, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', marginTop: 10, marginLeft: 44 }}>
+              <View style={{ width: `${Math.max(8, (Math.abs(account.balance) / largestAccountBalance) * 100)}%`, height: '100%', backgroundColor: isNegative ? palette.negative : palette.brand }} />
+            </View>
+          </View>
+        )}
+      </Pressable>
+    );
+  };
+
+  const renderTypeCard = (group: (typeof groupedAccounts)[number], isFirstInSection: boolean) => {
+    const isNegative = group.balance < 0;
+    return (
+      <View key={group.type} style={{ minHeight: 76, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: isFirstInSection ? 0 : 1, borderTopColor: palette.divider }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.inputBg }}>
+            <AppIcon name={group.type === 'credit' ? 'credit-card' : 'wallet'} size={16} color={isNegative ? palette.negative : palette.brand} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.text }}>
+              {getAccountTypeLabel(group.type)}
+            </Text>
+            <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
+              {group.accounts.length} {group.accounts.length === 1 ? 'account' : 'accounts'}
+            </Text>
+          </View>
+          <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
+            {isNegative ? '-' : ''}{formatCurrency(Math.abs(group.balance), currencySymbol)}
+          </Text>
+        </View>
+        <View style={{ height: 3, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', marginTop: 10, marginLeft: 44 }}>
+          <View style={{ width: `${Math.max(8, (Math.abs(group.balance) / largestTypeBalance) * 100)}%`, height: '100%', backgroundColor: isNegative ? palette.negative : palette.brand }} />
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <Animated.ScrollView
+      ref={scrollRef}
+      style={{ flex: 1, height: pageHeight }}
+      contentContainerStyle={{
+        paddingHorizontal: SCREEN_GUTTER,
+        paddingTop: HOME_SURFACE.heroTop,
+        paddingBottom: HOME_LAYOUT.fabContentBottomPadding,
+      }}
+      onScroll={verticalScrollHandler}
+      scrollEventThrottle={1}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, padding: CARD_PADDING, minHeight: 184, overflow: 'hidden', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+              Net Worth
+            </Text>
+            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.heroValue + 2, lineHeight: 38, fontWeight: '800', color: netWorth < 0 ? palette.negative : palette.text, marginTop: HOME_SPACE.xs + 2 }}>
+              {netWorth < 0 ? '-' : ''}{formatCurrency(Math.abs(netWorth), currencySymbol)}
+            </Text>
+          </View>
+          <View style={{ width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFD' }}>
+            <AppIcon name="landmark" size={22} color={palette.brand} />
+          </View>
+        </View>
+
+        <View>
+          <View style={{ height: 8, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', position: 'relative' }}>
+            <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${assetShare * 100}%`, backgroundColor: palette.positive, borderTopRightRadius: liabilityTotal > 0 ? 0 : 999, borderBottomRightRadius: liabilityTotal > 0 ? 0 : 999 }} />
+            <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${liabilityShare * 100}%`, backgroundColor: palette.negative, borderTopLeftRadius: assetTotal > 0 ? 0 : 999, borderBottomLeftRadius: assetTotal > 0 ? 0 : 999 }} />
+          </View>
+
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 16 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Assets</Text>
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: palette.positive, marginTop: 5 }}>
+                {formatCurrency(assetTotal, currencySymbol)} · {assetPercent}%
+              </Text>
+            </View>
+            <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end' }}>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Liabilities</Text>
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: palette.negative, marginTop: 5, textAlign: 'right' }}>
+                {formatCurrency(liabilityTotal, currencySymbol)} · {liabilityPercent}%
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <View
+        onLayout={(event) => {
+          const newY = event.nativeEvent.layout.y;
+          if (newY > 0 && indicatorY.value !== newY) {
+            indicatorY.value = newY;
+          }
+        }}
+        style={{ height: 22 }}
+      />
+
+      <View style={{ gap: 10 }}>
+        {positionRows.map((row) => (
+          <View key={row.key} style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.surface, paddingHorizontal: 14, paddingVertical: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.inputBg }}>
+              <AppIcon name={row.icon} size={17} color={row.color} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.text }}>
+                {row.label}
+              </Text>
+              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
+                {row.note}
+              </Text>
+            </View>
+            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: row.color, textAlign: 'right' }}>
+              {formatCurrency(row.value, currencySymbol)}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={{ marginTop: 16, marginBottom: HOME_SPACE.pageBottom, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, overflow: 'hidden' }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <Text appWeight="medium" style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>Balance by</Text>
+          <NetWorthBalanceByToggle
+            mode={accountViewMode}
+            palette={palette}
+            onChange={setAccountViewMode}
+          />
+        </View>
+        {accountViewMode === 'balance'
+          ? sortedAccounts.map((account, index) => renderAccountRow(account, index === 0))
+          : groupedAccounts.map((group, index) => renderTypeCard(group, index === 0))}
+      </View>
+    </Animated.ScrollView>
   );
 }
 
@@ -1211,9 +1597,9 @@ function PageDashIndicator({
   const safePageCount = Math.max(pageCount, 1);
   const dotCount = safePageCount;
   const inactiveWidth = 7;
-  const activeWidth = 18;
+  const activeWidth = 16;
   const dashHeight = 3;
-  const gap = 5;
+  const gap = 8;
   const step = inactiveWidth + gap;
   const sidePad = (activeWidth - inactiveWidth) / 2;
   const trackWidth = inactiveWidth * dotCount + gap * (dotCount - 1) + sidePad * 2;
@@ -1297,7 +1683,7 @@ function PageDashIndicator({
           style={[
             {
               position: 'absolute',
-              left: sidePad,
+              left: 0,
               width: activeWidth,
               height: dashHeight,
               borderRadius: HOME_RADIUS.full,
@@ -1400,7 +1786,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   indicatorY: SharedValue<number>;
   resetTick: { count: number; animated: boolean; mode: TabResetMode };
   backgroundResetTick: number;
-  onOpenChartExpanded?: (transactions: Transaction[], mode: 'expense' | 'income', resetTrigger: number) => void;
+  onOpenChartExpanded?: (transactions: Transaction[], mode: HomeChartMode, range: { period: PeriodType; from: string; to: string }, resetTrigger: number) => void;
   isPageReady: boolean;
   accountsById: Map<string, string>;
   categoriesById: Map<string, Category>;
@@ -1673,7 +2059,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               resetTrigger={`${resetTick.count}:${backgroundResetTick}`}
               accountsById={accountsById}
               loansById={loansById}
-              onExpand={(mode) => onOpenChartExpanded?.(periodTransactions, mode, resetTick.count)}
+              onExpand={(mode) => onOpenChartExpanded?.(periodTransactions, mode, { period, from, to }, resetTick.count)}
             />
           </View>
 

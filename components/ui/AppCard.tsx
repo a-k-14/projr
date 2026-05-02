@@ -35,10 +35,11 @@ export function AppCard({
   style,
   contentStyle,
 }: AppCardProps) {
+  void iconBg;
   const cardContent = (
     <View style={styles.row}>
       {icon && (
-        <View style={[styles.iconContainer, { backgroundColor: iconBg || palette.inputBg }]}>
+        <View style={[styles.iconContainer, { backgroundColor: 'transparent' }]}>
           {icon}
         </View>
       )}
@@ -115,7 +116,7 @@ export function CardTitleRow({
     <Text
       appWeight="medium"
       style={[
-        { fontSize: CARD_TEXT.line1, color: amountColor || palette.listText, textAlign: 'right' },
+        { fontSize: CARD_TEXT.line1, color: amountColor || palette.listText, textAlign: 'right', marginLeft: 14 },
         amountStyle
       ]}
     >
@@ -203,8 +204,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   iconContainer: {
-    width: HOME_LAYOUT.listIconSize,
-    height: HOME_LAYOUT.listIconSize,
+    width: HOME_LAYOUT.listIconSize - 4,
+    height: HOME_LAYOUT.listIconSize - 4,
     borderRadius: HOME_RADIUS.small,
     marginRight: 12,
     alignItems: 'center',
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
-    marginTop: 4,
+    marginTop: 6,
   },
   tertiaryRow: {
     marginTop: 4,

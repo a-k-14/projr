@@ -3,7 +3,7 @@ import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
 import { formatCurrency, getTransactionCashflowImpact } from '@/lib/derived';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '@/lib/layoutTokens';
+import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
 import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
 import type { AppThemePalette } from '@/lib/theme';
 import type { Category, LoanWithSummary, Transaction } from '@/types';
@@ -11,7 +11,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 
-type Mode = 'expense' | 'income';
+export type HomeChartMode = 'expense' | 'income';
 
 type HomeNode = {
   id: string;
@@ -39,7 +39,7 @@ const INCOME_COLORS = [
 function renderIcon(icon: string | undefined, size: number, color: string) {
   const isEmoji = icon ? !/^[a-z-]+$/.test(icon) : false;
   if (icon && isEmoji) return <Text style={{ fontSize: size }}>{icon}</Text>;
-  if (icon && isValidIcon(icon)) return <AppIcon name={icon} size={Math.round(size * 0.9)} color={color} />;
+  if (icon && isValidIcon(icon)) return <AppIcon name={icon} size={Math.round(size * 0.92)} color={color} strokeWidth={1.8} />;
   return <Text style={{ fontSize: size }}>{UNCATEGORIZED_ICON}</Text>;
 }
 
@@ -69,7 +69,7 @@ function collectIds(node: HomeNode): string[] {
 }
 
 function buildModeHierarchy(
-  mode: Mode,
+  mode: HomeChartMode,
   transactions: Transaction[],
   categoriesById: Map<string, Category>,
 ): HomeNode[] {
@@ -104,19 +104,17 @@ function buildModeHierarchy(
 
     const parentNode = parentMap.get(parentId)!;
 
-    if (category?.parentId && category.id !== parentId) {
-      if (!parentNode.childMap.has(category.id)) {
-        parentNode.childMap.set(category.id, {
-          id: category.id,
-          label: category.name,
-          icon: category.icon || parent?.icon || UNCATEGORIZED_ICON,
-          color: getPrototypeCategoryColor(
-            `${category.id}:${category.name}`,
-            mode === 'income' ? 'income' : 'expense',
-            category.color,
-          ),
-        });
-      }
+    if (category?.parentId && category.id !== parentId && !parentNode.childMap.has(category.id)) {
+      parentNode.childMap.set(category.id, {
+        id: category.id,
+        label: category.name,
+        icon: category.icon || parent?.icon || UNCATEGORIZED_ICON,
+        color: getPrototypeCategoryColor(
+          `${category.id}:${category.name}`,
+          mode === 'income' ? 'income' : 'expense',
+          category.color,
+        ),
+      });
     }
   });
 
@@ -138,7 +136,7 @@ function sumForNode(node: HomeNode, transactions: Transaction[]) {
     .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
-function buildSlices(nodes: HomeNode[], transactions: Transaction[], mode: Mode): HomeSlice[] {
+function buildSlices(nodes: HomeNode[], transactions: Transaction[], mode: HomeChartMode): HomeSlice[] {
   const palette = mode === 'income' ? INCOME_COLORS : EXPENSE_COLORS;
   const raw = nodes
     .map((node) => ({ ...node, amount: sumForNode(node, transactions) }))
@@ -162,24 +160,35 @@ function HomeDonut({
   let angle = 0;
   const cx = 150;
   const cy = 150;
-  const gap = 2.2;
+  const baseGap = 2.2;
 
   return (
     <Svg width={300} height={300} viewBox="0 0 300 300">
       <G>
         {slices.map((slice) => {
-          const start = angle + gap;
-          const end = angle + slice.percent * 360 - gap;
-          angle += slice.percent * 360;
+          const sliceAngle = slice.percent * 360;
           const active = slice.id === selectedId;
+          const gap = sliceAngle < 10 ? Math.min(baseGap, sliceAngle * 0.15) : baseGap;
+          const start = angle + gap;
+          const end = angle + sliceAngle - gap;
+          angle += sliceAngle;
+
           const outer = active ? 126 : 116;
           const inner = active ? 73 : 80;
-          const visiblePath = donutPath(cx, cy, outer, inner, start, Math.max(start + 1, end));
-          const touchPath = donutPath(cx, cy, 143, 46, start, Math.max(start + 1, end));
+          const minAngle = active ? 3.5 : 1.5;
+          const visiblePath = donutPath(cx, cy, outer, inner, start, Math.max(start + minAngle, end));
+          const touchPath = donutPath(cx, cy, 143, 46, start, Math.max(start + 1.5, end));
+
           return (
             <G key={slice.id} onPress={() => onSelect(slice.id)} onPressIn={() => onSelect(slice.id)}>
               <Path d={touchPath} fill={bgHex} opacity={0.01} />
-              <Path d={visiblePath} fill={slice.color} opacity={active ? 1 : 0.72} stroke={bgHex} strokeWidth={active ? 4 : 2} />
+              <Path
+                d={visiblePath}
+                fill={slice.color}
+                opacity={active ? 1 : 0.72}
+                stroke={bgHex}
+                strokeWidth={active ? (sliceAngle < 5 ? 2.5 : 4) : 2}
+              />
             </G>
           );
         })}
@@ -221,14 +230,14 @@ export function HomeDonutChartBlock({
   };
   listPalette?: AppThemePalette;
   expanded?: boolean;
-  onExpand?: (mode: Mode) => void;
-  initialMode?: Mode;
+  onExpand?: (mode: HomeChartMode) => void;
+  initialMode?: HomeChartMode;
   resetTrigger?: number | string;
   accountsById?: Map<string, string>;
   loansById?: Map<string, LoanWithSummary>;
   getCategoryFullDisplayName?: (categoryId: string, separator?: string) => string;
 }) {
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const [mode, setMode] = useState<HomeChartMode>(initialMode);
   const [drillParentId, setDrillParentId] = useState<string | null>(null);
   const [selectedSliceId, setSelectedSliceId] = useState<string | null>(null);
   const listScrollRef = useRef<ScrollView | null>(null);
@@ -243,9 +252,7 @@ export function HomeDonutChartBlock({
   const total = useMemo(() => parentSlices.reduce((sum, s) => sum + s.amount, 0), [parentSlices]);
   const selectedParent = drillParentId ? hierarchy.find((node) => node.id === drillParentId) ?? null : null;
   const selectedParentSlice = drillParentId ? parentSlices.find((s) => s.id === drillParentId) ?? null : null;
-  const visibleListSlices = drillParentId
-    ? buildSlices(selectedParent?.children ?? [], transactions, mode)
-    : parentSlices;
+  const visibleListSlices = drillParentId ? buildSlices(selectedParent?.children ?? [], transactions, mode) : parentSlices;
   const isSubcategoryLevel = !!drillParentId;
   const selectedSubcategoryNode = drillParentId && selectedSliceId
     ? selectedParent?.children?.find((node) => node.id === selectedSliceId) ?? null
@@ -276,7 +283,7 @@ export function HomeDonutChartBlock({
     listScrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [initialMode, resetTrigger]);
 
-  const handleModeChange = (next: Mode) => {
+  const handleModeChange = (next: HomeChartMode) => {
     setMode(next);
     setDrillParentId(null);
     setSelectedSliceId(null);
@@ -298,7 +305,7 @@ export function HomeDonutChartBlock({
   };
 
   const categoryList = (
-    <View style={styles.categoryList}>
+    <View style={[styles.categoryList, isSubcategoryLevel && { gap: 14 }]}>
       {visibleListSlices.map((slice) => (
         <TouchableOpacity
           key={slice.id}
@@ -314,8 +321,8 @@ export function HomeDonutChartBlock({
         >
           {isSubcategoryLevel ? (
             <View style={styles.subcategoryRow}>
-              <View style={[styles.iconBadge, styles.subcategoryIconBadge, { backgroundColor: theme.surface }]}>
-                {renderIcon(slice.icon, 18, theme.text)}
+              <View style={styles.iconBadge}>
+                {renderIcon(slice.icon, 20, theme.brand)}
               </View>
               <View style={styles.subcategoryContent}>
                 <View style={styles.rowTopLine}>
@@ -334,8 +341,8 @@ export function HomeDonutChartBlock({
           ) : (
             <View style={styles.rowTopLine}>
               <View style={styles.rowTitleWrap}>
-                <View style={[styles.iconBadge, { backgroundColor: theme.surface }]}>
-                  {renderIcon(slice.icon, 18, theme.text)}
+                <View style={styles.iconBadge}>
+                  {renderIcon(slice.icon, 20, theme.brand)}
                 </View>
                 <Text numberOfLines={1} style={[styles.splitName, { color: theme.text }]}>{slice.label}</Text>
               </View>
@@ -362,11 +369,11 @@ export function HomeDonutChartBlock({
         <SegmentedPillSwitch
           options={switchOptions}
           value={mode}
-          onChange={(next) => handleModeChange(next as Mode)}
+          onChange={(next) => handleModeChange(next as HomeChartMode)}
           backgroundColor={theme.surface}
           pillColor={theme.inputBg}
           borderColor={theme.border}
-          itemMinWidth={64}
+          itemMinWidth={62}
           activeTextColor={theme.text}
           inactiveTextColor={theme.muted}
           style={styles.chartSwitch}
@@ -392,7 +399,7 @@ export function HomeDonutChartBlock({
             <View style={[styles.emptyChartRing, { borderColor: theme.border }]}>
               <AppIcon name="pie-chart" size={22} color={theme.muted} />
             </View>
-            <Text style={[styles.emptyChartTitle, { color: theme.text }]}>
+            <Text style={[styles.emptyChartTitle, { color: theme.muted }]}>
               {mode === 'income' ? 'No income here yet' : 'No expenses here yet'}
             </Text>
             <Text style={[styles.emptyChartCopy, { color: theme.muted }]}>
@@ -407,7 +414,7 @@ export function HomeDonutChartBlock({
             <View pointerEvents="none" style={styles.centerLabel}>
               {selectionNode ? (
                 <View style={styles.centerIconWrap}>
-                  {renderIcon(selectedSubcategoryNode?.icon ?? selectedParentSlice?.icon, 24, theme.text)}
+                  {renderIcon(selectedSubcategoryNode?.icon ?? selectedParentSlice?.icon, 24, theme.brand)}
                 </View>
               ) : null}
               <Text numberOfLines={2} style={[styles.centerName, { color: theme.text }]}>
@@ -430,36 +437,38 @@ export function HomeDonutChartBlock({
         )}
       </View>
 
-      <View style={[styles.breadcrumbRow, { backgroundColor: theme.surface }]}>
-        <View style={styles.breadcrumbLeft}>
-          <TouchableOpacity
-            onPress={drillParentId ? goUpToParents : undefined}
-            activeOpacity={drillParentId ? 0.8 : 1}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 24 }}
-            style={[
-              styles.breadcrumbTap,
-              drillParentId
-                ? { backgroundColor: theme.inputBg, borderColor: theme.border }
-                : styles.breadcrumbTapInactive,
-            ]}
-          >
-            <Text style={[styles.breadcrumbLink, { color: drillParentId ? theme.accent : theme.text }]}>All</Text>
-          </TouchableOpacity>
-          {drillParentId ? (
-            <>
-              <Text style={[styles.breadcrumbSep, { color: theme.muted }]}>/</Text>
-              <Text style={[styles.breadcrumbCurrent, { color: theme.text }]}>{selectedParentSlice?.label}</Text>
-            </>
-          ) : null}
+      {isEmpty ? null : (
+        <View style={[styles.breadcrumbRow, { backgroundColor: theme.surface }]}>
+          <View style={styles.breadcrumbLeft}>
+            <TouchableOpacity
+              onPress={drillParentId ? goUpToParents : undefined}
+              activeOpacity={drillParentId ? 0.8 : 1}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 24 }}
+              style={[
+                styles.breadcrumbTap,
+                drillParentId
+                  ? { backgroundColor: theme.inputBg, borderColor: theme.border }
+                  : styles.breadcrumbTapInactive,
+              ]}
+            >
+              <Text style={[styles.breadcrumbLink, { color: drillParentId ? theme.accent : theme.text }]}>All</Text>
+            </TouchableOpacity>
+            {drillParentId ? (
+              <>
+                <Text style={[styles.breadcrumbSep, { color: theme.muted }]}>/</Text>
+                <Text style={[styles.breadcrumbCurrent, { color: theme.text }]}>{selectedParentSlice?.label}</Text>
+              </>
+            ) : null}
+          </View>
+          <View style={[styles.breadcrumbMeta, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
+            <Text style={[styles.breadcrumbMetaText, { color: theme.text }]}>
+              {drillParentId
+                ? `${formatCurrency(selectedParentSlice?.amount ?? 0, sym)} · ${Math.round((selectedParentSlice?.percent ?? 0) * 100)}%`
+                : `${formatCurrency(total, sym)} · 100%`}
+            </Text>
+          </View>
         </View>
-        <View style={[styles.breadcrumbMeta, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
-          <Text style={[styles.breadcrumbMetaText, { color: theme.text }]}>
-            {drillParentId
-              ? `${formatCurrency(selectedParentSlice?.amount ?? 0, sym)} · ${Math.round((selectedParentSlice?.percent ?? 0) * 100)}%`
-              : `${formatCurrency(total, sym)} · 100%`}
-          </Text>
-        </View>
-      </View>
+      )}
 
       {expanded ? (
         <ScrollView
@@ -470,14 +479,11 @@ export function HomeDonutChartBlock({
           nestedScrollEnabled
         >
           {categoryList}
-
-          <View style={[styles.transactionsDivider, { backgroundColor: theme.border }]} />
-
-          <View style={styles.transactionsHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Transactions</Text>
-          </View>
-
-          <View style={styles.txListCards}>
+          <View style={[styles.transactionsSection, { backgroundColor: txPalette.surface, borderColor: txPalette.border }]}>
+            <View style={styles.transactionsHeader}>
+              <Text style={[styles.sectionTitle, { color: txPalette.text }]}>Transactions</Text>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: txPalette.textMuted }}>{selectedTransactions.length}</Text>
+            </View>
             {selectedTransactions.map((tx, index) => (
               <TransactionListItem
                 key={tx.id}
@@ -492,12 +498,14 @@ export function HomeDonutChartBlock({
                 loanPersonName={tx.loanId ? loansById?.get(tx.loanId)?.personName : undefined}
                 loanDirection={tx.loanId ? loansById?.get(tx.loanId)?.direction : undefined}
                 showAmountSign={false}
-                isCard
-                style={styles.txCardItem}
-                paddingX={10}
-                paddingY={12}
+                paddingY={14}
               />
             ))}
+            {selectedTransactions.length === 0 ? (
+              <Text style={{ color: txPalette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
+                No transactions here
+              </Text>
+            ) : null}
           </View>
         </ScrollView>
       ) : (
@@ -513,13 +521,13 @@ const styles = StyleSheet.create({
   expandedChartContent: { flex: 1 },
   expandedChartInner: { paddingBottom: 2 },
   chartTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 2, paddingHorizontal: 10, marginBottom: -2, zIndex: 10 },
-  chartTopRowExpanded: { paddingTop: 0, paddingHorizontal: 10, marginBottom: -4, zIndex: 10 },
-  chartSwitch: { alignSelf: 'flex-start', minWidth: 150 },
+  chartTopRowExpanded: { paddingTop: 8, paddingHorizontal: 12, marginBottom: 0, zIndex: 10 },
+  chartSwitch: { alignSelf: 'flex-start', minWidth: 144 },
   expandButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: -2 },
   chartWrap: { height: 304, alignItems: 'center', justifyContent: 'center', marginTop: -14, marginBottom: 0 },
   emptyChart: { width: 248, minHeight: 248, borderRadius: 124, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 26 },
   emptyChartRing: { width: 64, height: 64, borderRadius: 32, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  emptyChartTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center', marginTop: 2 },
+  emptyChartTitle: { fontSize: 14.5, fontWeight: '500', textAlign: 'center', marginTop: 2 },
   emptyChartCopy: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginTop: 6 },
   centerLabel: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingTop: 2 },
   centerIconWrap: { minHeight: 28, marginBottom: 4, alignItems: 'center', justifyContent: 'center' },
@@ -548,30 +556,25 @@ const styles = StyleSheet.create({
   breadcrumbMetaText: { fontSize: 11.5, fontWeight: '800' },
   listViewport: { width: '100%' },
   listViewportCollapsed: { maxHeight: 244 },
-  categoryList: { paddingHorizontal: 20, paddingTop: 10, gap: 14 },
+  categoryList: { paddingHorizontal: 20, paddingTop: 10, gap: 8 },
   categoryRow: { gap: 6, paddingVertical: 6 },
   rowTopLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   rowTitleWrap: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
   subcategoryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  subcategoryIconBadge: { marginTop: 0 },
   subcategoryContent: { flex: 1, minWidth: 0, paddingTop: 1 },
   subcategoryName: { paddingTop: 0 },
-  iconBadge: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  iconBadge: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rowAmountWrap: { alignItems: 'flex-end', minWidth: 80, paddingRight: 6 },
-  splitName: { flex: 1, fontSize: 15, fontWeight: '500' },
-  splitValue: { fontSize: 13, fontWeight: '800' },
+  splitName: { flex: 1, fontSize: CARD_TEXT.line1, fontWeight: '500' },
+  splitValue: { fontSize: CARD_TEXT.line1, fontWeight: '800' },
   progressTrack: { height: 4, borderRadius: 999, overflow: 'hidden' },
   subcategoryProgressTrack: { marginTop: 12 },
   progressFill: { height: 4, borderRadius: 999 },
-  emptySubcategoryWrap: { marginLeft: 48, marginTop: 2, paddingVertical: 8 },
+  emptySubcategoryWrap: { marginLeft: 44, marginTop: 2, paddingVertical: 8 },
   emptySubcategoryText: { fontSize: 12.5, fontWeight: '600' },
-  transactionsDivider: { height: 1, marginTop: 18, marginHorizontal: 20, opacity: 0.9 },
-  transactionsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: 12, paddingHorizontal: 20 },
+  transactionsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: HOME_SPACE.sm, paddingHorizontal: 12 },
   sectionTitle: { fontSize: HOME_TEXT.sectionTitle, fontWeight: '700' },
-  sectionSub: { fontSize: HOME_TEXT.bodySmall, fontWeight: '600', marginTop: 2 },
-  countBadge: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 13, paddingVertical: 7, fontSize: 13, fontWeight: '900' },
-  txListCards: { paddingHorizontal: 20, paddingBottom: 40 },
-  txCardItem: { marginBottom: 12 },
+  transactionsSection: { borderRadius: HOME_RADIUS.card, borderWidth: 1, marginHorizontal: 12, marginTop: 18, marginBottom: 24, paddingTop: 16, paddingBottom: 4, overflow: 'hidden' },
   expandedScroll: { flex: 1 },
   expandedScrollContent: { paddingBottom: 20 },
 });

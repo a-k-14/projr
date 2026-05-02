@@ -18,6 +18,7 @@ export function OverviewHeroCard({
   badgeLabel,
   badgeBg,
   badgeColor,
+  badgeBorder,
   metrics,
   progressLabelLeft,
   progressLabelRight,
@@ -37,6 +38,7 @@ export function OverviewHeroCard({
   badgeLabel: string;
   badgeBg: string;
   badgeColor: string;
+  badgeBorder?: string;
   metrics: HeroMetric[];
   progressLabelLeft?: string;
   progressLabelRight?: string;
@@ -71,7 +73,7 @@ export function OverviewHeroCard({
             {title}
           </Text>
         </View>
-        <View style={[styles.pill, { backgroundColor: badgeBg, borderColor: badgeBg }]}>
+        <View style={[styles.pill, { backgroundColor: badgeBg, borderColor: badgeBorder ?? badgeBg }]}>
           <Text numberOfLines={1} appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: badgeColor }}>
             {badgeLabel}
           </Text>

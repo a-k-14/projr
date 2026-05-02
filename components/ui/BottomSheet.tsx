@@ -64,6 +64,8 @@ export function BottomSheet({
   headerBottom,
   maxHeightRatio,
   fixedHeightRatio,
+  disableShadow = false,
+  backgroundColor,
 }: {
   title: string;
   subtitle?: string;
@@ -81,6 +83,8 @@ export function BottomSheet({
   headerBottom?: ReactNode;
   maxHeightRatio?: number;
   fixedHeightRatio?: number;
+  disableShadow?: boolean;
+  backgroundColor?: string;
 }) {
   const { height: screenHeight } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
@@ -193,10 +197,10 @@ export function BottomSheet({
             transform: [{ translateY }],
             shadowColor: SHADOW_COLOR,
             shadowOffset: { width: 0, height: SHADOW_OFFSET_Y },
-            shadowOpacity: SHADOW_OPACITY,
-            shadowRadius: SHADOW_RADIUS,
-            elevation: ELEVATION,
-            backgroundColor: palette.card,
+            shadowOpacity: disableShadow ? 0 : SHADOW_OPACITY,
+            shadowRadius: disableShadow ? 0 : SHADOW_RADIUS,
+            elevation: disableShadow ? 0 : ELEVATION,
+            backgroundColor: backgroundColor ?? palette.card,
             borderTopLeftRadius: SHEET_RADIUS,
             borderTopRightRadius: SHEET_RADIUS,
             paddingBottom: bottomOffset,
