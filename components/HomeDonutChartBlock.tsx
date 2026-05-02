@@ -7,7 +7,7 @@ import { BUTTON_TOKENS, CARD_PADDING, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME
 import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
 import type { AppThemePalette } from '@/lib/theme';
 import type { Category, LoanWithSummary, Transaction } from '@/types';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 
@@ -221,14 +221,15 @@ export function HomeDonutChartBlock({
   listPalette?: AppThemePalette;
   expanded?: boolean;
   onExpand?: () => void;
-  resetTrigger?: number;
+  resetTrigger?: number | string;
   accountsById?: Map<string, string>;
   loansById?: Map<string, LoanWithSummary>;
   getCategoryFullDisplayName?: (categoryId: string, separator?: string) => string;
 }) {
-  const [mode, setMode] = useState<Mode>('expense');
+  const [mode, setMode] = useState<Mode>('income');
   const [drillParentId, setDrillParentId] = useState<string | null>(null);
   const [selectedSliceId, setSelectedSliceId] = useState<string | null>(null);
+  const listScrollRef = useRef<ScrollView | null>(null);
   const txPalette = listPalette ?? (theme as unknown as AppThemePalette);
   const switchOptions = useMemo(() => ([
     { key: 'income', label: 'Income' },
@@ -267,9 +268,10 @@ export function HomeDonutChartBlock({
   const selectedSlicePercent = visibleListSlices.find((slice) => slice.id === selectedSliceId)?.percent;
 
   useEffect(() => {
-    setMode('expense');
+    setMode('income');
     setDrillParentId(null);
     setSelectedSliceId(null);
+    listScrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [resetTrigger]);
 
   const handleModeChange = (next: Mode) => {
@@ -459,6 +461,7 @@ export function HomeDonutChartBlock({
 
       {expanded ? (
         <ScrollView 
+          ref={listScrollRef}
           style={styles.expandedScroll} 
           contentContainerStyle={styles.expandedScrollContent}
           showsVerticalScrollIndicator={false}
@@ -496,7 +499,7 @@ export function HomeDonutChartBlock({
           </View>
         </ScrollView>
       ) : (
-        <ScrollView style={[styles.listViewport, styles.listViewportCollapsed]} contentContainerStyle={{ paddingBottom: 4 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+        <ScrollView ref={listScrollRef} style={[styles.listViewport, styles.listViewportCollapsed]} contentContainerStyle={{ paddingBottom: 4 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
           {categoryList}
         </ScrollView>
       )}

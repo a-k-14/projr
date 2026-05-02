@@ -61,6 +61,7 @@ beforeEach(() => {
       split_group_id TEXT,
       linked_account_id TEXT,
       loan_id TEXT,
+      loan_transaction_type TEXT,
       category_id TEXT,
       tags TEXT NOT NULL DEFAULT '[]',
       payee TEXT,

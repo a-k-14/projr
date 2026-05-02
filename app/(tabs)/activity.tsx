@@ -147,6 +147,7 @@ export default function ActivityScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const pendingListResetRef = useRef(false);
   const pendingScrollToTopRef = useRef(false);
+  const lastFilterScrollSignatureRef = useRef<string | null>(null);
   const [listResetKey, setListResetKey] = useState(0);
 
   const scrollToTop = useCallback((animated: boolean) => {
@@ -203,6 +204,44 @@ export default function ActivityScreen() {
     setListResetKey((value) => value + 1);
     queueScrollToTop(false);
   }, [isFocused, queueScrollToTop]);
+
+  useEffect(() => {
+    if (!isFocused || !isInitialParamSyncComplete) return;
+    const signature = [
+      period,
+      periodOffset,
+      customFrom ?? '',
+      customTo ?? '',
+      selectedAccountId,
+      typeFilter,
+      cashflowBucket,
+      groupByMode,
+      categoryDrilldown ? `${categoryDrilldown.parentKey}:${categoryDrilldown.subKey}` : '',
+    ].join('|');
+
+    if (lastFilterScrollSignatureRef.current === null) {
+      lastFilterScrollSignatureRef.current = signature;
+      return;
+    }
+
+    if (lastFilterScrollSignatureRef.current !== signature) {
+      lastFilterScrollSignatureRef.current = signature;
+      queueScrollToTop(false);
+    }
+  }, [
+    cashflowBucket,
+    categoryDrilldown,
+    customFrom,
+    customTo,
+    groupByMode,
+    isFocused,
+    isInitialParamSyncComplete,
+    period,
+    periodOffset,
+    queueScrollToTop,
+    selectedAccountId,
+    typeFilter,
+  ]);
 
   const toggleSearch = useCallback((active: boolean) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -936,6 +975,69 @@ export default function ActivityScreen() {
     [accountsById, categoriesById, loansById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
   );
 
+  const activityHeader = (
+    <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
+      <ActivityFilterBar
+        accountLabel={accountLabel}
+        setShowAccountSheet={setShowAccountSheet}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        setCashflowBucket={setCashflowBucket}
+        setShowMoreSheet={setShowMoreSheet}
+        moreActiveCount={moreActiveCount}
+        palette={palette}
+        periodNavigation={
+          <ActivityPeriodHeader
+            period={period}
+            periodLabel={periodLabel}
+            goPrev={goPrev}
+            goNext={goNext}
+            canGoNext={canGoNext}
+            setShowPeriodSheet={setShowPeriodSheet}
+            palette={palette}
+          />
+        }
+      />
+
+      {period !== 'all' ? (
+        <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+          <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
+        </View>
+      ) : null}
+
+      <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
+
+      {groupByMode === 'category' && categoryDrilldown ? (
+        <View
+          style={{
+            paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+            marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom
+          }}
+        >
+          <TouchableOpacity delayPressIn={0}
+            onPress={() => setCategoryDrilldown(null)}
+            activeOpacity={0.75}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <AppChevron direction="left" size={16} tone="secondary" palette={palette} />
+            <Text
+              numberOfLines={1}
+              style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
+            >
+              {categoryDrilldown.compactLabel
+                ? categoryDrilldown.parentLabel
+                : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       {isSearchActive ? (
@@ -1000,70 +1102,8 @@ export default function ActivityScreen() {
               initialNumToRender={10}
               maxToRenderPerBatch={10}
               windowSize={5}
-              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
-              ListHeaderComponent={
-                <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-                  <ActivityFilterBar
-                    accountLabel={accountLabel}
-                    setShowAccountSheet={setShowAccountSheet}
-                    typeFilter={typeFilter}
-                    setTypeFilter={setTypeFilter}
-                    setCashflowBucket={setCashflowBucket}
-                    setShowMoreSheet={setShowMoreSheet}
-                    moreActiveCount={moreActiveCount}
-                    palette={palette}
-                    periodNavigation={
-                      <ActivityPeriodHeader
-                        period={period}
-                        periodLabel={periodLabel}
-                        goPrev={goPrev}
-                        goNext={goNext}
-                        canGoNext={canGoNext}
-                        setShowPeriodSheet={setShowPeriodSheet}
-                        palette={palette}
-                      />
-                    }
-                  />
-
-                  {period !== 'all' ? (
-                    <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-                      <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
-                    </View>
-                  ) : null}
-
-                  <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
-
-                  {groupByMode === 'category' && categoryDrilldown ? (
-                    <View
-                      style={{
-                        paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                        marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom
-                      }}
-                    >
-                      <TouchableOpacity delayPressIn={0}
-                        onPress={() => setCategoryDrilldown(null)}
-                        activeOpacity={0.75}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 8
-                        }}
-                      >
-                        <AppChevron direction="left" size={16} tone="secondary" palette={palette} />
-                        <Text
-                          numberOfLines={1}
-                          style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
-                        >
-                          {categoryDrilldown.compactLabel
-                            ? categoryDrilldown.parentLabel
-                            : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : null}
-                </View>
-              }
+              ListHeaderComponent={activityHeader}
               ListEmptyComponent={
                 !refreshing ? (
                   <View style={{ paddingTop: 4, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
@@ -1086,37 +1126,8 @@ export default function ActivityScreen() {
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
             >
-              <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-                <ActivityFilterBar
-                  accountLabel={accountLabel}
-                  setShowAccountSheet={setShowAccountSheet}
-                  typeFilter={typeFilter}
-                  setTypeFilter={setTypeFilter}
-                  setCashflowBucket={setCashflowBucket}
-                  setShowMoreSheet={setShowMoreSheet}
-                  moreActiveCount={moreActiveCount}
-                  palette={palette}
-                  periodNavigation={
-                    <ActivityPeriodHeader
-                      period={period}
-                      periodLabel={periodLabel}
-                      goPrev={goPrev}
-                      goNext={goNext}
-                      canGoNext={canGoNext}
-                      setShowPeriodSheet={setShowPeriodSheet}
-                      palette={palette}
-                    />
-                  }
-                />
-
-                {period !== 'all' ? (
-                  <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-                    <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
-                  </View>
-                ) : null}
-
-                <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
-
+              <>
+                {activityHeader}
                 <View>
                   {hierarchySections.map((section, sectionIndex) => (
                     <View key={section.key}>
@@ -1291,7 +1302,7 @@ export default function ActivityScreen() {
                     </View>
                   ))}
                 </View>
-              </View>
+              </>
             </ScrollView>
           ) : null}
         </>

@@ -43,7 +43,7 @@ export function ActivityPeriodHeader({
         <AppChevron
           direction="left"
           size={16}
-          tone={isDisabled ? 'secondary' : 'primary'}
+          tone={isDisabled ? 'subtle' : 'primary'}
           opacity={1}
           palette={palette}
         />
@@ -70,7 +70,7 @@ export function ActivityPeriodHeader({
         <AppChevron
           direction="right"
           size={16}
-          tone={canGoNext ? 'primary' : 'secondary'}
+          tone={canGoNext ? 'primary' : 'subtle'}
           opacity={1}
           palette={palette}
         />
