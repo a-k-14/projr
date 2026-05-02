@@ -441,7 +441,7 @@ export default function AddTransactionModal() {
             : type === 'loan'
               ? 'Add Loan'
               : 'Add Expense';
-  const actionButtonColor = activeConfig.color;
+  const actionButtonColor = type === 'loan' ? palette.brand : activeConfig.color;
   const actionButtonTextColor = activeConfig.onColor;
   const screenTitle = isEditing
     ? type === 'in'
@@ -1181,7 +1181,7 @@ export default function AddTransactionModal() {
           onPress={handleSubmit}
           disabled={!isValid}
           palette={palette}
-          tone={type === 'loan' ? 'loan' : type === 'out' ? 'danger' : 'brand'}
+          tone={type === 'out' ? 'danger' : 'brand'}
           style={{ backgroundColor: isValid ? actionButtonColor : palette.textSoft }}
         />
         {isEditing && (

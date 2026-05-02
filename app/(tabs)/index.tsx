@@ -20,8 +20,7 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
-  type SharedValue,
+  type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeDonutChartBlock } from '../../components/HomeDonutChartBlock';
@@ -645,7 +644,9 @@ export default function HomeScreen() {
                   style={{
                     minHeight: 48,
                     borderRadius: HOME_RADIUS.tab,
-                    backgroundColor: palette.inputBg,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderColor: palette.border,
                   }}
                 />
               </View>
@@ -671,7 +672,8 @@ export default function HomeScreen() {
             setExpandedChartState(null);
             setBottomSheetVisible(false);
           }}
-          fixedHeightRatio={0.98}
+          maxHeightRatio={0.80}
+          fixedHeightRatio={0.80}
           hasNavBar
         >
           <View style={{ paddingBottom: 0 }}>
@@ -682,6 +684,7 @@ export default function HomeScreen() {
               listPalette={palette}
               getCategoryFullDisplayName={getCategoryFullDisplayName}
               theme={{
+                brand: palette.brand,
                 card: palette.card,
                 surface: '#EEF2F8',
                 inputBg: '#FFFFFF',
@@ -877,7 +880,7 @@ function AccountSummaryCard({
           Today
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'stretch', marginTop: HOME_SPACE.sm }}>
-            {([
+          {([
             { key: 'in', label: 'In', value: todayCashflow.in, color: palette.positive },
             { key: 'out', label: 'Out', value: todayCashflow.out, color: palette.negative },
             { key: 'net', label: 'Net', value: todayCashflow.net, color: netColor },
@@ -1375,6 +1378,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   });
 
   const chartTheme = useMemo(() => ({
+    brand: palette.brand,
     card: palette.card,
     surface: '#EEF2F8',
     inputBg: '#FFFFFF',
@@ -1663,7 +1667,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             </ScrollView>
           </View>
 
-          <View style={{ alignItems: 'center', marginTop: 2, marginBottom: 22 }}>
+          <View style={{ alignItems: 'center', marginTop: 2 }}>
             <TouchableOpacity delayPressIn={0} onPress={() => router.push('/loan-prototype')}>
               <Text
                 appWeight="medium"
@@ -1698,14 +1702,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 color: palette.text,
                 opacity: 0.05,
                 textAlign: 'center',
-                letterSpacing: -6,
                 lineHeight: 180,
-                width: '140%',
               }}
             >
               reni
             </Text>
           </View>
+
         </View>
       </Animated.ScrollView>
 

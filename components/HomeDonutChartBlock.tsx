@@ -1,12 +1,12 @@
+import { TransactionListItem } from '@/components/TransactionListItem';
 import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
-import { TransactionListItem } from '@/components/TransactionListItem';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
 import { formatCurrency, getTransactionCashflowImpact } from '@/lib/derived';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '@/lib/layoutTokens';
+import { BUTTON_TOKENS, CARD_PADDING, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_SURFACE, HOME_TEXT } from '@/lib/layoutTokens';
 import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
-import type { Category, LoanWithSummary, Transaction } from '@/types';
 import type { AppThemePalette } from '@/lib/theme';
+import type { Category, LoanWithSummary, Transaction } from '@/types';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
@@ -205,6 +205,7 @@ export function HomeDonutChartBlock({
   categoriesById: Map<string, Category>;
   sym: string;
   theme: {
+    brand: string;
     card: string;
     surface: string;
     inputBg: string;
@@ -361,16 +362,21 @@ export function HomeDonutChartBlock({
           backgroundColor={theme.surface}
           pillColor={theme.inputBg}
           borderColor={theme.border}
+          itemMinWidth={72}
           activeTextColor={theme.text}
           inactiveTextColor={theme.muted}
           style={styles.chartSwitch}
           height={HOME_LAYOUT.periodHeight}
           radius={HOME_RADIUS.tab + 3}
           fontSize={HOME_TEXT.caption}
-          itemMinWidth={72}
         />
         {expanded || !onExpand ? null : (
-          <TouchableOpacity activeOpacity={0.8} hitSlop={{ top: 18, bottom: 18, left: 18, right: 22 }} onPress={onExpand} style={styles.expandButton}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            onPress={onExpand}
+            style={styles.expandButton}
+          >
             <AppIcon name="maximize-2" size={15} color={theme.textMuted ?? theme.muted} />
           </TouchableOpacity>
         )}
@@ -452,32 +458,21 @@ export function HomeDonutChartBlock({
       </View>
 
       {expanded ? (
-        categoryList
-      ) : (
-        <ScrollView style={[styles.listViewport, styles.listViewportCollapsed]} contentContainerStyle={{ paddingBottom: 4 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.expandedScroll} 
+          contentContainerStyle={styles.expandedScrollContent}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+        >
           {categoryList}
-        </ScrollView>
-      )}
-
-      {expanded ? (
-        <>
+          
           <View style={[styles.transactionsDivider, { backgroundColor: theme.border }]} />
+          
           <View style={styles.transactionsHeader}>
-            <View>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Transactions</Text>
-              <Text style={[styles.sectionSub, { color: theme.muted }]}>
-                {selectionNode
-                  ? `All / ${selectedParent?.label ?? selectionNode.label}${selectedSubcategoryNode ? ` / ${selectedSubcategoryNode.label}` : ''}`
-                  : 'All'}
-              </Text>
-            </View>
-            <Text style={[styles.countBadge, { color: theme.text, backgroundColor: theme.surface }]}>
-              {selectedTransactions.length}
-            </Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Transactions</Text>
           </View>
-
-          <View style={[styles.txSurface, { backgroundColor: txPalette.surface, borderColor: txPalette.border }]}>
-            <View style={styles.txList}>
+          
+          <View style={styles.txListCards}>
             {selectedTransactions.map((tx, index) => (
               <TransactionListItem
                 key={tx.id}
@@ -492,12 +487,19 @@ export function HomeDonutChartBlock({
                 loanPersonName={tx.loanId ? loansById?.get(tx.loanId)?.personName : undefined}
                 loanDirection={tx.loanId ? loansById?.get(tx.loanId)?.direction : undefined}
                 showAmountSign={false}
+                isCard
+                style={styles.txCardItem}
+                paddingX={10}
+                paddingY={12}
               />
             ))}
-            </View>
           </View>
-        </>
-      ) : null}
+        </ScrollView>
+      ) : (
+        <ScrollView style={[styles.listViewport, styles.listViewportCollapsed]} contentContainerStyle={{ paddingBottom: 4 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+          {categoryList}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -505,8 +507,8 @@ export function HomeDonutChartBlock({
 const styles = StyleSheet.create({
   expandedChartContent: { flex: 1 },
   expandedChartInner: { paddingBottom: 2 },
-  chartTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 2, paddingHorizontal: 10, marginBottom: -2 },
-  chartTopRowExpanded: { paddingTop: 0, paddingHorizontal: 10, marginBottom: -4 },
+  chartTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 2, paddingHorizontal: 10, marginBottom: -2, zIndex: 10 },
+  chartTopRowExpanded: { paddingTop: 0, paddingHorizontal: 10, marginBottom: -4, zIndex: 10 },
   chartSwitch: { alignSelf: 'flex-start', minWidth: 170 },
   expandButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: -2 },
   chartWrap: { height: 304, alignItems: 'center', justifyContent: 'center', marginTop: -14, marginBottom: 0 },
@@ -541,8 +543,8 @@ const styles = StyleSheet.create({
   breadcrumbMetaText: { fontSize: 11.5, fontWeight: '800' },
   listViewport: { width: '100%' },
   listViewportCollapsed: { maxHeight: 244 },
-  categoryList: { paddingHorizontal: 20, paddingTop: 6, gap: 8 },
-  categoryRow: { gap: 6, paddingVertical: 4 },
+  categoryList: { paddingHorizontal: 20, paddingTop: 10, gap: 14 },
+  categoryRow: { gap: 6, paddingVertical: 6 },
   rowTopLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   rowTitleWrap: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
   subcategoryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -554,15 +556,17 @@ const styles = StyleSheet.create({
   splitName: { flex: 1, fontSize: 15, fontWeight: '500' },
   splitValue: { fontSize: 13, fontWeight: '800' },
   progressTrack: { height: 4, borderRadius: 999, overflow: 'hidden' },
-  subcategoryProgressTrack: { marginTop: 7 },
+  subcategoryProgressTrack: { marginTop: 12 },
   progressFill: { height: 4, borderRadius: 999 },
   emptySubcategoryWrap: { marginLeft: 48, marginTop: 2, paddingVertical: 8 },
   emptySubcategoryText: { fontSize: 12.5, fontWeight: '600' },
   transactionsDivider: { height: 1, marginTop: 18, marginHorizontal: 20, opacity: 0.9 },
-  transactionsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 12, paddingHorizontal: 20 },
+  transactionsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: 12, paddingHorizontal: 20 },
   sectionTitle: { fontSize: HOME_TEXT.sectionTitle, fontWeight: '700' },
   sectionSub: { fontSize: HOME_TEXT.bodySmall, fontWeight: '600', marginTop: 2 },
   countBadge: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 13, paddingVertical: 7, fontSize: 13, fontWeight: '900' },
-  txSurface: { marginHorizontal: 20, borderWidth: 1, borderRadius: HOME_RADIUS.card, overflow: 'hidden' },
-  txList: { paddingBottom: 0 },
+  txListCards: { paddingHorizontal: 20, paddingBottom: 40 },
+  txCardItem: { marginBottom: 12 },
+  expandedScroll: { flex: 1 },
+  expandedScrollContent: { paddingBottom: 20 },
 });

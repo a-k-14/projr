@@ -471,8 +471,7 @@ export default function LoanDetailScreen() {
                   router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
                 }
                 palette={palette}
-                tone="loan"
-                startIcon={<AppIcon name={isLent ? 'arrow-down-left' : 'arrow-up-right'} size={18} color={palette.onLoan} />}
+                tone="brand"
               />
             ) : null}
             <TextButton
@@ -481,7 +480,7 @@ export default function LoanDetailScreen() {
                 router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } })
               }
               palette={palette}
-              tone="loan"
+              tone="brand"
             />
           </FixedBottomActions>
         )}
