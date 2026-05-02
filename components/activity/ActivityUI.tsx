@@ -33,7 +33,7 @@ export function CategoryIconBadge({
         width: badgeSize,
         height: badgeSize,
         borderRadius: 10,
-        backgroundColor: palette.inputBg,
+        backgroundColor: palette.background,
         alignItems: 'center',
         justifyContent: 'center',
       }}

@@ -1,6 +1,6 @@
-import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '@/components/ui/AppIcon';
 import { AppChevron } from '@/components/ui/AppChevron';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { Text } from '@/components/ui/AppText';
 import { forwardRef, ReactNode, RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,12 +41,13 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
     <Text
       appWeight="medium"
       style={{
-        fontSize: TYPE.body,
+        fontSize: 12,
         fontWeight: '700',
-        color: palette.textMuted,
+        color: palette.textSecondary,
         marginHorizontal: 14,
         marginBottom: 6,
-        marginTop: 4
+        marginTop: 4,
+        letterSpacing: 0.3
       }}
     >
       {label}
@@ -88,7 +89,7 @@ export function SettingsRow({
   subtitle,
   labelStyle,
   leftElement }: {
-    icon?: keyof typeof Feather.glyphMap;
+    icon?: string;
     label: string;
     subtitle?: string;
     labelStyle?: any;
@@ -104,7 +105,7 @@ export function SettingsRow({
       {leftElement ? (
         leftElement
       ) : icon ? (
-        <AppIcon name={icon as any} size={18} color={palette.iconTint} />
+        <AppIcon name={icon as any} size={18} color={palette.text} />
       ) : null}
       <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
         <Text
@@ -133,7 +134,11 @@ export function SettingsRow({
       </View>
       {rightElement ? rightElement : null}
       {!rightElement && value ? (
-        <Text style={{ fontSize: TYPE.body, color: palette.textMuted, marginRight: 10 }} numberOfLines={1}>
+        <Text
+          appWeight="medium"
+          style={{ fontSize: TYPE.rowValue, color: palette.textSecondary, marginRight: 10 }}
+          numberOfLines={1}
+        >
           {value}
         </Text>
       ) : null}

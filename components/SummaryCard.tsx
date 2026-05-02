@@ -14,13 +14,13 @@ interface SummaryCardProps {
 
 export function SummaryCard({ cashflow, sym, palette, onPressCategory }: SummaryCardProps) {
   const categories = [
-    { key: 'in', label: 'In', color: palette.brand },
+    { key: 'in', label: 'In', color: palette.positive },
     { key: 'out', label: 'Out', color: palette.negative },
-    { key: 'net', label: 'Net', color: cashflow.net < 0 ? palette.negative : palette.brand },
+    { key: 'net', label: 'Net', color: cashflow.net < 0 ? palette.negative : palette.positive },
   ] as const;
 
   return (
-    <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.divider }]}>
+    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.divider }]}>
       {categories.map((category, index) => (
         <TouchableOpacity delayPressIn={0}
           key={category.key}
@@ -52,8 +52,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
 }
 
 function formatSummaryValue(key: 'in' | 'out' | 'net', value: number, sym: string) {
-  if (key === 'net') return formatCurrency(Math.abs(value), sym);
-  return `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), sym)}`;
+  return formatCurrency(Math.abs(value), sym);
 }
 
 const styles = StyleSheet.create({

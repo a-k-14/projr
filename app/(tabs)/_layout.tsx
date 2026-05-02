@@ -73,8 +73,8 @@ function AppTabBar({
               height: 30,
               borderRadius: HOME_RADIUS.tab,
               borderWidth: 1,
-              borderColor: palette.borderSoft,
-              backgroundColor: palette.inputBg,
+              borderColor: palette.brand,
+              backgroundColor: palette.brandSoft,
             },
             indicatorStyle,
           ]}
@@ -127,7 +127,7 @@ function AppTabBar({
               <AppIcon
                 name={item.icon as any}
                 size={20}
-                color={focused ? palette.listText : palette.textSecondary}
+                color={focused ? palette.brand : palette.textSecondary}
               />
               <Text
                 numberOfLines={1}
@@ -135,7 +135,7 @@ function AppTabBar({
                   fontSize: HOME_TEXT.tiny,
                   lineHeight: 13,
                   marginTop: 8,
-                  color: focused ? palette.listText : palette.textSecondary,
+                  color: focused ? palette.brand : palette.textSecondary,
                   fontWeight: '500',
                   textAlign: 'center',
                   includeFontPadding: false,

@@ -67,7 +67,7 @@ export function OverviewHeroCard({
             {title}
           </Text>
         </View>
-        <View style={[styles.pill, { backgroundColor: badgeBg }]}>
+        <View style={[styles.pill, { backgroundColor: badgeBg, borderColor: badgeBg }]}>
           <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: badgeColor }}>
             {badgeLabel}
           </Text>
@@ -131,7 +131,7 @@ const styles = {
     borderRadius: 999,
     top: -42,
     right: -34,
-    opacity: 0.24,
+    opacity: 1,
   },
   header: {
     flexDirection: 'row' as const,
@@ -142,6 +142,7 @@ const styles = {
   pill: {
     minHeight: 30,
     borderRadius: 999,
+    borderWidth: 1,
     paddingHorizontal: 12,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,

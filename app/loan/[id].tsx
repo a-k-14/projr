@@ -69,7 +69,7 @@ export default function LoanDetailScreen() {
 
   const account = accounts.find((a) => a.id === loan.accountId);
   const isLent = loan.direction === 'lent';
-  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.brand);
+  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.positive);
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const displayedTransactions = useMemo(() => {
     if (!loan) return [];
@@ -472,7 +472,7 @@ export default function LoanDetailScreen() {
                 }
                 palette={palette}
                 tone="loan"
-                startIcon={<AppIcon name={isLent ? 'arrow-down' : 'arrow-up'} size={18} color={palette.onLoan} />}
+                startIcon={<AppIcon name={isLent ? 'arrow-down-left' : 'arrow-up-right'} size={18} color={palette.onLoan} />}
               />
             ) : null}
             <TextButton

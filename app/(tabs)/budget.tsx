@@ -219,7 +219,7 @@ function BudgetOverviewCard({
       eyebrow="Budget overview"
       title={monthLabel}
       badgeLabel={monthBudgetsLabel(totalBudgeted, overBudgetCount)}
-      badgeBg={palette.budgetSoft}
+      badgeBg={palette.budgetBg}
       badgeColor={palette.budget}
       metrics={[
         { key: 'budgeted', label: 'Budgeted', value: formatCurrency(totalBudgeted, sym), valueColor: palette.text },
@@ -233,7 +233,7 @@ function BudgetOverviewCard({
       footerLabel={statusLabel}
       footerValue={statusValue}
       footerValueColor={isOver ? palette.negative : palette.budget}
-      decorativeColor={palette.budgetSoft}
+      decorativeColor="#F8FAFD"
     />
   );
 }

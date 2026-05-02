@@ -880,7 +880,7 @@ export default function ActivityScreen() {
                 style={{
                   fontSize: HOME_TEXT.cardContent,
                   fontWeight: '600',
-                  color: groupNet > 0 ? palette.brand : palette.negative
+                  color: groupNet > 0 ? palette.positive : palette.negative
                 }}
               >
                 {signedCurrency(groupNet, sym)}
@@ -1226,7 +1226,7 @@ export default function ActivityScreen() {
                                   style={{
                                     fontSize: HOME_TEXT.body,
                                     fontWeight: '600',
-                                    color: category.total >= 0 ? palette.brand : palette.negative,
+                                    color: category.total >= 0 ? palette.positive : palette.negative,
                                     marginRight: 2
                                   }}
                                 >
@@ -1273,7 +1273,7 @@ export default function ActivityScreen() {
                                         style={{
                                           fontSize: HOME_TEXT.body,
                                           fontWeight: '500',
-                                          color: sub.total >= 0 ? palette.brand : palette.negative,
+                                          color: sub.total >= 0 ? palette.positive : palette.negative,
                                           marginRight: 10
                                         }}
                                       >
@@ -1511,8 +1511,7 @@ export default function ActivityScreen() {
 
 function signedCurrency(value: number, sym: string) {
   const abs = Math.abs(value);
-  const formatted = formatCurrency(abs, sym);
-  return value > 0 ? `+${formatted}` : value < 0 ? `-${formatted}` : formatted;
+  return formatCurrency(abs, sym);
 }
 
 function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {

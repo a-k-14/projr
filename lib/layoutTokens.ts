@@ -32,7 +32,7 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
       color: palette.transferText,
       bg: palette.transferBg,
       borderColor: palette.transferText,
-      iconName: 'arrow-right-left',
+      iconName: 'repeat',
     },
     loan: {
       label: 'Loan',

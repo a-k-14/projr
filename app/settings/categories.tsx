@@ -12,6 +12,7 @@ import {
 } from '../../components/settings-ui';
 import { CategoryIconBadge, CATEGORY_TREE_ROW } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, TYPE } from '../../lib/design';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 

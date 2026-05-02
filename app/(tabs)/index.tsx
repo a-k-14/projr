@@ -15,7 +15,6 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedRef,
   useAnimatedScrollHandler,
@@ -25,15 +24,16 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChoiceRow, ScreenTitle } from '../../components/settings-ui';
+import { HomeDonutChartBlock } from '../../components/HomeDonutChartBlock';
+import { ScreenTitle } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
-import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FabButton } from '../../components/ui/FabButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
+import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import {
   formatDate,
@@ -42,7 +42,7 @@ import {
   toLocalDayEndISO,
   toLocalDayStartISO
 } from '../../lib/dateUtils';
-import { buildCashflowChartData, formatCurrency, formatIndianNumberStr, getTotalBalance } from '../../lib/derived';
+import { formatCurrency, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import {
   BUTTON_TOKENS,
@@ -66,7 +66,6 @@ import type {
   Account,
   CashflowSummary,
   Category,
-  DailyCashflow,
   LoanStatus,
   LoanWithSummary,
   PeriodType,
@@ -129,6 +128,11 @@ export default function HomeScreen() {
     mode: 'background',
   });
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [expandedChartState, setExpandedChartState] = useState<{
+    accountId: string | 'all';
+    transactions: Transaction[];
+    resetTrigger: number;
+  } | null>(null);
   const previousAccountCountRef = useRef(accounts.length);
   const showAllAccountsTab = accounts.length !== 1;
   const homeRootAccountId = showAllAccountsTab ? 'all' : (accounts[0]?.id ?? 'all');
@@ -520,7 +524,10 @@ export default function HomeScreen() {
                         verticalScrolls={verticalScrolls}
                         indicatorY={indicatorY}
                         resetTick={globalScrollResetTick}
-                        onBottomSheetChange={setBottomSheetVisible}
+                        onOpenChartExpanded={(transactions, resetTrigger) => {
+                          setExpandedChartState({ accountId: account.id, transactions, resetTrigger });
+                          setBottomSheetVisible(true);
+                        }}
                         isPageReady={loadedPageIds.has(account.id) || Math.abs(index - selectedPageIndex) <= 1}
                         accountsById={accountsById}
                         categoriesById={categoriesById}
@@ -655,6 +662,46 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {expandedChartState ? (
+        <BottomSheet
+          title="Category Breakdown"
+          palette={palette}
+          onClose={() => {
+            setExpandedChartState(null);
+            setBottomSheetVisible(false);
+          }}
+          fixedHeightRatio={0.98}
+          hasNavBar
+        >
+          <View style={{ paddingBottom: 0 }}>
+            <HomeDonutChartBlock
+              transactions={expandedChartState.transactions}
+              categoriesById={categoriesById}
+              sym={showCurrencySymbol ? currencySymbol : ''}
+              listPalette={palette}
+              getCategoryFullDisplayName={getCategoryFullDisplayName}
+              theme={{
+                card: palette.card,
+                surface: '#EEF2F8',
+                inputBg: '#FFFFFF',
+                progressTrack: '#DDE4F0',
+                border: '#DFE5EF',
+                text: palette.text,
+                muted: '#7C8498',
+                textMuted: palette.textMuted,
+                accent: palette.brand,
+                positive: palette.positive,
+                negative: palette.negative,
+              }}
+              expanded
+              resetTrigger={expandedChartState.resetTrigger}
+              accountsById={accountsById}
+              loansById={loansById}
+            />
+          </View>
+        </BottomSheet>
+      ) : null}
     </View>
   );
 }
@@ -758,8 +805,8 @@ function AccountSummaryCard({
           borderRadius: 999,
           top: -48,
           right: -38,
-          backgroundColor: palette.brandSoft,
-          opacity: 0.24,
+          backgroundColor: '#F8FAFD',
+          opacity: 1,
         }}
       />
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
@@ -830,8 +877,8 @@ function AccountSummaryCard({
           Today
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'stretch', marginTop: HOME_SPACE.sm }}>
-          {([
-            { key: 'in', label: 'In', value: todayCashflow.in, color: palette.brand },
+            {([
+            { key: 'in', label: 'In', value: todayCashflow.in, color: palette.positive },
             { key: 'out', label: 'Out', value: todayCashflow.out, color: palette.negative },
             { key: 'net', label: 'Net', value: todayCashflow.net, color: netColor },
           ] as const).map((item, index) => {
@@ -1264,7 +1311,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   verticalScrolls,
   indicatorY,
   resetTick,
-  onBottomSheetChange,
+  onOpenChartExpanded,
   isPageReady,
   accountsById,
   categoriesById,
@@ -1288,7 +1335,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
   resetTick: { count: number; animated: boolean; mode: TabResetMode };
-  onBottomSheetChange?: (visible: boolean) => void;
+  onOpenChartExpanded?: (transactions: Transaction[], resetTrigger: number) => void;
   isPageReady: boolean;
   accountsById: Map<string, string>;
   categoriesById: Map<string, Category>;
@@ -1299,26 +1346,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
 }) {
   const { palette } = useAppTheme();
   const [period, setPeriod] = useState<PeriodType>('week');
-  const [activeView, setActiveView] = useState<'out' | 'in' | 'table'>('out');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [todayCashflow, setTodayCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
-  const [dailyData, setDailyData] = useState<DailyCashflow[]>([]);
+  const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [showViewPicker, setShowViewPicker] = useState(false);
-  useEffect(() => { onBottomSheetChange?.(showViewPicker); }, [showViewPicker, onBottomSheetChange]);
   const isScreenFocused = useIsFocused();
-  const [periodControlWidth, setPeriodControlWidth] = useState(0);
-  const periodIndicatorX = useSharedValue(0);
-  const periodIndex = Math.max(0, PERIODS.indexOf(period));
-  const periodSegmentWidth = periodControlWidth > 0 ? periodControlWidth / PERIODS.length : 0;
-  const periodIndicatorStyle = useAnimatedStyle(() => ({
-    width: Math.max(periodSegmentWidth - 6, 0),
-    transform: [{ translateX: periodIndicatorX.value }],
-  }), [periodSegmentWidth]);
 
-  const leftScrollRef = useRef<ScrollView>(null);
-  const rightScrollRef = useRef<ScrollView>(null);
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
 
   useEffect(() => {
@@ -1328,13 +1362,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     }
     if (resetTick.mode === 'full' && resetTick.count > 0) {
       setPeriod('week');
-      setActiveView('out');
     }
   }, [isSelected, resetTick]);
-
-  useEffect(() => {
-    periodIndicatorX.value = withTiming(periodIndex * periodSegmentWidth + 3, { duration: 180 });
-  }, [periodIndex, periodIndicatorX, periodSegmentWidth]);
 
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
@@ -1345,11 +1374,19 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     verticalScrolls.value = arr;
   });
 
-  const handleSyncScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = event.nativeEvent.contentOffset.y;
-    leftScrollRef.current?.scrollTo({ y, animated: false });
-  };
-  const isDarkMode = palette.statusBarStyle === 'light';
+  const chartTheme = useMemo(() => ({
+    card: palette.card,
+    surface: '#EEF2F8',
+    inputBg: '#FFFFFF',
+    progressTrack: '#DDE4F0',
+    border: '#DFE5EF',
+    text: palette.text,
+    muted: '#7C8498',
+    textMuted: palette.textMuted,
+    accent: palette.brand,
+    positive: palette.positive,
+    negative: palette.negative,
+  }), [palette]);
 
   const { from, to } = getDateRange(
     period,
@@ -1373,17 +1410,17 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const loadPageData = useCallback(async () => {
     if (!isPageReady) return;
     const accountFilter = accountId === 'all' ? undefined : accountId;
-    const [periodSnapshot, recentTransactions, todaySnapshot] = await Promise.all([
+    const [periodSnapshot, recentTransactions, periodScopedTransactions, todaySnapshot] = await Promise.all([
       getCashflowSnapshot(accountId, from, to),
       getTransactions({ accountId: accountFilter, limit: 10 }),
+      getTransactions({ accountId: accountFilter, fromDate: from, toDate: to }),
       today >= from && todayEnd <= to
         ? Promise.resolve(null)
         : getCashflowSummary(accountId, today, todayEnd),
     ]);
 
     const periodSummary = periodSnapshot.summary;
-    const dailySummary = periodSnapshot.daily;
-    const todayEntry = dailySummary.find((entry) => entry.date === todayKey);
+    const todayEntry = periodSnapshot.daily.find((entry) => entry.date === todayKey);
     const todaySummary =
       todaySnapshot ??
       (todayEntry
@@ -1391,8 +1428,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
         : { in: 0, out: 0, net: 0 });
 
     setCashflow(periodSummary);
-    setDailyData(dailySummary);
     setTransactions(recentTransactions);
+    setPeriodTransactions(periodScopedTransactions);
     setTodayCashflow(todaySummary);
   }, [accountId, from, isPageReady, to, today, todayEnd, todayKey]);
 
@@ -1413,12 +1450,6 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     setRefreshing(false);
   }, [loadPageData, onRefresh]);
 
-  const viewData = buildCashflowChartData(period, dailyData, from, to, settingsYearStart);
-  const maxVal = Math.max(...viewData.map((entry) => activeView === 'in' ? entry.in : entry.out), 1);
-  const drilldownRanges = useMemo(
-    () => buildCashflowDrilldownRanges(period, from, to, settingsYearStart),
-    [from, period, settingsYearStart, to],
-  );
   const openTodayActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
       router.push({
@@ -1461,25 +1492,6 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     });
   }, []);
 
-  const openSliceActivity = useCallback(
-    (range: { from: string; to: string }, bucket: 'in' | 'out' | 'net') => {
-      router.push({
-        pathname: '/(tabs)/activity',
-        params: {
-          source: 'home-slice',
-          period: 'custom',
-          accountId: accountId === 'all' ? 'all' : accountId,
-          type: 'all',
-          cashflowBucket: bucket,
-          from: range.from,
-          to: range.to,
-          ts: String(Date.now())
-        }
-      });
-    },
-    [accountId],
-  );
-
   return (
     <View style={{ flex: 1, height: pageHeight }}>
       <Animated.ScrollView
@@ -1516,79 +1528,27 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginRight: 12 }}>
               This
             </Text>
-            <View
-              onStartShouldSetResponder={() => true}
-              onLayout={(event) => setPeriodControlWidth(event.nativeEvent.layout.width)}
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                backgroundColor: palette.surface,
-                borderRadius: HOME_RADIUS.tab + 3,
-                borderWidth: 1,
-                borderColor: palette.divider,
-                height: HOME_LAYOUT.periodHeight,
-                overflow: 'hidden',
-                position: 'relative'
+            <SegmentedPillSwitch
+              options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
+              value={period}
+              onChange={(next) => {
+                if (next === 'custom') {
+                  setPeriod('custom');
+                  onOpenCustomRange();
+                  return;
+                }
+                setPeriod(next as PeriodType);
               }}
-            >
-              {periodControlWidth > 0 ? (
-                <Animated.View
-                  pointerEvents="none"
-                  style={[
-                    {
-                      position: 'absolute',
-                      top: 3,
-                      bottom: 3,
-                      left: 0,
-                      borderRadius: HOME_RADIUS.tab,
-                      borderWidth: 1,
-                      borderColor: palette.borderSoft,
-                      backgroundColor: palette.inputBg,
-                    },
-                    periodIndicatorStyle,
-                  ]}
-                />
-              ) : null}
-              {PERIODS.map((value) => (
-                <TouchableOpacity delayPressIn={0}
-                  key={value}
-                  onPress={
-                    () => {
-                      if (value === 'custom') {
-                        setPeriod('custom');
-                        onOpenCustomRange();
-                      } else {
-                        setPeriod(value);
-                      }
-                    }
-                  }
-                  style={{
-                    flex: 1,
-                    height: HOME_LAYOUT.periodHeight,
-                    paddingHorizontal: 6,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1
-                  }}
-                >
-                  <Text
-                    appWeight="medium"
-                    style={{
-                      fontSize: HOME_TEXT.caption,
-                      fontWeight: period === value ? '700' : '600',
-                      textAlign: 'center',
-                      textAlignVertical: 'center',
-                      includeFontPadding: false,
-                      color: period === value
-                        ? palette.text
-                        : palette.textMuted
-                    }}
-                  >
-                    {PERIOD_LABELS[value]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+              backgroundColor={chartTheme.surface}
+              pillColor="#FFFFFF"
+              borderColor={chartTheme.border}
+              activeTextColor={palette.text}
+              inactiveTextColor={palette.textMuted}
+              style={{ flex: 1 }}
+              height={HOME_LAYOUT.periodHeight}
+              radius={HOME_RADIUS.tab + 3}
+              fontSize={HOME_TEXT.caption}
+            />
           </View>
 
           <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 14 }}>
@@ -1605,209 +1565,26 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
           <View
             style={{
               backgroundColor: palette.card,
+              borderWidth: 1,
+              borderColor: palette.divider,
               borderRadius: HOME_RADIUS.card,
-              paddingHorizontal: CARD_PADDING,
-              paddingTop: HOME_SURFACE.cardPaddingY,
-              paddingBottom: HOME_SURFACE.cardPaddingBottom,
+              paddingTop: 12,
+              paddingBottom: 12,
               marginBottom: HOME_SURFACE.chartCardBottom
             }}
           >
-            <TouchableOpacity delayPressIn={0}
-              onPress={() => setShowViewPicker(true)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: HOME_SURFACE.panelHeaderGap,
-                gap: 6
-              }}
-            >
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
-                {activeView === 'out' ? 'Outflows' : activeView === 'in' ? 'Inflows' : 'Cashflow'}
-              </Text>
-              <AppChevron direction="down" size={16} tone="secondary" palette={palette} />
-            </TouchableOpacity>
-
-            {activeView === 'table' ? (
-              <View style={{ flexDirection: 'row' }}>
-                {/* Left Fixed Column: Period */}
-                <View style={{ width: 45 }}>
-                  <View style={{ borderBottomWidth: 1, borderBottomColor: palette.borderSoft, paddingBottom: HOME_SURFACE.tableHeaderPaddingBottom, marginBottom: HOME_SURFACE.panelSubheaderGap }}>
-                    <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center' }}>
-                      Period
-                    </Text>
-                  </View>
-                  <ScrollView
-                    ref={leftScrollRef}
-                    style={{ maxHeight: 310 }}
-                    showsVerticalScrollIndicator={false}
-                    scrollEnabled={false} // Synced by right scroll
-                  >
-                    {viewData.map((row, i) => (
-                      <View
-                        key={i}
-                        style={{
-                          height: HOME_SURFACE.tableRowHeight,
-                          justifyContent: 'center',
-                          borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
-                          borderBottomColor: palette.borderSoft
-                        }}
-                      >
-                        <Text
-                          numberOfLines={1}
-                          style={{ width: 45, fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, opacity: 0.85, textAlign: 'center' }}
-                        >
-                          {row.label}
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* Right Scrollable Data: Inflow, Outflow, Net */}
-                <GestureScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  disallowInterruption={true}
-                  style={{ flex: 1 }}
-                >
-                  <View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        borderBottomWidth: 1,
-                        borderBottomColor: palette.borderSoft,
-                        paddingBottom: HOME_SURFACE.tableHeaderPaddingBottom,
-                        marginBottom: HOME_SURFACE.panelSubheaderGap
-                      }}
-                    >
-                      <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Inflow</Text>
-                      <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Outflow</Text>
-                      <Text style={{ width: 95, fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.textMuted, textAlign: 'center', marginLeft: HOME_SURFACE.tableColumnGap }}>Net</Text>
-                    </View>
-                    <ScrollView
-                      ref={rightScrollRef}
-                      style={{ maxHeight: 310 }}
-                      nestedScrollEnabled
-                      showsVerticalScrollIndicator={false}
-                      onScroll={handleSyncScroll}
-                      scrollEventThrottle={16}
-                    >
-                      {viewData.map((row, i) => (
-                        <View
-                          key={i}
-                          style={{
-                            flexDirection: 'row',
-                            paddingVertical: HOME_SURFACE.cardPaddingY,
-                            height: HOME_SURFACE.tableRowHeight,
-                            borderBottomWidth: i === viewData.length - 1 ? 0 : 0.6,
-                            borderBottomColor: palette.borderSoft,
-                            alignItems: 'center'
-                          }}
-                        >
-                          <TouchableOpacity delayPressIn={0}
-                            activeOpacity={0.75}
-                            onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'in')}
-                            style={{ width: 95, marginLeft: 12 }}
-                          >
-                            <Text
-                              numberOfLines={1}
-                              style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right' }}
-                            >
-                              {row.in > 0 ? formatIndianNumberStr(String(row.in)) : '-'}
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity delayPressIn={0}
-                            activeOpacity={0.75}
-                            onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'out')}
-                            style={{ width: 95, marginLeft: 12 }}
-                          >
-                            <Text
-                              numberOfLines={1}
-                              style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, opacity: 0.85, textAlign: 'right' }}
-                            >
-                              {row.out > 0 ? formatIndianNumberStr(String(row.out)) : '-'}
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity delayPressIn={0}
-                            activeOpacity={0.75}
-                            onPress={() => openSliceActivity(drilldownRanges[i] ?? { from, to }, 'net')}
-                            style={{ width: 95, marginLeft: 12 }}
-                          >
-                            <Text
-                              numberOfLines={1}
-                              style={{
-                                fontSize: HOME_TEXT.body,
-                                fontWeight: '600',
-                                color: row.net > 0 ? palette.brand : row.net < 0 ? palette.negative : palette.text,
-                                opacity: row.net === 0 ? 0.85 : 1,
-                                textAlign: 'right'
-                              }}
-                            >
-                              {row.net !== 0 ? formatIndianNumberStr(String(Math.abs(row.net))) : '-'}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </GestureScrollView>
-              </View>
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: HOME_LAYOUT.chartHeight, paddingHorizontal: 2 }}>
-                {viewData.length > 0
-                  ? viewData.map((entry, index) => {
-                    const amount = activeView === 'in' ? entry.in : entry.out;
-                    return (
-                      <TouchableOpacity delayPressIn={0}
-                        key={`${entry.label}-${index}`}
-                        activeOpacity={0.75}
-                        onPress={() =>
-                          openSliceActivity(
-                            drilldownRanges[index] ?? { from, to },
-                            activeView === 'in' ? 'in' : 'out',
-                          )
-                        }
-                        style={{ flex: 1, alignItems: 'center' }}
-                      >
-                        <View
-                          style={{
-                            width: 14,
-                            backgroundColor: activeView === 'in' ? palette.brand : palette.negative,
-                            borderRadius: HOME_RADIUS.chartBar,
-                            opacity: amount > 0 ? 0.88 : 0.2,
-                            height: Math.max(4, (amount / maxVal) * HOME_LAYOUT.chartBarHeight)
-                          }}
-                        />
-                        <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textSoft, marginTop: 8 }}>
-                          {entry.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })
-                  : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-                    <View key={`${day}-${index}`} style={{ flex: 1, alignItems: 'center' }}>
-                      <View
-                        style={{
-                          width: 10,
-                          height: 4,
-                          backgroundColor: index === 0 ? palette.heroBar : palette.chartBarMuted,
-                          borderRadius: HOME_RADIUS.full
-                        }}
-                      />
-                      <Text
-                        style={{
-                          fontSize: HOME_TEXT.tiny,
-                          color: index === 0 ? palette.text : palette.textMuted,
-                          marginTop: 8,
-                          fontWeight: index === 0 ? '700' : '500'
-                        }}
-                      >
-                        {day}
-                      </Text>
-                    </View>
-                  ))}
-              </View>
-            )}
+            <HomeDonutChartBlock
+              transactions={periodTransactions}
+              categoriesById={categoriesById}
+              sym={currencySymbol}
+              listPalette={palette}
+              getCategoryFullDisplayName={getCategoryFullDisplayName}
+              theme={chartTheme}
+              resetTrigger={resetTick.count}
+              accountsById={accountsById}
+              loansById={loansById}
+              onExpand={() => onOpenChartExpanded?.(periodTransactions, resetTick.count)}
+            />
           </View>
 
           <View
@@ -1899,6 +1676,18 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 Open Loan Prototype
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity delayPressIn={0} onPress={() => router.push('/chart-prototype')} style={{ marginTop: 10 }}>
+              <Text
+                appWeight="medium"
+                style={{
+                  fontSize: HOME_TEXT.bodySmall,
+                  color: palette.brand,
+                  fontWeight: BUTTON_TOKENS.text.labelWeight,
+                }}
+              >
+                Open Chart Prototype
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={{ width: '100%', alignItems: 'center', marginBottom: -70 }}>
@@ -1920,118 +1709,6 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
         </View>
       </Animated.ScrollView>
 
-      {showViewPicker && (
-        <BottomSheet
-          title="Select Chart"
-          palette={palette}
-          onClose={() => setShowViewPicker(false)}
-          hasNavBar
-        >
-          {(['in', 'out', 'table'] as const).map((view, index) => (
-            <ChoiceRow
-              key={view}
-              title={view === 'in' ? 'Inflows' : view === 'out' ? 'Outflows' : 'Cashflow'}
-              subtitle={
-                view === 'in'
-                  ? 'Money coming in by category'
-                  : view === 'out'
-                    ? 'Money going out by category'
-                    : 'Summary of cashflow'
-              }
-              selected={activeView === view}
-              palette={palette}
-              onPress={() => {
-                setActiveView(view);
-                setShowViewPicker(false);
-              }}
-              noBorder={index === 2}
-            />
-          ))}
-          <ChoiceRow
-            title="Chart Prototype"
-            subtitle="Open the new interactive category pie concept"
-            selected={false}
-            palette={palette}
-            onPress={() => {
-              setShowViewPicker(false);
-              router.push('/chart-prototype');
-            }}
-            noBorder
-          />
-        </BottomSheet>
-      )}
     </View>
   );
 });
-
-function addDays(date: Date, amount: number): Date {
-  const value = new Date(date);
-  value.setDate(value.getDate() + amount);
-  return value;
-}
-
-function getDaysBetween(fromIso: string, toIso: string): number {
-  const from = new Date(fromIso);
-  const to = new Date(toIso);
-  const msPerDay = 1000 * 60 * 60 * 24;
-  return Math.max(0, Math.floor((to.getTime() - from.getTime()) / msPerDay));
-}
-
-function buildCashflowDrilldownRanges(
-  period: PeriodType,
-  fromIso: string,
-  toIso: string,
-  yearStart: number,
-): { from: string; to: string }[] {
-  const fromDate = new Date(fromIso);
-  const toDate = new Date(toIso);
-
-  if (period === 'week') {
-    return Array.from({ length: 7 }, (_, index) => {
-      const day = addDays(fromDate, index);
-      return { from: toLocalDayStartISO(day), to: toLocalDayEndISO(day) };
-    });
-  }
-
-  if (period === 'month') {
-    const monthStart = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
-    return Array.from({ length: 5 }, (_, index) => {
-      const bucketStart = addDays(monthStart, index * 7);
-      const bucketEnd = addDays(bucketStart, 6);
-      const boundedStart = bucketStart < fromDate ? fromDate : bucketStart;
-      const boundedEnd = bucketEnd > toDate ? toDate : bucketEnd;
-      return { from: toLocalDayStartISO(boundedStart), to: toLocalDayEndISO(boundedEnd) };
-    });
-  }
-
-  if (period === 'year') {
-    const fiscalStartYear = fromDate.getMonth() >= yearStart ? fromDate.getFullYear() : fromDate.getFullYear() - 1;
-    const fiscalStart = new Date(fiscalStartYear, yearStart, 1);
-    return Array.from({ length: 12 }, (_, index) => {
-      const monthStart = new Date(fiscalStart.getFullYear(), fiscalStart.getMonth() + index, 1);
-      const monthEnd = new Date(fiscalStart.getFullYear(), fiscalStart.getMonth() + index + 1, 0);
-      const boundedStart = monthStart < fromDate ? fromDate : monthStart;
-      const boundedEnd = monthEnd > toDate ? toDate : monthEnd;
-      return { from: toLocalDayStartISO(boundedStart), to: toLocalDayEndISO(boundedEnd) };
-    });
-  }
-
-  const totalDays = getDaysBetween(fromIso, toIso) + 1;
-  if (totalDays <= 14) {
-    return Array.from({ length: totalDays }, (_, index) => {
-      const day = addDays(fromDate, index);
-      return { from: toLocalDayStartISO(day), to: toLocalDayEndISO(day) };
-    });
-  }
-
-  const bucketsCount = totalDays <= 60 ? Math.min(5, Math.ceil(totalDays / 7)) : 12;
-  const step = totalDays <= 60 ? 7 : 30;
-
-  return Array.from({ length: bucketsCount }, (_, index) => {
-    const bucketStart = addDays(fromDate, index * step);
-    const bucketEnd = addDays(bucketStart, step - 1);
-    const boundedStart = bucketStart < fromDate ? fromDate : bucketStart;
-    const boundedEnd = bucketEnd > toDate ? toDate : bucketEnd;
-    return { from: toLocalDayStartISO(boundedStart), to: toLocalDayEndISO(boundedEnd) };
-  });
-}

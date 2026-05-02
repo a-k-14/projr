@@ -71,8 +71,8 @@ function LoanRow({
     onPressLoan: (loanId: string) => void;
   }) {
   const isLent = loan.direction === 'lent';
-  const dirColor = isLent ? palette.negative : palette.brand;
-  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.brand);
+  const dirColor = isLent ? palette.negative : palette.positive;
+  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.positive);
   const directionLabel = isLent ? 'Lent' : 'Borrowed';
   const progressPercent = loan.repaidPercent;
   const balanceAmount = loan.pendingAmount;
@@ -90,7 +90,7 @@ function LoanRow({
           paddingTop: loan.status === 'closed' ? 28 : 14,
           paddingBottom: loan.status === 'closed' ? 16 : 14,
         }}
-        icon={<AppIcon name={isLent ? 'arrow-up' : 'arrow-down'} size={Math.round(HOME_LAYOUT.listIconSize * 0.45)} color={dirColor} />}
+        icon={<AppIcon name={isLent ? 'arrow-up-right' : 'arrow-down-left'} size={Math.round(HOME_LAYOUT.listIconSize * 0.45)} color={dirColor} />}
         iconBg={isLent ? palette.outBg : palette.inBg}
         topRow={
           <CardTitleRow
@@ -639,16 +639,16 @@ function LoanSummaryCard({
       eyebrow="Loans Overview"
       title="Current Position"
       badgeLabel={badgeLabel}
-      badgeBg={palette.loanSoft}
-      badgeColor={palette.loan}
+      badgeBg={borrowed === 0 && lent === 0 ? palette.background : netPositive ? palette.inBg : palette.outBg}
+      badgeColor={borrowed === 0 && lent === 0 ? palette.textSecondary : netPositive ? palette.positive : palette.negative}
       metrics={[
         { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
         { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },
       ]}
       footerLabel="Net"
       footerValue={formatCurrency(Math.abs(net), sym)}
-      footerValueColor={netPositive ? palette.brand : palette.negative}
-      decorativeColor={palette.loanBg}
+      footerValueColor={netPositive ? palette.positive : palette.negative}
+      decorativeColor="#F8FAFD"
     />
   );
 }
