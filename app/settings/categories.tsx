@@ -1,18 +1,16 @@
-import { AppIcon } from '@/components/ui/AppIcon';
 import { AppChevron } from '@/components/ui/AppChevron';
-import { useRouter, Stack } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
-import { Animated, Pressable, ScrollView, View,  useWindowDimensions , TouchableOpacity } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, ScrollView, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CardSection,
-  ScreenTitle,
-  FixedBottomActions,
+  FixedBottomActions
 } from '../../components/settings-ui';
-import { CategoryIconBadge, CATEGORY_TREE_ROW } from '../../components/ui/CategoryTreePicker';
+import { CATEGORY_TREE_ROW, CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, TYPE } from '../../lib/design';
-import { HOME_TEXT } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 
@@ -37,7 +35,8 @@ export default function CategoriesScreen() {
   const visibleByTab = useMemo(
     () => ({
       in: topLevel.filter((c) => c.type === 'in' || c.type === 'both'),
-      out: topLevel.filter((c) => c.type === 'out' || c.type === 'both') }),
+      out: topLevel.filter((c) => c.type === 'out' || c.type === 'both')
+    }),
     [topLevel],
   );
 
@@ -66,7 +65,7 @@ export default function CategoriesScreen() {
     return (
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 120 }}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 42 }}
         showsVerticalScrollIndicator={false}
       >
         <CardSection palette={palette}>
@@ -96,7 +95,8 @@ export default function CategoriesScreen() {
                     minHeight: CATEGORY_TREE_ROW.parentMinHeight,
                     borderBottomWidth: isLast && !isOpen ? 0 : 1,
                     borderBottomColor: palette.divider,
-                    gap: CATEGORY_TREE_ROW.rowGap }}
+                    gap: CATEGORY_TREE_ROW.rowGap
+                  }}
                 >
                   <CategoryIconBadge icon={cat.icon ?? 'tag'} size={20} bgSize={40} palette={palette} />
                   <Text
@@ -121,7 +121,8 @@ export default function CategoriesScreen() {
                       borderRadius: 8,
                       backgroundColor: palette.inputBg,
                       alignItems: 'center',
-                      justifyContent: 'center' }}
+                      justifyContent: 'center'
+                    }}
                   >
                     <AppIcon name="edit-2" size={14} color={palette.iconTint} />
                   </TouchableOpacity>
@@ -133,7 +134,8 @@ export default function CategoriesScreen() {
                     style={{
                       borderBottomWidth: isLast ? 0 : 1,
                       borderBottomColor: palette.divider,
-                      backgroundColor: palette.inputBg }}
+                      backgroundColor: palette.inputBg
+                    }}
                   >
                     {subs.map((sub) => (
                       <View
@@ -147,7 +149,8 @@ export default function CategoriesScreen() {
                           minHeight: 56,
                           gap: 10,
                           borderTopWidth: 1,
-                          borderTopColor: palette.divider }}
+                          borderTopColor: palette.divider
+                        }}
                       >
                         <Text
                           style={{ flex: 1, fontSize: TYPE.section, color: palette.textSecondary, fontWeight: '400' }}
@@ -164,7 +167,8 @@ export default function CategoriesScreen() {
                           paddingRight: CARD_PADDING,
                           paddingVertical: 12,
                           borderTopWidth: 1,
-                          borderTopColor: palette.divider }}
+                          borderTopColor: palette.divider
+                        }}
                       >
                         <Text style={{ fontSize: TYPE.body, color: palette.textSoft }}>No subcategories</Text>
                       </View>
@@ -185,22 +189,7 @@ export default function CategoriesScreen() {
         <Stack.Screen
           options={{
             title: 'Categories',
-            headerRight: () => (
-              <TouchableOpacity
-                delayPressIn={0}
-                onPress={() =>
-                  router.push({ pathname: '/settings/category-form', params: { type: tab } })
-                }
-                style={{ marginRight: 16 }}
-              >
-                <Text
-                  appWeight="medium"
-                  style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}
-                >
-                  Add
-                </Text>
-              </TouchableOpacity>
-            ),
+            headerRight: undefined,
           }}
         />
         <View
@@ -210,7 +199,8 @@ export default function CategoriesScreen() {
             borderBottomWidth: 1,
             borderBottomColor: palette.divider,
             marginBottom: 8,
-            position: 'relative' }}
+            position: 'relative'
+          }}
         >
           <Animated.View
             pointerEvents="none"
@@ -221,7 +211,8 @@ export default function CategoriesScreen() {
               width: `${50}%`,
               height: 2,
               backgroundColor: palette.brand,
-              transform: [{ translateX: underlineTranslateX }] }}
+              transform: [{ translateX: underlineTranslateX }]
+            }}
           />
           {(['in', 'out'] as const).map((t) => (
             <TouchableOpacity delayPressIn={0}
@@ -231,13 +222,15 @@ export default function CategoriesScreen() {
               style={{
                 flex: 1,
                 paddingVertical: 14,
-                alignItems: 'center' }}
+                alignItems: 'center'
+              }}
             >
               <Text
                 style={{
                   fontSize: TYPE.rowValue,
                   fontWeight: '600',
-                  color: tab === t ? palette.brand : palette.textMuted }}
+                  color: tab === t ? palette.brand : palette.textMuted
+                }}
               >
                 {t === 'in' ? 'Income' : 'Expense'} ({visibleByTab[t].length})
               </Text>
@@ -266,7 +259,23 @@ export default function CategoriesScreen() {
         </Animated.ScrollView>
 
         <FixedBottomActions palette={palette}>
-          <View style={{ height: 0 }} />
+          <TouchableOpacity
+            delayPressIn={0}
+            onPress={() => router.push({ pathname: '/settings/category-form', params: { type: tab } })}
+            activeOpacity={0.7}
+            style={{
+              minHeight: 48,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: palette.brand,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: TYPE.body, fontWeight: '600', color: palette.brand }}>
+              + Add Category
+            </Text>
+          </TouchableOpacity>
         </FixedBottomActions>
       </View>
     </SafeAreaView>

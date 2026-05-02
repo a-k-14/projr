@@ -1,14 +1,15 @@
-import { AppIcon } from '../../components/ui/AppIcon';
-import { AppChevron } from '../../components/ui/AppChevron';
+import { Text } from '@/components/ui/AppText';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { View, TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   FixedBottomActions,
   SettingsScreenLayout,
 } from '../../components/settings-ui';
+import { AppChevron } from '../../components/ui/AppChevron';
+import { AppIcon } from '../../components/ui/AppIcon';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, TYPE } from '../../lib/design';
 import { formatDisplayCurrency, getAccountTypeLabel } from '../../lib/settings-shared';
@@ -25,6 +26,7 @@ export default function AccountsScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const displaySymbol = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [orderedAccounts, setOrderedAccounts] = useState(accounts);
 
@@ -75,7 +77,7 @@ export default function AccountsScreen() {
         activationDistance={8}
         autoscrollThreshold={90}
         autoscrollSpeed={180}
-        contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 60 }}
         ListEmptyComponent={
           <View
             style={{
