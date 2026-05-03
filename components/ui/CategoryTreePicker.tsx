@@ -6,7 +6,7 @@ import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from '
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
 import { CARD_PADDING, SCREEN_GUTTER, TYPE } from '../../lib/design';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT, HOME_LAYOUT } from '../../lib/layoutTokens';
 import { isEmojiIcon } from '../../lib/ui-format';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -72,7 +72,7 @@ export function buildCategoryPickerSections<T extends PickerCategory & { parentI
 
 export function CategoryIconBadge({
   icon,
-  size = 20,
+  size = HOME_LAYOUT.listIconInnerSize,
   bgSize = 40,
   palette,
   backgroundColor,
@@ -94,7 +94,7 @@ export function CategoryIconBadge({
         width: bgSize,
         height: bgSize,
         borderRadius: bgSize * 0.28,
-        backgroundColor: backgroundColor ?? palette.loanBg,
+        backgroundColor: backgroundColor ?? 'transparent',
         borderWidth: showBorder ? 1 : 0,
         borderColor: borderColor ?? palette.border,
         alignItems: 'center',
@@ -103,9 +103,9 @@ export function CategoryIconBadge({
       {isEmojiIcon(icon) ? (
         <Text style={{ fontSize: size }}>{icon}</Text>
       ) : isKnownAppIcon(icon) ? (
-        <AppIcon name={icon as any} size={size} color={iconColor ?? palette.iconTint} />
+        <AppIcon name={icon as any} size={size} color={iconColor ?? palette.brand} strokeWidth={HOME_LAYOUT.listIconStrokeWidth} />
       ) : (
-        <AppIcon name="tag" size={size} color={iconColor ?? palette.iconTint} />
+        <AppIcon name="tag" size={size} color={iconColor ?? palette.brand} strokeWidth={HOME_LAYOUT.listIconStrokeWidth} />
       )}
     </View>
   );

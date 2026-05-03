@@ -138,18 +138,18 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       palette={palette}
       onPress={() => onPress && onPress(tx)}
       icon={inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
-        <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
+        <Text style={{ fontSize: HOME_LAYOUT.listIconInnerSize }}>{inOutCategoryIcon}</Text>
       ) : inOutCategoryIcon && isValidIcon(inOutCategoryIcon) ? (
         <AppIcon name={inOutCategoryIcon}
-          size={Math.round(iconSize * 0.45)}
+          size={HOME_LAYOUT.listIconInnerSize}
           color={iconColor}
-          strokeWidth={1.8}
+          strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
         />
       ) : (
         <AppIcon name={iconName as IconName}
-          size={Math.round(iconSize * 0.45)}
+          size={HOME_LAYOUT.listIconInnerSize}
           color={iconColor}
-          strokeWidth={1.8}
+          strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
         />
       )}
       topRow={

@@ -5,6 +5,7 @@ import { forwardRef, ReactNode, RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
+import { HOME_LAYOUT } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { FilledButton, TextButton } from './ui/AppButton';
@@ -471,12 +472,12 @@ export function IconGrid({
   }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
-      {icons.map((icon) => {
+      {icons.map((icon, index) => {
         const isSelected = selectedIcon === icon;
         const isEmoji = isEmojiIcon(icon);
         return (
           <TouchableOpacity delayPressIn={0}
-            key={icon}
+            key={`${icon}-${index}`}
             activeOpacity={0.7}
             onPress={() => onSelect(icon)}
             style={{
@@ -495,7 +496,8 @@ export function IconGrid({
             ) : (
               <AppIcon name={icon as any}
                 size={24}
-                color={isSelected ? palette.tabActive : palette.iconTint}
+                color={isSelected ? palette.tabActive : palette.brand}
+                strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
               />
             )}
           </TouchableOpacity>

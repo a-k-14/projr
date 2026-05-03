@@ -161,6 +161,7 @@ export function HomeDonutChartBlock({
   accountsById,
   loansById,
   getCategoryFullDisplayName,
+  onCategorySelect,
 }: {
   transactions: Transaction[];
   categoriesById: Map<string, Category>;
@@ -187,6 +188,7 @@ export function HomeDonutChartBlock({
   accountsById?: Map<string, string>;
   loansById?: Map<string, LoanWithSummary>;
   getCategoryFullDisplayName?: (categoryId: string, separator?: string) => string;
+  onCategorySelect?: (categoryId: string | null) => void;
 }) {
   const [mode, setMode] = useState<HomeChartMode>(initialMode);
   const [drillParentId, setDrillParentId] = useState<string | null>(null);
@@ -233,6 +235,10 @@ export function HomeDonutChartBlock({
     setSelectedSliceId(null);
     listScrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [initialMode, resetTrigger]);
+
+  useEffect(() => {
+    onCategorySelect?.(selectionNode?.id ?? null);
+  }, [onCategorySelect, selectionNode?.id]);
 
   const handleModeChange = (next: HomeChartMode) => {
     setMode(next);
@@ -331,6 +337,7 @@ export function HomeDonutChartBlock({
           height={HOME_LAYOUT.periodHeight}
           radius={HOME_RADIUS.tab + 3}
           fontSize={HOME_TEXT.caption}
+          animated={false}
         />
         {expanded || !onExpand ? null : (
           <TouchableOpacity
