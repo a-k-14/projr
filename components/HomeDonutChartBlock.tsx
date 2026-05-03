@@ -9,7 +9,8 @@ import type { AppThemePalette } from '@/lib/theme';
 import type { Category, LoanWithSummary, Transaction } from '@/types';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import Svg, { G, Path } from 'react-native-svg';
+import { AppDonutChart, type DonutSlice } from './ui/AppDonutChart';
+import { donutPath } from '@/lib/svg-utils';
 
 export type HomeChartMode = 'expense' | 'income';
 
@@ -41,27 +42,6 @@ function renderIcon(icon: string | undefined, size: number, color: string) {
   if (icon && isEmoji) return <Text style={{ fontSize: size }}>{icon}</Text>;
   if (icon && isValidIcon(icon)) return <AppIcon name={icon} size={Math.round(size * 0.92)} color={color} strokeWidth={1.8} />;
   return <Text style={{ fontSize: size }}>{UNCATEGORIZED_ICON}</Text>;
-}
-
-function polar(cx: number, cy: number, radius: number, angle: number) {
-  const rad = ((angle - 90) * Math.PI) / 180;
-  return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
-}
-
-function donutPath(cx: number, cy: number, outer: number, inner: number, start: number, end: number) {
-  const safeEnd = end - start >= 359.9 ? start + 359.9 : end;
-  const large = safeEnd - start > 180 ? 1 : 0;
-  const p1 = polar(cx, cy, outer, start);
-  const p2 = polar(cx, cy, outer, safeEnd);
-  const p3 = polar(cx, cy, inner, safeEnd);
-  const p4 = polar(cx, cy, inner, start);
-  return [
-    `M ${p1.x} ${p1.y}`,
-    `A ${outer} ${outer} 0 ${large} 1 ${p2.x} ${p2.y}`,
-    `L ${p3.x} ${p3.y}`,
-    `A ${inner} ${inner} 0 ${large} 0 ${p4.x} ${p4.y}`,
-    'Z',
-  ].join(' ');
 }
 
 function collectIds(node: HomeNode): string[] {
@@ -152,48 +132,19 @@ function HomeDonut({
   onSelect,
   bgHex,
 }: {
-  slices: HomeSlice[];
+  slices: DonutSlice[];
   selectedId?: string;
   onSelect: (id: string) => void;
   bgHex: string;
 }) {
-  let angle = 0;
-  const cx = 150;
-  const cy = 150;
-  const baseGap = 2.2;
-
   return (
-    <Svg width={300} height={300} viewBox="0 0 300 300">
-      <G>
-        {slices.map((slice) => {
-          const sliceAngle = slice.percent * 360;
-          const active = slice.id === selectedId;
-          const gap = sliceAngle < 10 ? Math.min(baseGap, sliceAngle * 0.15) : baseGap;
-          const start = angle + gap;
-          const end = angle + sliceAngle - gap;
-          angle += sliceAngle;
-
-          const outer = active ? 126 : 116;
-          const inner = active ? 73 : 80;
-          const minAngle = active ? 3.5 : 1.5;
-          const visiblePath = donutPath(cx, cy, outer, inner, start, Math.max(start + minAngle, end));
-          const touchPath = donutPath(cx, cy, 143, 46, start, Math.max(start + 1.5, end));
-
-          return (
-            <G key={slice.id} onPress={() => onSelect(slice.id)} onPressIn={() => onSelect(slice.id)}>
-              <Path d={touchPath} fill={bgHex} opacity={0.01} />
-              <Path
-                d={visiblePath}
-                fill={slice.color}
-                opacity={active ? 1 : 0.72}
-                stroke={bgHex}
-                strokeWidth={active ? (sliceAngle < 5 ? 2.5 : 4) : 2}
-              />
-            </G>
-          );
-        })}
-      </G>
-    </Svg>
+    <AppDonutChart
+      slices={slices}
+      size={300}
+      selectedId={selectedId}
+      onSelect={onSelect}
+      bgHex={bgHex}
+    />
   );
 }
 

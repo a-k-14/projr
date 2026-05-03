@@ -139,11 +139,11 @@ const styles = {
   },
   glowLarge: {
     position: 'absolute' as const,
-    width: 140,
-    height: 140,
+    width: 150,
+    height: 150,
     borderRadius: 999,
-    top: -42,
-    right: -34,
+    top: -48,
+    right: -38,
     opacity: 1,
   },
   header: {

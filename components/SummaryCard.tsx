@@ -40,10 +40,10 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
             adjustsFontSizeToFit={true}
             style={[
               styles.value,
-              { color: category.color },
+              { color: cashflow[category.key] === 0 ? palette.textMuted : category.color },
             ]}
           >
-            {formatSummaryValue(category.key, cashflow[category.key], sym)}
+            {cashflow[category.key] === 0 ? '—' : formatSummaryValue(category.key, cashflow[category.key], sym)}
           </Text>
         </TouchableOpacity>
       ))}

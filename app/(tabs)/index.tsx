@@ -16,7 +16,8 @@ import {
   View
 } from 'react-native';
 import Animated, {
-  runOnJS,
+  Extrapolate,
+  interpolate,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -25,11 +26,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeDonutChartBlock, type HomeChartMode } from '../../components/HomeDonutChartBlock';
-import { ScreenTitle } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppIcon } from '../../components/ui/AppIcon';
+import { AppDonutChart } from '../../components/ui/AppDonutChart';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FabButton } from '../../components/ui/FabButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
@@ -38,12 +39,11 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import {
   formatDate,
   getDateRange,
-  toLocalDateKey,
   toLocalDayEndISO,
   toLocalDayStartISO
 } from '../../lib/dateUtils';
 import { formatCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
-import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
+import { CARD_PADDING, SCREEN_GUTTER, SPACING, TYPE } from '../../lib/design';
 import {
   BUTTON_TOKENS,
   getFabBottomOffset,
@@ -73,8 +73,11 @@ import type {
   AccountType
 } from '../../types';
 
-const PERIODS: PeriodType[] = ['week', 'month', 'year', 'custom'];
-const PERIOD_LABELS: Record<PeriodType, string> = {
+type HomePeriodType = 'today' | PeriodType;
+
+const PERIODS: HomePeriodType[] = ['today', 'week', 'month', 'year', 'custom'];
+const PERIOD_LABELS: Record<HomePeriodType, string> = {
+  today: 'Today',
   week: 'Week',
   month: 'Month',
   year: 'Year',
@@ -88,6 +91,28 @@ const ACCOUNT_TYPE_SORT_ORDER: Record<AccountType, number> = {
   credit: 4,
   other: 5,
 };
+const NW_TYPE_COLORS: Record<AccountType, string> = {
+  savings: '#00A7A5',
+  cash: '#F2B84B',
+  wallet: '#4E8EF7',
+  investment: '#8B5CF6',
+  credit: '#EF476F',
+  other: '#6B7A90',
+};
+const NW_ACCOUNT_COLORS = [
+  '#00A7A5',
+  '#F2B84B',
+  '#4E8EF7',
+  '#EF476F',
+  '#8B5CF6',
+  '#2DCB73',
+  '#FF8A4C',
+  '#38BDF8',
+  '#B565D9',
+  '#7C8A9E',
+] as const;
+const NW_ASSET_LIGHT = '#0D9488';
+const NW_ASSET_DARK = '#00FAD9';
 
 // Set false to restore the previous behavior where the indicator stays visible
 // during horizontal swipes, even when the current page is vertically scrolled.
@@ -102,6 +127,9 @@ type AccountCardItem = {
   id: string | 'all';
   name: string;
   accountTypeLabel: string;
+};
+type HomePageResetHandle = {
+  resetInBackground: () => void;
 };
 
 export default function HomeScreen() {
@@ -131,6 +159,7 @@ export default function HomeScreen() {
   const isPagerInteractingRef = useRef(false);
   const didPositionInitialPagerRef = useRef(false);
   const wasFocusedRef = useRef(false);
+  const pageResetHandlesRef = useRef(new Map<string | 'all' | 'net-worth', HomePageResetHandle>());
   const pendingPagerSyncAccountIdRef = useRef<string | 'all' | 'add' | 'net-worth' | null>(null);
   const selectedAccountIdRef = useRef<string | 'all' | 'add' | 'net-worth'>('all');
   const { palette } = useAppTheme();
@@ -144,8 +173,8 @@ export default function HomeScreen() {
     animated: false,
     mode: 'background',
   });
-  const [pageBackgroundResetTicks, setPageBackgroundResetTicks] = useState<Record<string, number>>({});
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [pageBackgroundResetTicks, setPageBackgroundResetTicks] = useState<Record<string, number>>({});
   const [expandedChartState, setExpandedChartState] = useState<{
     transactions: Transaction[];
     mode: HomeChartMode;
@@ -168,7 +197,6 @@ export default function HomeScreen() {
     })),
   ], [accounts, showAllAccountsTab]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all' | 'add' | 'net-worth'>(homeRootAccountId);
-  const [headerAccountId, setHeaderAccountId] = useState<string | 'all' | 'add' | 'net-worth'>(homeRootAccountId);
   const [pagerHeight, setPagerHeight] = useState(0);
   const [isPagerReady, setIsPagerReady] = useState(homeRootAccountId === 'all' && width <= 0);
   const [loadedPageIds, setLoadedPageIds] = useState<Set<string | 'all' | 'add' | 'net-worth'>>(
@@ -186,15 +214,51 @@ export default function HomeScreen() {
   const totalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
   const loanSummary = useMemo(() => getLoanSummary(loans), [loans]);
   const netWorth = totalBalance + loanSummary.net;
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    if (!showAllAccountsTab || width <= 0) return { transform: [{ translateX: 0 }] };
+    
+    // Net Worth is index 0. All Accounts is index 1.
+    // When scrollX = 0, translateX = width (off to the right)
+    // When scrollX = width, translateX = 0 (fixed)
+    const translateX = interpolate(
+      accountPagerScrollX.value,
+      [0, width],
+      [width, 0],
+      Extrapolate.CLAMP
+    );
+    
+    return {
+      transform: [{ translateX }],
+    };
+  }, [width, showAllAccountsTab]);
+
+  const fabStyle = useAnimatedStyle(() => {
+    if (!showAllAccountsTab || width <= 0) return { opacity: 1 };
+    
+    // Fade out at index 0 (Net Worth) and index last (Add Account)
+    const opacity = interpolate(
+      accountPagerScrollX.value,
+      [
+        0,
+        width * 0.12,
+        width,
+        (displayAccounts.length - 2) * width,
+        (displayAccounts.length - 1) * width - width * 0.12,
+        (displayAccounts.length - 1) * width,
+      ],
+      [0, 0, 1, 1, 0, 0],
+      Extrapolate.CLAMP
+    );
+    
+    return {
+      opacity,
+      transform: [{ scale: 0.2 + 0.8 * opacity }],
+    };
+  }, [showAllAccountsTab, width, displayAccounts.length]);
 
   useEffect(() => {
     selectedAccountIdRef.current = selectedAccountId;
-    setHeaderAccountId(selectedAccountId);
   }, [selectedAccountId]);
-
-  const updateHeaderPreviewById = useCallback((nextId: string | 'all' | 'add' | 'net-worth') => {
-    setHeaderAccountId((current) => (current === nextId ? current : nextId));
-  }, []);
 
   useEffect(() => {
     if (isFocused && !wasFocusedRef.current) {
@@ -285,8 +349,37 @@ export default function HomeScreen() {
     }
   }, [accountPagerScrollX, displayAccounts, homeAccountViewMode, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
 
+  const resetCustomRangeToToday = useCallback(() => {
+    const today = new Date();
+    setCustomRangeFrom(toLocalDayStartISO(today));
+    setCustomRangeTo(toLocalDayEndISO(today));
+    setCustomDraftFrom(today);
+    setCustomDraftTo(today);
+  }, []);
+
+  const resetPageInBackground = useCallback((accountId: string | 'all' | 'add' | 'net-worth') => {
+    if (accountId === 'add') return;
+    if (accountId !== 'net-worth') {
+      resetCustomRangeToToday();
+    }
+    pageResetHandlesRef.current.get(accountId)?.resetInBackground();
+    setPageBackgroundResetTicks((prev) => ({
+      ...prev,
+      [accountId]: (prev[accountId] ?? 0) + 1,
+    }));
+  }, [resetCustomRangeToToday]);
+
+  const registerPageResetHandle = useCallback((accountId: string | 'all' | 'net-worth', handle: HomePageResetHandle | null) => {
+    if (handle) {
+      pageResetHandlesRef.current.set(accountId, handle);
+      return;
+    }
+    pageResetHandlesRef.current.delete(accountId);
+  }, []);
+
   const resetHomeToAll = useCallback((mode: TabResetMode, animated: boolean) => {
     setSelectedAccountId(homeRootAccountId);
+    resetCustomRangeToToday();
     if (mode === 'full' && homeAccountViewMode === 'list') {
       updateSettings({ homeAccountViewMode: 'swipe' }, 'home-tab-reset').catch(() => undefined);
     }
@@ -300,15 +393,7 @@ export default function HomeScreen() {
     }
     pagerRef.current?.scrollTo({ x: targetX, animated });
     setGlobalScrollResetTick(v => ({ count: v.count + 1, animated, mode }));
-  }, [accountPagerScrollX, displayAccounts, homeAccountViewMode, homeRootAccountId, indicatorGestureOpacity, pagerRef, settledAccountPageIndex, updateSettings, verticalScrolls, width]);
-
-  const resetPageInBackground = useCallback((accountId: string | 'all' | 'add' | 'net-worth') => {
-    if (accountId === 'add' || accountId === 'net-worth') return;
-    setPageBackgroundResetTicks((prev) => ({
-      ...prev,
-      [accountId]: (prev[accountId] ?? 0) + 1,
-    }));
-  }, []);
+  }, [accountPagerScrollX, displayAccounts, homeAccountViewMode, homeRootAccountId, indicatorGestureOpacity, pagerRef, resetCustomRangeToToday, settledAccountPageIndex, updateSettings, verticalScrolls, width]);
 
   useEffect(() => {
     return registerTabReset('index', ({ mode, animated }) => {
@@ -332,7 +417,6 @@ export default function HomeScreen() {
       if (next && next.id !== currentSelectedAccountId) {
         resetPageInBackground(currentSelectedAccountId);
         selectedAccountIdRef.current = next.id;
-        setHeaderAccountId(next.id);
         setSelectedAccountId(next.id);
       }
     },
@@ -363,12 +447,6 @@ export default function HomeScreen() {
       const pageWidthValue = Math.max(width, 1);
       const progress = event.contentOffset.x / pageWidthValue;
       const settledIndex = Math.max(0, Math.round(settledAccountPageIndex.value));
-      const delta = progress - settledIndex;
-      let previewIndex = settledIndex;
-      if (delta < -0.005) previewIndex = Math.max(0, settledIndex - 1);
-      if (delta > 0.005) previewIndex = Math.min(displayAccounts.length - 1, settledIndex + 1);
-      const previewId = displayAccounts[previewIndex]?.id ?? homeRootAccountId;
-      runOnJS(updateHeaderPreviewById)(previewId);
       const hasMovedHorizontally = Math.abs(progress - settledIndex) > 0.01;
       const currentScroll = verticalScrolls.value[settledIndex] ?? 0;
 
@@ -376,7 +454,7 @@ export default function HomeScreen() {
         indicatorGestureOpacity.value = 0;
       }
     },
-  }, [displayAccounts, homeRootAccountId, indicatorGestureOpacity, settledAccountPageIndex, updateHeaderPreviewById, verticalScrolls, width]);
+  }, [indicatorGestureOpacity, settledAccountPageIndex, verticalScrolls, width]);
 
   const handlePagerMomentumEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -520,27 +598,40 @@ export default function HomeScreen() {
 
   return (
     <View
-      style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}
+      style={{ flex: 1, backgroundColor: palette.background }}
     >
-      <ScreenTitle
-        title={headerAccountId === 'net-worth' ? 'Net Worth' : 'Accounts'}
-        palette={palette}
-        right={
-          <View
-            pointerEvents={headerAccountId === 'net-worth' ? 'none' : 'auto'}
-            style={{ width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, opacity: headerAccountId === 'net-worth' ? 0 : 1 }}
-          >
+      <Animated.View style={[
+        { 
+          position: 'absolute', 
+          top: insets.top, 
+          left: 0, 
+          right: 0, 
+          paddingTop: 8, 
+          paddingBottom: SPACING.md, 
+          zIndex: 10,
+          overflow: 'hidden',
+          backgroundColor: palette.background,
+        },
+        headerAnimatedStyle
+      ]}>
+        <View style={{ paddingHorizontal: 14 }}>
+          <Text style={{ fontSize: TYPE.title, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
+            Accounts
+          </Text>
+        </View>
+        <View pointerEvents="box-none" style={{ position: 'absolute', top: 8, right: 14 }}>
+          <View style={{ width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
             <HomeAccountViewToggle
               mode={homeAccountViewMode}
               palette={palette}
               onChange={setHomeViewMode}
             />
           </View>
-        }
-      />
+        </View>
+      </Animated.View>
 
       <View
-        style={{ flex: 1, overflow: 'hidden' }}
+        style={{ flex: 1, overflow: 'hidden', paddingTop: insets.top }}
         onLayout={(event: LayoutChangeEvent) => {
           setPagerHeight(event.nativeEvent.layout.height);
         }}
@@ -609,6 +700,8 @@ export default function HomeScreen() {
                         verticalScrolls={verticalScrolls}
                         indicatorY={indicatorY}
                         resetTick={globalScrollResetTick}
+                        backgroundResetTick={pageBackgroundResetTicks[account.id] ?? 0}
+                        registerResetHandle={registerPageResetHandle}
                         onOpenAccount={openAccountInSwipeMode}
                       />
                     ) : account.id === 'add' ? (
@@ -642,6 +735,7 @@ export default function HomeScreen() {
                         indicatorY={indicatorY}
                         resetTick={globalScrollResetTick}
                         backgroundResetTick={pageBackgroundResetTicks[account.id] ?? 0}
+                        registerResetHandle={registerPageResetHandle}
                         onOpenChartExpanded={(transactions, mode, range, resetTrigger) => {
                           setExpandedChartState({ transactions, mode, resetTrigger });
                           setBottomSheetVisible(true);
@@ -669,24 +763,47 @@ export default function HomeScreen() {
               indicatorY={indicatorY}
               gestureOpacity={indicatorGestureOpacity}
               hidden={bottomSheetVisible}
+              hiddenPageIndexes={showAllAccountsTab ? [0, displayAccounts.length - 1] : [displayAccounts.length - 1]}
             />
           </View>
         </View>
       </View>
 
-      <FabButton
-        bottom={getFabBottomOffset(insets.bottom)}
-        palette={palette}
-        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.text}
-        iconColor={palette.isDark ? palette.listText : palette.surface}
-        style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
-            onPress={() =>
-              router.push({
-                pathname: '/modals/add-transaction',
-                params: selectedAccountId === 'all' || selectedAccountId === 'add' || selectedAccountId === 'net-worth' ? undefined : { accountId: selectedAccountId }
-              })
-            }
-      />
+      <Animated.View
+        pointerEvents={selectedAccountId === 'net-worth' || selectedAccountId === 'add' ? 'none' : 'auto'}
+        style={[
+          {
+            position: 'absolute',
+            right: HOME_LAYOUT.fabRightOffset,
+            bottom: getFabBottomOffset(insets.bottom),
+            width: HOME_LAYOUT.fabSize,
+            height: HOME_LAYOUT.fabSize,
+            zIndex: 10,
+          },
+          fabStyle,
+        ]}
+      >
+        <FabButton
+          bottom={0}
+          palette={palette}
+          backgroundColor={palette.isDark ? palette.surfaceRaised : palette.text}
+          iconColor={palette.isDark ? palette.listText : palette.surface}
+          style={{
+            position: 'relative',
+            right: 0,
+            bottom: 0,
+            elevation: 0,
+            shadowOpacity: 0,
+            ...(palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined),
+          }}
+          onPress={() =>
+            router.push({
+              pathname: '/modals/add-transaction',
+              params: selectedAccountId === 'all' || selectedAccountId === 'add' ? undefined : { accountId: selectedAccountId }
+            })
+          }
+        />
+      </Animated.View>
 
       <Modal
         visible={customRangeOpen}
@@ -884,55 +1001,188 @@ function HomeAccountViewToggle({
   );
 }
 
+const NW_BALANCE_BY_OPTIONS = [
+  { key: 'type', label: 'Type' },
+  { key: 'account', label: 'Account' },
+] as const;
+
 function NetWorthBalanceByToggle({
   mode,
-  palette,
   onChange,
 }: {
-  mode: 'balance' | 'type';
-  palette: AppThemePalette;
-  onChange: (mode: 'balance' | 'type') => void;
+  mode: 'account' | 'type';
+  onChange: (mode: 'account' | 'type') => void;
 }) {
+  return (
+    <SegmentedPillSwitch
+      options={NW_BALANCE_BY_OPTIONS}
+      value={mode}
+      onChange={(key) => onChange(key as 'account' | 'type')}
+      backgroundColor="#EEF2F8"
+      pillColor="#FFFFFF"
+      borderColor="#DFE5EF"
+      activeTextColor="#1F2A44"
+      inactiveTextColor="#7C8498"
+      height={HOME_LAYOUT.periodHeight}
+      radius={HOME_RADIUS.tab + 3}
+      fontSize={HOME_TEXT.caption}
+      itemMinWidth={62}
+      style={{ alignSelf: 'flex-start', minWidth: 144 }}
+    />
+  );
+}
+
+function NetWorthRingMarker({ color }: { color: string }) {
   return (
     <View
       style={{
-        flexDirection: 'row',
-        backgroundColor: '#F0F3F9',
-        borderRadius: 14,
-        alignItems: 'center',
-        overflow: 'hidden',
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        borderWidth: 2.5,
+        borderColor: color,
+        backgroundColor: 'transparent',
       }}
-    >
-      {([
-        { key: 'balance', label: 'Account' },
-        { key: 'type', label: 'Type' },
-      ] as const).map((item) => {
-        const selected = mode === item.key;
-        return (
-          <TouchableOpacity
-            delayPressIn={0}
-            key={item.key}
-            activeOpacity={0.8}
-            onPress={() => onChange(item.key)}
-            style={{
-              minWidth: 72,
-              height: 34,
-              paddingHorizontal: 12,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: selected ? palette.surface : 'transparent',
-            }}
-          >
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: selected ? '#1F2A44' : '#8C94AF' }}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+    />
+  );
+}
+
+function NetWorthDonut({
+  mode,
+  groups,
+  accounts,
+  accountColorsById,
+  palette,
+  currencySymbol,
+  selectedType,
+  onSelectType,
+  selectedAccountId,
+  onSelectAccount,
+}: {
+  mode: 'account' | 'type';
+  groups: Array<{ type: AccountType; accounts: Account[]; balance: number }>;
+  accounts: Account[];
+  accountColorsById: Map<string, string>;
+  palette: AppThemePalette;
+  currencySymbol: string;
+  selectedType: AccountType | null;
+  onSelectType: (type: AccountType | null) => void;
+  selectedAccountId: string | null;
+  onSelectAccount: (id: string | null) => void;
+}) {
+  const size = 292;
+  const chartItems = mode === 'type'
+    ? groups.map((group) => ({
+      id: group.type,
+      label: getAccountTypeLabel(group.type),
+      amount: Math.abs(group.balance),
+      value: group.balance,
+      color: NW_TYPE_COLORS[group.type],
+    }))
+    : accounts.map((account) => ({
+      id: account.id,
+      label: formatAccountDisplayName(account.name, account.accountNumber),
+      amount: Math.abs(account.balance),
+      value: account.balance,
+      color: accountColorsById.get(account.id) ?? NW_ACCOUNT_COLORS[0],
+    }));
+  const slices = chartItems.filter((item) => item.amount > 0);
+  const total = slices.reduce((sum, item) => sum + item.amount, 0) || 1;
+  const selectedId = mode === 'type' ? selectedType : selectedAccountId;
+  const selectedItem = selectedId ? slices.find((item) => item.id === selectedId) ?? null : null;
+  const selectedAmount = selectedItem ? selectedItem.amount : total;
+  const selectedValue = selectedItem ? selectedItem.value : total;
+  const selectedPercent = selectedItem ? Math.round((selectedItem.amount / total) * 100) : 100;
+  const donutSlices = slices.map((item) => ({
+    id: item.id,
+    percent: item.amount / total,
+    color: item.color,
+  }));
+
+  return (
+    <View style={{ height: 284, alignItems: 'center', justifyContent: 'center', marginTop: -12, marginBottom: -16 }}>
+      <AppDonutChart
+        slices={donutSlices}
+        size={size}
+        selectedId={selectedId}
+        onSelect={(id) => {
+          if (mode === 'type') {
+            onSelectType(selectedType === id ? null : id as AccountType);
+            return;
+          }
+          onSelectAccount(selectedAccountId === id ? null : id);
+        }}
+        bgHex={palette.card}
+      />
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' }}>
+        {selectedItem ? (
+          <View style={{ minHeight: 28, marginBottom: 4, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: selectedItem.color }} />
+          </View>
+        ) : null}
+        <Text numberOfLines={2} style={{ maxWidth: 112, fontSize: 13, fontWeight: '700', textAlign: 'center', color: palette.text }}>
+          {selectedItem ? selectedItem.label : mode === 'type' ? 'All Types' : 'All Accounts'}
+        </Text>
+        <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: 18, fontWeight: '800', color: palette.text, marginTop: 4, textAlign: 'center' }}>
+          {selectedAmount === 0 ? '—' : `${selectedValue < 0 ? '-' : ''}${formatCurrency(Math.abs(selectedValue), currencySymbol)}`}
+        </Text>
+        <Text style={{ fontSize: 11, fontWeight: '600', marginTop: 2, color: palette.textMuted }}>
+          {selectedPercent}% of Total
+        </Text>
+      </View>
     </View>
   );
 }
 
+function NetWorthTypeRows({
+  groups,
+  palette,
+  currencySymbol,
+}: {
+  groups: Array<{ type: AccountType; accounts: Account[]; balance: number }>;
+  palette: AppThemePalette;
+  currencySymbol: string;
+}) {
+  const total = groups.reduce((sum, group) => sum + Math.abs(group.balance), 0) || 1;
+
+  return (
+    <>
+      {groups.filter((group) => Math.abs(group.balance) > 0).map((group) => {
+        const isNegative = group.balance < 0;
+        return (
+          <View
+            key={group.type}
+            style={{ minHeight: 76, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: palette.divider }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+              <View style={{ paddingTop: 14 }}>
+                <NetWorthRingMarker color={NW_TYPE_COLORS[group.type]} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13.5, fontWeight: '700', color: palette.text }}>
+                      {getAccountTypeLabel(group.type)}
+                    </Text>
+                    <Text numberOfLines={1} style={{ fontSize: 13, color: palette.textMuted, marginTop: 3 }}>
+                      {group.accounts.length} {group.accounts.length === 1 ? 'account' : 'accounts'} · {Math.round((Math.abs(group.balance) / total) * 100)}%
+                    </Text>
+                  </View>
+                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: group.balance === 0 ? palette.textMuted : isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
+                    {group.balance === 0 ? '—' : `${isNegative ? '-' : ''}${formatCurrency(Math.abs(group.balance), currencySymbol)}`}
+                  </Text>
+                </View>
+                <View style={{ height: 4, borderRadius: 999, overflow: 'hidden', backgroundColor: palette.inputBg, marginTop: 10 }}>
+                  <View style={{ height: 4, borderRadius: 999, width: `${(Math.abs(group.balance) / total) * 100}%`, backgroundColor: NW_TYPE_COLORS[group.type] }} />
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </>
+  );
+}
 function HomeNetWorthPage({
   pageHeight,
   palette,
@@ -944,6 +1194,8 @@ function HomeNetWorthPage({
   verticalScrolls,
   indicatorY,
   resetTick,
+  backgroundResetTick,
+  registerResetHandle,
   onOpenAccount,
 }: {
   pageHeight: number;
@@ -956,14 +1208,21 @@ function HomeNetWorthPage({
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
   resetTick: { count: number; animated: boolean; mode: TabResetMode };
+  backgroundResetTick: number;
+  registerResetHandle: (accountId: string | 'all' | 'net-worth', handle: HomePageResetHandle | null) => void;
   onOpenAccount: (accountId: string | 'all') => void;
 }) {
-  const [accountViewMode, setAccountViewMode] = useState<'balance' | 'type'>('balance');
+  const [accountViewMode, setAccountViewMode] = useState<'account' | 'type'>('type');
+  const [selectedType, setSelectedType] = useState<AccountType | null>(null);
+  const [selectedChartAccountId, setSelectedChartAccountId] = useState<string | null>(null);
+  const [localResetCount, setLocalResetCount] = useState(0);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const positiveAccountTotal = accounts.reduce((sum, account) => sum + Math.max(account.balance, 0), 0);
   const negativeAccountTotal = accounts.reduce((sum, account) => sum + Math.abs(Math.min(account.balance, 0)), 0);
   const assetTotal = positiveAccountTotal + loanSummary.youLent;
   const liabilityTotal = negativeAccountTotal + loanSummary.youOwe;
+  const nwAssetColor = palette.isDark ? NW_ASSET_DARK : NW_ASSET_LIGHT;
+  const nwLiabilityColor = palette.negative;
   const totalExposure = Math.max(assetTotal + liabilityTotal, 1);
   const assetShare = assetTotal / totalExposure;
   const liabilityShare = liabilityTotal / totalExposure;
@@ -993,8 +1252,14 @@ function HomeNetWorthPage({
       }))
       .sort((a, b) => ACCOUNT_TYPE_SORT_ORDER[a.type] - ACCOUNT_TYPE_SORT_ORDER[b.type]);
   }, [sortedAccounts]);
+  const accountColorsById = useMemo(() => new Map(sortedAccounts.map((account, index) => [
+    account.id,
+    NW_ACCOUNT_COLORS[index % NW_ACCOUNT_COLORS.length],
+  ])), [sortedAccounts]);
   const largestAccountBalance = Math.max(...accounts.map((account) => Math.abs(account.balance)), 1);
-  const largestTypeBalance = Math.max(...groupedAccounts.map((group) => Math.abs(group.balance)), 1);
+  const displayedAccounts = selectedType
+    ? sortedAccounts.filter((account) => account.type === selectedType)
+    : sortedAccounts;
   const assetPercent = Math.round(assetShare * 100);
   const liabilityPercent = Math.round(liabilityShare * 100);
   const positionRows = [
@@ -1003,7 +1268,7 @@ function HomeNetWorthPage({
       label: 'Liquid assets',
       note: `${accounts.filter((account) => account.balance > 0).length} funded accounts`,
       value: positiveAccountTotal,
-      color: palette.positive,
+      color: nwAssetColor,
       icon: 'wallet',
     },
     {
@@ -1019,10 +1284,26 @@ function HomeNetWorthPage({
       label: 'Liabilities',
       note: 'Borrowed and negative balances',
       value: liabilityTotal,
-      color: palette.negative,
+      color: nwLiabilityColor,
       icon: 'arrow-up-right',
     },
   ] as const;
+
+  const resetInBackground = useCallback(() => {
+    setAccountViewMode('type');
+    setSelectedType(null);
+    setSelectedChartAccountId(null);
+    setLocalResetCount((count) => count + 1);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    const nextScrolls = verticalScrolls.value.slice();
+    nextScrolls[pageIndex] = 0;
+    verticalScrolls.value = nextScrolls;
+  }, [pageIndex, scrollRef, verticalScrolls]);
+
+  useEffect(() => {
+    registerResetHandle('net-worth', { resetInBackground });
+    return () => registerResetHandle('net-worth', null);
+  }, [registerResetHandle, resetInBackground]);
 
   useEffect(() => {
     if (resetTick.count <= 0) return;
@@ -1031,6 +1312,17 @@ function HomeNetWorthPage({
     nextScrolls[pageIndex] = 0;
     verticalScrolls.value = nextScrolls;
   }, [pageIndex, resetTick, scrollRef, verticalScrolls]);
+
+  useEffect(() => {
+    if (backgroundResetTick <= 0) return;
+    setAccountViewMode('type');
+    setSelectedType(null);
+    setSelectedChartAccountId(null);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    const nextScrolls = verticalScrolls.value.slice();
+    nextScrolls[pageIndex] = 0;
+    verticalScrolls.value = nextScrolls;
+  }, [backgroundResetTick, pageIndex, scrollRef, verticalScrolls]);
 
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
@@ -1041,70 +1333,47 @@ function HomeNetWorthPage({
 
   const renderAccountRow = (account: Account, isFirstInSection: boolean) => {
     const isNegative = account.balance < 0;
+    const accountColor = accountColorsById.get(account.id) ?? NW_ACCOUNT_COLORS[0];
+    const isSelected = selectedChartAccountId === account.id;
     return (
-      <Pressable
+      <TouchableOpacity
         key={account.id}
+        delayPressIn={0}
+        activeOpacity={0.75}
         onPress={() => onOpenAccount(account.id)}
-        style={({ pressed }) => ({
+        style={{
           minHeight: 72,
           paddingHorizontal: 16,
           paddingVertical: 12,
           borderTopWidth: isFirstInSection ? 0 : 1,
           borderTopColor: palette.divider,
-          backgroundColor: pressed ? palette.inputBg : 'transparent',
-        })}
+          opacity: selectedChartAccountId && !isSelected ? 0.48 : 1,
+        }}
       >
-        {({ pressed }) => (
-          <View style={{ transform: [{ scale: pressed ? 0.995 : 1 }] }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.inputBg }}>
-                <AppIcon name={account.type === 'credit' ? 'credit-card' : 'wallet'} size={16} color={isNegative ? palette.negative : palette.brand} />
-              </View>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+          <View style={{ paddingTop: 14 }}>
+            <NetWorthRingMarker color={accountColor} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.text }}>
+                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13.5, fontWeight: '700', color: palette.text }}>
                   {formatAccountDisplayName(account.name, account.accountNumber)}
                 </Text>
-                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
+                <Text numberOfLines={1} style={{ fontSize: 13, color: palette.textMuted, marginTop: 3 }}>
                   {getAccountTypeLabel(account.type)}
                 </Text>
               </View>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
-                {isNegative ? '-' : ''}{formatCurrency(Math.abs(account.balance), currencySymbol)}
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: account.balance === 0 ? palette.textMuted : isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
+                {account.balance === 0 ? '—' : `${isNegative ? '-' : ''}${formatCurrency(Math.abs(account.balance), currencySymbol)}`}
               </Text>
             </View>
-            <View style={{ height: 3, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', marginTop: 10, marginLeft: 44 }}>
-              <View style={{ width: `${Math.max(8, (Math.abs(account.balance) / largestAccountBalance) * 100)}%`, height: '100%', backgroundColor: isNegative ? palette.negative : palette.brand }} />
+            <View style={{ height: 4, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', marginTop: 10 }}>
+              {account.balance !== 0 ? <View style={{ width: `${(Math.abs(account.balance) / largestAccountBalance) * 100}%`, height: '100%', borderRadius: 999, backgroundColor: accountColor }} /> : null}
             </View>
           </View>
-        )}
-      </Pressable>
-    );
-  };
-
-  const renderTypeCard = (group: (typeof groupedAccounts)[number], isFirstInSection: boolean) => {
-    const isNegative = group.balance < 0;
-    return (
-      <View key={group.type} style={{ minHeight: 76, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: isFirstInSection ? 0 : 1, borderTopColor: palette.divider }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.inputBg }}>
-            <AppIcon name={group.type === 'credit' ? 'credit-card' : 'wallet'} size={16} color={isNegative ? palette.negative : palette.brand} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.text }}>
-              {getAccountTypeLabel(group.type)}
-            </Text>
-            <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
-              {group.accounts.length} {group.accounts.length === 1 ? 'account' : 'accounts'}
-            </Text>
-          </View>
-          <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
-            {isNegative ? '-' : ''}{formatCurrency(Math.abs(group.balance), currencySymbol)}
-          </Text>
         </View>
-        <View style={{ height: 3, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', marginTop: 10, marginLeft: 44 }}>
-          <View style={{ width: `${Math.max(8, (Math.abs(group.balance) / largestTypeBalance) * 100)}%`, height: '100%', backgroundColor: isNegative ? palette.negative : palette.brand }} />
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -1114,14 +1383,21 @@ function HomeNetWorthPage({
       style={{ flex: 1, height: pageHeight }}
       contentContainerStyle={{
         paddingHorizontal: SCREEN_GUTTER,
-        paddingTop: HOME_SURFACE.heroTop,
+        paddingTop: 0,
         paddingBottom: HOME_LAYOUT.fabContentBottomPadding,
       }}
       onScroll={verticalScrollHandler}
       scrollEventThrottle={1}
       showsVerticalScrollIndicator={false}
     >
-      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, padding: CARD_PADDING, minHeight: 184, overflow: 'hidden', justifyContent: 'space-between' }}>
+      <View style={{ paddingTop: 8, paddingBottom: SPACING.md }}>
+        <View style={{ paddingHorizontal: 14 - SCREEN_GUTTER }}>
+          <Text style={{ fontSize: TYPE.title, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
+            Net Worth
+          </Text>
+        </View>
+      </View>
+      <View style={{ paddingTop: HOME_SURFACE.heroTop, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, padding: CARD_PADDING, minHeight: 184, overflow: 'hidden', justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
@@ -1137,22 +1413,24 @@ function HomeNetWorthPage({
         </View>
 
         <View>
-          <View style={{ height: 8, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', position: 'relative' }}>
-            <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${assetShare * 100}%`, backgroundColor: palette.positive, borderTopRightRadius: liabilityTotal > 0 ? 0 : 999, borderBottomRightRadius: liabilityTotal > 0 ? 0 : 999 }} />
-            <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${liabilityShare * 100}%`, backgroundColor: palette.negative, borderTopLeftRadius: assetTotal > 0 ? 0 : 999, borderBottomLeftRadius: assetTotal > 0 ? 0 : 999 }} />
+          <View style={{ height: 4, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', position: 'relative' }}>
+            <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${assetShare * 100}%`, backgroundColor: nwAssetColor, borderTopRightRadius: liabilityTotal > 0 ? 0 : 999, borderBottomRightRadius: liabilityTotal > 0 ? 0 : 999 }} />
+            {liabilityTotal > 0 ? (
+              <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${liabilityShare * 100}%`, backgroundColor: nwLiabilityColor, borderTopLeftRadius: assetTotal > 0 ? 0 : 999, borderBottomLeftRadius: assetTotal > 0 ? 0 : 999 }} />
+            ) : null}
           </View>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 14 }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Assets</Text>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: palette.positive, marginTop: 5 }}>
-                {formatCurrency(assetTotal, currencySymbol)} · {assetPercent}%
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: nwAssetColor, marginTop: 5 }}>
+                {formatCurrency(assetTotal, currencySymbol)}{assetPercent < 100 ? ` · ${assetPercent}%` : ''}
               </Text>
             </View>
             <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end' }}>
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Liabilities</Text>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: palette.negative, marginTop: 5, textAlign: 'right' }}>
-                {formatCurrency(liabilityTotal, currencySymbol)} · {liabilityPercent}%
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: liabilityTotal > 0 ? nwLiabilityColor : palette.textMuted, marginTop: 5, textAlign: 'right' }}>
+                {liabilityTotal > 0 ? `${formatCurrency(liabilityTotal, currencySymbol)} · ${liabilityPercent}%` : 'None'}
               </Text>
             </View>
           </View>
@@ -1190,18 +1468,46 @@ function HomeNetWorthPage({
         ))}
       </View>
 
-      <View style={{ marginTop: 16, marginBottom: HOME_SPACE.pageBottom, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, overflow: 'hidden' }}>
-        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <Text appWeight="medium" style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>Balance by</Text>
+      <View style={{ marginTop: 16, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, overflow: 'hidden' }}>
+        <View style={{ paddingHorizontal: 10, paddingTop: 16, paddingBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
           <NetWorthBalanceByToggle
             mode={accountViewMode}
-            palette={palette}
-            onChange={setAccountViewMode}
+            onChange={(nextMode) => {
+              setAccountViewMode(nextMode);
+              setSelectedType(null);
+              setSelectedChartAccountId(null);
+            }}
           />
         </View>
-        {accountViewMode === 'balance'
-          ? sortedAccounts.map((account, index) => renderAccountRow(account, index === 0))
-          : groupedAccounts.map((group, index) => renderTypeCard(group, index === 0))}
+        <NetWorthDonut
+          key={localResetCount}
+          mode={accountViewMode}
+          groups={groupedAccounts}
+          accounts={sortedAccounts}
+          accountColorsById={accountColorsById}
+          palette={palette}
+          currencySymbol={currencySymbol}
+          selectedType={selectedType}
+          onSelectType={(type) => {
+            setSelectedType(type);
+            setSelectedChartAccountId(null);
+          }}
+          selectedAccountId={selectedChartAccountId}
+          onSelectAccount={(accountId) => {
+            setSelectedChartAccountId(accountId);
+            setSelectedType(null);
+          }}
+        />
+        <View style={{ height: 1, backgroundColor: palette.divider, marginTop: 8 }} />
+        {accountViewMode === 'type'
+          ? displayedAccounts.map((account, index) => renderAccountRow(account, index === 0))
+          : (
+            <NetWorthTypeRows
+              groups={groupedAccounts}
+              palette={palette}
+              currencySymbol={currencySymbol}
+            />
+          )}
       </View>
     </Animated.ScrollView>
   );
@@ -1211,25 +1517,19 @@ function AccountSummaryCard({
   accountName,
   accountTypeLabel,
   balance,
-  todayCashflow,
   currencySymbol,
   palette,
   onPress,
-  onPressCategory,
   onLayout,
 }: {
   accountName: string;
   accountTypeLabel: string;
   balance: number;
-  todayCashflow: CashflowSummary;
   currencySymbol: string;
   palette: AppThemePalette;
   onPress?: () => void;
-  onPressCategory?: (category: 'in' | 'out' | 'net') => void;
   onLayout?: (height: number) => void;
 }) {
-  const isNetPositive = todayCashflow.net >= 0;
-  const netColor = isNetPositive ? palette.brand : palette.negative;
   const balanceColor = palette.text;
 
   const content = (
@@ -1249,11 +1549,11 @@ function AccountSummaryCard({
         pointerEvents="none"
         style={{
           position: 'absolute',
-          width: 150,
-          height: 150,
+          width: 110,
+          height: 110,
           borderRadius: 999,
-          top: -48,
-          right: -38,
+          top: -34,
+          right: -28,
           backgroundColor: '#F8FAFD',
           opacity: 1,
         }}
@@ -1311,64 +1611,6 @@ function AccountSummaryCard({
           </Text>
         </View>
       </View>
-
-      <View style={{ marginTop: HOME_SPACE.xxl }}>
-        <Text
-          appWeight="medium"
-          style={{
-            fontSize: HOME_TEXT.tiny,
-            color: palette.textMuted,
-            fontWeight: '700',
-            letterSpacing: 0.5,
-            textTransform: 'uppercase',
-          }}
-        >
-          Today
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'stretch', marginTop: HOME_SPACE.sm }}>
-          {([
-            { key: 'in', label: 'Income', value: todayCashflow.in, color: palette.positive },
-            { key: 'out', label: 'Expense', value: todayCashflow.out, color: palette.negative },
-            { key: 'net', label: 'Net', value: todayCashflow.net, color: netColor },
-          ] as const).map((item, index) => {
-            const metric = (
-              <View style={{ alignItems: index === 0 ? 'flex-start' : index === 2 ? 'flex-end' : 'center' }}>
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.cardContent, color: palette.textMuted }}>
-                  {item.label}
-                </Text>
-                <Text
-                  appWeight="medium"
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  style={{ fontSize: HOME_TEXT.cardContent, fontWeight: '500', color: item.color, marginTop: HOME_SPACE.xs }}
-                >
-                  {formatTodayMetricValue(item.key, item.value, currencySymbol)}
-                </Text>
-              </View>
-            );
-
-            return (
-              <React.Fragment key={item.key}>
-                {index > 0 ? (
-                  <View style={{ width: 1, backgroundColor: palette.divider, marginHorizontal: HOME_SPACE.md }} />
-                ) : null}
-                {onPressCategory ? (
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    activeOpacity={0.72}
-                    onPress={() => onPressCategory(item.key)}
-                    style={{ flex: 1, minWidth: 0 }}
-                  >
-                    {metric}
-                  </TouchableOpacity>
-                ) : (
-                  <View style={{ flex: 1, minWidth: 0 }}>{metric}</View>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </View>
-      </View>
     </View>
   );
 
@@ -1386,8 +1628,30 @@ function formatSignedCurrency(value: number, currencySymbol: string) {
 }
 
 function formatTodayMetricValue(key: 'in' | 'out' | 'net', value: number, currencySymbol: string) {
+  if (value === 0) return '—';
   if (key === 'net') return formatCurrency(Math.abs(value), currencySymbol);
   return formatSignedCurrency(value, currencySymbol);
+}
+
+function getHomeDateRange(
+  period: HomePeriodType,
+  settingsYearStart: number,
+  customRange?: { from: Date; to: Date },
+) {
+  if (period === 'today') {
+    const now = new Date();
+    return {
+      from: toLocalDayStartISO(now),
+      to: toLocalDayEndISO(now),
+    };
+  }
+
+  return getDateRange(
+    period,
+    settingsYearStart,
+    customRange ? customRange.from.toISOString() : undefined,
+    customRange ? customRange.to.toISOString() : undefined,
+  );
 }
 
 function HomeAccountsList({
@@ -1445,6 +1709,7 @@ function HomeAccountsList({
   return (
     <ScrollView
       style={{ flex: 1, height: pageHeight }}
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         paddingHorizontal: SCREEN_GUTTER,
         paddingTop: HOME_SURFACE.heroTop,
@@ -1583,6 +1848,7 @@ function PageDashIndicator({
   indicatorY,
   gestureOpacity,
   hidden,
+  hiddenPageIndexes = [],
 }: {
   pageCount: number;
   palette: AppThemePalette;
@@ -1593,6 +1859,7 @@ function PageDashIndicator({
   indicatorY: SharedValue<number>;
   gestureOpacity: SharedValue<number>;
   hidden?: boolean;
+  hiddenPageIndexes?: number[];
 }) {
   const safePageCount = Math.max(pageCount, 1);
   const dotCount = safePageCount;
@@ -1629,14 +1896,18 @@ function PageDashIndicator({
     const targetReady = (y > 0 && pageCount > 1) ? 1 : 0;
     const hideFlag = hidden ? 0 : 1;
     const swipeVisibility = HIDE_SCROLLED_INDICATOR_DURING_SWIPE ? gestureOpacity.value : 1;
+    let hiddenPageOpacity = 1;
+    hiddenPageIndexes.forEach((index) => {
+      if (Math.abs(progress - index) < 0.96) hiddenPageOpacity = 0;
+    });
 
     return {
       transform: [
         { translateY: y - currentScroll }
       ],
-      opacity: hideFlag * targetReady * addPageOpacity * swipeVisibility
+      opacity: hideFlag * targetReady * addPageOpacity * hiddenPageOpacity * swipeVisibility
     };
-  }, [pageWidth, pageCount, hidden]);
+  }, [pageWidth, pageCount, hidden, hiddenPageIndexes]);
 
   const activeStyle = useAnimatedStyle(() => {
     const rawIndex = pageWidth > 0 ? scrollX.value / pageWidth : 0;
@@ -1711,7 +1982,7 @@ function AddAccountPage({
         flex: 1,
         height: pageHeight,
         paddingHorizontal: SCREEN_GUTTER,
-        paddingTop: HOME_SURFACE.heroTop,
+        paddingTop: 54 + HOME_SURFACE.heroTop,
         paddingBottom: HOME_LAYOUT.fabContentBottomPadding,
         justifyContent: 'center',
       }}
@@ -1761,6 +2032,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   indicatorY,
   resetTick,
   backgroundResetTick,
+  registerResetHandle,
   onOpenChartExpanded,
   isPageReady,
   accountsById,
@@ -1786,7 +2058,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   indicatorY: SharedValue<number>;
   resetTick: { count: number; animated: boolean; mode: TabResetMode };
   backgroundResetTick: number;
-  onOpenChartExpanded?: (transactions: Transaction[], mode: HomeChartMode, range: { period: PeriodType; from: string; to: string }, resetTrigger: number) => void;
+  registerResetHandle: (accountId: string | 'all' | 'net-worth', handle: HomePageResetHandle | null) => void;
+  onOpenChartExpanded?: (transactions: Transaction[], mode: HomeChartMode, range: { period: HomePeriodType; from: string; to: string }, resetTrigger: number) => void;
   isPageReady: boolean;
   accountsById: Map<string, string>;
   categoriesById: Map<string, Category>;
@@ -1796,14 +2069,15 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   loadLoans: (filters?: { accountId?: string; status?: LoanStatus }) => Promise<void>;
 }) {
   const { palette } = useAppTheme();
-  const [period, setPeriod] = useState<PeriodType>('week');
+  const [period, setPeriod] = useState<HomePeriodType>('today');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
-  const [todayCashflow, setTodayCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
+  const handledResetCountRef = useRef(0);
+  const [localResetCount, setLocalResetCount] = useState(0);
 
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
   const recentScrollRef = useRef<ScrollView | null>(null);
@@ -1811,25 +2085,41 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   useEffect(() => {
     loadRequestIdRef.current += 1;
     setCashflow({ in: 0, out: 0, net: 0 });
-    setTodayCashflow({ in: 0, out: 0, net: 0 });
     setPeriodTransactions([]);
     setTransactions([]);
   }, [accountId]);
 
+  const resetInBackground = useCallback(() => {
+    setPeriod('today');
+    setLocalResetCount((count) => count + 1);
+    const nextScrolls = verticalScrolls.value.slice();
+    nextScrolls[pageIndex] = 0;
+    verticalScrolls.value = nextScrolls;
+    mainScrollRef.current?.scrollTo({ y: 0, animated: false });
+    recentScrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [mainScrollRef, pageIndex, verticalScrolls]);
+
   useEffect(() => {
+    registerResetHandle(accountId, { resetInBackground });
+    return () => registerResetHandle(accountId, null);
+  }, [accountId, registerResetHandle, resetInBackground]);
+
+  useEffect(() => {
+    if (resetTick.count <= 0 || handledResetCountRef.current === resetTick.count) return;
+    handledResetCountRef.current = resetTick.count;
     const shouldScroll = resetTick.mode === 'background' || isSelected;
-    if (shouldScroll && resetTick.count > 0 && mainScrollRef.current) {
+    if (shouldScroll && mainScrollRef.current) {
       mainScrollRef.current.scrollTo({ y: 0, animated: resetTick.animated });
       recentScrollRef.current?.scrollTo({ y: 0, animated: resetTick.animated });
     }
-    if (resetTick.mode === 'full' && resetTick.count > 0) {
-      setPeriod('week');
+    if (resetTick.mode === 'full') {
+      setPeriod('today');
     }
   }, [isSelected, resetTick]);
 
   useEffect(() => {
     if (backgroundResetTick <= 0) return;
-    setPeriod('week');
+    setPeriod('today');
     const nextScrolls = verticalScrolls.value.slice();
     nextScrolls[pageIndex] = 0;
     verticalScrolls.value = nextScrolls;
@@ -1861,53 +2151,30 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     negative: palette.negative,
   }), [palette]);
 
-  const { from, to } = getDateRange(
+  const { from, to } = getHomeDateRange(
     period,
     settingsYearStart,
-    customRange ? customRange.from.toISOString() : undefined,
-    customRange ? customRange.to.toISOString() : undefined,
+    customRange,
   );
-
-  // Use localized Today boundaries
-  const today = useMemo(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
-  }, []);
-  const todayKey = useMemo(() => toLocalDateKey(today), [today]);
-
-  const todayEnd = useMemo(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
-  }, []);
 
   const loadPageData = useCallback(async () => {
     if (!isPageReady) return;
     const requestId = ++loadRequestIdRef.current;
     const accountFilter = accountId === 'all' ? undefined : accountId;
-    const [periodSnapshot, recentTransactions, periodScopedTransactions, todaySnapshot] = await Promise.all([
+    const [periodSnapshot, recentTransactions, periodScopedTransactions] = await Promise.all([
       getCashflowSnapshot(accountId, from, to),
       getTransactions({ accountId: accountFilter, limit: 10 }),
       getTransactions({ accountId: accountFilter, fromDate: from, toDate: to }),
-      today >= from && todayEnd <= to
-        ? Promise.resolve(null)
-        : getCashflowSummary(accountId, today, todayEnd),
     ]);
 
     if (requestId !== loadRequestIdRef.current) return;
 
     const periodSummary = periodSnapshot.summary;
-    const todayEntry = periodSnapshot.daily.find((entry) => entry.date === todayKey);
-    const todaySummary =
-      todaySnapshot ??
-      (todayEntry
-        ? { in: todayEntry.in, out: todayEntry.out, net: todayEntry.in - todayEntry.out }
-        : { in: 0, out: 0, net: 0 });
 
     setCashflow(periodSummary);
     setTransactions(recentTransactions);
     setPeriodTransactions(periodScopedTransactions);
-    setTodayCashflow(todaySummary);
-  }, [accountId, from, isPageReady, to, today, todayEnd, todayKey]);
+  }, [accountId, from, isPageReady, to]);
 
   useEffect(() => {
     if (!isPageReady || !isScreenFocused) return;
@@ -1926,29 +2193,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     setRefreshing(false);
   }, [loadPageData, onRefresh]);
 
-  const openTodayActivity = useCallback(
-    (kind: 'in' | 'out' | 'net') => {
-      router.push({
-        pathname: '/(tabs)/activity',
-        params: {
-          source: 'home-today',
-          period: 'day',
-          accountId: accountId === 'all' ? 'all' : accountId,
-          type: 'all',
-          cashflowBucket: kind,
-          ts: String(Date.now())
-        }
-      });
-    },
-    [accountId],
-  );
   const openPeriodActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
       router.push({
         pathname: '/(tabs)/activity',
         params: {
-          source: 'home-period',
-          period,
+          source: period === 'today' ? 'home-today' : 'home-period',
+          period: period === 'today' ? 'day' : period,
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
           cashflowBucket: kind,
@@ -1976,17 +2227,16 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
         contentContainerStyle={{ flexGrow: 1, paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
         onScroll={verticalScrollHandler}
         scrollEventThrottle={1}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 54 + HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
           <AccountSummaryCard
             accountName={accountId === 'all' ? 'All Accounts' : accountName}
             accountTypeLabel={accountTypeLabel}
             balance={totalBalance}
-            todayCashflow={todayCashflow}
             currencySymbol={currencySymbol}
             palette={palette}
-            onPressCategory={openTodayActivity}
           />
           <View
             onLayout={(event) => {
@@ -2000,10 +2250,15 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
         </View>
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, marginBottom: 6 }}>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginRight: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 2, marginBottom: 8 }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>
               This
             </Text>
+            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted, textAlign: 'right' }}>
+              {formatDate(from)} - {formatDate(to)}
+            </Text>
+          </View>
+          <View style={{ marginBottom: 14 }}>
             <SegmentedPillSwitch
               options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
               value={period}
@@ -2013,23 +2268,20 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                   onOpenCustomRange();
                   return;
                 }
-                setPeriod(next as PeriodType);
+                setPeriod(next as HomePeriodType);
               }}
               backgroundColor={chartTheme.surface}
               pillColor="#FFFFFF"
               borderColor={chartTheme.border}
               activeTextColor={palette.text}
               inactiveTextColor={palette.textMuted}
-              style={{ flex: 1 }}
+              style={{ alignSelf: 'stretch' }}
+              itemMinWidth={58}
               height={HOME_LAYOUT.periodHeight}
               radius={HOME_RADIUS.tab + 3}
               fontSize={HOME_TEXT.caption}
             />
           </View>
-
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 14 }}>
-            {formatDate(from)} - {formatDate(to)}
-          </Text>
 
           <SummaryCard
             cashflow={cashflow}
@@ -2056,7 +2308,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               listPalette={palette}
               getCategoryFullDisplayName={getCategoryFullDisplayName}
               theme={chartTheme}
-              resetTrigger={`${resetTick.count}:${backgroundResetTick}`}
+              resetTrigger={`${resetTick.count}:${backgroundResetTick}:${localResetCount}:${period}:${from}:${to}`}
               accountsById={accountsById}
               loansById={loansById}
               onExpand={(mode) => onOpenChartExpanded?.(periodTransactions, mode, { period, from, to }, resetTick.count)}
@@ -2163,6 +2415,18 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 }}
               >
                 Open Chart Prototype
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity delayPressIn={0} onPress={() => router.push('/net-worth-prototype')} style={{ marginTop: 10 }}>
+              <Text
+                appWeight="medium"
+                style={{
+                  fontSize: HOME_TEXT.bodySmall,
+                  color: palette.brand,
+                  fontWeight: BUTTON_TOKENS.text.labelWeight,
+                }}
+              >
+                Open Net Worth Prototype
               </Text>
             </TouchableOpacity>
           </View>

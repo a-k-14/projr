@@ -172,7 +172,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       }
       tertiaryRow={tertiaryLine ? (
         <Text
-          numberOfLines={2}
+          numberOfLines={1}
           ellipsizeMode="tail"
           style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}
         >
