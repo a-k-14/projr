@@ -131,25 +131,27 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       : inOutCategoryIcon && isValidIcon(inOutCategoryIcon)
         ? inOutCategoryIcon
         : cfg.iconName;
+  const iconColor = palette.brand;
 
   return (
     <AppCard
       palette={palette}
       onPress={() => onPress && onPress(tx)}
       icon={inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
-        <Text style={{ fontSize: Math.round(iconSize * 0.45) }}>{inOutCategoryIcon}</Text>
+        <Text style={{ fontSize: HOME_LAYOUT.listIconInnerSize }}>{inOutCategoryIcon}</Text>
       ) : inOutCategoryIcon && isValidIcon(inOutCategoryIcon) ? (
         <AppIcon name={inOutCategoryIcon}
-          size={Math.round(iconSize * 0.45)}
-          color={cfg.color}
+          size={HOME_LAYOUT.listIconInnerSize}
+          color={iconColor}
+          strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
         />
       ) : (
         <AppIcon name={iconName as IconName}
-          size={Math.round(iconSize * 0.45)}
-          color={cfg.color}
+          size={HOME_LAYOUT.listIconInnerSize}
+          color={iconColor}
+          strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
         />
       )}
-      iconBg={effectiveType === 'transfer' || effectiveType === 'loan' ? palette.background : cfg.bg}
       topRow={
         <CardTitleRow
           title={title}
@@ -182,7 +184,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
           paddingVertical: paddingY,
           borderRadius: isCard ? HOME_RADIUS.card : 0,
           backgroundColor: isCard ? palette.surface : 'transparent',
-          borderBottomWidth: isCard ? 1 : (isLast ? 0 : 1),
+          borderBottomWidth: isCard ? 0 : (isLast ? 0 : 1),
           borderBottomColor: palette.divider,
         },
         isCard && {

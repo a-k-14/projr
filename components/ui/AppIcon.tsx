@@ -8,6 +8,7 @@ interface AppIconProps {
   name: string;
   size?: number;
   color?: string;
+  strokeWidth?: number;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -18,7 +19,7 @@ function kebabToPascal(str: string) {
 /**
  * Centralized Icon component for the app.
  */
-export function AppIcon({ name, size = 20, color, style }: AppIconProps) {
+export function AppIcon({ name, size = 20, color, strokeWidth, style }: AppIconProps) {
   const pascalName = kebabToPascal(name);
   const IconComponent = (icons as any)[pascalName] || icons.HelpCircle;
   
@@ -26,6 +27,7 @@ export function AppIcon({ name, size = 20, color, style }: AppIconProps) {
     <IconComponent
       size={size}
       color={color}
+      strokeWidth={strokeWidth}
       style={style}
     />
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { AppIcon } from './AppIcon';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -23,17 +23,18 @@ export function CalculatorTrigger({
   const isLarge = size === 'large';
 
   return (
-    <TouchableOpacity
-      delayPressIn={0}
+    <Pressable
       onPress={onPress}
       hitSlop={hitSlop}
-      style={{
+      style={({ pressed }) => ({
         width: width ?? height ?? (isLarge ? 48 : 36),
         height: height ?? (isLarge ? 48 : 36),
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-      }}
+        borderRadius: isLarge ? 14 : 12,
+        backgroundColor: pressed ? palette.surface : 'transparent',
+      })}
     >
       <View
         style={{
@@ -51,8 +52,9 @@ export function CalculatorTrigger({
           name="calculator"
           size={isLarge ? 22 : 18}
           color={isLarge ? palette.textSecondary : palette.textMuted}
+          strokeWidth={1.9}
         />
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }

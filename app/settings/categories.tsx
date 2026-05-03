@@ -11,6 +11,7 @@ import {
 } from '../../components/settings-ui';
 import { CATEGORY_TREE_ROW, CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, TYPE } from '../../lib/design';
+import { HOME_LAYOUT } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 
@@ -98,7 +99,7 @@ export default function CategoriesScreen() {
                     gap: CATEGORY_TREE_ROW.rowGap
                   }}
                 >
-                  <CategoryIconBadge icon={cat.icon ?? 'tag'} size={20} bgSize={40} palette={palette} />
+                  <CategoryIconBadge icon={cat.icon ?? 'tag'} size={HOME_LAYOUT.listIconInnerSize} bgSize={40} palette={palette} />
                   <Text
                     style={{ flex: 1, fontSize: TYPE.rowLabel, fontWeight: '400', color: palette.text }}
                     numberOfLines={1}

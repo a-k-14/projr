@@ -18,6 +18,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
+import { HOME_LAYOUT } from '../../lib/layoutTokens';
 import {
   CATEGORY_EMOJIS,
   CATEGORY_ICONS,
@@ -238,12 +239,10 @@ export default function CategoryFormScreen() {
             <TouchableOpacity delayPressIn={0} onPress={() => runAfterKeyboardDismiss(() => setShowIconPicker(true))} activeOpacity={0.7}>
               <CategoryIconBadge
                 icon={icon}
-                size={22}
+                size={HOME_LAYOUT.listIconInnerSize}
                 bgSize={52}
                 palette={palette}
-                backgroundColor={palette.surface}
-                borderColor={palette.border}
-                showBorder
+                backgroundColor="transparent"
               />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
@@ -394,40 +393,25 @@ export default function CategoryFormScreen() {
                 );
               })}
             </View>
-            {iconPickerTab === 'emojis' ? (
-              <View style={{ marginBottom: 12, gap: 10 }}>
-                <InputField
-                  palette={palette}
-                  value={emojiQuery}
-                  onChangeText={(value) => {
-                    setEmojiQuery(value);
-                    const nextEmoji = value.trim();
-                    if (nextEmoji && isEmojiIcon(nextEmoji)) setIcon(nextEmoji);
+            {iconPickerTab === 'emojis' && suggestedEmojis.length > 0 ? (
+              <View style={{ gap: 8, marginBottom: 12 }}>
+                <Text style={{ fontSize: TYPE.body, fontWeight: '700', color: palette.textMuted }}>
+                  Suggested For "{name.trim()}"
+                </Text>
+                <IconGrid
+                  icons={suggestedEmojis}
+                  selectedIcon={icon}
+                  onSelect={(ic) => {
+                    setIcon(ic);
+                    setEmojiQuery(ic);
+                    setShowIconPicker(false);
                   }}
-                  placeholder={isEmojiIcon(icon) ? `${icon} Search or type emoji` : 'Search by word or type emoji'}
-                  autoCapitalize="none"
+                  palette={palette}
                 />
-                {suggestedEmojis.length > 0 && !emojiQuery.trim() ? (
-                  <View style={{ gap: 8 }}>
-                    <Text style={{ fontSize: TYPE.body, fontWeight: '700', color: palette.textMuted }}>
-                      Suggested For "{name.trim()}"
-                    </Text>
-                    <IconGrid
-                      icons={suggestedEmojis}
-                      selectedIcon={icon}
-                      onSelect={(ic) => {
-                        setIcon(ic);
-                        setEmojiQuery(ic);
-                        setShowIconPicker(false);
-                      }}
-                      palette={palette}
-                    />
-                  </View>
-                ) : null}
               </View>
             ) : null}
             <IconGrid
-              icons={iconPickerTab === 'icons' ? CATEGORY_ICONS : visibleEmojiOptions}
+              icons={iconPickerTab === 'icons' ? CATEGORY_ICONS : CATEGORY_EMOJIS}
               selectedIcon={icon}
               onSelect={(ic) => {
                 setIcon(ic);
@@ -436,11 +420,6 @@ export default function CategoryFormScreen() {
               }}
               palette={palette}
             />
-            {iconPickerTab === 'emojis' && visibleEmojiOptions.length === 0 ? (
-              <Text style={{ fontSize: TYPE.body, color: palette.textSecondary, paddingTop: 12, textAlign: 'center' }}>
-                No emojis match that search yet.
-              </Text>
-            ) : null}
           </View>
         </BottomSheet>
       )}

@@ -85,6 +85,7 @@ export default function ActivityScreen() {
     accountId?: string;
     type?: string;
     cashflowBucket?: string;
+    cashflowMode?: string;
     from?: string;
     to?: string;
     ts?: string;
@@ -125,6 +126,7 @@ export default function ActivityScreen() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [cashflowBucket, setCashflowBucket] = useState<'all' | 'in' | 'out' | 'net'>('all');
+  const [cashflowMode, setCashflowMode] = useState<'incomeExpense' | 'total'>('incomeExpense');
   const [search, setSearch] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
 
@@ -176,6 +178,7 @@ export default function ActivityScreen() {
     setSelectedAccountId('all');
     setTypeFilter('all');
     setCashflowBucket('all');
+    setCashflowMode('incomeExpense');
     setSelectedCategoryIds([]);
     setSelectedTagIds([]);
     setAmountMinStr('');
@@ -215,6 +218,7 @@ export default function ActivityScreen() {
       selectedAccountId,
       typeFilter,
       cashflowBucket,
+      cashflowMode,
       groupByMode,
       categoryDrilldown ? `${categoryDrilldown.parentKey}:${categoryDrilldown.subKey}` : '',
     ].join('|');
@@ -230,6 +234,7 @@ export default function ActivityScreen() {
     }
   }, [
     cashflowBucket,
+    cashflowMode,
     categoryDrilldown,
     customFrom,
     customTo,
@@ -409,6 +414,7 @@ export default function ActivityScreen() {
     const typeParam = typeof routeParams.type === 'string' ? routeParams.type : undefined;
     const cashflowBucketParam =
       typeof routeParams.cashflowBucket === 'string' ? routeParams.cashflowBucket : undefined;
+    const cashflowModeParam = routeParams.cashflowMode === 'total' ? 'total' : 'incomeExpense';
     const fromParam = typeof routeParams.from === 'string' ? routeParams.from : undefined;
     const toParam = typeof routeParams.to === 'string' ? routeParams.to : undefined;
     const categoryIdParam = typeof routeParams.categoryId === 'string' ? routeParams.categoryId : undefined;
@@ -424,6 +430,7 @@ export default function ActivityScreen() {
     setSelectedAccountId('all');
     setTypeFilter('all');
     setCashflowBucket('all');
+    setCashflowMode(cashflowModeParam);
     setSelectedCategoryIds([]);
     setSelectedTagIds([]);
     setAmountMinStr('');
@@ -469,14 +476,14 @@ export default function ActivityScreen() {
 
     if (cashflowBucketParam) {
       setCashflowBucket(cashflowBucketParam as any);
-      if (cashflowBucketParam === 'in' || cashflowBucketParam === 'out') {
+      if (cashflowModeParam !== 'total' && (cashflowBucketParam === 'in' || cashflowBucketParam === 'out')) {
         setTypeFilter(cashflowBucketParam as any);
       }
     }
 
     lastAppliedRouteTsRef.current = tsParam;
     setIsInitialParamSyncComplete(true);
-  }, [accounts, isInitialParamSyncComplete, loadStoreTransactions, routeParams.accountId, routeParams.cashflowBucket, routeParams.categoryId, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
+  }, [accounts, isInitialParamSyncComplete, loadStoreTransactions, routeParams.accountId, routeParams.cashflowBucket, routeParams.cashflowMode, routeParams.categoryId, routeParams.from, routeParams.period, routeParams.source, routeParams.to, routeParams.ts, routeParams.type]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -565,7 +572,10 @@ export default function ActivityScreen() {
     });
 
     return transactions.filter((tx) => {
-      const incomeExpenseImpact = getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false });
+      const incomeExpenseImpact = getTransactionCashflowImpact(tx, {
+        includeTransfers: cashflowMode === 'total',
+        includeLoans: cashflowMode === 'total',
+      });
 
       // Account filter
       if (selectedAccountId !== 'all' && tx.accountId !== selectedAccountId) {
@@ -575,6 +585,8 @@ export default function ActivityScreen() {
       // Type filter (Incomes, Expenses, Transfers, Loans)
       if (typeFilter === 'transfer') {
         if (!tx.transferPairId) return false;
+      } else if (typeFilter === 'loan') {
+        if (tx.type !== 'loan') return false;
       } else if (typeFilter !== 'all') {
         if (tx.transferPairId || tx.type === 'loan' || tx.type !== typeFilter) return false;
       }
@@ -622,7 +634,7 @@ export default function ActivityScreen() {
       }
       return true;
     });
-  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, transactions, typeFilter, selectedAccountId]);
+  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, cashflowMode, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, transactions, typeFilter, selectedAccountId]);
 
   const drilldownTransactions = useMemo(
     () => getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown),
@@ -915,6 +927,8 @@ export default function ActivityScreen() {
             style={{
               backgroundColor: palette.surface,
               borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
+              borderWidth: 1,
+              borderColor: palette.border,
               marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
               overflow: 'hidden'
             }}

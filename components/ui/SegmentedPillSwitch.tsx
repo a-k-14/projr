@@ -18,6 +18,7 @@ export function SegmentedPillSwitch({
   radius = 15,
   fontSize = 12,
   itemMinWidth = 68,
+  animated = true,
 }: {
   options: ReadonlyArray<{ key: string; label: string }>;
   value: string;
@@ -32,6 +33,7 @@ export function SegmentedPillSwitch({
   radius?: number;
   fontSize?: number;
   itemMinWidth?: number;
+  animated?: boolean;
 }) {
   const [controlWidth, setControlWidth] = useState(0);
   const indicatorX = useRef(new Animated.Value(0)).current;
@@ -43,14 +45,19 @@ export function SegmentedPillSwitch({
   useEffect(() => {
     if (segmentWidth <= 0) return;
     const isLast = selectedIndex === options.length - 1;
+    const nextX = selectedIndex * segmentWidth + (isLast ? 0.5 : 0);
+    if (!animated) {
+      indicatorX.setValue(nextX);
+      return;
+    }
     Animated.spring(indicatorX, {
-      toValue: selectedIndex * segmentWidth + (isLast ? 0.5 : 0),
+      toValue: nextX,
       damping: 20,
       mass: 0.7,
       stiffness: 220,
       useNativeDriver: false,
     }).start();
-  }, [indicatorX, segmentWidth, selectedIndex, options.length]);
+  }, [animated, indicatorX, segmentWidth, selectedIndex, options.length]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     setControlWidth(event.nativeEvent.layout.width);
