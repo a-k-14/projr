@@ -6,8 +6,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   LayoutChangeEvent,
   Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,12 +13,15 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
+import PagerView from 'react-native-pager-view';
 import Animated, {
   Extrapolate,
   interpolate,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useEvent,
+  useHandler,
   useSharedValue,
   type SharedValue
 } from 'react-native-reanimated';
@@ -73,6 +74,37 @@ import type {
   PeriodType,
   Transaction
 } from '../../types';
+
+const AnimatedPagerView = Animated.createAnimatedComponent(PagerView);
+
+export function usePageScrollHandler(handlers: any, dependencies?: any[]) {
+  const { context, doDependenciesDiffer } = useHandler(handlers, dependencies);
+  const subscribeForEvents = ['onPageScroll'];
+
+  return useEvent(
+    (event: any) => {
+      'worklet';
+      const { onPageScroll } = handlers;
+      if (onPageScroll && event.eventName.endsWith('onPageScroll')) {
+        onPageScroll(event, context);
+      }
+    },
+    subscribeForEvents,
+    doDependenciesDiffer
+  );
+}
+
+type HomePageUiState = {
+  period: HomePeriodType;
+  chartMode: HomeChartMode;
+  selectedChartCategoryId: string | null;
+};
+
+const defaultHomePageUiState: HomePageUiState = {
+  period: 'today',
+  chartMode: 'expense',
+  selectedChartCategoryId: null,
+};
 
 type HomePeriodType = 'today' | PeriodType;
 
@@ -130,10 +162,6 @@ type AccountCardItem = {
   name: string;
   accountTypeLabel: string;
 };
-type HomePageHandle = {
-  scrollToTop: () => void;
-  resetPeriod: () => void;
-};
 
 export default function HomeScreen() {
   const accounts = useAccountsStore((s) => s.accounts);
@@ -153,7 +181,12 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const showAllAccountsTab = accounts.length !== 1;
   const homeRootAccountId = showAllAccountsTab ? 'all' : (accounts[0]?.id ?? 'all');
-  const pagerRef = useAnimatedRef<Animated.ScrollView>();
+  const pagerRef = useRef<PagerView>(null);
+  const pageScrollTopRef = useRef(new Map<string, () => void>());
+  const registerScrollTop = useCallback((id: string, fn: (() => void) | null) => {
+    if (fn) pageScrollTopRef.current.set(id, fn);
+    else pageScrollTopRef.current.delete(id);
+  }, []);
   const accountPagerScrollX = useSharedValue(0);
   const settledAccountPageIndex = useSharedValue(0);
   const verticalScrolls = useSharedValue<number[]>(new Array(20).fill(0));
@@ -161,18 +194,19 @@ export default function HomeScreen() {
   const netWorthSheetVerticalScrolls = useSharedValue<number[]>([0]);
   const netWorthSheetIndicatorY = useSharedValue(0);
   const indicatorGestureOpacity = useSharedValue(1);
-  const isPagerInteractingRef = useRef(false);
   const didPositionInitialPagerRef = useRef(false);
   const wasFocusedRef = useRef(false);
-  const pageHandlesRef = useRef(new Map<string | 'all' | 'net-worth', HomePageHandle>());
   const pendingPagerSyncAccountIdRef = useRef<string | 'all' | 'add' | 'net-worth' | null>(null);
   const selectedAccountIdRef = useRef<string | 'all' | 'add' | 'net-worth'>('all');
+  const lastLeftPageIdRef = useRef<string | 'all' | 'add' | 'net-worth' | null>(null);
+  const [pageUiStates, setPageUiStates] = useState<Record<string, HomePageUiState>>({});
   const { palette } = useAppTheme();
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
   const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
+  const [pendingCustomAccountId, setPendingCustomAccountId] = useState<string | null>(null);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [netWorthSheetVisible, setNetWorthSheetVisible] = useState(false);
   const [expandedChartState, setExpandedChartState] = useState<{
@@ -182,13 +216,27 @@ export default function HomeScreen() {
   } | null>(null);
   const previousAccountCountRef = useRef(accounts.length);
 
+  const getPageUiState = useCallback(
+    (id: string): HomePageUiState => pageUiStates[id] ?? defaultHomePageUiState,
+    [pageUiStates],
+  );
+  const setPageUiField = useCallback(
+    <K extends keyof HomePageUiState>(id: string, key: K, value: HomePageUiState[K]) => {
+      setPageUiStates((prev) => ({
+        ...prev,
+        [id]: { ...(prev[id] ?? defaultHomePageUiState), [key]: value },
+      }));
+    },
+    [],
+  );
+
   const displayAccounts = useMemo<AccountTab[]>(() => [
     ...(showAllAccountsTab ? [{ id: 'all' as const, name: 'All' }] : []),
     ...accounts.map((a) => ({ id: a.id, name: formatAccountDisplayName(a.name, a.accountNumber) })),
     { id: 'add', name: 'Add Account' },
   ], [accounts, showAllAccountsTab]);
   const accountCards = useMemo<AccountCardItem[]>(() => [
-    ...(showAllAccountsTab ? [{ id: 'all' as const, name: 'All Accounts', accountTypeLabel: '' }] : []),
+    ...(showAllAccountsTab ? [{ id: 'all' as const, name: 'All', accountTypeLabel: '' }] : []),
     ...accounts.map((a) => ({
       id: a.id,
       name: formatAccountDisplayName(a.name, a.accountNumber),
@@ -252,7 +300,7 @@ export default function HomeScreen() {
         setSelectedAccountId(homeRootAccountId);
         settledAccountPageIndex.value = rootIndex;
         accountPagerScrollX.value = rootIndex * width;
-        pagerRef.current?.scrollTo({ x: rootIndex * width, animated: false });
+        pagerRef.current?.setPageWithoutAnimation(rootIndex);
       }
     } else if (!isFocused) {
       wasFocusedRef.current = false;
@@ -265,7 +313,7 @@ export default function HomeScreen() {
     const targetX = selectedPageIndex * width;
     settledAccountPageIndex.value = selectedPageIndex;
     accountPagerScrollX.value = targetX;
-    pagerRef.current?.scrollTo({ x: targetX, animated: false });
+    pagerRef.current?.setPageWithoutAnimation(Math.round(targetX / Math.max(width, 1)));
     setIsPagerReady(true);
   }, [accountPagerScrollX, displayAccounts.length, pagerRef, selectedPageIndex, settledAccountPageIndex, width]);
 
@@ -280,7 +328,7 @@ export default function HomeScreen() {
         const targetX = nextIndex * width;
         settledAccountPageIndex.value = nextIndex;
         accountPagerScrollX.value = targetX;
-        pagerRef.current?.scrollTo({ x: targetX, animated: false });
+        pagerRef.current?.setPageWithoutAnimation(Math.round(targetX / Math.max(width, 1)));
       }
       return;
     }
@@ -293,7 +341,7 @@ export default function HomeScreen() {
     ) {
       setSelectedAccountId(homeRootAccountId);
       const rootIndex = Math.max(0, displayAccounts.findIndex((account) => account.id === homeRootAccountId));
-      pagerRef.current?.scrollTo({ x: rootIndex * width, animated: true });
+      pagerRef.current?.setPage(rootIndex);
     }
   }, [accountPagerScrollX, accounts, displayAccounts, homeRootAccountId, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
 
@@ -319,14 +367,14 @@ export default function HomeScreen() {
   useEffect(() => {
     if (homeAccountViewMode !== 'swipe') return;
     if (pendingPagerSyncAccountIdRef.current !== selectedAccountId) return;
-    if (isPagerInteractingRef.current) return;
+
     const selectedIndex = displayAccounts.findIndex((account) => account.id === selectedAccountId);
     if (selectedIndex >= 0) {
       const targetX = selectedIndex * width;
       settledAccountPageIndex.value = selectedIndex;
       if (Math.abs(accountPagerScrollX.value - targetX) > 1) {
         accountPagerScrollX.value = targetX;
-        pagerRef.current?.scrollTo({ x: targetX, animated: false });
+        pagerRef.current?.setPageWithoutAnimation(Math.round(targetX / Math.max(width, 1)));
       }
       pendingPagerSyncAccountIdRef.current = null;
     }
@@ -340,37 +388,27 @@ export default function HomeScreen() {
     setCustomDraftTo(today);
   }, []);
 
-  const registerPageHandle = useCallback((id: string | 'all' | 'net-worth', handle: HomePageHandle | null) => {
-    if (handle) {
-      pageHandlesRef.current.set(id, handle);
-      return;
-    }
-    pageHandlesRef.current.delete(id);
-  }, []);
-
-  const resetPageInBackground = useCallback((id: string | 'all' | 'net-worth' | 'add') => {
-    if (id === 'add') return;
-    const handle = pageHandlesRef.current.get(id);
-    handle?.scrollToTop();
-    handle?.resetPeriod();
-  }, []);
-
   const resetHomeToAll = useCallback((mode: TabResetMode, animated: boolean) => {
     const rootIndex = Math.max(0, displayAccounts.findIndex((account) => account.id === homeRootAccountId));
-    const targetX = rootIndex * width;
-    const prev = selectedAccountIdRef.current;
+
+    // Reset all page UI states in one batch
+    setPageUiStates({});
+    resetCustomRangeToToday();
+
     selectedAccountIdRef.current = homeRootAccountId;
     setSelectedAccountId(homeRootAccountId);
     settledAccountPageIndex.value = rootIndex;
-    accountPagerScrollX.value = targetX;
-    pagerRef.current?.scrollTo({ x: targetX, animated });
-    resetCustomRangeToToday();
-    if (prev !== homeRootAccountId) {
-      resetPageInBackground(prev);
+    accountPagerScrollX.value = rootIndex * width;
+
+    if (animated) {
+      pagerRef.current?.setPage(rootIndex);
     } else {
-      resetPageInBackground(homeRootAccountId);
+      pagerRef.current?.setPageWithoutAnimation(rootIndex);
     }
-  }, [displayAccounts, homeRootAccountId, width, settledAccountPageIndex, accountPagerScrollX, pagerRef, resetCustomRangeToToday, resetPageInBackground]);
+
+    // Scroll current page to top
+    pageScrollTopRef.current.get(homeRootAccountId)?.();
+  }, [displayAccounts, homeRootAccountId, width, settledAccountPageIndex, accountPagerScrollX, pagerRef, resetCustomRangeToToday]);
 
   useEffect(() => {
     return registerTabReset('index', ({ mode, animated }) => {
@@ -383,79 +421,64 @@ export default function HomeScreen() {
     [customRangeFrom, customRangeTo]
   );
 
-  const handlePagerEnd = useCallback((index: number) => {
-    const safeIndex = Math.max(0, Math.min(index, displayAccounts.length - 1));
-    const next = displayAccounts[safeIndex];
-    if (!next) return;
-    settledAccountPageIndex.value = safeIndex;
-    if (next.id !== selectedAccountIdRef.current) {
-      const prev = selectedAccountIdRef.current;
-      resetCustomRangeToToday();
-      selectedAccountIdRef.current = next.id;
-      setSelectedAccountId(next.id);
-      resetPageInBackground(prev);
-    }
-  }, [displayAccounts, resetCustomRangeToToday, resetPageInBackground, settledAccountPageIndex]);
+  const handlePageSelected = useCallback(
+    (e: { nativeEvent: { position: number } }) => {
+      const index = e.nativeEvent.position;
+      const safeIndex = Math.max(0, Math.min(index, displayAccounts.length - 1));
+      const next = displayAccounts[safeIndex];
+      if (!next) return;
 
-  const handlePagerBeginDrag = useCallback(() => {
-    isPagerInteractingRef.current = true;
-  }, []);
+      settledAccountPageIndex.value = safeIndex;
 
-  const handlePagerMomentumBegin = useCallback(() => {
-    isPagerInteractingRef.current = true;
-  }, []);
+      if (next.id !== selectedAccountIdRef.current) {
+        const prevId = selectedAccountIdRef.current;
 
-  const accountPagerScrollHandler = useAnimatedScrollHandler({
-    onBeginDrag: () => {
-      if (!HIDE_SCROLLED_INDICATOR_DURING_SWIPE) {
-        indicatorGestureOpacity.value = 1;
-        return;
-      }
-      const settledIndex = Math.max(0, Math.round(settledAccountPageIndex.value));
-      const currentScroll = verticalScrolls.value[settledIndex] ?? 0;
-      indicatorGestureOpacity.value = Math.abs(currentScroll) > 1 ? 0 : 1;
-    },
-    onScroll: (event) => {
-      accountPagerScrollX.value = event.contentOffset.x;
+        // Reset previous page UI state synchronously in the same setState batch
+        // as the page switch. React batches these together — one render cycle,
+        // previous page re-renders with defaults before it is ever visible again.
+        setPageUiStates((prev) => ({
+          ...prev,
+          [prevId]: defaultHomePageUiState,
+        }));
+        resetCustomRangeToToday();
 
-      const pageWidthValue = Math.max(width, 1);
-      const progress = event.contentOffset.x / pageWidthValue;
-      const settledIndex = Math.max(0, Math.round(settledAccountPageIndex.value));
-      const hasMovedHorizontally = Math.abs(progress - settledIndex) > 0.01;
-      const currentScroll = verticalScrolls.value[settledIndex] ?? 0;
+        // Track for scroll reset at idle (scroll is a native command, safe to defer)
+        lastLeftPageIdRef.current = prevId;
 
-      if (HIDE_SCROLLED_INDICATOR_DURING_SWIPE && hasMovedHorizontally && Math.abs(currentScroll) > 1) {
-        indicatorGestureOpacity.value = 0;
+        selectedAccountIdRef.current = next.id;
+        setSelectedAccountId(next.id);
       }
     },
-  }, [indicatorGestureOpacity, settledAccountPageIndex, verticalScrolls, width]);
-
-  const handlePagerMomentumEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetX = event.nativeEvent.contentOffset.x;
-      const nextIndex = Math.round(offsetX / Math.max(width, 1));
-      handlePagerEnd(nextIndex);
-      isPagerInteractingRef.current = false;
-      indicatorGestureOpacity.value = 1;
-    },
-    [handlePagerEnd, indicatorGestureOpacity, width],
+    [displayAccounts, resetCustomRangeToToday, settledAccountPageIndex],
   );
 
-  const handlePagerDragEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const pageWidthValue = Math.max(width, 1);
-      const offsetX = event.nativeEvent.contentOffset.x;
-      const nextIndex = Math.round(offsetX / pageWidthValue);
-      const settledOffset = nextIndex * pageWidthValue;
-
-      if (Math.abs(offsetX - settledOffset) < 1) {
-        handlePagerEnd(nextIndex);
-        isPagerInteractingRef.current = false;
+  const handlePageScrollStateChanged = useCallback(
+    (e: { nativeEvent: { pageScrollState: string } }) => {
+      const state = e.nativeEvent.pageScrollState;
+      if (state === 'idle') {
         indicatorGestureOpacity.value = 1;
+
+        // Scroll reset is safe at idle — page is fully off-screen, native command
+        if (lastLeftPageIdRef.current) {
+          pageScrollTopRef.current.get(lastLeftPageIdRef.current)?.();
+          lastLeftPageIdRef.current = null;
+        }
+      } else if (state === 'dragging') {
+        const currentScroll = verticalScrolls.value[settledAccountPageIndex.value] ?? 0;
+        if (HIDE_SCROLLED_INDICATOR_DURING_SWIPE && Math.abs(currentScroll) > 1) {
+          indicatorGestureOpacity.value = 0;
+        }
       }
     },
-    [handlePagerEnd, indicatorGestureOpacity, width],
+    [indicatorGestureOpacity, settledAccountPageIndex, verticalScrolls],
   );
+
+  const onPageScroll = usePageScrollHandler({
+    onPageScroll(e: any) {
+      'worklet';
+      accountPagerScrollX.value = (e.position + e.offset) * width;
+    },
+  }, [width]);
 
   const setHomeViewMode = useCallback(
     (mode: 'swipe' | 'list') => {
@@ -474,7 +497,8 @@ export default function HomeScreen() {
     [updateSettings],
   );
 
-  const openCustomRange = useCallback(() => {
+  const openCustomRange = useCallback((accountId: string) => {
+    setPendingCustomAccountId(accountId);
     setCustomDraftFrom(new Date(customRangeFrom));
     setCustomDraftTo(new Date(customRangeTo));
     setCustomRangeOpen(true);
@@ -512,8 +536,12 @@ export default function HomeScreen() {
     setCustomDraftTo(toDate);
     setCustomRangeFrom(toLocalDayStartISO(fromDate));
     setCustomRangeTo(toLocalDayEndISO(toDate));
+    if (pendingCustomAccountId) {
+      setPageUiField(pendingCustomAccountId, 'period', 'custom');
+      setPendingCustomAccountId(null);
+    }
     setCustomRangeOpen(false);
-  }, [customDraftFrom, customDraftTo]);
+  }, [customDraftFrom, customDraftTo, pendingCustomAccountId, setPageUiField]);
 
   if (accounts.length === 0) {
     return (
@@ -645,23 +673,18 @@ export default function HomeScreen() {
               zIndex: homeAccountViewMode === 'swipe' ? 2 : 0,
             }}
           >
-            <Animated.ScrollView
-              ref={pagerRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              directionalLockEnabled
-              onScroll={accountPagerScrollHandler}
-              onScrollBeginDrag={handlePagerBeginDrag}
-              onScrollEndDrag={handlePagerDragEnd}
-              onMomentumScrollBegin={handlePagerMomentumBegin}
-              onMomentumScrollEnd={handlePagerMomentumEnd}
-              scrollEventThrottle={1}
+            <AnimatedPagerView
+              ref={pagerRef as any}
               style={{ flex: 1 }}
+              initialPage={selectedPageIndex}
+              overdrag={false}
+              onPageSelected={handlePageSelected}
+              onPageScrollStateChanged={handlePageScrollStateChanged}
+              onPageScroll={onPageScroll}
             >
               {displayAccounts.map((account, index) => {
                 return (
-                  <View key={account.id} style={{ width, height: pagerHeight || undefined }}>
+                  <View key={account.id} collapsable={false} style={{ flex: 1 }}>
                     {account.id === 'net-worth' ? (
                       <HomeNetWorthPage
                         pageHeight={pagerHeight}
@@ -673,7 +696,6 @@ export default function HomeScreen() {
                         pageIndex={index}
                         verticalScrolls={verticalScrolls}
                         indicatorY={indicatorY}
-                        registerPageHandle={registerPageHandle}
                         isSelected={account.id === selectedAccountId}
                         onOpenAccount={openAccountInSwipeMode}
                       />
@@ -706,7 +728,13 @@ export default function HomeScreen() {
                         pageIndex={index}
                         verticalScrolls={verticalScrolls}
                         indicatorY={indicatorY}
-                        registerPageHandle={registerPageHandle}
+                        period={getPageUiState(account.id).period}
+                        onPeriodChange={(p) => setPageUiField(account.id, 'period', p)}
+                        chartMode={getPageUiState(account.id).chartMode}
+                        onChartModeChange={(m) => setPageUiField(account.id, 'chartMode', m)}
+                        selectedChartCategoryId={getPageUiState(account.id).selectedChartCategoryId}
+                        onChartCategorySelect={(id) => setPageUiField(account.id, 'selectedChartCategoryId', id)}
+                        registerScrollTop={registerScrollTop}
                         onOpenChartExpanded={(transactions, mode, range, resetTrigger) => {
                           setExpandedChartState({ transactions, mode, resetTrigger });
                           setBottomSheetVisible(true);
@@ -725,7 +753,7 @@ export default function HomeScreen() {
                   </View>
                 );
               })}
-            </Animated.ScrollView>
+            </AnimatedPagerView>
             <PageDashIndicator
               pageCount={displayAccounts.length}
               palette={palette}
@@ -943,7 +971,6 @@ export default function HomeScreen() {
               pageIndex={0}
               verticalScrolls={netWorthSheetVerticalScrolls}
               indicatorY={netWorthSheetIndicatorY}
-              registerPageHandle={() => undefined}
               isSelected={false}
               compactTop
               hideTitle
@@ -1123,14 +1150,14 @@ function NetWorthDonut({
         }}
         bgHex={palette.card}
       />
-      <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' }}>
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: (!selectedItem && mode === 'account') ? -4 : 0 }] }}>
         {selectedItem ? (
           <View style={{ minHeight: 28, marginBottom: 4, alignItems: 'center', justifyContent: 'center' }}>
             <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: selectedItem.color }} />
           </View>
         ) : null}
         <Text numberOfLines={2} style={{ maxWidth: 112, fontSize: 13, fontWeight: '700', textAlign: 'center', color: palette.text }}>
-          {selectedItem ? selectedItem.label : mode === 'type' ? 'All Types' : 'All Accounts'}
+          {selectedItem ? selectedItem.label : mode === 'type' ? 'All Types' : 'All'}
         </Text>
         <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: 18, fontWeight: '800', color: palette.text, marginTop: 4, textAlign: 'center' }}>
           {selectedAmount === 0 ? '—' : `${selectedValue < 0 ? '-' : ''}${formatCurrency(Math.abs(selectedValue), currencySymbol)}`}
@@ -1202,7 +1229,6 @@ function HomeNetWorthPage({
   pageIndex,
   verticalScrolls,
   indicatorY,
-  registerPageHandle,
   isSelected,
   compactTop = false,
   hideTitle = false,
@@ -1217,7 +1243,6 @@ function HomeNetWorthPage({
   pageIndex: number;
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
-  registerPageHandle: (id: string | 'all' | 'net-worth', handle: HomePageHandle | null) => void;
   isSelected: boolean;
   compactTop?: boolean;
   hideTitle?: boolean;
@@ -1301,23 +1326,6 @@ function HomeNetWorthPage({
       icon: 'arrow-up-right',
     },
   ] as const;
-
-  useEffect(() => {
-    registerPageHandle('net-worth', {
-      scrollToTop: () => {
-        scrollRef.current?.scrollTo({ y: 0, animated: false });
-        const arr = verticalScrolls.value.slice();
-        arr[pageIndex] = 0;
-        verticalScrolls.value = arr;
-      },
-      resetPeriod: () => {
-        setAccountViewMode('type');
-        setSelectedType(null);
-        setSelectedChartAccountId(null);
-      },
-    });
-    return () => registerPageHandle('net-worth', null);
-  }, [pageIndex, registerPageHandle, scrollRef, verticalScrolls]);
 
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
@@ -1443,7 +1451,7 @@ function HomeNetWorthPage({
             indicatorY.value = newY;
           }
         }}
-        style={{ height: 22 }}
+        style={{ height: 32 }}
       />
 
       <View style={{ gap: 10 }}>
@@ -1533,6 +1541,7 @@ function AccountSummaryCard({
   netWorth?: number;
 }) {
   const balanceColor = palette.text;
+  const isAll = accountName === 'All';
 
   const content = (
     <View
@@ -1542,7 +1551,7 @@ function AccountSummaryCard({
         borderRadius: HOME_RADIUS.card,
         borderWidth: 1,
         overflow: 'hidden',
-        padding: CARD_PADDING,
+        height: 112, // Reduced height
         position: 'relative',
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
@@ -1551,91 +1560,95 @@ function AccountSummaryCard({
         pointerEvents="none"
         style={{
           position: 'absolute',
-          width: 110,
-          height: 110,
-          borderRadius: 999,
-          top: -34,
-          right: -28,
-          backgroundColor: '#F8FAFD',
-          opacity: 1,
+          width: 140,
+          height: 140,
+          borderRadius: 70,
+          top: -30,
+          right: -30,
+          backgroundColor: palette.isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFD',
+          zIndex: 0,
         }}
       />
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-              Account
-            </Text>
-            {accountTypeLabel ? (
-              <>
-                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSoft }}>
-                  {'\u2022'}
-                </Text>
-                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-                  {accountTypeLabel}
-                </Text>
-              </>
-            ) : null}
-          </View>
-          <Text appWeight="medium" numberOfLines={2} style={{ minHeight: 40, fontSize: HOME_TEXT.sectionTitle, lineHeight: 20, fontWeight: '700', color: palette.text, marginTop: HOME_SPACE.xs }}>
-            {accountName}
-          </Text>
-        </View>
 
-        <View style={{ flexShrink: 1, maxWidth: '56%', alignItems: 'flex-end' }}>
-          <Text
-            appWeight="medium"
-            style={{
-              fontSize: HOME_TEXT.tiny,
-              color: palette.textMuted,
-              fontWeight: '700',
-              letterSpacing: 0.5,
-              textTransform: 'uppercase',
-              textAlign: 'right',
-            }}
-          >
-            Current balance
-          </Text>
-          <Text
-            appWeight="medium"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            style={{
-              fontSize: HOME_TEXT.heroValue + 2,
-              lineHeight: 34,
-              fontWeight: '800',
-              color: balanceColor,
-              marginTop: HOME_SPACE.xs + 2,
-              textAlign: 'right',
-            }}
-          >
-            {balance < 0 ? '-' : ''}{formatCurrency(Math.abs(balance), currencySymbol)}
-          </Text>
+      <View style={{ flex: 1, paddingHorizontal: CARD_PADDING, justifyContent: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+                Account
+              </Text>
+              {accountTypeLabel ? (
+                <>
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSoft }}>
+                    {'\u2022'}
+                  </Text>
+                  <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+                    {accountTypeLabel}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
+              {accountName}
+            </Text>
+          </View>
+
+          <View style={{ flexShrink: 0, alignItems: 'flex-end' }}>
+            <Text
+              appWeight="medium"
+              style={{
+                fontSize: HOME_TEXT.tiny,
+                color: palette.textMuted,
+                fontWeight: '700',
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                textAlign: 'right',
+                marginBottom: 1,
+              }}
+            >
+              Current balance
+            </Text>
+            <Text
+              appWeight="medium"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={{
+                fontSize: HOME_TEXT.heroValue + 2,
+                fontWeight: '800',
+                color: balanceColor,
+                textAlign: 'right',
+              }}
+            >
+              {balance < 0 ? '-' : ''}{formatCurrency(Math.abs(balance), currencySymbol)}
+            </Text>
+          </View>
         </View>
       </View>
+
       {onOpenNetWorth ? (
         <TouchableOpacity
           delayPressIn={0}
           onPress={onOpenNetWorth}
           style={{
-            position: 'absolute',
-            left: CARD_PADDING,
-            right: CARD_PADDING,
-            bottom: 6,
+            borderTopWidth: 1,
+            borderTopColor: palette.divider,
+            paddingHorizontal: CARD_PADDING,
+            paddingVertical: 7, // Reduced padding
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 4,
-            minHeight: 30,
-            zIndex: 2,
+            justifyContent: 'space-between',
+            backgroundColor: palette.isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.02)',
           }}
         >
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: palette.textMuted }}>
             Net Worth
           </Text>
-          <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.text }}>
-            {(netWorth ?? 0) < 0 ? '-' : ''}{formatCurrency(Math.abs(netWorth ?? 0), currencySymbol)}
-          </Text>
-          <AppIcon name="arrow-up-right" size={12} color={palette.brand} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text }}>
+              {(netWorth ?? 0) < 0 ? '-' : ''}{formatCurrency(Math.abs(netWorth ?? 0), currencySymbol)}
+            </Text>
+            <AppIcon name="chevron-right" size={14} color={palette.textSoft} />
+          </View>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -1700,6 +1713,10 @@ function HomeAccountsList({
 }) {
   const [todaySummaries, setTodaySummaries] = useState<Record<string, CashflowSummary>>({});
   const [refreshing, setRefreshing] = useState(false);
+  const [period, setPeriod] = useState<HomePeriodType>('today');
+  const [chartMode, setChartMode] = useState<HomeChartMode>('expense');
+  const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
+  const [chartResetNonce, setChartResetNonce] = useState(0);
   const isScreenFocused = useIsFocused();
 
   const todayFrom = useMemo(() => {
@@ -1956,7 +1973,7 @@ function PageDashIndicator({
           left: 0,
           right: 0,
           alignItems: 'center',
-          height: 26,
+          height: 32,
           justifyContent: 'center'
         },
         containerStyle
@@ -2057,7 +2074,13 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   pageIndex,
   verticalScrolls,
   indicatorY,
-  registerPageHandle,
+  period,
+  onPeriodChange,
+  chartMode,
+  onChartModeChange,
+  selectedChartCategoryId,
+  onChartCategorySelect,
+  registerScrollTop,
   onOpenChartExpanded,
   onOpenNetWorth,
   netWorth,
@@ -2076,14 +2099,20 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   settingsYearStart: number;
   currencySymbol: string;
   customRange?: { from: Date; to: Date };
-  onOpenCustomRange: () => void;
+  onOpenCustomRange: (accountId: string) => void;
   totalBalance: number;
   onRefresh: () => Promise<void>;
   isSelected: boolean;
   pageIndex: number;
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
-  registerPageHandle: (id: string | 'all' | 'net-worth', handle: HomePageHandle | null) => void;
+  period: HomePeriodType;
+  onPeriodChange: (p: HomePeriodType) => void;
+  chartMode: HomeChartMode;
+  onChartModeChange: (m: HomeChartMode) => void;
+  selectedChartCategoryId: string | null;
+  onChartCategorySelect: (id: string | null) => void;
+  registerScrollTop: (id: string, fn: (() => void) | null) => void;
   onOpenChartExpanded?: (transactions: Transaction[], mode: HomeChartMode, range: { period: HomePeriodType; from: string; to: string }, resetTrigger: number) => void;
   onOpenNetWorth?: () => void;
   netWorth?: number;
@@ -2096,7 +2125,6 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   loadLoans: (filters?: { accountId?: string; status?: LoanStatus }) => Promise<void>;
 }) {
   const { palette } = useAppTheme();
-  const [period, setPeriod] = useState<HomePeriodType>('today');
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -2107,6 +2135,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const todayDataCacheRef = useRef<{
     cashflow: CashflowSummary;
     periodTransactions: Transaction[];
+    transactions: Transaction[];
   } | null>(null);
 
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
@@ -2143,34 +2172,28 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
       todayDataCacheRef.current = {
         cashflow: periodSummary,
         periodTransactions: periodScopedTransactions,
+        transactions: recentTransactions,
       };
     }
   }, [accountId, isPageReady]);
 
   useEffect(() => {
-    registerPageHandle(accountId, {
-      scrollToTop: () => {
-        mainScrollRef.current?.scrollTo({ y: 0, animated: false });
-        recentScrollRef.current?.scrollTo({ y: 0, animated: false });
-        const arr = verticalScrolls.value.slice();
-        arr[pageIndex] = 0;
-        verticalScrolls.value = arr;
-      },
-      resetPeriod: () => {
-        const today = new Date();
-        const todayFrom = toLocalDayStartISO(today);
-        const todayTo = toLocalDayEndISO(today);
-        setPeriod('today');
-        setChartResetNonce((nonce) => nonce + 1);
-        if (todayDataCacheRef.current) {
-          setCashflow(todayDataCacheRef.current.cashflow);
-          setPeriodTransactions(todayDataCacheRef.current.periodTransactions);
-        }
-        loadRangeData(todayFrom, todayTo).catch(() => undefined);
-      },
+    registerScrollTop(accountId, () => {
+      mainScrollRef.current?.scrollTo({ y: 0, animated: false });
+      recentScrollRef.current?.scrollTo({ y: 0, animated: false });
+      const arr = verticalScrolls.value.slice();
+      arr[pageIndex] = 0;
+      verticalScrolls.value = arr;
     });
-    return () => registerPageHandle(accountId, null);
-  }, [accountId, loadRangeData, mainScrollRef, pageIndex, registerPageHandle, verticalScrolls]);
+    return () => registerScrollTop(accountId, null);
+  }, [accountId, mainScrollRef, pageIndex, registerScrollTop, verticalScrolls]);
+
+  // Reset chart nonce when category selection is cleared (e.g. parent reset)
+  useEffect(() => {
+    if (selectedChartCategoryId === null) {
+      setChartResetNonce((n) => n + 1);
+    }
+  }, [selectedChartCategoryId]);
 
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
@@ -2261,7 +2284,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
       >
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 54 + HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
           <AccountSummaryCard
-            accountName={accountId === 'all' ? 'All Accounts' : accountName}
+            accountName={accountId === 'all' ? 'All' : accountName}
             accountTypeLabel={accountTypeLabel}
             balance={totalBalance}
             currencySymbol={currencySymbol}
@@ -2276,30 +2299,22 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: 22 }}
+            style={{ height: 32 }}
           />
         </View>
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 2, marginBottom: 8 }}>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}>
-              This
-            </Text>
-            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted, textAlign: 'right' }}>
-              {formatDate(from)} - {formatDate(to)}
-            </Text>
-          </View>
+
           <View style={{ marginBottom: 14 }}>
             <SegmentedPillSwitch
               options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
               value={period}
               onChange={(next) => {
                 if (next === 'custom') {
-                  setPeriod('custom');
-                  onOpenCustomRange();
+                  onOpenCustomRange(accountId);
                   return;
                 }
-                setPeriod(next as HomePeriodType);
+                onPeriodChange(next as HomePeriodType);
               }}
               backgroundColor={chartTheme.surface}
               pillColor="#FFFFFF"
@@ -2313,6 +2328,15 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               fontSize={HOME_TEXT.caption}
               animated={false}
             />
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: -8, marginBottom: 12 }}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '400', color: palette.text }}>
+
+            </Text>
+            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textSecondary, textAlign: 'right' }}>
+              {formatDate(from)} - {formatDate(to)}
+            </Text>
           </View>
 
           <SummaryCard
@@ -2340,6 +2364,10 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               listPalette={palette}
               getCategoryFullDisplayName={getCategoryFullDisplayName}
               theme={chartTheme}
+              mode={chartMode}
+              onModeChange={onChartModeChange}
+              selectedCategoryId={selectedChartCategoryId}
+              onCategorySelect={onChartCategorySelect}
               resetTrigger={`${period}:${from}:${to}:${chartResetNonce}`}
               accountsById={accountsById}
               loansById={loansById}

@@ -157,6 +157,9 @@ export function HomeDonutChartBlock({
   expanded = false,
   onExpand,
   initialMode = 'expense',
+  mode: controlledMode,
+  onModeChange,
+  selectedCategoryId,
   resetTrigger = 0,
   accountsById,
   loansById,
@@ -184,17 +187,21 @@ export function HomeDonutChartBlock({
   expanded?: boolean;
   onExpand?: (mode: HomeChartMode) => void;
   initialMode?: HomeChartMode;
+  mode?: HomeChartMode;
+  onModeChange?: (mode: HomeChartMode) => void;
+  selectedCategoryId?: string | null;
   resetTrigger?: number | string;
   accountsById?: Map<string, string>;
   loansById?: Map<string, LoanWithSummary>;
   getCategoryFullDisplayName?: (categoryId: string, separator?: string) => string;
   onCategorySelect?: (categoryId: string | null) => void;
 }) {
-  const [mode, setMode] = useState<HomeChartMode>(initialMode);
+  const [internalMode, setInternalMode] = useState<HomeChartMode>(initialMode);
   const [drillParentId, setDrillParentId] = useState<string | null>(null);
   const [selectedSliceId, setSelectedSliceId] = useState<string | null>(null);
   const listScrollRef = useRef<ScrollView | null>(null);
   const txPalette = listPalette ?? (theme as unknown as AppThemePalette);
+  const mode = controlledMode ?? internalMode;
   const switchOptions = useMemo(() => ([
     { key: 'expense', label: 'Expense' },
     { key: 'income', label: 'Income' },
@@ -230,20 +237,30 @@ export function HomeDonutChartBlock({
   const selectedSlicePercent = visibleListSlices.find((slice) => slice.id === selectedSliceId)?.percent;
 
   useEffect(() => {
-    setMode(initialMode);
+    if (controlledMode === undefined) setInternalMode(initialMode);
+    setDrillParentId(null);
+    setSelectedSliceId(null);
+    onCategorySelect?.(null);
+    listScrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [controlledMode, initialMode, resetTrigger]);
+
+  useEffect(() => {
+    if (selectedCategoryId !== null) return;
     setDrillParentId(null);
     setSelectedSliceId(null);
     listScrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, [initialMode, resetTrigger]);
+  }, [selectedCategoryId]);
 
   useEffect(() => {
     onCategorySelect?.(selectionNode?.id ?? null);
-  }, [onCategorySelect, selectionNode?.id]);
+  }, [selectionNode?.id]);
 
   const handleModeChange = (next: HomeChartMode) => {
-    setMode(next);
+    if (onModeChange) onModeChange(next);
+    else setInternalMode(next);
     setDrillParentId(null);
     setSelectedSliceId(null);
+    onCategorySelect?.(null);
   };
 
   const goUpToParents = () => {
