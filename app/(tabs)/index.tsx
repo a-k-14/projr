@@ -23,7 +23,10 @@ import Animated, {
   useEvent,
   useHandler,
   useSharedValue,
-  type SharedValue
+  type SharedValue,
+  FadeInRight,
+  FadeOutRight,
+  LinearTransition
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeDonutChartBlock, type HomeChartMode } from '../../components/HomeDonutChartBlock';
@@ -56,7 +59,7 @@ import {
   SCREEN_HEADER
 } from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
-import { registerTabReset, type TabResetMode } from '../../lib/tabResetRegistry';
+import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
@@ -146,7 +149,7 @@ const NW_ACCOUNT_COLORS = [
 ] as const;
 const NW_ASSET_LIGHT = '#0D9488';
 const NW_ASSET_DARK = '#00FAD9';
-const NW_HERO_PROGRESS_LABEL_GAP = 4;
+const NW_HERO_PROGRESS_LABEL_GAP = 8;
 
 // Set false to restore the previous behavior where the indicator stays visible
 // during horizontal swipes, even when the current page is vertically scrolled.
@@ -164,6 +167,10 @@ type AccountCardItem = {
 };
 
 export default function HomeScreen() {
+  return <HomeScreenContent />;
+}
+
+function HomeScreenContent() {
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
@@ -199,6 +206,7 @@ export default function HomeScreen() {
   const pendingPagerSyncAccountIdRef = useRef<string | 'all' | 'add' | 'net-worth' | null>(null);
   const selectedAccountIdRef = useRef<string | 'all' | 'add' | 'net-worth'>('all');
   const lastLeftPageIdRef = useRef<string | 'all' | 'add' | 'net-worth' | null>(null);
+
   const [pageUiStates, setPageUiStates] = useState<Record<string, HomePageUiState>>({});
   const { palette } = useAppTheme();
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
@@ -229,6 +237,23 @@ export default function HomeScreen() {
     },
     [],
   );
+  const resetPageUiState = useCallback((id: string | 'all' | 'add' | 'net-worth') => {
+    if (id === 'add' || id === 'net-worth') return;
+    setPageUiStates((prev) => {
+      const current = prev[id] ?? defaultHomePageUiState;
+      if (
+        current.period === defaultHomePageUiState.period &&
+        current.chartMode === defaultHomePageUiState.chartMode &&
+        current.selectedChartCategoryId === defaultHomePageUiState.selectedChartCategoryId
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [id]: defaultHomePageUiState,
+      };
+    });
+  }, []);
 
   const displayAccounts = useMemo<AccountTab[]>(() => [
     ...(showAllAccountsTab ? [{ id: 'all' as const, name: 'All' }] : []),
@@ -291,21 +316,15 @@ export default function HomeScreen() {
     selectedAccountIdRef.current = selectedAccountId;
   }, [selectedAccountId]);
 
+  // Track focus state for push/pop detection.
+  // With freezeOnBlur disabled for Home, background resets render normally.
   useEffect(() => {
     if (isFocused && !wasFocusedRef.current) {
       wasFocusedRef.current = true;
-      if (selectedAccountId !== homeRootAccountId) {
-        const rootIndex = Math.max(0, displayAccounts.findIndex((account) => account.id === homeRootAccountId));
-        selectedAccountIdRef.current = homeRootAccountId;
-        setSelectedAccountId(homeRootAccountId);
-        settledAccountPageIndex.value = rootIndex;
-        accountPagerScrollX.value = rootIndex * width;
-        pagerRef.current?.setPageWithoutAnimation(rootIndex);
-      }
     } else if (!isFocused) {
       wasFocusedRef.current = false;
     }
-  }, [accountPagerScrollX, displayAccounts, homeRootAccountId, isFocused, pagerRef, selectedAccountId, settledAccountPageIndex, width]);
+  }, [isFocused]);
 
   useEffect(() => {
     if (didPositionInitialPagerRef.current || width <= 0 || displayAccounts.length === 0) return;
@@ -388,13 +407,11 @@ export default function HomeScreen() {
     setCustomDraftTo(today);
   }, []);
 
-  const resetHomeToAll = useCallback((mode: TabResetMode, animated: boolean) => {
+  const resetHomeToAll = useCallback((animated: boolean) => {
     const rootIndex = Math.max(0, displayAccounts.findIndex((account) => account.id === homeRootAccountId));
 
-    // Reset all page UI states in one batch
     setPageUiStates({});
     resetCustomRangeToToday();
-
     selectedAccountIdRef.current = homeRootAccountId;
     setSelectedAccountId(homeRootAccountId);
     settledAccountPageIndex.value = rootIndex;
@@ -406,13 +423,12 @@ export default function HomeScreen() {
       pagerRef.current?.setPageWithoutAnimation(rootIndex);
     }
 
-    // Scroll current page to top
     pageScrollTopRef.current.get(homeRootAccountId)?.();
-  }, [displayAccounts, homeRootAccountId, width, settledAccountPageIndex, accountPagerScrollX, pagerRef, resetCustomRangeToToday]);
+  }, [accountPagerScrollX, displayAccounts, homeRootAccountId, pagerRef, resetCustomRangeToToday, settledAccountPageIndex, width]);
 
   useEffect(() => {
-    return registerTabReset('index', ({ mode, animated }) => {
-      resetHomeToAll(mode, animated);
+    return registerTabReset('index', ({ animated }) => {
+      resetHomeToAll(animated);
     });
   }, [resetHomeToAll]);
 
@@ -433,23 +449,15 @@ export default function HomeScreen() {
       if (next.id !== selectedAccountIdRef.current) {
         const prevId = selectedAccountIdRef.current;
 
-        // Reset previous page UI state synchronously in the same setState batch
-        // as the page switch. React batches these together — one render cycle,
-        // previous page re-renders with defaults before it is ever visible again.
-        setPageUiStates((prev) => ({
-          ...prev,
-          [prevId]: defaultHomePageUiState,
-        }));
-        resetCustomRangeToToday();
+        resetPageUiState(prevId);
 
-        // Track for scroll reset at idle (scroll is a native command, safe to defer)
         lastLeftPageIdRef.current = prevId;
 
         selectedAccountIdRef.current = next.id;
         setSelectedAccountId(next.id);
       }
     },
-    [displayAccounts, resetCustomRangeToToday, settledAccountPageIndex],
+    [displayAccounts, resetPageUiState, settledAccountPageIndex],
   );
 
   const handlePageScrollStateChanged = useCallback(
@@ -463,6 +471,7 @@ export default function HomeScreen() {
           pageScrollTopRef.current.get(lastLeftPageIdRef.current)?.();
           lastLeftPageIdRef.current = null;
         }
+
       } else if (state === 'dragging') {
         const currentScroll = verticalScrolls.value[settledAccountPageIndex.value] ?? 0;
         if (HIDE_SCROLLED_INDICATOR_DURING_SWIPE && Math.abs(currentScroll) > 1) {
@@ -1556,19 +1565,21 @@ function AccountSummaryCard({
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          width: 140,
-          height: 140,
-          borderRadius: 70,
-          top: -30,
-          right: -30,
-          backgroundColor: palette.isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFD',
-          zIndex: 0,
-        }}
-      />
+      {!isAll && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            width: 110,
+            height: 110,
+            borderRadius: 55,
+            top: -25,
+            right: -25,
+            backgroundColor: palette.isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFD',
+            zIndex: 0,
+          }}
+        />
+      )}
 
       <View style={{ flex: 1, paddingHorizontal: CARD_PADDING, justifyContent: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
@@ -1632,19 +1643,19 @@ function AccountSummaryCard({
           style={{
             borderTopWidth: 1,
             borderTopColor: palette.divider,
-            paddingHorizontal: CARD_PADDING,
-            paddingVertical: 7, // Reduced padding
+            paddingHorizontal: CARD_PADDING - 2,
+            paddingVertical: 6, // Reduced padding
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: palette.isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.02)',
+            backgroundColor: palette.background,
           }}
         >
           <Text style={{ fontSize: 12, fontWeight: '600', color: palette.textMuted }}>
             Net Worth
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>
               {(netWorth ?? 0) < 0 ? '-' : ''}{formatCurrency(Math.abs(netWorth ?? 0), currencySymbol)}
             </Text>
             <AppIcon name="chevron-right" size={14} color={palette.textSoft} />
@@ -2127,6 +2138,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const { palette } = useAppTheme();
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
+  const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [chartResetNonce, setChartResetNonce] = useState(0);
@@ -2145,6 +2157,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     loadRequestIdRef.current += 1;
     setCashflow({ in: 0, out: 0, net: 0 });
     setPeriodTransactions([]);
+    setPeriodDataRangeKey(null);
     setTransactions([]);
     todayDataCacheRef.current = null;
   }, [accountId]);
@@ -2152,6 +2165,8 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
   const loadRangeData = useCallback(async (rangeFrom: string, rangeTo: string) => {
     if (!isPageReady) return;
     const requestId = ++loadRequestIdRef.current;
+    const requestRangeKey = `${rangeFrom}:${rangeTo}`;
+    setPeriodDataRangeKey(null);
     const accountFilter = accountId === 'all' ? undefined : accountId;
     const [periodSnapshot, recentTransactions, periodScopedTransactions] = await Promise.all([
       getCashflowSnapshot(accountId, rangeFrom, rangeTo),
@@ -2166,6 +2181,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     setCashflow(periodSummary);
     setTransactions(recentTransactions);
     setPeriodTransactions(periodScopedTransactions);
+    setPeriodDataRangeKey(requestRangeKey);
 
     const today = new Date();
     if (rangeFrom === toLocalDayStartISO(today) && rangeTo === toLocalDayEndISO(today)) {
@@ -2224,6 +2240,10 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
     settingsYearStart,
     customRange,
   );
+  const currentRangeKey = `${from}:${to}`;
+  const hasCurrentPeriodData = periodDataRangeKey === currentRangeKey;
+  const displayedCashflow = hasCurrentPeriodData ? cashflow : { in: 0, out: 0, net: 0 };
+  const displayedPeriodTransactions = hasCurrentPeriodData ? periodTransactions : [];
   const loadPageData = useCallback(async () => {
     await loadRangeData(from, to);
   }, [from, loadRangeData, to]);
@@ -2330,17 +2350,30 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             />
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: -8, marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: -10, marginBottom: 12 }}>
             <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '400', color: palette.text }}>
 
             </Text>
-            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textSecondary, textAlign: 'right' }}>
-              {formatDate(from)} - {formatDate(to)}
-            </Text>
+            <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', flexShrink: 1 }}>
+              <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+                {formatDate(from)}
+              </Text>
+              {period !== 'today' && (
+                <Animated.View 
+                  entering={FadeInRight.duration(200)} 
+                  exiting={FadeOutRight.duration(200)} 
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                >
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+                    {` - ${formatDate(to)}`}
+                  </Text>
+                </Animated.View>
+              )}
+            </Animated.View>
           </View>
 
           <SummaryCard
-            cashflow={cashflow}
+            cashflow={displayedCashflow}
             sym={currencySymbol}
             palette={palette}
             onPressCategory={openPeriodActivity}
@@ -2358,7 +2391,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
             }}
           >
             <HomeDonutChartBlock
-              transactions={periodTransactions}
+              transactions={displayedPeriodTransactions}
               categoriesById={categoriesById}
               sym={currencySymbol}
               listPalette={palette}
@@ -2371,7 +2404,7 @@ const HomeAccountPage = React.memo(function HomeAccountPage({
               resetTrigger={`${period}:${from}:${to}:${chartResetNonce}`}
               accountsById={accountsById}
               loansById={loansById}
-              onExpand={(mode) => onOpenChartExpanded?.(periodTransactions, mode, { period, from, to }, Date.now())}
+              onExpand={(mode) => onOpenChartExpanded?.(displayedPeriodTransactions, mode, { period, from, to }, Date.now())}
             />
           </View>
 

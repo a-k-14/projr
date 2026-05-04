@@ -173,7 +173,7 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen name="index" />
+      <Tabs.Screen name="index" options={{ freezeOnBlur: false }} />
       <Tabs.Screen name="activity" />
       <Tabs.Screen name="loans" />
       <Tabs.Screen name="budget" />
