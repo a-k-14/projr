@@ -1,7 +1,7 @@
 import { AppIcon } from '@/components/ui/AppIcon';
+import { Text } from '@/components/ui/AppText';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Text } from '@/components/ui/AppText';
 import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
@@ -30,10 +30,12 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
           marginLeft: flex ? 0 : ACTIVITY_LAYOUT.moreButtonGap,
           flex: flex ? 1 : undefined,
           flexBasis: flex ? 0 : undefined,
-          minWidth: flex ? 0 : iconOnly ? 38 : 84,
-          width: iconOnly ? 38 : undefined,
+          minWidth: flex ? 0 : iconOnly ? 44 : 84,
+          width: iconOnly ? 44 : undefined,
+          height: iconOnly ? 30 : 30,
           paddingHorizontal: iconOnly ? 0 : 12,
           justifyContent: iconOnly ? 'center' : 'flex-start',
+          borderRadius: ACTIVITY_LAYOUT.chipRadius,
         },
       ]}
     >

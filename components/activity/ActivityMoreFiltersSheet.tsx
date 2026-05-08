@@ -1,23 +1,17 @@
-import { AppIcon } from '@/components/ui/AppIcon';
 import { AppChevron } from '@/components/ui/AppChevron';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { StyleSheet, TextInput, View , TouchableOpacity } from 'react-native';
 import { FilledButton } from '../ui/AppButton';
 import { BottomSheet } from '../ui/BottomSheet';
-import { FilterChip } from '../ui/FilterChip';
 import { ListHeading } from '../ui/ListHeading';
 import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import type { Category, Transaction } from '../../types';
 import { CategoryIconBadge, Checkbox } from './ActivityUI';
 
 interface ActivityMoreFiltersSheetProps {
-  groupByMode: 'date' | 'category';
-  setGroupByMode: (mode: 'date' | 'category') => void;
-  draftGroupByMode: 'date' | 'category';
-  setDraftGroupByMode: (mode: 'date' | 'category') => void;
   selectedCategoryIds: string[];
   toggleCategoryId: (id: string) => void;
   toggleCategoryFamily: (id: string) => void;
@@ -38,10 +32,6 @@ interface ActivityMoreFiltersSheetProps {
 }
 
 export function ActivityMoreFiltersSheet({
-  groupByMode,
-  setGroupByMode,
-  draftGroupByMode,
-  setDraftGroupByMode,
   selectedCategoryIds,
   toggleCategoryId,
   toggleCategoryFamily,
@@ -79,7 +69,6 @@ export function ActivityMoreFiltersSheet({
           <FilledButton
             label="Apply filters"
             onPress={() => {
-              setGroupByMode(draftGroupByMode);
               setShowMoreSheet(false);
             }}
             palette={palette}
@@ -97,24 +86,6 @@ export function ActivityMoreFiltersSheet({
       }
     >
       <View style={{ paddingBottom: 12 }}>
-        <ListHeading label="Group by" palette={palette} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: ACTIVITY_LAYOUT.controlChipGap, paddingHorizontal: CARD_PADDING, paddingBottom: 8 }}>
-          <FilterChip
-            label="Date"
-            isActive={draftGroupByMode === 'date'}
-            onPress={() => setDraftGroupByMode('date')}
-            palette={palette}
-          />
-          <FilterChip
-            label="Category"
-            isActive={draftGroupByMode === 'category'}
-            onPress={() => setDraftGroupByMode('category')}
-            palette={palette}
-          />
-        </View>
-
-        <View style={{ height: 1, backgroundColor: palette.divider }} />
-
         <ListHeading label="Category" palette={palette} />
 
         <View style={{ paddingTop: 2 }}>

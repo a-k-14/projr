@@ -75,7 +75,7 @@ type CategoryDrilldown = {
   subLabel: string;
   compactLabel?: boolean;
 };
-type HierarchyFamily = 'out' | 'in' | 'loan' | 'transfer';
+type HierarchyFamily = 'in' | 'out' | 'loan' | 'deposit' | 'transfer';
 
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
@@ -137,7 +137,6 @@ export default function ActivityScreen() {
   const [amountMaxStr, setAmountMaxStr] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(true);
   const [groupByMode, setGroupByMode] = useState<GroupByMode>('date');
-  const [draftGroupByMode, setDraftGroupByMode] = useState<GroupByMode>('date');
   const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
   const [isInitialParamSyncComplete, setIsInitialParamSyncComplete] = useState(!routeParams.source);
 
@@ -279,12 +278,6 @@ export default function ActivityScreen() {
     });
     return () => sub.remove();
   }, [categoryDrilldown, groupByMode, isFocused]);
-
-  useEffect(() => {
-    if (showMoreSheet) {
-      setDraftGroupByMode(groupByMode);
-    }
-  }, [groupByMode, showMoreSheet]);
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
@@ -649,10 +642,7 @@ export default function ActivityScreen() {
     selectedCategoryIds.length +
     selectedTagIds.length +
     (amountMinStr ? 1 : 0) +
-    (amountMaxStr ? 1 : 0) +
-    (groupByMode === 'category' ? 1 : 0);
-  const moreActiveBg = palette.brandSoft;
-  const moreActiveBorder = palette.brand;
+    (amountMaxStr ? 1 : 0);
 
   const topCategories = useMemo(
     () =>
@@ -760,10 +750,11 @@ export default function ActivityScreen() {
     };
 
     const getFamilyOrder = (familyKey: HierarchyFamily) => {
-      if (familyKey === 'out') return 0;
-      if (familyKey === 'in') return 1;
+      if (familyKey === 'in') return 0;
+      if (familyKey === 'out') return 1;
       if (familyKey === 'loan') return 2;
-      return 3;
+      if (familyKey === 'deposit') return 3;
+      return 4;
     };
 
     filteredTransactions.forEach((tx) => {
@@ -856,9 +847,10 @@ export default function ActivityScreen() {
   const hierarchySections = useMemo(
     () =>
       ([
-        { key: 'out', label: 'Expenses' },
         { key: 'in', label: 'Income' },
+        { key: 'out', label: 'Expenses' },
         { key: 'loan', label: 'Loans' },
+        { key: 'deposit', label: 'Deposits' },
         { key: 'transfer', label: 'Transfers' },
       ] as const)
         .map((section) => ({
@@ -978,6 +970,11 @@ export default function ActivityScreen() {
       <ActivityFilterBar
         accountLabel={accountLabel}
         setShowAccountSheet={setShowAccountSheet}
+        viewMode={groupByMode}
+        setViewMode={(mode) => {
+          setGroupByMode(mode);
+          if (mode === 'date') setCategoryDrilldown(null);
+        }}
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
         setCashflowBucket={setCashflowBucket}
@@ -1473,10 +1470,6 @@ export default function ActivityScreen() {
 
       {showMoreSheet ? (
         <ActivityMoreFiltersSheet
-          groupByMode={groupByMode}
-          setGroupByMode={setGroupByMode}
-          draftGroupByMode={draftGroupByMode}
-          setDraftGroupByMode={setDraftGroupByMode}
           selectedCategoryIds={selectedCategoryIds}
           toggleCategoryId={toggleCategoryId}
           toggleCategoryFamily={toggleCategoryFamily}
@@ -1500,7 +1493,6 @@ export default function ActivityScreen() {
             setAmountMaxStr('');
             setExpandedCategoryIds([]);
             setGroupByMode('date');
-            setDraftGroupByMode('date');
             setCategoryDrilldown(null);
           }}
         />
