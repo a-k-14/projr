@@ -1,11 +1,11 @@
 import { InteractionManager } from 'react-native';
 
-export type TabRouteName = 'index' | 'activity' | 'loans' | 'budget' | 'settings';
+export type TabRouteName = 'index' | 'activity' | 'loans' | 'budget' | 'settings' | 'insights' | 'deposits';
 export type TabResetMode = 'background' | 'full';
 
 export type TabResetHandler = (options: { mode: TabResetMode; animated: boolean }) => void;
 
-const knownTabs = new Set<TabRouteName>(['index', 'activity', 'loans', 'budget', 'settings']);
+const knownTabs = new Set<TabRouteName>(['index', 'activity', 'loans', 'budget', 'settings', 'insights', 'deposits']);
 const registry = new Map<string, TabResetHandler>();
 
 export function registerTabReset(tab: TabRouteName, handler: TabResetHandler): () => void {

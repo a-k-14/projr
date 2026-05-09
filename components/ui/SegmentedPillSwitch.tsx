@@ -55,7 +55,7 @@ export function SegmentedPillSwitch({
       damping: 20,
       mass: 0.7,
       stiffness: 220,
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
   }, [animated, indicatorX, segmentWidth, selectedIndex, options.length]);
 

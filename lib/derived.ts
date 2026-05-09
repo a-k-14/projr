@@ -162,6 +162,30 @@ export function formatCurrency(amount: number, symbol: string = '₹'): string {
   return `${safeSymbol}${formatted}`;
 }
 
+export function formatCompactCurrency(amount: number, symbol: string = '₹'): string {
+  const val = typeof amount === 'number' ? amount : 0;
+  const abs = Math.abs(val);
+  const sign = val < 0 ? '-' : '';
+  const safeSymbol = typeof symbol === 'string' ? symbol : '';
+  
+  if (abs >= 10000000) {
+    return `${sign}${safeSymbol}${(abs / 10000000).toFixed(2).replace(/\.00$/, '')}Cr`;
+  }
+  if (abs >= 100000) {
+    return `${sign}${safeSymbol}${(abs / 100000).toFixed(2).replace(/\.00$/, '')}L`;
+  }
+  if (abs >= 1000) {
+    return `${sign}${safeSymbol}${(abs / 1000).toFixed(2).replace(/\.00$/, '')}k`;
+  }
+  
+  const hasFraction = Math.abs(abs - Math.round(abs)) > 0.000001;
+  const formatted = new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: hasFraction ? 2 : 0,
+  }).format(abs);
+  return `${sign}${safeSymbol}${formatted}`;
+}
+
 /** Formats a numeric string with Indian-style commas (##,##,###) */
 export function formatIndianNumberStr(val: string): string {
   if (!val) return '';

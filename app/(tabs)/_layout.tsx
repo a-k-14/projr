@@ -1,6 +1,6 @@
-import { Text } from '@/components/ui/AppText';
 import { AppIcon, IconName } from '@/components/ui/AppIcon';
-import { Tabs } from 'expo-router';
+import { Text } from '@/components/ui/AppText';
+import { router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -12,15 +12,19 @@ import { AppThemePalette, useAppTheme } from '../../lib/theme';
 const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
   index: { icon: 'layout-panel-left', label: 'Home' },
   activity: { icon: 'activity', label: 'Activity' },
-  loans: { icon: 'credit-card', label: 'Loans' },
-  budget: { icon: 'pie-chart', label: 'Budget' },
+  insights: { icon: 'bar-chart-2', label: 'Insights' },
   settings: { icon: 'settings', label: 'Settings' },
 };
+
+const VISIBLE_TAB_NAMES = ['index', 'activity', 'insights', 'settings'] as const;
+const TAB_BAR_SLOTS = ['index', 'activity', 'add', 'insights', 'settings'] as const;
 
 const BACKGROUND_RESET_ENABLED: Record<string, boolean> = {
   index: true,
   activity: true,
+  deposits: true,
   loans: true,
+  insights: true,
   budget: true,
   settings: true,
 };
@@ -37,15 +41,19 @@ function AppTabBar({
   palette: AppThemePalette;
 }) {
   const { width } = useWindowDimensions();
-  const tabHeight = 60;
-  const routes = state.routes;
-  const itemWidth = width / Math.max(routes.length, 1);
+  const tabHeight = 66;
+  const routes = VISIBLE_TAB_NAMES
+    .map((name) => state.routes.find((route: any) => route.name === name))
+    .filter(Boolean);
+  const itemWidth = width / TAB_BAR_SLOTS.length;
   const pillWidth = 58;
-  const indicatorX = useSharedValue(state.index * itemWidth + (itemWidth - pillWidth) / 2);
+  const activeRouteName = state.routes[state.index]?.name;
+  const activeSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === activeRouteName);
+  const indicatorX = useSharedValue(Math.max(activeSlotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2);
 
   useEffect(() => {
-    indicatorX.value = withTiming(state.index * itemWidth + (itemWidth - pillWidth) / 2, { duration: 190 });
-  }, [indicatorX, itemWidth, state.index]);
+    indicatorX.value = withTiming(Math.max(activeSlotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2, { duration: 190 });
+  }, [activeSlotIndex, indicatorX, itemWidth]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: indicatorX.value }],
@@ -57,8 +65,11 @@ function AppTabBar({
         height: tabHeight + insetsBottom,
         paddingBottom: insetsBottom,
         backgroundColor: palette.surface,
-        borderTopWidth: 1,
-        borderTopColor: palette.border,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: palette.isDark ? 0.12 : 0.05,
+        shadowRadius: 8,
+        elevation: 6,
       }}
     >
       <View style={{ height: tabHeight, flexDirection: 'row', position: 'relative' }}>
@@ -75,12 +86,58 @@ function AppTabBar({
               borderWidth: 1,
               borderColor: palette.brand,
               backgroundColor: palette.brandSoft,
+              opacity: activeSlotIndex >= 0 ? 1 : 0,
             },
             indicatorStyle,
           ]}
         />
-        {routes.map((route: any, index: number) => {
-          const focused = state.index === index;
+        {TAB_BAR_SLOTS.map((slot) => {
+          if (slot === 'add') {
+            return (
+              <View
+                key="add"
+                style={{
+                  width: itemWidth,
+                  alignItems: 'center',
+                  paddingTop: 6,
+                }}
+              >
+                <TouchableOpacity
+                  delayPressIn={0}
+                  activeOpacity={0.88}
+                  onPress={() => router.push('/modals/add-transaction')}
+                  style={{
+                    width: 50,
+                    height: 46,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: palette.isDark ? palette.surfaceRaised : palette.text,
+                    borderWidth: 1,
+                    borderColor: palette.isDark ? palette.borderSoft : '#24345A',
+                    shadowColor: '#000000',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: palette.isDark ? 0.18 : 0.11,
+                    shadowRadius: 7,
+                    elevation: 4,
+                    transform: [{ translateY: -2 }],
+                  }}
+                >
+                  <AppIcon
+                    name="plus"
+                    size={22}
+                    color={palette.isDark ? palette.listText : palette.surface}
+                    strokeWidth={1.8}
+                  />
+                </TouchableOpacity>
+              </View>
+            );
+          }
+
+          const route = routes.find((item: any) => item.name === slot);
+          if (!route) return null;
+
+          const focused = activeRouteName === route.name;
           const item = TAB_ITEMS[route.name] ?? TAB_ITEMS.index;
 
           const onPress = () => {
@@ -175,8 +232,10 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{ freezeOnBlur: false }} />
       <Tabs.Screen name="activity" />
-      <Tabs.Screen name="loans" />
-      <Tabs.Screen name="budget" />
+      <Tabs.Screen name="deposits" options={{ href: null }} />
+      <Tabs.Screen name="loans" options={{ href: null }} />
+      <Tabs.Screen name="insights" />
+      <Tabs.Screen name="budget" options={{ href: null }} />
       <Tabs.Screen name="settings" />
     </Tabs>
   );

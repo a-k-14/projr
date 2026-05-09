@@ -28,7 +28,6 @@ import { TransactionListItem } from '../../components/TransactionListItem';
 import { AppChevron } from '../../components/ui/AppChevron';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
-import { FabButton } from '../../components/ui/FabButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
@@ -47,7 +46,7 @@ import {
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getFabBottomOffset, getTxTypeConfig } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
@@ -1498,14 +1497,6 @@ export default function ActivityScreen() {
         />
       ) : null}
 
-      <FabButton
-        bottom={getFabBottomOffset(insets.bottom)}
-        palette={palette}
-        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.text}
-        iconColor={palette.isDark ? palette.listText : palette.surface}
-        style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
-        onPress={() => router.push('/modals/add-transaction')}
-      />
     </View>
   );
 }

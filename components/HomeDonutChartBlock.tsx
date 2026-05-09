@@ -354,7 +354,6 @@ export function HomeDonutChartBlock({
           height={HOME_LAYOUT.periodHeight}
           radius={HOME_RADIUS.tab + 3}
           fontSize={HOME_TEXT.caption}
-          animated={false}
         />
         {expanded || !onExpand ? null : (
           <TouchableOpacity

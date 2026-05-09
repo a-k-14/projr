@@ -8,12 +8,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
 import { ScreenTitle } from '../../components/settings-ui';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
-import { FabButton } from '../../components/ui/FabButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
 import { formatCurrency } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS, getFabBottomOffset } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { isEmojiIcon } from '../../lib/ui-format';
@@ -165,19 +164,6 @@ export default function BudgetScreen() {
         )}
       </ScrollView>
 
-      <FabButton
-        bottom={getFabBottomOffset(insets.bottom)}
-        palette={palette}
-        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.budget}
-        iconColor={palette.isDark ? palette.listText : palette.onBudget}
-        style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
-        onPress={() =>
-          router.push({
-            pathname: '/modals/budget-form',
-            params: { month: selectedMonth }
-          })
-        }
-      />
       <BudgetMonthSheet
         visible={showMonthSheet}
         palette={palette}

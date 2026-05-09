@@ -1,5 +1,5 @@
 import { StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT } from '../../lib/layoutTokens';
+import { HOME_LAYOUT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { AppIcon } from './AppIcon';
 
@@ -46,13 +46,13 @@ const styles = StyleSheet.create({
     right: HOME_LAYOUT.fabRightOffset,
     width: HOME_LAYOUT.fabSize,
     height: HOME_LAYOUT.fabSize,
-    borderRadius: HOME_LAYOUT.fabSize / 2,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 8,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.24,
+    shadowRadius: 16,
     zIndex: 10,
   },
 });
