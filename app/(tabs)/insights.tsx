@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
+import { registerTabReset } from '../../lib/tabResetRegistry';
 
 import { Text } from '@/components/ui/AppText';
 import { useAppTheme } from '../../lib/theme';
@@ -14,6 +15,7 @@ import { useUIStore } from '../../stores/useUIStore';
 
 import { PeriodSelector } from '../../components/ui/PeriodSelector';
 import { HomeDonutChartBlock, HomeChartMode } from '../../components/HomeDonutChartBlock';
+import { SummaryCard } from '../../components/SummaryCard';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppIcon } from '../../components/ui/AppIcon';
@@ -23,7 +25,7 @@ import { getTransactions } from '../../services/transactions';
 import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate } from '../../lib/dateUtils';
 import { TYPE } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SPACING, SCREEN_HEADER, HOME_LAYOUT } from '../../lib/layoutTokens';
-import type { PeriodType, Transaction } from '../../types';
+import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 
 type HomePeriodType = 'today' | PeriodType;
 
@@ -50,7 +52,7 @@ export default function InsightsScreen() {
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
 
-  const [period, setPeriod] = useState<HomePeriodType>('month');
+  const [period, setPeriod] = useState<HomePeriodType>('week');
   const [chartMode, setChartMode] = useState<HomeChartMode>('expense');
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
   const [chartResetNonce, setChartResetNonce] = useState(0);
@@ -69,6 +71,7 @@ export default function InsightsScreen() {
   } | null>(null);
 
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
+  const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [refreshing, setRefreshing] = useState(false);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
@@ -104,7 +107,11 @@ export default function InsightsScreen() {
   }, [period, settingsYearStart, customRangeFrom, customRangeTo]);
 
   const loadData = useCallback(async () => {
-    const txs = await getTransactions({ fromDate: dateRange.from, toDate: dateRange.to });
+    const [snapshot, txs] = await Promise.all([
+      getCashflowSnapshot('all', dateRange.from, dateRange.to),
+      getTransactions({ fromDate: dateRange.from, toDate: dateRange.to }),
+    ]);
+    setCashflow(snapshot.summary);
     setPeriodTransactions(txs);
   }, [dateRange]);
 
@@ -117,6 +124,18 @@ export default function InsightsScreen() {
       setChartResetNonce((n) => n + 1);
     }
   }, [selectedChartCategoryId]);
+
+  const scrollRef = useRef<any>(null);
+
+  useEffect(() => {
+    return registerTabReset('insights', ({ mode }) => {
+      scrollRef.current?.scrollTo({ y: 0, animated: mode === 'full' });
+      if (mode === 'full') {
+        setPeriod('week');
+        setSelectedChartCategoryId(null);
+      }
+    });
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -176,6 +195,7 @@ export default function InsightsScreen() {
       </View>
 
       <Animated.ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
@@ -189,6 +209,12 @@ export default function InsightsScreen() {
             onOpenCustomRange={openCustomRange}
             theme={chartTheme}
             options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
+          />
+
+          <SummaryCard
+            cashflow={cashflow}
+            sym={showCurrencySymbol ? currencySymbol : ''}
+            palette={palette}
           />
 
         <View

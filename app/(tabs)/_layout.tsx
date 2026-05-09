@@ -232,10 +232,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{ freezeOnBlur: false }} />
       <Tabs.Screen name="activity" />
-      <Tabs.Screen name="deposits" options={{ href: null }} />
-      <Tabs.Screen name="loans" options={{ href: null }} />
       <Tabs.Screen name="insights" />
-      <Tabs.Screen name="budget" options={{ href: null }} />
       <Tabs.Screen name="settings" />
     </Tabs>
   );

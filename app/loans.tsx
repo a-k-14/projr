@@ -1,4 +1,5 @@
 import { Text } from '@/components/ui/AppText';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
@@ -15,18 +16,18 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChoiceRow } from '../../components/settings-ui';
-import { BottomSheet } from '../../components/ui/BottomSheet';
-import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
-import { FabButton } from '../../components/ui/FabButton';
-import { FilterChip } from '../../components/ui/FilterChip';
-import { FilterMoreButton } from '../../components/ui/FilterMoreButton';
-import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { ListHeading } from '../../components/ui/ListHeading';
-import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
-import { AppCard, CardTitleRow, CardSubtitleRow } from '../../components/ui/AppCard';
-import { formatCurrency, getLoanSummary, getLoanTransactionKind, getLoanTransactionUserNote } from '../../lib/derived';
-import { CARD_PADDING } from '../../lib/design';
+import { ChoiceRow } from '../components/settings-ui';
+import { BottomSheet } from '../components/ui/BottomSheet';
+import { EmptyStateCard } from '../components/ui/EmptyStateCard';
+import { FabButton } from '../components/ui/FabButton';
+import { FilterChip } from '../components/ui/FilterChip';
+import { FilterMoreButton } from '../components/ui/FilterMoreButton';
+import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
+import { ListHeading } from '../components/ui/ListHeading';
+import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
+import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
+import { formatCurrency, getLoanSummary, getLoanTransactionKind, getLoanTransactionUserNote } from '../lib/derived';
+import { CARD_PADDING } from '../lib/design';
 import {
   ACTIVITY_LAYOUT,
   BUTTON_TOKENS,
@@ -37,14 +38,14 @@ import {
   HOME_TEXT,
   PROGRESS,
   getFabBottomOffset
-} from '../../lib/layoutTokens';
-import { registerTabReset } from '../../lib/tabResetRegistry';
-import { useAppTheme, type AppThemePalette } from '../../lib/theme';
-import { formatDateFull } from '../../lib/ui-format';
-import { useAccountsStore } from '../../stores/useAccountsStore';
-import { useLoansStore } from '../../stores/useLoansStore';
-import { useUIStore } from '../../stores/useUIStore';
-import type { LoanStatus, LoanWithSummary } from '../../types';
+} from '../lib/layoutTokens';
+import { registerTabReset } from '../lib/tabResetRegistry';
+import { useAppTheme, type AppThemePalette } from '../lib/theme';
+import { formatDateFull } from '../lib/ui-format';
+import { useAccountsStore } from '../stores/useAccountsStore';
+import { useLoansStore } from '../stores/useLoansStore';
+import { useUIStore } from '../stores/useUIStore';
+import type { LoanStatus, LoanWithSummary } from '../types';
 
 const STATUS_OPTIONS: { label: string; value: LoanStatus | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -363,20 +364,49 @@ export default function LoansScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
-          <View style={styles.topBarMainRow}>
-            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
-              Loans
-            </Text>
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity delayPressIn={0}
-              onPress={() => toggleSearch(true)}
-              style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
-            >
-              <AppIcon name="search" size={17} color={palette.textMuted} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScreenHeader
+          title="Loans"
+          palette={palette}
+          showBack={true}
+          onBack={() => router.replace('/')}
+          rightAction={
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <TouchableOpacity delayPressIn={0}
+                onPress={() => toggleSearch(true)}
+                style={{
+                  backgroundColor: palette.brandSoft,
+                  borderWidth: 1.5,
+                  borderColor: palette.brand,
+                  borderRadius: 20,
+                  width: 34,
+                  height: 34,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppIcon name="search" size={16} color={palette.brand} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                delayPressIn={0}
+                activeOpacity={0.7}
+                onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'loan' } })}
+                style={{
+                  width: 42,
+                  height: 34,
+                  backgroundColor: palette.surface,
+                  borderWidth: 1,
+                  borderColor: palette.divider,
+                  borderRadius: 17,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppIcon name="plus" size={18} color={palette.text} strokeWidth={1.9} />
+              </TouchableOpacity>
+            </View>
+          }
+        />
       )}
 
       <FlatList
@@ -468,16 +498,6 @@ export default function LoansScreen() {
         }
         renderItem={renderLoanItem}
       />
-
-      <FabButton
-        bottom={getFabBottomOffset(insets.bottom)}
-        palette={palette}
-        backgroundColor={palette.isDark ? palette.surfaceRaised : palette.text}
-        iconColor={palette.isDark ? palette.listText : palette.surface}
-        style={palette.isDark ? { borderWidth: 1, borderColor: palette.borderSoft } : undefined}
-        onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'loan' } })}
-      />
-
       {showAccountSheet ? (
         <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
           <ChoiceRow

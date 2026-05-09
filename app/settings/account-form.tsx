@@ -17,7 +17,7 @@ import { CalculatorTrigger } from '../../components/ui/CalculatorTrigger';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SPACING } from '../../lib/design';
-import { ACCOUNT_ICONS, ACCOUNT_TYPES, ENTITY_COLORS } from '../../lib/settings-shared';
+import { ACCOUNT_ICONS, ACCOUNT_TYPES, ACCOUNT_TYPE_META, ENTITY_COLORS } from '../../lib/settings-shared';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -235,19 +235,38 @@ export default function AccountFormScreen() {
           palette={palette}
           onClose={() => setShowTypePicker(false)}
         >
-          {ACCOUNT_TYPES.map((t, i) => (
-            <ChoiceRow
-              key={t.key}
-              title={t.label}
-              selected={draft.type === t.key}
-              palette={palette}
-              noBorder={i === ACCOUNT_TYPES.length - 1}
-              onPress={() => {
-                setDraft((s) => ({ ...s, type: t.key }));
-                setShowTypePicker(false);
-              }}
-            />
-          ))}
+          {ACCOUNT_TYPES.map((t, i) => {
+            const typeMeta = ACCOUNT_TYPE_META[t.key];
+            return (
+              <ChoiceRow
+                key={t.key}
+                title={t.label}
+                selected={draft.type === t.key}
+                palette={palette}
+                noBorder={i === ACCOUNT_TYPES.length - 1}
+                leftElement={
+                  <View
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: palette.isDark ? 'rgba(255,255,255,0.055)' : 'rgba(31,42,68,0.045)',
+                      borderWidth: 1,
+                      borderColor: palette.isDark ? 'rgba(255,255,255,0.075)' : 'rgba(31,42,68,0.075)',
+                    }}
+                  >
+                    <AppIcon name={typeMeta.icon} size={20} color={palette.brand} strokeWidth={1.5} />
+                  </View>
+                }
+                onPress={() => {
+                  setDraft((s) => ({ ...s, type: t.key }));
+                  setShowTypePicker(false);
+                }}
+              />
+            );
+          })}
         </BottomSheet>
       )}
       <CalculatorSheet

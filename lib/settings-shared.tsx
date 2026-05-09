@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AppThemePalette } from './theme';
 import { CardSection, SectionLabel } from '../components/settings-ui';
 import { formatCurrency } from './derived';
+import type { AccountType } from '../types';
 
 export const MONTHS = [
   'January',
@@ -45,6 +46,15 @@ export const ACCOUNT_TYPES = [
 export function getAccountTypeLabel(type?: string): string {
   return ACCOUNT_TYPES.find((item) => item.key === type)?.label ?? 'Account';
 }
+
+export const ACCOUNT_TYPE_META: Record<AccountType, { icon: string; color: string }> = {
+  savings: { icon: 'landmark', color: '#2563EB' },
+  cash: { icon: 'banknote', color: '#059669' },
+  wallet: { icon: 'wallet', color: '#0F8EA3' },
+  investment: { icon: 'trending-up', color: '#7C3AED' },
+  credit: { icon: 'credit-card', color: '#DC2626' },
+  other: { icon: 'circle-dollar-sign', color: '#64748B' },
+};
 
 export const ACCOUNT_ICONS = [
   'credit-card',

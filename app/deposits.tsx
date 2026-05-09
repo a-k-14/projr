@@ -1,70 +1,29 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
-import { router } from 'expo-router';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
-import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { formatCurrency } from '../../lib/derived';
-import { HOME_TEXT, SCREEN_GUTTER } from '../../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE } from '../../lib/layoutTokens';
-import { useAppTheme } from '../../lib/theme';
-import { useUIStore } from '../../stores/useUIStore';
+import { EmptyStateCard } from '../components/ui/EmptyStateCard';
+import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
+import { formatCurrency } from '../lib/derived';
+import { FIXED_DEPOSITS, getFixedDepositSummary, type FixedDeposit } from '../lib/fixed-deposits';
+import { HOME_TEXT, SCREEN_GUTTER } from '../lib/design';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE } from '../lib/layoutTokens';
+import { useAppTheme } from '../lib/theme';
+import { useUIStore } from '../stores/useUIStore';
 
-// Fixed Deposit type definition
-interface FixedDeposit {
-  id: string;
-  name: string;
-  bankName: string;
-  principalAmount: number;
-  interestRate: number;
-  startDate: string;
-  maturityDate: string;
-  tenureMonths: number;
-  maturityValue: number;
-  status: 'active' | 'matured' | 'closed';
-}
-
-// Mock data - replace with actual store when ready
 const useFixedDepositsStore = () => {
-  // This is a placeholder - user should replace with real store
-  const [deposits] = useState<FixedDeposit[]>([
-    {
-      id: '1',
-      name: 'Emergency Fund FD',
-      bankName: 'HDFC Bank',
-      principalAmount: 100000,
-      interestRate: 7.5,
-      startDate: '2025-01-15',
-      maturityDate: '2026-01-15',
-      tenureMonths: 12,
-      maturityValue: 107500,
-      status: 'active',
-    },
-    {
-      id: '2',
-      name: 'Tax Saver FD',
-      bankName: 'SBI',
-      principalAmount: 150000,
-      interestRate: 6.8,
-      startDate: '2024-04-01',
-      maturityDate: '2029-04-01',
-      tenureMonths: 60,
-      maturityValue: 210000,
-      status: 'active',
-    },
-  ]);
-
-  const totalInvested = deposits.reduce((sum, d) => sum + d.principalAmount, 0);
-  const totalMaturityValue = deposits.reduce((sum, d) => sum + d.maturityValue, 0);
-  const totalInterest = totalMaturityValue - totalInvested;
+  const [deposits] = useState<FixedDeposit[]>(FIXED_DEPOSITS);
+  const summary = getFixedDepositSummary(deposits);
 
   return {
     deposits,
-    totalInvested,
-    totalMaturityValue,
-    totalInterest,
+    totalInvested: summary.totalInvested,
+    totalMaturityValue: summary.totalMaturityValue,
+    totalInterest: summary.totalInterest,
     refresh: async () => { /* placeholder */ },
   };
 };
@@ -96,21 +55,32 @@ function DepositsScreenContent() {
   const maturedDeposits = useMemo(() => deposits.filter((d) => d.status === 'matured'), [deposits]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
-      {/* Custom Header - matches loans/budget/settings style exactly */}
-      <View style={[styles.header, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: -8, padding: 8 }}>
-            <AppIcon name="arrow-left" size={24} color={palette.text} />
+    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
+      <ScreenHeader
+        title="Deposits"
+        palette={palette}
+        showBack={true}
+        onBack={() => router.replace('/')}
+        rightAction={
+          <TouchableOpacity
+            delayPressIn={0}
+            activeOpacity={0.7}
+            onPress={() => router.push('/settings/account-form')}
+            style={{
+              width: 42,
+              height: 34,
+              backgroundColor: palette.surface,
+              borderWidth: 1,
+              borderColor: palette.divider,
+              borderRadius: 17,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <AppIcon name="plus" size={18} color={palette.text} strokeWidth={1.9} />
           </TouchableOpacity>
-          <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
-            Deposits
-          </Text>
-          <View style={{ flex: 1 }} />
-          {/* Spacer for alignment */}
-          <View style={{ width: 40 }} />
-        </View>
-      </View>
+        }
+      />
 
       <ScrollView
         refreshControl={
@@ -125,59 +95,76 @@ function DepositsScreenContent() {
       >
         {hasDeposits ? (
           <>
-            {/* Hero Card with Gradient & Glassmorphism */}
-            <View style={[styles.heroCard, { borderColor: palette.divider }]}>
-              {/* Gradient layers */}
-              <View style={[styles.gradientTop, { backgroundColor: palette.brand }]} />
-              <View style={[styles.gradientBottom, { backgroundColor: palette.positive }]} />
-              <View style={[styles.gradientAccent, { backgroundColor: palette.surface }]} />
+            {/* Modernized Hero Card with Gradient */}
+            <View 
+              style={{ 
+                marginHorizontal: SCREEN_GUTTER,
+                marginTop: 12,
+                marginBottom: 20,
+                borderRadius: HOME_RADIUS.card,
+                borderWidth: 1,
+                borderColor: palette.divider,
+                backgroundColor: palette.brand,
+                padding: 20,
+                overflow: 'hidden',
+              }}
+            >
+              <LinearGradient
+                pointerEvents="none"
+                colors={[
+                  palette.isDark ? '#172033' : palette.brand,
+                  palette.isDark ? '#0F172A' : '#3C4760'
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+              />
 
-              {/* Glassmorphism content container */}
-              <View style={styles.glassContent}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <View>
-                    <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.xs }}>
-                      Total Invested
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>
+                    Total Invested
+                  </Text>
+                  <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5 }}>
+                    {formatCurrency(totalInvested, sym)}
+                  </Text>
+                </View>
+                
+                {/* Glass Icon Container */}
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                    <AppIcon name="badge-percent" size={22} color="#FFFFFF" />
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
+                <View>
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+                    Total Returns
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <AppIcon name="trending-up" size={14} color="#4ADE80" />
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#4ADE80' }}>
+                      +{formatCurrency(totalInterest, sym)}
                     </Text>
-                    <Text style={{ fontSize: HOME_TEXT.heroValue, fontWeight: '700', color: palette.text }}>
-                      {formatCurrency(totalInvested, sym)}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: HOME_SPACE.xs }}>
-                      Total Returns
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <AppIcon name="trending-up" size={14} color={palette.positive} />
-                      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.positive }}>
-                        +{formatCurrency(totalInterest, sym)}
-                      </Text>
-                    </View>
                   </View>
                 </View>
 
-                <View
-                  style={{
-                    height: 1,
-                    backgroundColor: palette.divider,
-                    marginVertical: HOME_SPACE.lg,
-                    opacity: 0.6,
-                  }}
-                />
+                <View style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.2)', opacity: 0.6 }} />
 
-                <View style={{ flexDirection: 'row', gap: HOME_SPACE.lg }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Maturity Value</Text>
-                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, marginTop: 2 }}>
-                      {formatCurrency(totalMaturityValue, sym)}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Active Deposits</Text>
-                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, marginTop: 2 }}>
-                      {activeDeposits.length}
-                    </Text>
-                  </View>
+                <View>
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+                    Maturity Value
+                  </Text>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF' }}>
+                    {formatCurrency(totalMaturityValue, sym)}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -365,31 +352,6 @@ function DepositsScreenContent() {
           </View>
         )}
 
-        {/* Add FD Button */}
-        <TouchableOpacity
-          delayPressIn={0}
-          activeOpacity={0.82}
-          onPress={() => { /* Navigate to add deposit form */ }}
-          style={{
-            marginHorizontal: SCREEN_GUTTER,
-            marginTop: HOME_SPACE.xl,
-            padding: HOME_SPACE.lg,
-            borderRadius: HOME_RADIUS.card,
-            borderWidth: 1,
-            borderStyle: 'dashed',
-            borderColor: palette.borderSoft,
-            backgroundColor: palette.surface,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: HOME_SPACE.sm,
-          }}
-        >
-          <AppIcon name="plus-circle" size={20} color={palette.brand} />
-          <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>
-            Add Fixed Deposit
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -399,57 +361,4 @@ export default function DepositsScreen() {
   return <DepositsScreenContent />;
 }
 
-const styles = StyleSheet.create({
-  header: {
-    paddingTop: 4,
-    paddingBottom: 10,
-    borderBottomWidth: 0,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  heroCard: {
-    marginHorizontal: SCREEN_GUTTER,
-    marginTop: HOME_SPACE.md,
-    marginBottom: HOME_SPACE.lg,
-    borderRadius: HOME_RADIUS.card,
-    borderWidth: 1,
-    overflow: 'hidden',
-    position: 'relative',
-    minHeight: 180,
-  },
-  gradientTop: {
-    position: 'absolute',
-    width: 250,
-    height: 250,
-    borderRadius: 999,
-    top: -80,
-    right: -60,
-    opacity: 0.15,
-  },
-  gradientBottom: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 999,
-    bottom: -60,
-    left: -40,
-    opacity: 0.1,
-  },
-  gradientAccent: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 999,
-    top: 20,
-    right: 60,
-    opacity: 0.08,
-  },
-  glassContent: {
-    padding: HOME_SPACE.xl,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-  },
-});
+const styles = StyleSheet.create({});

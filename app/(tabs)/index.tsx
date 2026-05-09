@@ -4,75 +4,72 @@ import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Dimensions,
-    Modal,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PagerView from 'react-native-pager-view';
 import Animated, {
-    FadeInRight,
-    FadeOutRight,
-    LinearTransition,
-    useAnimatedRef,
-    useAnimatedScrollHandler,
-    useAnimatedStyle,
-    useEvent,
-    useHandler,
-    useSharedValue,
-    type SharedValue
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useEvent,
+  useHandler,
+  useSharedValue,
+  type SharedValue
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeDonutChartBlock, type HomeChartMode } from '../../components/HomeDonutChartBlock';
-import { SummaryCard } from '../../components/SummaryCard';
+import { ScreenTitle } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppDonutChart } from '../../components/ui/AppDonutChart';
 import { AppIcon } from '../../components/ui/AppIcon';
+import { AppSparklineChart } from '../../components/ui/AppSparklineChart';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
-import { PeriodSelector } from '../../components/ui/PeriodSelector';
-import { AppSparklineChart } from '../../components/ui/AppSparklineChart';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { ScreenTitle } from '../../components/settings-ui';
 import {
-    formatDate,
-    getDateRange,
-    toLocalDayEndISO,
-    toLocalDayStartISO
+  formatDate,
+  getDateRange,
+  toLocalDayEndISO,
+  toLocalDayStartISO
 } from '../../lib/dateUtils';
-import { formatCurrency, formatCompactCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
+import { formatCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER, SPACING, TYPE } from '../../lib/design';
+import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
-    BUTTON_TOKENS,
-    HOME_LAYOUT,
-    HOME_RADIUS,
-    HOME_SPACE,
-    HOME_SURFACE,
-    HOME_TEXT,
-    SCREEN_HEADER
+  BUTTON_TOKENS,
+  HOME_LAYOUT,
+  HOME_RADIUS,
+  HOME_SPACE,
+  HOME_SURFACE,
+  HOME_TEXT,
+  SCREEN_HEADER
 } from '../../lib/layoutTokens';
-import { getAccountTypeLabel } from '../../lib/settings-shared';
+import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type {
-    Account,
-    AccountType,
-    CashflowSummary,
-    Category,
-    LoanStatus,
-    LoanWithSummary,
-    PeriodType,
-    Transaction
+  Account,
+  AccountType,
+  CashflowSummary,
+  Category,
+  LoanStatus,
+  LoanWithSummary,
+  PeriodType,
+  Transaction
 } from '../../types';
 
 const AnimatedPagerView = Animated.createAnimatedComponent(PagerView);
@@ -154,7 +151,6 @@ const NW_ACCOUNT_COLORS = [
 const NW_ASSET_LIGHT = '#0D9488';
 const NW_ASSET_DARK = '#00FAD9';
 const NW_HERO_PROGRESS_LABEL_GAP = 8;
-
 // Set false to restore the previous behavior where the indicator stays visible
 // during horizontal swipes, even when the current page is vertically scrolled.
 const HIDE_SCROLLED_INDICATOR_DURING_SWIPE = true;
@@ -182,6 +178,8 @@ function HomeScreenContent() {
   const loans = useLoansStore((s) => s.loans);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
   const loadLoans = useLoansStore((s) => s.load);
+  const budgets = useBudgetStore((s) => s.budgets);
+  const loadBudgets = useBudgetStore((s) => s.load);
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
@@ -200,9 +198,9 @@ function HomeScreenContent() {
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
-    return registerTabReset('index', () => {
+    return registerTabReset('index', ({ mode, animated }) => {
       pageScrollTopRef.current?.();
-      accountScrollRef.current?.scrollTo({ x: 0, animated: true });
+      accountScrollRef.current?.scrollTo({ x: 0, animated });
       setPeriod('today');
     });
   }, [setPeriod]);
@@ -212,7 +210,7 @@ function HomeScreenContent() {
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
-  
+
   const [netWorthSheetVisible, setNetWorthSheetVisible] = useState(false);
   const netWorthSheetVerticalScrolls = useSharedValue<number[]>([0]);
   const netWorthSheetIndicatorY = useSharedValue(0);
@@ -231,6 +229,21 @@ function HomeScreenContent() {
   const totalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
   const loanSummary = useMemo(() => getLoanSummary(loans), [loans]);
   const netWorth = totalBalance + loanSummary.net;
+  const depositSummary = useMemo(() => getFixedDepositSummary(), []);
+  const budgetSummary = useMemo(() => {
+    const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+    const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
+    const spentPercent = totalBudgeted > 0
+      ? Math.max(0, Math.round((totalSpent / totalBudgeted) * 100))
+      : 0;
+
+    return { spentPercent };
+  }, [budgets]);
+
+  useEffect(() => {
+    const now = new Date();
+    loadBudgets(new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString()).catch(() => undefined);
+  }, [loadBudgets]);
 
   const handleCustomRangeDone = useCallback(() => {
     const fromDate = customDraftFrom <= customDraftTo ? customDraftFrom : customDraftTo;
@@ -268,46 +281,112 @@ function HomeScreenContent() {
     [customDraftFrom, customDraftTo],
   );
 
+  const displaySymbol = showCurrencySymbol ? currencySymbol : '';
+  const moreCards = [
+    {
+      id: 'Deposits',
+      label: 'Deposits',
+      icon: 'badge-percent',
+      route: '/deposits',
+      meta: 'Active',
+      value: formatCurrency(depositSummary.activeMaturityValue, displaySymbol),
+      tone: palette.brand,
+    },
+    {
+      id: 'Loans',
+      label: 'Loans',
+      icon: 'hand-coins',
+      route: '/loans',
+      meta: loanSummary.youLent === 0 && loanSummary.youOwe === 0 ? 'No Loans' : loanSummary.net >= 0 ? 'Net Lent' : 'Net Owed',
+      value: formatSignedCurrency(loanSummary.net, displaySymbol),
+      tone: loanSummary.net < 0 ? palette.negative : palette.positive,
+    },
+    {
+      id: 'Budgets',
+      label: 'Budgets',
+      icon: 'pie-chart',
+      route: '/budget',
+      meta: 'Spent',
+      value: `${budgetSummary.spentPercent}%`,
+      tone: budgetSummary.spentPercent > 100 ? palette.negative : palette.positive,
+    },
+  ] as const;
+
   const middleContent = (
-    <View style={{ marginBottom: HOME_SPACE.lg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_GUTTER, marginBottom: 12, marginTop: 16 }}>
+    <View style={{ marginTop: 4, marginBottom: HOME_SPACE.xl }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 16 }}>
         <Text appWeight="medium" style={{ fontSize: 18, fontWeight: '700', color: palette.text }}>Accounts</Text>
-        <TouchableOpacity delayPressIn={0} onPress={() => router.push('/accounts')}>
-          <Text appWeight="medium" style={{ fontSize: 14, color: palette.brand, fontWeight: '600' }}>View all</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/accounts')}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 1,
+            backgroundColor: 'transparent',
+            borderWidth: 0,
+            borderColor: 'transparent',
+            borderRadius: 16,
+            paddingLeft: 2,
+            paddingRight: 0,
+            paddingVertical: 2,
+          }}
+        >
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '500' }}>View all</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView ref={accountScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, gap: 12 }}>
-        {accounts.map(acc => {
-          const typeLabel = getAccountTypeLabel(acc.type);
+      <ScrollView ref={accountScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: SCREEN_GUTTER }}>
+        {accounts.map((acc) => {
+          const amountLabel = showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), '');
+          const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(amountLabel.length, 14) * 3));
+          const typeMeta = ACCOUNT_TYPE_META[acc.type];
           return (
-            <TouchableOpacity 
-              key={acc.id} 
+            <TouchableOpacity
+              key={acc.id}
               onPress={() => router.push(`/account/${acc.id}`)}
-              style={{ 
-                width: 148,
-                backgroundColor: palette.card, 
-                borderRadius: HOME_RADIUS.card, 
-                borderWidth: 1, 
-                borderColor: palette.divider,
+              style={{
+                width: cardWidth,
+                backgroundColor: palette.isDark ? 'rgba(20, 20, 23, 0.72)' : 'rgba(255, 255, 255, 0.88)',
+                borderRadius: 22, // Matches updated AppCard
+                borderWidth: 1,
+                borderColor: palette.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
                 overflow: 'hidden',
               }}
             >
-              <View style={{ padding: 14 }}>
-                <Text numberOfLines={1} style={{ fontSize: 11, color: palette.textMuted, fontWeight: '500', letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 6 }}>{typeLabel}</Text>
-                <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: '500', color: palette.text, marginBottom: 10 }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
-                <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>{showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), '')}</Text>
+              <View style={{ paddingHorizontal: 14, paddingVertical: 12, minHeight: 100, justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 11,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: palette.isDark ? 'rgba(255,255,255,0.055)' : 'rgba(31,42,68,0.045)',
+                      borderWidth: 1,
+                      borderColor: palette.isDark ? 'rgba(255,255,255,0.075)' : 'rgba(31,42,68,0.075)',
+                    }}
+                  >
+                    <AppIcon name={typeMeta.icon} size={18} color={palette.brand} strokeWidth={1.8} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '500', color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
+                  </View>
+                </View>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 17.5, fontWeight: '500', color: acc.balance < 0 ? palette.negative : palette.text, marginTop: 12 }}>
+                  {amountLabel}
+                </Text>
               </View>
             </TouchableOpacity>
           );
         })}
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.push('/settings/account-form')}
-          style={{ 
-            width: 140, 
-            padding: 16, 
-            backgroundColor: palette.surface, 
-            borderRadius: HOME_RADIUS.card, 
-            borderWidth: 1, 
+          style={{
+            width: 140,
+            padding: 16,
+            backgroundColor: palette.surface,
+            borderRadius: HOME_RADIUS.card,
+            borderWidth: 1,
             borderStyle: 'dashed',
             borderColor: palette.borderSoft,
             alignItems: 'center',
@@ -320,47 +399,15 @@ function HomeScreenContent() {
         </TouchableOpacity>
       </ScrollView>
 
-      <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: SCREEN_GUTTER, marginTop: 16 }}>
-        {[
-          { id: 'Deposits', label: 'Deposits', icon: 'piggy-bank' as const, route: '/deposits' },
-          { id: 'Loans', label: 'Loans', icon: 'landmark' as const, route: '/(tabs)/loans' },
-          { id: 'Budgets', label: 'Budgets', icon: 'pie-chart' as const, route: '/(tabs)/budget' }
-        ].map(feature => (
-          <TouchableOpacity
-            key={feature.id}
-            delayPressIn={0}
-            onPress={() => feature.route ? router.push(feature.route as any) : {}}
-            style={{ flex: 1 }}
-          >
-            <View
-               style={{ 
-                  flex: 1, 
-                  paddingVertical: 16, 
-                  paddingHorizontal: 12, 
-                  alignItems: 'flex-start', 
-                  borderRadius: HOME_RADIUS.card, 
-                  borderWidth: 1, 
-                  borderColor: palette.divider,
-                  backgroundColor: palette.isDark
-                    ? 'rgba(255,255,255,0.04)'
-                    : 'rgba(0,0,0,0.018)',
-               }}
-            >
-              {/* Glass icon container */}
-              <View style={{
-                width: 38, height: 38, borderRadius: 12,
-                backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                borderWidth: 1,
-                borderColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                alignItems: 'center', justifyContent: 'center', marginBottom: 10
-              }}>
-                 <AppIcon name={feature.icon} size={18} color={palette.text} />
-              </View>
-              <Text style={{ fontSize: 13.5, fontWeight: '600', color: palette.text }}>{feature.label}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+      <View style={{ marginTop: 24, marginBottom: 12 }}>
+        <Text appWeight="medium" style={{ fontSize: 17, fontWeight: '600', color: palette.text }}>More</Text>
       </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: SCREEN_GUTTER }}>
+        {moreCards.map((feature) => (
+          <MoreShortcutCard key={feature.id} feature={feature} palette={palette} />
+        ))}
+      </ScrollView>
 
     </View>
   );
@@ -524,6 +571,126 @@ function HomeScreenContent() {
           </View>
         </BottomSheet>
       ) : null}
+    </View>
+  );
+}
+
+function MoreShortcutCard({
+  feature,
+  palette,
+}: {
+  feature: {
+    label: string;
+    icon: string;
+    route: string;
+    meta: string;
+    value: string;
+    tone: string;
+  };
+  palette: AppThemePalette;
+}) {
+  return (
+    <TouchableOpacity
+      delayPressIn={0}
+      onPress={() => router.push(feature.route as any)}
+      activeOpacity={0.78}
+      style={{ width: 154 }}
+    >
+      <View
+        style={{
+          minHeight: 132,
+          paddingVertical: 15,
+          paddingHorizontal: 14,
+          borderRadius: 22,
+          borderWidth: 1,
+          borderColor: palette.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+          backgroundColor: palette.isDark ? 'rgba(20, 20, 23, 0.72)' : 'rgba(255, 255, 255, 0.88)',
+          justifyContent: 'flex-start',
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 13,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: palette.isDark ? 'rgba(255,255,255,0.055)' : 'rgba(31,42,68,0.045)',
+              borderWidth: 1,
+              borderColor: palette.isDark ? 'rgba(255,255,255,0.075)' : 'rgba(31,42,68,0.075)',
+            }}
+          >
+            <AppIcon name={feature.icon} size={18} color={palette.brand} strokeWidth={1.8} />
+          </View>
+          <Text numberOfLines={1} style={{ flex: 1, fontSize: 13.5, fontWeight: '500', color: palette.text }}>
+            {feature.label}
+          </Text>
+        </View>
+
+        <View style={{ marginTop: 22 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 15.5, fontWeight: '500', color: feature.tone }}>
+            {feature.value}
+          </Text>
+          <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: '400', color: palette.textMuted, marginTop: 2 }}>
+            {feature.meta}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function TodayCashflowStrip({
+  cashflow,
+  sym,
+  palette,
+  onPressCategory,
+}: {
+  cashflow: CashflowSummary;
+  sym: string;
+  palette: AppThemePalette;
+  onPressCategory: (category: 'in' | 'out' | 'net') => void;
+}) {
+  const items = [
+    { key: 'in' as const, label: 'Income', color: palette.positive },
+    { key: 'out' as const, label: 'Expense', color: palette.negative },
+  ];
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        borderRadius: HOME_RADIUS.card,
+        borderWidth: 1,
+        borderColor: palette.divider,
+        backgroundColor: palette.card,
+        overflow: 'hidden',
+        marginBottom: 16,
+      }}
+    >
+      {items.map((item, index) => (
+        <TouchableOpacity
+          key={item.key}
+          delayPressIn={0}
+          activeOpacity={0.75}
+          onPress={() => onPressCategory(item.key)}
+          style={{
+            flex: 1,
+            paddingVertical: 9,
+            paddingHorizontal: 14,
+            borderLeftWidth: index === 0 ? 0 : 1,
+            borderLeftColor: palette.divider,
+          }}
+        >
+          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 3 }}>
+            {item.label}
+          </Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 14.5, fontWeight: '500', color: cashflow[item.key] === 0 ? palette.textMuted : item.color }}>
+            {cashflow[item.key] === 0 ? '—' : formatCurrency(Math.abs(cashflow[item.key]), sym)}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 }
@@ -1086,16 +1253,20 @@ function AccountSummaryCard({
   const isAll = accountName === 'All';
   const [scrubbedItem, setScrubbedItem] = useState<{ value: number; date?: string } | null>(null);
   const [scrubbedIndex, setScrubbedIndex] = useState<number | null>(null);
+  const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
+  const chartAccent = palette.positive;
+  const heroSurface = palette.isDark ? '#10141C' : '#FFFFFF';
+  const netWorthStripBg = palette.isDark ? '#111827' : '#F7FAFC';
+  const netWorthStripBorder = palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7EDF4';
 
-  // Mock data for the sparkline chart
   const mockChartData = useMemo(() => {
-    let current = balance * 0.7; // Start at 70% of current balance
-    return Array.from({ length: 10 }).map((_, i) => {
-      current += (Math.random() - 0.4) * (balance * 0.05); // Random walk
+    const base = Math.max(Math.abs(balance), 1);
+    const multipliers = [0.91, 0.922, 0.918, 0.944, 0.936, 0.958, 0.951, 0.974, 0.966, 1];
+    return multipliers.map((multiplier, i) => {
       const d = new Date();
-      d.setDate(d.getDate() - (9 - i));
-      return { 
-        value: i === 9 ? balance : Math.max(0, current),
+      d.setDate(d.getDate() - (multipliers.length - 1 - i));
+      return {
+        value: balance < 0 ? -base * multiplier : base * multiplier,
         date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       };
     });
@@ -1104,8 +1275,8 @@ function AccountSummaryCard({
   const content = (
     <View
       style={{
-        backgroundColor: palette.surface,
-        borderColor: palette.divider,
+        backgroundColor: heroSurface,
+        borderColor: palette.isDark ? 'rgba(203,213,225,0.16)' : 'rgba(31,42,68,0.14)',
         borderRadius: HOME_RADIUS.card,
         borderWidth: 1,
         overflow: 'hidden',
@@ -1124,7 +1295,8 @@ function AccountSummaryCard({
             borderRadius: 55,
             top: -25,
             right: -25,
-            backgroundColor: palette.isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFD',
+            backgroundColor: palette.brand,
+            opacity: palette.isDark ? 0.08 : 0.04,
             zIndex: 0,
           }}
         />
@@ -1185,61 +1357,73 @@ function AccountSummaryCard({
         </View>
       </View>
 
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 110 }}>
-         <AppSparklineChart 
-            data={mockChartData} 
-            color={palette.brand} 
-            height={110} 
-            currencySymbol={currencySymbol}
-            onPointerChange={setScrubbedItem}
-            onPointerIndexChange={setScrubbedIndex}
-         />
-         {/* Tooltip — positioned inside chart just above the data point */}
-         {scrubbedItem && scrubbedIndex !== null && (() => {
-           const CHART_H = 110;
-           const PILL_W = 118;
-           const PILL_H = 40; // pill + caret
-           const GAP = 6;
-           const screenWidth = Dimensions.get('window').width;
-           const spacing = screenWidth / Math.max(mockChartData.length - 1, 1);
-           const rawX = scrubbedIndex * spacing;
-           const clampedX = Math.max(PILL_W / 2 + 4, Math.min(screenWidth - PILL_W / 2 - 4, rawX));
-           // Compute approximate Y of data point within chart (0=bottom, CHART_H=top)
-           const values = mockChartData.map(d => d.value);
-           const minV = Math.min(...values);
-           const maxV = Math.max(...values);
-           const range = Math.max(maxV - minV, 1);
-           const pointYFromBottom = ((scrubbedItem.value - minV) / range) * (CHART_H - 20) + 10;
-           // Place tooltip so its bottom (caret tip) is just above the data point
-           const tooltipBottom = pointYFromBottom + GAP;
-           // Clamp so tooltip doesn't overflow the top of chart
-           const clampedBottom = Math.min(tooltipBottom, CHART_H - PILL_H - 4);
-           return (
-             <View
-               pointerEvents="none"
-               style={{
-                 position: 'absolute',
-                 bottom: clampedBottom,
-                 left: clampedX - PILL_W / 2,
-                 width: PILL_W,
-                 alignItems: 'center',
-                 zIndex: 100,
-               }}
-             >
-               <View style={{ backgroundColor: 'rgba(0,0,0,0.78)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, alignItems: 'center' }}>
-                 <Text numberOfLines={1} style={{ color: '#fff', fontSize: 12, fontWeight: '500' }}>
-                   {formatCurrency(scrubbedItem.value, currencySymbol)}
-                 </Text>
-                 {scrubbedItem.date && (
-                   <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 1 }}>
-                     {scrubbedItem.date}
-                   </Text>
-                 )}
-               </View>
-               <View style={{ width: 0, height: 0, borderStyle: 'solid', borderLeftWidth: 5, borderRightWidth: 5, borderTopWidth: 5, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: 'rgba(0,0,0,0.78)' }} />
-             </View>
-           );
-         })()}
+      <View style={{ position: 'absolute', bottom: 48, left: 0, right: 0, height: 86, overflow: 'visible' }}>
+        <AppSparklineChart
+          data={mockChartData}
+          color={chartAccent}
+          height={86}
+          currencySymbol={currencySymbol}
+          onPointerChange={setScrubbedItem}
+          onPointerIndexChange={setScrubbedIndex}
+          onChartWidthChange={setChartWidth}
+        />
+        {scrubbedItem && scrubbedIndex !== null && (() => {
+          const CHART_H = 86;
+          const PILL_W = 124;
+          const THUMB = 5;
+          const width = Math.max(chartWidth, 1);
+          const spacing = width / Math.max(mockChartData.length - 1, 1);
+          const rawX = scrubbedIndex * spacing;
+          const clampedX = Math.max(PILL_W / 2 + 8, Math.min(width - PILL_W / 2 - 8, rawX));
+          const values = mockChartData.map(d => d.value);
+          const minV = Math.min(...values);
+          const maxV = Math.max(...values);
+          const range = Math.max(maxV - minV, 1);
+          const pointYFromBottom = ((scrubbedItem.value - minV) / range) * (CHART_H - 30) + 15;
+          const lineTop = CHART_H - pointYFromBottom;
+          const tooltipTop = 8;
+          const thumbTop = lineTop - THUMB / 2;
+          return (
+            <>
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: thumbTop,
+                  left: Math.max(8, Math.min(width - THUMB - 8, rawX - THUMB / 2)),
+                  width: THUMB,
+                  height: THUMB,
+                  borderRadius: THUMB / 2,
+                  borderWidth: 0,
+                  backgroundColor: chartAccent,
+                  zIndex: 80,
+                }}
+              />
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: tooltipTop,
+                  left: clampedX - PILL_W / 2,
+                  width: PILL_W,
+                  alignItems: 'center',
+                  zIndex: 100,
+                }}
+              >
+                <View style={{ backgroundColor: palette.isDark ? 'rgba(2, 8, 12, 0.94)' : 'rgba(31, 42, 68, 0.94)', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 6, alignItems: 'center', borderWidth: 1, borderColor: palette.isDark ? 'rgba(203,213,225,0.18)' : 'rgba(255,255,255,0.34)' }}>
+                  <Text numberOfLines={1} style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+                    {formatCurrency(scrubbedItem.value, currencySymbol)}
+                  </Text>
+                  {scrubbedItem.date && (
+                    <Text style={{ color: 'rgba(255,255,255,0.64)', fontSize: 10, marginTop: 1 }}>
+                      {scrubbedItem.date}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </>
+          );
+        })()}
       </View>
 
       {onOpenNetWorth ? (
@@ -1248,23 +1432,23 @@ function AccountSummaryCard({
           onPress={onOpenNetWorth}
           style={{
             borderTopWidth: 1,
-            borderTopColor: palette.divider,
+            borderTopColor: netWorthStripBorder,
             paddingHorizontal: CARD_PADDING - 2,
             paddingVertical: 10,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: palette.background,
+            backgroundColor: netWorthStripBg,
           }}
         >
-          <Text style={{ fontSize: 12, fontWeight: '600', color: palette.textMuted }}>
+          <Text style={{ fontSize: 13, fontWeight: '500', color: palette.isDark ? 'rgba(255,255,255,0.78)' : palette.textMuted }}>
             Net Worth
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>
-              {formatCompactCurrency(netWorth ?? 0, currencySymbol)}
+            <Text style={{ fontSize: 14, fontWeight: '600', color: palette.isDark ? '#FFFFFF' : palette.text }}>
+              {formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
             </Text>
-            <AppIcon name="chevron-right" size={14} color={palette.textSoft} />
+            <AppIcon name="chevron-right" size={14} color={palette.isDark ? 'rgba(255,255,255,0.48)' : palette.textMuted} />
           </View>
         </TouchableOpacity>
       ) : null}
@@ -1282,6 +1466,25 @@ function AccountSummaryCard({
 
 function formatSignedCurrency(value: number, currencySymbol: string) {
   return `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`;
+}
+
+function formatNetWorthStripValue(value: number, currencySymbol: string) {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  const unit = abs >= 10000000
+    ? { divisor: 10000000, suffix: ' Cr' }
+    : abs >= 100000
+      ? { divisor: 100000, suffix: ' L' }
+      : abs >= 1000
+        ? { divisor: 1000, suffix: ' K' }
+        : null;
+
+  if (!unit) return `${sign}${formatCurrency(abs, currencySymbol)}`;
+  const compact = (abs / unit.divisor)
+    .toFixed(2)
+    .replace(/\.00$/, '')
+    .replace(/(\.\d)0$/, '$1');
+  return `${sign}${currencySymbol}${compact}${unit.suffix}`;
 }
 
 function formatTodayMetricValue(key: 'in' | 'out' | 'net', value: number, currencySymbol: string) {
@@ -1933,24 +2136,12 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
 
-          <PeriodSelector
-            period={period}
-            from={from}
-            to={to}
-            onPeriodChange={(next) => onPeriodChange(next as any)}
-            onOpenCustomRange={() => onOpenCustomRange(accountId)}
-            theme={chartTheme}
-            options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
-          />
-
-          <SummaryCard
+          <TodayCashflowStrip
             cashflow={displayedCashflow}
             sym={currencySymbol}
             palette={palette}
             onPressCategory={openPeriodActivity}
           />
-
-
 
           {middleContent}
 

@@ -1,8 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
-import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
+import { useEffect, useMemo } from 'react';
+import { FlatList, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   FixedBottomActions,
@@ -12,38 +11,34 @@ import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, TYPE } from '../../lib/design';
-import { formatDisplayCurrency, getAccountTypeLabel } from '../../lib/settings-shared';
+import { ACCOUNT_TYPE_META, formatDisplayCurrency, getAccountTypeLabel } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { Account } from '../../types';
 
-const ACCOUNT_ROW_HEIGHT = 72;
-
 export default function AccountsScreen() {
-  const { accounts, load, isLoaded, setOrder } = useAccountsStore();
+  const { accounts, load, isLoaded } = useAccountsStore();
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const displaySymbol = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [orderedAccounts, setOrderedAccounts] = useState(accounts);
 
   useEffect(() => {
     if (!isLoaded) load().catch(() => undefined);
   }, [isLoaded, load]);
 
-  useEffect(() => {
-    setOrderedAccounts(accounts);
+  const sortedAccounts = useMemo(() => {
+    return accounts.slice().sort((a, b) =>
+      formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
+        formatAccountDisplayName(b.name, b.accountNumber),
+        'en',
+        { sensitivity: 'base' },
+      )
+    );
   }, [accounts]);
-
-  const persistOrder = async (nextAccounts: Account[]) => {
-    setOrderedAccounts(nextAccounts);
-    await setOrder(nextAccounts.map((account) => account.id)).catch(() => {
-      setOrderedAccounts(accounts);
-    });
-  };
 
   return (
     <SettingsScreenLayout
@@ -71,13 +66,12 @@ export default function AccountsScreen() {
         </FixedBottomActions>
       }
     >
-      <DraggableFlatList
-        data={orderedAccounts}
+      <FlatList
+        data={sortedAccounts}
         keyExtractor={(item) => item.id}
-        activationDistance={8}
-        autoscrollThreshold={90}
-        autoscrollSpeed={180}
-        contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 60 }}
+        contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 70 }}
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={
           <View
             style={{
@@ -93,115 +87,107 @@ export default function AccountsScreen() {
             <Text style={{ color: palette.textMuted, fontSize: TYPE.rowValue }}>No accounts yet.</Text>
           </View>
         }
-        renderItem={(params) => (
-          <AccountReorderRow
-            {...params}
-            total={orderedAccounts.length}
+        renderItem={({ item, index }) => (
+          <SettingsAccountCard
+            item={item}
+            index={index}
+            total={sortedAccounts.length}
             displaySymbol={displaySymbol}
             palette={palette}
-            onPress={() => router.push({ pathname: '/settings/account-form', params: { id: params.item.id } })}
+            onPress={() => router.push({ pathname: '/settings/account-form', params: { id: item.id } })}
           />
         )}
-        onDragEnd={({ data }) => void persistOrder(data)}
       />
     </SettingsScreenLayout>
   );
 }
 
-function AccountReorderRow({
+function SettingsAccountCard({
   item,
-  drag,
-  isActive,
-  getIndex,
+  index,
   total,
   displaySymbol,
   palette,
   onPress,
-}: RenderItemParams<Account> & {
+}: {
+  item: Account;
+  index: number;
   total: number;
   displaySymbol: string;
   palette: ReturnType<typeof useAppTheme>['palette'];
   onPress: () => void;
 }) {
-  const index = getIndex();
+  const typeLabel = getAccountTypeLabel(item.type);
+  const typeMeta = ACCOUNT_TYPE_META[item.type];
   const isFirst = index === 0;
   const isLast = index === total - 1;
 
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-      <View
+      <TouchableOpacity
+        delayPressIn={0}
+        onPress={onPress}
+        activeOpacity={0.68}
         style={{
-          minHeight: ACCOUNT_ROW_HEIGHT,
+          minHeight: 78,
           paddingHorizontal: CARD_PADDING,
           paddingVertical: 16,
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: isActive ? palette.inputBg : palette.card,
-          borderTopLeftRadius: isFirst ? RADIUS.lg : 0,
-          borderTopRightRadius: isFirst ? RADIUS.lg : 0,
-          borderBottomLeftRadius: isLast ? RADIUS.lg : 0,
-          borderBottomRightRadius: isLast ? RADIUS.lg : 0,
-          borderTopWidth: isFirst ? 1 : 0,
-          borderLeftWidth: 1,
-          borderRightWidth: 1,
-          borderBottomWidth: 1,
+          backgroundColor: palette.card,
+          borderTopLeftRadius: isFirst ? RADIUS.lg : RADIUS.md,
+          borderTopRightRadius: isFirst ? RADIUS.lg : RADIUS.md,
+          borderBottomLeftRadius: isLast ? RADIUS.lg : RADIUS.md,
+          borderBottomRightRadius: isLast ? RADIUS.lg : RADIUS.md,
+          borderWidth: 1,
           borderColor: palette.border,
-          borderBottomColor: isLast ? palette.border : palette.divider,
-          opacity: isActive ? 0.96 : 1,
-          shadowColor: '#000',
-          shadowOpacity: isActive ? 0.14 : 0,
-          shadowRadius: isActive ? 10 : 0,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: isActive ? 4 : 0,
         }}
       >
-        <TouchableOpacity
-          delayLongPress={160}
-          onLongPress={drag}
-          activeOpacity={0.75}
+        <View
           style={{
-            width: 46,
-            height: 46,
-            marginLeft: -8,
-            marginRight: 8,
+            width: 38,
+            height: 38,
+            borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
+            backgroundColor: palette.isDark ? 'rgba(255,255,255,0.055)' : 'rgba(31,42,68,0.045)',
+            borderWidth: 1,
+            borderColor: palette.isDark ? 'rgba(255,255,255,0.075)' : 'rgba(31,42,68,0.075)',
+            marginRight: 14,
           }}
         >
-          <AppIcon name="menu" size={18} color={palette.textSoft} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          delayPressIn={0}
-          onPress={onPress}
-          activeOpacity={0.65}
-          style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' }}
+          <AppIcon name={typeMeta.icon} size={20} color={palette.brand} strokeWidth={1.5} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={{ fontSize: TYPE.rowLabel, fontWeight: '500', color: palette.text }}
+            numberOfLines={1}
+          >
+            {formatAccountDisplayName(item.name, item.accountNumber)}
+          </Text>
+          <Text
+            style={{ fontSize: TYPE.body, color: palette.textMuted, marginTop: 2, fontWeight: '400' }}
+            numberOfLines={1}
+          >
+            {typeLabel}
+          </Text>
+        </View>
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={{
+            maxWidth: 112,
+            marginLeft: 10,
+            fontSize: TYPE.body,
+            fontWeight: '500',
+            color: item.initialBalance < 0 ? palette.negative : palette.text,
+            textAlign: 'right',
+          }}
         >
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              style={{
-                fontSize: TYPE.rowLabel,
-                fontWeight: '400',
-                color: palette.text,
-              }}
-              numberOfLines={1}
-            >
-              {formatAccountDisplayName(item.name, item.accountNumber)}
-            </Text>
-            <Text
-              style={{
-                fontSize: TYPE.body,
-                color: palette.textMuted,
-                marginTop: 2,
-                fontWeight: '400',
-              }}
-              numberOfLines={1}
-            >
-              {getAccountTypeLabel(item.type)} · {formatDisplayCurrency(item.initialBalance, displaySymbol)}
-            </Text>
-          </View>
-          <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
-        </TouchableOpacity>
-      </View>
+          {formatDisplayCurrency(item.initialBalance, displaySymbol)}
+        </Text>
+        <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
+      </TouchableOpacity>
     </View>
   );
 }

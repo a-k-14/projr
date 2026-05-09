@@ -1,28 +1,29 @@
 import { Text } from '@/components/ui/AppText';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../../components/budget-ui';
-import { ScreenTitle } from '../../components/settings-ui';
-import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
-import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { OverviewHeroCard } from '../../components/ui/OverviewHeroCard';
-import { formatCurrency } from '../../lib/derived';
-import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
-import { registerTabReset } from '../../lib/tabResetRegistry';
-import { useAppTheme, type AppThemePalette } from '../../lib/theme';
-import { isEmojiIcon } from '../../lib/ui-format';
-import { AppCard, CardTitleRow, CardSubtitleRow } from '../../components/ui/AppCard';
-import { FilterMoreButton } from '../../components/ui/FilterMoreButton';
-import { useBudgetStore } from '../../stores/useBudgetStore';
-import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useTransactionsStore } from '../../stores/useTransactionsStore';
-import { useUIStore } from '../../stores/useUIStore';
-import type { BudgetWithSpent } from '../../types';
+import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../components/budget-ui';
+import { ScreenTitle } from '../components/settings-ui';
+import { EmptyStateCard } from '../components/ui/EmptyStateCard';
+import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
+import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
+import { formatCurrency } from '../lib/derived';
+import { CARD_PADDING, SCREEN_GUTTER } from '../lib/design';
+import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../lib/layoutTokens';
+import { registerTabReset } from '../lib/tabResetRegistry';
+import { useAppTheme, type AppThemePalette } from '../lib/theme';
+import { isEmojiIcon } from '../lib/ui-format';
+import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
+import { FilterMoreButton } from '../components/ui/FilterMoreButton';
+import { useBudgetStore } from '../stores/useBudgetStore';
+import { useCategoriesStore } from '../stores/useCategoriesStore';
+import { useTransactionsStore } from '../stores/useTransactionsStore';
+import { useUIStore } from '../stores/useUIStore';
+import type { BudgetWithSpent } from '../types';
 
 function monthStartIso(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0).toISOString();
@@ -106,7 +107,30 @@ export default function BudgetScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
-      <ScreenTitle title="Budget" palette={palette} />
+      <ScreenHeader 
+        title="Budgets"
+        palette={palette}
+        showBack={true}
+        onBack={() => router.replace('/')}
+        rightAction={
+          <TouchableOpacity
+            delayPressIn={0}
+            onPress={() => router.push('/modals/budget-form')}
+            style={{
+              width: 42,
+              height: 34,
+              backgroundColor: palette.surface,
+              borderWidth: 1,
+              borderColor: palette.divider,
+              borderRadius: 17,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <AppIcon name="plus" size={18} color={palette.text} strokeWidth={1.9} />
+          </TouchableOpacity>
+        }
+      />
       <ScrollView
         ref={scrollViewRef}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}

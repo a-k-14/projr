@@ -69,7 +69,12 @@ export function AppCard({
 
   const cardStyle = [
     styles.card,
-    { backgroundColor: palette.surface },
+    {
+      backgroundColor: palette.surface,
+      borderWidth: 1,
+      borderColor: palette.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+      borderRadius: 22,
+    },
     style,
   ];
 

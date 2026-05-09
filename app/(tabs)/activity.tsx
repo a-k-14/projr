@@ -1,5 +1,4 @@
 import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '../../components/ui/AppIcon';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -7,11 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
-  FlatList,
   InteractionManager,
   LayoutAnimation,
   RefreshControl,
   ScrollView,
+  SectionList,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -26,6 +25,7 @@ import { CardSection, ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { AppChevron } from '../../components/ui/AppChevron';
+import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
@@ -46,7 +46,7 @@ import {
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
@@ -143,7 +143,7 @@ export default function ActivityScreen() {
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
 
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const pendingListResetRef = useRef(false);
   const pendingScrollToTopRef = useRef(false);
@@ -151,7 +151,11 @@ export default function ActivityScreen() {
   const [listResetKey, setListResetKey] = useState(0);
 
   const scrollToTop = useCallback((animated: boolean) => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated });
+    if (flatListRef.current?.scrollToOffset) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated });
+    } else {
+      flatListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated });
+    }
     scrollViewRef.current?.scrollTo({ y: 0, animated });
   }, []);
 
@@ -724,6 +728,10 @@ export default function ActivityScreen() {
       };
     });
   }, [categoryDrilldown, drilldownTransactions, filteredTransactions, selectedAccountId]);
+  const dateSections = useMemo(
+    () => grouped.map((group) => ({ ...group, data: group.items })),
+    [grouped],
+  );
 
   const categoryHierarchy = useMemo(() => {
     const parentMap = new Map<
@@ -881,7 +889,7 @@ export default function ActivityScreen() {
               {
                 paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
                 paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
-                marginBottom: ACTIVITY_LAYOUT.groupHeaderBottom,
+                marginBottom: 4,
               },
             ]}
           >
@@ -916,7 +924,7 @@ export default function ActivityScreen() {
 
           <View
             style={{
-              backgroundColor: palette.surface,
+              backgroundColor: palette.isDark ? '#10141C' : '#FFFFFF',
               borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
               borderWidth: 1,
               borderColor: palette.border,
@@ -959,6 +967,106 @@ export default function ActivityScreen() {
             })}
           </View>
         </View>
+      );
+    },
+    [accountsById, categoriesById, loansById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
+  );
+
+  const renderDateSectionHeader = useCallback(
+    ({ section }: { section: ActivityGroup & { data: Transaction[] } }) => {
+      const groupNet = section.net;
+      return (
+        <View style={{ backgroundColor: palette.background, paddingTop: 18, paddingBottom: 6 }}>
+          <View
+            style={[
+              styles.groupHeader,
+              {
+                paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
+                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
+              },
+            ]}
+          >
+            <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                {section.title}
+              </Text>
+              {section.subtitle ? (
+                <>
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>
+                    •
+                  </Text>
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
+                    {section.subtitle}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+            {section.items.length > 1 && groupNet !== 0 ? (
+              <Text
+                appWeight="medium"
+                style={{
+                  fontSize: HOME_TEXT.cardContent,
+                  fontWeight: '600',
+                  color: groupNet > 0 ? palette.positive : palette.negative
+                }}
+              >
+                {signedCurrency(groupNet, sym)}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      );
+    },
+    [palette, sym],
+  );
+
+  const renderDateSectionItem = useCallback(
+    ({ item, index, section }: { item: Transaction; index: number; section: ActivityGroup & { data: Transaction[] } }) => {
+      const accountName = accountsById.get(item.accountId);
+      const linkedAccountName = item.linkedAccountId ? accountsById.get(item.linkedAccountId) : undefined;
+      const loan = item.loanId ? loansById.get(item.loanId) : undefined;
+      const category = item.categoryId ? categoriesById.get(item.categoryId) : undefined;
+      const isFirst = index === 0;
+      const isLast = index === section.items.length - 1;
+
+      return (
+        <TransactionListItem
+          key={item.id}
+          tx={item}
+          sym={sym}
+          palette={palette}
+          isLast={isLast}
+          paddingY={HOME_LAYOUT.listRowPaddingY + 2}
+          categoryName={item.categoryId ? getCategoryFullDisplayName(item.categoryId, ' › ') : undefined}
+          categoryIcon={category?.icon}
+          accountName={accountName}
+          linkedAccountName={linkedAccountName}
+          loanPersonName={loan?.personName}
+          loanDirection={loan?.direction}
+          tertiaryText={
+            item.tags.length > 0
+              ? item.tags
+                .map((tagId) => tagNamesById.get(tagId))
+                .filter((value): value is string => !!value)
+                .join(' • ') || undefined
+              : undefined
+          }
+          showAmountSign={false}
+          useTypeAmountColor
+          onPress={handleTransactionPress}
+          style={{
+            marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+            backgroundColor: palette.isDark ? '#10141C' : '#FFFFFF',
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderTopWidth: isFirst ? 1 : 0,
+            borderColor: palette.divider,
+            borderTopLeftRadius: isFirst ? ACTIVITY_LAYOUT.groupCardRadius : 0,
+            borderTopRightRadius: isFirst ? ACTIVITY_LAYOUT.groupCardRadius : 0,
+            borderBottomLeftRadius: isLast ? ACTIVITY_LAYOUT.groupCardRadius : 0,
+            borderBottomRightRadius: isLast ? ACTIVITY_LAYOUT.groupCardRadius : 0,
+          }}
+        />
       );
     },
     [accountsById, categoriesById, loansById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
@@ -1085,14 +1193,15 @@ export default function ActivityScreen() {
       ) : (
         <>
           {groupByMode === 'date' || categoryDrilldown ? (
-            <FlatList
+            <SectionList
               key={`activity-${listResetKey}`}
               ref={flatListRef}
-              data={grouped}
-              keyExtractor={(item) => item.groupKey}
+              sections={dateSections}
+              keyExtractor={(item) => item.id}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
               onEndReached={onLoadMore}
               onEndReachedThreshold={0.4}
+              stickySectionHeadersEnabled
               initialNumToRender={10}
               maxToRenderPerBatch={10}
               windowSize={5}
@@ -1110,7 +1219,9 @@ export default function ActivityScreen() {
                   </View>
                 ) : null
               }
-              renderItem={renderGroupItem}
+              renderSectionHeader={renderDateSectionHeader}
+              renderItem={renderDateSectionItem}
+              SectionSeparatorComponent={() => <View style={{ height: ACTIVITY_LAYOUT.groupCardMarginBottom }} />}
             />
           ) : null}
 

@@ -1,4 +1,5 @@
 import { AppIcon } from '@/components/ui/AppIcon';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -122,33 +123,31 @@ export default function LoanDetailScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingVertical: HOME_SPACE.md,
-          backgroundColor: palette.background
-        }}
-      >
-        <TouchableOpacity delayPressIn={0} onPress={() => router.back()} style={{ padding: 4, marginRight: 12 }}>
-          <AppIcon name="arrow-left" size={24} color={palette.text} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>
-          {loan.personName} {'\u2022'} {isLent ? 'Lent' : 'Borrowed'}
-        </Text>
-        <TouchableOpacity delayPressIn={0}
-          onPress={() => {
-            if (!originTx) return;
-            router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
-          }}
-        >
-          <Text appWeight="medium" style={{ color: palette.brand, fontSize: HOME_TEXT.sectionTitle, fontWeight: '600' }}>
-            Edit
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader 
+        title={`${loan.personName} • ${isLent ? 'Lent' : 'Borrowed'}`}
+        palette={palette}
+        rightAction={
+          <TouchableOpacity
+            delayPressIn={0}
+            onPress={() => {
+              if (!originTx) return;
+              router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
+            }}
+            style={{
+              backgroundColor: palette.brandSoft,
+              borderWidth: 1.5,
+              borderColor: palette.brand,
+              borderRadius: 20,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '500', color: palette.brand }}>
+              Edit
+            </Text>
+          </TouchableOpacity>
+        }
+      />
 
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: loan.status === 'open' ? 156 : 24 }}>

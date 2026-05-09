@@ -37,6 +37,7 @@ export function SegmentedPillSwitch({
 }) {
   const [controlWidth, setControlWidth] = useState(0);
   const indicatorX = useRef(new Animated.Value(0)).current;
+  const hasLaidOut = useRef(false);
   const selectedIndex = Math.max(0, options.findIndex((option) => option.key === value));
   const innerWidth = Math.max(controlWidth - 2, 0);
   const segmentWidth = controlWidth > 0 ? innerWidth / options.length : 0;
@@ -46,8 +47,10 @@ export function SegmentedPillSwitch({
     if (segmentWidth <= 0) return;
     const isLast = selectedIndex === options.length - 1;
     const nextX = selectedIndex * segmentWidth + (isLast ? 0.5 : 0);
-    if (!animated) {
+    // Skip animation on first layout — jump straight to position
+    if (!animated || !hasLaidOut.current) {
       indicatorX.setValue(nextX);
+      hasLaidOut.current = true;
       return;
     }
     Animated.spring(indicatorX, {
