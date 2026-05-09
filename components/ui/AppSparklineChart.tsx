@@ -27,9 +27,12 @@ export function AppSparklineChart({
   const chart = useMemo(() => buildSparklinePaths(data, chartWidth, height), [chartWidth, data, height]);
 
   const resolve = useCallback((x: number) => {
+    const sidePad = 16;
     const width = Math.max(chartWidth, 1);
-    const spacing = width / Math.max(data.length - 1, 1);
-    const idx = Math.round(x / spacing);
+    const usableWidth = Math.max(width - sidePad * 2, 1);
+    const spacing = usableWidth / Math.max(data.length - 1, 1);
+    const adjustedX = Math.max(0, Math.min(usableWidth, x - sidePad));
+    const idx = Math.round(adjustedX / spacing);
     return Math.max(0, Math.min(data.length - 1, idx));
   }, [chartWidth, data.length]);
 
@@ -75,13 +78,13 @@ export function AppSparklineChart({
       <Svg width={chartWidth} height={height} viewBox={`0 0 ${chartWidth} ${height}`}>
         <Defs>
           <LinearGradient id="sparklineFill" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={color} stopOpacity="0.09" />
-            <Stop offset="0.58" stopColor={color} stopOpacity="0.032" />
-            <Stop offset="1" stopColor={color} stopOpacity="0" />
+            <Stop offset="0" stopColor={color} stopOpacity="0.18" />
+            <Stop offset="0.5" stopColor={color} stopOpacity="0.06" />
+            <Stop offset="1" stopColor={color} stopOpacity="0.04" />
           </LinearGradient>
         </Defs>
         <Path d={chart.areaPath} fill="url(#sparklineFill)" />
-        <Path d={chart.linePath} fill="none" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d={chart.linePath} fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
       </Svg>
     </View>
   );
@@ -96,10 +99,12 @@ function buildSparklinePaths(data: SparklineItem[], width: number, height: numbe
   const range = Math.max(maxValue - minValue, 1);
   const topPad = 10;
   const bottomPad = 10;
+  const sidePad = 16;
+  const usableWidth = Math.max(safeWidth - sidePad * 2, 1);
   const usableHeight = Math.max(safeHeight - topPad - bottomPad, 1);
 
   const points = data.map((item, index) => {
-    const x = data.length <= 1 ? safeWidth / 2 : (index / (data.length - 1)) * safeWidth;
+    const x = data.length <= 1 ? safeWidth / 2 : sidePad + (index / (data.length - 1)) * usableWidth;
     const y = topPad + (1 - (item.value - minValue) / range) * usableHeight;
     return { x, y };
   });
@@ -112,16 +117,21 @@ function buildSparklinePaths(data: SparklineItem[], width: number, height: numbe
     };
   }
 
-  const linePath = points.reduce((path, point, index) => {
+  const first = points[0];
+  const last = points[points.length - 1];
+
+  const curvedPath = points.reduce((path, point, index) => {
     if (index === 0) return `M ${point.x} ${point.y}`;
     const previous = points[index - 1];
     const controlX = previous.x + (point.x - previous.x) * 0.5;
     return `${path} C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`;
   }, '');
 
-  const first = points[0];
-  const last = points[points.length - 1];
-  const areaPath = `${linePath} L ${last.x} ${safeHeight} L ${first.x} ${safeHeight} Z`;
+  const linePath = `M 0 ${first.y} L ${first.x} ${first.y} ` + 
+                   curvedPath.replace(`M ${first.x} ${first.y}`, '').trim() + 
+                   ` L ${safeWidth} ${last.y}`;
+
+  const areaPath = `${linePath} L ${safeWidth} ${safeHeight} L 0 ${safeHeight} Z`;
 
   return { linePath, areaPath };
 }

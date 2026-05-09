@@ -345,10 +345,10 @@ function HomeScreenContent() {
               onPress={() => router.push(`/account/${acc.id}`)}
               style={{
                 width: cardWidth,
-                backgroundColor: palette.isDark ? 'rgba(20, 20, 23, 0.72)' : 'rgba(255, 255, 255, 0.88)',
-                borderRadius: 22, // Matches updated AppCard
+                backgroundColor: palette.surface,
+                borderRadius: 22,
                 borderWidth: 1,
-                borderColor: palette.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                borderColor: palette.borderSoft,
                 overflow: 'hidden',
               }}
             >
@@ -603,8 +603,8 @@ function MoreShortcutCard({
           paddingHorizontal: 14,
           borderRadius: 22,
           borderWidth: 1,
-          borderColor: palette.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
-          backgroundColor: palette.isDark ? 'rgba(20, 20, 23, 0.72)' : 'rgba(255, 255, 255, 0.88)',
+          borderColor: palette.borderSoft,
+          backgroundColor: palette.surface,
           justifyContent: 'flex-start',
         }}
       >
@@ -1255,9 +1255,9 @@ function AccountSummaryCard({
   const [scrubbedIndex, setScrubbedIndex] = useState<number | null>(null);
   const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
   const chartAccent = palette.positive;
-  const heroSurface = palette.isDark ? '#10141C' : '#FFFFFF';
-  const netWorthStripBg = palette.isDark ? '#111827' : '#F7FAFC';
-  const netWorthStripBorder = palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7EDF4';
+  const heroSurface = palette.surface;
+  const netWorthStripBg = palette.isDark ? '#080C14' : '#F5F7FB';
+  const netWorthStripBorder = palette.divider;
 
   const mockChartData = useMemo(() => {
     const base = Math.max(Math.abs(balance), 1);
@@ -1276,11 +1276,11 @@ function AccountSummaryCard({
     <View
       style={{
         backgroundColor: heroSurface,
-        borderColor: palette.isDark ? 'rgba(203,213,225,0.16)' : 'rgba(31,42,68,0.14)',
-        borderRadius: HOME_RADIUS.card,
+        borderColor: palette.borderSoft,
+        borderRadius: 22,
         borderWidth: 1,
         overflow: 'hidden',
-        height: 190, // Increased height for chart
+        height: 190,
         position: 'relative',
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
@@ -1357,32 +1357,34 @@ function AccountSummaryCard({
         </View>
       </View>
 
-      <View style={{ position: 'absolute', bottom: 48, left: 0, right: 0, height: 86, overflow: 'visible' }}>
+      <View style={{ position: 'absolute', bottom: 44, left: 0, right: 0, height: 66, overflow: 'visible' }}>
         <AppSparklineChart
           data={mockChartData}
           color={chartAccent}
-          height={86}
+          height={66}
           currencySymbol={currencySymbol}
           onPointerChange={setScrubbedItem}
           onPointerIndexChange={setScrubbedIndex}
           onChartWidthChange={setChartWidth}
         />
         {scrubbedItem && scrubbedIndex !== null && (() => {
-          const CHART_H = 86;
-          const PILL_W = 124;
-          const THUMB = 5;
+          const CHART_H = 66;
+          const PILL_W = 100;
+          const THUMB = 6;
           const width = Math.max(chartWidth, 1);
-          const spacing = width / Math.max(mockChartData.length - 1, 1);
-          const rawX = scrubbedIndex * spacing;
-          const clampedX = Math.max(PILL_W / 2 + 8, Math.min(width - PILL_W / 2 - 8, rawX));
+          const sidePad = 16;
+          const usableWidth = Math.max(width - sidePad * 2, 1);
+          const spacing = usableWidth / Math.max(mockChartData.length - 1, 1);
+          const rawX = sidePad + scrubbedIndex * spacing;
+          const clampedX = Math.max(PILL_W / 2 + 4, Math.min(width - PILL_W / 2 - 4, rawX));
           const values = mockChartData.map(d => d.value);
           const minV = Math.min(...values);
           const maxV = Math.max(...values);
           const range = Math.max(maxV - minV, 1);
-          const pointYFromBottom = ((scrubbedItem.value - minV) / range) * (CHART_H - 30) + 15;
-          const lineTop = CHART_H - pointYFromBottom;
-          const tooltipTop = 8;
-          const thumbTop = lineTop - THUMB / 2;
+          const usableHeight = CHART_H - 20; // Matches AppSparklineChart topPad and bottomPad
+          const y = 10 + (1 - (scrubbedItem.value - minV) / range) * usableHeight;
+          const thumbTop = y - THUMB / 2;
+          const tooltipTop = thumbTop - 65; // Hover a little above the chart
           return (
             <>
               <View
@@ -1390,7 +1392,7 @@ function AccountSummaryCard({
                 style={{
                   position: 'absolute',
                   top: thumbTop,
-                  left: Math.max(8, Math.min(width - THUMB - 8, rawX - THUMB / 2)),
+                  left: rawX - THUMB / 2, // No clamping, perfectly sync with line
                   width: THUMB,
                   height: THUMB,
                   borderRadius: THUMB / 2,
@@ -1403,23 +1405,48 @@ function AccountSummaryCard({
                 pointerEvents="none"
                 style={{
                   position: 'absolute',
-                  top: tooltipTop,
+                  top: thumbTop - 50,
                   left: clampedX - PILL_W / 2,
                   width: PILL_W,
+                  height: 50,
                   alignItems: 'center',
                   zIndex: 100,
                 }}
               >
-                <View style={{ backgroundColor: palette.isDark ? 'rgba(2, 8, 12, 0.94)' : 'rgba(31, 42, 68, 0.94)', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 6, alignItems: 'center', borderWidth: 1, borderColor: palette.isDark ? 'rgba(203,213,225,0.18)' : 'rgba(255,255,255,0.34)' }}>
-                  <Text numberOfLines={1} style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+                <View style={{
+                  backgroundColor: '#1E2433',
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.15,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 6,
+                }}>
+                  <Text numberOfLines={1} style={{ color: '#fff', fontSize: 13, fontWeight: '500' }}>
                     {formatCurrency(scrubbedItem.value, currencySymbol)}
                   </Text>
                   {scrubbedItem.date && (
-                    <Text style={{ color: 'rgba(255,255,255,0.64)', fontSize: 10, marginTop: 1 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 1, fontWeight: '400' }}>
                       {scrubbedItem.date}
                     </Text>
                   )}
                 </View>
+                <View style={{
+                  width: 0,
+                  height: 0,
+                  position: 'absolute',
+                  bottom: 4,
+                  left: (PILL_W / 2) + (rawX - clampedX) - 5,
+                  borderLeftWidth: 5,
+                  borderRightWidth: 5,
+                  borderTopWidth: 5,
+                  borderLeftColor: 'transparent',
+                  borderRightColor: 'transparent',
+                  borderTopColor: '#1E2433',
+                }} />
               </View>
             </>
           );
@@ -1431,24 +1458,24 @@ function AccountSummaryCard({
           delayPressIn={0}
           onPress={onOpenNetWorth}
           style={{
+            height: 44,
             borderTopWidth: 1,
             borderTopColor: netWorthStripBorder,
-            paddingHorizontal: CARD_PADDING - 2,
-            paddingVertical: 10,
+            paddingHorizontal: CARD_PADDING,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
             backgroundColor: netWorthStripBg,
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '500', color: palette.isDark ? 'rgba(255,255,255,0.78)' : palette.textMuted }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.isDark ? palette.textMuted : palette.textMuted, letterSpacing: 0.2 }}>
             Net Worth
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: palette.isDark ? '#FFFFFF' : palette.text }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+            <Text appWeight="medium" style={{ fontSize: 14, fontWeight: '700', color: palette.text }}>
               {formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
             </Text>
-            <AppIcon name="chevron-right" size={14} color={palette.isDark ? 'rgba(255,255,255,0.48)' : palette.textMuted} />
+            <AppIcon name="chevron-right" size={14} color={palette.textSoft} />
           </View>
         </TouchableOpacity>
       ) : null}

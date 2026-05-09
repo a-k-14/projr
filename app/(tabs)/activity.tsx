@@ -924,7 +924,7 @@ export default function ActivityScreen() {
 
           <View
             style={{
-              backgroundColor: palette.isDark ? '#10141C' : '#FFFFFF',
+              backgroundColor: palette.surface,
               borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
               borderWidth: 1,
               borderColor: palette.border,
@@ -976,13 +976,14 @@ export default function ActivityScreen() {
     ({ section }: { section: ActivityGroup & { data: Transaction[] } }) => {
       const groupNet = section.net;
       return (
-        <View style={{ backgroundColor: palette.background, paddingTop: 18, paddingBottom: 6 }}>
+        <View style={{ backgroundColor: palette.background, paddingTop: 18, paddingBottom: 0 }}>
           <View
             style={[
               styles.groupHeader,
               {
                 paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
                 paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
+                marginBottom: -4,
               },
             ]}
           >
@@ -1056,7 +1057,7 @@ export default function ActivityScreen() {
           onPress={handleTransactionPress}
           style={{
             marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-            backgroundColor: palette.isDark ? '#10141C' : '#FFFFFF',
+            backgroundColor: palette.surface,
             borderLeftWidth: 1,
             borderRightWidth: 1,
             borderTopWidth: isFirst ? 1 : 0,

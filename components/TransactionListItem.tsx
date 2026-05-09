@@ -189,7 +189,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
         },
         isCard && {
           borderWidth: 1,
-          borderColor: palette.border,
+          borderColor: palette.borderSoft,
         },
         style
       ]}

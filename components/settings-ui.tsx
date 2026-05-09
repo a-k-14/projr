@@ -66,11 +66,11 @@ export function CardSection({
     <View
       style={{
         backgroundColor: palette.card,
-        borderRadius: RADIUS.lg,
+        borderRadius: 22,
         marginHorizontal: SCREEN_GUTTER,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: palette.border,
+        borderColor: palette.borderSoft,
         marginBottom: SPACING.lg
       }}
     >

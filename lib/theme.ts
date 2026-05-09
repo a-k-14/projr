@@ -30,8 +30,8 @@ const SURFACE_RAISED_LIGHT = '#202845';
 const SURFACE_RAISED_DARK = '#25252A';
 const TEXT_SECONDARY_LIGHT = '#6B7280';
 const TEXT_SECONDARY_DARK = '#A1A1A6';
-const BORDER_SOFT_LIGHT = '#D8DDE8';
-const BORDER_SOFT_DARK = '#303033';
+const BORDER_SOFT_LIGHT = '#DFE4ED';
+const BORDER_SOFT_DARK = '#1E2330';
 const INACTIVE_LIGHT = '#B2B8C2';
 const INACTIVE_DARK = '#555555';
 const CHART_BAR_MUTED_LIGHT = '#D9DDE7';
@@ -132,10 +132,10 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     return {
       isDark: true,
       background: APP_DARK_BACKGROUND,
-      surface: '#141416',
-      card: '#1A1A1D',
-      border: '#232327',
-      divider: '#1F1F23',
+      surface: '#0C1018',
+      card: '#0C1018',
+      border: '#1A1E28',
+      divider: '#161A22',
       text: '#D8DDE5',
       listText: '#C9D0DA',
       textMuted: '#98A0AD',
@@ -184,8 +184,8 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     background: '#F5F7FB',
     surface: '#FFFFFF',
     card: '#FFFFFF',
-    border: '#E5E7EB',
-    divider: '#E5E7EB',
+    border: '#E2E6EE',
+    divider: '#E8EBF0',
     text: '#1F2A44',
     listText: '#344054',
     textMuted: '#8C94AF',
