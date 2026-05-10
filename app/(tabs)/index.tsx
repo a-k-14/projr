@@ -92,7 +92,11 @@ export function usePageScrollHandler(handlers: any, dependencies?: any[]) {
 }
 
 function getGreeting() {
-  const hour = new Date().getHours();
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay(); // 0 = Sun, 6 = Sat
+  const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day];
+  if (day === 0 || day === 6) return `Happy ${dayName}`;
   if (hour < 12) return 'Good Morning';
   if (hour < 17) return 'Good Afternoon';
   return 'Good Evening';
@@ -309,23 +313,15 @@ function HomeScreenContent() {
   const middleContent = (
     <View style={{ marginTop: 4, marginBottom: HOME_SPACE.xl }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 16 }}>
-        <Text appWeight="medium" style={{ fontSize: 18, fontWeight: '700', color: palette.text }}>Accounts</Text>
+        <Text appWeight="medium" style={{ fontSize: 18, fontWeight: '600', color: palette.text }}>Accounts</Text>
         <TouchableOpacity
           onPress={() => router.push('/accounts')}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 1,
-            backgroundColor: 'transparent',
-            borderWidth: 0,
-            borderColor: 'transparent',
-            borderRadius: 16,
-            paddingLeft: 2,
-            paddingRight: 0,
-            paddingVertical: 2,
-          }}
+          delayPressIn={0}
+          activeOpacity={0.7}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
         >
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: '500' }}>View all</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, fontWeight: '400' }}>All</Text>
+          <AppIcon name="chevron-right" size={13} color={palette.textMuted} strokeWidth={2} />
         </TouchableOpacity>
       </View>
       <ScrollView ref={accountScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: SCREEN_GUTTER }}>
@@ -334,6 +330,7 @@ function HomeScreenContent() {
           const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(amountLabel.length, 14) * 3));
           const typeMeta = ACCOUNT_TYPE_META[acc.type];
           const typeColor = typeMeta.color;
+          const pct = totalBalance !== 0 ? Math.round(Math.abs(acc.balance) / Math.abs(totalBalance) * 100) : 0;
           return (
             <TouchableOpacity
               key={acc.id}
@@ -366,9 +363,16 @@ function HomeScreenContent() {
                     <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: '500', color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
                   </View>
                 </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 18, fontWeight: '600', color: acc.balance < 0 ? palette.negative : palette.text, marginTop: 12 }}>
-                  {amountLabel}
-                </Text>
+                <View style={{ marginTop: 12 }}>
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 18, fontWeight: '600', color: acc.balance < 0 ? palette.negative : palette.text }}>
+                    {amountLabel}
+                  </Text>
+                  {totalBalance !== 0 && (
+                    <Text style={{ fontSize: 11.5, color: palette.textMuted, marginTop: 2 }}>
+                      {pct}% of Total
+                    </Text>
+                  )}
+                </View>
               </View>
             </TouchableOpacity>
           );
@@ -1707,21 +1711,25 @@ function HomeAccountsList({
       }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
-      {accounts.map((account) => (
-        <CompactAccountListCard
-          key={account.id}
-          accountName={account.name}
-          balance={
-            account.id === 'all'
-              ? getTotalBalance(rawAccounts)
-              : (rawAccounts.find((item) => item.id === account.id)?.balance ?? 0)
-          }
-          todayCashflow={todaySummaries[account.id] ?? { in: 0, out: 0, net: 0 }}
-          currencySymbol={currencySymbol}
-          palette={palette}
-          onPress={() => onOpenAccount(account.id === 'all' ? 'all' : account.id)}
-        />
-      ))}
+      {accounts.map((account) => {
+        const rawAcc = rawAccounts.find((item) => item.id === account.id);
+        return (
+          <CompactAccountListCard
+            key={account.id}
+            accountName={account.name}
+            accountType={account.id === 'all' ? undefined : rawAcc?.type}
+            balance={
+              account.id === 'all'
+                ? getTotalBalance(rawAccounts)
+                : (rawAcc?.balance ?? 0)
+            }
+            todayCashflow={todaySummaries[account.id] ?? { in: 0, out: 0, net: 0 }}
+            currencySymbol={currencySymbol}
+            palette={palette}
+            onPress={() => onOpenAccount(account.id === 'all' ? 'all' : account.id)}
+          />
+        );
+      })}
       <TouchableOpacity
         delayPressIn={0}
         activeOpacity={0.82}
@@ -1749,6 +1757,7 @@ function HomeAccountsList({
 
 function CompactAccountListCard({
   accountName,
+  accountType,
   balance,
   todayCashflow,
   currencySymbol,
@@ -1756,6 +1765,7 @@ function CompactAccountListCard({
   onPress,
 }: {
   accountName: string;
+  accountType?: import('../../types').AccountType;
   balance: number;
   todayCashflow: CashflowSummary;
   currencySymbol: string;
@@ -1763,6 +1773,7 @@ function CompactAccountListCard({
   onPress: () => void;
 }) {
   const netColor = todayCashflow.net >= 0 ? palette.brand : palette.negative;
+  const typeMeta = accountType ? ACCOUNT_TYPE_META[accountType] : null;
 
   return (
     <TouchableOpacity
@@ -1778,33 +1789,45 @@ function CompactAccountListCard({
         paddingVertical: 14,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            appWeight="medium"
-            numberOfLines={1}
-            style={{ fontSize: HOME_TEXT.sectionTitle, lineHeight: 20, fontWeight: '600', color: palette.text }}
-          >
-            {accountName}
-          </Text>
-          <Text style={{ marginTop: 4, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-            Current balance
-          </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+          {typeMeta ? (
+            <View style={{
+              width: 34,
+              height: 34,
+              borderRadius: 11,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: `${typeMeta.color}18`,
+              flexShrink: 0,
+            }}>
+              <AppIcon name={typeMeta.icon} size={16} color={typeMeta.color} strokeWidth={1.8} />
+            </View>
+          ) : (
+            <View style={{
+              width: 34,
+              height: 34,
+              borderRadius: 11,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(31,42,68,0.06)',
+              flexShrink: 0,
+            }}>
+              <AppIcon name="wallet" size={16} color={palette.textMuted} strokeWidth={1.8} />
+            </View>
+          )}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>
+              {accountName}
+            </Text>
+            <Text style={{ marginTop: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+              Current balance
+            </Text>
+          </View>
         </View>
 
-        <View style={{ alignItems: 'flex-end', maxWidth: '48%' }}>
-          <Text
-            appWeight="medium"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            style={{
-              fontSize: HOME_TEXT.rowLabel,
-              lineHeight: 22,
-              fontWeight: '600',
-              color: palette.text,
-              textAlign: 'right',
-            }}
-          >
+        <View style={{ alignItems: 'flex-end', maxWidth: '44%' }}>
+          <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text, textAlign: 'right' }}>
             {formatSignedCurrency(balance, currencySymbol)}
           </Text>
         </View>
@@ -1814,12 +1837,7 @@ function CompactAccountListCard({
         <Text style={{ fontSize: HOME_TEXT.cardContent, color: palette.textMuted, fontWeight: '500' }}>
           Today's Net
         </Text>
-        <Text
-          appWeight="medium"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          style={{ fontSize: HOME_TEXT.cardContent, fontWeight: '600', color: netColor, textAlign: 'right' }}
-        >
+        <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.cardContent, fontWeight: '600', color: netColor, textAlign: 'right' }}>
           {formatTodayMetricValue('net', todayCashflow.net, currencySymbol)}
         </Text>
       </View>
@@ -2278,8 +2296,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
 
-          {middleContent}
-
           <CashflowToggleCard
             viewMode={cashflowViewMode}
             onToggle={setCashflowViewMode}
@@ -2290,6 +2306,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             onPressIn={() => openPeriodActivity('in')}
             onPressOut={() => openPeriodActivity('out')}
           />
+
+          {middleContent}
 
           <View
             style={{
