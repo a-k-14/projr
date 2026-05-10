@@ -631,9 +631,6 @@ export default function HomeScreen({
           <TouchableOpacity activeOpacity={0.82} onPress={() => router.push('/chart-prototype')}>
             <Text style={[styles.prototypeLinkText, { color: theme.accent }]}>Open Chart Prototype</Text>
           </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.82} onPress={() => router.push('/loan-prototype')}>
-            <Text style={[styles.prototypeLinkText, { color: theme.accent }]}>Open Loan Prototype</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={{ width: '100%', alignItems: 'center', marginBottom: -70, marginTop: 40 }}>
