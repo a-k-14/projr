@@ -1,19 +1,18 @@
 import { AppIcon, IconName } from '@/components/ui/AppIcon';
-import { Text } from '@/components/ui/AppText';
 import { router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 
-const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
-  index: { icon: 'layout-panel-left', label: 'Home' },
-  activity: { icon: 'activity', label: 'Activity' },
-  insights: { icon: 'bar-chart-2', label: 'Insights' },
-  settings: { icon: 'settings', label: 'Settings' },
+const TAB_ITEMS: Record<string, { icon: IconName }> = {
+  index: { icon: 'layout-panel-left' },
+  activity: { icon: 'activity' },
+  insights: { icon: 'bar-chart-2' },
+  settings: { icon: 'settings' },
 };
 
 const VISIBLE_TAB_NAMES = ['index', 'activity', 'insights', 'settings'] as const;
@@ -41,18 +40,19 @@ function AppTabBar({
   palette: AppThemePalette;
 }) {
   const { width } = useWindowDimensions();
-  const tabHeight = 66;
+  const tabHeight = 56;
   const routes = VISIBLE_TAB_NAMES
     .map((name) => state.routes.find((route: any) => route.name === name))
     .filter(Boolean);
   const itemWidth = width / TAB_BAR_SLOTS.length;
-  const pillWidth = 58;
+  const pillWidth = 50;
+  const pillHeight = 36;
   const activeRouteName = state.routes[state.index]?.name;
   const activeSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === activeRouteName);
   const indicatorX = useSharedValue(Math.max(activeSlotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2);
 
   useEffect(() => {
-    indicatorX.value = withTiming(Math.max(activeSlotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2, { duration: 190 });
+    indicatorX.value = withTiming(Math.max(activeSlotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2, { duration: 210 });
   }, [activeSlotIndex, indicatorX, itemWidth]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
@@ -78,11 +78,11 @@ function AppTabBar({
           style={[
             {
               position: 'absolute',
-              top: 5,
+              top: (tabHeight - pillHeight) / 2,
               left: 0,
               width: pillWidth,
-              height: 30,
-              borderRadius: HOME_RADIUS.tab,
+              height: pillHeight,
+              borderRadius: HOME_RADIUS.tab + 2,
               borderWidth: 1,
               borderColor: palette.brand,
               backgroundColor: palette.brandSoft,
@@ -94,22 +94,23 @@ function AppTabBar({
         {TAB_BAR_SLOTS.map((slot) => {
           if (slot === 'add') {
             return (
-              <View
+              <TouchableOpacity
                 key="add"
+                delayPressIn={0}
+                activeOpacity={0.88}
+                onPress={() => router.push('/modals/add-transaction')}
                 style={{
                   width: itemWidth,
+                  height: tabHeight,
                   alignItems: 'center',
-                  paddingTop: 6,
+                  justifyContent: 'center',
                 }}
               >
-                <TouchableOpacity
-                  delayPressIn={0}
-                  activeOpacity={0.88}
-                  onPress={() => router.push('/modals/add-transaction')}
+                <View
                   style={{
-                    width: 50,
-                    height: 46,
-                    borderRadius: 16,
+                    width: 48,
+                    height: 42,
+                    borderRadius: 15,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: palette.isDark ? palette.surfaceRaised : palette.text,
@@ -117,10 +118,9 @@ function AppTabBar({
                     borderColor: palette.isDark ? palette.borderSoft : '#24345A',
                     shadowColor: '#000000',
                     shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: palette.isDark ? 0.18 : 0.11,
-                    shadowRadius: 7,
-                    elevation: 4,
-                    transform: [{ translateY: -2 }],
+                    shadowOpacity: palette.isDark ? 0.20 : 0.14,
+                    shadowRadius: 8,
+                    elevation: 5,
                   }}
                 >
                   <AppIcon
@@ -129,8 +129,8 @@ function AppTabBar({
                     color={palette.isDark ? palette.listText : palette.surface}
                     strokeWidth={1.8}
                   />
-                </TouchableOpacity>
-              </View>
+                </View>
+              </TouchableOpacity>
             );
           }
 
@@ -177,29 +177,17 @@ function AppTabBar({
               onPress={onPress}
               style={{
                 width: itemWidth,
+                height: tabHeight,
                 alignItems: 'center',
-                paddingTop: 9,
+                justifyContent: 'center',
               }}
             >
               <AppIcon
                 name={item.icon as any}
-                size={20}
+                size={21}
                 color={focused ? palette.brand : palette.textSecondary}
+                strokeWidth={focused ? 2 : 1.75}
               />
-              <Text
-                numberOfLines={1}
-                style={{
-                  fontSize: HOME_TEXT.tiny,
-                  lineHeight: 13,
-                  marginTop: 8,
-                  color: focused ? palette.brand : palette.textSecondary,
-                  fontWeight: '500',
-                  textAlign: 'center',
-                  includeFontPadding: false,
-                }}
-              >
-                {item.label}
-              </Text>
             </TouchableOpacity>
           );
         })}
