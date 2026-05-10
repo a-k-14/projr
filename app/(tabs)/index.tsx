@@ -192,8 +192,10 @@ function HomeScreenContent() {
 
   useEffect(() => {
     return registerTabReset('index', ({ mode, animated }) => {
-      pageScrollTopRef.current?.();
-      accountScrollRef.current?.scrollTo({ x: 0, animated });
+      if (mode === 'full') {
+        pageScrollTopRef.current?.();
+        accountScrollRef.current?.scrollTo({ x: 0, animated });
+      }
       setPeriod('today');
     });
   }, [setPeriod]);

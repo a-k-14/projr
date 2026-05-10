@@ -1,7 +1,7 @@
 import { AppIcon, IconName } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { router, Tabs } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,10 +49,19 @@ function AppTabBar({
   const pillWidth = 58;
   const activeRouteName = state.routes[state.index]?.name;
   const activeSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === activeRouteName);
-  const indicatorX = useSharedValue(Math.max(activeSlotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2);
+  const getIndicatorTarget = (slotIndex: number) =>
+    Math.max(slotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2;
+  const initialIndicatorTarget = getIndicatorTarget(activeSlotIndex);
+  const requestedIndicatorTargetRef = useRef(initialIndicatorTarget);
+  const indicatorX = useSharedValue(initialIndicatorTarget);
 
   useEffect(() => {
-    indicatorX.value = withTiming(Math.max(activeSlotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2, { duration: 190 });
+    const target = getIndicatorTarget(activeSlotIndex);
+    if (Math.abs(requestedIndicatorTargetRef.current - target) < 0.5) {
+      return;
+    }
+    requestedIndicatorTargetRef.current = target;
+    indicatorX.value = withTiming(target, { duration: 190 });
   }, [activeSlotIndex, indicatorX, itemWidth]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
@@ -155,6 +164,13 @@ function AppTabBar({
             if (focused) {
               getTabReset(route.name)?.({ mode: 'full', animated: true });
               return;
+            }
+
+            const nextSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === route.name);
+            if (nextSlotIndex >= 0) {
+              const target = getIndicatorTarget(nextSlotIndex);
+              requestedIndicatorTargetRef.current = target;
+              indicatorX.value = withTiming(target, { duration: 190 });
             }
 
             navigation.navigate(route.name, route.params);

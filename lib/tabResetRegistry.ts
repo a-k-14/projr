@@ -25,6 +25,18 @@ export function getTabReset(tab: string): TabResetHandler | undefined {
   return handler;
 }
 
-export function runAfterTabHidden(action: () => void) {
-  return InteractionManager.runAfterInteractions(action);
+export function runAfterTabHidden(action: () => void, delayMs = 230) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const task = InteractionManager.runAfterInteractions(() => {
+    timeout = setTimeout(action, delayMs);
+  });
+
+  return {
+    cancel: () => {
+      task.cancel();
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    },
+  };
 }
