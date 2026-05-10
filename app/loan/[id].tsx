@@ -2,7 +2,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FixedBottomActions } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -35,6 +35,7 @@ import type { LoanWithSummary } from '../../types';
 
 export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
   const loans = useLoansStore((s) => s.loans);
   const updateLoan = useLoansStore((s) => s.update);
   const loadLoans = useLoansStore((s) => s.load);
@@ -122,31 +123,42 @@ export default function LoanDetailScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScreenHeader 
-        title={`${loan.personName} • ${isLent ? 'Lent' : 'Borrowed'}`}
-        palette={palette}
-        rightAction={
-          <TouchableOpacity
-            delayPressIn={0}
-            onPress={() => {
-              if (!originTx) return;
-              router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
-            }}
-            style={{
-              backgroundColor: palette.brandSoft,
-              borderWidth: 1.5,
-              borderColor: palette.brand,
-              borderRadius: 20,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-            }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '500', color: palette.brand }}>
-              Edit
-            </Text>
-          </TouchableOpacity>
-        }
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <Stack.Screen 
+        options={{
+          headerShown: true,
+          headerShadowVisible: false,
+          header: () => (
+            <View style={{ paddingTop: insets.top, backgroundColor: palette.background }}>
+              <ScreenHeader 
+                title={`${loan.personName} • ${isLent ? 'Lent' : 'Borrowed'}`}
+                palette={palette}
+                titleSize={25}
+                rightAction={
+                  <TouchableOpacity
+                    delayPressIn={0}
+                    onPress={() => {
+                      if (!originTx) return;
+                      router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
+                    }}
+                    style={{
+                      backgroundColor: palette.brandSoft,
+                      borderWidth: 1.5,
+                      borderColor: palette.brand,
+                      borderRadius: 20,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '500', color: palette.brand }}>
+                      Edit
+                    </Text>
+                  </TouchableOpacity>
+                }
+              />
+            </View>
+          )
+        }} 
       />
 
       <View style={{ flex: 1 }}>
@@ -499,7 +511,7 @@ export default function LoanDetailScreen() {
           },
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -17,6 +17,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { toLocalDayStartISO, toLocalDayEndISO, formatDate } from '../../lib/dateUtils';
 import { AppIcon } from '../../components/ui/AppIcon';
+import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
@@ -106,14 +107,16 @@ export default function AccountDetailScreen() {
       <Stack.Screen 
         options={{
           headerShown: true,
-          title: formatAccountDisplayName(account.name, account.accountNumber),
-          headerStyle: { backgroundColor: palette.background },
-          headerTintColor: palette.text,
           headerShadowVisible: false,
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 0, padding: 8 }}>
-              <AppIcon name="arrow-left" size={24} color={palette.text} />
-            </TouchableOpacity>
+          header: () => (
+            <View style={{ paddingTop: insets.top, backgroundColor: palette.background }}>
+              <ScreenHeader
+                title={formatAccountDisplayName(account.name, account.accountNumber)}
+                onBack={() => router.back()}
+                palette={palette}
+                titleSize={25}
+              />
+            </View>
           )
         }} 
       />

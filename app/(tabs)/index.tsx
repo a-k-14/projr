@@ -2,6 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -14,7 +15,8 @@ import {
 } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import Animated, {
-  LinearTransition,
+  FadeInDown,
+  FadeOutDown,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -363,7 +365,7 @@ function HomeScreenContent() {
                 overflow: 'hidden',
               }}
             >
-              <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 108, justifyContent: 'space-between' }}>
+              <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 116, justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View
                     style={{
@@ -381,8 +383,8 @@ function HomeScreenContent() {
                     <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: '500', color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
                   </View>
                 </View>
-                <View style={{ marginTop: 12 }}>
-                  <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 18, fontWeight: '600', color: acc.balance < 0 ? palette.negative : palette.text }}>
+                <View style={{ marginTop: 16 }}>
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 16, fontWeight: '500', color: acc.balance < 0 ? palette.negative : palette.text }}>
                     {amountLabel}
                   </Text>
                   {totalBalance !== 0 && !hideAmounts && (
@@ -748,80 +750,52 @@ function CashflowToggleCard({
   const rightLabel = isCashflow ? 'Outflow' : 'Expense';
   const leftAmount = isCashflow ? cashflow.in : inExpSummary.income;
   const rightAmount = isCashflow ? cashflow.out : inExpSummary.expense;
-  const netAmount = leftAmount - rightAmount;
-  const hintHeight = 42;
-  const hintProgress = useSharedValue(isCashflow ? 1 : 0);
-
-  useEffect(() => {
-    hintProgress.value = withTiming(isCashflow ? 1 : 0, { duration: 220 });
-  }, [hintProgress, isCashflow]);
-
-  const hintStyle = useAnimatedStyle(() => ({
-    height: hintProgress.value * hintHeight,
-  }));
+  
+  const glassBg = palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.45)';
+  const labelColor = palette.textMuted;
+  const valueColor = palette.text;
 
   return (
-    <Animated.View layout={LinearTransition.duration(180)} style={{
-      marginBottom: 16,
-      borderRadius: HOME_RADIUS.card,
+    <View style={{
+      borderRadius: 18,
+      backgroundColor: glassBg,
+      padding: 14,
       borderWidth: 1,
-      borderColor: palette.divider,
-      backgroundColor: palette.card,
-      overflow: 'hidden',
+      borderColor: palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)',
     }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontSize: 13, fontWeight: '500', color: palette.text }}>Cashflow</Text>
-          <AppSwitch value={isCashflow} onValueChange={onToggleCashflow} palette={palette} width={38} height={20} thumbSize={16} padding={2} />
-        </View>
-
-        <SegmentedPillSwitch
-          options={[{ key: 'today', label: 'Today' }, { key: 'month', label: 'Month' }]}
-          value={cardPeriod}
-          onChange={(v) => onCardPeriodChange(v as 'today' | 'month')}
-          backgroundColor="#EEF2F8"
-          pillColor="#FFFFFF"
-          borderColor="#DFE5EF"
-          activeTextColor={palette.text}
-          inactiveTextColor="#7C8498"
-          itemMinWidth={58}
-          height={30}
-          radius={15}
-          fontSize={11.5}
-          style={{ width: 140, flexShrink: 0 }}
-        />
-      </View>
-
-      <View style={{ flexDirection: 'row', paddingHorizontal: 14, paddingBottom: 12, gap: 8 }}>
-        <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressIn} style={{ flex: 1 }}>
-          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 4 }}>{leftLabel}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20, fontWeight: '700', color: leftAmount === 0 ? palette.textMuted : palette.text }}>
-            {hideAmounts ? '••••' : leftAmount === 0 ? '—' : `+${formatCurrency(leftAmount, sym)}`}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressOut} style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 4, textAlign: 'right' }}>{rightLabel}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20, fontWeight: '700', color: rightAmount === 0 ? palette.textMuted : palette.text, textAlign: 'right' }}>
-            {hideAmounts ? '••••' : rightAmount === 0 ? '—' : `-${formatCurrency(rightAmount, sym)}`}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 14, paddingBottom: 14 }}>
-        <Text style={{ fontSize: 13, fontWeight: '600', color: netAmount === 0 ? palette.textMuted : palette.text }}>
-          {hideAmounts ? 'Net ••••' : `Net ${netAmount >= 0 ? '+' : ''}${formatCurrency(netAmount, sym)}`}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text, textTransform: 'capitalize' }}>
+          {cardPeriod === 'today' ? 'Today' : 'This Month'}
         </Text>
+        <TouchableOpacity 
+          delayPressIn={0}
+          onPress={() => onCardPeriodChange(cardPeriod === 'today' ? 'month' : 'today')}
+          style={{ paddingHorizontal: 8, paddingVertical: 2 }}
+        >
+          <Text style={{ fontSize: 11, fontWeight: '600', color: palette.brand }}>
+            {cardPeriod === 'today' ? 'Switch to Month' : 'Switch to Today'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <Animated.View style={[{ overflow: 'hidden' }, hintStyle]}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginHorizontal: 14, marginBottom: 12, paddingTop: 8, borderTopWidth: 1, borderTopColor: palette.divider }}>
-          <AppIcon name="info" size={11} color={palette.textMuted} style={{ marginTop: 1 }} />
-          <Text style={{ fontSize: 11, color: palette.textMuted, flex: 1, lineHeight: 15 }}>
-            Includes transfers, loan and deposit movements
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressIn} style={{ flex: 1 }}>
+          <Text style={{ fontSize: 11, color: labelColor, fontWeight: '500', marginBottom: 4 }}>{leftLabel}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 17, fontWeight: '700', color: valueColor }}>
+            {hideAmounts ? '••••' : formatCurrency(leftAmount, sym)}
           </Text>
-        </View>
-      </Animated.View>
-    </Animated.View>
+        </TouchableOpacity>
+
+        <View style={{ width: 1, backgroundColor: palette.divider, height: '100%', opacity: 0.5 }} />
+
+        <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressOut} style={{ flex: 1 }}>
+          <Text style={{ fontSize: 11, color: labelColor, fontWeight: '500', marginBottom: 4 }}>{rightLabel}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 17, fontWeight: '700', color: valueColor }}>
+            {hideAmounts ? '••••' : formatCurrency(rightAmount, sym)}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
@@ -1370,6 +1344,8 @@ function AccountSummaryCard({
   netWorth,
   netWorthChange,
   hideAmounts,
+  heroMode = false,
+  children,
 }: {
   accountName: string;
   accountTypeLabel: string;
@@ -1382,6 +1358,8 @@ function AccountSummaryCard({
   netWorth?: number;
   netWorthChange?: number;
   hideAmounts?: boolean;
+  heroMode?: boolean;
+  children?: React.ReactNode;
 }) {
   const isAll = accountName === 'All';
   const [scrubbedItem, setScrubbedItem] = useState<{ value: number; date?: string } | null>(null);
@@ -1389,8 +1367,6 @@ function AccountSummaryCard({
   const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
   const chartAccent = palette.positive;
   const heroSurface = palette.isDark ? palette.surface : '#F0F4FC';
-  const heroText = palette.text;
-  const heroMuted = palette.textMuted;
   const netWorthStripBg = palette.isDark ? '#080C14' : '#E8EDF8';
   const netWorthStripBorder = palette.isDark ? palette.divider : '#D8E0F0';
 
@@ -1409,14 +1385,14 @@ function AccountSummaryCard({
 
   const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
-  const balanceInt = hideAmounts ? '\u2022\u2022\u2022\u2022' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
+  const balanceInt = hideAmounts ? '••••' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
   const balanceDec = hideAmounts ? '' : (dotIdx >= 0 ? balanceFormatted!.slice(dotIdx) : '');
   const balanceColor = balance < 0 ? palette.negative : palette.text;
 
   const content = (
     <View
       style={{
-        backgroundColor: heroSurface,
+        backgroundColor: 'transparent',
         borderColor: palette.isDark ? palette.borderSoft : '#D0D8EE',
         borderWidth: 1,
         borderRadius: 22,
@@ -1424,28 +1400,44 @@ function AccountSummaryCard({
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
-      <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 20, paddingBottom: 18 }}>
-        <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: palette.textMuted, marginBottom: 12 }}>
-          {isAll ? 'Balance \u00b7 All Accounts' : `Balance \u00b7 ${accountName}`}
-        </Text>
+      <LinearGradient
+        colors={palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      />
+      <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 20, paddingBottom: 22 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {!isAll && (
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: 4, borderRadius: 6 }}>
+                <AppIcon name={ACCOUNT_TYPE_META[accountTypeLabel as AccountType]?.icon ?? 'wallet'} size={12} color={palette.brand} />
+              </View>
+            )}
+            <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: palette.textMuted }}>
+              {isAll ? 'Balance · All Accounts' : accountName}
+            </Text>
+          </View>
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
           <Text
             appWeight="medium"
             numberOfLines={1}
             adjustsFontSizeToFit
-            style={{ fontSize: 34, fontWeight: '800', color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
+            style={{ fontSize: 28, fontWeight: '800', color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
           >
             {balanceInt}
           </Text>
           {balanceDec ? (
             <Text
               appWeight="medium"
-              style={{ fontSize: 19, fontWeight: '700', color: palette.textMuted, letterSpacing: -0.3, marginBottom: 4 }}
+              style={{ fontSize: 17, fontWeight: '700', color: palette.textMuted, letterSpacing: -0.3, marginBottom: 3 }}
             >
               {balanceDec}
             </Text>
           ) : null}
         </View>
+
         {onOpenNetWorth ? (
           <TouchableOpacity
             delayPressIn={0}
@@ -2226,6 +2218,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               return Math.abs(nwAtStart) > 0 ? (netChange / Math.abs(nwAtStart)) * 100 : 0;
             })()}
             hideAmounts={hideAmounts}
+            heroMode
           />
           <View
             onLayout={(event) => {
@@ -2240,19 +2233,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
 
-          <CashflowToggleCard
-            isCashflow={cashflowIsCashflow}
-            onToggleCashflow={setCashflowIsCashflow}
-            cardPeriod={cashflowCardPeriod}
-            onCardPeriodChange={setCashflowCardPeriod}
-            inExpSummary={cashflowCardPeriod === 'today' ? incExpSummary : { income: cashflowCardMonthSummary.in, expense: cashflowCardMonthSummary.out }}
-            cashflow={cashflowCardPeriod === 'today' ? cashflowCardTodaySummary : cashflowCardMonthSummary}
-            sym={currencySymbol}
-            palette={palette}
-            onPressIn={() => openPeriodActivity('in')}
-            onPressOut={() => openPeriodActivity('out')}
-            hideAmounts={hideAmounts}
-          />
 
           {middleContent}
 
@@ -2364,20 +2344,22 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             </TouchableOpacity>
           </View>
 
-          <View style={{ width: '100%', alignItems: 'center', marginBottom: -70 }}>
-            <Text
-              style={{
-                fontSize: 180,
-                fontWeight: '900',
-                color: palette.text,
-                opacity: 0.05,
-                textAlign: 'center',
-                lineHeight: 180,
-              }}
-            >
-              reni
-            </Text>
-          </View>
+          {accountId === 'all' && (
+            <View style={{ width: '100%', alignItems: 'center', marginBottom: -70 }}>
+              <Text
+                style={{
+                  fontSize: 180,
+                  fontWeight: '900',
+                  color: palette.text,
+                  opacity: 0.05,
+                  textAlign: 'center',
+                  lineHeight: 180,
+                }}
+              >
+                reni
+              </Text>
+            </View>
+          )}
 
         </View>
       </Animated.ScrollView>

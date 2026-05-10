@@ -624,8 +624,9 @@ function LoanSummaryCard({
     sym: string;
     palette: AppThemePalette;
   }) {
-  const badgeLabel = borrowed === 0 && lent === 0 ? 'No Loans' : netPositive ? 'Net Lent' : 'Net Owed';
-  const footerLabel = borrowed === 0 && lent === 0 ? 'Net' : netPositive ? 'Net Lent' : 'Net Owed';
+  const isZero = borrowed === 0 && lent === 0;
+  const badgeLabel = isZero ? 'No Loans' : netPositive ? 'Net Lent' : 'Net Owed';
+  const footerLabel = isZero ? 'Net' : netPositive ? 'Net Lent' : 'Net Owed';
 
   return (
     <OverviewHeroCard
@@ -633,15 +634,15 @@ function LoanSummaryCard({
       eyebrow="Loans Overview"
       title="Current Position"
       badgeLabel={badgeLabel}
-      badgeBg={borrowed === 0 && lent === 0 ? palette.background : netPositive ? palette.inBg : palette.outBg}
-      badgeColor={borrowed === 0 && lent === 0 ? palette.textSecondary : netPositive ? palette.positive : palette.negative}
+      badgeBg={isZero ? palette.background : palette.brandSoft}
+      badgeColor={isZero ? palette.textSecondary : palette.brand}
       metrics={[
         { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
         { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },
       ]}
       footerLabel={footerLabel}
       footerValue={formatCurrency(Math.abs(net), sym)}
-      footerValueColor={netPositive ? palette.positive : palette.negative}
+      footerValueColor={isZero ? palette.textMuted : palette.brand}
       decorativeColor="#F8FAFD"
     />
   );

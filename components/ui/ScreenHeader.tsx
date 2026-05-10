@@ -13,6 +13,7 @@ interface ScreenHeaderProps {
   onBack?: () => void;
   showBack?: boolean;
   height?: number;
+  titleSize?: number;
 }
 
 export function HeaderIconButton({
@@ -72,7 +73,8 @@ export function ScreenHeader({
   rightAction, 
   onBack, 
   showBack = true,
-  height = 54 
+  height = 54,
+  titleSize = 27,
 }: ScreenHeaderProps) {
   return (
     <View
@@ -103,7 +105,7 @@ export function ScreenHeader({
       <Text 
         style={{ 
           flex: 1, 
-          fontSize: 27,
+          fontSize: titleSize,
           fontWeight: '400',
           color: palette.text, 
           letterSpacing: -0.5,
@@ -131,27 +133,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addButton: {
-    minWidth: 66,
-    height: 32,
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    minWidth: 62,
+    height: 28,
+    borderRadius: 14,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: '#050505',
   },
   addButtonText: {
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12.5,
+    lineHeight: 16,
     fontWeight: '500',
     color: '#FFFFFF',
   },

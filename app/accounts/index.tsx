@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,15 +37,22 @@ function sortAccountsForMode(
 ) {
   if (mode === 'alpha') {
     const directionMultiplier = alphaDirection === 'asc' ? 1 : -1;
-    return source.slice().sort((a, b) => directionMultiplier * formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
+    return source.slice().sort((a, b) => {
+      const cmp = directionMultiplier * formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
         formatAccountDisplayName(b.name, b.accountNumber),
         'en',
         { sensitivity: 'base' },
-      )
-    );
+      );
+      if (cmp !== 0) return cmp;
+      return a.id.localeCompare(b.id);
+    });
   }
   if (mode === 'balance') {
-    return source.slice().sort((a, b) => balanceDirection === 'asc' ? a.balance - b.balance : b.balance - a.balance);
+    return source.slice().sort((a, b) => {
+      const cmp = balanceDirection === 'asc' ? a.balance - b.balance : b.balance - a.balance;
+      if (cmp !== 0) return cmp;
+      return a.id.localeCompare(b.id);
+    });
   }
   return source;
 }
@@ -61,9 +69,21 @@ export default function AllAccountsScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const displaySymbol = showCurrencySymbol ? currencySymbol : '';
   const insets = useSafeAreaInsets();
-  const [sortMode, setSortMode] = useState<SortMode>('custom');
-  const [alphaDirection, setAlphaDirection] = useState<SortDirection>('asc');
-  const [balanceDirection, setBalanceDirection] = useState<SortDirection>('asc');
+  const [sortMode, setSortMode] = useState<SortMode>(() => {
+    const isAlphaAsc = accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'alpha', 'asc', 'asc'));
+    const isAlphaDesc = accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'alpha', 'desc', 'asc'));
+    if (isAlphaAsc || isAlphaDesc) return 'alpha';
+    const isBalanceAsc = accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'balance', 'asc', 'asc'));
+    const isBalanceDesc = accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'balance', 'asc', 'desc'));
+    if (isBalanceAsc || isBalanceDesc) return 'balance';
+    return 'custom';
+  });
+  const [alphaDirection, setAlphaDirection] = useState<SortDirection>(() => {
+    return accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'alpha', 'desc', 'asc')) ? 'desc' : 'asc';
+  });
+  const [balanceDirection, setBalanceDirection] = useState<SortDirection>(() => {
+    return accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'balance', 'asc', 'desc')) ? 'desc' : 'asc';
+  });
   const [showSortSheet, setShowSortSheet] = useState(false);
   const [customAccounts, setCustomAccounts] = useState(accounts);
   const [customDirty, setCustomDirty] = useState(false);
@@ -99,33 +119,38 @@ export default function AllAccountsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ paddingTop: insets.top, backgroundColor: palette.background }}>
-        <ScreenHeader
-          title="Accounts"
-          onBack={() => router.back()}
-          palette={palette}
-          rightAction={
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              {sortMode === 'custom' && customDirty ? (
-                <TouchableOpacity
-                  delayPressIn={0}
-                  activeOpacity={0.7}
-                  onPress={saveCustomOrder}
-                  disabled={isSavingOrder}
-                  style={{ paddingHorizontal: 2, paddingVertical: 6, opacity: isSavingOrder ? 0.55 : 1 }}
-                >
-                  <Text style={{ fontSize: 15, fontWeight: '500', color: palette.brand }}>
-                    {isSavingOrder ? 'Saving...' : 'Save'}
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-              <HeaderIconButton icon="arrow-up-down" palette={palette} onPress={() => setShowSortSheet(true)} />
-              <HeaderAddButton palette={palette} onPress={() => router.push('/settings/account-form')} />
+      <Stack.Screen 
+        options={{ 
+          headerShown: true,
+          headerShadowVisible: false,
+          header: () => (
+            <View style={{ paddingTop: insets.top, backgroundColor: palette.background }}>
+              <ScreenHeader
+                title="Accounts"
+                onBack={() => router.back()}
+                palette={palette}
+                rightAction={
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    {sortMode === 'custom' && customDirty ? (
+                      <View style={{ opacity: isSavingOrder ? 0.55 : 1 }}>
+                        <HeaderIconButton 
+                          icon="check" 
+                          palette={palette} 
+                          onPress={saveCustomOrder} 
+                          active={true}
+                        />
+                      </View>
+                    ) : (
+                      <HeaderIconButton icon="arrow-up-down" palette={palette} onPress={() => setShowSortSheet(true)} />
+                    )}
+                    <HeaderAddButton palette={palette} onPress={() => router.push('/settings/account-form')} />
+                  </View>
+                }
+              />
             </View>
-          }
-        />
-      </View>
+          )
+        }} 
+      />
 
       <DraggableFlatList
         key={sortMode === 'custom' && customDirty ? 'custom-editing' : `sort-${sortMode}`}
@@ -173,19 +198,15 @@ export default function AllAccountsScreen() {
               }
               onPress={() => {
                 if (option.key === 'alpha') {
-                  const nextDirection = sortMode === 'alpha'
-                    ? (alphaDirection === 'asc' ? 'desc' : 'asc')
-                    : (accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'alpha', 'asc', balanceDirection)) ? 'desc' : 'asc');
+                  const nextDirection = sortMode === 'alpha' ? (alphaDirection === 'asc' ? 'desc' : 'asc') : alphaDirection;
                   setSortMode('alpha');
                   setAlphaDirection(nextDirection);
-                  persistSortedOrder('alpha', nextDirection).catch(() => undefined);
+                  persistSortedOrder('alpha', nextDirection, balanceDirection).catch(() => undefined);
                   setShowSortSheet(false);
                   return;
                 }
                 if (option.key === 'balance') {
-                  const nextDirection = sortMode === 'balance'
-                    ? (balanceDirection === 'asc' ? 'desc' : 'asc')
-                    : (accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'balance', alphaDirection, 'asc')) ? 'desc' : 'asc');
+                  const nextDirection = sortMode === 'balance' ? (balanceDirection === 'asc' ? 'desc' : 'asc') : balanceDirection;
                   setSortMode('balance');
                   setBalanceDirection(nextDirection);
                   persistSortedOrder('balance', alphaDirection, nextDirection).catch(() => undefined);
@@ -220,8 +241,8 @@ function AccountCard({
 }: RenderItemParams<Account> & {
   customMode: boolean;
   currencySymbol: string;
-  palette: ReturnType<typeof useAppTheme>['palette'];
-  onPress: () => void;
+  palette: AppThemePalette;
+  onPress: (accountId: string) => void;
 }) {
   const typeLabel = getAccountTypeLabel(item.type);
   const isNegative = item.balance < 0;
@@ -231,11 +252,11 @@ function AccountCard({
     <TouchableOpacity
       delayPressIn={0}
       activeOpacity={0.72}
-      onPress={onPress}
+      onPress={() => onPress(item.id)}
       onLongPress={customMode ? drag : undefined}
       style={{
-        backgroundColor: palette.card,
-        borderRadius: HOME_RADIUS.card,
+        backgroundColor: palette.surface,
+        borderRadius: 18,
         borderWidth: 1,
         borderColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E2E7F0',
         paddingHorizontal: 16,

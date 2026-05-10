@@ -633,22 +633,6 @@ export default function HomeScreen({
           </TouchableOpacity>
         </View>
 
-        <View style={{ width: '100%', alignItems: 'center', marginBottom: -70, marginTop: 40 }}>
-          <Text
-            style={{
-              fontSize: 180,
-              fontWeight: '900',
-              color: theme.text,
-              opacity: 0.05,
-              textAlign: 'center',
-              letterSpacing: -6,
-              lineHeight: 180,
-              width: '140%',
-            }}
-          >
-            reni
-          </Text>
-        </View>
       </>
     );
   };
