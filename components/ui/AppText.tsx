@@ -7,7 +7,7 @@ type AppTextProps = TextProps & {
 };
 
 export function Text({ style, appWeight, ...props }: AppTextProps) {
-  return <RNText {...props} style={[style, appWeight === 'medium' ? { fontWeight: '500' } : null]} />;
+  return <RNText {...props} style={[appWeight === 'medium' ? { fontWeight: '500' } : null, style]} />;
 }
 
 export const AnimatedText = Animated.createAnimatedComponent(Text);

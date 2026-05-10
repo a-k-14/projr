@@ -4,7 +4,6 @@ import Animated, {
   interpolateColor, 
   useAnimatedStyle, 
   useSharedValue, 
-  withSpring,
   withTiming 
 } from 'react-native-reanimated';
 import { AppThemePalette } from '../../lib/theme';
@@ -14,13 +13,24 @@ interface AppSwitchProps {
   onValueChange: (value: boolean) => void;
   palette: AppThemePalette;
   disabled?: boolean;
+  width?: number;
+  height?: number;
+  thumbSize?: number;
+  padding?: number;
 }
 
-export function AppSwitch({ value, onValueChange, palette, disabled }: AppSwitchProps) {
-  const trackWidth = 46;
-  const trackHeight = 26;
-  const thumbSize = 20;
-  const padding = 3;
+export function AppSwitch({
+  value,
+  onValueChange,
+  palette,
+  disabled,
+  width = 46,
+  height = 26,
+  thumbSize = 20,
+  padding = 3,
+}: AppSwitchProps) {
+  const trackWidth = width;
+  const trackHeight = height;
   
   const translateX = useSharedValue(value ? trackWidth - thumbSize - padding : padding);
 

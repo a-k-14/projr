@@ -101,7 +101,7 @@ export default function CategoriesScreen() {
                 >
                   <CategoryIconBadge icon={cat.icon ?? 'tag'} size={HOME_LAYOUT.listIconInnerSize} bgSize={40} palette={palette} />
                   <Text
-                    style={{ flex: 1, fontSize: TYPE.rowLabel, fontWeight: '400', color: palette.text }}
+                    style={{ flex: 1, fontSize: CATEGORY_TREE_ROW.parentFontSize, fontWeight: CATEGORY_TREE_ROW.parentFontWeight, color: palette.text }}
                     numberOfLines={1}
                   >
                     {cat.name}
@@ -147,14 +147,14 @@ export default function CategoriesScreen() {
                           paddingLeft: CATEGORY_TREE_ROW.childIndent,
                           paddingRight: CARD_PADDING,
                           paddingVertical: 12,
-                          minHeight: 56,
+                          minHeight: CATEGORY_TREE_ROW.childMinHeight,
                           gap: 10,
                           borderTopWidth: 1,
                           borderTopColor: palette.divider
                         }}
                       >
                         <Text
-                          style={{ flex: 1, fontSize: TYPE.section, color: palette.textSecondary, fontWeight: '400' }}
+                          style={{ flex: 1, fontSize: CATEGORY_TREE_ROW.childFontSize, color: palette.text, fontWeight: CATEGORY_TREE_ROW.childFontWeight }}
                           numberOfLines={1}
                         >
                           {sub.name}

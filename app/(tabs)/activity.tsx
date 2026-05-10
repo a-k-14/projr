@@ -47,6 +47,7 @@ import {
 } from '../../lib/derived';
 import { CARD_PADDING } from '../../lib/design';
 import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
@@ -56,7 +57,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import type { Category, Transaction, TransactionFilters, TransactionType } from '../../types';
+import type { Account, Category, Transaction, TransactionFilters, TransactionType } from '../../types';
 
 type ActivityPeriod = 'all' | 'day' | 'week' | 'month' | 'year' | 'custom';
 type ActivityGroup = {
@@ -75,6 +76,29 @@ type CategoryDrilldown = {
   compactLabel?: boolean;
 };
 type HierarchyFamily = 'in' | 'out' | 'loan' | 'deposit' | 'transfer';
+
+function AccountTypeBadge({ account, palette }: { account?: Account; palette: ReturnType<typeof useAppTheme>['palette'] }) {
+  const typeMeta = account ? ACCOUNT_TYPE_META[account.type] : undefined;
+  const icon = typeMeta?.icon ?? 'wallet';
+  const color = typeMeta?.color ?? palette.brand;
+
+  return (
+    <View
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: `${color}18`,
+        borderWidth: 1,
+        borderColor: `${color}30`,
+      }}
+    >
+      <AppIcon name={icon as any} size={19} color={color} strokeWidth={1.6} />
+    </View>
+  );
+}
 
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
@@ -974,16 +998,23 @@ export default function ActivityScreen() {
 
   const renderDateSectionHeader = useCallback(
     ({ section }: { section: ActivityGroup & { data: Transaction[] } }) => {
-      const groupNet = section.net;
+      const isFirstSection = section.groupKey === dateSections[0]?.groupKey;
       return (
-        <View style={{ backgroundColor: palette.background, paddingTop: 18, paddingBottom: 6 }}>
+        <View
+          style={{
+            backgroundColor: palette.background,
+            paddingTop: isFirstSection ? 4 : 15,
+            paddingBottom: 8,
+            zIndex: 2,
+          }}
+        >
           <View
             style={[
               styles.groupHeader,
               {
                 paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
                 paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
-                marginBottom: 6,
+                marginBottom: 0,
               },
             ]}
           >
@@ -1002,23 +1033,11 @@ export default function ActivityScreen() {
                 </>
               ) : null}
             </View>
-            {section.items.length > 1 && groupNet !== 0 ? (
-              <Text
-                appWeight="medium"
-                style={{
-                  fontSize: HOME_TEXT.cardContent,
-                  fontWeight: '600',
-                  color: groupNet > 0 ? palette.positive : palette.negative
-                }}
-              >
-                {signedCurrency(groupNet, sym)}
-              </Text>
-            ) : null}
           </View>
         </View>
       );
     },
-    [palette, sym],
+    [dateSections, palette],
   );
 
   const renderDateSectionItem = useCallback(
@@ -1056,6 +1075,7 @@ export default function ActivityScreen() {
           useTypeAmountColor
           onPress={handleTransactionPress}
           style={{
+            marginTop: isFirst ? -6 : 0,
             marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
             backgroundColor: palette.surface,
             borderLeftWidth: 1,
@@ -1081,6 +1101,7 @@ export default function ActivityScreen() {
         viewMode={groupByMode}
         setViewMode={(mode) => {
           setGroupByMode(mode);
+          setExpandedCategoryIds([]);
           if (mode === 'date') setCategoryDrilldown(null);
         }}
         typeFilter={typeFilter}
@@ -1222,7 +1243,7 @@ export default function ActivityScreen() {
               }
               renderSectionHeader={renderDateSectionHeader}
               renderItem={renderDateSectionItem}
-              SectionSeparatorComponent={() => <View style={{ height: ACTIVITY_LAYOUT.groupCardMarginBottom }} />}
+              SectionSeparatorComponent={() => <View style={{ height: 6 }} />}
             />
           ) : null}
 
@@ -1245,39 +1266,54 @@ export default function ActivityScreen() {
                           expandableParentKeys.length > 0 &&
                           expandableParentKeys.every((key) => expandedCategoryIds.includes(key));
 
-                        return (
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              paddingHorizontal: CARD_PADDING,
-                              paddingTop: sectionIndex === 0 ? 0 : 6,
-                              paddingBottom: 7,
-                            }}
-                          >
+                        const sectionHeaderStyle = {
+                          flexDirection: 'row' as const,
+                          alignItems: 'center' as const,
+                          paddingHorizontal: CARD_PADDING,
+                          paddingTop: sectionIndex === 0 ? 0 : 6,
+                          paddingBottom: 7,
+                        };
+
+                        const sectionHeaderContent = (
+                          <>
                             <Text
                               appWeight="medium"
                               style={{
                                 flex: 1,
-                                fontSize: HOME_TEXT.tiny,
+                                fontSize: HOME_TEXT.tiny + 1,
                                 fontWeight: '800',
                                 letterSpacing: 0.8,
                                 textTransform: 'uppercase',
-                                color: palette.textMuted,
+                                color: palette.text,
                               }}
                             >
                               {section.label}
                             </Text>
                             {expandableParentKeys.length > 0 ? (
-                              <TouchableOpacity
-                                delayPressIn={0}
-                                onPress={() => toggleSectionExpansion(expandableParentKeys)}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                style={{ marginRight: 2 }}
-                              >
-                                <AppChevron direction={allExpanded ? 'up' : 'down'} size={14} tone="secondary" palette={palette} />
-                              </TouchableOpacity>
+                              <AppIcon
+                                name={allExpanded ? 'chevrons-up' : 'chevrons-down'}
+                                size={15}
+                                color={palette.text}
+                                strokeWidth={1.8}
+                              />
                             ) : null}
+                          </>
+                        );
+
+                        return expandableParentKeys.length > 0 ? (
+                          <TouchableOpacity
+                            delayPressIn={0}
+                            onPress={() => toggleSectionExpansion(expandableParentKeys)}
+                            activeOpacity={0.72}
+                            style={sectionHeaderStyle}
+                          >
+                            {sectionHeaderContent}
+                          </TouchableOpacity>
+                        ) : (
+                          <View
+                            style={sectionHeaderStyle}
+                          >
+                            {sectionHeaderContent}
                           </View>
                         );
                       })()}
@@ -1321,7 +1357,8 @@ export default function ActivityScreen() {
                                   alignItems: 'center',
                                   paddingVertical: 12,
                                   paddingHorizontal: CARD_PADDING,
-                                  minHeight: 62,
+                                  minHeight: 70,
+                                  backgroundColor: palette.card,
                                   borderBottomWidth: isLastCategory && (!isExpanded || isDirectNavigation) ? 0 : 1,
                                   borderBottomColor: palette.divider,
                                   gap: 12
@@ -1334,28 +1371,32 @@ export default function ActivityScreen() {
                                       : syntheticCfg?.iconName || category.parentIcon
                                   }
                                   palette={palette}
-                                  iconColor={syntheticCfg?.color}
+                                  iconColor={syntheticCfg?.color ?? palette.brand}
                                 />
-                                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text, flex: 1 }} numberOfLines={1}>
+                                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
                                   {category.parentLabel}
                                 </Text>
                                 <Text
                                   style={{
-                                    fontSize: HOME_TEXT.body,
-                                    fontWeight: '600',
+                                    fontSize: HOME_TEXT.bodySmall,
+                                    fontWeight: '500',
                                     color: category.total >= 0 ? palette.positive : palette.negative,
                                     marginRight: 2
                                   }}
                                 >
                                   {signedCurrency(category.total, sym)}
                                 </Text>
-                                <AppChevron direction={isDirectNavigation ? 'right' : isExpanded ? 'up' : 'down'} size={18} tone="secondary" palette={palette} />
+                                {isDirectNavigation ? (
+                                  <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
+                                ) : (
+                                  <AppChevron direction={isExpanded ? 'up' : 'down'} size={18} tone="secondary" palette={palette} />
+                                )}
                               </TouchableOpacity>
 
                               {isExpanded && !isDirectNavigation ? (
                                 <View
                                   style={{
-                                    backgroundColor: palette.inputBg,
+                                    backgroundColor: palette.surface,
                                     borderBottomWidth: isLastCategory ? 0 : 1,
                                     borderBottomColor: palette.divider
                                   }}
@@ -1380,15 +1421,16 @@ export default function ActivityScreen() {
                                         paddingRight: CARD_PADDING,
                                         minHeight: 52,
                                         borderTopWidth: 1,
-                                        borderTopColor: palette.divider
+                                        borderTopColor: palette.divider,
+                                        backgroundColor: palette.surface,
                                       }}
                                     >
-                                      <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
+                                      <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '400', color: palette.text }}>
                                         {sub.subLabel}
                                       </Text>
                                       <Text
                                         style={{
-                                          fontSize: HOME_TEXT.body,
+                                          fontSize: HOME_TEXT.bodySmall,
                                           fontWeight: '500',
                                           color: sub.total >= 0 ? palette.positive : palette.negative,
                                           marginRight: 10
@@ -1420,6 +1462,7 @@ export default function ActivityScreen() {
             title="All Accounts"
             selected={selectedAccountId === 'all'}
             palette={palette}
+            leftElement={<AccountTypeBadge palette={palette} />}
             onPress={() => {
               setSelectedAccountId('all');
               setShowAccountSheet(false);
@@ -1431,8 +1474,10 @@ export default function ActivityScreen() {
             <ChoiceRow
               key={account.id}
               title={account.name}
+              subtitle={getAccountTypeLabel(account.type)}
               selected={selectedAccountId === account.id}
               palette={palette}
+              leftElement={<AccountTypeBadge account={account} palette={palette} />}
               onPress={() => {
                 setSelectedAccountId(account.id);
                 setShowAccountSheet(false);

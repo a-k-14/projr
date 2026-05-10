@@ -27,7 +27,12 @@ export const CATEGORY_TREE_ROW = {
   parentMinHeight: 62,
   childMinHeight: 52,
   rowGap: 12,
-  childIndent: CARD_PADDING + 40 } as const;
+  childIndent: CARD_PADDING + 40,
+  parentFontSize: HOME_TEXT.sectionTitle,
+  childFontSize: HOME_TEXT.body,
+  parentFontWeight: '500',
+  childFontWeight: '400',
+} as const;
 
 export function buildCategoryPickerSections<T extends PickerCategory & { parentId?: string | null; type?: string }>({
   categories,
@@ -315,7 +320,7 @@ export function CategoryTreeList({
                       gap: CATEGORY_TREE_ROW.rowGap }}
                   >
                     <CategoryIconBadge icon={parent.icon || 'tag'} palette={palette} />
-                    <Text numberOfLines={1} style={{ fontSize: TYPE.rowLabel, fontWeight: '400', color: palette.text, flex: 1 }}>
+                    <Text numberOfLines={1} style={{ fontSize: CATEGORY_TREE_ROW.parentFontSize, fontWeight: CATEGORY_TREE_ROW.parentFontWeight, color: palette.text, flex: 1 }}>
                       {parent.name}
                     </Text>
                     {hasChildren ? (
@@ -355,7 +360,7 @@ export function CategoryTreeList({
                               backgroundColor: childSelected ? palette.brandSoft : 'transparent' }}
                           >
                             <Text
-                              style={{ flex: 1, fontSize: TYPE.section, color: palette.textSecondary, fontWeight: '400' }}
+                              style={{ flex: 1, fontSize: CATEGORY_TREE_ROW.childFontSize, color: palette.text, fontWeight: CATEGORY_TREE_ROW.childFontWeight }}
                               numberOfLines={1}
                             >
                               {child.name}

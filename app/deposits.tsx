@@ -1,6 +1,6 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -62,23 +62,7 @@ function DepositsScreenContent() {
         showBack={true}
         onBack={() => router.replace('/')}
         rightAction={
-          <TouchableOpacity
-            delayPressIn={0}
-            activeOpacity={0.7}
-            onPress={() => router.push('/settings/account-form')}
-            style={{
-              width: 42,
-              height: 34,
-              backgroundColor: palette.surface,
-              borderWidth: 1,
-              borderColor: palette.divider,
-              borderRadius: 17,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AppIcon name="plus" size={18} color={palette.text} strokeWidth={1.9} />
-          </TouchableOpacity>
+          <HeaderAddButton palette={palette} onPress={() => router.push('/settings/account-form')} />
         }
       />
 

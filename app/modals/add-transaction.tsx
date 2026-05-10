@@ -53,7 +53,7 @@ import {
 } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
-import { getAccountTypeLabel } from '../../lib/settings-shared';
+import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { getLoanById } from '../../services/loans';
@@ -71,6 +71,27 @@ import type {
   Tag,
   TransactionType
 } from '../../types';
+
+function AccountTypeBadge({ account, palette }: { account: Account; palette: AppThemePalette }) {
+  const typeMeta = ACCOUNT_TYPE_META[account.type];
+
+  return (
+    <View
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: `${typeMeta.color}18`,
+        borderWidth: 1,
+        borderColor: `${typeMeta.color}30`,
+      }}
+    >
+      <AppIcon name={typeMeta.icon as any} size={19} color={typeMeta.color} strokeWidth={1.6} />
+    </View>
+  );
+}
 
 // We compute TYPE_CONFIG dynamically inside the component to use the derived palette
 
@@ -1241,6 +1262,7 @@ export default function AddTransactionModal() {
                   subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={accountId === account.id}
                   palette={palette}
+                  leftElement={<AccountTypeBadge account={account} palette={palette} />}
                   onPress={() => {
                     setAccountId(account.id);
                     setShowAccountSheet(false);
@@ -1275,6 +1297,7 @@ export default function AddTransactionModal() {
                   subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={accountId === account.id}
                   palette={palette}
+                  leftElement={<AccountTypeBadge account={account} palette={palette} />}
                   onPress={() => {
                     setAccountId(account.id);
                     setShowFromAccountSheet(false);
@@ -1309,6 +1332,7 @@ export default function AddTransactionModal() {
                   subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
                   selected={linkedAccountId === account.id}
                   palette={palette}
+                  leftElement={<AccountTypeBadge account={account} palette={palette} />}
                   onPress={() => {
                     setLinkedAccountId(account.id);
                     setShowToAccountSheet(false);

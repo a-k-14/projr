@@ -8,11 +8,11 @@ import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 
-const TAB_ITEMS: Record<string, { icon: IconName }> = {
-  index: { icon: 'layout-panel-left' },
-  activity: { icon: 'activity' },
-  insights: { icon: 'bar-chart-2' },
-  settings: { icon: 'settings' },
+const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
+  index: { icon: 'layout-panel-left', label: 'Home' },
+  activity: { icon: 'activity', label: 'Activity' },
+  insights: { icon: 'bar-chart-2', label: 'Insights' },
+  settings: { icon: 'settings', label: 'Settings' },
 };
 
 const VISIBLE_TAB_NAMES = ['index', 'activity', 'insights', 'settings'] as const;
@@ -40,7 +40,7 @@ function AppTabBar({
   palette: AppThemePalette;
 }) {
   const { width } = useWindowDimensions();
-  const tabHeight = 56;
+  const tabHeight = 52;
   const routes = VISIBLE_TAB_NAMES
     .map((name) => state.routes.find((route: any) => route.name === name))
     .filter(Boolean);
@@ -49,23 +49,21 @@ function AppTabBar({
   const pillHeight = 36;
   const activeRouteName = state.routes[state.index]?.name;
   const activeSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === activeRouteName);
-  const getIndicatorTarget = (slotIndex: number) =>
+  const getPillTarget = (slotIndex: number) =>
     Math.max(slotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2;
-  const initialIndicatorTarget = getIndicatorTarget(activeSlotIndex);
-  const requestedIndicatorTargetRef = useRef(initialIndicatorTarget);
-  const indicatorX = useSharedValue(initialIndicatorTarget);
+  const requestedSlotRef = useRef(activeSlotIndex);
+  const pillX = useSharedValue(getPillTarget(activeSlotIndex));
 
   useEffect(() => {
-    const target = getIndicatorTarget(activeSlotIndex);
-    if (Math.abs(requestedIndicatorTargetRef.current - target) < 0.5) {
-      return;
-    }
-    requestedIndicatorTargetRef.current = target;
-    indicatorX.value = withTiming(target, { duration: 210 });
-  }, [activeSlotIndex, indicatorX, itemWidth]);
+    if (requestedSlotRef.current === activeSlotIndex) return;
+    requestedSlotRef.current = activeSlotIndex;
+    // getPillTarget closes over current itemWidth from this render
+    pillX.value = withTiming(getPillTarget(activeSlotIndex), { duration: 210 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSlotIndex]);
 
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: indicatorX.value }],
+  const pillStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: pillX.value }],
   }));
 
   return (
@@ -94,14 +92,12 @@ function AppTabBar({
               width: pillWidth,
               height: pillHeight,
               borderRadius: HOME_RADIUS.tab + 2,
-              backgroundColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: palette.isDark ? 0 : 0.10,
-              shadowRadius: 3,
+              borderWidth: 1,
+              borderColor: palette.brand,
+              backgroundColor: palette.brandSoft,
               opacity: activeSlotIndex >= 0 ? 1 : 0,
             },
-            indicatorStyle,
+            pillStyle,
           ]}
         />
         {TAB_BAR_SLOTS.map((slot) => {
@@ -121,8 +117,8 @@ function AppTabBar({
               >
                 <View
                   style={{
-                    width: 48,
-                    height: 42,
+                    width: 54,
+                    height: 44,
                     borderRadius: 15,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -161,20 +157,17 @@ function AppTabBar({
               canPreventDefault: true,
             });
 
-            if (event.defaultPrevented) {
-              return;
-            }
+            if (event.defaultPrevented) return;
 
             if (focused) {
               getTabReset(route.name)?.({ mode: 'full', animated: true });
               return;
             }
 
-            const nextSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === route.name);
+            const nextSlotIndex = TAB_BAR_SLOTS.findIndex((slotName) => slotName === route.name);
             if (nextSlotIndex >= 0) {
-              const target = getIndicatorTarget(nextSlotIndex);
-              requestedIndicatorTargetRef.current = target;
-              indicatorX.value = withTiming(target, { duration: 190 });
+              requestedSlotRef.current = nextSlotIndex;
+              pillX.value = withTiming(getPillTarget(nextSlotIndex), { duration: 210 });
             }
 
             navigation.navigate(route.name, route.params);

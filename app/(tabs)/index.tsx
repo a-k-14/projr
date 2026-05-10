@@ -14,12 +14,14 @@ import {
 } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import Animated, {
+  LinearTransition,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useEvent,
   useHandler,
   useSharedValue,
+  withTiming,
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +32,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppDonutChart } from '../../components/ui/AppDonutChart';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { AppSparklineChart } from '../../components/ui/AppSparklineChart';
+import { AppSwitch } from '../../components/ui/AppSwitch';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
@@ -179,12 +182,17 @@ function HomeScreenContent() {
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const [hideAmounts, setHideAmounts] = useState(false);
 
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const accountScrollRef = useRef<any>(null);
   const pageScrollTopRef = useRef<(() => void) | null>(null);
 
+  const orderedAccounts = useMemo(
+    () => accounts.slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.createdAt.localeCompare(b.createdAt)),
+    [accounts],
+  );
 
   const verticalScrolls = useSharedValue<number[]>([0]);
   const indicatorY = useSharedValue(0);
@@ -226,8 +234,8 @@ function HomeScreenContent() {
 
   const totalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
   const loanSummary = useMemo(() => getLoanSummary(loans), [loans]);
-  const netWorth = totalBalance + loanSummary.net;
   const depositSummary = useMemo(() => getFixedDepositSummary(), []);
+  const netWorth = totalBalance + loanSummary.net + depositSummary.activeMaturityValue;
   const budgetSummary = useMemo(() => {
     const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.amount, 0);
     const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
@@ -280,14 +288,26 @@ function HomeScreenContent() {
   );
 
   const displaySymbol = showCurrencySymbol ? currencySymbol : '';
+  const activeDepositCount = depositSummary.deposits.filter((d: any) => d.status === 'active').length;
+  const depositMeta = activeDepositCount === 0
+    ? 'No active deposits'
+    : `${activeDepositCount} active · ${formatNetWorthStripValue(depositSummary.activeMaturityValue, displaySymbol)}`;
+  const loanMeta = loanSummary.youLent === 0 && loanSummary.youOwe === 0
+    ? 'No loans'
+    : `${loanSummary.net >= 0 ? 'Net Lent' : 'Net Owed'} · ${formatNetWorthStripValue(Math.abs(loanSummary.net), displaySymbol)}`;
+  const budgetMeta = budgets.length === 0
+    ? 'Not set'
+    : budgetSummary.spentPercent > 100
+      ? `Overspent · ${budgetSummary.spentPercent}%`
+      : `Spent · ${budgetSummary.spentPercent}%`;
+
   const moreCards = [
     {
       id: 'Deposits',
       label: 'Deposits',
       icon: 'badge-percent',
       route: '/deposits',
-      meta: 'Active',
-      value: formatCurrency(depositSummary.activeMaturityValue, displaySymbol),
+      meta: depositMeta,
       tone: palette.brand,
     },
     {
@@ -295,8 +315,7 @@ function HomeScreenContent() {
       label: 'Loans',
       icon: 'hand-coins',
       route: '/loans',
-      meta: loanSummary.youLent === 0 && loanSummary.youOwe === 0 ? 'No Loans' : loanSummary.net >= 0 ? 'Net Lent' : 'Net Owed',
-      value: formatSignedCurrency(loanSummary.net, displaySymbol),
+      meta: loanMeta,
       tone: loanSummary.net < 0 ? palette.negative : palette.positive,
     },
     {
@@ -304,29 +323,26 @@ function HomeScreenContent() {
       label: 'Budgets',
       icon: 'pie-chart',
       route: '/budget',
-      meta: 'Spent',
-      value: `${budgetSummary.spentPercent}%`,
+      meta: budgetMeta,
       tone: budgetSummary.spentPercent > 100 ? palette.negative : palette.positive,
     },
   ] as const;
 
   const middleContent = (
     <View style={{ marginTop: 4, marginBottom: HOME_SPACE.xl }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 16 }}>
+      <TouchableOpacity
+        onPress={() => router.push('/accounts')}
+        delayPressIn={0}
+        activeOpacity={0.72}
+        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginTop: 16, paddingVertical: 2 }}
+      >
         <Text appWeight="medium" style={{ fontSize: 18, fontWeight: '600', color: palette.text }}>Accounts</Text>
-        <TouchableOpacity
-          onPress={() => router.push('/accounts')}
-          delayPressIn={0}
-          activeOpacity={0.7}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
-        >
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, fontWeight: '400' }}>All</Text>
-          <AppIcon name="chevron-right" size={13} color={palette.textMuted} strokeWidth={2} />
-        </TouchableOpacity>
-      </View>
+        <AppIcon name="arrow-up-right" size={15} color={palette.brand} strokeWidth={2} style={{ marginLeft: 6 }} />
+        <View style={{ flex: 1 }} />
+      </TouchableOpacity>
       <ScrollView ref={accountScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: SCREEN_GUTTER }}>
-        {accounts.map((acc) => {
-          const amountLabel = showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), '');
+        {orderedAccounts.map((acc) => {
+          const amountLabel = hideAmounts ? '••••' : (showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), ''));
           const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(amountLabel.length, 14) * 3));
           const typeMeta = ACCOUNT_TYPE_META[acc.type];
           const typeColor = typeMeta.color;
@@ -367,7 +383,7 @@ function HomeScreenContent() {
                   <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 18, fontWeight: '600', color: acc.balance < 0 ? palette.negative : palette.text }}>
                     {amountLabel}
                   </Text>
-                  {totalBalance !== 0 && (
+                  {totalBalance !== 0 && !hideAmounts && (
                     <Text style={{ fontSize: 11.5, color: palette.textMuted, marginTop: 2 }}>
                       {pct}% of Total
                     </Text>
@@ -412,7 +428,20 @@ function HomeScreenContent() {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
-      <ScreenTitle title={getGreeting()} palette={palette} />
+      <ScreenTitle
+        title={getGreeting()}
+        palette={palette}
+        right={
+          <TouchableOpacity
+            onPress={() => setHideAmounts((v) => !v)}
+            style={{ padding: 6 }}
+            activeOpacity={0.7}
+            delayPressIn={0}
+          >
+            <AppIcon name={hideAmounts ? 'eye-closed' : 'eye'} size={20} color={palette.textMuted} strokeWidth={1.8} />
+          </TouchableOpacity>
+        }
+      />
       <HomeAccountPage
         pageHeight={1000}
         accountId="all"
@@ -453,6 +482,7 @@ function HomeScreenContent() {
           setExpandedChartState({ transactions, mode, resetTrigger });
           setBottomSheetVisible(true);
         }}
+        hideAmounts={hideAmounts}
       />
 
       <Modal
@@ -552,7 +582,7 @@ function HomeScreenContent() {
               pageHeight={800}
               palette={palette}
               currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-              accounts={accounts}
+              accounts={orderedAccounts}
               loanSummary={loanSummary}
               netWorth={netWorth}
               pageIndex={0}
@@ -582,7 +612,6 @@ function MoreShortcutCard({
     icon: string;
     route: string;
     meta: string;
-    value: string;
     tone: string;
   };
   palette: AppThemePalette;
@@ -592,21 +621,20 @@ function MoreShortcutCard({
       delayPressIn={0}
       onPress={() => router.push(feature.route as any)}
       activeOpacity={0.78}
-      style={{ width: 154 }}
+      style={{ width: 140 }}
     >
       <View
         style={{
-          minHeight: 132,
-          paddingVertical: 15,
-          paddingHorizontal: 14,
+          height: 130,
+          padding: 14,
           borderRadius: 22,
           borderWidth: 1,
           borderColor: palette.borderSoft,
           backgroundColor: palette.surface,
-          justifyContent: 'flex-start',
+          justifyContent: 'space-between',
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <View
             style={{
               width: 38,
@@ -619,17 +647,14 @@ function MoreShortcutCard({
           >
             <AppIcon name={feature.icon} size={18} color={feature.tone} strokeWidth={1.8} />
           </View>
-          <Text numberOfLines={1} style={{ flex: 1, fontSize: 13.5, fontWeight: '500', color: palette.text }}>
-            {feature.label}
-          </Text>
-          <AppIcon name="chevron-right" size={14} color={palette.textSoft} strokeWidth={2} />
+          <AppIcon name="arrow-up-right" size={16} color={palette.textSoft} strokeWidth={1.8} />
         </View>
 
-        <View style={{ marginTop: 22 }}>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 15.5, fontWeight: '500', color: feature.tone }}>
-            {feature.value}
+        <View>
+          <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '700', color: palette.text }}>
+            {feature.label}
           </Text>
-          <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: '400', color: palette.textMuted, marginTop: 2 }}>
+          <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '400', color: palette.textMuted, marginTop: 2 }}>
             {feature.meta}
           </Text>
         </View>
@@ -693,98 +718,108 @@ function TodayCashflowStrip({
 }
 
 function CashflowToggleCard({
-  viewMode,
-  onToggle,
+  isCashflow,
+  onToggleCashflow,
+  cardPeriod,
+  onCardPeriodChange,
   inExpSummary,
   cashflow,
   sym,
   palette,
   onPressIn,
   onPressOut,
+  hideAmounts,
 }: {
-  viewMode: 'inexp' | 'cashflow';
-  onToggle: (mode: 'inexp' | 'cashflow') => void;
+  isCashflow: boolean;
+  onToggleCashflow: (v: boolean) => void;
+  cardPeriod: 'today' | 'month';
+  onCardPeriodChange: (p: 'today' | 'month') => void;
   inExpSummary: { income: number; expense: number };
   cashflow: { in: number; out: number; net: number };
   sym: string;
   palette: AppThemePalette;
   onPressIn: () => void;
   onPressOut: () => void;
+  hideAmounts?: boolean;
 }) {
-  const leftLabel = viewMode === 'inexp' ? 'Income' : 'Cash In';
-  const rightLabel = viewMode === 'inexp' ? 'Expense' : 'Cash Out';
-  const leftAmount = viewMode === 'inexp' ? inExpSummary.income : cashflow.in;
-  const rightAmount = viewMode === 'inexp' ? inExpSummary.expense : cashflow.out;
+  const leftLabel = isCashflow ? 'Inflow' : 'Income';
+  const rightLabel = isCashflow ? 'Outflow' : 'Expense';
+  const leftAmount = isCashflow ? cashflow.in : inExpSummary.income;
+  const rightAmount = isCashflow ? cashflow.out : inExpSummary.expense;
+  const netAmount = leftAmount - rightAmount;
+  const hintHeight = 42;
+  const hintProgress = useSharedValue(isCashflow ? 1 : 0);
+
+  useEffect(() => {
+    hintProgress.value = withTiming(isCashflow ? 1 : 0, { duration: 220 });
+  }, [hintProgress, isCashflow]);
+
+  const hintStyle = useAnimatedStyle(() => ({
+    height: hintProgress.value * hintHeight,
+  }));
 
   return (
-    <View style={{ marginBottom: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '500' }}>
-          {viewMode === 'cashflow' ? 'Includes transfers & loans' : ' '}
-        </Text>
-        <View style={{
-          flexDirection: 'row',
-          backgroundColor: palette.isDark ? '#1A1E28' : '#E8EBF2',
-          borderRadius: 20,
-          padding: 2,
-        }}>
-          {(['inexp', 'cashflow'] as const).map((m) => {
-            const selected = viewMode === m;
-            return (
-              <TouchableOpacity
-                key={m}
-                delayPressIn={0}
-                activeOpacity={0.8}
-                onPress={() => onToggle(m)}
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 18,
-                  backgroundColor: selected ? palette.surface : 'transparent',
-                }}
-              >
-                <Text style={{ fontSize: 11.5, fontWeight: selected ? '600' : '400', color: selected ? palette.text : palette.textMuted }}>
-                  {m === 'inexp' ? 'Inc/Exp' : 'Cashflow'}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+    <Animated.View layout={LinearTransition.duration(180)} style={{
+      marginBottom: 16,
+      borderRadius: HOME_RADIUS.card,
+      borderWidth: 1,
+      borderColor: palette.divider,
+      backgroundColor: palette.card,
+      overflow: 'hidden',
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: '500', color: palette.text }}>Cashflow</Text>
+          <AppSwitch value={isCashflow} onValueChange={onToggleCashflow} palette={palette} width={38} height={20} thumbSize={16} padding={2} />
         </View>
+
+        <SegmentedPillSwitch
+          options={[{ key: 'today', label: 'Today' }, { key: 'month', label: 'Month' }]}
+          value={cardPeriod}
+          onChange={(v) => onCardPeriodChange(v as 'today' | 'month')}
+          backgroundColor="#EEF2F8"
+          pillColor="#FFFFFF"
+          borderColor="#DFE5EF"
+          activeTextColor={palette.text}
+          inactiveTextColor="#7C8498"
+          itemMinWidth={58}
+          height={30}
+          radius={15}
+          fontSize={11.5}
+          style={{ width: 140, flexShrink: 0 }}
+        />
       </View>
 
-      <View style={{
-        flexDirection: 'row',
-        borderRadius: HOME_RADIUS.card,
-        borderWidth: 1,
-        borderColor: palette.divider,
-        backgroundColor: palette.card,
-        overflow: 'hidden',
-      }}>
-        <TouchableOpacity
-          delayPressIn={0}
-          activeOpacity={0.75}
-          onPress={onPressIn}
-          style={{ flex: 1, paddingVertical: 9, paddingHorizontal: 14 }}
-        >
-          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 3 }}>{leftLabel}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 14.5, fontWeight: '500', color: leftAmount === 0 ? palette.textMuted : palette.positive }}>
-            {leftAmount === 0 ? '—' : formatCurrency(leftAmount, sym)}
+      <View style={{ flexDirection: 'row', paddingHorizontal: 14, paddingBottom: 12, gap: 8 }}>
+        <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressIn} style={{ flex: 1 }}>
+          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 4 }}>{leftLabel}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20, fontWeight: '700', color: leftAmount === 0 ? palette.textMuted : palette.text }}>
+            {hideAmounts ? '••••' : leftAmount === 0 ? '—' : `+${formatCurrency(leftAmount, sym)}`}
           </Text>
         </TouchableOpacity>
-        <View style={{ width: 1, backgroundColor: palette.divider }} />
-        <TouchableOpacity
-          delayPressIn={0}
-          activeOpacity={0.75}
-          onPress={onPressOut}
-          style={{ flex: 1, paddingVertical: 9, paddingHorizontal: 14 }}
-        >
-          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 3 }}>{rightLabel}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 14.5, fontWeight: '500', color: rightAmount === 0 ? palette.textMuted : palette.negative }}>
-            {rightAmount === 0 ? '—' : formatCurrency(rightAmount, sym)}
+        <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressOut} style={{ flex: 1, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 4, textAlign: 'right' }}>{rightLabel}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20, fontWeight: '700', color: rightAmount === 0 ? palette.textMuted : palette.text, textAlign: 'right' }}>
+            {hideAmounts ? '••••' : rightAmount === 0 ? '—' : `-${formatCurrency(rightAmount, sym)}`}
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 14, paddingBottom: 14 }}>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: netAmount === 0 ? palette.textMuted : palette.text }}>
+          {hideAmounts ? 'Net ••••' : `Net ${netAmount >= 0 ? '+' : ''}${formatCurrency(netAmount, sym)}`}
+        </Text>
+      </View>
+
+      <Animated.View style={[{ overflow: 'hidden' }, hintStyle]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginHorizontal: 14, marginBottom: 12, paddingTop: 8, borderTopWidth: 1, borderTopColor: palette.divider }}>
+          <AppIcon name="info" size={11} color={palette.textMuted} style={{ marginTop: 1 }} />
+          <Text style={{ fontSize: 11, color: palette.textMuted, flex: 1, lineHeight: 15 }}>
+            Includes transfers, loan and deposit movements
+          </Text>
+        </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
@@ -1332,6 +1367,7 @@ function AccountSummaryCard({
   onOpenNetWorth,
   netWorth,
   netWorthChange,
+  hideAmounts,
 }: {
   accountName: string;
   accountTypeLabel: string;
@@ -1343,6 +1379,7 @@ function AccountSummaryCard({
   onOpenNetWorth?: () => void;
   netWorth?: number;
   netWorthChange?: number;
+  hideAmounts?: boolean;
 }) {
   const isAll = accountName === 'All';
   const [scrubbedItem, setScrubbedItem] = useState<{ value: number; date?: string } | null>(null);
@@ -1350,6 +1387,8 @@ function AccountSummaryCard({
   const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
   const chartAccent = palette.positive;
   const heroSurface = palette.isDark ? palette.surface : '#F0F4FC';
+  const heroText = palette.text;
+  const heroMuted = palette.textMuted;
   const netWorthStripBg = palette.isDark ? '#080C14' : '#E8EDF8';
   const netWorthStripBorder = palette.isDark ? palette.divider : '#D8E0F0';
 
@@ -1366,6 +1405,12 @@ function AccountSummaryCard({
     });
   }, [balance]);
 
+  const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
+  const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
+  const balanceInt = hideAmounts ? '\u2022\u2022\u2022\u2022' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
+  const balanceDec = hideAmounts ? '' : (dotIdx >= 0 ? balanceFormatted!.slice(dotIdx) : '');
+  const balanceColor = balance < 0 ? palette.negative : palette.text;
+
   const content = (
     <View
       style={{
@@ -1374,213 +1419,88 @@ function AccountSummaryCard({
         borderWidth: 1,
         borderRadius: 22,
         overflow: 'hidden',
-        height: 190,
-        position: 'relative',
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
-      <View style={{ flex: 1, paddingHorizontal: CARD_PADDING, paddingTop: 20, justifyContent: 'flex-start' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-                Account
-              </Text>
-              {accountTypeLabel ? (
-                <>
-                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSoft }}>
-                    {'\u2022'}
-                  </Text>
-                  <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-                    {accountTypeLabel}
-                  </Text>
-                </>
-              ) : null}
-            </View>
-            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
-              {accountName}
-            </Text>
-          </View>
-
-          <View style={{ flexShrink: 0, alignItems: 'flex-end' }}>
+      <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 20, paddingBottom: 18 }}>
+        <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: palette.textMuted, marginBottom: 12 }}>
+          {isAll ? 'Balance \u00b7 All Accounts' : `Balance \u00b7 ${accountName}`}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+          <Text
+            appWeight="medium"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={{ fontSize: 34, fontWeight: '800', color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
+          >
+            {balanceInt}
+          </Text>
+          {balanceDec ? (
             <Text
               appWeight="medium"
-              style={{
-                fontSize: HOME_TEXT.tiny,
-                color: palette.textMuted,
-                fontWeight: '700',
-                letterSpacing: 0.5,
-                textTransform: 'uppercase',
-                textAlign: 'right',
-                marginBottom: 1,
-              }}
+              style={{ fontSize: 19, fontWeight: '700', color: palette.textMuted, letterSpacing: -0.3, marginBottom: 4 }}
             >
-              Balance
+              {balanceDec}
             </Text>
-            <Text
-              appWeight="medium"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              style={{
-                fontSize: HOME_TEXT.heroValue + 2,
-                fontWeight: '800',
-                color: palette.text,
-                textAlign: 'right',
-              }}
-            >
-              {balance < 0 ? '-' : ''}{formatCurrency(Math.abs(balance), currencySymbol)}
-            </Text>
-          </View>
+          ) : null}
         </View>
-      </View>
-
-      <View style={{ position: 'absolute', bottom: 44, left: 0, right: 0, height: 66, overflow: 'visible' }}>
-        <AppSparklineChart
-          data={mockChartData}
-          color={chartAccent}
-          height={66}
-          currencySymbol={currencySymbol}
-          onPointerChange={setScrubbedItem}
-          onPointerIndexChange={setScrubbedIndex}
-          onChartWidthChange={setChartWidth}
-        />
-        {scrubbedItem && scrubbedIndex !== null && (() => {
-          const CHART_H = 66;
-          const PILL_W = 150;
-          const THUMB = 6;
-          const width = Math.max(chartWidth, 1);
-          const sidePad = 16;
-          const usableWidth = Math.max(width - sidePad * 2, 1);
-          const spacing = usableWidth / Math.max(mockChartData.length - 1, 1);
-          const rawX = sidePad + scrubbedIndex * spacing;
-          const clampedX = Math.max(PILL_W / 2 + 4, Math.min(width - PILL_W / 2 - 4, rawX));
-          const values = mockChartData.map(d => d.value);
-          const minV = Math.min(...values);
-          const maxV = Math.max(...values);
-          const range = Math.max(maxV - minV, 1);
-          const usableHeight = CHART_H - 20; // Matches AppSparklineChart topPad and bottomPad
-          const y = 10 + (1 - (scrubbedItem.value - minV) / range) * usableHeight;
-          const thumbTop = y - THUMB / 2;
-          const tooltipTop = thumbTop - 65; // Hover a little above the chart
-          return (
-            <>
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  top: thumbTop,
-                  left: rawX - THUMB / 2, // No clamping, perfectly sync with line
-                  width: THUMB,
-                  height: THUMB,
-                  borderRadius: THUMB / 2,
-                  borderWidth: 0,
-                  backgroundColor: chartAccent,
-                  zIndex: 80,
-                }}
-              />
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  top: thumbTop - 50,
-                  left: clampedX - PILL_W / 2,
-                  width: PILL_W,
-                  height: 50,
-                  alignItems: 'center',
-                  zIndex: 100,
-                }}
-              >
-                <View style={{
-                  backgroundColor: '#1E2433',
-                  borderRadius: 8,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  alignItems: 'center',
-                  shadowColor: '#000',
-                  shadowOpacity: 0.15,
-                  shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 4 },
-                  elevation: 6,
-                }}>
-                  <Text numberOfLines={1} style={{ color: '#fff', fontSize: 13, fontWeight: '500' }}>
-                    {formatCurrency(scrubbedItem.value, currencySymbol)}
-                  </Text>
-                  {scrubbedItem.date && (
-                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 1, fontWeight: '400' }}>
-                      {scrubbedItem.date}
-                    </Text>
-                  )}
-                </View>
-                <View style={{
-                  width: 0,
-                  height: 0,
-                  position: 'absolute',
-                  bottom: 4,
-                  left: (PILL_W / 2) + (rawX - clampedX) - 5,
-                  borderLeftWidth: 5,
-                  borderRightWidth: 5,
-                  borderTopWidth: 5,
-                  borderLeftColor: 'transparent',
-                  borderRightColor: 'transparent',
-                  borderTopColor: '#1E2433',
-                }} />
-              </View>
-            </>
-          );
-        })()}
-      </View>
-
-      {onOpenNetWorth ? (
-        <TouchableOpacity
-          delayPressIn={0}
-          onPress={onOpenNetWorth}
-          style={{
-            height: 44,
-            borderTopWidth: 1,
-            borderTopColor: netWorthStripBorder,
-            paddingHorizontal: CARD_PADDING,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            backgroundColor: netWorthStripBg,
-          }}
-        >
-          <Text style={{ fontSize: 12, fontWeight: '500', color: palette.textMuted, letterSpacing: 0.1 }}>
-            Net Worth
-          </Text>
-          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 14, fontWeight: '700', color: palette.text, flexShrink: 1 }}>
-            {formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
-          </Text>
-          <View style={{ flex: 1 }} />
-          {netWorthChange !== undefined && netWorthChange !== 0 && (
-            <View style={{
+        {onOpenNetWorth ? (
+          <TouchableOpacity
+            delayPressIn={0}
+            activeOpacity={0.78}
+            onPress={onOpenNetWorth}
+            style={{
+              minHeight: 42,
+              marginTop: 18,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: netWorthStripBorder,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 3,
-              backgroundColor: netWorthChange > 0
-                ? (palette.isDark ? 'rgba(34,197,94,0.12)' : 'rgba(22,163,74,0.08)')
-                : (palette.isDark ? 'rgba(239,68,68,0.12)' : 'rgba(220,38,38,0.08)'),
-              borderRadius: 6,
-              paddingHorizontal: 6,
-              paddingVertical: 2,
-            }}>
-              <AppIcon
-                name={netWorthChange > 0 ? 'trending-up' : 'trending-down'}
-                size={11}
-                color={netWorthChange > 0 ? palette.positive : palette.negative}
-                strokeWidth={2.5}
-              />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: netWorthChange > 0 ? palette.positive : palette.negative }}>
-                {Math.abs(netWorthChange).toFixed(1)}%
-              </Text>
-            </View>
-          )}
-          <Text style={{ fontSize: 11.5, fontWeight: '400', color: palette.textMuted }}>
-            This Month
-          </Text>
-          <AppIcon name="arrow-up-right" size={13} color={palette.textSoft} strokeWidth={2} />
-        </TouchableOpacity>
-      ) : null}
+              gap: 8,
+              backgroundColor: netWorthStripBg,
+            }}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '600', color: palette.textMuted, letterSpacing: 0.1 }}>
+              Net Worth
+            </Text>
+            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 14, fontWeight: '700', color: palette.text, flexShrink: 1 }}>
+              {hideAmounts ? '••••' : formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
+            </Text>
+            <View style={{ flex: 1 }} />
+            {netWorthChange !== undefined && (
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 3,
+                backgroundColor: netWorthChange === 0
+                  ? (palette.isDark ? 'rgba(255,255,255,0.08)' : '#E4E9F2')
+                  : netWorthChange > 0
+                    ? (palette.isDark ? 'rgba(34,197,94,0.12)' : 'rgba(22,163,74,0.10)')
+                    : (palette.isDark ? 'rgba(239,68,68,0.12)' : 'rgba(220,38,38,0.10)'),
+                borderRadius: 999,
+                paddingHorizontal: 7,
+                paddingVertical: 3,
+              }}>
+                {netWorthChange !== 0 && (
+                  <AppIcon
+                    name={netWorthChange > 0 ? 'trending-up' : 'trending-down'}
+                    size={11}
+                    color={netWorthChange > 0 ? palette.positive : palette.negative}
+                    strokeWidth={2.5}
+                  />
+                )}
+                <Text style={{ fontSize: 11, fontWeight: '700', color: netWorthChange === 0 ? palette.textMuted : netWorthChange > 0 ? palette.positive : palette.negative }}>
+                  {Math.abs(netWorthChange).toFixed(1)}%
+                </Text>
+              </View>
+            )}
+            <AppIcon name="chevron-right" size={16} color={palette.textSoft} strokeWidth={2.1} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 
@@ -2055,6 +1975,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   getCategoryFullDisplayName,
   loansLoaded,
   loadLoans,
+  hideAmounts,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -2088,6 +2009,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   getCategoryFullDisplayName: (categoryId: string, separator?: string) => string;
   loansLoaded: boolean;
   loadLoans: (filters?: { accountId?: string; status?: LoanStatus }) => Promise<void>;
+  hideAmounts?: boolean;
 }) {
   const { palette } = useAppTheme();
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
@@ -2096,7 +2018,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [chartResetNonce, setChartResetNonce] = useState(0);
-  const [cashflowViewMode, setCashflowViewMode] = useState<'inexp' | 'cashflow'>('inexp');
+  const [cashflowIsCashflow, setCashflowIsCashflow] = useState(false);
+  const [cashflowCardPeriod, setCashflowCardPeriod] = useState<'today' | 'month'>('today');
+  const [cashflowCardTodaySummary, setCashflowCardTodaySummary] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
+  const [cashflowCardMonthSummary, setCashflowCardMonthSummary] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
+  const [monthCashflowForNW, setMonthCashflowForNW] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
   const todayDataCacheRef = useRef<{
@@ -2116,6 +2042,20 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     setTransactions([]);
     todayDataCacheRef.current = null;
   }, [accountId]);
+
+  useEffect(() => {
+    if (!isPageReady || !isScreenFocused) return;
+    const now = new Date();
+    const todayFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
+    const todayTo = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
+    const monthFrom = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
+    const monthTo = now.toISOString();
+    getCashflowSummary(accountId, todayFrom, todayTo).then(setCashflowCardTodaySummary).catch(() => undefined);
+    getCashflowSummary(accountId, monthFrom, monthTo).then((s) => {
+      setCashflowCardMonthSummary(s);
+      setMonthCashflowForNW(s);
+    }).catch(() => undefined);
+  }, [accountId, isPageReady, isScreenFocused]);
 
   const loadRangeData = useCallback(async (rangeFrom: string, rangeTo: string) => {
     if (!isPageReady) return;
@@ -2277,11 +2217,13 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             palette={palette}
             onOpenNetWorth={accountId === 'all' ? onOpenNetWorth : undefined}
             netWorth={accountId === 'all' ? netWorth : undefined}
-            netWorthChange={
-              accountId === 'all' && netWorth && Math.abs(netWorth) > 0 && hasCurrentPeriodData
-                ? (cashflow.net / Math.abs(netWorth)) * 100
-                : undefined
-            }
+            netWorthChange={(() => {
+              if (accountId !== 'all' || !netWorth) return undefined;
+              const netChange = monthCashflowForNW.net;
+              const nwAtStart = netWorth - netChange;
+              return Math.abs(nwAtStart) > 0 ? (netChange / Math.abs(nwAtStart)) * 100 : 0;
+            })()}
+            hideAmounts={hideAmounts}
           />
           <View
             onLayout={(event) => {
@@ -2297,14 +2239,17 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
 
           <CashflowToggleCard
-            viewMode={cashflowViewMode}
-            onToggle={setCashflowViewMode}
-            inExpSummary={incExpSummary}
-            cashflow={displayedCashflow}
+            isCashflow={cashflowIsCashflow}
+            onToggleCashflow={setCashflowIsCashflow}
+            cardPeriod={cashflowCardPeriod}
+            onCardPeriodChange={setCashflowCardPeriod}
+            inExpSummary={cashflowCardPeriod === 'today' ? incExpSummary : { income: cashflowCardMonthSummary.in, expense: cashflowCardMonthSummary.out }}
+            cashflow={cashflowCardPeriod === 'today' ? cashflowCardTodaySummary : cashflowCardMonthSummary}
             sym={currencySymbol}
             palette={palette}
             onPressIn={() => openPeriodActivity('in')}
             onPressOut={() => openPeriodActivity('out')}
+            hideAmounts={hideAmounts}
           />
 
           {middleContent}
@@ -2330,7 +2275,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 paddingHorizontal: CARD_PADDING
               }}
             >
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>Recent</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>Recent</Text>
               <TouchableOpacity delayPressIn={0}
                 onPress={() =>
                   router.navigate({
@@ -2342,8 +2287,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                     }
                   })
                 }
+                activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
               >
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: BUTTON_TOKENS.text.labelWeight }}>View all</Text>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: BUTTON_TOKENS.text.labelWeight }}>All</Text>
+                <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
               </TouchableOpacity>
             </View>
             <ScrollView

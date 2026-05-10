@@ -14,7 +14,7 @@ import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-share
 import { formatCurrency } from '../../lib/derived';
 import { HOME_RADIUS, SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { AppIcon } from '../../components/ui/AppIcon';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow } from '../../components/settings-ui';
 import type { Account } from '../../types';
@@ -27,6 +27,27 @@ const SORT_OPTIONS: Array<{ key: SortMode; title: string }> = [
   { key: 'balance', title: 'Balance' },
   { key: 'custom', title: 'Custom' },
 ];
+
+function sortAccountsForMode(
+  source: Account[],
+  mode: SortMode,
+  alphaDirection: SortDirection,
+  balanceDirection: SortDirection,
+) {
+  if (mode === 'alpha') {
+    const directionMultiplier = alphaDirection === 'asc' ? 1 : -1;
+    return source.slice().sort((a, b) => directionMultiplier * formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
+        formatAccountDisplayName(b.name, b.accountNumber),
+        'en',
+        { sensitivity: 'base' },
+      )
+    );
+  }
+  if (mode === 'balance') {
+    return source.slice().sort((a, b) => balanceDirection === 'asc' ? a.balance - b.balance : b.balance - a.balance);
+  }
+  return source;
+}
 
 export default function AllAccountsScreen() {
   const { palette } = useAppTheme();
@@ -49,20 +70,17 @@ export default function AllAccountsScreen() {
   }, [accounts]);
 
   const displayedAccounts = useMemo(() => {
-    if (sortMode === 'alpha') {
-      const directionMultiplier = alphaDirection === 'asc' ? 1 : -1;
-      return accounts.slice().sort((a, b) => directionMultiplier * formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
-          formatAccountDisplayName(b.name, b.accountNumber),
-          'en',
-          { sensitivity: 'base' },
-        )
-      );
-    }
-    if (sortMode === 'balance') {
-      return accounts.slice().sort((a, b) => balanceDirection === 'asc' ? a.balance - b.balance : b.balance - a.balance);
-    }
-    return customAccounts;
+    return sortMode === 'custom'
+      ? customAccounts
+      : sortAccountsForMode(accounts, sortMode, alphaDirection, balanceDirection);
   }, [accounts, alphaDirection, balanceDirection, customAccounts, sortMode]);
+
+  const persistSortedOrder = async (mode: SortMode, nextAlphaDirection = alphaDirection, nextBalanceDirection = balanceDirection) => {
+    if (mode === 'custom') return;
+    const sorted = sortAccountsForMode(accounts, mode, nextAlphaDirection, nextBalanceDirection);
+    await setOrder(sorted.map((account) => account.id));
+    setCustomDirty(false);
+  };
 
   const saveCustomOrder = async () => {
     setIsSavingOrder(true);
@@ -97,36 +115,8 @@ export default function AllAccountsScreen() {
                   </Text>
                 </TouchableOpacity>
               ) : null}
-              <TouchableOpacity
-                delayPressIn={0}
-                onPress={() => setShowSortSheet(true)}
-                activeOpacity={0.72}
-                style={{
-                  width: 34,
-                  height: 34,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <AppIcon name="arrow-up-down" size={18} color={palette.text} strokeWidth={1.8} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                delayPressIn={0}
-                activeOpacity={0.72}
-                onPress={() => router.push('/settings/account-form')}
-                style={{
-                  width: 42,
-                  height: 34,
-                  borderRadius: 17,
-                  borderWidth: 1,
-                  borderColor: palette.divider,
-                  backgroundColor: palette.surface,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <AppIcon name="plus" size={18} color={palette.text} strokeWidth={1.9} />
-              </TouchableOpacity>
+              <HeaderIconButton icon="arrow-up-down" palette={palette} onPress={() => setShowSortSheet(true)} />
+              <HeaderAddButton palette={palette} onPress={() => router.push('/settings/account-form')} />
             </View>
           }
         />
@@ -140,7 +130,7 @@ export default function AllAccountsScreen() {
         contentContainerStyle={{
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 10,
-          paddingBottom: insets.bottom + 64,
+          paddingBottom: insets.bottom + 120,
         }}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
@@ -178,12 +168,16 @@ export default function AllAccountsScreen() {
               }
               onPress={() => {
                 if (option.key === 'alpha' && sortMode === 'alpha') {
-                  setAlphaDirection((direction) => direction === 'asc' ? 'desc' : 'asc');
+                  const nextDirection = alphaDirection === 'asc' ? 'desc' : 'asc';
+                  setAlphaDirection(nextDirection);
+                  persistSortedOrder('alpha', nextDirection).catch(() => undefined);
                   setShowSortSheet(false);
                   return;
                 }
                 if (option.key === 'balance' && sortMode === 'balance') {
-                  setBalanceDirection((direction) => direction === 'asc' ? 'desc' : 'asc');
+                  const nextDirection = balanceDirection === 'asc' ? 'desc' : 'asc';
+                  setBalanceDirection(nextDirection);
+                  persistSortedOrder('balance', alphaDirection, nextDirection).catch(() => undefined);
                   setShowSortSheet(false);
                   return;
                 }
@@ -191,6 +185,7 @@ export default function AllAccountsScreen() {
                 if (option.key === 'balance') setBalanceDirection('asc');
                 if (option.key === 'custom') setCustomDirty(true);
                 setSortMode(option.key);
+                persistSortedOrder(option.key, 'asc', 'asc').catch(() => undefined);
                 setShowSortSheet(false);
               }}
             />
@@ -269,13 +264,13 @@ function AccountCard({
             borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: palette.isDark ? 'rgba(255,255,255,0.055)' : 'rgba(31,42,68,0.045)',
+            backgroundColor: `${typeMeta.color}18`,
             borderWidth: 1,
-            borderColor: palette.isDark ? 'rgba(255,255,255,0.075)' : 'rgba(31,42,68,0.075)',
+            borderColor: `${typeMeta.color}30`,
             marginRight: 13,
           }}
         >
-          <AppIcon name={typeMeta.icon} size={20} color={palette.brand} strokeWidth={1.5} />
+          <AppIcon name={typeMeta.icon} size={20} color={typeMeta.color} strokeWidth={1.5} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '500', color: palette.text }}>

@@ -134,7 +134,7 @@ export function SegmentedPillSwitch({
               appWeight="medium"
               style={{
                 fontSize,
-                fontWeight: selected ? '700' : '600',
+                fontWeight: selected ? '600' : '500',
                 textAlign: 'center',
                 textAlignVertical: 'center',
                 includeFontPadding: false,

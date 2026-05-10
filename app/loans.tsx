@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
@@ -371,39 +371,8 @@ export default function LoansScreen() {
           onBack={() => router.replace('/')}
           rightAction={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <TouchableOpacity delayPressIn={0}
-                onPress={() => toggleSearch(true)}
-                style={{
-                  backgroundColor: palette.brandSoft,
-                  borderWidth: 1.5,
-                  borderColor: palette.brand,
-                  borderRadius: 20,
-                  width: 34,
-                  height: 34,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <AppIcon name="search" size={16} color={palette.brand} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                delayPressIn={0}
-                activeOpacity={0.7}
-                onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'loan' } })}
-                style={{
-                  width: 42,
-                  height: 34,
-                  backgroundColor: palette.surface,
-                  borderWidth: 1,
-                  borderColor: palette.divider,
-                  borderRadius: 17,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <AppIcon name="plus" size={18} color={palette.text} strokeWidth={1.9} />
-              </TouchableOpacity>
+              <HeaderIconButton icon="search" palette={palette} onPress={() => toggleSearch(true)} />
+              <HeaderAddButton palette={palette} onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'loan' } })} />
             </View>
           }
         />

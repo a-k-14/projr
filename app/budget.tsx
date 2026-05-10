@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -113,22 +113,7 @@ export default function BudgetScreen() {
         showBack={true}
         onBack={() => router.replace('/')}
         rightAction={
-          <TouchableOpacity
-            delayPressIn={0}
-            onPress={() => router.push('/modals/budget-form')}
-            style={{
-              width: 42,
-              height: 34,
-              backgroundColor: palette.surface,
-              borderWidth: 1,
-              borderColor: palette.divider,
-              borderRadius: 17,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AppIcon name="plus" size={18} color={palette.text} strokeWidth={1.9} />
-          </TouchableOpacity>
+          <HeaderAddButton palette={palette} onPress={() => router.push('/modals/budget-form')} />
         }
       />
       <ScrollView
