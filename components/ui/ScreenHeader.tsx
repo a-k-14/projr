@@ -92,7 +92,7 @@ export function ScreenHeader({
           style={[
             styles.backButton,
             {
-              marginRight: SCREEN_HEADER.iconTitleGap,
+              marginRight: 4,
             },
           ]}
         >

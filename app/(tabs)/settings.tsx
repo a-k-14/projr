@@ -1,4 +1,3 @@
-import { Text } from '@/components/ui/AppText';
 import { AppIcon, IconName } from '../../components/ui/AppIcon';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
@@ -8,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection, ChoiceRow, ScreenTitle, SectionLabel, SettingsRow } from '../../components/settings-ui';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { AppSwitch } from '../../components/ui/AppSwitch';
-import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatCurrency } from '../../lib/derived';
 import {
@@ -209,22 +207,6 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/settings/reset')}
                 noBorder
               />
-            </CardSection>
-          </View>
-
-          <View>
-            <SectionLabel label="ABOUT" palette={palette} />
-            <CardSection palette={palette}>
-              <View style={{ padding: 20, alignItems: 'center' }}>
-                <View style={{ marginBottom: 16 }}>
-                  <FinanceEmptyMascot palette={palette} variant="activity" />
-                </View>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: palette.text, letterSpacing: -0.5 }}>Reni</Text>
-                <Text style={{ fontSize: 13, color: palette.textMuted, marginTop: 2 }}>Personal Finance Companion</Text>
-                <View style={{ marginTop: 16, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, backgroundColor: palette.inputBg }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: palette.textSecondary }}>VERSION 1.0.0</Text>
-                </View>
-              </View>
             </CardSection>
           </View>
         </ScrollView>

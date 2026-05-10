@@ -334,11 +334,13 @@ function HomeScreenContent() {
         onPress={() => router.push('/accounts')}
         delayPressIn={0}
         activeOpacity={0.72}
-        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginTop: 16, paddingVertical: 2 }}
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 16, paddingVertical: 2 }}
       >
         <Text appWeight="medium" style={{ fontSize: 18, fontWeight: '600', color: palette.text }}>Accounts</Text>
-        <AppIcon name="arrow-up-right" size={15} color={palette.brand} strokeWidth={2} style={{ marginLeft: 6 }} />
-        <View style={{ flex: 1 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: BUTTON_TOKENS.text.labelWeight }}>All</Text>
+          <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
+        </View>
       </TouchableOpacity>
       <ScrollView ref={accountScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: SCREEN_GUTTER }}>
         {orderedAccounts.map((acc) => {

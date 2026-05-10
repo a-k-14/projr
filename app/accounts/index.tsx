@@ -49,6 +49,10 @@ function sortAccountsForMode(
   return source;
 }
 
+function accountsHaveSameOrder(left: Account[], right: Account[]) {
+  return left.length === right.length && left.every((account, index) => account.id === right[index]?.id);
+}
+
 export default function AllAccountsScreen() {
   const { palette } = useAppTheme();
   const accounts = useAccountsStore((s) => s.accounts);
@@ -78,6 +82,7 @@ export default function AllAccountsScreen() {
   const persistSortedOrder = async (mode: SortMode, nextAlphaDirection = alphaDirection, nextBalanceDirection = balanceDirection) => {
     if (mode === 'custom') return;
     const sorted = sortAccountsForMode(accounts, mode, nextAlphaDirection, nextBalanceDirection);
+    setCustomAccounts(sorted);
     await setOrder(sorted.map((account) => account.id));
     setCustomDirty(false);
   };
@@ -167,25 +172,28 @@ export default function AllAccountsScreen() {
                 />
               }
               onPress={() => {
-                if (option.key === 'alpha' && sortMode === 'alpha') {
-                  const nextDirection = alphaDirection === 'asc' ? 'desc' : 'asc';
+                if (option.key === 'alpha') {
+                  const nextDirection = sortMode === 'alpha'
+                    ? (alphaDirection === 'asc' ? 'desc' : 'asc')
+                    : (accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'alpha', 'asc', balanceDirection)) ? 'desc' : 'asc');
+                  setSortMode('alpha');
                   setAlphaDirection(nextDirection);
                   persistSortedOrder('alpha', nextDirection).catch(() => undefined);
                   setShowSortSheet(false);
                   return;
                 }
-                if (option.key === 'balance' && sortMode === 'balance') {
-                  const nextDirection = balanceDirection === 'asc' ? 'desc' : 'asc';
+                if (option.key === 'balance') {
+                  const nextDirection = sortMode === 'balance'
+                    ? (balanceDirection === 'asc' ? 'desc' : 'asc')
+                    : (accountsHaveSameOrder(accounts, sortAccountsForMode(accounts, 'balance', alphaDirection, 'asc')) ? 'desc' : 'asc');
+                  setSortMode('balance');
                   setBalanceDirection(nextDirection);
                   persistSortedOrder('balance', alphaDirection, nextDirection).catch(() => undefined);
                   setShowSortSheet(false);
                   return;
                 }
-                if (option.key === 'alpha') setAlphaDirection('asc');
-                if (option.key === 'balance') setBalanceDirection('asc');
                 if (option.key === 'custom') setCustomDirty(true);
                 setSortMode(option.key);
-                persistSortedOrder(option.key, 'asc', 'asc').catch(() => undefined);
                 setShowSortSheet(false);
               }}
             />
