@@ -1,6 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -127,14 +128,6 @@ const ACCOUNT_TYPE_SORT_ORDER: Record<AccountType, number> = {
   investment: 3,
   credit: 4,
   other: 5,
-};
-const NW_TYPE_COLORS: Record<AccountType, string> = {
-  savings: '#00A7A5',
-  cash: '#F2B84B',
-  wallet: '#4E8EF7',
-  investment: '#8B5CF6',
-  credit: '#EF476F',
-  other: '#6B7A90',
 };
 const NW_ACCOUNT_COLORS = [
   '#00A7A5',
@@ -339,10 +332,12 @@ function HomeScreenContent() {
           const amountLabel = showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), '');
           const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(amountLabel.length, 14) * 3));
           const typeMeta = ACCOUNT_TYPE_META[acc.type];
+          const typeColor = typeMeta.color;
           return (
             <TouchableOpacity
               key={acc.id}
               onPress={() => router.push(`/account/${acc.id}`)}
+              activeOpacity={0.78}
               style={{
                 width: cardWidth,
                 backgroundColor: palette.surface,
@@ -352,27 +347,25 @@ function HomeScreenContent() {
                 overflow: 'hidden',
               }}
             >
-              <View style={{ paddingHorizontal: 14, paddingVertical: 12, minHeight: 100, justifyContent: 'space-between' }}>
+              <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 108, justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 11,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 12,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: palette.isDark ? 'rgba(255,255,255,0.055)' : 'rgba(31,42,68,0.045)',
-                      borderWidth: 1,
-                      borderColor: palette.isDark ? 'rgba(255,255,255,0.075)' : 'rgba(31,42,68,0.075)',
+                      backgroundColor: `${typeColor}18`,
                     }}
                   >
-                    <AppIcon name={typeMeta.icon} size={18} color={palette.brand} strokeWidth={1.8} />
+                    <AppIcon name={typeMeta.icon} size={18} color={typeColor} strokeWidth={1.8} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '500', color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
+                    <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: '500', color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
                   </View>
                 </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 17.5, fontWeight: '500', color: acc.balance < 0 ? palette.negative : palette.text, marginTop: 12 }}>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 18, fontWeight: '600', color: acc.balance < 0 ? palette.negative : palette.text, marginTop: 12 }}>
                   {amountLabel}
                 </Text>
               </View>
@@ -616,12 +609,10 @@ function MoreShortcutCard({
               borderRadius: 13,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: palette.isDark ? 'rgba(255,255,255,0.055)' : 'rgba(31,42,68,0.045)',
-              borderWidth: 1,
-              borderColor: palette.isDark ? 'rgba(255,255,255,0.075)' : 'rgba(31,42,68,0.075)',
+              backgroundColor: `${feature.tone}18`,
             }}
           >
-            <AppIcon name={feature.icon} size={18} color={palette.brand} strokeWidth={1.8} />
+            <AppIcon name={feature.icon} size={18} color={feature.tone} strokeWidth={1.8} />
           </View>
           <Text numberOfLines={1} style={{ flex: 1, fontSize: 13.5, fontWeight: '500', color: palette.text }}>
             {feature.label}
@@ -691,6 +682,102 @@ function TodayCashflowStrip({
           </Text>
         </TouchableOpacity>
       ))}
+    </View>
+  );
+}
+
+function CashflowToggleCard({
+  viewMode,
+  onToggle,
+  inExpSummary,
+  cashflow,
+  sym,
+  palette,
+  onPressIn,
+  onPressOut,
+}: {
+  viewMode: 'inexp' | 'cashflow';
+  onToggle: (mode: 'inexp' | 'cashflow') => void;
+  inExpSummary: { income: number; expense: number };
+  cashflow: { in: number; out: number; net: number };
+  sym: string;
+  palette: AppThemePalette;
+  onPressIn: () => void;
+  onPressOut: () => void;
+}) {
+  const leftLabel = viewMode === 'inexp' ? 'Income' : 'Cash In';
+  const rightLabel = viewMode === 'inexp' ? 'Expense' : 'Cash Out';
+  const leftAmount = viewMode === 'inexp' ? inExpSummary.income : cashflow.in;
+  const rightAmount = viewMode === 'inexp' ? inExpSummary.expense : cashflow.out;
+
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '500' }}>
+          {viewMode === 'cashflow' ? 'Includes transfers & loans' : ' '}
+        </Text>
+        <View style={{
+          flexDirection: 'row',
+          backgroundColor: palette.isDark ? '#1A1E28' : '#E8EBF2',
+          borderRadius: 20,
+          padding: 2,
+        }}>
+          {(['inexp', 'cashflow'] as const).map((m) => {
+            const selected = viewMode === m;
+            return (
+              <TouchableOpacity
+                key={m}
+                delayPressIn={0}
+                activeOpacity={0.8}
+                onPress={() => onToggle(m)}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 18,
+                  backgroundColor: selected ? palette.surface : 'transparent',
+                }}
+              >
+                <Text style={{ fontSize: 11.5, fontWeight: selected ? '600' : '400', color: selected ? palette.text : palette.textMuted }}>
+                  {m === 'inexp' ? 'Inc/Exp' : 'Cashflow'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={{
+        flexDirection: 'row',
+        borderRadius: HOME_RADIUS.card,
+        borderWidth: 1,
+        borderColor: palette.divider,
+        backgroundColor: palette.card,
+        overflow: 'hidden',
+      }}>
+        <TouchableOpacity
+          delayPressIn={0}
+          activeOpacity={0.75}
+          onPress={onPressIn}
+          style={{ flex: 1, paddingVertical: 9, paddingHorizontal: 14 }}
+        >
+          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 3 }}>{leftLabel}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 14.5, fontWeight: '500', color: leftAmount === 0 ? palette.textMuted : palette.positive }}>
+            {leftAmount === 0 ? '—' : formatCurrency(leftAmount, sym)}
+          </Text>
+        </TouchableOpacity>
+        <View style={{ width: 1, backgroundColor: palette.divider }} />
+        <TouchableOpacity
+          delayPressIn={0}
+          activeOpacity={0.75}
+          onPress={onPressOut}
+          style={{ flex: 1, paddingVertical: 9, paddingHorizontal: 14 }}
+        >
+          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 3 }}>{rightLabel}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 14.5, fontWeight: '500', color: rightAmount === 0 ? palette.textMuted : palette.negative }}>
+            {rightAmount === 0 ? '—' : formatCurrency(rightAmount, sym)}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -822,7 +909,7 @@ function NetWorthDonut({
       label: getAccountTypeLabel(group.type),
       amount: Math.abs(group.balance),
       value: group.balance,
-      color: NW_TYPE_COLORS[group.type],
+      color: ACCOUNT_TYPE_META[group.type].color,
     }))
     : accounts.map((account) => ({
       id: account.id,
@@ -901,7 +988,7 @@ function NetWorthTypeRows({
           >
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
               <View style={{ width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
-                <NetWorthRingMarker color={NW_TYPE_COLORS[group.type]} />
+                <NetWorthRingMarker color={ACCOUNT_TYPE_META[group.type].color} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
@@ -918,7 +1005,7 @@ function NetWorthTypeRows({
                   </Text>
                 </View>
                 <View style={{ height: 4, borderRadius: 999, overflow: 'hidden', backgroundColor: palette.inputBg, marginTop: 10 }}>
-                  <View style={{ height: 4, borderRadius: 999, width: `${(Math.abs(group.balance) / total) * 100}%`, backgroundColor: NW_TYPE_COLORS[group.type] }} />
+                  <View style={{ height: 4, borderRadius: 999, width: `${(Math.abs(group.balance) / total) * 100}%`, backgroundColor: ACCOUNT_TYPE_META[group.type].color }} />
                 </View>
               </View>
             </View>
@@ -1249,15 +1336,17 @@ function AccountSummaryCard({
   onOpenNetWorth?: () => void;
   netWorth?: number;
 }) {
-  const balanceColor = palette.text;
   const isAll = accountName === 'All';
   const [scrubbedItem, setScrubbedItem] = useState<{ value: number; date?: string } | null>(null);
   const [scrubbedIndex, setScrubbedIndex] = useState<number | null>(null);
   const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
-  const chartAccent = palette.positive;
-  const heroSurface = palette.surface;
-  const netWorthStripBg = palette.isDark ? '#080C14' : '#F5F7FB';
-  const netWorthStripBorder = palette.divider;
+  const chartAccent = palette.isDark ? '#34D399' : '#4ADE80';
+  const heroSurface = palette.isDark ? palette.surface : '#182235';
+  const cardText = palette.isDark ? palette.text : '#FFFFFF';
+  const cardTextMuted = palette.isDark ? palette.textMuted : 'rgba(255,255,255,0.50)';
+  const cardBorder = palette.isDark ? palette.borderSoft : 'transparent';
+  const netWorthStripBg = palette.isDark ? '#080C14' : '#0F1829';
+  const netWorthStripBorder = palette.isDark ? palette.divider : 'rgba(255,255,255,0.08)';
 
   const mockChartData = useMemo(() => {
     const base = Math.max(Math.abs(balance), 1);
@@ -1275,52 +1364,40 @@ function AccountSummaryCard({
   const content = (
     <View
       style={{
-        backgroundColor: heroSurface,
-        borderColor: palette.borderSoft,
         borderRadius: 22,
-        borderWidth: 1,
         overflow: 'hidden',
         height: 190,
         position: 'relative',
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
-      {!isAll && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            width: 110,
-            height: 110,
-            borderRadius: 55,
-            top: -25,
-            right: -25,
-            backgroundColor: palette.brand,
-            opacity: palette.isDark ? 0.08 : 0.04,
-            zIndex: 0,
-          }}
-        />
-      )}
+      <LinearGradient
+        pointerEvents="none"
+        colors={palette.isDark ? ['#172033', '#0F172A'] : ['#3C4760', '#1E293B']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      />
 
       <View style={{ flex: 1, paddingHorizontal: CARD_PADDING, paddingTop: 20, justifyContent: 'flex-start' }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: cardTextMuted }}>
                 Account
               </Text>
               {accountTypeLabel ? (
                 <>
-                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSoft }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: cardTextMuted }}>
                     {'\u2022'}
                   </Text>
-                  <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+                  <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: cardTextMuted }}>
                     {accountTypeLabel}
                   </Text>
                 </>
               ) : null}
             </View>
-            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
+            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: cardText }}>
               {accountName}
             </Text>
           </View>
@@ -1330,7 +1407,7 @@ function AccountSummaryCard({
               appWeight="medium"
               style={{
                 fontSize: HOME_TEXT.tiny,
-                color: palette.textMuted,
+                color: cardTextMuted,
                 fontWeight: '700',
                 letterSpacing: 0.5,
                 textTransform: 'uppercase',
@@ -1347,7 +1424,7 @@ function AccountSummaryCard({
               style={{
                 fontSize: HOME_TEXT.heroValue + 2,
                 fontWeight: '800',
-                color: balanceColor,
+                color: cardText,
                 textAlign: 'right',
               }}
             >
@@ -1369,7 +1446,7 @@ function AccountSummaryCard({
         />
         {scrubbedItem && scrubbedIndex !== null && (() => {
           const CHART_H = 66;
-          const PILL_W = 100;
+          const PILL_W = 150;
           const THUMB = 6;
           const width = Math.max(chartWidth, 1);
           const sidePad = 16;
@@ -1468,14 +1545,14 @@ function AccountSummaryCard({
             backgroundColor: netWorthStripBg,
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.isDark ? palette.textMuted : palette.textMuted, letterSpacing: 0.2 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: cardTextMuted, letterSpacing: 0.2 }}>
             Net Worth
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-            <Text appWeight="medium" style={{ fontSize: 14, fontWeight: '700', color: palette.text }}>
+            <Text appWeight="medium" style={{ fontSize: 14, fontWeight: '700', color: cardText }}>
               {formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
             </Text>
-            <AppIcon name="chevron-right" size={14} color={palette.textSoft} />
+            <AppIcon name="chevron-right" size={14} color={cardTextMuted} />
           </View>
         </TouchableOpacity>
       ) : null}
@@ -1980,6 +2057,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [chartResetNonce, setChartResetNonce] = useState(0);
+  const [cashflowViewMode, setCashflowViewMode] = useState<'inexp' | 'cashflow'>('inexp');
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
   const todayDataCacheRef = useRef<{
@@ -2082,6 +2160,17 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const hasCurrentPeriodData = periodDataRangeKey === currentRangeKey;
   const displayedCashflow = hasCurrentPeriodData ? cashflow : { in: 0, out: 0, net: 0 };
   const displayedPeriodTransactions = hasCurrentPeriodData ? periodTransactions : [];
+
+  // Income/expense (excludes transfers & loans); cashflow = all in/out
+  const incExpSummary = useMemo(() => {
+    let income = 0, expense = 0;
+    displayedPeriodTransactions.forEach((tx) => {
+      if (tx.transferPairId || tx.type === 'loan') return;
+      if (tx.type === 'in') income += tx.amount;
+      if (tx.type === 'out') expense += tx.amount;
+    });
+    return { income, expense };
+  }, [displayedPeriodTransactions]);
   const loadPageData = useCallback(async () => {
     await loadRangeData(from, to);
   }, [from, loadRangeData, to]);
@@ -2163,14 +2252,18 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
 
-          <TodayCashflowStrip
+          {middleContent}
+
+          <CashflowToggleCard
+            viewMode={cashflowViewMode}
+            onToggle={setCashflowViewMode}
+            inExpSummary={incExpSummary}
             cashflow={displayedCashflow}
             sym={currencySymbol}
             palette={palette}
-            onPressCategory={openPeriodActivity}
+            onPressIn={() => openPeriodActivity('in')}
+            onPressOut={() => openPeriodActivity('out')}
           />
-
-          {middleContent}
 
           <View
             style={{
@@ -2249,20 +2342,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             </ScrollView>
           </View>
 
+
           <View style={{ alignItems: 'center', marginTop: 2 }}>
-            <TouchableOpacity delayPressIn={0} onPress={() => router.push('/loan-prototype')}>
-              <Text
-                appWeight="medium"
-                style={{
-                  fontSize: HOME_TEXT.bodySmall,
-                  color: palette.brand,
-                  fontWeight: BUTTON_TOKENS.text.labelWeight,
-                }}
-              >
-                Open Loan Prototype
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity delayPressIn={0} onPress={() => router.push('/chart-prototype')} style={{ marginTop: 10 }}>
+            <TouchableOpacity delayPressIn={0} onPress={() => router.push('/chart-prototype')}>
               <Text
                 appWeight="medium"
                 style={{

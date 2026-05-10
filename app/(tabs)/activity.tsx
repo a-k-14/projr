@@ -976,14 +976,14 @@ export default function ActivityScreen() {
     ({ section }: { section: ActivityGroup & { data: Transaction[] } }) => {
       const groupNet = section.net;
       return (
-        <View style={{ backgroundColor: palette.background, paddingTop: 18, paddingBottom: 0 }}>
+        <View style={{ backgroundColor: palette.background, paddingTop: 18, paddingBottom: 6 }}>
           <View
             style={[
               styles.groupHeader,
               {
                 paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
                 paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
-                marginBottom: -4,
+                marginBottom: 6,
               },
             ]}
           >

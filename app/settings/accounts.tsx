@@ -150,13 +150,13 @@ function SettingsAccountCard({
             borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: palette.isDark ? 'rgba(255,255,255,0.055)' : 'rgba(31,42,68,0.045)',
+            backgroundColor: `${typeMeta.color}18`,
             borderWidth: 1,
-            borderColor: palette.isDark ? 'rgba(255,255,255,0.075)' : 'rgba(31,42,68,0.075)',
+            borderColor: `${typeMeta.color}30`,
             marginRight: 14,
           }}
         >
-          <AppIcon name={typeMeta.icon} size={20} color={palette.brand} strokeWidth={1.5} />
+          <AppIcon name={typeMeta.icon} size={20} color={typeMeta.color} strokeWidth={1.5} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
