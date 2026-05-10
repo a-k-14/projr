@@ -1,7 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -619,6 +618,7 @@ function MoreShortcutCard({
           <Text numberOfLines={1} style={{ flex: 1, fontSize: 13.5, fontWeight: '500', color: palette.text }}>
             {feature.label}
           </Text>
+          <AppIcon name="chevron-right" size={14} color={palette.textSoft} strokeWidth={2} />
         </View>
 
         <View style={{ marginTop: 22 }}>
@@ -646,8 +646,8 @@ function TodayCashflowStrip({
   onPressCategory: (category: 'in' | 'out' | 'net') => void;
 }) {
   const items = [
-    { key: 'in' as const, label: 'Income', color: palette.positive },
-    { key: 'out' as const, label: 'Expense', color: palette.negative },
+    { key: 'in' as const, label: 'Income', color: palette.text },
+    { key: 'out' as const, label: 'Expense', color: palette.text },
   ];
 
   return (
@@ -1327,6 +1327,7 @@ function AccountSummaryCard({
   onLayout,
   onOpenNetWorth,
   netWorth,
+  netWorthChange,
 }: {
   accountName: string;
   accountTypeLabel: string;
@@ -1337,18 +1338,16 @@ function AccountSummaryCard({
   onLayout?: (height: number) => void;
   onOpenNetWorth?: () => void;
   netWorth?: number;
+  netWorthChange?: number;
 }) {
   const isAll = accountName === 'All';
   const [scrubbedItem, setScrubbedItem] = useState<{ value: number; date?: string } | null>(null);
   const [scrubbedIndex, setScrubbedIndex] = useState<number | null>(null);
   const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
-  const chartAccent = palette.isDark ? '#34D399' : '#4ADE80';
-  const heroSurface = palette.isDark ? palette.surface : '#182235';
-  const cardText = palette.isDark ? palette.text : '#FFFFFF';
-  const cardTextMuted = palette.isDark ? palette.textMuted : 'rgba(255,255,255,0.50)';
-  const cardBorder = palette.isDark ? palette.borderSoft : 'transparent';
-  const netWorthStripBg = palette.isDark ? '#080C14' : '#0F1829';
-  const netWorthStripBorder = palette.isDark ? palette.divider : 'rgba(255,255,255,0.08)';
+  const chartAccent = palette.positive;
+  const heroSurface = palette.isDark ? palette.surface : '#F0F4FC';
+  const netWorthStripBg = palette.isDark ? '#080C14' : '#E8EDF8';
+  const netWorthStripBorder = palette.isDark ? palette.divider : '#D8E0F0';
 
   const mockChartData = useMemo(() => {
     const base = Math.max(Math.abs(balance), 1);
@@ -1366,6 +1365,9 @@ function AccountSummaryCard({
   const content = (
     <View
       style={{
+        backgroundColor: heroSurface,
+        borderColor: palette.isDark ? palette.borderSoft : '#D0D8EE',
+        borderWidth: 1,
         borderRadius: 22,
         overflow: 'hidden',
         height: 190,
@@ -1373,33 +1375,25 @@ function AccountSummaryCard({
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
-      <LinearGradient
-        pointerEvents="none"
-        colors={palette.isDark ? ['#172033', '#0F172A'] : ['#3C4760', '#1E293B']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-      />
-
       <View style={{ flex: 1, paddingHorizontal: CARD_PADDING, paddingTop: 20, justifyContent: 'flex-start' }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: cardTextMuted }}>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
                 Account
               </Text>
               {accountTypeLabel ? (
                 <>
-                  <Text style={{ fontSize: HOME_TEXT.caption, color: cardTextMuted }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSoft }}>
                     {'\u2022'}
                   </Text>
-                  <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: cardTextMuted }}>
+                  <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
                     {accountTypeLabel}
                   </Text>
                 </>
               ) : null}
             </View>
-            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: cardText }}>
+            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
               {accountName}
             </Text>
           </View>
@@ -1409,7 +1403,7 @@ function AccountSummaryCard({
               appWeight="medium"
               style={{
                 fontSize: HOME_TEXT.tiny,
-                color: cardTextMuted,
+                color: palette.textMuted,
                 fontWeight: '700',
                 letterSpacing: 0.5,
                 textTransform: 'uppercase',
@@ -1426,7 +1420,7 @@ function AccountSummaryCard({
               style={{
                 fontSize: HOME_TEXT.heroValue + 2,
                 fontWeight: '800',
-                color: cardText,
+                color: palette.text,
                 textAlign: 'right',
               }}
             >
@@ -1543,19 +1537,44 @@ function AccountSummaryCard({
             paddingHorizontal: CARD_PADDING,
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            gap: 8,
             backgroundColor: netWorthStripBg,
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: cardTextMuted, letterSpacing: 0.2 }}>
+          <Text style={{ fontSize: 12, fontWeight: '500', color: palette.textMuted, letterSpacing: 0.1 }}>
             Net Worth
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-            <Text appWeight="medium" style={{ fontSize: 14, fontWeight: '700', color: cardText }}>
-              {formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
-            </Text>
-            <AppIcon name="chevron-right" size={14} color={cardTextMuted} />
-          </View>
+          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 14, fontWeight: '700', color: palette.text, flexShrink: 1 }}>
+            {formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
+          </Text>
+          <View style={{ flex: 1 }} />
+          {netWorthChange !== undefined && netWorthChange !== 0 && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 3,
+              backgroundColor: netWorthChange > 0
+                ? (palette.isDark ? 'rgba(34,197,94,0.12)' : 'rgba(22,163,74,0.08)')
+                : (palette.isDark ? 'rgba(239,68,68,0.12)' : 'rgba(220,38,38,0.08)'),
+              borderRadius: 6,
+              paddingHorizontal: 6,
+              paddingVertical: 2,
+            }}>
+              <AppIcon
+                name={netWorthChange > 0 ? 'trending-up' : 'trending-down'}
+                size={11}
+                color={netWorthChange > 0 ? palette.positive : palette.negative}
+                strokeWidth={2.5}
+              />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: netWorthChange > 0 ? palette.positive : palette.negative }}>
+                {Math.abs(netWorthChange).toFixed(1)}%
+              </Text>
+            </View>
+          )}
+          <Text style={{ fontSize: 11.5, fontWeight: '400', color: palette.textMuted }}>
+            This Month
+          </Text>
+          <AppIcon name="arrow-up-right" size={13} color={palette.textSoft} strokeWidth={2} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -2240,6 +2259,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             palette={palette}
             onOpenNetWorth={accountId === 'all' ? onOpenNetWorth : undefined}
             netWorth={accountId === 'all' ? netWorth : undefined}
+            netWorthChange={
+              accountId === 'all' && netWorth && Math.abs(netWorth) > 0 && hasCurrentPeriodData
+                ? (cashflow.net / Math.abs(netWorth)) * 100
+                : undefined
+            }
           />
           <View
             onLayout={(event) => {
