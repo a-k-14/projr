@@ -259,7 +259,7 @@ export async function seedMassiveTransactions(count: number = 1000): Promise<voi
       date: timestamp.toISOString(),
       note: note,
       payee: isIncome ? 'Test Payer' : 'Test Merchant',
-      tags: tagsList.length > 0 ? [tagsList[Math.floor(Math.random() * tagsList.length)].id] : [],
+      tags: JSON.stringify(tagsList.length > 0 ? [tagsList[Math.floor(Math.random() * tagsList.length)].id] : []),
       createdAt: timestamp.toISOString(),
       updatedAt: timestamp.toISOString(),
     });
@@ -269,5 +269,16 @@ export async function seedMassiveTransactions(count: number = 1000): Promise<voi
   for (let i = 0; i < newTransactions.length; i += 100) {
     const batch = newTransactions.slice(i, i + 100);
     await db.insert(transactions).values(batch);
+  }
+
+  // Calculate and update account balances
+  const balanceChanges = new Map<string, number>();
+  for (const tx of newTransactions) {
+    const delta = tx.type === 'in' ? tx.amount : -tx.amount;
+    balanceChanges.set(tx.accountId, (balanceChanges.get(tx.accountId) || 0) + delta);
+  }
+
+  for (const [accountId, delta] of balanceChanges.entries()) {
+    await accountsService.updateAccountBalance(accountId, delta);
   }
 }

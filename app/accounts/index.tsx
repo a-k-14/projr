@@ -20,12 +20,13 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { ChoiceRow } from '../../components/settings-ui';
 import type { Account } from '../../types';
 
-type SortMode = 'custom' | 'alpha' | 'balance';
-type SortDirection = 'asc' | 'desc';
+type SortOption = { key: SortMode; direction?: SortDirection; title: string };
 
-const SORT_OPTIONS: Array<{ key: SortMode; title: string }> = [
-  { key: 'alpha', title: 'Alphabetical' },
-  { key: 'balance', title: 'Balance' },
+const SORT_OPTIONS: SortOption[] = [
+  { key: 'alpha', direction: 'asc', title: 'A-Z' },
+  { key: 'alpha', direction: 'desc', title: 'Z-A' },
+  { key: 'balance', direction: 'asc', title: 'Balance: Low to High' },
+  { key: 'balance', direction: 'desc', title: 'Balance: High to Low' },
   { key: 'custom', title: 'Custom' },
 ];
 
@@ -180,45 +181,42 @@ export default function AllAccountsScreen() {
       />
 
       {showSortSheet ? (
-        <BottomSheet title="Sort accounts" palette={palette} onClose={() => setShowSortSheet(false)}>
-          {SORT_OPTIONS.map((option, index) => (
-            <ChoiceRow
-              key={option.key}
-              title={option.title}
-              selected={sortMode === option.key}
-              palette={palette}
-              noBorder={index === SORT_OPTIONS.length - 1}
-              leftElement={
-                <AppIcon
-                  name={getSortOptionIcon(option.key, option.key === 'alpha' ? alphaDirection : balanceDirection)}
-                  size={20}
-                  color={palette.brand}
-                  strokeWidth={1.8}
-                />
-              }
-              onPress={() => {
-                if (option.key === 'alpha') {
-                  const nextDirection = sortMode === 'alpha' ? (alphaDirection === 'asc' ? 'desc' : 'asc') : alphaDirection;
-                  setSortMode('alpha');
-                  setAlphaDirection(nextDirection);
-                  persistSortedOrder('alpha', nextDirection, balanceDirection).catch(() => undefined);
-                  setShowSortSheet(false);
-                  return;
+        <BottomSheet title="Sort Accounts" palette={palette} onClose={() => setShowSortSheet(false)}>
+          {SORT_OPTIONS.map((option, index) => {
+            const isSelected = sortMode === option.key && (option.key === 'custom' || (option.key === 'alpha' ? alphaDirection : balanceDirection) === option.direction);
+            return (
+              <ChoiceRow
+                key={`${option.key}-${option.direction ?? 'custom'}`}
+                title={option.title}
+                selected={isSelected}
+                palette={palette}
+                noBorder={index === SORT_OPTIONS.length - 1}
+                leftElement={
+                  <AppIcon
+                    name={getSortOptionIcon(option.key, option.direction ?? 'asc')}
+                    size={20}
+                    color={palette.brand}
+                    strokeWidth={1.8}
+                  />
                 }
-                if (option.key === 'balance') {
-                  const nextDirection = sortMode === 'balance' ? (balanceDirection === 'asc' ? 'desc' : 'asc') : balanceDirection;
-                  setSortMode('balance');
-                  setBalanceDirection(nextDirection);
-                  persistSortedOrder('balance', alphaDirection, nextDirection).catch(() => undefined);
+                onPress={() => {
+                  if (option.key === 'alpha' && option.direction) {
+                    setSortMode('alpha');
+                    setAlphaDirection(option.direction);
+                    persistSortedOrder('alpha', option.direction, balanceDirection).catch(() => undefined);
+                  } else if (option.key === 'balance' && option.direction) {
+                    setSortMode('balance');
+                    setBalanceDirection(option.direction);
+                    persistSortedOrder('balance', alphaDirection, option.direction).catch(() => undefined);
+                  } else if (option.key === 'custom') {
+                    setSortMode('custom');
+                    setCustomDirty(true);
+                  }
                   setShowSortSheet(false);
-                  return;
-                }
-                if (option.key === 'custom') setCustomDirty(true);
-                setSortMode(option.key);
-                setShowSortSheet(false);
-              }}
-            />
-          ))}
+                }}
+              />
+            );
+          })}
         </BottomSheet>
       ) : null}
     </View>

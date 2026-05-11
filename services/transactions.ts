@@ -20,9 +20,22 @@ type TransactionExecutor = Pick<typeof db, 'select' | 'update'>;
 function parseReceiptImageUris(receiptImageUris?: string | null): string[] {
   if (!receiptImageUris) return [];
   try {
-    const parsed = JSON.parse(receiptImageUris);
+    const parsed = typeof receiptImageUris === 'string' ? JSON.parse(receiptImageUris) : receiptImageUris;
     if (Array.isArray(parsed)) {
       return parsed.filter((uri): uri is string => typeof uri === 'string' && uri.length > 0);
+    }
+  } catch {
+    return [];
+  }
+  return [];
+}
+
+function parseTags(tags?: string | null): string[] {
+  if (!tags) return [];
+  try {
+    const parsed = typeof tags === 'string' ? JSON.parse(tags) : tags;
+    if (Array.isArray(parsed)) {
+      return parsed.filter((t): t is string => typeof t === 'string');
     }
   } catch {
     return [];
@@ -42,7 +55,7 @@ function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
     loanTransactionType: (row.loanTransactionType as Transaction['loanTransactionType']) ?? undefined,
     categoryId: row.categoryId ?? undefined,
     payee: row.payee ?? undefined,
-    tags: JSON.parse(row.tags),
+    tags: parseTags(row.tags),
     note: row.note ?? undefined,
     receiptImageUris: parseReceiptImageUris(row.receiptImageUris),
     date: row.date,

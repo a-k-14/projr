@@ -1,8 +1,8 @@
 import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
-import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -15,15 +15,12 @@ import {
 } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import Animated, {
-  FadeInDown,
-  FadeOutDown,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useEvent,
   useHandler,
   useSharedValue,
-  withTiming,
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,8 +30,6 @@ import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppDonutChart } from '../../components/ui/AppDonutChart';
 import { AppIcon } from '../../components/ui/AppIcon';
-import { AppSparklineChart } from '../../components/ui/AppSparklineChart';
-import { AppSwitch } from '../../components/ui/AppSwitch';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
@@ -752,7 +747,7 @@ function CashflowToggleCard({
   const rightLabel = isCashflow ? 'Outflow' : 'Expense';
   const leftAmount = isCashflow ? cashflow.in : inExpSummary.income;
   const rightAmount = isCashflow ? cashflow.out : inExpSummary.expense;
-  
+
   const glassBg = palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.45)';
   const labelColor = palette.textMuted;
   const valueColor = palette.text;
@@ -769,7 +764,7 @@ function CashflowToggleCard({
         <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text, textTransform: 'capitalize' }}>
           {cardPeriod === 'today' ? 'Today' : 'This Month'}
         </Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           delayPressIn={0}
           onPress={() => onCardPeriodChange(cardPeriod === 'today' ? 'month' : 'today')}
           style={{ paddingHorizontal: 8, paddingVertical: 2 }}
@@ -1345,6 +1340,7 @@ function AccountSummaryCard({
   onOpenNetWorth,
   netWorth,
   netWorthChange,
+  incomeExpense,
   hideAmounts,
   heroMode = false,
   children,
@@ -1359,6 +1355,7 @@ function AccountSummaryCard({
   onOpenNetWorth?: () => void;
   netWorth?: number;
   netWorthChange?: number;
+  incomeExpense?: { income: number; expense: number };
   hideAmounts?: boolean;
   heroMode?: boolean;
   children?: React.ReactNode;
@@ -1369,13 +1366,14 @@ function AccountSummaryCard({
   const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
   const chartAccent = palette.positive;
   const heroSurface = palette.isDark ? palette.surface : '#F0F4FC';
-  const heroFabStart = '#24324F';
-  const heroFabEnd = '#31527F';
+  const heroGlow = '#D9E6FF';
   const heroText = heroMode ? '#FFFFFF' : palette.text;
-  const heroMutedText = heroMode ? 'rgba(255,255,255,0.70)' : palette.textMuted;
-  const heroSoftText = heroMode ? 'rgba(255,255,255,0.52)' : palette.textSoft;
-  const netWorthStripBg = heroMode ? 'rgba(255,255,255,0.08)' : palette.isDark ? '#080C14' : '#E8EDF8';
-  const netWorthStripBorder = heroMode ? 'rgba(255,255,255,0.18)' : palette.isDark ? palette.divider : '#D8E0F0';
+  const heroMutedText = heroMode ? 'rgba(255,255,255,0.82)' : palette.textMuted;
+  const heroSoftText = heroMode ? 'rgba(255,255,255,0.66)' : palette.textSoft;
+  const netWorthStripBg = heroMode ? 'rgba(255,255,255,0.085)' : palette.isDark ? '#080C14' : '#E8EDF8';
+  const netWorthStripBorder = heroMode ? 'rgba(255,255,255,0.20)' : palette.isDark ? palette.divider : '#D8E0F0';
+  const heroMetricStripBg = heroMode ? 'rgba(255,255,255,0.055)' : netWorthStripBg;
+  const heroMetricDivider = heroMode ? 'rgba(255,255,255,0.12)' : palette.divider;
 
   const mockChartData = useMemo(() => {
     const base = Math.max(Math.abs(balance), 1);
@@ -1395,162 +1393,221 @@ function AccountSummaryCard({
   const balanceInt = hideAmounts ? '••••' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
   const balanceDec = hideAmounts ? '' : (dotIdx >= 0 ? balanceFormatted!.slice(dotIdx) : '');
   const balanceColor = heroMode ? heroText : balance < 0 ? palette.negative : palette.text;
+  const heroBalanceDigitCount = balanceInt.replace(currencySymbol, '').replace(/[^0-9]/g, '').length;
+  const heroBalanceFontSize = heroBalanceDigitCount >= 9 ? 21 : heroBalanceDigitCount >= 7 ? 23 : heroBalanceDigitCount >= 5 ? 25 : 28;
+  const heroBalanceLineHeight = heroBalanceFontSize + 16;
+  const heroCurrencyFontSize = Math.max(15, heroBalanceFontSize - 8);
+  const heroDecimalFontSize = Math.max(14, heroBalanceFontSize - 9);
+  const nwChangeTone = !netWorthChange ? 'neutral' : netWorthChange > 0 ? 'positive' : 'negative';
+  const nwChangeBg = nwChangeTone === 'positive'
+    ? 'rgba(190,242,100,0.92)'
+    : nwChangeTone === 'negative'
+      ? 'rgba(253,164,175,0.92)'
+      : 'rgba(226,232,240,0.88)';
+  const nwChangeInk = '#111827';
 
   const content = (
     <View
       style={{
         backgroundColor: 'transparent',
-        borderColor: heroMode ? 'rgba(255,255,255,0.14)' : palette.isDark ? palette.borderSoft : '#D0D8EE',
+        borderColor: heroMode ? 'rgba(255,255,255,0.10)' : palette.isDark ? palette.borderSoft : '#D0D8EE',
         borderWidth: 1,
-        borderRadius: heroMode ? 18 : 22,
+        borderRadius: heroMode ? 28 : 22,
         overflow: 'hidden',
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
       <LinearGradient
-        colors={heroMode ? [heroFabStart, heroFabEnd] : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']}
+        colors={heroMode ? ['#23304A', '#1E293B', '#24324F'] : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']}
+        locations={heroMode ? [0, 0.52, 1] : undefined}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      {heroMode ? (
-        <>
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              width: 190,
-              height: 190,
-              borderRadius: 95,
-              right: -32,
-              top: -52,
-              backgroundColor: 'rgba(255,255,255,0.05)',
-            }}
-          />
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              width: 210,
-              height: 210,
-              borderRadius: 105,
-              right: 96,
-              top: -18,
-              backgroundColor: 'rgba(255,255,255,0.045)',
-            }}
-          />
-        </>
-      ) : null}
-      <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: heroMode ? 18 : 20, paddingBottom: heroMode ? 18 : 22 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: heroMode ? 14 : 12, gap: 14 }}>
+      <View style={{ paddingHorizontal: heroMode ? 22 : CARD_PADDING, paddingTop: heroMode ? 20 : 20, paddingBottom: heroMode ? 18 : 22 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: heroMode ? 12 : 12, gap: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {!isAll && (
+            {!heroMode && !isAll && (
               <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: 4, borderRadius: 6 }}>
                 <AppIcon name={ACCOUNT_TYPE_META[accountTypeLabel as AccountType]?.icon ?? 'wallet'} size={12} color={palette.brand} />
               </View>
             )}
-            <Text style={{ fontSize: heroMode ? 14 : HOME_TEXT.tiny, fontWeight: heroMode ? '600' : '700', letterSpacing: heroMode ? 0 : 0.8, color: heroMutedText }}>
+            <Text style={{ fontSize: heroMode ? 10 : HOME_TEXT.tiny, fontWeight: '400', letterSpacing: heroMode ? 0.75 : 0.8, textTransform: 'uppercase', color: heroMutedText }}>
               {isAll ? 'Balance · All Accounts' : accountName}
             </Text>
           </View>
-          {heroMode ? (
-            <Text style={{ fontSize: 14, fontWeight: '600', color: heroMutedText }}>
-              This month
-            </Text>
-          ) : null}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'nowrap', gap: 18 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexShrink: 1, minWidth: 0 }}>
+            {heroMode && currencySymbol ? (
+              <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, lineHeight: heroBalanceLineHeight - 6, fontWeight: '700', color: heroMutedText, marginRight: 5 }}>
+                {currencySymbol}
+              </Text>
+            ) : null}
             <Text
               appWeight="medium"
               numberOfLines={1}
               adjustsFontSizeToFit
-              style={{ fontSize: heroMode ? 32 : 28, fontWeight: '800', color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
+              style={{ fontSize: heroMode ? heroBalanceFontSize : 18, lineHeight: heroMode ? heroBalanceLineHeight : undefined, fontWeight: heroMode ? '600' : '700', color: balanceColor, letterSpacing: heroMode ? -0.35 : -0.6, flexShrink: 1 }}
             >
-              {balanceInt}
+              {heroMode && currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
             </Text>
             {balanceDec ? (
               <Text
                 appWeight="medium"
-                style={{ fontSize: heroMode ? 19 : 17, fontWeight: '700', color: heroMutedText, letterSpacing: -0.3, marginBottom: 3 }}
+                style={{ fontSize: heroMode ? heroDecimalFontSize : 17, fontWeight: '700', color: heroSoftText, letterSpacing: -0.2, marginBottom: heroMode ? 5 : 3 }}
               >
                 {balanceDec}
               </Text>
             ) : null}
           </View>
-          {heroMode && netWorthChange !== undefined ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 28, fontWeight: '800', color: heroText, letterSpacing: -0.4 }}>
-                {`${netWorthChange >= 0 ? '+' : '-'}${Math.abs(netWorthChange).toFixed(1)}%`}
-              </Text>
-              <View style={{ width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' }}>
-                <AppIcon name={netWorthChange >= 0 ? 'trending-up' : 'trending-down'} size={14} color={heroText} strokeWidth={2.2} />
+          {heroMode && onOpenNetWorth && typeof netWorth === 'number' ? (
+            <TouchableOpacity
+              delayPressIn={0}
+              activeOpacity={0.78}
+              onPress={onOpenNetWorth}
+              style={{
+                minHeight: 34,
+                maxWidth: 132,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.16)',
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 7,
+                flexShrink: 0,
+              }}
+            >
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontSize: 9.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.35, textTransform: 'uppercase' }}>
+                  NW
+                </Text>
+                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 12.5, fontWeight: '600', color: heroText, marginTop: 1 }}>
+                  {hideAmounts ? '••••' : formatNetWorthStripValue(netWorth, currencySymbol)}
+                </Text>
               </View>
-            </View>
+              <AppIcon name="arrow-up-right" size={14} color={heroMutedText} strokeWidth={2.1} />
+            </TouchableOpacity>
           ) : null}
         </View>
 
-        {onOpenNetWorth ? (
-          <>
-          {heroMode ? (
-            <View style={{ marginTop: 16, marginBottom: 12 }}>
-              <View style={{ borderTopWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.36)' }} />
-              <View style={{ position: 'absolute', left: -CARD_PADDING - 13, top: -13, width: 26, height: 26, borderRadius: 13, backgroundColor: palette.background }} />
-              <View style={{ position: 'absolute', right: -CARD_PADDING - 13, top: -13, width: 26, height: 26, borderRadius: 13, backgroundColor: palette.background }} />
-            </View>
-          ) : null}
-          <TouchableOpacity
-            delayPressIn={0}
-            activeOpacity={0.78}
-            onPress={onOpenNetWorth}
-            style={{
-              minHeight: heroMode ? 34 : 42,
-              marginTop: heroMode ? 0 : 18,
-              borderRadius: heroMode ? 0 : 16,
-              borderWidth: 1,
-              borderColor: heroMode ? 'transparent' : netWorthStripBorder,
-              paddingHorizontal: heroMode ? 0 : 12,
-              paddingVertical: heroMode ? 0 : 8,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              backgroundColor: heroMode ? 'transparent' : netWorthStripBg,
-            }}
-          >
-            <Text style={{ fontSize: heroMode ? 14 : 12, fontWeight: '600', color: heroMutedText, letterSpacing: 0.1 }}>
-              Net Worth
-            </Text>
-            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: heroMode ? 15 : 14, fontWeight: '800', color: heroText, flexShrink: 1 }}>
-              {hideAmounts ? '••••' : formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
-            </Text>
-            <View style={{ flex: 1 }} />
-            {netWorthChange !== undefined && !heroMode && (
-              <View style={{
+        {heroMode && incomeExpense ? (
+            <View
+              style={{
+                width: '100%',
+                minHeight: 36,
+                marginTop: 16,
+                borderRadius: 15,
+                borderWidth: 1,
+                borderColor: netWorthStripBorder,
+                backgroundColor: heroMetricStripBg,
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 3,
-                backgroundColor: netWorthChange === 0
-                  ? (palette.isDark ? 'rgba(255,255,255,0.08)' : '#E4E9F2')
-                  : netWorthChange > 0
-                    ? (palette.isDark ? 'rgba(34,197,94,0.12)' : 'rgba(22,163,74,0.10)')
-                    : (palette.isDark ? 'rgba(239,68,68,0.12)' : 'rgba(220,38,38,0.10)'),
-                borderRadius: 999,
-                paddingHorizontal: 7,
-                paddingVertical: 3,
-              }}>
-                {netWorthChange !== 0 && (
-                  <AppIcon
-                    name={netWorthChange > 0 ? 'trending-up' : 'trending-down'}
-                    size={11}
-                    color={netWorthChange > 0 ? palette.positive : palette.negative}
-                    strokeWidth={2.5}
-                  />
-                )}
-                <Text style={{ fontSize: 11, fontWeight: '700', color: netWorthChange === 0 ? palette.textMuted : netWorthChange > 0 ? palette.positive : palette.negative }}>
-                  {Math.abs(netWorthChange).toFixed(1)}%
-                </Text>
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+              }}
+            >
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <AppIcon name="arrow-down-left" size={13} color={heroSoftText} strokeWidth={1.9} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontSize: 10.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                      Income
+                    </Text>
+                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13, fontWeight: '500', color: heroText, marginTop: 2 }}>
+                      {hideAmounts ? '••••' : formatCurrency(incomeExpense.income, currencySymbol)}
+                    </Text>
+                  </View>
+                </View>
               </View>
-            )}
+              <View style={{ width: 1, height: 22, backgroundColor: heroMetricDivider, marginHorizontal: 12 }} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <AppIcon name="arrow-up-right" size={13} color={heroSoftText} strokeWidth={1.9} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontSize: 10.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                      Expense
+                    </Text>
+                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13, fontWeight: '500', color: heroText, marginTop: 2 }}>
+                      {hideAmounts ? '••••' : formatCurrency(incomeExpense.expense, currencySymbol)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+        ) : null}
+        {onOpenNetWorth && !heroMode ? (
+          <>
+            <TouchableOpacity
+              delayPressIn={0}
+              activeOpacity={0.78}
+              onPress={onOpenNetWorth}
+              style={{
+                width: heroMode ? '100%' : undefined,
+                minHeight: heroMode ? 36 : 42,
+                marginTop: heroMode ? (incomeExpense ? 8 : 15) : 18,
+                borderRadius: heroMode ? 15 : 16,
+                borderWidth: 1,
+                borderColor: netWorthStripBorder,
+                paddingHorizontal: heroMode ? 12 : 12,
+                paddingVertical: heroMode ? 5 : 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: heroMode ? 8 : 8,
+                backgroundColor: netWorthStripBg,
+                shadowColor: heroMode ? '#FFFFFF' : '#000000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: heroMode ? 0.08 : 0,
+                shadowRadius: heroMode ? 10 : 0,
+              }}
+            >
+              <Text style={{ fontSize: heroMode ? 11 : 12, fontWeight: heroMode ? '600' : '800', color: heroMode ? heroMutedText : heroMutedText, letterSpacing: heroMode ? 0.45 : 0.1, textTransform: heroMode ? 'uppercase' : 'none' }}>
+                Net Worth
+              </Text>
+              <Text appWeight="medium" numberOfLines={1} style={{ fontSize: heroMode ? 14 : 14, fontWeight: heroMode ? '500' : '900', color: heroText, flexShrink: 1 }}>
+                {hideAmounts ? '••••' : formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
+              </Text>
+              <View style={{ flex: 1 }} />
+              {netWorthChange !== undefined && heroMode ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 }}>
+                  {nwChangeTone === 'neutral' ? null : (
+                    <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={11} color={nwChangeInk} strokeWidth={2.4} />
+                  )}
+                  <Text appWeight="medium" style={{ fontSize: 11, fontWeight: '600', color: nwChangeInk }}>
+                    {nwChangeTone === 'neutral' ? '-' : `${Math.abs(netWorthChange).toFixed(1)}%`}
+                  </Text>
+                </View>
+              ) : null}
+              {netWorthChange !== undefined && !heroMode && (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 3,
+                  backgroundColor: netWorthChange === 0
+                    ? (palette.isDark ? 'rgba(255,255,255,0.08)' : '#E4E9F2')
+                    : netWorthChange > 0
+                      ? (palette.isDark ? 'rgba(34,197,94,0.12)' : 'rgba(22,163,74,0.10)')
+                      : (palette.isDark ? 'rgba(239,68,68,0.12)' : 'rgba(220,38,38,0.10)'),
+                  borderRadius: 999,
+                  paddingHorizontal: 7,
+                  paddingVertical: 3,
+                }}>
+                  {netWorthChange !== 0 && (
+                    <AppIcon
+                      name={netWorthChange > 0 ? 'trending-up' : 'trending-down'}
+                      size={11}
+                      color={netWorthChange > 0 ? palette.positive : palette.negative}
+                      strokeWidth={2.5}
+                    />
+                  )}
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: netWorthChange === 0 ? palette.textMuted : netWorthChange > 0 ? palette.positive : palette.negative }}>
+                    {Math.abs(netWorthChange).toFixed(1)}%
+                  </Text>
+                </View>
+              )}
             <AppIcon name="chevron-right" size={16} color={heroSoftText} strokeWidth={2.1} />
           </TouchableOpacity>
           </>
@@ -2077,7 +2134,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [cashflowCardPeriod, setCashflowCardPeriod] = useState<'today' | 'month'>('today');
   const [cashflowCardTodaySummary, setCashflowCardTodaySummary] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [cashflowCardMonthSummary, setCashflowCardMonthSummary] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
-  const [monthCashflowForNW, setMonthCashflowForNW] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
   const todayDataCacheRef = useRef<{
@@ -2106,10 +2162,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     const monthFrom = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
     const monthTo = now.toISOString();
     getCashflowSummary(accountId, todayFrom, todayTo).then(setCashflowCardTodaySummary).catch(() => undefined);
-    getCashflowSummary(accountId, monthFrom, monthTo).then((s) => {
-      setCashflowCardMonthSummary(s);
-      setMonthCashflowForNW(s);
-    }).catch(() => undefined);
+    getCashflowSummary(accountId, monthFrom, monthTo).then(setCashflowCardMonthSummary).catch(() => undefined);
   }, [accountId, isPageReady, isScreenFocused]);
 
   const loadRangeData = useCallback(async (rangeFrom: string, rangeTo: string) => {
@@ -2272,12 +2325,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             palette={palette}
             onOpenNetWorth={accountId === 'all' ? onOpenNetWorth : undefined}
             netWorth={accountId === 'all' ? netWorth : undefined}
-            netWorthChange={(() => {
-              if (accountId !== 'all' || !netWorth) return undefined;
-              const netChange = monthCashflowForNW.net;
-              const nwAtStart = netWorth - netChange;
-              return Math.abs(nwAtStart) > 0 ? (netChange / Math.abs(nwAtStart)) * 100 : 0;
-            })()}
+            incomeExpense={incExpSummary}
             hideAmounts={hideAmounts}
             heroMode
           />
@@ -2288,7 +2336,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: 32 }}
+            style={{ height: 20 }}
           />
         </View>
 
