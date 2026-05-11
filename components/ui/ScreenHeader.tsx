@@ -16,6 +16,8 @@ interface ScreenHeaderProps {
   titleSize?: number;
 }
 
+import { PillIconButton } from './PillIconButton';
+
 export function HeaderIconButton({
   icon,
   onPress,
@@ -28,20 +30,12 @@ export function HeaderIconButton({
   active?: boolean;
 }) {
   return (
-    <TouchableOpacity
-      delayPressIn={0}
-      activeOpacity={0.72}
+    <PillIconButton
+      icon={icon as any}
       onPress={onPress}
-      style={[
-        styles.iconPill,
-        {
-          backgroundColor: active ? palette.brandSoft : palette.surface,
-          borderColor: active ? palette.brand : palette.divider,
-        },
-      ]}
-    >
-      <AppIcon name={icon} size={17} color={active ? palette.brand : palette.textMuted} strokeWidth={1.8} />
-    </TouchableOpacity>
+      palette={palette}
+      active={active}
+    />
   );
 }
 
@@ -59,10 +53,38 @@ export function HeaderAddButton({
       delayPressIn={0}
       activeOpacity={0.78}
       onPress={onPress}
-      style={[styles.addButton, { backgroundColor: palette.brand }]}
+      style={[styles.headerButton, styles.addButton, { backgroundColor: palette.brand }]}
     >
-      <AppIcon name="plus" size={16} color="#FFFFFF" strokeWidth={2} />
-      <Text style={styles.addButtonText}>{label}</Text>
+      <AppIcon name="plus" size={14} color="#FFFFFF" strokeWidth={2} />
+      <Text style={[styles.headerButtonText, styles.addButtonText]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+export function HeaderEditButton({
+  onPress,
+  palette,
+  label = 'Edit',
+}: {
+  onPress: () => void;
+  palette: AppThemePalette;
+  label?: string;
+}) {
+  return (
+    <TouchableOpacity
+      delayPressIn={0}
+      activeOpacity={0.78}
+      onPress={onPress}
+      style={[
+        styles.headerButton,
+        {
+          backgroundColor: palette.brandSoft,
+          borderWidth: 1.5,
+          borderColor: palette.brand,
+        },
+      ]}
+    >
+      <Text style={[styles.headerButtonText, { color: palette.brand }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -140,21 +162,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addButton: {
-    minWidth: 62,
+  headerButton: {
+    minWidth: 58,
     height: 28,
     borderRadius: 14,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
+  },
+  headerButtonText: {
+    fontSize: 12.5,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  addButton: {
     backgroundColor: '#050505',
   },
   addButtonText: {
-    fontSize: 12.5,
-    lineHeight: 16,
-    fontWeight: '500',
     color: '#FFFFFF',
   },
 });

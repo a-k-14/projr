@@ -1,5 +1,5 @@
 import { AppIcon } from '@/components/ui/AppIcon';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderEditButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
@@ -135,25 +135,13 @@ export default function LoanDetailScreen() {
                 palette={palette}
                 titleSize={25}
                 rightAction={
-                  <TouchableOpacity
-                    delayPressIn={0}
+                  <HeaderEditButton
+                    palette={palette}
                     onPress={() => {
                       if (!originTx) return;
                       router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
                     }}
-                    style={{
-                      backgroundColor: palette.brandSoft,
-                      borderWidth: 1.5,
-                      borderColor: palette.brand,
-                      borderRadius: 20,
-                      paddingHorizontal: 10,
-                      paddingVertical: 4,
-                    }}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: '500', color: palette.brand }}>
-                      Edit
-                    </Text>
-                  </TouchableOpacity>
+                  />
                 }
               />
             </View>

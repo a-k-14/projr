@@ -150,9 +150,9 @@ function SettingsAccountCard({
             borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: `${typeMeta.color}18`,
+            backgroundColor: typeMeta.bg ?? `${typeMeta.color}18`,
             borderWidth: 1,
-            borderColor: `${typeMeta.color}30`,
+            borderColor: typeMeta.bg ? `${typeMeta.color}20` : `${typeMeta.color}30`,
             marginRight: 14,
           }}
         >

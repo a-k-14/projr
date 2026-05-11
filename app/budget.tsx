@@ -267,7 +267,7 @@ function BudgetCard({
       icon={isEmojiIcon(budget.categoryIcon) ? (
         <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{budget.categoryIcon}</Text>
       ) : (
-        <AppIcon name={budget.categoryIcon as any} size={17} color={palette.iconTint} />
+        <AppIcon name={budget.categoryIcon as any} size={17} color={palette.budget} />
       )}
       topRow={
         <CardTitleRow

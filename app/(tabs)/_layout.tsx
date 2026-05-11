@@ -17,6 +17,7 @@ const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
 
 const VISIBLE_TAB_NAMES = ['index', 'activity', 'insights', 'settings'] as const;
 const TAB_BAR_SLOTS = ['index', 'activity', 'add', 'insights', 'settings'] as const;
+const TAB_NAVIGATION_DELAY_MS = 90;
 
 const BACKGROUND_RESET_ENABLED: Record<string, boolean> = {
   index: true,
@@ -52,7 +53,21 @@ function AppTabBar({
   const getPillTarget = (slotIndex: number) =>
     Math.max(slotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2;
   const requestedSlotRef = useRef(activeSlotIndex);
+  const pendingNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pillX = useSharedValue(getPillTarget(activeSlotIndex));
+
+  const clearPendingNavigation = () => {
+    if (pendingNavigationTimeoutRef.current) {
+      clearTimeout(pendingNavigationTimeoutRef.current);
+      pendingNavigationTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearPendingNavigation();
+    };
+  }, []);
 
   useEffect(() => {
     if (requestedSlotRef.current === activeSlotIndex) return;
@@ -107,7 +122,10 @@ function AppTabBar({
                 key="add"
                 delayPressIn={0}
                 activeOpacity={0.88}
-                onPress={() => router.push('/modals/add-transaction')}
+                onPress={() => {
+                  clearPendingNavigation();
+                  router.push('/modals/add-transaction');
+                }}
                 style={{
                   width: itemWidth,
                   height: tabHeight,
@@ -150,6 +168,7 @@ function AppTabBar({
           const item = TAB_ITEMS[route.name] ?? TAB_ITEMS.index;
 
           const onPress = () => {
+            clearPendingNavigation();
             const leavingRouteName = state.routes[state.index]?.name;
             const event = navigation.emit({
               type: 'tabPress',
@@ -170,16 +189,19 @@ function AppTabBar({
               pillX.value = withTiming(getPillTarget(nextSlotIndex), { duration: 210 });
             }
 
-            navigation.navigate(route.name, route.params);
-            if (leavingRouteName && BACKGROUND_RESET_ENABLED[leavingRouteName]) {
-              runAfterTabHidden(() => {
-                const latestState = navigation.getState?.();
-                const latestRouteName = latestState?.routes?.[latestState.index]?.name;
-                if (latestRouteName !== leavingRouteName) {
-                  getTabReset(leavingRouteName)?.({ mode: 'background', animated: false });
-                }
-              });
-            }
+            pendingNavigationTimeoutRef.current = setTimeout(() => {
+              pendingNavigationTimeoutRef.current = null;
+              navigation.navigate(route.name, route.params);
+              if (leavingRouteName && BACKGROUND_RESET_ENABLED[leavingRouteName]) {
+                runAfterTabHidden(() => {
+                  const latestState = navigation.getState?.();
+                  const latestRouteName = latestState?.routes?.[latestState.index]?.name;
+                  if (latestRouteName !== leavingRouteName) {
+                    getTabReset(leavingRouteName)?.({ mode: 'background', animated: false });
+                  }
+                });
+              }
+            }, TAB_NAVIGATION_DELAY_MS);
           };
 
           return (

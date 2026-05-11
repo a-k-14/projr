@@ -236,11 +236,25 @@ export default function CategoryFormScreen() {
         <View style={{ gap: SPACING.md }}>
           <SectionLabel label="General Info" palette={palette} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.md }}>
-            <TouchableOpacity delayPressIn={0} onPress={() => runAfterKeyboardDismiss(() => setShowIconPicker(true))} activeOpacity={0.7}>
+            <TouchableOpacity
+              delayPressIn={0}
+              onPress={() => runAfterKeyboardDismiss(() => setShowIconPicker(true))}
+              activeOpacity={0.7}
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: palette.border,
+                backgroundColor: palette.surface,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               <CategoryIconBadge
                 icon={icon}
                 size={HOME_LAYOUT.listIconInnerSize}
-                bgSize={52}
+                bgSize={42}
                 palette={palette}
                 backgroundColor="transparent"
               />

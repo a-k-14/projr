@@ -117,10 +117,10 @@ export default function CategoriesScreen() {
                     }
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 4 }}
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: 26,
+                      height: 26,
                       borderRadius: 8,
-                      backgroundColor: palette.inputBg,
+                      backgroundColor: palette.isDark ? '#1E2330' : '#F5F7FB',
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}

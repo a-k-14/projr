@@ -30,6 +30,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../../components/ui/ListHeading';
+import { PillIconButton } from '../../components/ui/PillIconButton';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import {
   getNavigableDateRange,
@@ -1198,12 +1199,11 @@ export default function ActivityScreen() {
 
             <View style={{ flex: 1 }} />
 
-            <TouchableOpacity delayPressIn={0}
+            <PillIconButton
+              icon="search"
               onPress={() => toggleSearch(true)}
-              style={[styles.iconBtn, { backgroundColor: palette.surface, borderColor: palette.divider }]}
-            >
-              <AppIcon name="search" size={17} color={palette.textMuted} />
-            </TouchableOpacity>
+              palette={palette}
+            />
           </View>
         </View>
       )}
@@ -1689,19 +1689,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderWidth: 1
-  },
-  iconBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: ACTIVITY_LAYOUT.chipRadius,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1
   },
   row: {
     flexDirection: 'row',

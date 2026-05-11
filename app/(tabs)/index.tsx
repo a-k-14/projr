@@ -293,7 +293,7 @@ function HomeScreenContent() {
   const activeDepositCount = depositSummary.deposits.filter((d: any) => d.status === 'active').length;
   const depositMeta = activeDepositCount === 0
     ? 'No active deposits'
-    : `${activeDepositCount} active · ${formatNetWorthStripValue(depositSummary.activeMaturityValue, displaySymbol)}`;
+    : `${activeDepositCount} Active · ${formatNetWorthStripValue(depositSummary.activeMaturityValue, displaySymbol)}`;
   const loanMeta = loanSummary.youLent === 0 && loanSummary.youOwe === 0
     ? 'No loans'
     : `${loanSummary.net >= 0 ? 'Net Lent' : 'Net Owed'} · ${formatNetWorthStripValue(Math.abs(loanSummary.net), displaySymbol)}`;
@@ -326,7 +326,8 @@ function HomeScreenContent() {
       icon: 'pie-chart',
       route: '/budget',
       meta: budgetMeta,
-      tone: budgetSummary.spentPercent > 100 ? palette.negative : palette.positive,
+      tone: '#4F46E5',
+      bg: '#F0F2FF',
     },
   ] as const;
 
@@ -374,7 +375,7 @@ function HomeScreenContent() {
                       borderRadius: 12,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: `${typeColor}18`,
+                      backgroundColor: typeMeta.bg ?? `${typeColor}18`,
                     }}
                   >
                     <AppIcon name={typeMeta.icon} size={18} color={typeColor} strokeWidth={1.8} />
@@ -421,11 +422,11 @@ function HomeScreenContent() {
         <Text appWeight="medium" style={{ fontSize: 17, fontWeight: '600', color: palette.text }}>More</Text>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: SCREEN_GUTTER }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {moreCards.map((feature) => (
           <MoreShortcutCard key={feature.id} feature={feature} palette={palette} />
         ))}
-      </ScrollView>
+      </View>
 
     </View>
   );
@@ -617,6 +618,7 @@ function MoreShortcutCard({
     route: string;
     meta: string;
     tone: string;
+    bg?: string;
   };
   palette: AppThemePalette;
 }) {
@@ -625,12 +627,12 @@ function MoreShortcutCard({
       delayPressIn={0}
       onPress={() => router.push(feature.route as any)}
       activeOpacity={0.78}
-      style={{ width: 140 }}
+      style={{ width: '48.2%' }}
     >
       <View
         style={{
-          height: 130,
-          padding: 14,
+          height: 124,
+          padding: 16,
           borderRadius: 22,
           borderWidth: 1,
           borderColor: palette.borderSoft,
@@ -646,7 +648,7 @@ function MoreShortcutCard({
               borderRadius: 13,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: `${feature.tone}18`,
+              backgroundColor: feature.bg ?? `${feature.tone}18`,
             }}
           >
             <AppIcon name={feature.icon} size={18} color={feature.tone} strokeWidth={1.8} />
@@ -1367,8 +1369,13 @@ function AccountSummaryCard({
   const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
   const chartAccent = palette.positive;
   const heroSurface = palette.isDark ? palette.surface : '#F0F4FC';
-  const netWorthStripBg = palette.isDark ? '#080C14' : '#E8EDF8';
-  const netWorthStripBorder = palette.isDark ? palette.divider : '#D8E0F0';
+  const heroFabStart = '#24324F';
+  const heroFabEnd = '#31527F';
+  const heroText = heroMode ? '#FFFFFF' : palette.text;
+  const heroMutedText = heroMode ? 'rgba(255,255,255,0.70)' : palette.textMuted;
+  const heroSoftText = heroMode ? 'rgba(255,255,255,0.52)' : palette.textSoft;
+  const netWorthStripBg = heroMode ? 'rgba(255,255,255,0.08)' : palette.isDark ? '#080C14' : '#E8EDF8';
+  const netWorthStripBorder = heroMode ? 'rgba(255,255,255,0.18)' : palette.isDark ? palette.divider : '#D8E0F0';
 
   const mockChartData = useMemo(() => {
     const base = Math.max(Math.abs(balance), 1);
@@ -1387,84 +1394,137 @@ function AccountSummaryCard({
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
   const balanceInt = hideAmounts ? '••••' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
   const balanceDec = hideAmounts ? '' : (dotIdx >= 0 ? balanceFormatted!.slice(dotIdx) : '');
-  const balanceColor = balance < 0 ? palette.negative : palette.text;
+  const balanceColor = heroMode ? heroText : balance < 0 ? palette.negative : palette.text;
 
   const content = (
     <View
       style={{
         backgroundColor: 'transparent',
-        borderColor: palette.isDark ? palette.borderSoft : '#D0D8EE',
+        borderColor: heroMode ? 'rgba(255,255,255,0.14)' : palette.isDark ? palette.borderSoft : '#D0D8EE',
         borderWidth: 1,
-        borderRadius: 22,
+        borderRadius: heroMode ? 18 : 22,
         overflow: 'hidden',
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
       <LinearGradient
-        colors={palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']}
+        colors={heroMode ? [heroFabStart, heroFabEnd] : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 20, paddingBottom: 22 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      {heroMode ? (
+        <>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              width: 190,
+              height: 190,
+              borderRadius: 95,
+              right: -32,
+              top: -52,
+              backgroundColor: 'rgba(255,255,255,0.05)',
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              width: 210,
+              height: 210,
+              borderRadius: 105,
+              right: 96,
+              top: -18,
+              backgroundColor: 'rgba(255,255,255,0.045)',
+            }}
+          />
+        </>
+      ) : null}
+      <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: heroMode ? 18 : 20, paddingBottom: heroMode ? 18 : 22 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: heroMode ? 14 : 12, gap: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {!isAll && (
               <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: 4, borderRadius: 6 }}>
                 <AppIcon name={ACCOUNT_TYPE_META[accountTypeLabel as AccountType]?.icon ?? 'wallet'} size={12} color={palette.brand} />
               </View>
             )}
-            <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: palette.textMuted }}>
+            <Text style={{ fontSize: heroMode ? 14 : HOME_TEXT.tiny, fontWeight: heroMode ? '600' : '700', letterSpacing: heroMode ? 0 : 0.8, color: heroMutedText }}>
               {isAll ? 'Balance · All Accounts' : accountName}
             </Text>
           </View>
+          {heroMode ? (
+            <Text style={{ fontSize: 14, fontWeight: '600', color: heroMutedText }}>
+              This month
+            </Text>
+          ) : null}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
-          <Text
-            appWeight="medium"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            style={{ fontSize: 28, fontWeight: '800', color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
-          >
-            {balanceInt}
-          </Text>
-          {balanceDec ? (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'nowrap', gap: 18 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexShrink: 1, minWidth: 0 }}>
             <Text
               appWeight="medium"
-              style={{ fontSize: 17, fontWeight: '700', color: palette.textMuted, letterSpacing: -0.3, marginBottom: 3 }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={{ fontSize: heroMode ? 32 : 28, fontWeight: '800', color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
             >
-              {balanceDec}
+              {balanceInt}
             </Text>
+            {balanceDec ? (
+              <Text
+                appWeight="medium"
+                style={{ fontSize: heroMode ? 19 : 17, fontWeight: '700', color: heroMutedText, letterSpacing: -0.3, marginBottom: 3 }}
+              >
+                {balanceDec}
+              </Text>
+            ) : null}
+          </View>
+          {heroMode && netWorthChange !== undefined ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 28, fontWeight: '800', color: heroText, letterSpacing: -0.4 }}>
+                {`${netWorthChange >= 0 ? '+' : '-'}${Math.abs(netWorthChange).toFixed(1)}%`}
+              </Text>
+              <View style={{ width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' }}>
+                <AppIcon name={netWorthChange >= 0 ? 'trending-up' : 'trending-down'} size={14} color={heroText} strokeWidth={2.2} />
+              </View>
+            </View>
           ) : null}
         </View>
 
         {onOpenNetWorth ? (
+          <>
+          {heroMode ? (
+            <View style={{ marginTop: 16, marginBottom: 12 }}>
+              <View style={{ borderTopWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.36)' }} />
+              <View style={{ position: 'absolute', left: -CARD_PADDING - 13, top: -13, width: 26, height: 26, borderRadius: 13, backgroundColor: palette.background }} />
+              <View style={{ position: 'absolute', right: -CARD_PADDING - 13, top: -13, width: 26, height: 26, borderRadius: 13, backgroundColor: palette.background }} />
+            </View>
+          ) : null}
           <TouchableOpacity
             delayPressIn={0}
             activeOpacity={0.78}
             onPress={onOpenNetWorth}
             style={{
-              minHeight: 42,
-              marginTop: 18,
-              borderRadius: 16,
+              minHeight: heroMode ? 34 : 42,
+              marginTop: heroMode ? 0 : 18,
+              borderRadius: heroMode ? 0 : 16,
               borderWidth: 1,
-              borderColor: netWorthStripBorder,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              borderColor: heroMode ? 'transparent' : netWorthStripBorder,
+              paddingHorizontal: heroMode ? 0 : 12,
+              paddingVertical: heroMode ? 0 : 8,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: netWorthStripBg,
+              backgroundColor: heroMode ? 'transparent' : netWorthStripBg,
             }}
           >
-            <Text style={{ fontSize: 12, fontWeight: '600', color: palette.textMuted, letterSpacing: 0.1 }}>
+            <Text style={{ fontSize: heroMode ? 14 : 12, fontWeight: '600', color: heroMutedText, letterSpacing: 0.1 }}>
               Net Worth
             </Text>
-            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 14, fontWeight: '700', color: palette.text, flexShrink: 1 }}>
+            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: heroMode ? 15 : 14, fontWeight: '800', color: heroText, flexShrink: 1 }}>
               {hideAmounts ? '••••' : formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
             </Text>
             <View style={{ flex: 1 }} />
-            {netWorthChange !== undefined && (
+            {netWorthChange !== undefined && !heroMode && (
               <View style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -1491,8 +1551,9 @@ function AccountSummaryCard({
                 </Text>
               </View>
             )}
-            <AppIcon name="chevron-right" size={16} color={palette.textSoft} strokeWidth={2.1} />
+            <AppIcon name="chevron-right" size={16} color={heroSoftText} strokeWidth={2.1} />
           </TouchableOpacity>
+          </>
         ) : null}
       </View>
     </View>

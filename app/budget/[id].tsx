@@ -1,5 +1,5 @@
 import { AppIcon } from '@/components/ui/AppIcon';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderEditButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo } from 'react';
@@ -68,22 +68,10 @@ export default function BudgetDetailScreen() {
                 showBack={true}
                 titleSize={25}
                 rightAction={
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    onPress={() => router.push({ pathname: '/modals/budget-form', params: { editId: budget.id } })}
-                    style={{
-                      backgroundColor: palette.brandSoft,
-                      borderWidth: 1.5,
-                      borderColor: palette.brand,
-                      borderRadius: 20,
-                      paddingHorizontal: 10,
-                      paddingVertical: 4,
-                    }}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: '500', color: palette.brand }}>
-                      Edit
-                    </Text>
-                  </TouchableOpacity>
+                  <HeaderEditButton
+                    palette={palette}
+                    onPress={() => router.push({ pathname: '/modals/budget-form', params: { budgetId: budget.id } })}
+                  />
                 }
               />
             </View>

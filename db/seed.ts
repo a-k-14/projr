@@ -17,17 +17,7 @@ async function clearDemoData(): Promise<void> {
 
 export async function seedDatabase(): Promise<void> {
   const existing = await accountsService.getAccounts();
-  // We check for these names specifically to avoid re-seeding if the user has already customized their accounts.
-  const sampleNames = ['Cash', 'Credit Card', 'Wallet', 'Savings Account'];
-  const looksLikeStarterData =
-    existing.length > 0 &&
-    existing.every((account) => sampleNames.includes(account.name));
-
-  // If there's data and it doesn't look like our starter data, don't touch it.
-  if (existing.length > 0 && !looksLikeStarterData) return;
-
-  // If it's already seeded starter data, or if it's empty, we clear and re-seed (or fresh seed).
-  await clearDemoData();
+  if (existing.length > 0) return;
 
   // 1. Accounts
   await accountsService.createAccount({
@@ -227,4 +217,57 @@ export async function seedDatabase(): Promise<void> {
   await tagsService.createTag({ name: 'Personal', color: '#EC4899' });
   await tagsService.createTag({ name: 'Work', color: '#0F766E' });
 
+}
+
+export async function seedMassiveTransactions(count: number = 1000): Promise<void> {
+  const accountsList = await accountsService.getAccounts();
+  const categoriesList = await categoriesService.getCategories();
+  const tagsList = await tagsService.getTags();
+
+  if (accountsList.length === 0 || categoriesList.length === 0) {
+    throw new Error('Seed accounts and categories first.');
+  }
+
+  const expenseCategories = categoriesList.filter(c => c.type === 'out');
+  const incomeCategories = categoriesList.filter(c => c.type === 'in');
+
+  const now = new Date();
+  const startTime = now.getTime() - (365 * 24 * 60 * 60 * 1000); // 1 year ago
+
+  const newTransactions = [];
+
+  for (let i = 0; i < count; i++) {
+    const isIncome = Math.random() > 0.8; // 20% income, 80% expense
+    const category = isIncome
+      ? incomeCategories[Math.floor(Math.random() * incomeCategories.length)]
+      : expenseCategories[Math.floor(Math.random() * expenseCategories.length)];
+    
+    const account = accountsList[Math.floor(Math.random() * accountsList.length)];
+    const amount = isIncome 
+      ? Math.floor(Math.random() * 50000) + 1000 
+      : Math.floor(Math.random() * 2000) + 10;
+    
+    const timestamp = new Date(startTime + Math.random() * (now.getTime() - startTime));
+    const note = `Test ${isIncome ? 'Income' : 'Expense'} ${i + 1}`;
+    
+    newTransactions.push({
+      id: `test-tx-${Date.now()}-${i}`,
+      accountId: account.id,
+      categoryId: category.id,
+      amount: amount,
+      type: isIncome ? 'in' : 'out',
+      date: timestamp.toISOString(),
+      note: note,
+      payee: isIncome ? 'Test Payer' : 'Test Merchant',
+      tags: tagsList.length > 0 ? [tagsList[Math.floor(Math.random() * tagsList.length)].id] : [],
+      createdAt: timestamp.toISOString(),
+      updatedAt: timestamp.toISOString(),
+    });
+  }
+
+  // Insert in batches of 100 for efficiency
+  for (let i = 0; i < newTransactions.length; i += 100) {
+    const batch = newTransactions.slice(i, i + 100);
+    await db.insert(transactions).values(batch);
+  }
 }

@@ -47,12 +47,12 @@ export function getAccountTypeLabel(type?: string): string {
   return ACCOUNT_TYPES.find((item) => item.key === type)?.label ?? 'Account';
 }
 
-export const ACCOUNT_TYPE_META: Record<AccountType, { icon: string; color: string }> = {
+export const ACCOUNT_TYPE_META: Record<AccountType, { icon: string; color: string; bg?: string }> = {
   savings: { icon: 'landmark', color: '#2563EB' },
   cash: { icon: 'banknote', color: '#059669' },
   wallet: { icon: 'wallet', color: '#0F8EA3' },
   investment: { icon: 'trending-up', color: '#7C3AED' },
-  credit: { icon: 'credit-card', color: '#DC2626' },
+  credit: { icon: 'credit-card', color: '#b02221', bg: '#f7eaeb' },
   other: { icon: 'circle-dollar-sign', color: '#64748B' },
 };
 
@@ -91,59 +91,55 @@ type CategoryEmojiGroup = {
 
 const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
   {
-    emojis: ['🍽️', '☕', '🍔', '🍕', '🍜', '🍱', '🥗', '🥦', '🍎', '🥛', '🌮', '🍣', '🍦', '🍩', '🍪', '🥑', '🥞', '🥓', '🥪', '🍻', '🍷', '🍹', '🍾', '🥤', '🍵', '🧃', '🍇', '🍉', '🍌', '🍓', '🍒', '🍑', '🥭', '🍍', '🥕', '🌽', '🍚', '🍛', '🍝', '🥟', '🍗', '🍖', '🥘', '🥡', '🍲'],
+    emojis: ['🍽️', '☕', '🍔', '🍕', '🍜', '🍱', '🥗', '🥦', '🍎', '🥛', '🌮', '🍣', '🍦', '🍩', '🍪', '🥑', '🥞', '🥓', '🥪', '🍻', '🍷', '🍹', '🍾', '🥤', '🍵', '🧃', '🍇', '🍉', '🍌', '🍓', '🍒', '🍑', '🥭', '🍍', '🥕', '🌽', '🍚', '🍛', '🍝', '🥟', '🍗', '🍖', '🥘', '🥡', '🍲', '🍿', '🥨', '🥐', '🥯', '🍰', '🍫', '🍮', '🥥', '🥦', '🍆', '🧅', '🧄', '🥜'],
     keywords: ['food', 'drink', 'coffee', 'tea', 'snack', 'breakfast', 'lunch', 'dinner', 'restaurant', 'cafe', 'grocery', 'groceries', 'meal', 'fruit', 'vegetable'],
   },
   {
-    emojis: ['🛒', '🛍️', '🎁', '📦', '💳', '🧾', '🏷️', '💎', '👟', '👕', '👗', '🧥', '👖', '👔', '👓', '👒', '💄', '🧴', '👜', '⌚', '💍', '🪞', '🪑'],
+    emojis: ['🛒', '🛍️', '🎁', '📦', '💳', '🧾', '🏷️', '💎', '👟', '👕', '👗', '🧥', '👖', '👔', '👓', '👒', '💄', '🧴', '👜', '⌚', '💍', '🪞', '🪑', '👠', '👞', '🎒', '🌂', '👒', '🧣', '🧤'],
     keywords: ['shopping', 'shop', 'retail', 'mall', 'buy', 'purchase', 'clothes', 'fashion', 'beauty', 'cosmetic', 'gift', 'parcel'],
   },
   {
-    emojis: ['🚗', '🚕', '🚌', '🚆', '✈️', '⛵', '⛽', '🅿️', '🚲', '🏍️', '🚁', '🛴', '🚇', '🚢', '🚙', '🚚', '🚐', '🛺', '🚉', '🛣️', '🛫', '🛬'],
+    emojis: ['🚗', '🚕', '🚌', '🚆', '✈️', '⛵', '⛽', '🅿️', '🚲', '🏍️', '🚁', '🛴', '🚇', '🚢', '🚙', '🚚', '🚐', '🛺', '🚉', '🛣️', '🛫', '🛬', '🚲', '🛹', '🛶', '🚠'],
     keywords: ['transport', 'travel', 'car', 'bike', 'bus', 'train', 'flight', 'fuel', 'gas', 'parking', 'taxi', 'commute', 'metro', 'cab'],
   },
   {
-    emojis: ['🏠', '🏡', '🛋️', '🛏️', '🧹', '🧺', '🧽', '🧼', '🧻', '🚽', '🛁', '🚿', '🪴', '💡', '🔦', '🚪', '🪟', '🛒', '🧯', '🪣', '🧴'],
+    emojis: ['🏠', '🏡', '🛋️', '🛏️', '🧹', '🧺', '🧽', '🧼', '🧻', '🚽', '🛁', '🚿', '🪴', '💡', '🔦', '🚪', '🪟', '🛒', '🧯', '🪣', '🧴', '🗝️', '🪑', '🖼️', '🪞', '🧺', '🧷', '🪜', '🪠'],
     keywords: ['home', 'house', 'rent', 'furniture', 'cleaning', 'household', 'laundry', 'bathroom', 'kitchen', 'appliance', 'light'],
   },
   {
-    emojis: ['🎬', '🎵', '🎮', '🎟️', '🎤', '🎧', '🎸', '🎹', '🎨', '🎪', '🎢', '🎡', '🎳', '🎯', '🧩', '🎲', '🎰', '📺', '📸', '📹', '🎭', '🎻', '🥁', '🎼', '🕹️', '🪩'],
+    emojis: ['🎬', '🎵', '🎮', '🎟️', '🎤', '🎧', '🎸', '🎹', '🎨', '🎪', '🎢', '🎡', '🎳', '🎯', '🧩', '🎲', '🎰', '📺', '📸', '📹', '🎭', '🎻', '🥁', '🎼', '🕹️', '🪩', '🔭', '♟️', '🧶', '🧵', '🖍️', '📽️'],
     keywords: ['entertainment', 'fun', 'movie', 'music', 'game', 'gaming', 'ticket', 'show', 'photo', 'camera', 'art', 'hobby', 'streaming'],
   },
   {
-    emojis: ['💊', '🏥', '🩺', '🧘', '🏋️', '🚴', '🏃', '🏊', '🧠', '🩸', '🩹', '🦷', '💪', '🧴', '😴', '🫀', '🩻', '👓'],
+    emojis: ['💊', '🏥', '🩺', '🧘', '🏋️', '🚴', '🏃', '🏊', '🧠', '🩸', '🩹', '🦷', '💪', '🧴', '😴', '🫀', '🩻', '👓', '🧘‍♀️', '🧗', '🚣', '🤾', '🥋', '🥊', '🛹', '🛼'],
     keywords: ['health', 'medical', 'doctor', 'hospital', 'medicine', 'fitness', 'gym', 'yoga', 'wellness', 'therapy', 'dental', 'sleep'],
   },
   {
-    emojis: ['💰', '🏦', '🪙', '📈', '📉', '💸', '💴', '💶', '💷', '💵', '🧮', '📊', '📌'],
+    emojis: ['💰', '🏦', '🪙', '📈', '📉', '💸', '💴', '💶', '💷', '💵', '🧮', '📊', '📌', '💎', '💳', '🧾', '🏧', '⚖️', '🏦'],
     keywords: ['money', 'finance', 'bank', 'investment', 'saving', 'savings', 'income', 'expense', 'budget', 'loan', 'cash', 'salary', 'tax'],
   },
   {
-    emojis: ['💼', '📚', '🏫', '🎓', '✏️', '💻', '🖥️', '🖨️', '📁', '📂', '📊', '📋', '📅', '📆', '📎', '📌', '✂️', '🖋️', '🧑‍💻', '🧑‍🏫', '🧑‍🔬', '🧑‍⚕️'],
+    emojis: ['💼', '📚', '🏫', '🎓', '✏️', '💻', '🖥️', '🖨️', '📁', '📂', '📊', '📋', '📅', '📆', '📎', '📌', '✂️', '🖋️', '🧑‍💻', '🧑‍🏫', '🧑‍🔬', '🧑‍⚕️', '📐', '📓', '📗', '📘', '📒', '🖇️', '🖊️'],
     keywords: ['work', 'office', 'business', 'study', 'education', 'school', 'college', 'course', 'software', 'laptop', 'computer', 'stationery'],
   },
   {
-    emojis: ['🐾', '🐶', '🐱', '🐰', '🐹', '👶', '🧸', '🍼', '🚸', '🎒', '🧒', '🐦', '🐠'],
+    emojis: ['🐾', '🐶', '🐱', '🐰', '🐹', '👶', '🧸', '🍼', '🚸', '🎒', '🧒', '🐦', '🐠', '🦖', '🐉', '🐒', '🦁', '🐘', '🦒', '🦓', '🦄', '🐧', '🦆', '🐢', '🐍'],
     keywords: ['pet', 'pets', 'dog', 'cat', 'baby', 'kids', 'child', 'children', 'school bus', 'toy'],
   },
   {
-    emojis: ['🏖️', '🏝️', '🏕️', '⛺', '🗺️', '🧭', '🧳', '🏨', '🗽', '🗼', '⛩️', '🏞️', '🌋', '🛶', '🎒'],
+    emojis: ['🏖️', '🏝️', '🏕️', '⛺', '🗺️', '🧭', '🧳', '🏨', '🗽', '🗼', '⛩️', '🏞️', '🌋', '🛶', '🎒', '🗿', '🌍', '🌋', '🏔️', '🏜️'],
     keywords: ['trip', 'vacation', 'holiday', 'travel', 'hotel', 'tour', 'camp', 'beach', 'resort', 'outing'],
   },
   {
-    emojis: ['⚡', '📱', '🔧', '🧰', '🛠️', '🔨', '⛏️', '🪚', '🔩', '⚙️', '⚖️', '🔗', '🔌', '🔋', '📡', '📞', '☎️', '📮', '✉️', '🗑️', '🌐', '📶'],
+    emojis: ['⚡', '📱', '🔧', '🧰', '🛠️', '🔨', '⛏️', '🪚', '🔩', '⚙️', '⚖️', '🔗', '🔌', '🔋', '📡', '📞', '☎️', '📮', '✉️', '🗑️', '🌐', '📶', '💡', '🔦', '🔑', '🔓', '🔒', '🛡️'],
     keywords: ['utility', 'utilities', 'service', 'repair', 'internet', 'wifi', 'phone', 'mobile', 'electricity', 'water', 'gas bill', 'maintenance', 'tools'],
   },
   {
-    emojis: ['🧑‍🍳', '🧑‍💻', '🧑‍🏫', '🧑‍⚕️', '🧑‍🔧', '🧑‍🔬', '🧑‍🎨', '🧑‍🚀', '🧑‍🚒', '👮', '🕵️', '💂', '👷', '👩‍⚖️', '🧑‍🌾', '🧑‍💼'],
-    keywords: ['people', 'staff', 'employee', 'worker', 'labor', 'salary', 'service person', 'professional'],
-  },
-  {
-    emojis: ['🌳', '🌿', '🌱', '🌸', '🌧️', '☀️', '🌙', '⭐', '🔥', '💧', '❄️', '🌈'],
+    emojis: ['🌳', '🌿', '🌱', '🌸', '🌧️', '☀️', '🌙', '⭐', '🔥', '💧', '❄️', '🌈', '🌻', '🌲', '🍃', '🌵', '🍂', '🍁', '🍄', '🐚', '🌑', '🌓', '🪐', '☄️'],
     keywords: ['nature', 'garden', 'plant', 'weather', 'season', 'environment'],
   },
   {
-    emojis: ['🏛️', '🪪', '📜', '⚖️', '🛡️', '🚨', '🧾'],
+    emojis: ['🏛️', '🪪', '📜', '⚖️', '🛡️', '🚨', '🧾', '🏢', '🏗️', '⛪', '🕌', '🕍', '🏰'],
     keywords: ['government', 'legal', 'document', 'insurance', 'compliance', 'fine', 'bill'],
   },
 ];

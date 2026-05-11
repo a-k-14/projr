@@ -19,6 +19,8 @@ import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { seedMassiveTransactions } from '../../db/seed';
 
 type PickerKind = 'year-start' | 'default-account' | 'currency' | 'theme' | null;
 
@@ -82,6 +84,16 @@ export default function SettingsScreen() {
       }
     }
     updateSettings({ biometricLock: value });
+  };
+
+  const handleSeedMassiveData = async () => {
+    try {
+      await seedMassiveTransactions(1000);
+      await Promise.all([loadAccounts(), useTransactionsStore.getState().load()]);
+      showAlert('Success', '1,000 test transactions added.');
+    } catch (error) {
+      showAlert('Error', error instanceof Error ? error.message : 'Failed to seed data.');
+    }
   };
 
   return (
@@ -205,6 +217,20 @@ export default function SettingsScreen() {
                 value="Erase everything"
                 palette={palette}
                 onPress={() => router.push('/settings/reset')}
+                noBorder
+              />
+            </CardSection>
+          </View>
+
+          <View>
+            <SectionLabel label="DEVELOPMENT" palette={palette} />
+            <CardSection palette={palette}>
+              <SettingsRow
+                icon="database"
+                label="Seed 1,000 Transactions"
+                value="Add test data"
+                palette={palette}
+                onPress={handleSeedMassiveData}
                 noBorder
               />
             </CardSection>

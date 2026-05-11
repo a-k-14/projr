@@ -377,6 +377,7 @@ export function SelectTrigger({
   palette,
   placeholder = 'Select...',
   containerStyle,
+  leftElement,
 }: {
   label: string;
   valueLabel?: string;
@@ -384,6 +385,7 @@ export function SelectTrigger({
   palette: AppThemePalette;
   placeholder?: string;
   containerStyle?: View['props']['style'];
+  leftElement?: ReactNode;
 }) {
   return (
     <View style={[{ marginBottom: SPACING.xl }, containerStyle]}>
@@ -404,9 +406,12 @@ export function SelectTrigger({
         }}
         onPress={onPress}
       >
-        <Text style={{ color: valueLabel ? palette.text : palette.textSoft, fontSize: TYPE.rowLabel }}>
-          {valueLabel ?? placeholder}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {leftElement}
+          <Text style={{ color: valueLabel ? palette.text : palette.textSoft, fontSize: TYPE.rowLabel }}>
+            {valueLabel ?? placeholder}
+          </Text>
+        </View>
         <AppChevron direction="down" size={22} tone="secondary" palette={palette} />
       </TouchableOpacity>
     </View>

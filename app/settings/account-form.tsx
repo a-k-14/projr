@@ -188,6 +188,27 @@ export default function AccountFormScreen() {
           valueLabel={selectedType?.label}
           onPress={() => runAfterKeyboardDismiss(() => setShowTypePicker(true))}
           palette={palette}
+          leftElement={
+            selectedType && (
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: ACCOUNT_TYPE_META[selectedType.key].bg ?? `${ACCOUNT_TYPE_META[selectedType.key].color}18`,
+                }}
+              >
+                <AppIcon
+                  name={ACCOUNT_TYPE_META[selectedType.key].icon}
+                  size={16}
+                  color={ACCOUNT_TYPE_META[selectedType.key].color}
+                  strokeWidth={1.5}
+                />
+              </View>
+            )
+          }
         />
 
         {/* Balance */}
