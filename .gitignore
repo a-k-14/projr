@@ -27,6 +27,7 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 build.log
+.claude/worktrees/
 
 # macOS
 .DS_Store

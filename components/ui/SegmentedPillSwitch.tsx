@@ -78,7 +78,6 @@ export function SegmentedPillSwitch({
 
   return (
     <View
-      onStartShouldSetResponder={() => true}
       onLayout={handleLayout}
       style={[
         {

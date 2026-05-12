@@ -39,6 +39,7 @@ export default function LoanDetailScreen() {
   const loans = useLoansStore((s) => s.loans);
   const updateLoan = useLoansStore((s) => s.update);
   const loadLoans = useLoansStore((s) => s.load);
+  const loansLoaded = useLoansStore((s) => s.isLoaded);
   const accounts = useAccountsStore((s) => s.accounts);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
@@ -53,25 +54,17 @@ export default function LoanDetailScreen() {
 
   useEffect(() => {
     loadLoans();
-  }, []);
+  }, [loadLoans]);
 
   useEffect(() => {
-    if (!loan && id) {
+    if (loansLoaded && !loan && id) {
       router.back();
     }
-  }, [loan, id]);
+  }, [loansLoaded, loan, id]);
 
-  if (!loan) {
-    return (
-      <View style={{ flex: 1, backgroundColor: palette.background, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color={palette.brand} />
-      </View>
-    );
-  }
-
-  const account = accounts.find((a) => a.id === loan.accountId);
-  const isLent = loan.direction === 'lent';
-  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.positive);
+  const account = loan ? accounts.find((a) => a.id === loan.accountId) : undefined;
+  const isLent = loan?.direction === 'lent';
+  const progressColor = loan?.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.positive);
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const displayedTransactions = useMemo(() => {
     if (!loan) return [];
@@ -103,13 +96,13 @@ export default function LoanDetailScreen() {
     }
     return result;
   }, [displayedTransactions, filterNonPrincipal]);
-  const originTx = loan.transactions
+  const originTx = loan?.transactions
     .filter((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin')
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
   const originTxNote = originTx ? getLoanTransactionUserNote(originTx.note) : '';
   const loanMetrics = [
-    { key: 'given', label: isLent ? 'LENT' : 'BORROWED', value: formatCurrency(loan.givenAmount, sym), color: palette.text },
-    { key: 'balance', label: 'BALANCE', value: formatCurrency(loan.pendingAmount, sym), color: balanceColor },
+    { key: 'given', label: isLent ? 'LENT' : 'BORROWED', value: formatCurrency(loan?.givenAmount ?? 0, sym), color: palette.text },
+    { key: 'balance', label: 'BALANCE', value: formatCurrency(loan?.pendingAmount ?? 0, sym), color: balanceColor },
   ];
 
   const handleToggleStatus = async () => {
@@ -121,6 +114,14 @@ export default function LoanDetailScreen() {
     }
     await updateLoan(loan.id, { status: nextStatus });
   };
+
+  if (!loan) {
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={palette.brand} />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>

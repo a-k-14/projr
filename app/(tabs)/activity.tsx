@@ -661,9 +661,10 @@ export default function ActivityScreen() {
     () => getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown),
     [categoryDrilldown, filteredTransactions],
   );
+  const includeTotalCashflow = cashflowMode === 'total';
   const displayedCashflow = useMemo(
-    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, false),
-    [categoryDrilldown, filteredTransactions],
+    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, includeTotalCashflow, includeTotalCashflow),
+    [categoryDrilldown, filteredTransactions, includeTotalCashflow],
   );
 
   const moreActiveCount =
@@ -748,11 +749,11 @@ export default function ActivityScreen() {
         groupKey: group.dateKey,
         title: date,
         subtitle: label || undefined,
-        net: getCashflowFromList(group.items, selectedAccountId !== 'all').net,
+        net: getCashflowFromList(group.items, includeTotalCashflow, includeTotalCashflow).net,
         items: group.items
       };
     });
-  }, [categoryDrilldown, drilldownTransactions, filteredTransactions, selectedAccountId]);
+  }, [categoryDrilldown, drilldownTransactions, filteredTransactions, includeTotalCashflow]);
   const dateSections = useMemo(
     () => grouped.map((group) => ({ ...group, data: group.items })),
     [grouped],
@@ -857,13 +858,13 @@ export default function ActivityScreen() {
         parentLabel: entry.parentLabel,
         parentIcon: entry.parentIcon,
         parentSyntheticType: entry.parentSyntheticType,
-        total: getCashflowFromList(entry.transactions, selectedAccountId !== 'all').net,
+        total: getCashflowFromList(entry.transactions, includeTotalCashflow, includeTotalCashflow).net,
         transactions: entry.transactions,
         subcategories: Array.from(entry.subMap.values())
           .map((sub) => ({
             subKey: sub.subKey,
             subLabel: sub.subLabel,
-            total: getCashflowFromList(sub.transactions, selectedAccountId !== 'all').net,
+            total: getCashflowFromList(sub.transactions, includeTotalCashflow, includeTotalCashflow).net,
             transactions: sub.transactions
           }))
           .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
@@ -874,7 +875,7 @@ export default function ActivityScreen() {
         if (a.familyOrder !== b.familyOrder) return a.familyOrder - b.familyOrder;
         return a.parentLabel.localeCompare(b.parentLabel, 'en', { sensitivity: 'base' });
       });
-  }, [categoryById, filteredTransactions, selectedAccountId]);
+  }, [categoryById, filteredTransactions, includeTotalCashflow]);
 
   const hierarchySections = useMemo(
     () =>

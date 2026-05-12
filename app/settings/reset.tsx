@@ -80,7 +80,7 @@ export default function ResetScreen() {
                 fontWeight: '400',
               }}
             >
-              This deletes all accounts, transactions, budgets, loans, categories, tags, and settings on this device.
+              This clears your local data on this device and restores the starter setup.
             </Text>
 
             <Text

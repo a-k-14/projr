@@ -17,7 +17,7 @@ const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
 
 const VISIBLE_TAB_NAMES = ['index', 'activity', 'insights', 'settings'] as const;
 const TAB_BAR_SLOTS = ['index', 'activity', 'add', 'insights', 'settings'] as const;
-const TAB_NAVIGATION_DELAY_MS = 90;
+const TAB_NAVIGATION_DELAY_MS = 0;
 
 const BACKGROUND_RESET_ENABLED: Record<string, boolean> = {
   index: true,

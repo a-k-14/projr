@@ -69,6 +69,7 @@ export default function SettingsScreen() {
     [categories],
   );
   const displaySymbol = showCurrencySymbol ? currencySymbol : '';
+  const showDevelopmentTools = __DEV__;
 
   const handleBiometricToggle = async (value: boolean) => {
     if (value) {
@@ -222,19 +223,21 @@ export default function SettingsScreen() {
             </CardSection>
           </View>
 
-          <View>
-            <SectionLabel label="DEVELOPMENT" palette={palette} />
-            <CardSection palette={palette}>
-              <SettingsRow
-                icon="database"
-                label="Seed 1,000 Transactions"
-                value="Add test data"
-                palette={palette}
-                onPress={handleSeedMassiveData}
-                noBorder
-              />
-            </CardSection>
-          </View>
+          {showDevelopmentTools ? (
+            <View>
+              <SectionLabel label="DEVELOPMENT" palette={palette} />
+              <CardSection palette={palette}>
+                <SettingsRow
+                  icon="database"
+                  label="Seed 1,000 Transactions"
+                  value="Add test data"
+                  palette={palette}
+                  onPress={handleSeedMassiveData}
+                  noBorder
+                />
+              </CardSection>
+            </View>
+          ) : null}
         </ScrollView>
       </TouchableWithoutFeedback>
 

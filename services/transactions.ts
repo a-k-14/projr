@@ -86,6 +86,29 @@ async function applyAccountBalanceDelta(
     .where(eq(accounts.id, accountId));
 }
 
+function assertPositiveAmount(amount: number): void {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Transaction amount must be greater than zero.');
+  }
+}
+
+function assertAccountId(accountId: string | undefined, label = 'Account'): asserts accountId is string {
+  if (!accountId) {
+    throw new Error(`${label} is required.`);
+  }
+}
+
+function assertValidTransferAccounts(
+  accountId: string | undefined,
+  linkedAccountId: string | undefined,
+): asserts accountId is string {
+  assertAccountId(accountId, 'Transfer source account');
+  assertAccountId(linkedAccountId, 'Transfer destination account');
+  if (accountId === linkedAccountId) {
+    throw new Error('Transfer source and destination must be different accounts.');
+  }
+}
+
 export async function getTransactions(filters: TransactionFilters = {}): Promise<Transaction[]> {
   const conditions: ReturnType<typeof eq>[] = [];
 
@@ -130,8 +153,11 @@ export async function getTransactionById(id: string): Promise<Transaction | null
 
 export async function createTransaction(data: CreateTransactionInput): Promise<Transaction> {
   const now = nowUTC();
+  assertPositiveAmount(data.amount);
+  assertAccountId(data.accountId);
 
   if (data.type === 'transfer') {
+    assertValidTransferAccounts(data.accountId, data.linkedAccountId);
     const transferPairId = generateId();
     const outId = generateId();
     const inId = generateId();
@@ -273,7 +299,8 @@ export async function updateTransferTransaction(
 ): Promise<Transaction> {
   const existing = await getTransactionById(id);
   if (!existing?.transferPairId) throw new Error('Transfer transaction not found');
-  if (!data.linkedAccountId) throw new Error('Transfer destination account is required');
+  assertPositiveAmount(data.amount);
+  assertValidTransferAccounts(data.accountId, data.linkedAccountId);
 
   const pair = await db
     .select()
@@ -503,7 +530,7 @@ export async function countByAccount(accountId: string): Promise<number> {
   const rows = await db
     .select()
     .from(transactions)
-    .where(eq(transactions.accountId, accountId));
+    .where(or(eq(transactions.accountId, accountId), eq(transactions.linkedAccountId, accountId)));
   return rows.length;
 }
 

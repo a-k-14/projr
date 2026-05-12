@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Dimensions,
   Modal,
   Pressable,
   RefreshControl,
@@ -664,189 +663,6 @@ function MoreShortcutCard({
   );
 }
 
-function TodayCashflowStrip({
-  cashflow,
-  sym,
-  palette,
-  onPressCategory,
-}: {
-  cashflow: CashflowSummary;
-  sym: string;
-  palette: AppThemePalette;
-  onPressCategory: (category: 'in' | 'out' | 'net') => void;
-}) {
-  const items = [
-    { key: 'in' as const, label: 'Income', color: palette.text },
-    { key: 'out' as const, label: 'Expense', color: palette.text },
-  ];
-
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        borderRadius: HOME_RADIUS.card,
-        borderWidth: 1,
-        borderColor: palette.divider,
-        backgroundColor: palette.card,
-        overflow: 'hidden',
-        marginBottom: 16,
-      }}
-    >
-      {items.map((item, index) => (
-        <TouchableOpacity
-          key={item.key}
-          delayPressIn={0}
-          activeOpacity={0.75}
-          onPress={() => onPressCategory(item.key)}
-          style={{
-            flex: 1,
-            paddingVertical: 9,
-            paddingHorizontal: 14,
-            borderLeftWidth: index === 0 ? 0 : 1,
-            borderLeftColor: palette.divider,
-          }}
-        >
-          <Text style={{ fontSize: 12, color: palette.textMuted, fontWeight: '400', marginBottom: 3 }}>
-            {item.label}
-          </Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 14.5, fontWeight: '500', color: cashflow[item.key] === 0 ? palette.textMuted : item.color }}>
-            {cashflow[item.key] === 0 ? '—' : formatCurrency(Math.abs(cashflow[item.key]), sym)}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-}
-
-function CashflowToggleCard({
-  isCashflow,
-  onToggleCashflow,
-  cardPeriod,
-  onCardPeriodChange,
-  inExpSummary,
-  cashflow,
-  sym,
-  palette,
-  onPressIn,
-  onPressOut,
-  hideAmounts,
-}: {
-  isCashflow: boolean;
-  onToggleCashflow: (v: boolean) => void;
-  cardPeriod: 'today' | 'month';
-  onCardPeriodChange: (p: 'today' | 'month') => void;
-  inExpSummary: { income: number; expense: number };
-  cashflow: { in: number; out: number; net: number };
-  sym: string;
-  palette: AppThemePalette;
-  onPressIn: () => void;
-  onPressOut: () => void;
-  hideAmounts?: boolean;
-}) {
-  const leftLabel = isCashflow ? 'Inflow' : 'Income';
-  const rightLabel = isCashflow ? 'Outflow' : 'Expense';
-  const leftAmount = isCashflow ? cashflow.in : inExpSummary.income;
-  const rightAmount = isCashflow ? cashflow.out : inExpSummary.expense;
-
-  const glassBg = palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.45)';
-  const labelColor = palette.textMuted;
-  const valueColor = palette.text;
-
-  return (
-    <View style={{
-      borderRadius: 18,
-      backgroundColor: glassBg,
-      padding: 14,
-      borderWidth: 1,
-      borderColor: palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)',
-    }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text, textTransform: 'capitalize' }}>
-          {cardPeriod === 'today' ? 'Today' : 'This Month'}
-        </Text>
-        <TouchableOpacity
-          delayPressIn={0}
-          onPress={() => onCardPeriodChange(cardPeriod === 'today' ? 'month' : 'today')}
-          style={{ paddingHorizontal: 8, paddingVertical: 2 }}
-        >
-          <Text style={{ fontSize: 11, fontWeight: '600', color: palette.brand }}>
-            {cardPeriod === 'today' ? 'Switch to Month' : 'Switch to Today'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressIn} style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: labelColor, fontWeight: '500', marginBottom: 4 }}>{leftLabel}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 17, fontWeight: '700', color: valueColor }}>
-            {hideAmounts ? '••••' : formatCurrency(leftAmount, sym)}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{ width: 1, backgroundColor: palette.divider, height: '100%', opacity: 0.5 }} />
-
-        <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressOut} style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: labelColor, fontWeight: '500', marginBottom: 4 }}>{rightLabel}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 17, fontWeight: '700', color: valueColor }}>
-            {hideAmounts ? '••••' : formatCurrency(rightAmount, sym)}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-function HomeAccountViewToggle({
-  mode,
-  palette,
-  onChange,
-}: {
-  mode: 'swipe' | 'list';
-  palette: AppThemePalette;
-  onChange: (mode: 'swipe' | 'list') => void;
-}) {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        backgroundColor: '#F0F3F9',
-        borderRadius: 14,
-        alignItems: 'center',
-        overflow: 'hidden',
-      }}
-    >
-      {([
-        { key: 'swipe', icon: 'gallery-thumbnails' },
-        { key: 'list', icon: 'list' },
-      ] as const).map((item) => {
-        const selected = mode === item.key;
-        return (
-          <TouchableOpacity
-            delayPressIn={0}
-            key={item.key}
-            activeOpacity={0.8}
-            onPress={() => {
-              onChange(item.key);
-            }}
-            style={{
-              width: 44,
-              height: 34,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: selected ? palette.surface : 'transparent',
-            }}
-          >
-            <AppIcon name={item.icon}
-              size={18}
-              color={selected ? '#1F2A44' : '#8C94AF'}
-            />
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-}
-
 const NW_BALANCE_BY_OPTIONS = [
   { key: 'type', label: 'Type' },
   { key: 'account', label: 'Account' },
@@ -1378,12 +1194,6 @@ function AccountSummaryCard({
 }) {
   const isAll = accountName === 'All';
   const isAccountHero = heroMode && !isAll;
-  const [scrubbedItem, setScrubbedItem] = useState<{ value: number; date?: string } | null>(null);
-  const [scrubbedIndex, setScrubbedIndex] = useState<number | null>(null);
-  const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
-  const chartAccent = palette.positive;
-  const heroSurface = palette.isDark ? palette.surface : '#F0F4FC';
-  const heroGlow = '#D9E6FF';
   const heroText = heroMode ? '#FFFFFF' : palette.text;
   const heroMutedText = heroMode ? 'rgba(255,255,255,0.82)' : palette.textMuted;
   const heroSoftText = heroMode ? 'rgba(255,255,255,0.66)' : palette.textSoft;
@@ -1391,19 +1201,6 @@ function AccountSummaryCard({
   const netWorthStripBorder = heroMode ? 'rgba(255,255,255,0.20)' : palette.isDark ? palette.divider : '#D8E0F0';
   const heroMetricStripBg = heroMode ? 'rgba(255,255,255,0.055)' : netWorthStripBg;
   const heroMetricDivider = heroMode ? 'rgba(255,255,255,0.12)' : palette.divider;
-
-  const mockChartData = useMemo(() => {
-    const base = Math.max(Math.abs(balance), 1);
-    const multipliers = [0.91, 0.922, 0.918, 0.944, 0.936, 0.958, 0.951, 0.974, 0.966, 1];
-    return multipliers.map((multiplier, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (multipliers.length - 1 - i));
-      return {
-        value: balance < 0 ? -base * multiplier : base * multiplier,
-        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      };
-    });
-  }, [balance]);
 
   const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;

@@ -21,6 +21,10 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
+import type { PeriodType } from '../../types';
+import type { HomeChartMode } from '../../components/HomeDonutChartBlock';
+
+type AccountPeriodType = 'today' | PeriodType;
 
 export default function AccountDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,8 +52,8 @@ export default function AccountDetailScreen() {
   const verticalScrolls = useSharedValue<number[]>([0]);
   const indicatorY = useSharedValue(0);
 
-  const [period, setPeriod] = useState<any>('today');
-  const [chartMode, setChartMode] = useState<any>('expense');
+  const [period, setPeriod] = useState<AccountPeriodType>('today');
+  const [chartMode, setChartMode] = useState<HomeChartMode>('expense');
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
 
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));

@@ -32,7 +32,7 @@ jest.mock('expo-file-system/legacy', () => ({
 }));
 
 import * as FileSystem from 'expo-file-system/legacy';
-import { createTransaction, getTransactions, updateTransaction } from '../services/transactions.ts';
+import { countByAccount, createTransaction, getTransactions, updateTransaction } from '../services/transactions.ts';
 
 beforeEach(() => {
   sqlite.exec(`
@@ -129,6 +129,28 @@ describe('transactions database integration', () => {
         expect(list.length).toBe(2);
         expect(list.some(t => t.type === 'out')).toBeTruthy();
         expect(list.some(t => t.type === 'in')).toBeTruthy();
+        expect(await countByAccount('acc1')).toBe(2);
+        expect(await countByAccount('acc2')).toBe(2);
+    });
+
+    it('rejects invalid transfers before changing balances', async () => {
+        await expect(createTransaction({
+            type: 'transfer',
+            amount: 300,
+            accountId: 'acc1',
+            date: '2024-01-02T12:00:00.000Z'
+        })).rejects.toThrow('Transfer destination account is required.');
+
+        await expect(createTransaction({
+            type: 'transfer',
+            amount: 300,
+            accountId: 'acc1',
+            linkedAccountId: 'acc1',
+            date: '2024-01-02T12:00:00.000Z'
+        })).rejects.toThrow('Transfer source and destination must be different accounts.');
+
+        const rows = sqlite.prepare('SELECT id, balance FROM accounts ORDER BY id').all() as any[];
+        expect(rows.map((row) => row.balance)).toEqual([1000, 500]);
     });
     
     it('rolls back and applies correctly on UPDATE transaction', async () => {

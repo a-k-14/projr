@@ -30,6 +30,11 @@ describe('activity cashflow drilldown summary', () => {
       out: 125,
       net: 375,
     });
+    expect(getActivityDisplayedCashflow(transactions, null, true, true)).toEqual({
+      in: 800,
+      out: 525,
+      net: 275,
+    });
   });
 
   it('summarizes only the selected subcategory when drilldown is active', () => {

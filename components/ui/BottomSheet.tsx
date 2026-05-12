@@ -263,7 +263,7 @@ export function BottomSheet({
                   fixedHeightRatio ? { flexGrow: 1 } : null
                 ]}
                 showsVerticalScrollIndicator
-                keyboardShouldPersistTaps="handled"
+                keyboardShouldPersistTaps="always"
                 onContentSizeChange={(_, h) => {
                   contentHeight.current = h;
                   commitHeight();

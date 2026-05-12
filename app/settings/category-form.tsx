@@ -33,6 +33,9 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 type SubDraft = {
   id?: string;
   name: string;
+  icon?: string;
+  color?: string;
+  type?: 'in' | 'out' | 'both';
   deleted: boolean;
 };
 
@@ -89,7 +92,7 @@ export default function CategoryFormScreen() {
           setSubs(
             categories
               .filter((c) => c.parentId === id)
-              .map((c) => ({ id: c.id, name: c.name, deleted: false })),
+              .map((c) => ({ id: c.id, name: c.name, icon: c.icon, color: c.color, type: c.type, deleted: false })),
           );
         }
       }
@@ -154,9 +157,9 @@ export default function CategoryFormScreen() {
           } else if (!sub.deleted && sub.id && sub.name.trim()) {
             await updateCategory(sub.id, {
               name: sub.name.trim(),
-              type,
-              icon,
-              color,
+              type: sub.type ?? type,
+              icon: sub.icon ?? icon,
+              color: sub.color ?? color,
               parentId: parentCategoryId });
           } else if (!sub.deleted && !sub.id && sub.name.trim()) {
             await addCategory({

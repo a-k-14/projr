@@ -6,7 +6,7 @@ import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/AppText';
-import { useAppTheme } from '../../lib/theme';
+import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
 
@@ -21,6 +21,8 @@ import { ChoiceRow } from '../../components/settings-ui';
 import type { Account } from '../../types';
 
 type SortOption = { key: SortMode; direction?: SortDirection; title: string };
+type SortMode = 'alpha' | 'balance' | 'custom';
+type SortDirection = 'asc' | 'desc';
 
 const SORT_OPTIONS: SortOption[] = [
   { key: 'alpha', direction: 'asc', title: 'A-Z' },

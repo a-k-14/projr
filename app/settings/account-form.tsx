@@ -112,7 +112,7 @@ export default function AccountFormScreen() {
     const account = accounts.find((a) => a.id === id);
     showConfirm({
       title: 'Delete Account',
-      message: `"${account?.name}" and all its transaction history will be permanently removed. This cannot be undone.`,
+      message: `"${account?.name}" will be deleted only if it has no transactions or linked transfers.`,
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
