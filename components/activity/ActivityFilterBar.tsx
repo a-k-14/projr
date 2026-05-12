@@ -54,6 +54,10 @@ export function ActivityFilterBar({
           },
         ]}
       >
+        <View style={{ flex: 1, marginRight: ACTIVITY_LAYOUT.controlChipGap }}>
+          {periodNavigation}
+        </View>
+
         <TouchableOpacity delayPressIn={0}
           onPress={() => setShowAccountSheet(true)}
           style={[
@@ -62,7 +66,6 @@ export function ActivityFilterBar({
               backgroundColor: palette.surface,
               borderColor: palette.divider,
               width: ACTIVITY_LAYOUT.accountPickerWidth,
-              marginRight: ACTIVITY_LAYOUT.controlChipGap
             },
           ]}
         >
@@ -71,8 +74,6 @@ export function ActivityFilterBar({
           </Text>
           <AppChevron direction="down" size={15} tone="secondary" palette={palette} />
         </TouchableOpacity>
-
-        {periodNavigation}
       </View>
 
       <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }]}>

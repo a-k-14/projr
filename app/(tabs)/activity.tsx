@@ -143,7 +143,7 @@ export default function ActivityScreen() {
   const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
 
-  const [period, setPeriod] = useState<ActivityPeriod>('all');
+  const [period, setPeriod] = useState<ActivityPeriod>('month');
   const [periodOffset, setPeriodOffset] = useState(0);
   const [customFrom, setCustomFrom] = useState<string | undefined>();
   const [customTo, setCustomTo] = useState<string | undefined>();
@@ -198,7 +198,7 @@ export default function ActivityScreen() {
   }, [scrollToTop]);
 
   const resetAllFilters = useCallback((animated: boolean) => {
-    setPeriod('all');
+    setPeriod('month');
     setPeriodOffset(0);
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -444,7 +444,7 @@ export default function ActivityScreen() {
       return;
     }
 
-    setPeriod('all');
+    setPeriod('month');
     setPeriodOffset(0);
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -1094,7 +1094,7 @@ export default function ActivityScreen() {
     [accountsById, categoriesById, loansById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
   );
 
-  const activityHeader = (
+  const activityHeader = useMemo(() => (
     <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
       <ActivityFilterBar
         accountLabel={accountLabel}
@@ -1161,7 +1161,7 @@ export default function ActivityScreen() {
         </View>
       ) : null}
     </View>
-  );
+  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, setCashflowBucket, setShowMoreSheet, moreActiveCount, palette, period, periodLabel, goPrev, goNext, canGoNext, setShowPeriodSheet, displayedCashflow, sym]);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
@@ -1222,11 +1222,11 @@ export default function ActivityScreen() {
               keyExtractor={(item) => item.id}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
               onEndReached={onLoadMore}
-              onEndReachedThreshold={0.4}
               stickySectionHeadersEnabled
-              initialNumToRender={10}
-              maxToRenderPerBatch={10}
-              windowSize={5}
+              initialNumToRender={20}
+              maxToRenderPerBatch={20}
+              windowSize={10}
+              onEndReachedThreshold={0.1}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
               ListHeaderComponent={activityHeader}
               ListEmptyComponent={

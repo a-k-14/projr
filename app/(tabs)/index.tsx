@@ -327,12 +327,12 @@ function HomeScreenContent() {
   ] as const;
 
   const middleContent = (
-    <View style={{ marginTop: 4, marginBottom: HOME_SPACE.xl }}>
+    <View style={{ marginTop: 0, marginBottom: 30 }}>
       <TouchableOpacity
         onPress={() => router.push('/accounts')}
         delayPressIn={0}
         activeOpacity={0.72}
-        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 16, paddingVertical: 2 }}
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, marginTop: 8, paddingVertical: 2 }}
       >
         <Text appWeight="medium" style={{ fontSize: 18, fontWeight: '600', color: palette.text }}>Accounts</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
@@ -413,7 +413,7 @@ function HomeScreenContent() {
         </TouchableOpacity>
       </ScrollView>
 
-      <View style={{ marginTop: 24, marginBottom: 12 }}>
+      <View style={{ marginTop: 30, marginBottom: 14 }}>
         <Text appWeight="medium" style={{ fontSize: 17, fontWeight: '600', color: palette.text }}>More</Text>
       </View>
 
@@ -1341,6 +1341,14 @@ function AccountSummaryCard({
   netWorth,
   netWorthChange,
   incomeExpense,
+  cashflowSummary,
+  period,
+  onPeriodChange,
+  onOpenCustomRange,
+  isCashflowView,
+  onToggleCashflowView,
+  onPressMetricIn,
+  onPressMetricOut,
   hideAmounts,
   heroMode = false,
   children,
@@ -1356,11 +1364,20 @@ function AccountSummaryCard({
   netWorth?: number;
   netWorthChange?: number;
   incomeExpense?: { income: number; expense: number };
+  cashflowSummary?: CashflowSummary;
+  period?: HomePeriodType;
+  onPeriodChange?: (p: HomePeriodType) => void;
+  onOpenCustomRange?: () => void;
+  isCashflowView?: boolean;
+  onToggleCashflowView?: (value: boolean) => void;
+  onPressMetricIn?: () => void;
+  onPressMetricOut?: () => void;
   hideAmounts?: boolean;
   heroMode?: boolean;
   children?: React.ReactNode;
 }) {
   const isAll = accountName === 'All';
+  const isAccountHero = heroMode && !isAll;
   const [scrubbedItem, setScrubbedItem] = useState<{ value: number; date?: string } | null>(null);
   const [scrubbedIndex, setScrubbedIndex] = useState<number | null>(null);
   const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - SCREEN_GUTTER * 2);
@@ -1405,6 +1422,11 @@ function AccountSummaryCard({
       ? 'rgba(253,164,175,0.92)'
       : 'rgba(226,232,240,0.88)';
   const nwChangeInk = '#111827';
+  const metricLeftLabel = isAccountHero && isCashflowView ? 'Inflow' : 'Income';
+  const metricRightLabel = isAccountHero && isCashflowView ? 'Outflow' : 'Expense';
+  const metricLeftAmount = isAccountHero && isCashflowView ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
+  const metricRightAmount = isAccountHero && isCashflowView ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
+  const periodOptions = PERIODS.map((item) => ({ key: item, label: PERIOD_LABELS[item] }));
 
   const content = (
     <View
@@ -1432,7 +1454,7 @@ function AccountSummaryCard({
                 <AppIcon name={ACCOUNT_TYPE_META[accountTypeLabel as AccountType]?.icon ?? 'wallet'} size={12} color={palette.brand} />
               </View>
             )}
-            <Text style={{ fontSize: heroMode ? 10 : HOME_TEXT.tiny, fontWeight: '400', letterSpacing: heroMode ? 0.75 : 0.8, textTransform: 'uppercase', color: heroMutedText }}>
+            <Text style={{ fontSize: heroMode ? 10 : HOME_TEXT.tiny, fontWeight: '700', letterSpacing: heroMode ? 0.75 : 0.8, textTransform: 'uppercase', color: heroMutedText }}>
               {isAll ? 'Balance · All Accounts' : accountName}
             </Text>
           </View>
@@ -1494,50 +1516,101 @@ function AccountSummaryCard({
           ) : null}
         </View>
 
-        {heroMode && incomeExpense ? (
-            <View
-              style={{
-                width: '100%',
-                minHeight: 36,
-                marginTop: 16,
-                borderRadius: 15,
-                borderWidth: 1,
-                borderColor: netWorthStripBorder,
-                backgroundColor: heroMetricStripBg,
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: 12,
-                paddingVertical: 5,
+        {isAccountHero && period && onPeriodChange ? (
+          <View style={{ marginTop: 18, gap: 12 }}>
+            <SegmentedPillSwitch
+              options={periodOptions}
+              value={period}
+              onChange={(key) => {
+                const nextPeriod = key as HomePeriodType;
+                if (nextPeriod === 'custom') {
+                  onOpenCustomRange?.();
+                  return;
+                }
+                onPeriodChange(nextPeriod);
               }}
+              backgroundColor="rgba(255,255,255,0.065)"
+              pillColor="rgba(255,255,255,0.16)"
+              borderColor="rgba(255,255,255,0.14)"
+              activeTextColor={heroText}
+              inactiveTextColor={heroMutedText}
+              height={32}
+              radius={14}
+              fontSize={10.5}
+              itemMinWidth={54}
+              style={{ alignSelf: 'stretch' }}
+            />
+            <TouchableOpacity
+              delayPressIn={0}
+              activeOpacity={0.78}
+              onPress={() => onToggleCashflowView?.(!isCashflowView)}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
             >
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                  <AppIcon name="arrow-down-left" size={13} color={heroSoftText} strokeWidth={1.9} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontSize: 10.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                      Income
-                    </Text>
-                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13, fontWeight: '500', color: heroText, marginTop: 2 }}>
-                      {hideAmounts ? '••••' : formatCurrency(incomeExpense.income, currencySymbol)}
-                    </Text>
-                  </View>
+              <Text style={{ fontSize: 11.5, fontWeight: '600', color: heroMutedText }}>
+                Cashflow
+              </Text>
+              <View
+                style={{
+                  width: 38,
+                  height: 22,
+                  borderRadius: 999,
+                  padding: 2,
+                  backgroundColor: isCashflowView ? 'rgba(156,255,106,0.34)' : 'rgba(255,255,255,0.12)',
+                  borderWidth: 1,
+                  borderColor: isCashflowView ? 'rgba(156,255,106,0.46)' : 'rgba(255,255,255,0.16)',
+                  alignItems: isCashflowView ? 'flex-end' : 'flex-start',
+                }}
+              >
+                <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: isCashflowView ? '#9CFF6A' : 'rgba(255,255,255,0.86)' }} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {heroMode && incomeExpense ? (
+          <View
+            style={{
+              width: '100%',
+              minHeight: isAccountHero ? 42 : 36,
+              marginTop: isAccountHero ? 12 : 16,
+              borderRadius: 15,
+              borderWidth: 1,
+              borderColor: netWorthStripBorder,
+              backgroundColor: heroMetricStripBg,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+            }}
+          >
+            <TouchableOpacity delayPressIn={0} activeOpacity={0.76} disabled={!onPressMetricIn} onPress={onPressMetricIn} style={{ flex: 1, minWidth: 0 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <AppIcon name="arrow-down-left" size={13} color={heroSoftText} strokeWidth={1.9} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: 10.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                    {metricLeftLabel}
+                  </Text>
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13, fontWeight: '500', color: heroText, marginTop: 2 }}>
+                    {hideAmounts ? '••••' : formatCurrency(metricLeftAmount, currencySymbol)}
+                  </Text>
                 </View>
               </View>
-              <View style={{ width: 1, height: 22, backgroundColor: heroMetricDivider, marginHorizontal: 12 }} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                  <AppIcon name="arrow-up-right" size={13} color={heroSoftText} strokeWidth={1.9} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontSize: 10.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                      Expense
-                    </Text>
-                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13, fontWeight: '500', color: heroText, marginTop: 2 }}>
-                      {hideAmounts ? '••••' : formatCurrency(incomeExpense.expense, currencySymbol)}
-                    </Text>
-                  </View>
+            </TouchableOpacity>
+            <View style={{ width: 1, height: 22, backgroundColor: heroMetricDivider, marginHorizontal: 12 }} />
+            <TouchableOpacity delayPressIn={0} activeOpacity={0.76} disabled={!onPressMetricOut} onPress={onPressMetricOut} style={{ flex: 1, minWidth: 0 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <AppIcon name="arrow-up-right" size={13} color={heroSoftText} strokeWidth={1.9} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: 10.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                    {metricRightLabel}
+                  </Text>
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13, fontWeight: '500', color: heroText, marginTop: 2 }}>
+                    {hideAmounts ? '••••' : formatCurrency(metricRightAmount, currencySymbol)}
+                  </Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
+          </View>
         ) : null}
         {onOpenNetWorth && !heroMode ? (
           <>
@@ -1608,8 +1681,8 @@ function AccountSummaryCard({
                   </Text>
                 </View>
               )}
-            <AppIcon name="chevron-right" size={16} color={heroSoftText} strokeWidth={2.1} />
-          </TouchableOpacity>
+              <AppIcon name="chevron-right" size={16} color={heroSoftText} strokeWidth={2.1} />
+            </TouchableOpacity>
           </>
         ) : null}
       </View>
@@ -2131,9 +2204,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [refreshing, setRefreshing] = useState(false);
   const [chartResetNonce, setChartResetNonce] = useState(0);
   const [cashflowIsCashflow, setCashflowIsCashflow] = useState(false);
-  const [cashflowCardPeriod, setCashflowCardPeriod] = useState<'today' | 'month'>('today');
-  const [cashflowCardTodaySummary, setCashflowCardTodaySummary] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
-  const [cashflowCardMonthSummary, setCashflowCardMonthSummary] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
   const todayDataCacheRef = useRef<{
@@ -2153,17 +2223,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     setTransactions([]);
     todayDataCacheRef.current = null;
   }, [accountId]);
-
-  useEffect(() => {
-    if (!isPageReady || !isScreenFocused) return;
-    const now = new Date();
-    const todayFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
-    const todayTo = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
-    const monthFrom = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
-    const monthTo = now.toISOString();
-    getCashflowSummary(accountId, todayFrom, todayTo).then(setCashflowCardTodaySummary).catch(() => undefined);
-    getCashflowSummary(accountId, monthFrom, monthTo).then(setCashflowCardMonthSummary).catch(() => undefined);
-  }, [accountId, isPageReady, isScreenFocused]);
 
   const loadRangeData = useCallback(async (rangeFrom: string, rangeTo: string) => {
     if (!isPageReady) return;
@@ -2289,13 +2348,14 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
           cashflowBucket: kind,
+          cashflowMode: cashflowIsCashflow ? 'total' : 'incomeExpense',
           from,
           to,
           ts: String(Date.now())
         }
       });
     },
-    [accountId, from, period, to],
+    [accountId, cashflowIsCashflow, from, period, to],
   );
 
   const handleTransactionPress = useCallback((tx: Transaction) => {
@@ -2326,6 +2386,14 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             onOpenNetWorth={accountId === 'all' ? onOpenNetWorth : undefined}
             netWorth={accountId === 'all' ? netWorth : undefined}
             incomeExpense={incExpSummary}
+            cashflowSummary={displayedCashflow}
+            period={accountId === 'all' ? undefined : period}
+            onPeriodChange={accountId === 'all' ? undefined : onPeriodChange}
+            onOpenCustomRange={accountId === 'all' ? undefined : () => onOpenCustomRange(accountId)}
+            isCashflowView={cashflowIsCashflow}
+            onToggleCashflowView={setCashflowIsCashflow}
+            onPressMetricIn={() => openPeriodActivity('in')}
+            onPressMetricOut={() => openPeriodActivity('out')}
             hideAmounts={hideAmounts}
             heroMode
           />
@@ -2336,7 +2404,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: 20 }}
+            style={{ height: accountId === 'all' ? 18 : 26 }}
           />
         </View>
 
