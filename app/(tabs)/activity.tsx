@@ -297,20 +297,12 @@ export default function ActivityScreen() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
   const requestIdRef = useRef(0);
   const lastAppliedRouteTsRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      setIsTransitioning(false);
-    });
-    return () => task.cancel();
-  }, []);
-
-
 
   useEffect(() => {
     if (!isFocused || groupByMode !== 'category' || !categoryDrilldown) return;
@@ -349,16 +341,21 @@ export default function ActivityScreen() {
     selectedTagIds.length === 0 &&
     !amountMinStr &&
     !amountMaxStr;
-  const needsFullDataset =
-    period === 'all' &&
-    (!!search.trim() ||
-      selectedCategoryIds.length > 0 ||
-      selectedTagIds.length > 0 ||
-      !!amountMinStr ||
-      !!amountMaxStr ||
-      cashflowBucket !== 'all' ||
-      groupByMode === 'category' ||
-      categoryDrilldown !== null);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    if (isDefaultView) {
+      if (!storeTransactionsLoaded) {
+        setIsTransitioning(true);
+      } else {
+        setIsTransitioning(false);
+      }
+      return;
+    }
+    if (!source || isInitialParamSyncComplete) {
+      setIsTransitioning(true);
+    }
+  }, [isDefaultView, isFocused, isInitialParamSyncComplete, source, storeTransactionsLoaded]);
 
   const loadData = useMemo(
     () => async (isInitial: boolean) => {
@@ -380,40 +377,44 @@ export default function ActivityScreen() {
           type: effectiveTypeFilter,
           fromDate: dateRange?.from,
           toDate: dateRange?.to,
-          limit: period === 'all' && !needsFullDataset ? TRANSACTIONS_PAGE_SIZE : undefined,
-          offset: period === 'all' && !needsFullDataset ? currentOffset : 0
+          limit: TRANSACTIONS_PAGE_SIZE,
+          offset: currentOffset
         };
         const results = await transactionsService.getTransactions(filters);
         if (requestId !== requestIdRef.current) return;
         if (isInitial) {
           setTransactions(results);
           offsetRef.current = results.length;
-          setHasMore(period === 'all' && !needsFullDataset && results.length === TRANSACTIONS_PAGE_SIZE);
+          setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
         } else {
           setTransactions((prev) => {
             const ids = new Set(prev.map((tx) => tx.id));
             return [...prev, ...results.filter((tx) => !ids.has(tx.id))];
           });
           offsetRef.current += results.length;
-          setHasMore(!needsFullDataset && results.length === TRANSACTIONS_PAGE_SIZE);
+          setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
         }
       } finally {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, dateRange?.from, dateRange?.to, needsFullDataset, period, selectedAccountId, typeFilter],
+    [cashflowBucket, dateRange?.from, dateRange?.to, period, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
     if (isFocused) {
       if (isDefaultView) {
         if (!storeTransactionsLoaded) {
+          setIsTransitioning(true);
           loadStoreTransactions().catch(() => undefined);
         }
       } else {
         // Only load data if we aren't waiting for an initial param sync
         if (!source || isInitialParamSyncComplete) {
-          loadData(true);
+          setIsTransitioning(true);
+          loadData(true).finally(() => {
+            setIsTransitioning(false);
+          });
         }
       }
     }
@@ -424,7 +425,10 @@ export default function ActivityScreen() {
     setTransactions(storeTransactions);
     setHasMore(storeTransactionsHasMore);
     offsetRef.current = storeTransactions.length;
-  }, [isDefaultView, storeTransactions, storeTransactionsHasMore]);
+    if (storeTransactionsLoaded) {
+      setIsTransitioning(false);
+    }
+  }, [isDefaultView, storeTransactions, storeTransactionsHasMore, storeTransactionsLoaded]);
 
   useEffect(() => {
     if (!loansLoaded) loadLoans().catch(() => undefined);
@@ -517,21 +521,29 @@ export default function ActivityScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    if (isDefaultView) {
-      await loadStoreTransactions();
-    } else {
-      await loadData(true);
+    try {
+      if (isDefaultView) {
+        await loadStoreTransactions();
+      } else {
+        await loadData(true);
+      }
+    } finally {
+      setRefreshing(false);
     }
-    setRefreshing(false);
   };
 
-  const onLoadMore = () => {
-    if (!hasMore || loadingRef.current) return;
-    if (isDefaultView) {
-      void loadMoreStoreTransactions();
-      return;
+  const onLoadMore = async () => {
+    if (!hasMore || loadingRef.current || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      if (isDefaultView) {
+        await loadMoreStoreTransactions();
+        return;
+      }
+      await loadData(false);
+    } finally {
+      setIsLoadingMore(false);
     }
-    void loadData(false);
   };
 
   const goPrev = () => {
@@ -1152,9 +1164,18 @@ export default function ActivityScreen() {
               initialNumToRender={20}
               maxToRenderPerBatch={20}
               windowSize={10}
-              onEndReachedThreshold={0.1}
+              removeClippedSubviews={false}
+              onEndReachedThreshold={0.28}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
               ListHeaderComponent={activityHeader}
+              ListFooterComponent={isLoadingMore ? (
+                <View style={{ paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
+                  <ActivityIndicator size="small" color={palette.brand} />
+                  <Text style={{ marginTop: 8, fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>
+                    Loading more transactions
+                  </Text>
+                </View>
+              ) : null}
               ListEmptyComponent={
                 !refreshing ? (
                   <View style={{ paddingTop: 4, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>

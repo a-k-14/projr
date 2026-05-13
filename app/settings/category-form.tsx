@@ -71,6 +71,7 @@ export default function CategoryFormScreen() {
   const [, setEmojiQuery] = useState('');
   const [showTypePicker, setShowTypePicker] = useState(false);
   const formScrollRef = useRef<ScrollView | null>(null);
+  const originalSubsRef = useRef<SubDraft[]>([]);
 
   const editingCategory = id ? categories.find((c) => c.id === id) : undefined;
   const isSubcategory = !!editingCategory?.parentId;
@@ -88,11 +89,11 @@ export default function CategoryFormScreen() {
         setEmojiQuery(isEmojiIcon(cat.icon) ? cat.icon : '');
         setType(cat.type);
         if (!cat.parentId) {
-          setSubs(
-            categories
-              .filter((c) => c.parentId === id)
-              .map((c) => ({ id: c.id, name: c.name, icon: c.icon, color: c.color, type: c.type, deleted: false })),
-          );
+          const nextSubs = categories
+            .filter((c) => c.parentId === id)
+            .map((c) => ({ id: c.id, name: c.name, icon: c.icon, color: c.color, type: c.type, deleted: false }));
+          setSubs(nextSubs);
+          originalSubsRef.current = nextSubs.map((sub) => ({ ...sub }));
         }
       }
     }
@@ -150,32 +151,54 @@ export default function CategoryFormScreen() {
 
     if (!isSubcategory && parentCategoryId) {
       try {
+        const originalById = new Map(originalSubsRef.current.filter((sub): sub is SubDraft & { id: string } => !!sub.id).map((sub) => [sub.id!, sub]));
+        const subOps: Promise<unknown>[] = [];
         for (const sub of subs) {
           if (sub.deleted && sub.id) {
-            await removeCategory(sub.id);
-          } else if (!sub.deleted && sub.id && sub.name.trim()) {
-            await updateCategory(sub.id, {
-              name: sub.name.trim(),
+            subOps.push(removeCategory(sub.id));
+            continue;
+          }
+          if (sub.deleted) continue;
+
+          const trimmedSubName = sub.name.trim();
+          if (!trimmedSubName) continue;
+
+          if (!sub.id) {
+            subOps.push(addCategory({
+              name: trimmedSubName,
               type: sub.type ?? type,
               icon: sub.icon ?? icon,
-              color: sub.color ?? color,
-              parentId: parentCategoryId });
-          } else if (!sub.deleted && !sub.id && sub.name.trim()) {
-            await addCategory({
-              name: sub.name.trim(),
-              type,
-              icon,
-              color: ENTITY_COLORS[0],
-              parentId: parentCategoryId });
+              color: sub.color ?? ENTITY_COLORS[0],
+              parentId: parentCategoryId,
+            }));
+            continue;
           }
+
+          const original = originalById.get(sub.id);
+          const changed =
+            !original ||
+            original.name !== trimmedSubName ||
+            (sub.type ?? type) !== original.type ||
+            (sub.icon ?? icon) !== original.icon ||
+            (sub.color ?? color) !== original.color ||
+            original.deleted;
+
+          if (!changed) continue;
+
+          subOps.push(updateCategory(sub.id, {
+            name: trimmedSubName,
+            type: sub.type ?? type,
+            icon: sub.icon ?? icon,
+            color: sub.color ?? color,
+            parentId: parentCategoryId,
+          }));
         }
+        await Promise.all(subOps);
       } catch (error) {
         showAlert('Could Not Update All Subcategories', error instanceof Error ? error.message : 'An error occurred during save.');
         return;
       }
     }
-
-    await loadCategories().catch(() => undefined);
 
     router.back();
   }
@@ -196,7 +219,6 @@ export default function CategoryFormScreen() {
       onConfirm: async () => {
         try {
           await removeCategory(id);
-          await loadCategories().catch(() => undefined);
           router.back();
         } catch (error) {
           showAlert('Unable To Delete', error instanceof Error ? error.message : 'Could not delete.');

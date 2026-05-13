@@ -81,7 +81,7 @@ export function PickerRow({
         numberOfLines={1}
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '600',
+          fontWeight: '500',
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
@@ -108,7 +108,7 @@ export function PickerRow({
             <Text
               appWeight="medium"
               style={{
-                fontSize: HOME_TEXT.sectionTitle,
+                fontSize: HOME_TEXT.body,
                 fontWeight: '500',
                 color: placeholder ? palette.textMuted : palette.text,
                 textAlign: 'left',
@@ -120,7 +120,7 @@ export function PickerRow({
             {subtitle ? (
               <Text
                 style={{
-                  fontSize: HOME_TEXT.bodySmall,
+                  fontSize: HOME_TEXT.body,
                   color: palette.textMuted,
                   marginTop: 2,
                   lineHeight: 17,
@@ -164,7 +164,7 @@ export function DisplayRow({
         numberOfLines={1}
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '600',
+          fontWeight: '500',
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
@@ -182,7 +182,7 @@ export function DisplayRow({
       >
         <Text
           style={{
-            fontSize: HOME_TEXT.sectionTitle,
+            fontSize: 14.5,
             fontWeight: '500',
             color: palette.text,
             textAlign: 'left',
@@ -214,7 +214,7 @@ export function FieldRow({
         borderBottomWidth: noBorder === false ? 1 : 0,
         borderBottomColor: palette.border }}
     >
-      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary, marginBottom: 8 }}>
+      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.textSecondary, marginBottom: 8 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -240,7 +240,7 @@ export function OptionChipRow({
         appWeight="medium"
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '600',
+          fontWeight: '500',
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
@@ -308,7 +308,7 @@ export function InteractiveDateTimeRow({
         appWeight="medium"
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '600',
+          fontWeight: '500',
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
@@ -400,7 +400,7 @@ export function AmountRow({
         numberOfLines={1}
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '600',
+          fontWeight: '500',
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
@@ -494,6 +494,8 @@ export function TextInputRow({
   returnKeyType,
   onSubmitEditing,
   blurOnSubmit,
+  onFocus,
+  onBlur,
 }: {
   label: string;
   value: string;
@@ -506,6 +508,8 @@ export function TextInputRow({
   returnKeyType?: React.ComponentProps<typeof TextInput>['returnKeyType'];
   onSubmitEditing?: React.ComponentProps<typeof TextInput>['onSubmitEditing'];
   blurOnSubmit?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -522,7 +526,7 @@ export function TextInputRow({
         numberOfLines={1}
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '600',
+          fontWeight: '500',
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
@@ -550,7 +554,7 @@ export function TextInputRow({
           style={{
             flex: 1,
             minWidth: 0,
-            fontSize: HOME_TEXT.sectionTitle,
+            fontSize: 14.5,
             fontWeight: '400',
             color: palette.text,
             paddingBottom: 2,
@@ -560,8 +564,14 @@ export function TextInputRow({
             lineHeight: 20,
             borderBottomWidth: isFocused ? 1.5 : 1,
             borderBottomColor: isFocused ? accentColor || palette.tabActive : palette.borderSoft }}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocus?.();
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            onBlur?.();
+          }}
         />
       </View>
     </View>
@@ -573,16 +583,18 @@ export function NotesSection({
   onChangeNote,
   palette,
   accentColor,
-  onFocus }: {
+  onFocus,
+  onBlur }: {
   note: string;
   onChangeNote: (value: string) => void;
   palette: AppThemePalette;
   accentColor?: string;
   onFocus?: () => void;
+  onBlur?: () => void;
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
-      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary, marginBottom: 10 }}>
+      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.textSecondary, marginBottom: 10 }}>
         Notes
       </Text>
       <TextInput
@@ -594,10 +606,11 @@ export function NotesSection({
         cursorColor={accentColor || palette.tabActive}
         style={{
           minHeight: 72,
-          fontSize: HOME_TEXT.sectionTitle,
+          fontSize: 14.5,
           color: palette.text,
           paddingVertical: 0,
           textAlignVertical: 'top' }}
+        onBlur={onBlur}
         multiline
       />
     </View>

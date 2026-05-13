@@ -120,7 +120,7 @@ export default function CategoriesScreen() {
                       width: 26,
                       height: 26,
                       borderRadius: 8,
-                      backgroundColor: palette.isDark ? '#1E2330' : '#F5F7FB',
+                      backgroundColor: palette.isDark ? 'rgba(255,255,255,0.04)' : palette.background,
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}

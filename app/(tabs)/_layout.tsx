@@ -1,6 +1,6 @@
 import { AppIcon, IconName } from '@/components/ui/AppIcon';
 import { router, Tabs } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,6 @@ const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
 
 const VISIBLE_TAB_NAMES = ['index', 'activity', 'insights', 'settings'] as const;
 const TAB_BAR_SLOTS = ['index', 'activity', 'add', 'insights', 'settings'] as const;
-const TAB_NAVIGATION_DELAY_MS = 0;
 
 const BACKGROUND_RESET_ENABLED: Record<string, boolean> = {
   index: true,
@@ -52,30 +51,12 @@ function AppTabBar({
   const activeSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === activeRouteName);
   const getPillTarget = (slotIndex: number) =>
     Math.max(slotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2;
-  const requestedSlotRef = useRef(activeSlotIndex);
-  const pendingNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pillX = useSharedValue(getPillTarget(activeSlotIndex));
 
-  const clearPendingNavigation = () => {
-    if (pendingNavigationTimeoutRef.current) {
-      clearTimeout(pendingNavigationTimeoutRef.current);
-      pendingNavigationTimeoutRef.current = null;
-    }
-  };
-
   useEffect(() => {
-    return () => {
-      clearPendingNavigation();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (requestedSlotRef.current === activeSlotIndex) return;
-    requestedSlotRef.current = activeSlotIndex;
-    // getPillTarget closes over current itemWidth from this render
     pillX.value = withTiming(getPillTarget(activeSlotIndex), { duration: 210 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSlotIndex]);
+  }, [activeSlotIndex, itemWidth]);
 
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: pillX.value }],
@@ -123,7 +104,6 @@ function AppTabBar({
                 delayPressIn={0}
                 activeOpacity={0.88}
                 onPress={() => {
-                  clearPendingNavigation();
                   router.push('/modals/add-transaction');
                 }}
                 style={{
@@ -168,7 +148,6 @@ function AppTabBar({
           const item = TAB_ITEMS[route.name] ?? TAB_ITEMS.index;
 
           const onPress = () => {
-            clearPendingNavigation();
             const leavingRouteName = state.routes[state.index]?.name;
             const event = navigation.emit({
               type: 'tabPress',
@@ -182,26 +161,16 @@ function AppTabBar({
               getTabReset(route.name)?.({ mode: 'full', animated: true });
               return;
             }
-
-            const nextSlotIndex = TAB_BAR_SLOTS.findIndex((slotName) => slotName === route.name);
-            if (nextSlotIndex >= 0) {
-              requestedSlotRef.current = nextSlotIndex;
-              pillX.value = withTiming(getPillTarget(nextSlotIndex), { duration: 210 });
+            navigation.navigate(route.name, route.params);
+            if (leavingRouteName && BACKGROUND_RESET_ENABLED[leavingRouteName]) {
+              runAfterTabHidden(() => {
+                const latestState = navigation.getState?.();
+                const latestRouteName = latestState?.routes?.[latestState.index]?.name;
+                if (latestRouteName !== leavingRouteName) {
+                  getTabReset(leavingRouteName)?.({ mode: 'background', animated: false });
+                }
+              });
             }
-
-            pendingNavigationTimeoutRef.current = setTimeout(() => {
-              pendingNavigationTimeoutRef.current = null;
-              navigation.navigate(route.name, route.params);
-              if (leavingRouteName && BACKGROUND_RESET_ENABLED[leavingRouteName]) {
-                runAfterTabHidden(() => {
-                  const latestState = navigation.getState?.();
-                  const latestRouteName = latestState?.routes?.[latestState.index]?.name;
-                  if (latestRouteName !== leavingRouteName) {
-                    getTabReset(leavingRouteName)?.({ mode: 'background', animated: false });
-                  }
-                });
-              }
-            }, TAB_NAVIGATION_DELAY_MS);
           };
 
           return (
@@ -254,7 +223,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ freezeOnBlur: false }} />
-      <Tabs.Screen name="activity" />
+      <Tabs.Screen name="activity" options={{ lazy: false }} />
       <Tabs.Screen name="insights" />
       <Tabs.Screen name="settings" />
     </Tabs>

@@ -160,7 +160,7 @@ function SettingsAccountCard({
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
-            style={{ fontSize: TYPE.rowLabel, fontWeight: '500', color: palette.text }}
+            style={{ fontSize: TYPE.section, fontWeight: '500', color: palette.text }}
             numberOfLines={1}
           >
             {formatAccountDisplayName(item.name, item.accountNumber)}

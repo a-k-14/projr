@@ -162,6 +162,9 @@ export default function AddTransactionModal() {
   const personInputRef = useRef<TextInput | null>(null);
   const [payeeSuggestions, setPayeeSuggestions] = useState<string[]>([]);
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
+  const [isPayeeFocused, setIsPayeeFocused] = useState(false);
+  const [isNoteFocused, setIsNoteFocused] = useState(false);
+  const [isPersonFocused, setIsPersonFocused] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const splitIdSeed = useRef(0);
   const hadSplitRows = useRef(false);
@@ -803,7 +806,7 @@ export default function AddTransactionModal() {
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
-                      fontWeight: '600',
+                      fontWeight: '500',
                       color: type === t ? TYPE_CONFIG[t].color : palette.textMuted
                     }}
                   >
@@ -848,13 +851,14 @@ export default function AddTransactionModal() {
                 autoFocus
                 editable={usableSplitRows.length === 0}
               />
-              <View style={{ paddingRight: SCREEN_GUTTER + 6, marginBottom: -6, alignItems: 'flex-end' }}>
+              <View style={{ paddingRight: SCREEN_GUTTER + 6, marginBottom: -18, alignItems: 'flex-end', zIndex: 1 }}>
                 <TouchableOpacity delayPressIn={0}
                   onPress={() =>
                     runAfterKeyboardDismiss(() =>
                       router.push({ pathname: '/modals/split-transaction', params: { type } })
                     )
                   }
+                  hitSlop={{ top: 12, bottom: 12, left: 20, right: 10 }}
                   style={{ minHeight: 28, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}
                   activeOpacity={0.75}
                 >
@@ -898,8 +902,10 @@ export default function AddTransactionModal() {
                 placeholder="Add payee"
                 palette={palette}
                 accentColor={activeConfig.color}
+                onFocus={() => setIsPayeeFocused(true)}
+                onBlur={() => setIsPayeeFocused(false)}
               />
-              {payeeSuggestions.length > 0 && (
+              {isPayeeFocused && payeeSuggestions.length > 0 && (
                 <View style={{ paddingHorizontal: SCREEN_GUTTER + ROW_LABEL_WIDTH, paddingBottom: 16, marginTop: -8 }}>
                   <View style={{ maxHeight: 200 }}>
                     <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -942,9 +948,13 @@ export default function AddTransactionModal() {
                 onChangeNote={setNote}
                 palette={palette}
                 accentColor={activeConfig.color}
-                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+                onFocus={() => {
+                  setIsNoteFocused(true);
+                  setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250);
+                }}
+                onBlur={() => setIsNoteFocused(false)}
               />
-              {noteSuggestions.length > 0 && (
+              {isNoteFocused && noteSuggestions.length > 0 && (
                 <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
                   <View style={{ maxHeight: 200 }}>
                     <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -973,7 +983,7 @@ export default function AddTransactionModal() {
             <SectionCard palette={palette}>
               <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
               <PickerRow
-                label="From account"
+                label="From"
                 value={getAccountName(accounts, accountId) || 'Select...'}
                 subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
                 placeholder={!accountId}
@@ -1000,7 +1010,7 @@ export default function AddTransactionModal() {
                 </TouchableOpacity>
               </View>
               <PickerRow
-                label="To account"
+                label="To"
                 value={getAccountName(accounts, linkedAccountId) || 'Select...'}
                 subtitle={selectedLinkedAccount ? formatCurrency(selectedLinkedAccount.balance, displaySym) : undefined}
                 placeholder={!linkedAccountId}
@@ -1028,9 +1038,13 @@ export default function AddTransactionModal() {
                 onChangeNote={setNote}
                 palette={palette}
                 accentColor={activeConfig.color}
-                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+                onFocus={() => {
+                  setIsNoteFocused(true);
+                  setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250);
+                }}
+                onBlur={() => setIsNoteFocused(false)}
               />
-              {noteSuggestions.length > 0 && (
+              {isNoteFocused && noteSuggestions.length > 0 && (
                 <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
                   <View style={{ maxHeight: 200 }}>
                     <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -1142,6 +1156,8 @@ export default function AddTransactionModal() {
                       palette={palette}
                       accentColor={activeConfig.color}
                       autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
+                      onFocus={() => setIsPersonFocused(true)}
+                      onBlur={() => setIsPersonFocused(false)}
                     />
                   )}
                 </>
@@ -1168,9 +1184,13 @@ export default function AddTransactionModal() {
                 onChangeNote={setNote}
                 palette={palette}
                 accentColor={activeConfig.color}
-                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+                onFocus={() => {
+                  setIsNoteFocused(true);
+                  setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250);
+                }}
+                onBlur={() => setIsNoteFocused(false)}
               />
-              {noteSuggestions.length > 0 && (
+              {isNoteFocused && noteSuggestions.length > 0 && (
                 <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
                   <View style={{ maxHeight: 200 }}>
                     <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -1626,7 +1646,7 @@ function ReceiptSection({
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary, marginBottom: 10 }}>
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.textSecondary, marginBottom: 10 }}>
         Receipt
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, alignItems: 'center' }}>
@@ -1821,7 +1841,7 @@ function CategoryPickerValue({
       <Text
         style={{
           flex: 1,
-          fontSize: HOME_TEXT.sectionTitle,
+          fontSize: HOME_TEXT.body,
           fontWeight: '500',
           color: isPlaceholder ? palette.textMuted : palette.text,
           lineHeight: 21,

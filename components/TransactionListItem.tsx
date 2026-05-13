@@ -125,11 +125,9 @@ export function TransactionListItem({
   ) : null;
 
   const iconName =
-    tx.type === 'loan'
-      ? 'credit-card'
-      : inOutCategoryIcon && isValidIcon(inOutCategoryIcon)
-        ? inOutCategoryIcon
-        : cfg.iconName;
+    inOutCategoryIcon && isValidIcon(inOutCategoryIcon)
+      ? inOutCategoryIcon
+      : cfg.iconName;
   const iconColor = palette.brand;
 
   return (

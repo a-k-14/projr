@@ -39,7 +39,14 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
       color: palette.loan,
       bg: palette.loanBg,
       borderColor: palette.loan,
-      iconName: 'credit-card',
+      iconName: 'hand-coins',
+    },
+    deposit: {
+      label: 'Deposit',
+      color: palette.brand,
+      bg: palette.surface,
+      borderColor: palette.brand,
+      iconName: 'vault',
     },
   };
 }

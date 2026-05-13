@@ -514,10 +514,8 @@ export default function HomeScreen({
             onChange={(next) => {
               const nextPeriod = next as PeriodType;
               setUiPeriod(nextPeriod);
-              InteractionManager.runAfterInteractions(() => {
-                startTransition(() => {
-                  setPeriod(nextPeriod);
-                });
+              startTransition(() => {
+                setPeriod(nextPeriod);
               });
             }}
             theme={theme}
