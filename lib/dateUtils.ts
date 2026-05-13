@@ -182,7 +182,7 @@ export function getNavigableDateRange(
     
     return { 
       from: toLocalDayStartISO(monday), 
-      to: offset === 0 && offset === 0 // current week
+      to: offset === 0 // current week
         ? toLocalDayEndISO(now)
         : toLocalDayEndISO(sunday)
     };

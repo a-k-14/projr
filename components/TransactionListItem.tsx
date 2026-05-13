@@ -37,7 +37,7 @@ interface Props {
   isCard?: boolean;
 }
 
-export const TransactionListItem = React.memo(function TransactionListItem({
+export function TransactionListItem({
   tx,
   sym,
   palette,
@@ -195,7 +195,7 @@ export const TransactionListItem = React.memo(function TransactionListItem({
       ]}
     />
   );
-});
+}
 
 
 

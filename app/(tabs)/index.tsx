@@ -13,6 +13,9 @@ import {
   View
 } from 'react-native';
 import Animated, {
+  FadeInRight,
+  FadeOutRight,
+  LinearTransition,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useSharedValue,
@@ -26,6 +29,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppDonutChart } from '../../components/ui/AppDonutChart';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import {
@@ -56,6 +60,7 @@ import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import type {
   Account,
   AccountType,
@@ -88,6 +93,34 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
   year: 'Year',
   custom: 'Custom'
 };
+function HeroCardAurora({ palette }: { palette: AppThemePalette }) {
+  const brand = palette.brand;
+  return (
+    <Svg
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      width="100%"
+      height="100%"
+      viewBox="0 0 400 230"
+      preserveAspectRatio="none"
+    >
+      <Defs>
+        {/* Top-right blob */}
+        <RadialGradient id="aur1" cx="88%" cy="15%" r="55%" fx="88%" fy="15%">
+          <Stop offset="0%" stopColor={brand} stopOpacity={palette.isDark ? 0.22 : 0.14} />
+          <Stop offset="100%" stopColor={brand} stopOpacity={0} />
+        </RadialGradient>
+        {/* Bottom-left blob */}
+        <RadialGradient id="aur2" cx="8%" cy="88%" r="42%" fx="8%" fy="88%">
+          <Stop offset="0%" stopColor={brand} stopOpacity={palette.isDark ? 0.14 : 0.09} />
+          <Stop offset="100%" stopColor={brand} stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Rect x={0} y={0} width={400} height={230} fill="url(#aur1)" />
+      <Rect x={0} y={0} width={400} height={230} fill="url(#aur2)" />
+    </Svg>
+  );
+}
+
 const ACCOUNT_TYPE_SORT_ORDER: Record<AccountType, number> = {
   savings: 0,
   cash: 1,
@@ -120,6 +153,7 @@ function HomeScreenContent() {
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
+  const loadCategories = useCategoriesStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const loans = useLoansStore((s) => s.loans);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
@@ -251,10 +285,11 @@ function HomeScreenContent() {
     {
       id: 'Deposits',
       label: 'Deposits',
-      icon: 'badge-percent',
+      icon: 'vault',
       route: '/deposits',
       meta: depositMeta,
-      tone: palette.brand,
+      tone: '#0F766E',
+      bg: '#E6F7F4',
     },
     {
       id: 'Loans',
@@ -262,7 +297,7 @@ function HomeScreenContent() {
       icon: 'hand-coins',
       route: '/loans',
       meta: loanMeta,
-      tone: loanSummary.net < 0 ? palette.negative : palette.positive,
+      tone: '#0369A1',
     },
     {
       id: 'Budgets',
@@ -270,7 +305,7 @@ function HomeScreenContent() {
       icon: 'pie-chart',
       route: '/budget',
       meta: budgetMeta,
-      tone: '#4F46E5',
+      tone: '#4338CA',
       bg: '#F0F2FF',
     },
   ] as const;
@@ -599,7 +634,7 @@ function MoreShortcutCard({
         </View>
 
         <View>
-          <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '700', color: palette.text }}>
+          <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '500', color: palette.text }}>
             {feature.label}
           </Text>
           <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '400', color: palette.textMuted, marginTop: 2 }}>
@@ -1115,7 +1150,12 @@ function AccountSummaryCard({
   onPressMetricOut,
   hideAmounts,
   heroMode = false,
+  accountType,
+  from,
+  to,
   children,
+  heroMetricPeriod,
+  onHeroMetricPeriodChange,
 }: {
   accountName: string;
   accountTypeLabel: string;
@@ -1138,17 +1178,28 @@ function AccountSummaryCard({
   onPressMetricOut?: () => void;
   hideAmounts?: boolean;
   heroMode?: boolean;
+  accountType?: AccountType;
+  from?: string;
+  to?: string;
   children?: React.ReactNode;
+  heroMetricPeriod?: 'today' | 'month';
+  onHeroMetricPeriodChange?: (p: 'today' | 'month') => void;
 }) {
   const isAll = accountName === 'All';
   const isAccountHero = heroMode && !isAll;
-  const heroText = heroMode ? '#FFFFFF' : palette.text;
-  const heroMutedText = heroMode ? 'rgba(255,255,255,0.82)' : palette.textMuted;
-  const heroSoftText = heroMode ? 'rgba(255,255,255,0.66)' : palette.textSoft;
+  const isHomeHero = heroMode && isAll;
+  // Account hero = dark card → white text. Home hero = white card → dark palette text.
+  const heroText = isAccountHero ? '#FFFFFF' : palette.text;
+  const heroMutedText = isAccountHero ? 'rgba(255,255,255,0.75)' : palette.textMuted;
+  const heroSoftText = isAccountHero ? 'rgba(255,255,255,0.52)' : palette.textMuted;
   const netWorthStripBg = heroMode ? 'rgba(255,255,255,0.085)' : palette.isDark ? '#080C14' : '#E8EDF8';
-  const netWorthStripBorder = heroMode ? 'rgba(255,255,255,0.20)' : palette.isDark ? palette.divider : '#D8E0F0';
-  const heroMetricStripBg = heroMode ? 'rgba(255,255,255,0.055)' : netWorthStripBg;
-  const heroMetricDivider = heroMode ? 'rgba(255,255,255,0.12)' : palette.divider;
+  const netWorthStripBorder = heroMode ? 'rgba(255,255,255,0.18)' : palette.isDark ? palette.divider : '#D8E0F0';
+  const heroMetricStripBg = isHomeHero
+    ? (palette.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)')
+    : 'rgba(255,255,255,0.06)';
+  const heroMetricDivider = isHomeHero
+    ? (palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)')
+    : 'rgba(255,255,255,0.10)';
 
   const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
@@ -1162,22 +1213,26 @@ function AccountSummaryCard({
   const heroDecimalFontSize = Math.max(14, heroBalanceFontSize - 9);
   const nwChangeTone = !netWorthChange ? 'neutral' : netWorthChange > 0 ? 'positive' : 'negative';
   const nwChangeBg = nwChangeTone === 'positive'
-    ? 'rgba(190,242,100,0.92)'
+    ? 'rgba(190,242,100,0.90)'
     : nwChangeTone === 'negative'
-      ? 'rgba(253,164,175,0.92)'
-      : 'rgba(226,232,240,0.88)';
+      ? 'rgba(253,164,175,0.90)'
+      : 'rgba(226,232,240,0.80)';
   const nwChangeInk = '#111827';
-  const metricLeftLabel = isAccountHero && isCashflowView ? 'Inflow' : 'Income';
-  const metricRightLabel = isAccountHero && isCashflowView ? 'Outflow' : 'Expense';
-  const metricLeftAmount = isAccountHero && isCashflowView ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
-  const metricRightAmount = isAccountHero && isCashflowView ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
+  const isCashflow = !!isCashflowView;
+  const metricLeftLabel = isCashflow ? 'Inflow' : 'Income';
+  const metricRightLabel = isCashflow ? 'Outflow' : 'Expense';
+  const metricLeftAmount = isCashflow ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
+  const metricRightAmount = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
   const periodOptions = PERIODS.map((item) => ({ key: item, label: PERIOD_LABELS[item] }));
 
   const content = (
     <View
       style={{
         backgroundColor: 'transparent',
-        borderColor: heroMode ? 'rgba(255,255,255,0.10)' : palette.isDark ? palette.borderSoft : '#D0D8EE',
+        borderColor: isHomeHero
+          ? (palette.isDark ? palette.border : '#E2E7F4')
+          : heroMode ? 'rgba(255,255,255,0.10)'
+          : palette.isDark ? palette.borderSoft : '#D0D8EE',
         borderWidth: 1,
         borderRadius: heroMode ? 28 : 22,
         overflow: 'hidden',
@@ -1185,84 +1240,146 @@ function AccountSummaryCard({
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
       <LinearGradient
-        colors={heroMode ? ['#23304A', '#1E293B', '#24324F'] : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']}
-        locations={heroMode ? [0, 0.52, 1] : undefined}
+        colors={
+          isHomeHero
+            ? (palette.isDark ? ['#16192A', '#1A1E30'] : ['#FFFFFF', '#FBFCFF'])
+            : heroMode
+              ? ['#23304A', '#1E293B', '#24324F']
+              : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']
+        }
+        locations={heroMode ? (isHomeHero ? [0, 1] : [0, 0.5, 1]) : undefined}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      <View style={{ paddingHorizontal: heroMode ? 22 : CARD_PADDING, paddingTop: heroMode ? 20 : 20, paddingBottom: heroMode ? 18 : 22 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: heroMode ? 12 : 12, gap: 14 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {!heroMode && !isAll && (
-              <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: 4, borderRadius: 6 }}>
-                <AppIcon name={ACCOUNT_TYPE_META[accountTypeLabel as AccountType]?.icon ?? 'wallet'} size={12} color={palette.brand} />
+      {isHomeHero ? <HeroCardAurora palette={palette} /> : null}
+
+      <View style={{ paddingHorizontal: heroMode ? 18 : CARD_PADDING, paddingTop: heroMode ? 16 : 20, paddingBottom: heroMode ? 14 : 22 }}>
+        {/* Top Section */}
+        {isAccountHero ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 20 }}>
+            {accountType && (
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
+                <AppIcon 
+                  name={ACCOUNT_TYPE_META[accountType]?.icon ?? 'wallet'} 
+                  size={28} 
+                  color="rgba(255,255,255,0.7)" 
+                  strokeWidth={2} 
+                />
               </View>
             )}
-            <Text style={{ fontSize: heroMode ? 10 : HOME_TEXT.tiny, fontWeight: '700', letterSpacing: heroMode ? 0.75 : 0.8, textTransform: 'uppercase', color: heroMutedText }}>
-              {isAll ? 'Balance · All Accounts' : accountName}
-            </Text>
-          </View>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'nowrap', gap: 18 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexShrink: 1, minWidth: 0 }}>
-            {heroMode && currencySymbol ? (
-              <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, lineHeight: heroBalanceLineHeight - 6, fontWeight: '700', color: heroMutedText, marginRight: 5 }}>
-                {currencySymbol}
+            <View style={{ alignItems: 'flex-end', flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: '600', color: heroMutedText, letterSpacing: 0.4, marginBottom: -1 }}>
+                {accountName}
               </Text>
-            ) : null}
-            <Text
-              appWeight="medium"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              style={{ fontSize: heroMode ? heroBalanceFontSize : 18, lineHeight: heroMode ? heroBalanceLineHeight : undefined, fontWeight: heroMode ? '600' : '700', color: balanceColor, letterSpacing: heroMode ? -0.35 : -0.6, flexShrink: 1 }}
-            >
-              {heroMode && currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
-            </Text>
-            {balanceDec ? (
+              <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                {currencySymbol && (
+                  <Text style={{ fontSize: 15, fontWeight: '500', color: heroMutedText, marginRight: 3 }}>{currencySymbol}</Text>
+                )}
+                <Text style={{ fontSize: 24, fontWeight: '600', color: heroText }}>
+                  {balanceInt.startsWith(currencySymbol || '') ? balanceInt.slice((currencySymbol || '').length) : balanceInt}
+                </Text>
+                {balanceDec && (
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: heroSoftText }}>{balanceDec}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+        ) : heroMode ? (
+          /* Home hero: aurora bg, label top-left + NW top-right, big balance, no icon */
+          <View style={{ marginBottom: 14 }}>
+            {/* Row 1: label (left) + NW tappable (right) */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text numberOfLines={1} style={{ fontSize: 11.5, fontWeight: '700', color: palette.textMuted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                All Accounts
+              </Text>
+              {onOpenNetWorth && typeof netWorth === 'number' ? (
+                <TouchableOpacity
+                  delayPressIn={0}
+                  activeOpacity={0.75}
+                  onPress={onOpenNetWorth}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: palette.brand, fontFamily: 'monospace' }}>
+                    {hideAmounts ? 'NW ••••' : `NW ${formatNetWorthStripValue(netWorth, currencySymbol)}`}
+                  </Text>
+                  {netWorthChange !== undefined && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: nwChangeBg, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      {nwChangeTone !== 'neutral' && (
+                        <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={9} color={nwChangeInk} strokeWidth={2.5} />
+                      )}
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: nwChangeInk }}>
+                        {nwChangeTone === 'neutral' ? '—' : `${Math.abs(netWorthChange).toFixed(1)}%`}
+                      </Text>
+                    </View>
+                  )}
+                  <AppIcon name="chevron-right" size={12} color={palette.textSoft} strokeWidth={2} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* Row 2: big balance number */}
+            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+              {currencySymbol ? (
+                <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: '600', color: palette.textMuted, marginRight: 4 }}>
+                  {currencySymbol}
+                </Text>
+              ) : null}
               <Text
                 appWeight="medium"
-                style={{ fontSize: heroMode ? heroDecimalFontSize : 17, fontWeight: '700', color: heroSoftText, letterSpacing: -0.2, marginBottom: heroMode ? 5 : 3 }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: '700', color: palette.text, letterSpacing: -0.5, flexShrink: 1 }}
               >
-                {balanceDec}
+                {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
               </Text>
-            ) : null}
-          </View>
-          {heroMode && onOpenNetWorth && typeof netWorth === 'number' ? (
-            <TouchableOpacity
-              delayPressIn={0}
-              activeOpacity={0.78}
-              onPress={onOpenNetWorth}
-              style={{
-                minHeight: 34,
-                maxWidth: 132,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.16)',
-                backgroundColor: 'rgba(255,255,255,0.06)',
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 7,
-                flexShrink: 0,
-              }}
-            >
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 9.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.35, textTransform: 'uppercase' }}>
-                  NW
+              {balanceDec ? (
+                <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: '600', color: palette.textMuted, letterSpacing: -0.2 }}>
+                  {balanceDec}
                 </Text>
-                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 12.5, fontWeight: '600', color: heroText, marginTop: 1 }}>
-                  {hideAmounts ? '••••' : formatNetWorthStripValue(netWorth, currencySymbol)}
+              ) : null}
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                {!isAll && (
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: 4, borderRadius: 6 }}>
+                    <AppIcon name={ACCOUNT_TYPE_META[accountTypeLabel as AccountType]?.icon ?? 'wallet'} size={12} color={palette.brand} />
+                  </View>
+                )}
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: heroMutedText }}>
+                  {isAll ? 'Balance · All Accounts' : accountName}
                 </Text>
               </View>
-              <AppIcon name="arrow-up-right" size={14} color={heroMutedText} strokeWidth={2.1} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'nowrap', gap: 18 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexShrink: 1, minWidth: 0 }}>
+                <Text
+                  appWeight="medium"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  style={{ fontSize: 18, fontWeight: '700', color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
+                >
+                  {balanceInt}
+                </Text>
+                {balanceDec ? (
+                  <Text
+                    appWeight="medium"
+                    style={{ fontSize: 17, fontWeight: '700', color: heroSoftText, letterSpacing: -0.2, marginBottom: 3 }}
+                  >
+                    {balanceDec}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          </>
+        )}
 
+        {/* Period Section */}
         {isAccountHero && period && onPeriodChange ? (
-          <View style={{ marginTop: 18, gap: 12 }}>
+          <View style={{ marginTop: 8, gap: 12 }}>
             <SegmentedPillSwitch
               options={periodOptions}
               value={period}
@@ -1285,76 +1402,166 @@ function AccountSummaryCard({
               itemMinWidth={54}
               style={{ alignSelf: 'stretch' }}
             />
-            <TouchableOpacity
-              delayPressIn={0}
-              activeOpacity={0.78}
-              onPress={() => onToggleCashflowView?.(!isCashflowView)}
-              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
-            >
-              <Text style={{ fontSize: 11.5, fontWeight: '600', color: heroMutedText }}>
-                Cashflow
-              </Text>
-              <View
-                style={{
-                  width: 38,
-                  height: 22,
-                  borderRadius: 999,
-                  padding: 2,
-                  backgroundColor: isCashflowView ? 'rgba(156,255,106,0.34)' : 'rgba(255,255,255,0.12)',
-                  borderWidth: 1,
-                  borderColor: isCashflowView ? 'rgba(156,255,106,0.46)' : 'rgba(255,255,255,0.16)',
-                  alignItems: isCashflowView ? 'flex-end' : 'flex-start',
-                }}
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+              <TouchableOpacity
+                delayPressIn={0}
+                activeOpacity={0.78}
+                onPress={() => onToggleCashflowView?.(!isCashflowView)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
               >
-                <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: isCashflowView ? '#9CFF6A' : 'rgba(255,255,255,0.86)' }} />
-              </View>
-            </TouchableOpacity>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: heroMutedText }}>
+                  Cashflow
+                </Text>
+                <View
+                  style={{
+                    width: 38,
+                    height: 22,
+                    borderRadius: 999,
+                    padding: 2,
+                    backgroundColor: isCashflowView ? 'rgba(156,255,106,0.34)' : 'rgba(255,255,255,0.12)',
+                    borderWidth: 1,
+                    borderColor: isCashflowView ? 'rgba(156,255,106,0.46)' : 'rgba(255,255,255,0.16)',
+                    alignItems: isCashflowView ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: isCashflowView ? '#9CFF6A' : 'rgba(255,255,255,0.86)' }} />
+                </View>
+              </TouchableOpacity>
+
+              {from && to && (
+                <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 9.5, fontWeight: '600', color: heroSoftText, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    {formatDate(from)}
+                  </Text>
+                  {period !== 'today' && (
+                    <Animated.View 
+                      entering={FadeInRight.duration(200)} 
+                      exiting={FadeOutRight.duration(200)} 
+                      style={{ flexDirection: 'row', alignItems: 'center' }}
+                    >
+                      <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 9.5, fontWeight: '600', color: heroSoftText, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                        {` - ${formatDate(to)}`}
+                      </Text>
+                    </Animated.View>
+                  )}
+                </Animated.View>
+              )}
+            </View>
           </View>
         ) : null}
 
         {heroMode && incomeExpense ? (
           <View
             style={{
-              width: '100%',
-              minHeight: isAccountHero ? 42 : 36,
-              marginTop: isAccountHero ? 12 : 16,
-              borderRadius: 15,
+              borderRadius: 18,
+              overflow: 'hidden',
               borderWidth: 1,
-              borderColor: netWorthStripBorder,
+              borderColor: isHomeHero
+                ? (palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)')
+                : 'transparent',
               backgroundColor: heroMetricStripBg,
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingHorizontal: 12,
-              paddingVertical: 5,
             }}
           >
-            <TouchableOpacity delayPressIn={0} activeOpacity={0.76} disabled={!onPressMetricIn} onPress={onPressMetricIn} style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                <AppIcon name="arrow-down-left" size={13} color={heroSoftText} strokeWidth={1.9} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ fontSize: 10.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+            {/* Strip header: period toggle + cashflow switch (home only) */}
+            {isHomeHero && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 }}>
+                {/* Today / Month pills */}
+                <View style={{ flexDirection: 'row', gap: 2 }}>
+                  {(['today', 'month'] as const).map((p) => {
+                    const active = (heroMetricPeriod ?? 'today') === p;
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        delayPressIn={0}
+                        activeOpacity={0.75}
+                        onPress={() => onHeroMetricPeriodChange?.(p)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 5,
+                          borderRadius: 20,
+                          backgroundColor: active
+                            ? (isHomeHero ? palette.brandSoft : 'rgba(255,255,255,0.18)')
+                            : 'transparent',
+                        }}
+                      >
+                        <Text style={{ fontSize: 12.5, fontWeight: active ? '600' : '400', color: active ? (isHomeHero ? palette.brand : '#FFFFFF') : heroSoftText }}>
+                          {p === 'today' ? 'Today' : 'Month'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {/* Cashflow toggle */}
+                <TouchableOpacity
+                  delayPressIn={0}
+                  activeOpacity={0.78}
+                  onPress={() => onToggleCashflowView?.(!isCashflowView)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
+                >
+                  <Text style={{ fontSize: 11.5, fontWeight: '500', color: isCashflow ? (isHomeHero ? palette.brand : heroMutedText) : heroSoftText }}>
+                    Cashflow
+                  </Text>
+                  <View style={{
+                    width: 36, height: 20, borderRadius: 10, padding: 2,
+                    backgroundColor: isCashflow
+                      ? (isHomeHero ? palette.brandSoft : 'rgba(156,255,106,0.32)')
+                      : (isHomeHero ? palette.inputBg : 'rgba(255,255,255,0.10)'),
+                    borderWidth: 1,
+                    borderColor: isCashflow
+                      ? (isHomeHero ? `${palette.brand}50` : 'rgba(156,255,106,0.44)')
+                      : (isHomeHero ? palette.borderSoft : 'rgba(255,255,255,0.14)'),
+                    alignItems: isCashflow ? 'flex-end' : 'flex-start',
+                  }}>
+                    <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: isCashflow ? palette.brand : (isHomeHero ? palette.textSoft : 'rgba(255,255,255,0.85)') }} />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Divider */}
+            {isHomeHero && <View style={{ height: 1, backgroundColor: heroMetricDivider }} />}
+
+            {/* Income | Expense halves */}
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity
+                delayPressIn={0}
+                activeOpacity={0.76}
+                disabled={!onPressMetricIn}
+                onPress={onPressMetricIn}
+                style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10 }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                  <AppIcon name="arrow-down-left" size={11} color={heroSoftText} strokeWidth={2} />
+                  <Text style={{ fontSize: 10, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
                     {metricLeftLabel}
                   </Text>
-                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13, fontWeight: '500', color: heroText, marginTop: 2 }}>
-                    {hideAmounts ? '••••' : formatCurrency(metricLeftAmount, currencySymbol)}
-                  </Text>
                 </View>
-              </View>
-            </TouchableOpacity>
-            <View style={{ width: 1, height: 22, backgroundColor: heroMetricDivider, marginHorizontal: 12 }} />
-            <TouchableOpacity delayPressIn={0} activeOpacity={0.76} disabled={!onPressMetricOut} onPress={onPressMetricOut} style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                <AppIcon name="arrow-up-right" size={13} color={heroSoftText} strokeWidth={1.9} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ fontSize: 10.5, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 15, fontWeight: '700', color: metricLeftAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
+                  {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: heroMetricDivider }} />
+
+              <TouchableOpacity
+                delayPressIn={0}
+                activeOpacity={0.76}
+                disabled={!onPressMetricOut}
+                onPress={onPressMetricOut}
+                style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'flex-end' }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
                     {metricRightLabel}
                   </Text>
-                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13, fontWeight: '500', color: heroText, marginTop: 2 }}>
-                    {hideAmounts ? '••••' : formatCurrency(metricRightAmount, currencySymbol)}
-                  </Text>
+                  <AppIcon name="arrow-up-right" size={11} color={heroSoftText} strokeWidth={2} />
                 </View>
-              </View>
-            </TouchableOpacity>
+                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 15, fontWeight: '700', color: metricRightAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
+                  {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : null}
         {onOpenNetWorth && !heroMode ? (
@@ -1726,6 +1933,12 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             palette={palette}
             onOpenNetWorth={accountId === 'all' ? onOpenNetWorth : undefined}
             netWorth={accountId === 'all' ? netWorth : undefined}
+            netWorthChange={(() => {
+              if (accountId !== 'all' || !netWorth) return undefined;
+              const netChange = displayedCashflow.net;
+              const nwAtStart = netWorth - netChange;
+              return Math.abs(nwAtStart) > 0 ? (netChange / Math.abs(nwAtStart)) * 100 : 0;
+            })()}
             incomeExpense={incExpSummary}
             cashflowSummary={displayedCashflow}
             period={accountId === 'all' ? undefined : period}
@@ -1737,6 +1950,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             onPressMetricOut={() => openPeriodActivity('out')}
             hideAmounts={hideAmounts}
             heroMode
+            heroMetricPeriod={period === 'month' ? 'month' : 'today'}
+            onHeroMetricPeriodChange={onPeriodChange}
+            accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
+            from={from}
+            to={to}
           />
           <View
             onLayout={(event) => {
@@ -1810,8 +2028,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   const accountName = accountsById.get(transaction.accountId);
                   const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
                   const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
-                  const category = transaction.categoryId ? categoriesById.get(transaction.categoryId) : undefined;
-
                   return (
                     <TransactionListItem
                       key={transaction.id}
@@ -1820,7 +2036,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                       palette={palette}
                       isLast={index === transactions.length - 1}
                       categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
-                      categoryIcon={category?.icon}
+                      categoryIcon={getCategoryDisplayIcon(categoriesById, transaction.categoryId)}
                       accountName={accountName}
                       linkedAccountName={linkedAccountName}
                       loanPersonName={loan?.personName}

@@ -121,7 +121,7 @@ export const HOME_LAYOUT = {
   listRowPaddingY: 16,
   listIconSize: 40,
   listIconInnerSize: 21,
-  listIconStrokeWidth: 1.5,
+  listIconStrokeWidth: 1.53,
   periodHeight: 36,
   periodButtonWidth: 48,
   chartHeight: 116,

@@ -13,13 +13,13 @@ import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
 import { formatCurrency } from '../lib/derived';
 import { SCREEN_GUTTER } from '../lib/design';
 import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../lib/layoutTokens';
+import { getCategoryDisplayIcon } from '../lib/category-utils';
 import { registerTabReset } from '../lib/tabResetRegistry';
 import { useAppTheme, type AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
 import { useBudgetStore } from '../stores/useBudgetStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
-import { useTransactionsStore } from '../stores/useTransactionsStore';
 import { useUIStore } from '../stores/useUIStore';
 import type { BudgetWithSpent } from '../types';
 
@@ -31,15 +31,19 @@ export default function BudgetScreen() {
   const isFocused = useIsFocused();
   const budgets = useBudgetStore((s) => s.budgets);
   const loadBudgets = useBudgetStore((s) => s.load);
+  const categories = useCategoriesStore((s) => s.categories);
   const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
   const loadCategories = useCategoriesStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
-  const storeTransactions = useTransactionsStore((s) => s.transactions);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const categoriesById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories],
+  );
 
   const [selectedMonth, setSelectedMonth] = useState(() => monthStartIso(new Date()));
   const [refreshing, setRefreshing] = useState(false);
@@ -70,13 +74,9 @@ export default function BudgetScreen() {
   }, [categoriesLoaded, loadCategories]);
 
   useEffect(() => {
-    loadBudgets(selectedMonth).catch(() => undefined);
-  }, [loadBudgets, selectedMonth]);
-
-  useEffect(() => {
     if (!isFocused) return;
     loadBudgets(selectedMonth).catch(() => undefined);
-  }, [isFocused, loadBudgets, selectedMonth, storeTransactions]);
+  }, [isFocused, loadBudgets, selectedMonth]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -150,6 +150,7 @@ export default function BudgetScreen() {
                 sym={sym}
                 palette={palette}
                 categoryLabel={getCategoryFullDisplayName(budget.categoryId, ' › ')}
+                categoryIcon={getCategoryDisplayIcon(categoriesById, budget.categoryId) ?? budget.categoryIcon}
                 onPress={() =>
                   router.push({
                     pathname: '/budget/[id]',
@@ -243,11 +244,13 @@ function BudgetCard({
   sym,
   palette,
   categoryLabel,
+  categoryIcon,
   onPress }: {
     budget: BudgetWithSpent;
     sym: string;
     palette: AppThemePalette;
     categoryLabel: string;
+    categoryIcon: string;
     onPress: () => void;
   }) {
   const isOver = budget.amount > 0 && budget.remaining < 0;
@@ -262,10 +265,10 @@ function BudgetCard({
         borderColor: palette.border,
         borderRadius: HOME_RADIUS.card,
       }}
-      icon={isEmojiIcon(budget.categoryIcon) ? (
-        <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{budget.categoryIcon}</Text>
+      icon={isEmojiIcon(categoryIcon) ? (
+        <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{categoryIcon}</Text>
       ) : (
-        <AppIcon name={budget.categoryIcon as any} size={17} color={palette.budget} />
+        <AppIcon name={categoryIcon as any} size={17} color={palette.budget} />
       )}
       topRow={
         <CardTitleRow

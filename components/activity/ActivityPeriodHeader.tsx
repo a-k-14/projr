@@ -52,14 +52,13 @@ export function ActivityPeriodHeader({
       <View style={styles.periodCenter}>
         <TouchableOpacity delayPressIn={0}
           onPress={() => setShowPeriodSheet(true)}
-          style={[styles.periodCenterTouch, { flexDirection: 'row', gap: 4 }]}
+          style={styles.periodCenterTouch}
           activeOpacity={0.7}
           hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
         >
           <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }} numberOfLines={1}>
             {periodLabel}
           </Text>
-          <AppChevron direction="down" size={16} tone="primary" palette={palette} />
         </TouchableOpacity>
       </View>
 

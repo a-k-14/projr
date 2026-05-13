@@ -81,8 +81,8 @@ export function PickerRow({
         numberOfLines={1}
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '700',
-          color: palette.textMuted,
+          fontWeight: '600',
+          color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
         }}
@@ -96,52 +96,47 @@ export function PickerRow({
           justifyContent: 'space-between',
           flex: 1,
           minWidth: 0,
-          minHeight: ROW_MIN_HEIGHT,
           paddingLeft: 4,
         }}
       >
         {custom ? (
-          <>
-            <View style={{ flex: 1, minWidth: 0 }}>{value}</View>
-            {showChevron ? (
-              <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-                <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
-              </View>
-            ) : null}
-          </>
+          <View style={{ flex: 1, minWidth: 0, paddingVertical: 12, justifyContent: 'center' }}>
+            {value}
+          </View>
         ) : (
-          <>
-            <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+          <View style={{ flex: 1, minWidth: 0, paddingVertical: 12, justifyContent: 'center' }}>
+            <Text
+              appWeight="medium"
+              style={{
+                fontSize: HOME_TEXT.sectionTitle,
+                fontWeight: '500',
+                color: placeholder ? palette.textMuted : palette.text,
+                textAlign: 'left',
+              }}
+              numberOfLines={1}
+            >
+              {value}
+            </Text>
+            {subtitle ? (
               <Text
                 style={{
-                  fontSize: HOME_TEXT.sectionTitle,
-                  fontWeight: '400',
-                  color: placeholder ? palette.textMuted : palette.text,
-                  textAlign: 'left',
+                  fontSize: HOME_TEXT.bodySmall,
+                  color: palette.textMuted,
+                  marginTop: 2,
+                  lineHeight: 17,
                 }}
                 numberOfLines={1}
               >
-                {value}
+                {subtitle}
               </Text>
-              {subtitle ? (
-                <Text
-                  style={{
-                    fontSize: HOME_TEXT.bodySmall,
-                    color: palette.textMuted,
-                    marginTop: 2,
-                    lineHeight: 17,
-                  }}
-                  numberOfLines={1}
-                >
-                  {subtitle}
-                </Text>
-              ) : null}
-            </View>
-            <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'flex-start', justifyContent: 'center' }}>
-              <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
-            </View>
-          </>
+            ) : null}
+          </View>
         )}
+        {showChevron ? (
+          <View style={{ width: ROW_TRAILING_WIDTH, alignItems: 'center', justifyContent: 'center' }}>
+            <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -169,8 +164,8 @@ export function DisplayRow({
         numberOfLines={1}
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '700',
-          color: palette.textMuted,
+          fontWeight: '600',
+          color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
       >
@@ -188,7 +183,7 @@ export function DisplayRow({
         <Text
           style={{
             fontSize: HOME_TEXT.sectionTitle,
-            fontWeight: '400',
+            fontWeight: '500',
             color: palette.text,
             textAlign: 'left',
             flexShrink: 1 }}
@@ -219,7 +214,7 @@ export function FieldRow({
         borderBottomWidth: noBorder === false ? 1 : 0,
         borderBottomColor: palette.border }}
     >
-      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginBottom: 8 }}>
+      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary, marginBottom: 8 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -245,8 +240,8 @@ export function OptionChipRow({
         appWeight="medium"
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '700',
-          color: palette.textMuted,
+          fontWeight: '600',
+          color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
           paddingTop: 10 }}
@@ -299,7 +294,7 @@ export function InteractiveDateTimeRow({
   const dt = new Date(date);
   const dateStr = formatDate(date);
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
-  const chipBg = palette.isDark ? palette.surfaceRaised : palette.surface;
+  const chipBg = palette.isDark ? 'rgba(255,255,255,0.04)' : palette.background;
 
   return (
     <View
@@ -313,8 +308,8 @@ export function InteractiveDateTimeRow({
         appWeight="medium"
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '700',
-          color: palette.textMuted,
+          fontWeight: '600',
+          color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
       >
@@ -405,8 +400,8 @@ export function AmountRow({
         numberOfLines={1}
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '700',
-          color: palette.textMuted,
+          fontWeight: '600',
+          color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
       >
@@ -527,8 +522,8 @@ export function TextInputRow({
         numberOfLines={1}
         style={{
           fontSize: HOME_TEXT.body,
-          fontWeight: '700',
-          color: palette.textMuted,
+          fontWeight: '600',
+          color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
       >
@@ -587,7 +582,7 @@ export function NotesSection({
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
-      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
+      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary, marginBottom: 10 }}>
         Notes
       </Text>
       <TextInput

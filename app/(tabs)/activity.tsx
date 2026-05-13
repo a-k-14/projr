@@ -32,6 +32,7 @@ import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { PillIconButton } from '../../components/ui/PillIconButton';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
+import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   getNavigableDateRange,
   getPeriodNavLabel,
@@ -121,8 +122,6 @@ export default function ActivityScreen() {
   const categories = useCategoriesStore((s) => s.categories);
   const tags = useCategoriesStore((s) => s.tags);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
-  const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
-  const loadCategories = useCategoriesStore((s) => s.load);
 
   const loans = useLoansStore((s) => s.loans);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
@@ -168,17 +167,29 @@ export default function ActivityScreen() {
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
 
+  const [pendingPeriod, setPendingPeriod] = useState<ActivityPeriod>('month');
+  const [pendingCustomFrom, setPendingCustomFrom] = useState<string | undefined>();
+  const [pendingCustomTo, setPendingCustomTo] = useState<string | undefined>();
+
+  const handleOpenPeriodSheet = useCallback(() => {
+    setPendingPeriod(period);
+    setPendingCustomFrom(customFrom);
+    setPendingCustomTo(customTo);
+    setShowPeriodSheet(true);
+  }, [period, customFrom, customTo]);
+
   const flatListRef = useRef<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const pendingListResetRef = useRef(false);
   const pendingScrollToTopRef = useRef(false);
   const lastFilterScrollSignatureRef = useRef<string | null>(null);
+  const canScrollSectionListRef = useRef(false);
   const [listResetKey, setListResetKey] = useState(0);
 
   const scrollToTop = useCallback((animated: boolean) => {
     if (flatListRef.current?.scrollToOffset) {
       flatListRef.current.scrollToOffset({ offset: 0, animated });
-    } else {
+    } else if (canScrollSectionListRef.current) {
       flatListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated });
     }
     scrollViewRef.current?.scrollTo({ y: 0, animated });
@@ -219,6 +230,9 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     return registerTabReset('activity', ({ mode, animated }) => {
+      setShowAccountSheet(false);
+      setShowPeriodSheet(false);
+      setShowMoreSheet(false);
       if (mode === 'background') {
         pendingListResetRef.current = true;
       } else {
@@ -413,10 +427,6 @@ export default function ActivityScreen() {
   }, [isDefaultView, storeTransactions, storeTransactionsHasMore]);
 
   useEffect(() => {
-    if (!categoriesLoaded) loadCategories().catch(() => undefined);
-  }, [categoriesLoaded, loadCategories]);
-
-  useEffect(() => {
     if (!loansLoaded) loadLoans().catch(() => undefined);
   }, [loansLoaded, loadLoans]);
 
@@ -540,42 +550,59 @@ export default function ActivityScreen() {
 
   const openCustomFromPicker = () => {
     DateTimePickerAndroid.open({
-      value: customFrom ? new Date(customFrom) : new Date(),
+      value: pendingCustomFrom ? new Date(pendingCustomFrom) : (customFrom ? new Date(customFrom) : new Date()),
       mode: 'date',
       display: 'calendar',
-      onChange: (_, date) => {
-        if (!date) return;
+      onChange: (event, date) => {
+        if (event.type !== 'set' || !date) return;
         const pickedFrom = toLocalDayStartISO(date);
-        const currentTo = customTo ? new Date(customTo).toISOString() : undefined;
-        if (currentTo && pickedFrom > currentTo) {
-          setCustomTo(toLocalDayEndISO(date));
-        }
-        setCustomFrom(pickedFrom);
-        setPeriod('custom');
-        queueScrollToTop(false);
+        setPendingCustomFrom(pickedFrom);
+        setPendingPeriod('custom');
       }
     });
   };
 
   const openCustomToPicker = () => {
-    const minDate = customFrom ? new Date(customFrom) : undefined;
+    const minDate = pendingCustomFrom ? new Date(pendingCustomFrom) : (customFrom ? new Date(customFrom) : undefined);
     DateTimePickerAndroid.open({
-      value: customTo ? new Date(customTo) : new Date(),
+      value: pendingCustomTo ? new Date(pendingCustomTo) : (customTo ? new Date(customTo) : new Date()),
       mode: 'date',
       display: 'calendar',
       minimumDate: minDate,
-      onChange: (_, date) => {
-        if (!date) return;
+      onChange: (event, date) => {
+        if (event.type !== 'set' || !date) return;
         const pickedTo = toLocalDayEndISO(date);
-        const currentFrom = customFrom ? new Date(customFrom).toISOString() : undefined;
-        if (currentFrom && currentFrom > pickedTo) {
-          setCustomFrom(toLocalDayStartISO(date));
-        }
-        setCustomTo(pickedTo);
-        setPeriod('custom');
-        queueScrollToTop(false);
+        setPendingCustomTo(pickedTo);
+        setPendingPeriod('custom');
       }
     });
+  };
+
+  const applyPeriodDirectly = (p: ActivityPeriod) => {
+    setPeriod(p);
+    setPeriodOffset(0);
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setShowPeriodSheet(false);
+    queueScrollToTop(false);
+  };
+
+  const handleApplyPeriod = () => {
+    if (pendingCustomFrom && pendingCustomTo) {
+      const fromDate = new Date(pendingCustomFrom);
+      const toDate = new Date(pendingCustomTo);
+      if (fromDate > toDate) {
+        setCustomFrom(toLocalDayStartISO(toDate));
+        setCustomTo(toLocalDayEndISO(fromDate));
+      } else {
+        setCustomFrom(pendingCustomFrom);
+        setCustomTo(pendingCustomTo);
+      }
+      setPeriod('custom');
+      setPeriodOffset(0);
+      setShowPeriodSheet(false);
+      queueScrollToTop(false);
+    }
   };
 
   const filteredTransactions = useMemo(() => {
@@ -672,7 +699,7 @@ export default function ActivityScreen() {
     (amountMinStr ? 1 : 0) +
     (amountMaxStr ? 1 : 0);
 
-  const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
+
   const childCategoriesByParent = useMemo(() => {
     const map = new Map<string, Category[]>();
     categories.forEach((category) => {
@@ -691,7 +718,7 @@ export default function ActivityScreen() {
   }, [categories]);
 
   const toggleCategoryId = (id: string) => {
-    const category = categoryById.get(id);
+    const category = categoriesById.get(id);
     setSelectedCategoryIds((prev) => {
       const exists = prev.includes(id);
       if (!category?.parentId) {
@@ -749,6 +776,7 @@ export default function ActivityScreen() {
     () => grouped.map((group) => ({ ...group, data: group.items })),
     [grouped],
   );
+  canScrollSectionListRef.current = dateSections.some((section) => section.data.length > 0);
 
   const categoryHierarchy = useMemo(() => {
     const parentMap = new Map<
@@ -782,8 +810,8 @@ export default function ActivityScreen() {
     };
 
     filteredTransactions.forEach((tx) => {
-      const category = tx.categoryId ? categoryById.get(tx.categoryId) : undefined;
-      const parent = category?.parentId ? categoryById.get(category.parentId) : undefined;
+      const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
+      const parent = category?.parentId ? categoriesById.get(category.parentId) : undefined;
       const familyKey = getFamilyKey(tx);
       const parentKey = parent
         ? parent.id
@@ -866,7 +894,7 @@ export default function ActivityScreen() {
         if (a.familyOrder !== b.familyOrder) return a.familyOrder - b.familyOrder;
         return a.parentLabel.localeCompare(b.parentLabel, 'en', { sensitivity: 'base' });
       });
-  }, [categoryById, filteredTransactions, includeTotalCashflow]);
+  }, [categoriesById, filteredTransactions, includeTotalCashflow]);
 
   const hierarchySections = useMemo(
     () =>
@@ -897,13 +925,13 @@ export default function ActivityScreen() {
 
   const renderDateSectionHeader = useCallback(
     ({ section }: { section: ActivityGroup & { data: Transaction[] } }) => {
-      const isFirstSection = section.groupKey === dateSections[0]?.groupKey;
       return (
         <View
           style={{
             backgroundColor: palette.background,
-            paddingTop: isFirstSection ? 4 : 15,
+            paddingTop: 0,
             paddingBottom: 8,
+            minHeight: 30,
             zIndex: 2,
           }}
         >
@@ -936,7 +964,7 @@ export default function ActivityScreen() {
         </View>
       );
     },
-    [dateSections, palette],
+    [palette],
   );
 
   const renderDateSectionItem = useCallback(
@@ -944,7 +972,6 @@ export default function ActivityScreen() {
       const accountName = accountsById.get(item.accountId);
       const linkedAccountName = item.linkedAccountId ? accountsById.get(item.linkedAccountId) : undefined;
       const loan = item.loanId ? loansById.get(item.loanId) : undefined;
-      const category = item.categoryId ? categoriesById.get(item.categoryId) : undefined;
       const isFirst = index === 0;
       const isLast = index === section.items.length - 1;
 
@@ -957,7 +984,7 @@ export default function ActivityScreen() {
           isLast={isLast}
           paddingY={HOME_LAYOUT.listRowPaddingY + 2}
           categoryName={item.categoryId ? getCategoryFullDisplayName(item.categoryId, ' › ') : undefined}
-          categoryIcon={category?.icon}
+          categoryIcon={getCategoryDisplayIcon(categoriesById, item.categoryId)}
           accountName={accountName}
           linkedAccountName={linkedAccountName}
           loanPersonName={loan?.personName}
@@ -1016,7 +1043,7 @@ export default function ActivityScreen() {
             goPrev={goPrev}
             goNext={goNext}
             canGoNext={canGoNext}
-            setShowPeriodSheet={setShowPeriodSheet}
+            setShowPeriodSheet={handleOpenPeriodSheet}
             palette={palette}
           />
         }
@@ -1059,7 +1086,7 @@ export default function ActivityScreen() {
         </View>
       ) : null}
     </View>
-  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, setCashflowBucket, setShowMoreSheet, moreActiveCount, palette, period, periodLabel, goPrev, goNext, canGoNext, setShowPeriodSheet, displayedCashflow, sym]);
+  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, setCashflowBucket, setShowMoreSheet, moreActiveCount, palette, period, periodLabel, goPrev, goNext, canGoNext, handleOpenPeriodSheet, displayedCashflow, sym]);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
@@ -1117,6 +1144,7 @@ export default function ActivityScreen() {
               key={`activity-${listResetKey}`}
               ref={flatListRef}
               sections={dateSections}
+              extraData={[categories, categoriesById, palette]}
               keyExtractor={(item) => item.id}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
               onEndReached={onLoadMore}
@@ -1141,7 +1169,9 @@ export default function ActivityScreen() {
               }
               renderSectionHeader={renderDateSectionHeader}
               renderItem={renderDateSectionItem}
-              SectionSeparatorComponent={() => <View style={{ height: 6 }} />}
+              SectionSeparatorComponent={({ leadingItem }) =>
+                leadingItem ? <View style={{ height: 14 }} /> : <View style={{ height: 4 }} />
+              }
             />
           ) : null}
 
@@ -1269,7 +1299,11 @@ export default function ActivityScreen() {
                                       : syntheticCfg?.iconName || category.parentIcon
                                   }
                                   palette={palette}
-                                  iconColor={syntheticCfg?.color ?? palette.brand}
+                                  iconColor={palette.brand}
+                                  size={HOME_LAYOUT.listIconSize}
+                                  iconSize={HOME_LAYOUT.listIconInnerSize}
+                                  strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
+                                  noBackground
                                 />
                                 <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
                                   {category.parentLabel}
@@ -1396,125 +1430,89 @@ export default function ActivityScreen() {
         >
           <ChoiceRow
             title="All Time"
-            selected={period === 'all'}
+            selected={pendingPeriod === 'all'}
             palette={palette}
-            onPress={() => {
-              setPeriod('all');
-              setPeriodOffset(0);
-              setShowPeriodSheet(false);
-              queueScrollToTop(false);
-            }}
+            onPress={() => applyPeriodDirectly('all')}
           />
           <ChoiceRow
             title="Today"
             subtitle={formatDateFull(new Date().toISOString())}
-            selected={period === 'day'}
+            selected={pendingPeriod === 'day'}
             palette={palette}
-            onPress={() => {
-              setPeriod('day');
-              setPeriodOffset(0);
-              setShowPeriodSheet(false);
-              queueScrollToTop(false);
-            }}
+            onPress={() => applyPeriodDirectly('day')}
           />
           <ChoiceRow
             title="This Week"
             subtitle={formatRangeLabel('week', yearStart, 0)}
-            selected={period === 'week'}
+            selected={pendingPeriod === 'week'}
             palette={palette}
-            onPress={() => {
-              setPeriod('week');
-              setPeriodOffset(0);
-              setShowPeriodSheet(false);
-              queueScrollToTop(false);
-            }}
+            onPress={() => applyPeriodDirectly('week')}
           />
           <ChoiceRow
             title="This Month"
             subtitle={formatRangeLabel('month', yearStart, 0)}
-            selected={period === 'month'}
+            selected={pendingPeriod === 'month'}
             palette={palette}
-            onPress={() => {
-              setPeriod('month');
-              setPeriodOffset(0);
-              setShowPeriodSheet(false);
-              queueScrollToTop(false);
-            }}
+            onPress={() => applyPeriodDirectly('month')}
           />
           <ChoiceRow
             title="This Year"
             subtitle={formatRangeLabel('year', yearStart, 0)}
-            selected={period === 'year'}
+            selected={pendingPeriod === 'year'}
             palette={palette}
-            onPress={() => {
-              setPeriod('year');
-              setPeriodOffset(0);
-              setShowPeriodSheet(false);
-              queueScrollToTop(false);
-            }}
+            onPress={() => applyPeriodDirectly('year')}
           />
-          <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 16, paddingBottom: 18 }}>
+          <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 10, paddingBottom: 16, borderTopWidth: 1, borderTopColor: palette.divider }}>
             <ListHeading label="Custom Range" palette={palette} paddingHorizontal={0} paddingTop={0} paddingBottom={10} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <TouchableOpacity delayPressIn={0}
                 onPress={openCustomFromPicker}
                 style={[
                   styles.dateField,
                   {
-                    borderColor: period === 'custom' ? palette.brand : palette.divider,
-                    backgroundColor: palette.surface
+                    borderColor: (pendingPeriod === 'custom' || pendingCustomFrom) ? palette.brand : palette.divider,
+                    backgroundColor: palette.surface,
+                    justifyContent: 'center',
                   },
                 ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textMuted, letterSpacing: 0.6 }}>
-                  FROM
-                </Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
-                  {customFrom ? formatDateFull(customFrom) : 'Select...'}
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '400', color: (pendingCustomFrom || customFrom) ? palette.text : palette.textSoft }}>
+                  {pendingCustomFrom ? formatDateFull(pendingCustomFrom) : (customFrom ? formatDateFull(customFrom) : 'From')}
                 </Text>
               </TouchableOpacity>
+
               <AppIcon name="arrow-right" size={18} color={palette.textSoft} />
+
               <TouchableOpacity delayPressIn={0}
                 onPress={openCustomToPicker}
                 style={[
                   styles.dateField,
                   {
-                    borderColor: period === 'custom' ? palette.brand : palette.divider,
-                    backgroundColor: palette.surface
+                    borderColor: (pendingPeriod === 'custom' || pendingCustomTo) ? palette.brand : palette.divider,
+                    backgroundColor: palette.surface,
+                    justifyContent: 'center',
                   },
                 ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textMuted, letterSpacing: 0.6 }}>
-                  TO
-                </Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
-                  {customTo ? formatDateFull(customTo) : 'Select...'}
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '400', color: (pendingCustomTo || customTo) ? palette.text : palette.textSoft }}>
+                  {pendingCustomTo ? formatDateFull(pendingCustomTo) : (customTo ? formatDateFull(customTo) : 'To')}
                 </Text>
               </TouchableOpacity>
             </View>
+
             <TouchableOpacity delayPressIn={0}
-              onPress={() => {
-                if (customFrom && customTo) {
-                  const from = new Date(customFrom);
-                  const to = new Date(customTo);
-                  if (from > to) {
-                    setCustomFrom(toLocalDayStartISO(to));
-                    setCustomTo(toLocalDayEndISO(from));
-                  }
-                  setPeriod('custom');
-                  setShowPeriodSheet(false);
-                  queueScrollToTop(false);
-                }
-              }}
+              onPress={handleApplyPeriod}
               style={[
                 styles.applyBtn,
                 {
-                  backgroundColor: customFrom && customTo ? palette.brand : palette.borderSoft
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: (pendingCustomFrom && pendingCustomTo) ? palette.brand : palette.borderSoft
                 },
               ]}
               activeOpacity={0.8}
             >
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
                 Apply
               </Text>
             </TouchableOpacity>

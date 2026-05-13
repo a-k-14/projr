@@ -36,6 +36,7 @@ export function SegmentedPillSwitch({
   animated?: boolean;
 }) {
   const [controlWidth, setControlWidth] = useState(0);
+  const [isReady, setIsReady] = useState(false);
   const indicatorX = useRef(new Animated.Value(0)).current;
   const hasLaidOut = useRef(false);
   const selectedIndex = Math.max(0, options.findIndex((option) => option.key === value));
@@ -63,7 +64,15 @@ export function SegmentedPillSwitch({
   }, [animated, indicatorX, segmentWidth, selectedIndex, options.length]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
-    setControlWidth(event.nativeEvent.layout.width);
+    const { width } = event.nativeEvent.layout;
+    if (width > 0) {
+      setControlWidth(width);
+      if (!hasLaidOut.current) {
+        requestAnimationFrame(() => {
+          setIsReady(true);
+        });
+      }
+    }
   };
 
   const highlightStyle = useMemo(
@@ -94,7 +103,7 @@ export function SegmentedPillSwitch({
         style,
       ]}
     >
-      {segmentWidth > 0 ? (
+      {segmentWidth > 0 && isReady ? (
         <Animated.View
           pointerEvents="none"
           style={[

@@ -20,7 +20,7 @@ import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
 import { HOME_LAYOUT } from '../../lib/layoutTokens';
 import {
-  CATEGORY_EMOJIS,
+  CATEGORY_EMOJI_GROUPS,
   CATEGORY_ICONS,
   ENTITY_COLORS,
   suggestCategoryEmojis,
@@ -175,6 +175,8 @@ export default function CategoryFormScreen() {
       }
     }
 
+    await loadCategories().catch(() => undefined);
+
     router.back();
   }
 
@@ -194,6 +196,7 @@ export default function CategoryFormScreen() {
       onConfirm: async () => {
         try {
           await removeCategory(id);
+          await loadCategories().catch(() => undefined);
           router.back();
         } catch (error) {
           showAlert('Unable To Delete', error instanceof Error ? error.message : 'Could not delete.');
@@ -407,33 +410,52 @@ export default function CategoryFormScreen() {
                 );
               })}
             </View>
-            {iconPickerTab === 'emojis' && suggestedEmojis.length > 0 ? (
-              <View style={{ gap: 8, marginBottom: 12 }}>
-                <Text style={{ fontSize: TYPE.body, fontWeight: '700', color: palette.textMuted }}>
-                  Suggested For "{name.trim()}"
-                </Text>
-                <IconGrid
-                  icons={suggestedEmojis}
-                  selectedIcon={icon}
-                  onSelect={(ic) => {
-                    setIcon(ic);
-                    setEmojiQuery(ic);
-                    setShowIconPicker(false);
-                  }}
-                  palette={palette}
-                />
-              </View>
-            ) : null}
-            <IconGrid
-              icons={iconPickerTab === 'icons' ? CATEGORY_ICONS : CATEGORY_EMOJIS}
-              selectedIcon={icon}
-              onSelect={(ic) => {
-                setIcon(ic);
-                if (isEmojiIcon(ic)) setEmojiQuery(ic);
-                setShowIconPicker(false);
-              }}
-              palette={palette}
-            />
+            {iconPickerTab === 'emojis' ? (
+              <>
+                {suggestedEmojis.length > 0 && (
+                  <View style={{ gap: 8, marginBottom: 12 }}>
+                    <Text style={{ fontSize: TYPE.body, fontWeight: '700', color: palette.textMuted }}>
+                      Suggested For "{name.trim()}"
+                    </Text>
+                    <IconGrid
+                      icons={suggestedEmojis}
+                      selectedIcon={icon}
+                      onSelect={(ic) => {
+                        setIcon(ic);
+                        setShowIconPicker(false);
+                      }}
+                      palette={palette}
+                    />
+                  </View>
+                )}
+                {CATEGORY_EMOJI_GROUPS.map((group) => (
+                  <View key={group.name} style={{ gap: 8, marginBottom: 16 }}>
+                    <Text style={{ fontSize: TYPE.body, fontWeight: '700', color: palette.textMuted }}>
+                      {group.name}
+                    </Text>
+                    <IconGrid
+                      icons={group.emojis}
+                      selectedIcon={icon}
+                      onSelect={(ic) => {
+                        setIcon(ic);
+                        setShowIconPicker(false);
+                      }}
+                      palette={palette}
+                    />
+                  </View>
+                ))}
+              </>
+            ) : (
+              <IconGrid
+                icons={CATEGORY_ICONS}
+                selectedIcon={icon}
+                onSelect={(ic) => {
+                  setIcon(ic);
+                  setShowIconPicker(false);
+                }}
+                palette={palette}
+              />
+            )}
           </View>
         </BottomSheet>
       )}

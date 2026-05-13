@@ -1626,7 +1626,7 @@ function ReceiptSection({
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, marginBottom: 10 }}>
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.textSecondary, marginBottom: 10 }}>
         Receipt
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, alignItems: 'center' }}>
@@ -1817,16 +1817,16 @@ function CategoryPickerValue({
   const isPlaceholder = category.fullName === 'Select Category';
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: ROW_MIN_HEIGHT, paddingVertical: 10 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: ROW_MIN_HEIGHT }}>
       <Text
         style={{
           flex: 1,
           fontSize: HOME_TEXT.sectionTitle,
-          fontWeight: '400',
+          fontWeight: '500',
           color: isPlaceholder ? palette.textMuted : palette.text,
           lineHeight: 21,
         }}
-        numberOfLines={2}
+        numberOfLines={1}
       >
         {category.fullName}
       </Text>

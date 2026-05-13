@@ -75,7 +75,7 @@ async function assertBudgetableCategory(categoryId: string) {
   const categories = await getCategories();
   const category = categories.find((entry) => entry.id === categoryId);
   if (!category) throw new Error('Category not found.');
-  if (category.parentId === undefined || category.type !== 'out') {
+  if (category.parentId == null || category.type !== 'out') {
     throw new Error('Budgets can only be created for expense subcategories.');
   }
 }

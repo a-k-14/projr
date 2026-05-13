@@ -1,7 +1,7 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
@@ -57,13 +57,7 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
         size={17}
         color={moreActiveCount > 0 ? palette.tabActive : palette.textMuted}
       />
-      {iconOnly && moreActiveCount > 0 ? (
-        <View style={[styles.badge, { backgroundColor: palette.brand }]}>
-          <Text appWeight="medium" style={[styles.badgeText, { color: palette.onBrand }]}>
-            {moreActiveCount}
-          </Text>
-        </View>
-      ) : null}
+      {/* Badge removed */}
     </TouchableOpacity>
   );
 }

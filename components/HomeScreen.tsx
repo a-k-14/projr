@@ -14,6 +14,7 @@ import { useAccountsStore } from '@/stores/useAccountsStore';
 import { HomeDonutChartBlock } from './HomeDonutChartBlock';
 import { useCategoriesStore } from '@/stores/useCategoriesStore';
 import { useUIStore } from '@/stores/useUIStore';
+import { getCategoryDisplayIcon } from '@/lib/category-utils';
 import type { Category, PeriodType, Transaction } from '@/types';
 import { router } from 'expo-router';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
@@ -110,7 +111,7 @@ function categoryPathForTx(tx: Transaction, categoriesById: Map<string, Category
       topLabel: parent.name,
       subLabel: category.name,
       display: `${parent.name} > ${category.name}`,
-      icon: category.icon || parent.icon || 'tag',
+      icon: getCategoryDisplayIcon(categoriesById, tx.categoryId),
       color: category.color || parent.color,
     };
   }
@@ -119,7 +120,7 @@ function categoryPathForTx(tx: Transaction, categoriesById: Map<string, Category
       topLabel: category.name,
       subLabel: null,
       display: category.name,
-      icon: category.icon || UNCATEGORIZED_ICON,
+      icon: getCategoryDisplayIcon(categoriesById, tx.categoryId),
       color: category.color,
     };
   }

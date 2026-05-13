@@ -1,10 +1,10 @@
-import { useLocalSearchParams, router, Stack } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useIsFocused } from '@react-navigation/native';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
-import { Modal, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -12,16 +12,16 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 
-import { HomeAccountPage } from '../(tabs)/index';
-import { formatAccountDisplayName } from '../../lib/account-utils';
-import { getAccountTypeLabel } from '../../lib/settings-shared';
-import { toLocalDayStartISO, toLocalDayEndISO, formatDate } from '../../lib/dateUtils';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
-import { FilledButton, TextButton } from '../../components/ui/AppButton';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
-import type { PeriodType } from '../../types';
+import { HomeAccountPage } from '../(tabs)/index';
 import type { HomeChartMode } from '../../components/HomeDonutChartBlock';
+import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { formatAccountDisplayName } from '../../lib/account-utils';
+import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
+import { getAccountTypeLabel } from '../../lib/settings-shared';
+import type { PeriodType } from '../../types';
 
 type AccountPeriodType = 'today' | PeriodType;
 
@@ -29,10 +29,12 @@ export default function AccountDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
+  const isFocused = useIsFocused();
 
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
+  const loadCategories = useCategoriesStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const loans = useLoansStore((s) => s.loans);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
@@ -43,6 +45,11 @@ export default function AccountDetailScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
 
   const account = accounts.find((a) => a.id === id);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    loadCategories().catch(() => undefined);
+  }, [isFocused, loadCategories]);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -107,23 +114,23 @@ export default function AccountDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerShown: true,
           headerShadowVisible: false,
           header: () => (
             <View style={{ paddingTop: insets.top, backgroundColor: palette.background }}>
               <ScreenHeader
-                title={formatAccountDisplayName(account.name, account.accountNumber)}
+                title="Account Details"
                 onBack={() => router.back()}
                 palette={palette}
-                titleSize={25}
+                titleSize={24}
               />
             </View>
           )
-        }} 
+        }}
       />
-      
+
       <HomeAccountPage
         pageHeight={1000} // We don't need fixed pager height anymore, but pass a safe default
         accountId={account.id}
@@ -145,7 +152,7 @@ export default function AccountDetailScreen() {
         onChartModeChange={setChartMode}
         selectedChartCategoryId={selectedChartCategoryId}
         onChartCategorySelect={setSelectedChartCategoryId}
-        registerScrollTop={() => {}}
+        registerScrollTop={() => { }}
         isPageReady={true}
         accountsById={accountsById}
         categoriesById={categoriesById}

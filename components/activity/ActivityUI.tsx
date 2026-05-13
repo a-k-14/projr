@@ -2,7 +2,6 @@ import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
-import { HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
 /**
@@ -14,6 +13,9 @@ interface CategoryIconBadgeProps {
   palette: AppThemePalette;
   iconColor?: string;
   size?: number;
+  iconSize?: number;
+  noBackground?: boolean;
+  strokeWidth?: number;
 }
 
 export function CategoryIconBadge({
@@ -22,10 +24,13 @@ export function CategoryIconBadge({
   palette,
   iconColor,
   size = 34,
+  iconSize,
+  noBackground = false,
+  strokeWidth,
 }: CategoryIconBadgeProps) {
   const isEmoji = icon ? !/^[a-z-]+$/.test(icon) : false;
   const badgeSize = size;
-  const iconSize = Math.floor(size * 0.47); // ~16 for 34
+  const effectiveIconSize = iconSize ?? Math.floor(size * 0.47); // ~16 for 34
 
   return (
     <View
@@ -33,24 +38,26 @@ export function CategoryIconBadge({
         width: badgeSize,
         height: badgeSize,
         borderRadius: 10,
-        backgroundColor: palette.background,
+        backgroundColor: noBackground ? 'transparent' : palette.background,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
       {ioniconName && isValidIcon(ioniconName) ? (
-        <AppIcon name={ioniconName} size={iconSize} color={iconColor ?? palette.iconTint} />
+        <AppIcon name={ioniconName} size={effectiveIconSize} color={iconColor ?? palette.iconTint} strokeWidth={strokeWidth} />
       ) : isEmoji ? (
-        <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{icon}</Text>
+        <Text style={{ fontSize: effectiveIconSize }}>{icon}</Text>
       ) : icon && isValidIcon(icon) ? (
         <AppIcon name={icon}
-          size={iconSize}
+          size={effectiveIconSize}
           color={iconColor ?? palette.iconTint}
+          strokeWidth={strokeWidth}
         />
       ) : (
         <AppIcon name="tag"
-          size={iconSize}
+          size={effectiveIconSize}
           color={iconColor ?? palette.iconTint}
+          strokeWidth={strokeWidth}
         />
       )}
     </View>

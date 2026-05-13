@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, RefreshControl, Modal, Pressable, TouchableOpacity } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
@@ -39,10 +40,12 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
 export default function InsightsScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
+  const isFocused = useIsFocused();
 
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
+  const loadCategories = useCategoriesStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const loans = useLoansStore((s) => s.loans);
   
@@ -55,6 +58,7 @@ export default function InsightsScreen() {
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
   const [chartResetNonce, setChartResetNonce] = useState(0);
 
+  const loadRequestIdRef = useRef(0);
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
   const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
@@ -104,10 +108,12 @@ export default function InsightsScreen() {
   }, [period, settingsYearStart, customRangeFrom, customRangeTo]);
 
   const loadData = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
     const [snapshot, txs] = await Promise.all([
       getCashflowSnapshot('all', dateRange.from, dateRange.to),
       getTransactions({ fromDate: dateRange.from, toDate: dateRange.to }),
     ]);
+    if (requestId !== loadRequestIdRef.current) return;
     setCashflow(snapshot.summary);
     setPeriodTransactions(txs);
   }, [dateRange]);
@@ -115,6 +121,11 @@ export default function InsightsScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    loadCategories().catch(() => undefined);
+  }, [isFocused, loadCategories]);
 
   useEffect(() => {
     if (selectedChartCategoryId === null) {

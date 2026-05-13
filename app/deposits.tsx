@@ -118,7 +118,7 @@ function DepositsScreenContent() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                    <AppIcon name="badge-percent" size={22} color="#FFFFFF" />
+                    <AppIcon name="vault" size={22} color="#FFFFFF" />
                 </View>
               </View>
 

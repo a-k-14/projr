@@ -2,6 +2,7 @@ import { TransactionListItem } from '@/components/TransactionListItem';
 import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
+import { getCategoryDisplayIcon } from '@/lib/category-utils';
 import { formatCurrency, getTransactionCashflowImpact } from '@/lib/derived';
 import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
 import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
@@ -465,7 +466,7 @@ export function HomeDonutChartBlock({
                 palette={txPalette}
                 isLast={index === selectedTransactions.length - 1}
                 categoryName={tx.categoryId ? (getCategoryFullDisplayName?.(tx.categoryId, ' › ') ?? categoriesById.get(tx.categoryId)?.name) : undefined}
-                categoryIcon={tx.categoryId ? categoriesById.get(tx.categoryId)?.icon : undefined}
+                categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
                 accountName={accountsById?.get(tx.accountId)}
                 linkedAccountName={tx.linkedAccountId ? accountsById?.get(tx.linkedAccountId) : undefined}
                 loanPersonName={tx.loanId ? loansById?.get(tx.loanId)?.personName : undefined}
