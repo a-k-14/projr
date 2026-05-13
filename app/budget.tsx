@@ -4,21 +4,19 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../components/budget-ui';
-import { ScreenTitle } from '../components/settings-ui';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
 import { formatCurrency } from '../lib/derived';
-import { CARD_PADDING, SCREEN_GUTTER } from '../lib/design';
+import { SCREEN_GUTTER } from '../lib/design';
 import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../lib/layoutTokens';
 import { registerTabReset } from '../lib/tabResetRegistry';
 import { useAppTheme, type AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
-import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { useBudgetStore } from '../stores/useBudgetStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useTransactionsStore } from '../stores/useTransactionsStore';
@@ -308,12 +306,3 @@ function BudgetCard({
     />
   );
 }
-
-const styles = {
-  budgetCard: {
-    borderRadius: HOME_RADIUS.card,
-    paddingHorizontal: CARD_PADDING,
-    paddingVertical: 14,
-    marginBottom: HOME_SPACE.md
-  }
-};

@@ -1,5 +1,4 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
-import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { Animated,
   BackHandler,
@@ -37,7 +36,6 @@ const HEADER_SUBTITLE_SIZE = 13;
 const HEADER_TITLE_TRACKING = 0;
 const HEADER_SUBTITLE_MARGIN = 3;
 const SHADOW_COLOR = '#000';
-const MODAL_HEIGHT_BOOST = 0;
 
 /**
  * BottomSheet — Centralised bottom sheet for any picker/selection UI.

@@ -40,7 +40,6 @@ export const useUIStore = create<UIStore>((set, get) => ({
   },
 
   updateSettings: async (data, metricContext) => {
-    const traceStart = Date.now();
     const previousSettings = get().settings;
     const nextEntries = Object.entries(data) as [keyof Settings, Settings[keyof Settings]][];
     const hasChanges = nextEntries.some(([key, value]) => previousSettings[key] !== value);
@@ -52,8 +51,6 @@ export const useUIStore = create<UIStore>((set, get) => ({
     // Apply Optimistic UI update instantly
     set({ settings: newSettings });
     
-    const uiRepaintMS = Date.now() - traceStart;
-
     try {
       // Persist in background after optimistic state update
       await settingsService.updateSettings(data);

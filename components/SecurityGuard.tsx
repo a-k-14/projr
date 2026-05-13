@@ -33,7 +33,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
   const isAuthEnabled = useUIStore((s) => s.settings.biometricLock);
   const [isLocked, setIsLockedState] = useState(isAuthEnabled);
   const [isPrivacyHidden, setIsPrivacyHidden] = useState(false);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [, setIsAuthenticating] = useState(false);
   const isLockedRef = useRef(isAuthEnabled);
   const isAuthenticatingRef = useRef(false);
   const authAttemptIdRef = useRef(0);

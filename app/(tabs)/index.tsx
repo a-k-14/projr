@@ -12,13 +12,9 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import PagerView from 'react-native-pager-view';
 import Animated, {
   useAnimatedRef,
   useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useEvent,
-  useHandler,
   useSharedValue,
   type SharedValue
 } from 'react-native-reanimated';
@@ -53,7 +49,7 @@ import {
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
-import { getCashflowSnapshot, getCashflowSummary } from '../../services/analytics';
+import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
@@ -71,25 +67,6 @@ import type {
   Transaction
 } from '../../types';
 
-const AnimatedPagerView = Animated.createAnimatedComponent(PagerView);
-
-export function usePageScrollHandler(handlers: any, dependencies?: any[]) {
-  const { context, doDependenciesDiffer } = useHandler(handlers, dependencies);
-  const subscribeForEvents = ['onPageScroll'];
-
-  return useEvent(
-    (event: any) => {
-      'worklet';
-      const { onPageScroll } = handlers;
-      if (onPageScroll && event.eventName.endsWith('onPageScroll')) {
-        onPageScroll(event, context);
-      }
-    },
-    subscribeForEvents,
-    doDependenciesDiffer
-  );
-}
-
 function getGreeting() {
   const now = new Date();
   const hour = now.getHours();
@@ -100,18 +77,6 @@ function getGreeting() {
   if (hour < 17) return 'Good Afternoon';
   return 'Good Evening';
 }
-
-type HomePageUiState = {
-  period: HomePeriodType;
-  chartMode: HomeChartMode;
-  selectedChartCategoryId: string | null;
-};
-
-const defaultHomePageUiState: HomePageUiState = {
-  period: 'today',
-  chartMode: 'expense',
-  selectedChartCategoryId: null,
-};
 
 type HomePeriodType = 'today' | PeriodType;
 
@@ -146,20 +111,6 @@ const NW_ACCOUNT_COLORS = [
 const NW_ASSET_LIGHT = '#0D9488';
 const NW_ASSET_DARK = '#00FAD9';
 const NW_HERO_PROGRESS_LABEL_GAP = 8;
-// Set false to restore the previous behavior where the indicator stays visible
-// during horizontal swipes, even when the current page is vertically scrolled.
-const HIDE_SCROLLED_INDICATOR_DURING_SWIPE = true;
-
-type AccountTab = {
-  id: string | 'all' | 'add' | 'net-worth';
-  name: string;
-};
-
-type AccountCardItem = {
-  id: string | 'all';
-  name: string;
-  accountTypeLabel: string;
-};
 
 export default function HomeScreen() {
   return <HomeScreenContent />;
@@ -217,7 +168,6 @@ function HomeScreenContent() {
   const netWorthSheetVerticalScrolls = useSharedValue<number[]>([0]);
   const netWorthSheetIndicatorY = useSharedValue(0);
 
-  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [expandedChartState, setExpandedChartState] = useState<{
     transactions: Transaction[];
     mode: HomeChartMode;
@@ -479,7 +429,6 @@ function HomeScreenContent() {
         middleContent={middleContent}
         onOpenChartExpanded={(transactions, mode, range, resetTrigger) => {
           setExpandedChartState({ transactions, mode, resetTrigger });
-          setBottomSheetVisible(true);
         }}
         hideAmounts={hideAmounts}
       />
@@ -538,7 +487,6 @@ function HomeScreenContent() {
           disableShadow
           onClose={() => {
             setExpandedChartState(null);
-            setBottomSheetVisible(false);
           }}
           maxHeightRatio={0.80}
           fixedHeightRatio={0.80}
@@ -1495,10 +1443,6 @@ function AccountSummaryCard({
   );
 }
 
-function formatSignedCurrency(value: number, currencySymbol: string) {
-  return `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`;
-}
-
 function formatNetWorthStripValue(value: number, currencySymbol: string) {
   const abs = Math.abs(value);
   const sign = value < 0 ? '-' : '';
@@ -1516,12 +1460,6 @@ function formatNetWorthStripValue(value: number, currencySymbol: string) {
     .replace(/\.00$/, '')
     .replace(/(\.\d)0$/, '$1');
   return `${sign}${currencySymbol}${compact}${unit.suffix}`;
-}
-
-function formatTodayMetricValue(key: 'in' | 'out' | 'net', value: number, currencySymbol: string) {
-  if (value === 0) return '—';
-  if (key === 'net') return formatCurrency(Math.abs(value), currencySymbol);
-  return formatSignedCurrency(value, currencySymbol);
 }
 
 function getHomeDateRange(
@@ -1542,385 +1480,6 @@ function getHomeDateRange(
     settingsYearStart,
     customRange ? customRange.from.toISOString() : undefined,
     customRange ? customRange.to.toISOString() : undefined,
-  );
-}
-
-function HomeAccountsList({
-  pageHeight,
-  accounts,
-  rawAccounts,
-  currencySymbol,
-  palette,
-  onOpenAccount,
-  onRefresh,
-}: {
-  pageHeight: number;
-  accounts: AccountCardItem[];
-  rawAccounts: Account[];
-  currencySymbol: string;
-  palette: AppThemePalette;
-  onOpenAccount: (accountId: string | 'all') => void;
-  onRefresh: () => Promise<void>;
-}) {
-  const [todaySummaries, setTodaySummaries] = useState<Record<string, CashflowSummary>>({});
-  const [refreshing, setRefreshing] = useState(false);
-  const [period, setPeriod] = useState<HomePeriodType>('today');
-  const [chartMode, setChartMode] = useState<HomeChartMode>('expense');
-  const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
-  const [chartResetNonce, setChartResetNonce] = useState(0);
-  const isScreenFocused = useIsFocused();
-
-  const todayFrom = useMemo(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
-  }, []);
-  const todayTo = useMemo(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
-  }, []);
-
-  const loadListSummaries = useCallback(async () => {
-    const entries = await Promise.all(
-      accounts.map(async (account) => [
-        account.id,
-        await getCashflowSummary(account.id === 'all' ? 'all' : account.id, todayFrom, todayTo),
-      ] as const),
-    );
-    setTodaySummaries(Object.fromEntries(entries));
-  }, [accounts, todayFrom, todayTo]);
-
-  useEffect(() => {
-    if (!isScreenFocused) return;
-    loadListSummaries().catch(() => undefined);
-  }, [isScreenFocused, loadListSummaries]);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await onRefresh();
-    await loadListSummaries();
-    setRefreshing(false);
-  }, [loadListSummaries, onRefresh]);
-
-  return (
-    <ScrollView
-      style={{ flex: 1, height: pageHeight }}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingHorizontal: SCREEN_GUTTER,
-        paddingTop: 54 + HOME_SURFACE.heroTop,
-        paddingBottom: HOME_LAYOUT.fabContentBottomPadding,
-        gap: HOME_SPACE.md,
-      }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-    >
-      {accounts.map((account) => {
-        const rawAcc = rawAccounts.find((item) => item.id === account.id);
-        return (
-          <CompactAccountListCard
-            key={account.id}
-            accountName={account.name}
-            accountType={account.id === 'all' ? undefined : rawAcc?.type}
-            balance={
-              account.id === 'all'
-                ? getTotalBalance(rawAccounts)
-                : (rawAcc?.balance ?? 0)
-            }
-            todayCashflow={todaySummaries[account.id] ?? { in: 0, out: 0, net: 0 }}
-            currencySymbol={currencySymbol}
-            palette={palette}
-            onPress={() => onOpenAccount(account.id === 'all' ? 'all' : account.id)}
-          />
-        );
-      })}
-      <TouchableOpacity
-        delayPressIn={0}
-        activeOpacity={0.82}
-        onPress={() => router.push('/settings/account-form')}
-        style={{
-          minHeight: 86,
-          borderRadius: HOME_RADIUS.card,
-          borderWidth: 1,
-          borderStyle: 'dashed',
-          borderColor: palette.borderSoft,
-          backgroundColor: palette.surface,
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-        }}
-      >
-        <AppIcon name="plus-circle" size={22} color={palette.text} />
-        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.cardContent, color: palette.text }}>
-          Add Account
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-}
-
-function CompactAccountListCard({
-  accountName,
-  accountType,
-  balance,
-  todayCashflow,
-  currencySymbol,
-  palette,
-  onPress,
-}: {
-  accountName: string;
-  accountType?: import('../../types').AccountType;
-  balance: number;
-  todayCashflow: CashflowSummary;
-  currencySymbol: string;
-  palette: AppThemePalette;
-  onPress: () => void;
-}) {
-  const netColor = todayCashflow.net >= 0 ? palette.brand : palette.negative;
-  const typeMeta = accountType ? ACCOUNT_TYPE_META[accountType] : null;
-
-  return (
-    <TouchableOpacity
-      delayPressIn={0}
-      activeOpacity={0.8}
-      onPress={onPress}
-      style={{
-        backgroundColor: palette.surface,
-        borderColor: palette.divider,
-        borderWidth: 1,
-        borderRadius: HOME_RADIUS.card,
-        paddingHorizontal: CARD_PADDING,
-        paddingVertical: 14,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-          {typeMeta ? (
-            <View style={{
-              width: 34,
-              height: 34,
-              borderRadius: 11,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: `${typeMeta.color}18`,
-              flexShrink: 0,
-            }}>
-              <AppIcon name={typeMeta.icon} size={16} color={typeMeta.color} strokeWidth={1.8} />
-            </View>
-          ) : (
-            <View style={{
-              width: 34,
-              height: 34,
-              borderRadius: 11,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(31,42,68,0.06)',
-              flexShrink: 0,
-            }}>
-              <AppIcon name="wallet" size={16} color={palette.textMuted} strokeWidth={1.8} />
-            </View>
-          )}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>
-              {accountName}
-            </Text>
-            <Text style={{ marginTop: 1, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-              Current balance
-            </Text>
-          </View>
-        </View>
-
-        <View style={{ alignItems: 'flex-end', maxWidth: '44%' }}>
-          <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text, textAlign: 'right' }}>
-            {formatSignedCurrency(balance, currencySymbol)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: palette.divider, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <Text style={{ fontSize: HOME_TEXT.cardContent, color: palette.textMuted, fontWeight: '500' }}>
-          Today's Net
-        </Text>
-        <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.cardContent, fontWeight: '600', color: netColor, textAlign: 'right' }}>
-          {formatTodayMetricValue('net', todayCashflow.net, currencySymbol)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function PageDashIndicator({
-  pageCount,
-  palette,
-  pageWidth,
-  scrollX,
-  settledPageIndex,
-  verticalScrolls,
-  indicatorY,
-  gestureOpacity,
-  hidden,
-  hiddenPageIndexes = [],
-}: {
-  pageCount: number;
-  palette: AppThemePalette;
-  pageWidth: number;
-  scrollX: SharedValue<number>;
-  settledPageIndex: SharedValue<number>;
-  verticalScrolls: SharedValue<number[]>;
-  indicatorY: SharedValue<number>;
-  gestureOpacity: SharedValue<number>;
-  hidden?: boolean;
-  hiddenPageIndexes?: number[];
-}) {
-  const safePageCount = Math.max(pageCount, 1);
-  const dotCount = safePageCount;
-  const inactiveWidth = 7;
-  const activeWidth = 16;
-  const dashHeight = 3;
-  const gap = 8;
-  const step = inactiveWidth + gap;
-  const sidePad = (activeWidth - inactiveWidth) / 2;
-  const trackWidth = inactiveWidth * dotCount + gap * (dotCount - 1) + sidePad * 2;
-
-  const containerStyle = useAnimatedStyle(() => {
-    const rawProgress = pageWidth > 0 ? scrollX.value / pageWidth : 0;
-    const progress = Math.min(Math.max(rawProgress, 0), safePageCount - 1);
-    const settledIndex = Math.min(Math.max(Math.round(settledPageIndex.value), 0), safePageCount - 1);
-    const swipeEpsilon = 0.02;
-    let anchorIndex = settledIndex;
-
-    // During horizontal swipe, anchor Y to the destination page early so the
-    // indicator does not appear to slide in vertically from the previous page.
-    if (progress > settledIndex + swipeEpsilon) {
-      anchorIndex = Math.min(Math.ceil(progress), safePageCount - 1);
-    } else if (progress < settledIndex - swipeEpsilon) {
-      anchorIndex = Math.max(Math.floor(progress), 0);
-    }
-
-    const currentScroll = verticalScrolls.value[anchorIndex] ?? 0;
-    const y = indicatorY.value;
-    const addIndex = safePageCount - 1;
-    const addSwipeThreshold = Math.max(addIndex - 1 + 0.04, 0);
-    const movingTowardAdd = settledIndex < addIndex && progress > addSwipeThreshold;
-    const settledOnAdd = settledIndex === addIndex;
-    const addPageOpacity = movingTowardAdd || settledOnAdd ? 0 : 1;
-    const targetReady = (y > 0 && pageCount > 1) ? 1 : 0;
-    const hideFlag = hidden ? 0 : 1;
-    const swipeVisibility = HIDE_SCROLLED_INDICATOR_DURING_SWIPE ? gestureOpacity.value : 1;
-    let hiddenPageOpacity = 1;
-    hiddenPageIndexes.forEach((index) => {
-      if (Math.abs(progress - index) < 0.96) hiddenPageOpacity = 0;
-    });
-
-    return {
-      transform: [
-        { translateY: y - currentScroll }
-      ],
-      opacity: hideFlag * targetReady * addPageOpacity * hiddenPageOpacity * swipeVisibility
-    };
-  }, [pageWidth, pageCount, hidden, hiddenPageIndexes]);
-
-  const activeStyle = useAnimatedStyle(() => {
-    const rawIndex = pageWidth > 0 ? scrollX.value / pageWidth : 0;
-    const clampedIndex = Math.min(Math.max(rawIndex, 0), dotCount - 1);
-    return {
-      transform: [{ translateX: clampedIndex * step }],
-    };
-  }, [gap, pageWidth, dotCount, step]);
-
-  if (pageCount <= 1) return null;
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          alignItems: 'center',
-          height: 32,
-          justifyContent: 'center'
-        },
-        containerStyle
-      ]}
-    >
-      <View style={{ width: trackWidth, height: 8, justifyContent: 'center', paddingHorizontal: sidePad }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap }}>
-          {Array.from({ length: dotCount }).map((_, index) => (
-            <View
-              key={index}
-              style={{
-                width: inactiveWidth,
-                height: dashHeight,
-                borderRadius: HOME_RADIUS.full,
-                backgroundColor: palette.textSecondary,
-                opacity: palette.isDark ? 0.42 : 0.6,
-              }}
-            />
-          ))}
-        </View>
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              left: 0,
-              width: activeWidth,
-              height: dashHeight,
-              borderRadius: HOME_RADIUS.full,
-              backgroundColor: palette.listText,
-              opacity: palette.isDark ? 0.68 : 0.82,
-            },
-            activeStyle,
-          ]}
-        />
-      </View>
-    </Animated.View>
-  );
-}
-
-function AddAccountPage({
-  pageHeight,
-  palette,
-}: {
-  pageHeight: number;
-  palette: AppThemePalette;
-}) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        height: pageHeight,
-        paddingHorizontal: SCREEN_GUTTER,
-        paddingTop: 54 + HOME_SURFACE.heroTop,
-        paddingBottom: HOME_LAYOUT.fabContentBottomPadding,
-        justifyContent: 'center',
-      }}
-    >
-      <TouchableOpacity
-        delayPressIn={0}
-        activeOpacity={0.84}
-        onPress={() => router.push('/settings/account-form')}
-        style={{
-          minHeight: 180,
-          borderRadius: HOME_RADIUS.card,
-          borderWidth: 1,
-          borderStyle: 'dashed',
-          borderColor: palette.borderSoft,
-          backgroundColor: palette.surface,
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: CARD_PADDING,
-        }}
-      >
-        <AppIcon name="plus-circle" size={22} color={palette.text} />
-        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, marginTop: 12 }}>
-          Add Account
-        </Text>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginTop: 6, textAlign: 'center' }}>
-          Create a new account to track balances separately.
-        </Text>
-      </TouchableOpacity>
-    </View>
   );
 }
 
@@ -1999,7 +1558,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [chartResetNonce, setChartResetNonce] = useState(0);
+  const [, setChartResetNonce] = useState(0);
   const [cashflowIsCashflow, setCashflowIsCashflow] = useState(false);
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
@@ -2078,21 +1637,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     arr[pageIndex] = y;
     verticalScrolls.value = arr;
   });
-
-  const chartTheme = useMemo(() => ({
-    brand: palette.brand,
-    card: palette.card,
-    surface: '#EEF2F8',
-    inputBg: '#FFFFFF',
-    progressTrack: '#DDE4F0',
-    border: '#DFE5EF',
-    text: palette.text,
-    muted: '#7C8498',
-    textMuted: palette.textMuted,
-    accent: palette.brand,
-    positive: palette.positive,
-    negative: palette.negative,
-  }), [palette]);
 
   const { from, to } = getHomeDateRange(
     period,

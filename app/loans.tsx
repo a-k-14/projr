@@ -19,25 +19,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../components/settings-ui';
 import { BottomSheet } from '../components/ui/BottomSheet';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
-import { FabButton } from '../components/ui/FabButton';
 import { FilterChip } from '../components/ui/FilterChip';
 import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../components/ui/ListHeading';
 import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
-import { formatCurrency, getLoanSummary, getLoanTransactionKind, getLoanTransactionUserNote } from '../lib/derived';
+import { formatCurrency, getLoanSummary } from '../lib/derived';
 import { CARD_PADDING } from '../lib/design';
 import {
   ACTIVITY_LAYOUT,
   BUTTON_TOKENS,
-  CARD_TEXT,
   HOME_LAYOUT,
   HOME_RADIUS,
-  HOME_SPACE,
   HOME_TEXT,
-  PROGRESS,
-  getFabBottomOffset
+  PROGRESS
 } from '../lib/layoutTokens';
 import { registerTabReset } from '../lib/tabResetRegistry';
 import { useAppTheme, type AppThemePalette } from '../lib/theme';
@@ -77,9 +73,6 @@ function LoanRow({
   const directionLabel = isLent ? 'Lent' : 'Borrowed';
   const progressPercent = loan.repaidPercent;
   const balanceAmount = loan.pendingAmount;
-  const originTx = loan.transactions.find(tx => getLoanTransactionKind(tx, loan.direction) === 'origin');
-  const userNote = originTx ? getLoanTransactionUserNote(originTx.note) : undefined;
-
   return (
     <View style={{ marginBottom: 12, position: 'relative' }}>
       <AppCard
@@ -272,10 +265,6 @@ export default function LoansScreen() {
 
   const summary = useMemo(() => getLoanSummary(filteredLoans), [filteredLoans]);
   const netPositive = summary.net >= 0;
-  const displayAccounts = useMemo(
-    () => [{ id: 'all', name: 'All Accounts' }, ...accounts.map((a) => ({ id: a.id, name: a.name }))],
-    [accounts],
-  );
   const selectedAccountId = filters.accountId ?? 'all';
   const selectedAccountLabel =
     selectedAccountId === 'all' ? 'All Accounts' : (accountsById.get(selectedAccountId) ?? 'All Accounts');

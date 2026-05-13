@@ -2,7 +2,6 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { AppIcon, IconName } from './AppIcon';
 import { AppThemePalette } from '../../lib/theme';
-import { ACTIVITY_LAYOUT } from '../../lib/layoutTokens';
 
 interface PillIconButtonProps {
   icon: IconName;

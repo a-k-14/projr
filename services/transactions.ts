@@ -1,6 +1,6 @@
 import { eq, and, gte, lte, desc, inArray, sql, or, like } from 'drizzle-orm';
 import { db } from '../db/client';
-import { accounts, categories, loans, transactions } from '../db/schema';
+import { accounts, categories, transactions } from '../db/schema';
 import type {
   Transaction,
   CreateTransactionInput,
@@ -62,15 +62,6 @@ function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
     transferPairId: row.transferPairId ?? undefined,
     createdAt: row.createdAt,
   };
-}
-
-async function getAccountBalance(executor: TransactionExecutor, accountId: string): Promise<number> {
-  const rows = await executor
-    .select({ balance: accounts.balance })
-    .from(accounts)
-    .where(eq(accounts.id, accountId));
-  if (!rows[0]) throw new Error('Account not found');
-  return rows[0].balance;
 }
 
 async function applyAccountBalanceDelta(

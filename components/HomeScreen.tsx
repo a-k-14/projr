@@ -9,7 +9,6 @@ import {
   getTransactionCashflowImpact,
 } from '@/lib/derived';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT, getFabBottomOffset } from '@/lib/layoutTokens';
-import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
 import { getTransactions } from '@/services/transactions';
 import { useAccountsStore } from '@/stores/useAccountsStore';
 import { HomeDonutChartBlock } from './HomeDonutChartBlock';

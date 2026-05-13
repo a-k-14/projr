@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { AppIcon } from './AppIcon';
 import { AppThemePalette } from '../../lib/theme';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { SCREEN_HEADER } from '../../lib/layoutTokens';
 
 interface ScreenHeaderProps {
   title: string;

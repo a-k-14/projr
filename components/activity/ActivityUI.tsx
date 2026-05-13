@@ -1,7 +1,7 @@
-import { AppIcon, IconName, isValidIcon } from '@/components/ui/AppIcon';
+import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 

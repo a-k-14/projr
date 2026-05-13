@@ -322,7 +322,6 @@ export default function ActivityScreen() {
     selectedAccountId === 'all' ? null : accounts.find((account) => account.id === selectedAccountId);
   const accountLabel = selectedAccount ? selectedAccount.name : 'All Accounts';
   const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
-  const ts = typeof routeParams.ts === 'string' ? routeParams.ts : undefined;
 
   // A view is default ONLY if we haven't come from a specific source, OR we have finished syncing params
   const isDefaultView =
@@ -673,14 +672,6 @@ export default function ActivityScreen() {
     (amountMinStr ? 1 : 0) +
     (amountMaxStr ? 1 : 0);
 
-  const topCategories = useMemo(
-    () =>
-      categories
-        .filter((category) => !category.parentId)
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' })),
-    [categories],
-  );
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
   const childCategoriesByParent = useMemo(() => {
     const map = new Map<string, Category[]>();
@@ -903,100 +894,6 @@ export default function ActivityScreen() {
         : Array.from(new Set([...prev, ...parentKeys]));
     });
   }, []);
-
-  const renderGroupItem = useCallback(
-    ({ item }: { item: ActivityGroup }) => {
-      const groupNet = item.net;
-      return (
-        <View style={{ marginBottom: ACTIVITY_LAYOUT.groupCardMarginBottom }}>
-          <View
-            style={[
-              styles.groupHeader,
-              {
-                paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
-                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
-                marginBottom: 4,
-              },
-            ]}
-          >
-            <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
-                {item.title}
-              </Text>
-              {item.subtitle ? (
-                <>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>
-                    •
-                  </Text>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
-                    {item.subtitle}
-                  </Text>
-                </>
-              ) : null}
-            </View>
-            {item.items.length > 1 && groupNet !== 0 ? (
-              <Text
-                appWeight="medium"
-                style={{
-                  fontSize: HOME_TEXT.cardContent,
-                  fontWeight: '600',
-                  color: groupNet > 0 ? palette.positive : palette.negative
-                }}
-              >
-                {signedCurrency(groupNet, sym)}
-              </Text>
-            ) : null}
-          </View>
-
-          <View
-            style={{
-              backgroundColor: palette.surface,
-              borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
-              borderWidth: 1,
-              borderColor: palette.border,
-              marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-              overflow: 'hidden'
-            }}
-          >
-            {item.items.map((tx, index) => {
-              const accountName = accountsById.get(tx.accountId);
-              const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
-              const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
-              const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
-
-              return (
-                <TransactionListItem
-                  key={tx.id}
-                  tx={tx}
-                  sym={sym}
-                  palette={palette}
-                  isLast={index === item.items.length - 1}
-                  categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined}
-                  categoryIcon={category?.icon}
-                  accountName={accountName}
-                  linkedAccountName={linkedAccountName}
-                  loanPersonName={loan?.personName}
-                  loanDirection={loan?.direction}
-                  tertiaryText={
-                    tx.tags.length > 0
-                      ? tx.tags
-                        .map((tagId) => tagNamesById.get(tagId))
-                        .filter((value): value is string => !!value)
-                        .join(' • ') || undefined
-                      : undefined
-                  }
-                  showAmountSign={false}
-                  useTypeAmountColor
-                  onPress={handleTransactionPress}
-                />
-              );
-            })}
-          </View>
-        </View>
-      );
-    },
-    [accountsById, categoriesById, loansById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
-  );
 
   const renderDateSectionHeader = useCallback(
     ({ section }: { section: ActivityGroup & { data: Transaction[] } }) => {

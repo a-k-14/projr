@@ -1,9 +1,8 @@
-import { AppIcon } from '@/components/ui/AppIcon';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { CalculatorTrigger } from '@/components/ui/CalculatorTrigger';
 import { RefObject, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Platform, TextInput, View , TouchableOpacity } from 'react-native';
+import { TextInput, View , TouchableOpacity } from 'react-native';
 import { formatDate } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';

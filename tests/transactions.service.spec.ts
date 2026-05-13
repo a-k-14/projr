@@ -6,7 +6,6 @@ const sqlite = new Database(':memory:');
 sqlite.pragma('foreign_keys = ON');
 const db = drizzle(sqlite, { schema });
 
-const originalTransaction = db.transaction.bind(db);
 // @ts-ignore - patching sync transaction to async for test compatibility
 db.transaction = async (cb: any) => {
   return await cb(db);
@@ -108,7 +107,7 @@ describe('transactions database integration', () => {
     });
 
     it('creates a TRANSFER transaction and balances cleanly', async () => {
-        const tx = await createTransaction({
+        await createTransaction({
             type: 'transfer',
             amount: 300,
             accountId: 'acc1',

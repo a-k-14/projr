@@ -3,13 +3,12 @@ import { View, ScrollView, Pressable , TouchableOpacity } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SCREEN_GUTTER, SHEET_GUTTER, RADIUS, SPACING } from '../../lib/design';
+import { SHEET_GUTTER, RADIUS } from '../../lib/design';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
-import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
-import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { SCREEN_HEADER } from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 

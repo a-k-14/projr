@@ -469,7 +469,6 @@ export default function AddTransactionModal() {
               ? 'Add Loan'
               : 'Add Expense';
   const actionButtonColor = type === 'loan' ? palette.brand : activeConfig.color;
-  const actionButtonTextColor = activeConfig.onColor;
   const screenTitle = isEditing
     ? type === 'in'
       ? 'Edit Income'

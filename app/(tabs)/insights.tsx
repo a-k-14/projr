@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, RefreshControl, Modal, Pressable, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 
 import { Text } from '@/components/ui/AppText';
@@ -18,13 +17,12 @@ import { HomeDonutChartBlock, HomeChartMode } from '../../components/HomeDonutCh
 import { SummaryCard } from '../../components/SummaryCard';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
-import { AppIcon } from '../../components/ui/AppIcon';
 
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate } from '../../lib/dateUtils';
 import { TYPE } from '../../lib/design';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SPACING, SCREEN_HEADER, HOME_LAYOUT } from '../../lib/layoutTokens';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SPACING } from '../../lib/layoutTokens';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 
 type HomePeriodType = 'today' | PeriodType;
@@ -63,7 +61,6 @@ export default function InsightsScreen() {
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
 
-  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [expandedChartState, setExpandedChartState] = useState<{
     transactions: Transaction[];
     mode: HomeChartMode;
@@ -243,7 +240,6 @@ export default function InsightsScreen() {
             loansById={loansById}
             onExpand={(mode) => {
               setExpandedChartState({ transactions: periodTransactions, mode, resetTrigger: Date.now() });
-              setBottomSheetVisible(true);
             }}
           />
         </View>
@@ -303,7 +299,6 @@ export default function InsightsScreen() {
           disableShadow
           onClose={() => {
             setExpandedChartState(null);
-            setBottomSheetVisible(false);
           }}
           maxHeightRatio={0.80}
           fixedHeightRatio={0.80}

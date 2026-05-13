@@ -10,7 +10,6 @@ import type { Category, LoanWithSummary, Transaction } from '@/types';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { AppDonutChart, type DonutSlice } from './ui/AppDonutChart';
-import { donutPath } from '@/lib/svg-utils';
 
 export type HomeChartMode = 'expense' | 'income';
 

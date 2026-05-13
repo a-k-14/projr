@@ -2,9 +2,9 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
@@ -27,11 +27,6 @@ const useFixedDepositsStore = () => {
     refresh: async () => { /* placeholder */ },
   };
 };
-
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 function getDaysUntilMaturity(maturityDate: string): number {
   const today = new Date();
@@ -344,5 +339,3 @@ function DepositsScreenContent() {
 export default function DepositsScreen() {
   return <DepositsScreenContent />;
 }
-
-const styles = StyleSheet.create({});

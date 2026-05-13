@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,7 +12,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { formatCurrency } from '../../lib/derived';
-import { HOME_RADIUS, SCREEN_GUTTER } from '../../lib/layoutTokens';
+import { SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { BottomSheet } from '../../components/ui/BottomSheet';

@@ -9,8 +9,8 @@ import type {
   Transaction,
 } from '../types';
 import { toLocalDateKey } from './dateUtils';
-export { getTransactionCashflowImpact, getTransactionBalanceDelta } from './transactionImpact';
-import { getTransactionCashflowImpact } from './transactionImpact';
+export { getStructuredLoanCashflowImpact, getTransactionCashflowImpact, getTransactionBalanceDelta } from './transactionImpact';
+import { getStructuredLoanCashflowImpact, getTransactionCashflowImpact } from './transactionImpact';
 
 export function getLoanSettlementImpact(direction: Loan['direction']): 'in' | 'out' {
   return direction === 'lent' ? 'in' : 'out';
@@ -52,11 +52,11 @@ export function getLoanTransactionUserNote(note?: string | null) {
 }
 
 export function getLoanTransactionKind(
-  tx: { type: string; note?: string | null },
+  tx: { type: string; note?: string | null; loanTransactionType?: string | null },
   direction: Loan['direction']
 ): 'origin' | 'settlement' | 'other' {
   if (tx.type !== 'loan') return 'other';
-  const impact = getTransactionCashflowImpact(tx);
+  const impact = getStructuredLoanCashflowImpact(tx, direction);
   if (impact === getLoanOriginImpact(direction)) return 'origin';
   if (impact === getLoanSettlementImpact(direction)) return 'settlement';
   return 'other';

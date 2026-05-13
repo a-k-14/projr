@@ -12,7 +12,7 @@ import {
   getLoanSettlementLabel,
   getLoanTransactionUserNote,
   mergeLoanTransactionNote,
-  getTransactionCashflowImpact,
+  getStructuredLoanCashflowImpact,
 } from '../lib/derived';
 import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from './transactions';
 
@@ -37,7 +37,7 @@ async function enrichLoan(loan: Loan): Promise<LoanWithSummary> {
   const settlementImpact = getLoanSettlementImpact(loan.direction);
 
   const givenAmount = loanTransactions.reduce((sum, t) => {
-    return getTransactionCashflowImpact(t) === originImpact ? sum + t.amount : sum;
+    return getStructuredLoanCashflowImpact(t, loan.direction) === originImpact ? sum + t.amount : sum;
   }, 0);
 
   let settledAmount = 0;
@@ -45,7 +45,7 @@ async function enrichLoan(loan: Loan): Promise<LoanWithSummary> {
   let othersAmount = 0;
 
   for (const t of loanTransactions) {
-    if (getTransactionCashflowImpact(t) === settlementImpact) {
+    if (getStructuredLoanCashflowImpact(t, loan.direction) === settlementImpact) {
       const subType = t.loanTransactionType || 'principal';
       if (subType === 'principal') {
         settledAmount += t.amount;
@@ -141,7 +141,7 @@ export async function updateLoanOrigin(
   const loanTransactions = await getTransactions({ loanId: id });
   const originImpact = getLoanOriginImpact(existing.direction);
   const originTransactions = loanTransactions.filter(
-    (tx) => getTransactionCashflowImpact(tx) === originImpact
+    (tx) => getStructuredLoanCashflowImpact(tx, existing.direction) === originImpact
   );
   const primaryOriginTransaction = originTransactions.findLast(() => true);
   const originTransaction =
@@ -197,7 +197,7 @@ export async function updateLoanOrigin(
   }
 
   for (const tx of loanTransactions) {
-    const impact = getTransactionCashflowImpact(tx);
+    const impact = getStructuredLoanCashflowImpact(tx, existing.direction);
     if (impact === getLoanSettlementImpact(existing.direction)) {
       const userNote = getLoanTransactionUserNote(tx.note);
       await updateTransaction(tx.id, {
@@ -250,6 +250,7 @@ export async function recordLoanPayment(
     amount,
     accountId: loan.accountId,
     loanId,
+    loanTransactionType: 'principal',
     note: label,
     date,
   });

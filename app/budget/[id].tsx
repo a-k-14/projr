@@ -1,23 +1,19 @@
-import { AppIcon } from '@/components/ui/AppIcon';
 import { HeaderEditButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
-  TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatCurrency } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
 import {
-  ACTIVITY_LAYOUT,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-  PROGRESS,
 } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';

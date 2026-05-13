@@ -2,18 +2,7 @@ import * as accountsService from '../services/accounts';
 import * as categoriesService from '../services/categories';
 import * as tagsService from '../services/tags';
 import { db } from './client';
-import { eq } from 'drizzle-orm';
-import { accounts, budget, categories, loans, settings, tags, transactions } from './schema';
-
-async function clearDemoData(): Promise<void> {
-  await db.delete(transactions);
-  await db.delete(loans);
-  await db.delete(budget);
-  await db.delete(tags);
-  await db.delete(categories);
-  await db.delete(settings);
-  await db.delete(accounts);
-}
+import { transactions } from './schema';
 
 export async function seedDatabase(): Promise<void> {
   const existing = await accountsService.getAccounts();

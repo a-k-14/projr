@@ -23,7 +23,6 @@ import {
   CATEGORY_EMOJIS,
   CATEGORY_ICONS,
   ENTITY_COLORS,
-  searchCategoryEmojis,
   suggestCategoryEmojis,
 } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
@@ -69,7 +68,7 @@ export default function CategoryFormScreen() {
   const [subs, setSubs] = useState<SubDraft[]>([]);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [iconPickerTab, setIconPickerTab] = useState<'icons' | 'emojis'>('icons');
-  const [emojiQuery, setEmojiQuery] = useState('');
+  const [, setEmojiQuery] = useState('');
   const [showTypePicker, setShowTypePicker] = useState(false);
   const formScrollRef = useRef<ScrollView | null>(null);
 
@@ -209,8 +208,6 @@ export default function CategoryFormScreen() {
 
   const selectedType = CATEGORY_TYPE_OPTIONS.find((o) => o.key === type);
   const suggestedEmojis = useMemo(() => suggestCategoryEmojis(name), [name]);
-  const filteredEmojis = useMemo(() => searchCategoryEmojis(emojiQuery), [emojiQuery]);
-  const visibleEmojiOptions = emojiQuery.trim() ? filteredEmojis : CATEGORY_EMOJIS;
 
   return (
     <>

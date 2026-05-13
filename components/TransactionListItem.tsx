@@ -2,11 +2,11 @@ import { AppIcon, IconName, isValidIcon } from '@/components/ui/AppIcon';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
-import { formatCurrency, getLoanDisplayLabel, getLoanTransactionUserNote, getTransactionCashflowImpact } from '../lib/derived';
-import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, getTxTypeConfig } from '../lib/layoutTokens';
+import { formatCurrency, getLoanTransactionUserNote, getTransactionCashflowImpact } from '../lib/derived';
+import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
-import { AppCard, CardSubtitleRow, CardTitleRow } from './ui/AppCard';
+import { AppCard, CardTitleRow } from './ui/AppCard';
 import type { Transaction } from '../types';
 
 interface Props {
@@ -65,7 +65,6 @@ export const TransactionListItem = React.memo(function TransactionListItem({
 
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;
-  const cashflowImpact = getTransactionCashflowImpact(tx);
   const displayImpact = getTransactionCashflowImpact(tx, { includeTransfers: true });
 
   let title = tx.payee || cfg.label;

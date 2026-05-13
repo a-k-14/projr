@@ -11,10 +11,6 @@ function toDisplay(value: string) {
   return value.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−');
 }
 
-function isDisplayOperator(value: string) {
-  return DISPLAY_OPERATORS.includes(value as (typeof DISPLAY_OPERATORS)[number]);
-}
-
 function isBasicOperator(value: string) {
   return BASIC_OPERATORS.includes(value as (typeof BASIC_OPERATORS)[number]);
 }

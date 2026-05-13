@@ -1,3 +1,30 @@
+type LoanDirection = 'lent' | 'borrowed';
+type LoanRole = 'origin' | 'settlement';
+
+function getLoanOriginImpact(direction: LoanDirection): 'in' | 'out' {
+  return direction === 'lent' ? 'out' : 'in';
+}
+
+function getLoanSettlementImpact(direction: LoanDirection): 'in' | 'out' {
+  return direction === 'lent' ? 'in' : 'out';
+}
+
+export function getStructuredLoanCashflowImpact(
+  tx: {
+    type: string;
+    note?: string | null;
+    loanTransactionType?: string | null;
+  },
+  direction: LoanDirection,
+  role?: LoanRole,
+): 'in' | 'out' | 'neutral' {
+  if (tx.type !== 'loan') return 'neutral';
+  if (role === 'origin') return getLoanOriginImpact(direction);
+  if (role === 'settlement') return getLoanSettlementImpact(direction);
+  if (tx.loanTransactionType) return getLoanSettlementImpact(direction);
+  return getTransactionCashflowImpact(tx);
+}
+
 export function getTransactionCashflowImpact(tx: {
   type: string;
   note?: string | null;

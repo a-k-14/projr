@@ -10,7 +10,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
-import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';

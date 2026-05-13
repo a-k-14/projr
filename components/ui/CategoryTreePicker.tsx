@@ -5,7 +5,7 @@ import { Text } from '@/components/ui/AppText';
 import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
-import { CARD_PADDING, SCREEN_GUTTER, TYPE } from '../../lib/design';
+import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
 import { HOME_TEXT, HOME_LAYOUT } from '../../lib/layoutTokens';
 import { isEmojiIcon } from '../../lib/ui-format';
 import type { AppThemePalette } from '../../lib/theme';

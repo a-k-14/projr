@@ -6,7 +6,7 @@ import { ScrollView, TouchableOpacity, View, StyleSheet, Dimensions, Platform } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import Svg, { G, Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { formatCurrency, getLoanSummary, getTotalBalance } from '../lib/derived';
+import { getLoanSummary, getTotalBalance } from '../lib/derived';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useLoansStore } from '../stores/useLoansStore';
 import { useUIStore } from '../stores/useUIStore';

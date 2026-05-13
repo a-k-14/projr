@@ -1,9 +1,9 @@
 import { useLocalSearchParams, router, Stack } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import Animated, { useSharedValue } from 'react-native-reanimated';
+import { useSharedValue } from 'react-native-reanimated';
 import { Modal, Pressable } from 'react-native';
 
 import { useAppTheme } from '../../lib/theme';
@@ -16,7 +16,6 @@ import { HomeAccountPage } from '../(tabs)/index';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { toLocalDayStartISO, toLocalDayEndISO, formatDate } from '../../lib/dateUtils';
-import { AppIcon } from '../../components/ui/AppIcon';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';

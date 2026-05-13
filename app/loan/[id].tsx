@@ -23,8 +23,7 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-  PROGRESS,
-  SCREEN_HEADER
+  PROGRESS
 } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';

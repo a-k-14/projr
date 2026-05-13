@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getTransactionBalanceDelta, getTransactionCashflowImpact } from '../lib/transactionImpact.ts';
+import { getStructuredLoanCashflowImpact, getTransactionBalanceDelta, getTransactionCashflowImpact } from '../lib/transactionImpact.ts';
 
 test('loan origin labels map to the right cashflow direction', () => {
   assert.equal(getTransactionCashflowImpact({ type: 'loan', note: 'Lent to Ravi' }), 'out');
@@ -51,6 +51,17 @@ test('unknown loan notes stay neutral instead of mutating balances', () => {
   assert.equal(
     getTransactionBalanceDelta({ type: 'loan', amount: 999, note: 'Loan adjustment' }),
     0
+  );
+});
+
+test('structured loan settlement type maps by loan direction without note labels', () => {
+  assert.equal(
+    getStructuredLoanCashflowImpact({ type: 'loan', loanTransactionType: 'principal' }, 'lent'),
+    'in',
+  );
+  assert.equal(
+    getStructuredLoanCashflowImpact({ type: 'loan', loanTransactionType: 'principal' }, 'borrowed'),
+    'out',
   );
 });
 

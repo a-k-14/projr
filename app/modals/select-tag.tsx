@@ -4,10 +4,9 @@ import { View, ScrollView, Pressable , TouchableOpacity } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SCREEN_GUTTER, SHEET_GUTTER, RADIUS, SPACING } from '../../lib/design';
+import { SHEET_GUTTER, RADIUS } from '../../lib/design';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
-import { useUIStore } from '../../stores/useUIStore';
 import { useAppTheme } from '../../lib/theme';
 import { BUTTON_TOKENS, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 
