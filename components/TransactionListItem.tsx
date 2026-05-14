@@ -1,7 +1,7 @@
 import { AppIcon, IconName, isValidIcon } from '@/components/ui/AppIcon';
-import React from 'react';
+import React, { memo } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { formatCurrency, getLoanTransactionUserNote, getTransactionCashflowImpact } from '../lib/derived';
 import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, getTxTypeConfig } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
@@ -37,7 +37,7 @@ interface Props {
   isCard?: boolean;
 }
 
-export function TransactionListItem({
+function TransactionListItemBase({
   tx,
   sym,
   palette,
@@ -82,11 +82,18 @@ export function TransactionListItem({
     subtitle = `${from} \u2192 ${to}`;
   } else if (tx.type === 'loan' && loanPersonName) {
     const rawType = tx.loanTransactionType || 'principal';
-    const typeLabel = rawType === 'principal'
-      ? 'Principal'
-      : rawType === 'interest'
-        ? 'Interest'
-        : 'Others';
+    let typeLabel = 'Principal';
+    if (rawType === 'interest') {
+      typeLabel = displayImpact === 'in' ? 'Interest In' : 'Interest Out';
+    } else if (rawType === 'others') {
+      typeLabel = displayImpact === 'in' ? 'Charges In' : 'Charges Out';
+    } else if (rawType === 'principal') {
+      if (loanDirection === 'lent') {
+        typeLabel = displayImpact === 'out' ? 'Lent' : 'Recovered';
+      } else if (loanDirection === 'borrowed') {
+        typeLabel = displayImpact === 'in' ? 'Borrowed' : 'Repaid';
+      }
+    }
     title = `Loan › ${typeLabel}`;
     titleSecondaryText = undefined;
     subtitle = [accountNameSelected, loanPersonName].filter(Boolean).join(' \u2022 ');
@@ -195,6 +202,8 @@ export function TransactionListItem({
   );
 }
 
+export const TransactionListItem = memo(TransactionListItemBase, areTransactionListItemPropsEqual);
+
 
 
 function getAmountPrefix(amount: number, impact: 'in' | 'out' | 'neutral', showAmountSign: boolean) {
@@ -203,4 +212,44 @@ function getAmountPrefix(amount: number, impact: 'in' | 'out' | 'neutral', showA
   if (impact === 'in') return '+';
   if (impact === 'out') return '-';
   return '';
+}
+
+function areTransactionListItemPropsEqual(prev: Props, next: Props) {
+  if (prev.tx !== next.tx) return false;
+  if (prev.sym !== next.sym) return false;
+  if (prev.palette !== next.palette) return false;
+  if (prev.isLast !== next.isLast) return false;
+  if (prev.displayAmount !== next.displayAmount) return false;
+  if (prev.categoryName !== next.categoryName) return false;
+  if (prev.categoryIcon !== next.categoryIcon) return false;
+  if (prev.accountName !== next.accountName) return false;
+  if (prev.linkedAccountName !== next.linkedAccountName) return false;
+  if (prev.loanPersonName !== next.loanPersonName) return false;
+  if (prev.loanDirection !== next.loanDirection) return false;
+  if (prev.tertiaryText !== next.tertiaryText) return false;
+  if (prev.showAmountSign !== next.showAmountSign) return false;
+  if (prev.useTypeAmountColor !== next.useTypeAmountColor) return false;
+  if (prev.hideNote !== next.hideNote) return false;
+  if (prev.paddingX !== next.paddingX) return false;
+  if (prev.paddingY !== next.paddingY) return false;
+  if (prev.iconSize !== next.iconSize) return false;
+  if (prev.onPress !== next.onPress) return false;
+  if (prev.isCard !== next.isCard) return false;
+  if (!isStyleEqual(prev.style, next.style)) return false;
+  return true;
+}
+
+function isStyleEqual(prevStyle: Props['style'], nextStyle: Props['style']) {
+  if (prevStyle === nextStyle) return true;
+  const prevFlat = StyleSheet.flatten(prevStyle) ?? {};
+  const nextFlat = StyleSheet.flatten(nextStyle) ?? {};
+  const prevKeys = Object.keys(prevFlat);
+  const nextKeys = Object.keys(nextFlat);
+  if (prevKeys.length !== nextKeys.length) return false;
+  for (const key of prevKeys) {
+    if ((prevFlat as Record<string, unknown>)[key] !== (nextFlat as Record<string, unknown>)[key]) {
+      return false;
+    }
+  }
+  return true;
 }

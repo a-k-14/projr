@@ -32,6 +32,7 @@ import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { PillIconButton } from '../../components/ui/PillIconButton';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
+import { useDevProfiler } from '../../lib/dev-profiler';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   getNavigableDateRange,
@@ -104,6 +105,7 @@ function AccountTypeBadge({ account, palette }: { account?: Account; palette: Re
 
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
+  const profiler = useDevProfiler('Activity');
   const routeParams = useLocalSearchParams<{
     source?: string;
     period?: string;
@@ -142,7 +144,7 @@ export default function ActivityScreen() {
   const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
 
-  const [period, setPeriod] = useState<ActivityPeriod>('month');
+  const [period, setPeriod] = useState<ActivityPeriod>('all');
   const [periodOffset, setPeriodOffset] = useState(0);
   const [customFrom, setCustomFrom] = useState<string | undefined>();
   const [customTo, setCustomTo] = useState<string | undefined>();
@@ -158,7 +160,7 @@ export default function ActivityScreen() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [amountMinStr, setAmountMinStr] = useState('');
   const [amountMaxStr, setAmountMaxStr] = useState('');
-  const [isTransitioning, setIsTransitioning] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [groupByMode, setGroupByMode] = useState<GroupByMode>('date');
   const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
   const [isInitialParamSyncComplete, setIsInitialParamSyncComplete] = useState(!routeParams.source);
@@ -167,7 +169,7 @@ export default function ActivityScreen() {
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
 
-  const [pendingPeriod, setPendingPeriod] = useState<ActivityPeriod>('month');
+  const [pendingPeriod, setPendingPeriod] = useState<ActivityPeriod>('all');
   const [pendingCustomFrom, setPendingCustomFrom] = useState<string | undefined>();
   const [pendingCustomTo, setPendingCustomTo] = useState<string | undefined>();
 
@@ -184,6 +186,7 @@ export default function ActivityScreen() {
   const pendingScrollToTopRef = useRef(false);
   const lastFilterScrollSignatureRef = useRef<string | null>(null);
   const canScrollSectionListRef = useRef(false);
+  const storePrefetchStartedRef = useRef(false);
   const [listResetKey, setListResetKey] = useState(0);
 
   const scrollToTop = useCallback((animated: boolean) => {
@@ -209,7 +212,7 @@ export default function ActivityScreen() {
   }, [scrollToTop]);
 
   const resetAllFilters = useCallback((animated: boolean) => {
-    setPeriod('month');
+    setPeriod('all');
     setPeriodOffset(0);
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -248,6 +251,17 @@ export default function ActivityScreen() {
     setListResetKey((value) => value + 1);
     queueScrollToTop(false);
   }, [isFocused, queueScrollToTop]);
+
+  useEffect(() => {
+    if (storeTransactionsLoaded || storePrefetchStartedRef.current) return;
+    storePrefetchStartedRef.current = true;
+    const task = InteractionManager.runAfterInteractions(() => {
+      loadStoreTransactions().catch(() => {
+        storePrefetchStartedRef.current = false;
+      });
+    });
+    return () => task.cancel();
+  }, [loadStoreTransactions, storeTransactionsLoaded]);
 
   useEffect(() => {
     if (!isFocused || !isInitialParamSyncComplete) return;
@@ -299,10 +313,13 @@ export default function ActivityScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const hasContent = transactions.length > 0 || storeTransactions.length > 0;
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
+  const hasUserScrolledRef = useRef(false);
   const requestIdRef = useRef(0);
   const lastAppliedRouteTsRef = useRef<string | null>(null);
+  const lastLoadedRemoteQueryRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isFocused || groupByMode !== 'category' || !categoryDrilldown) return;
@@ -318,6 +335,20 @@ export default function ActivityScreen() {
     if (period === 'custom') return customFrom && customTo ? { from: customFrom, to: customTo } : null;
     return getNavigableDateRange(period, periodOffset, yearStart);
   }, [customFrom, customTo, period, periodOffset, yearStart]);
+  const remoteQuerySignature = useMemo(
+    () =>
+      [
+        period,
+        periodOffset,
+        dateRange?.from ?? '',
+        dateRange?.to ?? '',
+        selectedAccountId,
+        typeFilter,
+        cashflowBucket,
+        cashflowMode,
+      ].join('|'),
+    [cashflowBucket, cashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, selectedAccountId, typeFilter],
+  );
 
   const canGoNext = period !== 'all' && period !== 'custom' && periodOffset < 0;
   const periodLabel = useMemo(() => {
@@ -362,6 +393,7 @@ export default function ActivityScreen() {
       if (loadingRef.current && !isInitial) return;
       const requestId = ++requestIdRef.current;
       loadingRef.current = true;
+      profiler.mark(isInitial ? 'fetch start initial' : 'fetch start more');
       try {
         const currentOffset = isInitial ? 0 : offsetRef.current;
         const effectiveTypeFilter =
@@ -394,23 +426,31 @@ export default function ActivityScreen() {
           offsetRef.current += results.length;
           setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
         }
+      profiler.mark(isInitial ? `fetch done initial (${results.length})` : `fetch done more (${results.length})`);
+        if (isInitial) {
+          lastLoadedRemoteQueryRef.current = remoteQuerySignature;
+        }
       } finally {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, dateRange?.from, dateRange?.to, period, selectedAccountId, typeFilter],
+    [cashflowBucket, cashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, profiler, remoteQuerySignature, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
     if (isFocused) {
       if (isDefaultView) {
         if (!storeTransactionsLoaded) {
-          setIsTransitioning(true);
+          if (!hasContent) setIsTransitioning(true);
           loadStoreTransactions().catch(() => undefined);
         }
       } else {
         // Only load data if we aren't waiting for an initial param sync
         if (!source || isInitialParamSyncComplete) {
+          if (hasContent && lastLoadedRemoteQueryRef.current === remoteQuerySignature) {
+            setIsTransitioning(false);
+            return;
+          }
           setIsTransitioning(true);
           loadData(true).finally(() => {
             setIsTransitioning(false);
@@ -418,7 +458,7 @@ export default function ActivityScreen() {
         }
       }
     }
-  }, [isDefaultView, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, source, storeTransactionsLoaded]);
+  }, [hasContent, isDefaultView, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, remoteQuerySignature, source, storeTransactionsLoaded]);
 
   useEffect(() => {
     if (!isDefaultView) return;
@@ -427,8 +467,10 @@ export default function ActivityScreen() {
     offsetRef.current = storeTransactions.length;
     if (storeTransactionsLoaded) {
       setIsTransitioning(false);
+      lastLoadedRemoteQueryRef.current = remoteQuerySignature;
+      profiler.mark(`store visible (${storeTransactions.length})`);
     }
-  }, [isDefaultView, storeTransactions, storeTransactionsHasMore, storeTransactionsLoaded]);
+  }, [isDefaultView, profiler, remoteQuerySignature, storeTransactions, storeTransactionsHasMore, storeTransactionsLoaded]);
 
   useEffect(() => {
     if (!loansLoaded) loadLoans().catch(() => undefined);
@@ -457,7 +499,7 @@ export default function ActivityScreen() {
       return;
     }
 
-    setPeriod('month');
+    setPeriod('all');
     setPeriodOffset(0);
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -533,8 +575,9 @@ export default function ActivityScreen() {
   };
 
   const onLoadMore = async () => {
-    if (!hasMore || loadingRef.current || isLoadingMore) return;
+    if (!hasUserScrolledRef.current || !hasMore || loadingRef.current || isLoadingMore) return;
     setIsLoadingMore(true);
+    profiler.mark('load more spinner');
     try {
       if (isDefaultView) {
         await loadMoreStoreTransactions();
@@ -1145,20 +1188,20 @@ export default function ActivityScreen() {
         </View>
       )}
 
-      {isTransitioning ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={palette.brand} />
-        </View>
-      ) : (
-        <>
+      <>
           {groupByMode === 'date' || categoryDrilldown ? (
             <SectionList
               key={`activity-${listResetKey}`}
               ref={flatListRef}
               sections={dateSections}
-              extraData={[categories, categoriesById, palette]}
               keyExtractor={(item) => item.id}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
+              onScroll={({ nativeEvent }) => {
+                if (nativeEvent.contentOffset.y > 24) {
+                  hasUserScrolledRef.current = true;
+                }
+              }}
+              scrollEventThrottle={64}
               onEndReached={onLoadMore}
               stickySectionHeadersEnabled
               initialNumToRender={20}
@@ -1177,7 +1220,7 @@ export default function ActivityScreen() {
                 </View>
               ) : null}
               ListEmptyComponent={
-                !refreshing ? (
+                !refreshing && !isTransitioning && (isDefaultView ? storeTransactionsLoaded : true) ? (
                   <View style={{ paddingTop: 4, paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
                     <EmptyStateCard
                       palette={palette}
@@ -1407,7 +1450,6 @@ export default function ActivityScreen() {
             </ScrollView>
           ) : null}
         </>
-      )}
 
       {showAccountSheet ? (
         <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
@@ -1569,6 +1611,25 @@ export default function ActivityScreen() {
             setCategoryDrilldown(null);
           }}
         />
+      ) : null}
+
+      {refreshing && hasContent ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: insets.top + ACTIVITY_LAYOUT.headerPaddingTop + 6,
+            right: ACTIVITY_LAYOUT.headerPaddingX,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <ActivityIndicator size="small" color={palette.brand} />
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>
+            Refreshing
+          </Text>
+        </View>
       ) : null}
 
     </View>

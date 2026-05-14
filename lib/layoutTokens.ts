@@ -9,7 +9,7 @@ export { CARD_PADDING, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING };
 import { AppThemePalette } from './theme';
 
 export function getTxTypeConfig(palette: AppThemePalette): Record<
-  'in' | 'out' | 'transfer' | 'loan',
+  'in' | 'out' | 'transfer' | 'loan' | 'deposit',
   { label: string; color: string; bg: string; borderColor: string; iconName: string }
 > {
   return {
@@ -229,4 +229,4 @@ export const PROGRESS = PROGRESS_LAYOUT;
 
 // ─── Shared page size ─────────────────────────────────────────────────────────
 // Used by useTransactionsStore and activity.tsx so both stay in sync.
-export const TRANSACTIONS_PAGE_SIZE = 50;
+export const TRANSACTIONS_PAGE_SIZE = 20;

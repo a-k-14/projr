@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, RefreshControl, Modal, Pressable, TouchableOpacity } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
@@ -40,14 +39,18 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
 export default function InsightsScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
-  const isFocused = useIsFocused();
 
   const accounts = useAccountsStore((s) => s.accounts);
+  const accountsLoaded = useAccountsStore((s) => s.isLoaded);
+  const loadAccounts = useAccountsStore((s) => s.load);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
+  const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
   const loadCategories = useCategoriesStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const loans = useLoansStore((s) => s.loans);
+  const loansLoaded = useLoansStore((s) => s.isLoaded);
+  const loadLoans = useLoansStore((s) => s.load);
   
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
@@ -123,9 +126,10 @@ export default function InsightsScreen() {
   }, [loadData]);
 
   useEffect(() => {
-    if (!isFocused) return;
-    loadCategories().catch(() => undefined);
-  }, [isFocused, loadCategories]);
+    if (!accountsLoaded) loadAccounts().catch(() => undefined);
+    if (!categoriesLoaded) loadCategories().catch(() => undefined);
+    if (!loansLoaded) loadLoans().catch(() => undefined);
+  }, [accountsLoaded, categoriesLoaded, loansLoaded, loadAccounts, loadCategories, loadLoans]);
 
   useEffect(() => {
     if (selectedChartCategoryId === null) {

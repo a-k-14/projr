@@ -15,6 +15,7 @@ import { SCREEN_GUTTER } from '../lib/design';
 import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../lib/layoutTokens';
 import { getCategoryDisplayIcon } from '../lib/category-utils';
 import { registerTabReset } from '../lib/tabResetRegistry';
+import { useDevProfiler } from '../lib/dev-profiler';
 import { useAppTheme, type AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
@@ -29,6 +30,7 @@ function monthStartIso(date: Date) {
 
 export default function BudgetScreen() {
   const isFocused = useIsFocused();
+  const profiler = useDevProfiler('Budget');
   const budgets = useBudgetStore((s) => s.budgets);
   const loadBudgets = useBudgetStore((s) => s.load);
   const categories = useCategoriesStore((s) => s.categories);
@@ -75,8 +77,11 @@ export default function BudgetScreen() {
 
   useEffect(() => {
     if (!isFocused) return;
-    loadBudgets(selectedMonth).catch(() => undefined);
-  }, [isFocused, loadBudgets, selectedMonth]);
+    profiler.mark('fetch start');
+    loadBudgets(selectedMonth)
+      .then(() => profiler.mark('fetch done'))
+      .catch(() => undefined);
+  }, [isFocused, loadBudgets, profiler, selectedMonth]);
 
   const onRefresh = async () => {
     setRefreshing(true);

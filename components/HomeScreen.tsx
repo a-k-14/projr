@@ -15,6 +15,7 @@ import { HomeDonutChartBlock } from './HomeDonutChartBlock';
 import { useCategoriesStore } from '@/stores/useCategoriesStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { getCategoryDisplayIcon } from '@/lib/category-utils';
+import { useDevProfiler } from '@/lib/dev-profiler';
 import type { Category, PeriodType, Transaction } from '@/types';
 import { router } from 'expo-router';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
@@ -254,6 +255,7 @@ export default function HomeScreen({
 }: {
   resetTick?: { count: number; animated: boolean; mode: TabResetMode };
 }) {
+  const profiler = useDevProfiler('Home');
   const theme = lightTheme;
   const accounts = useAccountsStore((s) => s.accounts);
   const accountsLoaded = useAccountsStore((s) => s.isLoaded);
@@ -317,6 +319,7 @@ export default function HomeScreen({
   }, [accounts, rootAccountId, selectedAccountId, showAllAccountsTab]);
 
   const loadData = async () => {
+    profiler.mark('fetch start');
     const entries = await Promise.all(
       displayAccounts.map(async (account) => {
         const scopedTxs = await getTransactions({
@@ -328,6 +331,7 @@ export default function HomeScreen({
       }),
     );
     setPeriodTransactionsByAccount(Object.fromEntries(entries));
+    profiler.mark('fetch done');
   };
 
   useEffect(() => {
