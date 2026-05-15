@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { useEffect, useMemo, useState } from 'react';
 import { TouchableOpacity } from 'react-native';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import type { Category, TransactionType } from '../../types';
@@ -74,7 +74,7 @@ export function CategoryPickerSheet({
       }
       headerRight={
         <TouchableOpacity delayPressIn={0} onPress={onManage} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
         </TouchableOpacity>
       }
     >

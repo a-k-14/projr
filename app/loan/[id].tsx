@@ -17,7 +17,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
 import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate } from '../../lib/derived';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import {
   ACTIVITY_LAYOUT,
   HOME_RADIUS,
@@ -150,7 +150,7 @@ export default function LoanDetailScreen() {
       />
 
       <View style={{ flex: 1 }}>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: loan.status === 'open' ? 156 : 24 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + (loan.status === 'open' ? 156 : 24) }}>
           <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             {/* Loan details */}
             <View
@@ -174,7 +174,7 @@ export default function LoanDetailScreen() {
                   <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }} numberOfLines={1}>
                     {isLent ? 'You Lent' : 'You Borrowed'} · {account?.name} · {formatDate(loan.date)}
                   </Text>
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text, marginTop: HOME_SPACE.xs }} numberOfLines={1}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.semibold, color: palette.text, marginTop: HOME_SPACE.xs }} numberOfLines={1}>
                     {loan.personName}
                   </Text>
                 </View>
@@ -190,7 +190,7 @@ export default function LoanDetailScreen() {
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
-                      fontWeight: '600',
+                      fontWeight: FONT_WEIGHT.semibold,
                       color: loan.status === 'open' ? (isLent ? palette.negative : palette.positive) : palette.textSecondary
                     }}
                   >
@@ -221,10 +221,10 @@ export default function LoanDetailScreen() {
                         }}
                       />
                     ) : null}
-                    <Text appWeight="medium" style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, fontWeight: '600', letterSpacing: 0, textAlign: 'left' }}>
+                    <Text appWeight="medium" style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, fontWeight: FONT_WEIGHT.semibold, letterSpacing: 0, textAlign: 'left' }}>
                       {item.label}
                     </Text>
-                    <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.heroLabel + 2, fontWeight: '700', color: item.color, marginTop: HOME_SPACE.xs, textAlign: 'left' }}>
+                    <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.heroLabel + 2, fontWeight: FONT_WEIGHT.bold, color: item.color, marginTop: HOME_SPACE.xs, textAlign: 'left' }}>
                       {item.value}
                     </Text>
                   </View>
@@ -233,7 +233,7 @@ export default function LoanDetailScreen() {
 
               <View style={{ paddingTop: HOME_SPACE.sm, paddingBottom: HOME_SPACE.xs }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: HOME_SPACE.sm }}>
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.textMuted }}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
                     {isLent ? 'Received' : 'Repaid'} · {formatCurrency(loan.settledAmount, sym)}
                   </Text>
                   <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>{loan.repaidPercent}%</Text>
@@ -269,7 +269,7 @@ export default function LoanDetailScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingRight: 32, marginTop: HOME_SPACE.xs }}>
                     {loan.interestAmount > 0 && (
                       <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>
-                        Interest: <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '600', color: palette.text }}>{formatCurrency(loan.interestAmount, sym)}</Text>
+                        Interest: <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{formatCurrency(loan.interestAmount, sym)}</Text>
                       </Text>
                     )}
                     {loan.interestAmount > 0 && loan.othersAmount > 0 && (
@@ -277,7 +277,7 @@ export default function LoanDetailScreen() {
                     )}
                     {loan.othersAmount > 0 && (
                       <Text style={{ fontSize: HOME_TEXT.caption, color: palette.text }}>
-                        Others: <Text appWeight="medium" style={{ fontWeight: '600', color: palette.text }}>{formatCurrency(loan.othersAmount, sym)}</Text>
+                        Others: <Text appWeight="medium" style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{formatCurrency(loan.othersAmount, sym)}</Text>
                       </Text>
                     )}
                   </View>
@@ -331,10 +331,10 @@ export default function LoanDetailScreen() {
                         paddingRight: 10,
                       }}
                     >
-                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                         {title}
                       </Text>
-                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                         {formatCurrency(total, sym)}
                       </Text>
                     </View>
@@ -351,13 +351,13 @@ export default function LoanDetailScreen() {
                               paddingHorizontal: ACTIVITY_LAYOUT.groupHeaderPaddingX - SCREEN_GUTTER
                             }}
                           >
-                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                               {date}
                             </Text>
                             {label ? (
                               <>
-                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
-                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>{label}</Text>
+                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
+                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{label}</Text>
                               </>
                             ) : null}
                           </View>
@@ -412,13 +412,13 @@ export default function LoanDetailScreen() {
                         paddingHorizontal: ACTIVITY_LAYOUT.groupHeaderPaddingX - SCREEN_GUTTER
                       }}
                     >
-                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
+                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                         {date}
                       </Text>
                       {label ? (
                         <>
-                          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
-                          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>{label}</Text>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginHorizontal: 6 }}>•</Text>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{label}</Text>
                         </>
                       ) : null}
                     </View>

@@ -236,6 +236,9 @@ export async function updateTransaction(
 ): Promise<Transaction> {
   const existing = await getTransactionById(id);
   if (!existing) throw new Error('Transaction not found');
+  if (existing.transferPairId) {
+    throw new Error('Use updateTransferTransaction to edit a transfer.');
+  }
 
   const updateData: Record<string, any> = {};
   if (data.type !== undefined) updateData.type = data.type;

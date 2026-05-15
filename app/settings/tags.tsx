@@ -7,7 +7,8 @@ import {
   FixedBottomActions,
   SettingsRow,
   SettingsScreenLayout } from '../../components/settings-ui';
-import { TYPE } from '../../lib/design';
+import { TYPE, FONT_WEIGHT } from '../../lib/design';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 
@@ -30,13 +31,13 @@ export default function TagsScreen() {
             activeOpacity={0.7}
             style={{
               minHeight: 48,
-              borderRadius: 14,
+              borderRadius: HOME_RADIUS.pill,
               borderWidth: 1,
               borderColor: palette.brand,
               alignItems: 'center',
               justifyContent: 'center' }}
           >
-            <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>+ Add Tag</Text>
+            <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>+ Add Tag</Text>
           </TouchableOpacity>
         </FixedBottomActions>
       }
@@ -48,7 +49,7 @@ export default function TagsScreen() {
             icon="tag"
             label={tag.name}
             palette={palette}
-            labelStyle={{ fontSize: TYPE.rowLabel, fontWeight: '400' }}
+            labelStyle={{ fontSize: TYPE.rowLabel, fontWeight: FONT_WEIGHT.regular }}
             onPress={() => router.push({ pathname: '/settings/tag-form', params: { id: tag.id } })}
             noBorder={index === tags.length - 1}
             rightElement={

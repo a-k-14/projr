@@ -3,6 +3,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FONT_WEIGHT } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import { TransactionType } from '../../types';
@@ -69,7 +70,7 @@ export function ActivityFilterBar({
             },
           ]}
         >
-          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
+          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text, flex: 1 }}>
             {accountLabel}
           </Text>
           <AppChevron direction="down" size={15} tone="secondary" palette={palette} />

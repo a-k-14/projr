@@ -2,6 +2,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
+import { FONT_WEIGHT } from '../../lib/design';
 import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: HOME_TEXT.tiny,
+    fontWeight: FONT_WEIGHT.heavy,
   },
 });

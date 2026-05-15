@@ -1,6 +1,6 @@
 import { asc, eq, or, sql } from 'drizzle-orm';
 import { db } from '../db/client';
-import { accounts, transactions } from '../db/schema';
+import { accounts, loans, transactions } from '../db/schema';
 import type { Account, CreateAccountInput } from '../types';
 import { generateId } from '../lib/ids';
 import { todayUTC } from '../lib/dateUtils';
@@ -87,14 +87,24 @@ export async function setAccountOrder(accountIds: string[]): Promise<void> {
 }
 
 export async function deleteAccount(id: string): Promise<void> {
-  const linked = await db
+  const linkedTxn = await db
     .select({ id: transactions.id })
     .from(transactions)
     .where(or(eq(transactions.accountId, id), eq(transactions.linkedAccountId, id)))
     .limit(1);
 
-  if (linked.length) {
+  if (linkedTxn.length) {
     throw new Error('Cannot delete account with transactions.');
+  }
+
+  const linkedLoan = await db
+    .select({ id: loans.id })
+    .from(loans)
+    .where(eq(loans.accountId, id))
+    .limit(1);
+
+  if (linkedLoan.length) {
+    throw new Error('Cannot delete account linked to a loan.');
   }
 
   await db.delete(accounts).where(eq(accounts.id, id));

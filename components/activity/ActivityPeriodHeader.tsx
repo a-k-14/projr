@@ -2,6 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FONT_WEIGHT } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
@@ -56,7 +57,7 @@ export function ActivityPeriodHeader({
           activeOpacity={0.7}
           hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
         >
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }} numberOfLines={1}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }} numberOfLines={1}>
             {periodLabel}
           </Text>
         </TouchableOpacity>

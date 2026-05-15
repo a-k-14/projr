@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import { CARD_PADDING } from '../../lib/design';
+import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
 import { HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -23,7 +23,7 @@ export function ListHeading({
       appWeight="medium"
       style={{
         fontSize: HOME_TEXT.tiny,
-        fontWeight: '800',
+        fontWeight: FONT_WEIGHT.heavy,
         letterSpacing: 0.8,
         textTransform: 'uppercase',
         color: palette.textMuted,

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { LoanWithSummary, CreateLoanInput, LoanFilters } from '../types';
 import * as loansService from '../services/loans';
+import { usePersonsStore } from './usePersonsStore';
 import { useTransactionsStore } from './useTransactionsStore';
 
 interface LoansStore {
@@ -51,6 +52,7 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
     await loansService.createLoan(data);
     await get().load(get().filters);
     await useTransactionsStore.getState().load();
+    usePersonsStore.getState().load().catch(() => undefined);
   },
 
   addPrincipal: async (loanId, amount, accountId, date, note) => {
@@ -69,6 +71,7 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
     await loansService.updateLoanOrigin(id, data, originTransactionId);
     await get().load(get().filters);
     await useTransactionsStore.getState().load();
+    if (data.personName) usePersonsStore.getState().load().catch(() => undefined);
   },
 
   remove: async (id) => {

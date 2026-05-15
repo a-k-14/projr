@@ -32,7 +32,7 @@ import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
@@ -196,7 +196,7 @@ export default function LoanSettlementModal() {
           <SectionCard palette={palette}>
             <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
             <FieldRow label="Person" palette={palette}>
-              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '400', color: palette.text }}>
+              <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
                 {personName || 'Person'}
               </Text>
             </FieldRow>
@@ -346,7 +346,7 @@ function FieldRow({ label, children, palette }: { label: string; children: React
       <Text
         appWeight="medium"
         numberOfLines={1}
-        style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.textMuted, width: ROW_LABEL_WIDTH, paddingRight: ROW_COLUMN_GAP }}
+        style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted, width: ROW_LABEL_WIDTH, paddingRight: ROW_COLUMN_GAP }}
       >
         {label}
       </Text>

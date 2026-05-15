@@ -2,6 +2,7 @@ import { AppChevron } from '@/components/ui/AppChevron';
 import { useEffect, useMemo, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { TouchableOpacity, View } from 'react-native';
+import { FONT_WEIGHT } from '../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { formatMonthYear } from '../lib/ui-format';
@@ -81,7 +82,7 @@ export function BudgetMonthField({
           alignItems: 'center'
         }}
       >
-        <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text, textAlign: 'center' }}>
+        <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.text, textAlign: 'center' }}>
           {formatBudgetMonthLabel(value)}
         </Text>
         {!onPrev && !onNext ? <AppChevron direction="right" size={18} tone="secondary" palette={palette} /> : null}
@@ -133,7 +134,6 @@ export function BudgetMonthSheet({
       palette={palette}
       onClose={onClose}
       hasNavBar={hasNavBar}
-      disableModalHeightBoost={!hasNavBar}
     >
       <View style={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 }}>
         <View
@@ -153,7 +153,7 @@ export function BudgetMonthSheet({
           >
             <AppChevron direction="left" size={18} tone="primary" palette={palette} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, textAlign: 'center', fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text }}>{selectedYear}</Text>
+          <Text style={{ flex: 1, textAlign: 'center', fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{selectedYear}</Text>
           <TouchableOpacity delayPressIn={0}
             onPress={() => setSelectedYear((year) => year + 1)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

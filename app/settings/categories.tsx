@@ -10,8 +10,8 @@ import {
   FixedBottomActions
 } from '../../components/settings-ui';
 import { CATEGORY_TREE_ROW, CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
-import { CARD_PADDING, TYPE } from '../../lib/design';
-import { HOME_LAYOUT } from '../../lib/layoutTokens';
+import { CARD_PADDING, TYPE , FONT_WEIGHT} from '../../lib/design';
+import { HOME_LAYOUT , HOME_RADIUS} from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 
@@ -229,7 +229,7 @@ export default function CategoriesScreen() {
               <Text
                 style={{
                   fontSize: TYPE.rowValue,
-                  fontWeight: '600',
+                  fontWeight: FONT_WEIGHT.semibold,
                   color: tab === t ? palette.brand : palette.textMuted
                 }}
               >
@@ -266,14 +266,14 @@ export default function CategoriesScreen() {
             activeOpacity={0.7}
             style={{
               minHeight: 48,
-              borderRadius: 14,
+              borderRadius: HOME_RADIUS.pill,
               borderWidth: 1,
               borderColor: palette.brand,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: TYPE.body, fontWeight: '600', color: palette.brand }}>
+            <Text style={{ fontSize: TYPE.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>
               + Add Category
             </Text>
           </TouchableOpacity>

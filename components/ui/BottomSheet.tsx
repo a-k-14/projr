@@ -10,8 +10,8 @@ import { Animated,
 import { ScrollView } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SHEET_GUTTER } from '../../lib/design';
-import { SCREEN_HEADER } from '../../lib/layoutTokens';
+import { SHEET_GUTTER , FONT_WEIGHT} from '../../lib/design';
+import { SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 const OPEN_ANIMATION_DURATION_MS = 150;
 const CLOSE_ANIMATION_DURATION_MS = 140;
@@ -91,8 +91,10 @@ export function BottomSheet({
   const maxSheetHeight = screenHeight * (maxHeightRatio ?? 0.75);
   const bottomInset = hasNavBar ? 0 : insets.bottom;
   const bottomOffset = extraBottomPadding + bottomInset;
-  // Boost should ONLY include manual extra padding now, as bottomInset is handled by outer container padding
-  const modalHeightBoost = extraBottomPadding;
+  // Sheet height must reserve space for both the manual extra padding AND the
+  // safe-area inset; otherwise paddingBottom squeezes the inner content and the
+  // last row sits behind the OS nav bar.
+  const modalHeightBoost = extraBottomPadding + bottomInset;
 
   const translateY = useRef(new Animated.Value(screenHeight)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -225,7 +227,7 @@ export function BottomSheet({
                   style={{
                     width: HEADER_HANDLE_WIDTH,
                     height: HEADER_HANDLE_HEIGHT,
-                    borderRadius: 999,
+                    borderRadius: HOME_RADIUS.full,
                     backgroundColor: palette.divider,
                     opacity: 0.65,
                   }}
@@ -244,7 +246,7 @@ export function BottomSheet({
                     {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
                   </View>
                   {showHeaderTitle && subtitle ? (
-                    <Text style={{ fontSize: HEADER_SUBTITLE_SIZE, color: palette.textMuted, marginTop: HEADER_SUBTITLE_MARGIN, fontWeight: '400' }}>
+                    <Text style={{ fontSize: HEADER_SUBTITLE_SIZE, color: palette.textMuted, marginTop: HEADER_SUBTITLE_MARGIN, fontWeight: FONT_WEIGHT.regular }}>
                       {subtitle}
                     </Text>
                   ) : null}

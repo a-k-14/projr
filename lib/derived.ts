@@ -162,6 +162,22 @@ export function formatCurrency(amount: number, symbol: string = '₹'): string {
   return `${safeSymbol}${formatted}`;
 }
 
+/**
+ * Currency with a leading sign. `zeroPlaceholder` (default '—') is returned when
+ * amount is exactly 0, so call sites can drop the `value === 0 ? '—' : signedStr` ternary.
+ */
+export function formatSignedCurrency(
+  amount: number,
+  symbol: string = '₹',
+  options: { zeroPlaceholder?: string | null } = {},
+): string {
+  const val = typeof amount === 'number' && Number.isFinite(amount) ? amount : 0;
+  const placeholder = options.zeroPlaceholder ?? '—';
+  if (val === 0 && placeholder !== null) return placeholder;
+  const formatted = formatCurrency(Math.abs(val), symbol);
+  return val < 0 ? `-${formatted}` : formatted;
+}
+
 export function formatCompactCurrency(amount: number, symbol: string = '₹'): string {
   const val = typeof amount === 'number' ? amount : 0;
   const abs = Math.abs(val);

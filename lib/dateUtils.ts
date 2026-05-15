@@ -254,3 +254,10 @@ export function getDayLabel(isoDate: string): string {
 export function isSameDay(a: string, b: string): boolean {
   return toLocalDateKey(a) === toLocalDateKey(b);
 }
+
+/** Whole days from today until `targetISO`. Negative when the target is in the past. */
+export function getDaysUntil(targetISO: string): number {
+  const now = Date.now();
+  const target = new Date(targetISO).getTime();
+  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+}

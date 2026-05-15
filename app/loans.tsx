@@ -26,7 +26,7 @@ import { ListHeading } from '../components/ui/ListHeading';
 import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
 import { formatCurrency, getLoanSummary } from '../lib/derived';
-import { CARD_PADDING } from '../lib/design';
+import { CARD_PADDING , FONT_WEIGHT} from '../lib/design';
 import {
   ACTIVITY_LAYOUT,
   BUTTON_TOKENS,
@@ -141,7 +141,7 @@ function LoanRow({
             zIndex: 2
           }}
         >
-          <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', color: palette.textSecondary }}>Closed</Text>
+          <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, color: palette.textSecondary }}>Closed</Text>
         </View>
       )}
     </View>
@@ -415,7 +415,7 @@ export default function LoansScreen() {
                   },
                 ]}
               >
-                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text, flex: 1 }}>
+                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text, flex: 1 }}>
                   {selectedAccountLabel}
                 </Text>
                 <AppChevron direction="down" size={15} tone="secondary" palette={palette} />
@@ -494,7 +494,7 @@ export default function LoansScreen() {
             <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 8, paddingBottom: 3, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
               <TouchableOpacity delayPressIn={0}
                 onPress={() => setShowMoreSheet(false)}
-                style={{ backgroundColor: palette.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+                style={{ backgroundColor: palette.brand, borderRadius: HOME_RADIUS.button, paddingVertical: 16, alignItems: 'center' }}
                 activeOpacity={0.85}
               >
                 <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>Apply filters</Text>
@@ -551,10 +551,10 @@ export default function LoansScreen() {
                 onPress={openFromDatePicker}
                 style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}
               >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.heavy, color: palette.textMuted, letterSpacing: 0.6 }}>
                   FROM
                 </Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: 2 }}>
                   {fromDate ? formatDateFull(fromDate) : 'Select...'}
                 </Text>
               </TouchableOpacity>
@@ -563,10 +563,10 @@ export default function LoansScreen() {
                 onPress={openToDatePicker}
                 style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}
               >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '800', color: palette.textMuted, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.heavy, color: palette.textMuted, letterSpacing: 0.6 }}>
                   TO
                 </Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text, marginTop: 2 }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: 2 }}>
                   {toDate ? formatDateFull(toDate) : 'Select...'}
                 </Text>
               </TouchableOpacity>
@@ -710,19 +710,19 @@ const styles = StyleSheet.create({
   },
   dateField: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: HOME_RADIUS.chip,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10
   },
   amountField: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: HOME_RADIUS.chip,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: HOME_TEXT.body,
-    fontWeight: '700'
+    fontWeight: FONT_WEIGHT.bold
   },
   sheetChipRow: {
     flexDirection: 'row',

@@ -34,7 +34,7 @@ This is an **Expo / React Native** personal finance tracker (Android-primary). I
 
 ### Data layer
 
-- `db/schema.ts` — Drizzle table definitions (accounts, categories, tags, transactions, loans, budget, settings).
+- `db/schema.ts` — Drizzle table definitions (accounts, categories, tags, transactions, loans, budget, settings, persons).
 - `db/client.ts` — opens `finance.db` synchronously via `expo-sqlite`, exposes `db` (drizzle) and `sqlite` (raw).
 - `db/migrate.ts` — `runMigrations()` creates all tables and applies additive column migrations manually (no migration files; ALTER TABLE is done imperatively with PRAGMA checks).
 - `db/seed.ts` — seeds demo data on first launch.
@@ -59,6 +59,7 @@ Zustand stores wrap the service layer. Loaded once at startup, then kept in sync
 - `useUIStore` — app settings (`Settings` type) with optimistic writes; also holds `privacyGraceUntil` for biometric lock grace period.
 - `useTransactionDraftStore` — ephemeral form state for the add-transaction modal (account, category, tags, split rows).
 - `useBudgetStore` / `useLoansStore` — budget and loan state.
+- `usePersonsStore` — canonical list of person names for loan (and future deposit) autocomplete. Loaded lazily when the loan form opens. Backed by the `persons` table; `upsertPerson()` is called automatically inside `createLoan` / `updateLoanOrigin` in `services/loans.ts`, and the store is refreshed after each loan mutation.
 
 Stores are **not** loaded in the store files themselves — they are bootstrapped in `app/_layout.tsx` (`runMigrations` → load accounts/settings/categories, then seed if first run).
 

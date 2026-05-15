@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client';
-import { categories } from '../db/schema';
+import { budget, categories, transactions } from '../db/schema';
 import type { Category } from '../types';
 import { generateId } from '../lib/ids';
 
@@ -88,6 +88,34 @@ export async function updateCategory(id: string, data: Partial<Category>): Promi
 export async function deleteCategory(id: string): Promise<void> {
   const existing = await getCategoryById(id);
   if (!existing) throw new Error('Category not found.');
+
+  const child = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.parentId, id))
+    .limit(1);
+  if (child.length) {
+    throw new Error('Cannot delete a category that has subcategories.');
+  }
+
+  const linkedTxn = await db
+    .select({ id: transactions.id })
+    .from(transactions)
+    .where(eq(transactions.categoryId, id))
+    .limit(1);
+  if (linkedTxn.length) {
+    throw new Error('Cannot delete a category used by transactions.');
+  }
+
+  const linkedBudget = await db
+    .select({ id: budget.id })
+    .from(budget)
+    .where(eq(budget.categoryId, id))
+    .limit(1);
+  if (linkedBudget.length) {
+    throw new Error('Cannot delete a category used by a budget.');
+  }
+
   await db.delete(categories).where(eq(categories.id, id));
 }
 

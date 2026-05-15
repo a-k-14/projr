@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { AppIcon } from './AppIcon';
 import { AppThemePalette } from '../../lib/theme';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
+import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 
 interface ScreenHeaderProps {
   title: string;
@@ -127,7 +128,7 @@ export function ScreenHeader({
         style={{ 
           flex: 1, 
           fontSize: titleSize,
-          fontWeight: '400',
+          fontWeight: FONT_WEIGHT.regular,
           color: palette.text, 
           letterSpacing: -0.5,
           marginLeft: showBack ? 0 : 4,
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   iconPill: {
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 12,
+    borderRadius: HOME_RADIUS.chip,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   headerButton: {
     minWidth: 58,
     height: 28,
-    borderRadius: 14,
+    borderRadius: HOME_RADIUS.pill,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -172,9 +173,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   headerButtonText: {
-    fontSize: 12.5,
+    fontSize: HOME_TEXT.metaSmall,
     lineHeight: 16,
-    fontWeight: '600',
+    fontWeight: FONT_WEIGHT.semibold,
   },
   addButton: {
     backgroundColor: '#050505',

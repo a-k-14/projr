@@ -32,6 +32,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
+import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import {
   formatDate,
   getDateRange,
@@ -39,7 +40,7 @@ import {
   toLocalDayStartISO
 } from '../../lib/dateUtils';
 import { formatCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
-import { CARD_PADDING, SCREEN_GUTTER, SPACING, TYPE } from '../../lib/design';
+import { CARD_PADDING, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
   BUTTON_TOKENS,
@@ -288,8 +289,8 @@ function HomeScreenContent() {
       icon: 'vault',
       route: '/deposits',
       meta: depositMeta,
-      tone: '#0F766E',
-      bg: '#E6F7F4',
+      tone: '#A23B72',
+      bg: '#FCE7F3',
     },
     {
       id: 'Loans',
@@ -308,6 +309,15 @@ function HomeScreenContent() {
       tone: '#4338CA',
       bg: '#F0F2FF',
     },
+    {
+      id: 'Assets',
+      label: 'Assets',
+      icon: 'gem',
+      route: '/assets',
+      meta: 'Track other assets',
+      tone: ASSET_TONE,
+      bg: ASSET_BG,
+    },
   ] as const;
 
   const middleContent = (
@@ -318,7 +328,7 @@ function HomeScreenContent() {
         activeOpacity={0.72}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, marginTop: 8, paddingVertical: 2 }}
       >
-        <Text appWeight="medium" style={{ fontSize: 18, fontWeight: '600', color: palette.text }}>Accounts</Text>
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Accounts</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
           <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: BUTTON_TOKENS.text.labelWeight }}>All</Text>
           <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
@@ -339,7 +349,7 @@ function HomeScreenContent() {
               style={{
                 width: cardWidth,
                 backgroundColor: palette.surface,
-                borderRadius: 22,
+                borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
                 borderColor: palette.borderSoft,
                 overflow: 'hidden',
@@ -351,7 +361,7 @@ function HomeScreenContent() {
                     style={{
                       width: 36,
                       height: 36,
-                      borderRadius: 12,
+                      borderRadius: HOME_RADIUS.chip,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: typeMeta.bg ?? `${typeColor}18`,
@@ -360,15 +370,15 @@ function HomeScreenContent() {
                     <AppIcon name={typeMeta.icon} size={18} color={typeColor} strokeWidth={1.8} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: '500', color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
+                    <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
                   </View>
                 </View>
                 <View style={{ marginTop: 16 }}>
-                  <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 16, fontWeight: '500', color: acc.balance < 0 ? palette.negative : palette.text }}>
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: acc.balance < 0 ? palette.negative : palette.text }}>
                     {amountLabel}
                   </Text>
                   {totalBalance !== 0 && !hideAmounts && (
-                    <Text style={{ fontSize: 11.5, color: palette.textMuted, marginTop: 2 }}>
+                    <Text style={{ fontSize: HOME_TEXT.metaTiny, color: palette.textMuted, marginTop: 2 }}>
                       {pct}% of Total
                     </Text>
                   )}
@@ -393,12 +403,12 @@ function HomeScreenContent() {
           }}
         >
           <AppIcon name="plus-circle" size={22} color={palette.text} />
-          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.text }}>Add Account</Text>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Add Account</Text>
         </TouchableOpacity>
       </ScrollView>
 
       <View style={{ marginTop: 30, marginBottom: 14 }}>
-        <Text appWeight="medium" style={{ fontSize: 17, fontWeight: '600', color: palette.text }}>More</Text>
+        <Text appWeight="medium" style={{ fontSize: 17, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>More</Text>
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -482,7 +492,7 @@ function HomeScreenContent() {
             onPress={() => { }}
             style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.large, padding: HOME_SPACE.xxl, borderWidth: 1, borderColor: palette.divider }}
           >
-            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginBottom: 8 }}>
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginBottom: 8 }}>
               Custom range
             </Text>
             <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: 16 }}>
@@ -491,13 +501,13 @@ function HomeScreenContent() {
             <View style={{ gap: HOME_SPACE.md, marginBottom: HOME_SPACE.lg }}>
               <TouchableOpacity delayPressIn={0} onPress={() => openDatePicker('from')} style={{ borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.inputBg, borderRadius: HOME_RADIUS.card, paddingHorizontal: HOME_SPACE.lg, paddingVertical: 12 }}>
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                   {formatDate(customDraftFrom.toISOString())}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity delayPressIn={0} onPress={() => openDatePicker('to')} style={{ borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.inputBg, borderRadius: HOME_RADIUS.card, paddingHorizontal: HOME_SPACE.lg, paddingVertical: 12 }}>
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                   {formatDate(customDraftTo.toISOString())}
                 </Text>
               </TouchableOpacity>
@@ -610,7 +620,7 @@ function MoreShortcutCard({
         style={{
           height: 124,
           padding: 16,
-          borderRadius: 22,
+          borderRadius: HOME_RADIUS.card,
           borderWidth: 1,
           borderColor: palette.borderSoft,
           backgroundColor: palette.surface,
@@ -634,10 +644,10 @@ function MoreShortcutCard({
         </View>
 
         <View>
-          <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '500', color: palette.text }}>
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
             {feature.label}
           </Text>
-          <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '400', color: palette.textMuted, marginTop: 2 }}>
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted, marginTop: 2 }}>
             {feature.meta}
           </Text>
         </View>
@@ -683,7 +693,7 @@ function NetWorthRingMarker({ color }: { color: string }) {
       style={{
         width: 12,
         height: 12,
-        borderRadius: 6,
+        borderRadius: HOME_RADIUS.xs,
         borderWidth: 2.5,
         borderColor: color,
         backgroundColor: 'transparent',
@@ -765,13 +775,13 @@ function NetWorthDonut({
             <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: selectedItem.color }} />
           </View>
         ) : null}
-        <Text numberOfLines={2} style={{ maxWidth: 112, fontSize: 13, fontWeight: '700', textAlign: 'center', color: palette.text }}>
+        <Text numberOfLines={2} style={{ maxWidth: 112, fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, textAlign: 'center', color: palette.text }}>
           {selectedItem ? selectedItem.label : mode === 'type' ? 'All Types' : 'All'}
         </Text>
-        <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: 18, fontWeight: '800', color: palette.text, marginTop: 4, textAlign: 'center' }}>
+        <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.heavy, color: palette.text, marginTop: 4, textAlign: 'center' }}>
           {selectedAmount === 0 ? '—' : `${selectedValue < 0 ? '-' : ''}${formatCurrency(Math.abs(selectedValue), currencySymbol)}`}
         </Text>
-        <Text style={{ fontSize: 11, fontWeight: '600', marginTop: 2, color: palette.textMuted }}>
+        <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, marginTop: 2, color: palette.textMuted }}>
           {selectedPercent}% of Total
         </Text>
       </View>
@@ -800,25 +810,25 @@ function NetWorthTypeRows({
             style={{ minHeight: 76, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: palette.divider }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-              <View style={{ width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center' }}>
                 <NetWorthRingMarker color={ACCOUNT_TYPE_META[group.type].color} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13.5, fontWeight: '700', color: palette.text }}>
+                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.cardContent, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
                       {getAccountTypeLabel(group.type)}
                     </Text>
-                    <Text numberOfLines={1} style={{ fontSize: 13, color: palette.textMuted, marginTop: 3 }}>
+                    <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginTop: 3 }}>
                       {group.accounts.length} {group.accounts.length === 1 ? 'account' : 'accounts'} · {Math.round((Math.abs(group.balance) / total) * 100)}%
                     </Text>
                   </View>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: group.balance === 0 ? palette.textMuted : isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
+                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.heavy, color: group.balance === 0 ? palette.textMuted : isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
                     {group.balance === 0 ? '—' : `${isNegative ? '-' : ''}${formatCurrency(Math.abs(group.balance), currencySymbol)}`}
                   </Text>
                 </View>
-                <View style={{ height: 4, borderRadius: 999, overflow: 'hidden', backgroundColor: palette.inputBg, marginTop: 10 }}>
-                  <View style={{ height: 4, borderRadius: 999, width: `${(Math.abs(group.balance) / total) * 100}%`, backgroundColor: ACCOUNT_TYPE_META[group.type].color }} />
+                <View style={{ height: 4, borderRadius: HOME_RADIUS.full, overflow: 'hidden', backgroundColor: palette.inputBg, marginTop: 10 }}>
+                  <View style={{ height: 4, borderRadius: HOME_RADIUS.full, width: `${(Math.abs(group.balance) / total) * 100}%`, backgroundColor: ACCOUNT_TYPE_META[group.type].color }} />
                 </View>
               </View>
             </View>
@@ -963,25 +973,25 @@ function HomeNetWorthPage({
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-          <View style={{ width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center' }}>
             <NetWorthRingMarker color={accountColor} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 13.5, fontWeight: '700', color: palette.text }}>
+                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.cardContent, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
                   {formatAccountDisplayName(account.name, account.accountNumber)}
                 </Text>
-                <Text numberOfLines={1} style={{ fontSize: 13, color: palette.textMuted, marginTop: 3 }}>
+                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginTop: 3 }}>
                   {getAccountTypeLabel(account.type)}
                 </Text>
               </View>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: account.balance === 0 ? palette.textMuted : isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.heavy, color: account.balance === 0 ? palette.textMuted : isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
                 {account.balance === 0 ? '—' : `${isNegative ? '-' : ''}${formatCurrency(Math.abs(account.balance), currencySymbol)}`}
               </Text>
             </View>
-            <View style={{ height: 4, borderRadius: 999, backgroundColor: palette.inputBg, overflow: 'hidden', marginTop: 10 }}>
-              {account.balance !== 0 ? <View style={{ width: `${(Math.abs(account.balance) / largestAccountBalance) * 100}%`, height: '100%', borderRadius: 999, backgroundColor: accountColor }} /> : null}
+            <View style={{ height: 4, borderRadius: HOME_RADIUS.full, backgroundColor: palette.inputBg, overflow: 'hidden', marginTop: 10 }}>
+              {account.balance !== 0 ? <View style={{ width: `${(Math.abs(account.balance) / largestAccountBalance) * 100}%`, height: '100%', borderRadius: HOME_RADIUS.full, backgroundColor: accountColor }} /> : null}
             </View>
           </View>
         </View>
@@ -1017,21 +1027,21 @@ function HomeNetWorthPage({
             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
               Net Worth
             </Text>
-            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.heroValue + 2, lineHeight: 38, fontWeight: '800', color: netWorth < 0 ? palette.negative : palette.text, marginTop: HOME_SPACE.xs + 2 }}>
+            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.heroValue + 2, lineHeight: 38, fontWeight: FONT_WEIGHT.heavy, color: netWorth < 0 ? palette.negative : palette.text, marginTop: HOME_SPACE.xs + 2 }}>
               {netWorth < 0 ? '-' : ''}{formatCurrency(Math.abs(netWorth), currencySymbol)}
             </Text>
           </View>
-          <View style={{ width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFD' }}>
+          <View style={{ width: 46, height: 46, borderRadius: HOME_RADIUS.button, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFD' }}>
             <AppIcon name="landmark" size={22} color={palette.brand} />
           </View>
         </View>
 
         <View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: NW_HERO_PROGRESS_LABEL_GAP }}>
-            <View style={{ flex: 1, height: 6, borderRadius: 999, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7ECF3', overflow: 'hidden' }}>
-              <View style={{ height: '100%', width: `${dominantPosition.share * 100}%`, borderRadius: 999, backgroundColor: dominantPosition.color }} />
+            <View style={{ flex: 1, height: 6, borderRadius: HOME_RADIUS.full, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7ECF3', overflow: 'hidden' }}>
+              <View style={{ height: '100%', width: `${dominantPosition.share * 100}%`, borderRadius: HOME_RADIUS.full, backgroundColor: dominantPosition.color }} />
             </View>
-            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ minWidth: 60, fontSize: HOME_TEXT.caption, fontWeight: '800', color: dominantPosition.color, textAlign: 'right' }}>
+            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ minWidth: 60, fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.heavy, color: dominantPosition.color, textAlign: 'right' }}>
               {dominantPosition.percent}% {dominantPosition.label}
             </Text>
           </View>
@@ -1039,13 +1049,13 @@ function HomeNetWorthPage({
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 14 }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Assets</Text>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: nwAssetColor, marginTop: 5 }}>
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.heavy, color: nwAssetColor, marginTop: 5 }}>
                 {formatCurrency(assetTotal, currencySymbol)}{assetPercent < 100 ? ` · ${assetPercent}%` : ''}
               </Text>
             </View>
             <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end' }}>
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Liabilities</Text>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: '800', color: liabilityTotal > 0 ? nwLiabilityColor : palette.textMuted, marginTop: 5, textAlign: 'right' }}>
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.heavy, color: liabilityTotal > 0 ? nwLiabilityColor : palette.textMuted, marginTop: 5, textAlign: 'right' }}>
                 {liabilityTotal > 0 ? `${formatCurrency(liabilityTotal, currencySymbol)} · ${liabilityPercent}%` : 'None'}
               </Text>
             </View>
@@ -1066,18 +1076,18 @@ function HomeNetWorthPage({
       <View style={{ gap: 10 }}>
         {positionRows.map((row) => (
           <View key={row.key} style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.surface, paddingHorizontal: 14, paddingVertical: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-            <View style={{ width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center' }}>
               <AppIcon name={row.icon} size={16} color={row.color} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '700', color: palette.text }}>
+              <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
                 {row.label}
               </Text>
               <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
                 {row.note}
               </Text>
             </View>
-            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: '800', color: row.color, textAlign: 'right' }}>
+            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.heavy, color: row.color, textAlign: 'right' }}>
               {formatCurrency(row.value, currencySymbol)}
             </Text>
           </View>
@@ -1195,10 +1205,10 @@ function AccountSummaryCard({
   const netWorthStripBg = heroMode ? 'rgba(255,255,255,0.085)' : palette.isDark ? '#080C14' : '#E8EDF8';
   const netWorthStripBorder = heroMode ? 'rgba(255,255,255,0.18)' : palette.isDark ? palette.divider : '#D8E0F0';
   const heroMetricStripBg = isHomeHero
-    ? (palette.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)')
+    ? (palette.isDark ? 'rgba(255,255,255,0.07)' : palette.inputBg)
     : 'rgba(255,255,255,0.06)';
   const heroMetricDivider = isHomeHero
-    ? (palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)')
+    ? (palette.isDark ? 'rgba(255,255,255,0.10)' : palette.divider)
     : 'rgba(255,255,255,0.10)';
 
   const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
@@ -1228,7 +1238,7 @@ function AccountSummaryCard({
   const content = (
     <View
       style={{
-        backgroundColor: 'transparent',
+        backgroundColor: isHomeHero && !palette.isDark ? '#FFFFFF' : 'transparent',
         borderColor: isHomeHero
           ? (palette.isDark ? palette.border : '#E2E7F4')
           : heroMode ? 'rgba(255,255,255,0.10)'
@@ -1236,13 +1246,20 @@ function AccountSummaryCard({
         borderWidth: 1,
         borderRadius: heroMode ? 28 : 22,
         overflow: 'hidden',
+        ...(isHomeHero && !palette.isDark ? {
+          elevation: 6,
+          shadowColor: '#94A3B8',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.13,
+          shadowRadius: 10,
+        } : {}),
       }}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
     >
       <LinearGradient
         colors={
           isHomeHero
-            ? (palette.isDark ? ['#16192A', '#1A1E30'] : ['#FFFFFF', '#FBFCFF'])
+            ? (palette.isDark ? ['#16192A', '#1A1E30'] : ['#FFFFFF', '#FFFFFF'])
             : heroMode
               ? ['#23304A', '#1E293B', '#24324F']
               : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']
@@ -1252,14 +1269,14 @@ function AccountSummaryCard({
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      {isHomeHero ? <HeroCardAurora palette={palette} /> : null}
+      {null}
 
       <View style={{ paddingHorizontal: heroMode ? 18 : CARD_PADDING, paddingTop: heroMode ? 16 : 20, paddingBottom: heroMode ? 14 : 22 }}>
         {/* Top Section */}
         {isAccountHero ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 20 }}>
             {accountType && (
-              <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', width: 52, height: 52, borderRadius: HOME_RADIUS.cardSm, alignItems: 'center', justifyContent: 'center' }}>
                 <AppIcon 
                   name={ACCOUNT_TYPE_META[accountType]?.icon ?? 'wallet'} 
                   size={28} 
@@ -1269,18 +1286,18 @@ function AccountSummaryCard({
               </View>
             )}
             <View style={{ alignItems: 'flex-end', flex: 1, minWidth: 0 }}>
-              <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: '600', color: heroMutedText, letterSpacing: 0.4, marginBottom: -1 }}>
+              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: heroMutedText, letterSpacing: 0.4, marginBottom: -1 }}>
                 {accountName}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                 {currencySymbol && (
-                  <Text style={{ fontSize: 15, fontWeight: '500', color: heroMutedText, marginRight: 3 }}>{currencySymbol}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: heroMutedText, marginRight: 3 }}>{currencySymbol}</Text>
                 )}
-                <Text style={{ fontSize: 24, fontWeight: '600', color: heroText }}>
+                <Text style={{ fontSize: 24, fontWeight: FONT_WEIGHT.semibold, color: heroText }}>
                   {balanceInt.startsWith(currencySymbol || '') ? balanceInt.slice((currencySymbol || '').length) : balanceInt}
                 </Text>
                 {balanceDec && (
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: heroSoftText }}>{balanceDec}</Text>
+                  <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: heroSoftText }}>{balanceDec}</Text>
                 )}
               </View>
             </View>
@@ -1290,7 +1307,7 @@ function AccountSummaryCard({
           <View style={{ marginBottom: 14 }}>
             {/* Row 1: label (left) + NW tappable (right) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text numberOfLines={1} style={{ fontSize: 11.5, fontWeight: '700', color: palette.textMuted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
                 All Accounts
               </Text>
               {onOpenNetWorth && typeof netWorth === 'number' ? (
@@ -1300,15 +1317,15 @@ function AccountSummaryCard({
                   onPress={onOpenNetWorth}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: palette.brand, fontFamily: 'monospace' }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.brand, fontFamily: 'monospace' }}>
                     {hideAmounts ? 'NW ••••' : `NW ${formatNetWorthStripValue(netWorth, currencySymbol)}`}
                   </Text>
                   {netWorthChange !== undefined && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: nwChangeBg, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 6, paddingVertical: 2 }}>
                       {nwChangeTone !== 'neutral' && (
                         <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={9} color={nwChangeInk} strokeWidth={2.5} />
                       )}
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: nwChangeInk }}>
+                      <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, color: nwChangeInk }}>
                         {nwChangeTone === 'neutral' ? '—' : `${Math.abs(netWorthChange).toFixed(1)}%`}
                       </Text>
                     </View>
@@ -1321,7 +1338,7 @@ function AccountSummaryCard({
             {/* Row 2: big balance number */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
               {currencySymbol ? (
-                <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: '600', color: palette.textMuted, marginRight: 4 }}>
+                <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, marginRight: 4 }}>
                   {currencySymbol}
                 </Text>
               ) : null}
@@ -1329,12 +1346,12 @@ function AccountSummaryCard({
                 appWeight="medium"
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: '700', color: palette.text, letterSpacing: -0.5, flexShrink: 1 }}
+                style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: FONT_WEIGHT.bold, color: palette.text, letterSpacing: -0.5, flexShrink: 1 }}
               >
                 {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
               </Text>
               {balanceDec ? (
-                <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: '600', color: palette.textMuted, letterSpacing: -0.2 }}>
+                <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: -0.2 }}>
                   {balanceDec}
                 </Text>
               ) : null}
@@ -1345,11 +1362,11 @@ function AccountSummaryCard({
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 {!isAll && (
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: 4, borderRadius: 6 }}>
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: 4, borderRadius: HOME_RADIUS.xs }}>
                     <AppIcon name={ACCOUNT_TYPE_META[accountTypeLabel as AccountType]?.icon ?? 'wallet'} size={12} color={palette.brand} />
                   </View>
                 )}
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: heroMutedText }}>
+                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, letterSpacing: 0.8, textTransform: 'uppercase', color: heroMutedText }}>
                   {isAll ? 'Balance · All Accounts' : accountName}
                 </Text>
               </View>
@@ -1360,14 +1377,14 @@ function AccountSummaryCard({
                   appWeight="medium"
                   numberOfLines={1}
                   adjustsFontSizeToFit
-                  style={{ fontSize: 18, fontWeight: '700', color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
+                  style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.bold, color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
                 >
                   {balanceInt}
                 </Text>
                 {balanceDec ? (
                   <Text
                     appWeight="medium"
-                    style={{ fontSize: 17, fontWeight: '700', color: heroSoftText, letterSpacing: -0.2, marginBottom: 3 }}
+                    style={{ fontSize: 17, fontWeight: FONT_WEIGHT.bold, color: heroSoftText, letterSpacing: -0.2, marginBottom: 3 }}
                   >
                     {balanceDec}
                   </Text>
@@ -1410,14 +1427,14 @@ function AccountSummaryCard({
                 onPress={() => onToggleCashflowView?.(!isCashflowView)}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
               >
-                <Text style={{ fontSize: 11, fontWeight: '600', color: heroMutedText }}>
+                <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: heroMutedText }}>
                   Cashflow
                 </Text>
                 <View
                   style={{
                     width: 38,
                     height: 22,
-                    borderRadius: 999,
+                    borderRadius: HOME_RADIUS.full,
                     padding: 2,
                     backgroundColor: isCashflowView ? 'rgba(156,255,106,0.34)' : 'rgba(255,255,255,0.12)',
                     borderWidth: 1,
@@ -1431,7 +1448,7 @@ function AccountSummaryCard({
 
               {from && to && (
                 <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 9.5, fontWeight: '600', color: heroSoftText, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 9.5, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                     {formatDate(from)}
                   </Text>
                   {period !== 'today' && (
@@ -1440,7 +1457,7 @@ function AccountSummaryCard({
                       exiting={FadeOutRight.duration(200)} 
                       style={{ flexDirection: 'row', alignItems: 'center' }}
                     >
-                      <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 9.5, fontWeight: '600', color: heroSoftText, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                      <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 9.5, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                         {` - ${formatDate(to)}`}
                       </Text>
                     </Animated.View>
@@ -1454,7 +1471,7 @@ function AccountSummaryCard({
         {heroMode && incomeExpense ? (
           <View
             style={{
-              borderRadius: 18,
+              borderRadius: HOME_RADIUS.cardSm,
               overflow: 'hidden',
               borderWidth: 1,
               borderColor: isHomeHero
@@ -1481,11 +1498,11 @@ function AccountSummaryCard({
                           paddingVertical: 5,
                           borderRadius: 20,
                           backgroundColor: active
-                            ? (isHomeHero ? palette.brandSoft : 'rgba(255,255,255,0.18)')
+                            ? (isHomeHero ? palette.brand : 'rgba(255,255,255,0.18)')
                             : 'transparent',
                         }}
                       >
-                        <Text style={{ fontSize: 12.5, fontWeight: active ? '600' : '400', color: active ? (isHomeHero ? palette.brand : '#FFFFFF') : heroSoftText }}>
+                        <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: active ? '600' : '400', color: active ? (isHomeHero ? '#FFFFFF' : '#FFFFFF') : heroSoftText }}>
                           {p === 'today' ? 'Today' : 'Month'}
                         </Text>
                       </TouchableOpacity>
@@ -1499,21 +1516,21 @@ function AccountSummaryCard({
                   onPress={() => onToggleCashflowView?.(!isCashflowView)}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
                 >
-                  <Text style={{ fontSize: 11.5, fontWeight: '500', color: isCashflow ? (isHomeHero ? palette.brand : heroMutedText) : heroSoftText }}>
+                  <Text style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.medium, color: isCashflow ? (isHomeHero ? palette.brand : heroMutedText) : heroSoftText }}>
                     Cashflow
                   </Text>
                   <View style={{
-                    width: 36, height: 20, borderRadius: 10, padding: 2,
+                    width: 36, height: 20, borderRadius: HOME_RADIUS.small, padding: 2,
                     backgroundColor: isCashflow
-                      ? (isHomeHero ? palette.brandSoft : 'rgba(156,255,106,0.32)')
+                      ? (isHomeHero ? palette.brand : 'rgba(156,255,106,0.32)')
                       : (isHomeHero ? palette.inputBg : 'rgba(255,255,255,0.10)'),
                     borderWidth: 1,
                     borderColor: isCashflow
-                      ? (isHomeHero ? `${palette.brand}50` : 'rgba(156,255,106,0.44)')
+                      ? (isHomeHero ? palette.brand : 'rgba(156,255,106,0.44)')
                       : (isHomeHero ? palette.borderSoft : 'rgba(255,255,255,0.14)'),
                     alignItems: isCashflow ? 'flex-end' : 'flex-start',
                   }}>
-                    <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: isCashflow ? palette.brand : (isHomeHero ? palette.textSoft : 'rgba(255,255,255,0.85)') }} />
+                    <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: isCashflow ? '#FFFFFF' : (isHomeHero ? palette.textSoft : 'rgba(255,255,255,0.85)') }} />
                   </View>
                 </TouchableOpacity>
               </View>
@@ -1533,11 +1550,11 @@ function AccountSummaryCard({
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
                   <AppIcon name="arrow-down-left" size={11} color={heroSoftText} strokeWidth={2} />
-                  <Text style={{ fontSize: 10, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                  <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
                     {metricLeftLabel}
                   </Text>
                 </View>
-                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 15, fontWeight: '700', color: metricLeftAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
+                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
                   {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
                 </Text>
               </TouchableOpacity>
@@ -1552,12 +1569,12 @@ function AccountSummaryCard({
                 style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'flex-end' }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '600', color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                  <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
                     {metricRightLabel}
                   </Text>
                   <AppIcon name="arrow-up-right" size={11} color={heroSoftText} strokeWidth={2} />
                 </View>
-                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 15, fontWeight: '700', color: metricRightAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
+                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
                   {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
                 </Text>
               </TouchableOpacity>
@@ -1597,11 +1614,11 @@ function AccountSummaryCard({
               </Text>
               <View style={{ flex: 1 }} />
               {netWorthChange !== undefined && heroMode ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 7, paddingVertical: 3 }}>
                   {nwChangeTone === 'neutral' ? null : (
                     <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={11} color={nwChangeInk} strokeWidth={2.4} />
                   )}
-                  <Text appWeight="medium" style={{ fontSize: 11, fontWeight: '600', color: nwChangeInk }}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: nwChangeInk }}>
                     {nwChangeTone === 'neutral' ? '-' : `${Math.abs(netWorthChange).toFixed(1)}%`}
                   </Text>
                 </View>
@@ -1616,7 +1633,7 @@ function AccountSummaryCard({
                     : netWorthChange > 0
                       ? (palette.isDark ? 'rgba(34,197,94,0.12)' : 'rgba(22,163,74,0.10)')
                       : (palette.isDark ? 'rgba(239,68,68,0.12)' : 'rgba(220,38,38,0.10)'),
-                  borderRadius: 999,
+                  borderRadius: HOME_RADIUS.full,
                   paddingHorizontal: 7,
                   paddingVertical: 3,
                 }}>
@@ -1628,7 +1645,7 @@ function AccountSummaryCard({
                       strokeWidth={2.5}
                     />
                   )}
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: netWorthChange === 0 ? palette.textMuted : netWorthChange > 0 ? palette.positive : palette.negative }}>
+                  <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: netWorthChange === 0 ? palette.textMuted : netWorthChange > 0 ? palette.positive : palette.negative }}>
                     {Math.abs(netWorthChange).toFixed(1)}%
                   </Text>
                 </View>
@@ -1760,6 +1777,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   hideAmounts?: boolean;
 }) {
   const { palette } = useAppTheme();
+  const accountInsets = useSafeAreaInsets();
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(null);
@@ -1918,7 +1936,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       <Animated.ScrollView
         ref={mainScrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: HOME_LAYOUT.fabContentBottomPadding }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: accountInsets.bottom + HOME_LAYOUT.fabContentBottomPadding }}
         onScroll={verticalScrollHandler}
         scrollEventThrottle={1}
         showsVerticalScrollIndicator={false}
@@ -1993,7 +2011,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 paddingHorizontal: CARD_PADDING
               }}
             >
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '600', color: palette.text }}>Recent</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
               <TouchableOpacity delayPressIn={0}
                 onPress={() =>
                   router.navigate({
@@ -2051,39 +2069,41 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           </View>
 
 
-          <View style={{ alignItems: 'center', marginTop: 2 }}>
-            <TouchableOpacity delayPressIn={0} onPress={() => router.push('/chart-prototype')}>
-              <Text
-                appWeight="medium"
-                style={{
-                  fontSize: HOME_TEXT.bodySmall,
-                  color: palette.brand,
-                  fontWeight: BUTTON_TOKENS.text.labelWeight,
-                }}
-              >
-                Open Chart Prototype
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity delayPressIn={0} onPress={() => router.push('/net-worth-prototype')} style={{ marginTop: 10 }}>
-              <Text
-                appWeight="medium"
-                style={{
-                  fontSize: HOME_TEXT.bodySmall,
-                  color: palette.brand,
-                  fontWeight: BUTTON_TOKENS.text.labelWeight,
-                }}
-              >
-                Open Net Worth Prototype
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {__DEV__ && (
+            <View style={{ alignItems: 'center', marginTop: 2 }}>
+              <TouchableOpacity delayPressIn={0} onPress={() => router.push('/chart-prototype')}>
+                <Text
+                  appWeight="medium"
+                  style={{
+                    fontSize: HOME_TEXT.bodySmall,
+                    color: palette.brand,
+                    fontWeight: BUTTON_TOKENS.text.labelWeight,
+                  }}
+                >
+                  Open Chart Prototype
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity delayPressIn={0} onPress={() => router.push('/net-worth-prototype')} style={{ marginTop: 10 }}>
+                <Text
+                  appWeight="medium"
+                  style={{
+                    fontSize: HOME_TEXT.bodySmall,
+                    color: palette.brand,
+                    fontWeight: BUTTON_TOKENS.text.labelWeight,
+                  }}
+                >
+                  Open Net Worth Prototype
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {accountId === 'all' && (
             <View style={{ width: '100%', alignItems: 'center', marginBottom: -70 }}>
               <Text
                 style={{
                   fontSize: 180,
-                  fontWeight: '900',
+                  fontWeight: FONT_WEIGHT.black,
                   color: palette.text,
                   opacity: 0.05,
                   textAlign: 'center',

@@ -6,7 +6,8 @@ import { AppState, View, StyleSheet, Platform, TouchableOpacity } from 'react-na
 import { useUIStore } from '../stores/useUIStore';
 import { useAppTheme } from '../lib/theme';
 import { FinanceEmptyMascot } from './ui/FinanceEmptyMascot';
-import { HOME_TEXT } from '../lib/layoutTokens';
+import { FONT_WEIGHT } from '../lib/design';
+import { HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import { useAppDialog } from './ui/useAppDialog';
 
 const AUTH_PROMPT_STALE_MS = 30000;
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center' },
   title: {
     fontSize: HOME_TEXT.heroValue,
-    fontWeight: '700',
+    fontWeight: FONT_WEIGHT.bold,
     marginBottom: 10 },
   subtitle: {
     fontSize: HOME_TEXT.sectionTitle,
@@ -292,10 +293,10 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 54,
     minWidth: 150,
-    borderRadius: 12,
+    borderRadius: HOME_RADIUS.chip,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28 },
   buttonText: {
     fontSize: HOME_TEXT.rowLabel,
-    fontWeight: '500' } });
+    fontWeight: FONT_WEIGHT.medium } });

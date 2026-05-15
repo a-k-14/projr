@@ -109,6 +109,33 @@ export async function runMigrations() {
     console.warn('Migration patch (loan_transaction_type) error:', err);
   }
 
+  // Persons table — used for loan (and future deposit) person name autocomplete
+  try {
+    await sqlite.execAsync(`
+      CREATE TABLE IF NOT EXISTS persons (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_persons_name_ci ON persons(name COLLATE NOCASE);
+    `);
+    // Backfill distinct person names from existing loans.
+    // Normalize (trim + collapse whitespace) and de-duplicate case-insensitively so
+    // the backfilled names match runtime upsertPerson() (services/persons.ts).
+    await sqlite.execAsync(`
+      INSERT OR IGNORE INTO persons (id, name, created_at)
+      SELECT
+        lower(hex(randomblob(8))),
+        trim(person_name),
+        MIN(created_at)
+      FROM loans
+      WHERE person_name IS NOT NULL AND trim(person_name) != ''
+      GROUP BY lower(trim(person_name));
+    `);
+  } catch (err) {
+    console.warn('Migration patch (persons) error:', err);
+  }
+
   // Migrate any stored Ionicons icon names to Feather equivalents
   try {
     const iconMap: Record<string, string> = {

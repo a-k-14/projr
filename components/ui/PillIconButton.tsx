@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { AppIcon, IconName } from './AppIcon';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { AppThemePalette } from '../../lib/theme';
 
 interface PillIconButtonProps {
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 22,
+    borderRadius: HOME_RADIUS.card,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

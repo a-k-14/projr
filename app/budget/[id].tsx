@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatCurrency } from '../../lib/derived';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import {
   HOME_RADIUS,
   HOME_SPACE,
@@ -74,7 +74,7 @@ export default function BudgetDetailScreen() {
           )
         }} 
       />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SPACE.md }}>
           <View
             style={{
@@ -90,7 +90,7 @@ export default function BudgetDetailScreen() {
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Monthly Budget
               </Text>
-              <Text appWeight="medium" style={{ fontSize: 32, fontWeight: '700', color: palette.text, marginTop: 4 }}>
+              <Text appWeight="medium" style={{ fontSize: 32, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: 4 }}>
                 {formatCurrency(budget.amount, sym)}
               </Text>
             </View>
@@ -98,7 +98,7 @@ export default function BudgetDetailScreen() {
             <View style={{ gap: HOME_SPACE.md }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ fontSize: HOME_TEXT.body, color: palette.textSecondary }}>Spent</Text>
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: isOver ? palette.negative : palette.text }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: isOver ? palette.negative : palette.text }}>
                   {formatCurrency(budget.spent, sym)}
                 </Text>
               </View>
@@ -118,7 +118,7 @@ export default function BudgetDetailScreen() {
                 <Text style={{ fontSize: HOME_TEXT.body, color: palette.textSecondary }}>
                   {isOver ? 'Over budget' : 'Remaining'}
                 </Text>
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: isOver ? palette.negative : palette.positive }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: isOver ? palette.negative : palette.positive }}>
                   {formatCurrency(Math.abs(budget.remaining), sym)}
                 </Text>
               </View>

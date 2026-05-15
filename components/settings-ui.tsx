@@ -4,8 +4,8 @@ import { Text } from '@/components/ui/AppText';
 import { forwardRef, ReactNode, RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
-import { HOME_LAYOUT } from '../lib/layoutTokens';
+import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../lib/design';
+import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT} from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { FilledButton, TextButton } from './ui/AppButton';
@@ -23,7 +23,7 @@ export function ScreenTitle({
   return (
     <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: SPACING.md }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.md }}>
-        <Text style={{ flex: 1, fontSize: TYPE.title, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
+        <Text style={{ flex: 1, fontSize: TYPE.title, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
           {title}
         </Text>
         {right ? <View style={{ flexShrink: 0 }}>{right}</View> : null}
@@ -42,8 +42,8 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
     <Text
       appWeight="medium"
       style={{
-        fontSize: 12,
-        fontWeight: '700',
+        fontSize: HOME_TEXT.caption,
+        fontWeight: FONT_WEIGHT.bold,
         color: palette.textSecondary,
         marginHorizontal: 14,
         marginBottom: 6,
@@ -66,7 +66,7 @@ export function CardSection({
     <View
       style={{
         backgroundColor: palette.card,
-        borderRadius: 22,
+        borderRadius: HOME_RADIUS.card,
         marginHorizontal: SCREEN_GUTTER,
         overflow: 'hidden',
         borderWidth: 1,
@@ -112,7 +112,7 @@ export function SettingsRow({
         <Text
           style={[
             {
-              fontSize: 15,
+              fontSize: HOME_TEXT.sectionTitle,
               color: palette.text,
             },
             labelStyle,
@@ -126,7 +126,7 @@ export function SettingsRow({
               fontSize: TYPE.body,
               color: palette.textMuted,
               marginTop: 2,
-              fontWeight: '400'
+              fontWeight: FONT_WEIGHT.regular
             }}
           >
             {subtitle}
@@ -220,7 +220,7 @@ export function ChoiceRow({
               color: palette.textMuted,
               marginTop: 2,
               lineHeight: 18,
-              fontWeight: '400'
+              fontWeight: FONT_WEIGHT.regular
             }}
           >
             {subtitle}
@@ -233,7 +233,7 @@ export function ChoiceRow({
           style={{
             width: 22,
             height: 22,
-            borderRadius: 11,
+            borderRadius: HOME_RADIUS.chipSm,
             backgroundColor: palette.tabActive,
             alignItems: 'center',
             justifyContent: 'center'
@@ -270,7 +270,7 @@ export function PickerChip({
         justifyContent: 'center'
       }}
     >
-      <Text style={{ fontSize: TYPE.rowValue, fontWeight: '500', color: palette.text }}>{label}</Text>
+      <Text style={{ fontSize: TYPE.rowValue, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -280,7 +280,7 @@ export function FieldLabel({ label, palette }: { label: string; palette: AppThem
     <Text
       style={{
         fontSize: TYPE.body,
-        fontWeight: '700',
+        fontWeight: FONT_WEIGHT.bold,
         color: palette.textMuted,
         marginBottom: 8
       }}
@@ -440,7 +440,7 @@ export function ColorGrid({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 18,
+              borderRadius: HOME_RADIUS.cardSm,
               backgroundColor: color,
               borderWidth: 2,
               borderColor: isSelected ? palette.text : 'transparent',
@@ -488,7 +488,7 @@ export function IconGrid({
             style={{
               width: 52,
               height: 52,
-              borderRadius: 14,
+              borderRadius: HOME_RADIUS.pill,
               borderWidth: isSelected ? 2 : 1,
               borderColor: isSelected ? palette.tabActive : palette.border,
               backgroundColor: isSelected ? palette.brandSoft : palette.surface,

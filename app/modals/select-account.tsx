@@ -8,7 +8,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useAppTheme } from '../../lib/theme';
-import { SCREEN_HEADER } from '../../lib/layoutTokens';
+import { SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 
@@ -35,7 +35,7 @@ export default function SelectAccountSheet() {
             style={{
               width: 42,
               height: 5,
-              borderRadius: 999,
+              borderRadius: HOME_RADIUS.full,
               backgroundColor: palette.divider,
               opacity: 0.65 }}
           />

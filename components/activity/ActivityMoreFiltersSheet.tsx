@@ -5,8 +5,8 @@ import { StyleSheet, TextInput, View , TouchableOpacity } from 'react-native';
 import { FilledButton } from '../ui/AppButton';
 import { BottomSheet } from '../ui/BottomSheet';
 import { ListHeading } from '../ui/ListHeading';
-import { CARD_PADDING } from '../../lib/design';
-import { HOME_TEXT } from '../../lib/layoutTokens';
+import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
+import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import type { Category, Transaction } from '../../types';
 import { CategoryIconBadge, Checkbox } from './ActivityUI';
@@ -81,7 +81,7 @@ export function ActivityMoreFiltersSheet({
           hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
           style={styles.clearAllButton}
         >
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.brand }}>Clear all</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Clear all</Text>
         </TouchableOpacity>
       }
     >
@@ -139,7 +139,7 @@ export function ActivityMoreFiltersSheet({
                           activeOpacity={0.75}
                           style={{ flex: 1, minWidth: 0 }}
                         >
-                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>
+                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
                             {child.name}
                           </Text>
                         </TouchableOpacity>
@@ -234,7 +234,7 @@ function MoreCategoryRow({
       </TouchableOpacity>
       <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
         <CategoryIconBadge icon={category.icon} palette={palette} />
-        <Text numberOfLines={1} style={{ marginLeft: 14, flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>
+        <Text numberOfLines={1} style={{ marginLeft: 14, flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
           {category.name}
         </Text>
       </View>
@@ -261,9 +261,9 @@ function MoreTagRow({ tag, count, selected, palette, onToggleSelected }: MoreTag
       <TouchableOpacity delayPressIn={0} onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>
         <Checkbox selected={selected} palette={palette} />
       </TouchableOpacity>
-      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color, marginRight: 14 }} />
+      <View style={{ width: 12, height: 12, borderRadius: HOME_RADIUS.xs, backgroundColor: tag.color, marginRight: 14 }} />
       <TouchableOpacity delayPressIn={0} onPress={onToggleSelected} activeOpacity={0.75} style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>
+        <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
           {tag.name}
         </Text>
       </TouchableOpacity>
@@ -283,9 +283,9 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderWidth: 1.5,
-    borderRadius: 12,
+    borderRadius: HOME_RADIUS.chip,
     paddingHorizontal: 14,
     fontSize: HOME_TEXT.body,
-    fontWeight: '600' },
+    fontWeight: FONT_WEIGHT.semibold },
   clearAllButton: {
     marginRight: 4 } });

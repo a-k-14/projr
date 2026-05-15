@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
-import { CARD_PADDING } from '../../lib/design';
+import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -66,15 +66,15 @@ export function OverviewHeroCard({
 
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: '400' }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>
             {eyebrow}
           </Text>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginTop: HOME_SPACE.xs }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: HOME_SPACE.xs }}>
             {title}
           </Text>
         </View>
         <View style={[styles.pill, { backgroundColor: badgeBg, borderColor: badgeBorder ?? badgeBg }]}>
-          <Text numberOfLines={1} appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: badgeColor }}>
+          <Text numberOfLines={1} appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: badgeColor }}>
             {badgeLabel}
           </Text>
         </View>
@@ -112,15 +112,15 @@ export function OverviewHeroCard({
 
       <View style={[styles.footerBlock, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
         <View style={styles.footer}>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
             {footerLabel}
           </Text>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: footerValueColor }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: footerValueColor }}>
             {footerValue}
           </Text>
         </View>
         {footerNote ? (
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '500', color: footerNoteColor ?? palette.textSecondary, marginTop: 5 }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: footerNoteColor ?? palette.textSecondary, marginTop: 5 }}>
             {footerNote}
           </Text>
         ) : null}
@@ -141,7 +141,7 @@ const styles = {
     position: 'absolute' as const,
     width: 150,
     height: 150,
-    borderRadius: 999,
+    borderRadius: HOME_RADIUS.full,
     top: -48,
     right: -38,
     opacity: 1,
@@ -158,7 +158,7 @@ const styles = {
   },
   pill: {
     minHeight: 30,
-    borderRadius: 999,
+    borderRadius: HOME_RADIUS.full,
     borderWidth: 1,
     paddingHorizontal: 12,
     flexShrink: 1,
@@ -185,14 +185,14 @@ const styles = {
   metricLabel: (palette: AppThemePalette) => ({
     fontSize: HOME_TEXT.tiny,
     color: palette.textMuted,
-    fontWeight: '700' as const,
+    fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
   }),
   metricValue: (color: string) => ({
     fontSize: HOME_TEXT.heroValue,
     lineHeight: 30,
-    fontWeight: '800' as const,
+    fontWeight: FONT_WEIGHT.heavy,
     color,
     marginTop: HOME_SPACE.xs + 2,
   }),
@@ -204,12 +204,12 @@ const styles = {
   },
   progressTrack: {
     height: PROGRESS.heroHeight,
-    borderRadius: 999,
+    borderRadius: HOME_RADIUS.full,
     overflow: 'hidden' as const,
   },
   progressFill: {
     height: PROGRESS.heroHeight,
-    borderRadius: 999,
+    borderRadius: HOME_RADIUS.full,
   },
   footerBlock: {
     gap: 0,

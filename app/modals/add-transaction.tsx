@@ -32,7 +32,6 @@ import {
   DisplayRow,
   FieldRow,
   InteractiveDateTimeRow,
-  NotesSection,
   PickerRow,
   ROW_LABEL_WIDTH,
   ROW_MIN_HEIGHT,
@@ -51,8 +50,8 @@ import {
   mergeLoanTransactionNote,
   parseFormattedNumber
 } from '../../lib/derived';
-import { SCREEN_GUTTER } from '../../lib/design';
-import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
+import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
@@ -61,9 +60,11 @@ import { createSplitTransactionGroup, deleteTransaction, getRecentNotes, getRece
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
+import { usePersonsStore } from '../../stores/usePersonsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { InlineComboBox } from '../../components/ui/InlineComboBox';
 import type {
   Account,
   Category,
@@ -80,7 +81,7 @@ function AccountTypeBadge({ account, palette }: { account: Account; palette: App
       style={{
         width: 36,
         height: 36,
-        borderRadius: 12,
+        borderRadius: HOME_RADIUS.chip,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: `${typeMeta.color}18`,
@@ -144,6 +145,9 @@ export default function AddTransactionModal() {
   const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false);
   const [receiptPreviewIndex, setReceiptPreviewIndex] = useState(0);
   const [showReceiptSheet, setShowReceiptSheet] = useState(false);
+  const persons = usePersonsStore((s) => s.persons);
+  const personsLoaded = usePersonsStore((s) => s.isLoaded);
+  const loadPersons = usePersonsStore((s) => s.load);
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loanEditMode, setLoanEditMode] = useState<'new' | 'origin' | 'settlement'>('new');
@@ -159,12 +163,8 @@ export default function AddTransactionModal() {
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const [loanTransactionType, setLoanTransactionType] = useState<'principal' | 'interest' | 'others'>('principal');
   const [showTypeSheet, setShowTypeSheet] = useState(false);
-  const personInputRef = useRef<TextInput | null>(null);
   const [payeeSuggestions, setPayeeSuggestions] = useState<string[]>([]);
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
-  const [isPayeeFocused, setIsPayeeFocused] = useState(false);
-  const [isNoteFocused, setIsNoteFocused] = useState(false);
-  const [isPersonFocused, setIsPersonFocused] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const splitIdSeed = useRef(0);
   const hadSplitRows = useRef(false);
@@ -265,7 +265,7 @@ export default function AddTransactionModal() {
 
   useEffect(() => {
     const term = note.trim();
-    if (!term || term.length < 1) {
+    if (!term || term.length < 2) {
       setNoteSuggestions([]);
       return;
     }
@@ -407,6 +407,12 @@ export default function AddTransactionModal() {
   );
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedLinkedAccount = accounts.find((account) => account.id === linkedAccountId);
+
+  // Load persons list lazily when the loan form is active
+  useEffect(() => {
+    if (type !== 'loan') return;
+    if (!personsLoaded) loadPersons().catch(() => undefined);
+  }, [type, personsLoaded, loadPersons]);
 
   useEffect(() => {
     if (type !== 'in' && type !== 'out') return;
@@ -806,7 +812,7 @@ export default function AddTransactionModal() {
                   <Text
                     style={{
                       fontSize: HOME_TEXT.bodySmall,
-                      fontWeight: '500',
+                      fontWeight: FONT_WEIGHT.medium,
                       color: type === t ? TYPE_CONFIG[t].color : palette.textMuted
                     }}
                   >
@@ -863,7 +869,7 @@ export default function AddTransactionModal() {
                   activeOpacity={0.75}
                 >
                   <AppIcon name="layers" size={14} color={palette.brand} />
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: palette.brand }}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: palette.brand }}>
                     Split
                   </Text>
                 </TouchableOpacity>
@@ -895,40 +901,15 @@ export default function AddTransactionModal() {
                   custom
                 />
               )}
-              <TextInputRow
+              <InlineComboBox
                 label="Payee"
                 value={payee}
-                onChangeText={setPayee}
+                onChange={setPayee}
+                suggestions={payeeSuggestions}
                 placeholder="Add payee"
                 palette={palette}
                 accentColor={activeConfig.color}
-                onFocus={() => setIsPayeeFocused(true)}
-                onBlur={() => setIsPayeeFocused(false)}
               />
-              {isPayeeFocused && payeeSuggestions.length > 0 && (
-                <View style={{ paddingHorizontal: SCREEN_GUTTER + ROW_LABEL_WIDTH, paddingBottom: 16, marginTop: -8 }}>
-                  <View style={{ maxHeight: 200 }}>
-                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                      {payeeSuggestions.slice(0, 6).map((s) => (
-                        <TouchableOpacity delayPressIn={0}
-                          key={s}
-                          onPress={() => setPayee(s)}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 11,
-                            backgroundColor: palette.inputBg,
-                            borderWidth: 1,
-                            borderColor: palette.divider
-                          }}
-                        >
-                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              )}
               <ReceiptSection
                 palette={palette}
                 receiptImageUris={receiptImageUris}
@@ -943,41 +924,16 @@ export default function AddTransactionModal() {
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowTagSheet(true))}
               />
-              <NotesSection
-                note={note}
-                onChangeNote={setNote}
+              <InlineComboBox
+                label="Notes"
+                value={note}
+                onChange={setNote}
+                suggestions={noteSuggestions}
+                multiline
                 palette={palette}
                 accentColor={activeConfig.color}
-                onFocus={() => {
-                  setIsNoteFocused(true);
-                  setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250);
-                }}
-                onBlur={() => setIsNoteFocused(false)}
+                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
-              {isNoteFocused && noteSuggestions.length > 0 && (
-                <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
-                  <View style={{ maxHeight: 200 }}>
-                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                      {noteSuggestions.slice(0, 6).map((s) => (
-                        <TouchableOpacity delayPressIn={0}
-                          key={s}
-                          onPress={() => setNote(s)}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 11,
-                            backgroundColor: palette.inputBg,
-                            borderWidth: 1,
-                            borderColor: palette.divider
-                          }}
-                        >
-                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              )}
             </SectionCard>
           ) : type === 'transfer' ? (
             <SectionCard palette={palette}>
@@ -1000,7 +956,7 @@ export default function AddTransactionModal() {
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 10,
+                    borderRadius: HOME_RADIUS.small,
                     backgroundColor: activeConfig.bg,
                     alignItems: 'center',
                     justifyContent: 'center'
@@ -1033,41 +989,16 @@ export default function AddTransactionModal() {
                 accentColor={activeConfig.color}
                 autoFocus
               />
-              <NotesSection
-                note={note}
-                onChangeNote={setNote}
+              <InlineComboBox
+                label="Notes"
+                value={note}
+                onChange={setNote}
+                suggestions={noteSuggestions}
+                multiline
                 palette={palette}
                 accentColor={activeConfig.color}
-                onFocus={() => {
-                  setIsNoteFocused(true);
-                  setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250);
-                }}
-                onBlur={() => setIsNoteFocused(false)}
+                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
-              {isNoteFocused && noteSuggestions.length > 0 && (
-                <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
-                  <View style={{ maxHeight: 200 }}>
-                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                      {noteSuggestions.slice(0, 6).map((s) => (
-                        <TouchableOpacity delayPressIn={0}
-                          key={s}
-                          onPress={() => setNote(s)}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 11,
-                            backgroundColor: palette.inputBg,
-                            borderWidth: 1,
-                            borderColor: palette.divider
-                          }}
-                        >
-                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              )}
             </SectionCard>
           ) : (
             <SectionCard palette={palette}>
@@ -1117,7 +1048,7 @@ export default function AddTransactionModal() {
                               style={{
                                 flex: 1,
                                 paddingVertical: 11,
-                                borderRadius: 14,
+                                borderRadius: HOME_RADIUS.pill,
                                 alignItems: 'center',
                                 borderWidth: 1.5,
                                 borderColor: active ? activeConfig.borderColor : palette.border,
@@ -1128,7 +1059,7 @@ export default function AddTransactionModal() {
                               <Text
                                 style={{
                                   fontSize: HOME_TEXT.bodySmall,
-                                  fontWeight: '700',
+                                  fontWeight: FONT_WEIGHT.bold,
                                   color: active ? activeConfig.color : palette.textMuted
                                 }}
                               >
@@ -1147,17 +1078,16 @@ export default function AddTransactionModal() {
                       palette={palette}
                     />
                   ) : (
-                    <TextInputRow
-                      inputRef={personInputRef}
+                    <InlineComboBox
                       label="Person"
                       value={personName}
-                      onChangeText={setPersonName}
-                      placeholder="Name"
+                      onChange={setPersonName}
+                      suggestions={persons}
+                      filterLocally
+                      showAdd
                       palette={palette}
                       accentColor={activeConfig.color}
                       autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
-                      onFocus={() => setIsPersonFocused(true)}
-                      onBlur={() => setIsPersonFocused(false)}
                     />
                   )}
                 </>
@@ -1179,41 +1109,16 @@ export default function AddTransactionModal() {
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
               />
-              <NotesSection
-                note={note}
-                onChangeNote={setNote}
+              <InlineComboBox
+                label="Notes"
+                value={note}
+                onChange={setNote}
+                suggestions={noteSuggestions}
+                multiline
                 palette={palette}
                 accentColor={activeConfig.color}
-                onFocus={() => {
-                  setIsNoteFocused(true);
-                  setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250);
-                }}
-                onBlur={() => setIsNoteFocused(false)}
+                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
-              {isNoteFocused && noteSuggestions.length > 0 && (
-                <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16, marginTop: -4 }}>
-                  <View style={{ maxHeight: 200 }}>
-                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                      {noteSuggestions.slice(0, 6).map((s) => (
-                        <TouchableOpacity delayPressIn={0}
-                          key={s}
-                          onPress={() => setNote(s)}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 11,
-                            backgroundColor: palette.inputBg,
-                            borderWidth: 1,
-                            borderColor: palette.divider
-                          }}
-                        >
-                          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>{s}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              )}
             </SectionCard>
           )}
 
@@ -1266,7 +1171,7 @@ export default function AddTransactionModal() {
           onClose={() => setShowAccountSheet(false)}
           headerRight={
             <TouchableOpacity delayPressIn={0} onPress={() => { setShowAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
             </TouchableOpacity>
           }
         >
@@ -1301,7 +1206,7 @@ export default function AddTransactionModal() {
           onClose={() => setShowFromAccountSheet(false)}
           headerRight={
             <TouchableOpacity delayPressIn={0} onPress={() => { setShowFromAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
             </TouchableOpacity>
           }
         >
@@ -1336,7 +1241,7 @@ export default function AddTransactionModal() {
           onClose={() => setShowToAccountSheet(false)}
           headerRight={
             <TouchableOpacity delayPressIn={0} onPress={() => { setShowToAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
             </TouchableOpacity>
           }
         >
@@ -1397,7 +1302,7 @@ export default function AddTransactionModal() {
                 onPress={() => setShowTagSheet(false)}
                 style={{
                   backgroundColor: palette.tabActive,
-                  borderRadius: 18,
+                  borderRadius: HOME_RADIUS.cardSm,
                   minHeight: 54,
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -1418,7 +1323,7 @@ export default function AddTransactionModal() {
                   title={tag.name}
                   selected={selectedTagIds.includes(tag.id)}
                   palette={palette}
-                  leftElement={<View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />}
+                  leftElement={<View style={{ width: 12, height: 12, borderRadius: HOME_RADIUS.xs, backgroundColor: tag.color }} />}
                   onPress={() => toggleTag(tag.id)}
                   noBorder={index === tags.length - 1}
                 />
@@ -1459,9 +1364,9 @@ export default function AddTransactionModal() {
         <Modal visible={showReceiptSheet} transparent animationType="fade" onRequestClose={() => setShowReceiptSheet(false)}>
           <View style={{ flex: 1, backgroundColor: palette.scrimHeavy, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
             <TouchableOpacity style={{ ...StyleSheet.absoluteFillObject }} onPress={() => setShowReceiptSheet(false)} />
-            <View style={{ width: '100%', backgroundColor: palette.card, borderRadius: 24, overflow: 'hidden', elevation: 12, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }}>
+            <View style={{ width: '100%', backgroundColor: palette.card, borderRadius: HOME_RADIUS.large, overflow: 'hidden', elevation: 12, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }}>
               <View style={{ padding: 24, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: palette.border }}>
-                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '700', marginBottom: 6 }}>Receipt image</Text>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: FONT_WEIGHT.bold, marginBottom: 6 }}>Receipt image</Text>
                 <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, textAlign: 'center' }}>Attach a receipt to this transaction</Text>
               </View>
               <TouchableOpacity
@@ -1472,10 +1377,10 @@ export default function AddTransactionModal() {
                 }}
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: palette.border, backgroundColor: palette.surface, gap: 12 }}
               >
-                <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.chip, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
                   <AppIcon name="camera" size={20} color={palette.textSecondary} />
                 </View>
-                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '600' }}>Take Photo</Text>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: FONT_WEIGHT.semibold }}>Take Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 delayPressIn={0}
@@ -1485,16 +1390,16 @@ export default function AddTransactionModal() {
                 }}
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, backgroundColor: palette.surface, gap: 12 }}
               >
-                <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.chip, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
                   <AppIcon name="image" size={20} color={palette.textSecondary} />
                 </View>
-                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: '600' }}>Choose Photo</Text>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: FONT_WEIGHT.semibold }}>Choose Photo</Text>
               </TouchableOpacity>
               <View style={{ padding: 16, backgroundColor: palette.surface }}>
                 <TouchableOpacity
                   delayPressIn={0}
                   onPress={() => setShowReceiptSheet(false)}
-                  style={{ paddingVertical: 14, alignItems: 'center', backgroundColor: palette.inputBg, borderRadius: 12 }}
+                  style={{ paddingVertical: 14, alignItems: 'center', backgroundColor: palette.inputBg, borderRadius: HOME_RADIUS.chip }}
                 >
                   <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: BUTTON_TOKENS.text.labelWeight }}>Cancel</Text>
                 </TouchableOpacity>
@@ -1530,7 +1435,7 @@ export default function AddTransactionModal() {
                 zIndex: 2,
                 width: 44,
                 height: 44,
-                borderRadius: 22,
+                borderRadius: HOME_RADIUS.card,
                 backgroundColor: 'rgba(0,0,0,0.62)',
                 borderWidth: 1,
                 borderColor: 'rgba(255,255,255,0.28)',
@@ -1609,13 +1514,13 @@ export default function AddTransactionModal() {
                         alignSelf: 'center',
                         paddingHorizontal: 12,
                         paddingVertical: 7,
-                        borderRadius: 999,
+                        borderRadius: HOME_RADIUS.full,
                         backgroundColor: 'rgba(0,0,0,0.62)',
                         borderWidth: 1,
                         borderColor: 'rgba(255,255,255,0.28)',
                       }}
                     >
-                      <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '700', color: '#FFFFFF' }}>
+                      <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: '#FFFFFF' }}>
                         {receiptPreviewIndex + 1} / {receiptImageUris.length}
                       </Text>
                     </View>
@@ -1646,7 +1551,7 @@ function ReceiptSection({
 }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.textSecondary, marginBottom: 10 }}>
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 10 }}>
         Receipt
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, alignItems: 'center' }}>
@@ -1658,7 +1563,7 @@ function ReceiptSection({
               style={{
                 width: 76,
                 height: 76,
-                borderRadius: 16,
+                borderRadius: HOME_RADIUS.button,
                 borderWidth: 1,
                 borderColor: palette.border,
                 backgroundColor: palette.surface,
@@ -1692,7 +1597,7 @@ function ReceiptSection({
           style={{
             width: receiptImageUris.length ? 76 : 58,
             height: receiptImageUris.length ? 76 : 58,
-            borderRadius: 16,
+            borderRadius: HOME_RADIUS.button,
             borderWidth: 1,
             borderColor: palette.border,
             backgroundColor: palette.surface,
@@ -1704,7 +1609,7 @@ function ReceiptSection({
         </TouchableOpacity>
         {!receiptImageUris.length ? (
           <View style={{ justifyContent: 'center' }}>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: '500' }}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: FONT_WEIGHT.medium }}>
               Add receipt
             </Text>
             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>
@@ -1842,7 +1747,7 @@ function CategoryPickerValue({
         style={{
           flex: 1,
           fontSize: HOME_TEXT.body,
-          fontWeight: '500',
+          fontWeight: FONT_WEIGHT.medium,
           color: isPlaceholder ? palette.textMuted : palette.text,
           lineHeight: 21,
         }}

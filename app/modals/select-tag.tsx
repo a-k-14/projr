@@ -4,11 +4,11 @@ import { View, ScrollView, Pressable , TouchableOpacity } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SHEET_GUTTER, RADIUS } from '../../lib/design';
+import { SHEET_GUTTER, RADIUS , FONT_WEIGHT} from '../../lib/design';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useAppTheme } from '../../lib/theme';
-import { BUTTON_TOKENS, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { BUTTON_TOKENS, HOME_TEXT, SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
 
 export default function SelectTagSheet() {
   const tags = useCategoriesStore((s) => s.tags);
@@ -36,7 +36,7 @@ export default function SelectTagSheet() {
           paddingHorizontal: SHEET_GUTTER }}
       >
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
-          <View style={{ width: 42, height: 5, borderRadius: 999, backgroundColor: palette.divider, opacity: 0.65 }} />
+          <View style={{ width: 42, height: 5, borderRadius: HOME_RADIUS.full, backgroundColor: palette.divider, opacity: 0.65 }} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
           <Text style={{ fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, flex: 1 }}>Select Tags</Text>
@@ -70,8 +70,8 @@ export default function SelectTagSheet() {
                   justifyContent: 'space-between' }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tag.color }} />
-                  <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: '400', color: palette.text }}>{tag.name}</Text>
+                  <View style={{ width: 12, height: 12, borderRadius: HOME_RADIUS.xs, backgroundColor: tag.color }} />
+                  <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>{tag.name}</Text>
                 </View>
                 {selected ? <AppIcon name="check" size={18} color={palette.tabActive} /> : null}
               </TouchableOpacity>
@@ -85,7 +85,7 @@ export default function SelectTagSheet() {
           }}
           style={{
             backgroundColor: palette.tabActive,
-            borderRadius: 16,
+            borderRadius: HOME_RADIUS.button,
             paddingVertical: 14,
             alignItems: 'center',
             marginTop: 4 }}

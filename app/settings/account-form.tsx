@@ -17,6 +17,7 @@ import { CalculatorTrigger } from '../../components/ui/CalculatorTrigger';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SPACING } from '../../lib/design';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { ACCOUNT_ICONS, ACCOUNT_TYPES, ACCOUNT_TYPE_META, ENTITY_COLORS } from '../../lib/settings-shared';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { useAppTheme } from '../../lib/theme';
@@ -194,7 +195,7 @@ export default function AccountFormScreen() {
                 style={{
                   width: 32,
                   height: 32,
-                  borderRadius: 10,
+                  borderRadius: HOME_RADIUS.small,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: ACCOUNT_TYPE_META[selectedType.key].bg ?? `${ACCOUNT_TYPE_META[selectedType.key].color}18`,
@@ -270,7 +271,7 @@ export default function AccountFormScreen() {
                     style={{
                       width: 38,
                       height: 38,
-                      borderRadius: 12,
+                      borderRadius: HOME_RADIUS.chip,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: `${typeMeta.color}18`,

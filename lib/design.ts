@@ -20,14 +20,19 @@ export const RADIUS = {
 
 export const HOME_TEXT = {
   screenTitle: 28,
+  subhead: 18,
   heroLabel: 16,
   heroValue: 22,
   rowLabel: 16,
   sectionTitle: 15,
+  bodyLarge: 14.5,
   body: 14,
   cardContent: 13.5,
   bodySmall: 13,
+  metaSmall: 12.5,
   caption: 12,
+  metaTiny: 11.5,
+  label: 11,
   tiny: 10,
   tab: 15,
 } as const;
@@ -43,4 +48,13 @@ export const TYPE = {
 
 export const BORDER = {
   width: 1,
+} as const;
+
+export const FONT_WEIGHT = {
+  regular: '400',
+  medium: '500',
+  semibold: '600',
+  bold: '700',
+  heavy: '800',
+  black: '900',
 } as const;

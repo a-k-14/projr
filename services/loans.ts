@@ -15,6 +15,7 @@ import {
   getStructuredLoanCashflowImpact,
 } from '../lib/derived';
 import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from './transactions';
+import { upsertPerson } from './persons';
 
 function rowToLoan(row: typeof loans.$inferSelect): Loan {
   return {
@@ -90,6 +91,7 @@ export async function getLoanById(id: string): Promise<LoanWithSummary | null> {
 }
 
 export async function createLoan(data: CreateLoanInput): Promise<Loan> {
+  await upsertPerson(data.personName);
   const id = generateId();
   const now = todayUTC();
   const row = {
@@ -135,6 +137,7 @@ export async function updateLoanOrigin(
   data: Partial<CreateLoanInput>,
   originTransactionId?: string
 ): Promise<Loan> {
+  if (data.personName) await upsertPerson(data.personName);
   const existing = await getLoanById(id);
   if (!existing) throw new Error('Loan not found');
 

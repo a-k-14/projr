@@ -1,5 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
+import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -55,7 +56,7 @@ export function MetricProgressCard({
               style={{
                 fontSize: HOME_TEXT.tiny,
                 color: palette.textMuted,
-                fontWeight: '600',
+                fontWeight: FONT_WEIGHT.semibold,
                 letterSpacing: 0.5,
               }}
             >
@@ -65,7 +66,7 @@ export function MetricProgressCard({
               appWeight="medium"
               style={{
                 fontSize: HOME_TEXT.heroLabel,
-                fontWeight: '700',
+                fontWeight: FONT_WEIGHT.bold,
                 color: item.valueColor ?? palette.text,
                 marginTop: HOME_SPACE.xs,
               }}

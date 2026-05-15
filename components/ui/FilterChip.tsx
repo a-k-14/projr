@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { StyleSheet, ViewStyle , TouchableOpacity } from 'react-native';
+import { FONT_WEIGHT } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { AppThemePalette } from '../../lib/theme';
 
@@ -54,4 +55,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center' },
   text: {
     fontSize: HOME_TEXT.caption,
-    fontWeight: '600' } });
+    fontWeight: FONT_WEIGHT.semibold } });

@@ -19,6 +19,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
+import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import type { PeriodType } from '../../types';
@@ -176,7 +177,7 @@ export default function AccountDetailScreen() {
             onPress={() => { }}
             style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.large, padding: HOME_SPACE.xxl, borderWidth: 1, borderColor: palette.divider }}
           >
-            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginBottom: 8 }}>
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginBottom: 8 }}>
               Custom range
             </Text>
             <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: 16 }}>
@@ -185,13 +186,13 @@ export default function AccountDetailScreen() {
             <View style={{ gap: HOME_SPACE.md, marginBottom: HOME_SPACE.lg }}>
               <TouchableOpacity delayPressIn={0} onPress={() => openDatePicker('from')} style={{ borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.inputBg, borderRadius: HOME_RADIUS.card, paddingHorizontal: HOME_SPACE.lg, paddingVertical: 12 }}>
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                   {formatDate(customDraftFrom.toISOString())}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity delayPressIn={0} onPress={() => openDatePicker('to')} style={{ borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.inputBg, borderRadius: HOME_RADIUS.card, paddingHorizontal: HOME_SPACE.lg, paddingVertical: 12 }}>
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                   {formatDate(customDraftTo.toISOString())}
                 </Text>
               </TouchableOpacity>

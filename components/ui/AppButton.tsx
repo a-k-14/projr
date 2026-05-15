@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { TouchableOpacity, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
-import { BUTTON_TOKENS, PRIMARY_ACTION } from '../../lib/layoutTokens';
+import { BUTTON_TOKENS, PRIMARY_ACTION , HOME_RADIUS} from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
 type FilledTone = 'brand' | 'loan' | 'budget' | 'danger' | 'neutral';
@@ -73,7 +73,7 @@ export function FilledButton({
       style={[
         {
           minHeight: PRIMARY_ACTION.height,
-          borderRadius: 14,
+          borderRadius: HOME_RADIUS.pill,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: colors.backgroundColor,

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SPACING, TYPE } from '../../lib/design';
+import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../../lib/design';
 import { useAppTheme } from '../../lib/theme';
 import { resetLocalAppData } from '../../services/localReset';
 
@@ -77,7 +77,7 @@ export default function ResetScreen() {
                 color: palette.textMuted,
                 marginBottom: 16,
                 textAlign: 'center',
-                fontWeight: '400',
+                fontWeight: FONT_WEIGHT.regular,
               }}
             >
               This clears your local data on this device and restores the starter setup.
@@ -86,7 +86,7 @@ export default function ResetScreen() {
             <Text
               style={{
                 fontSize: TYPE.rowLabel,
-                fontWeight: '600',
+                fontWeight: FONT_WEIGHT.semibold,
                 color: palette.text,
                 marginBottom: 8,
               }}
@@ -111,7 +111,7 @@ export default function ResetScreen() {
                 borderRadius: RADIUS.md,
                 paddingHorizontal: 16,
                 fontSize: HOME_TEXT.rowLabel,
-                fontWeight: '600',
+                fontWeight: FONT_WEIGHT.semibold,
                 textAlign: 'center',
                 color: palette.text,
                 borderWidth: 1,
@@ -126,7 +126,7 @@ export default function ResetScreen() {
                   fontSize: TYPE.body,
                   lineHeight: 18,
                   color: palette.negative,
-                  fontWeight: '400',
+                  fontWeight: FONT_WEIGHT.regular,
                 }}
               >
                 {resetError}
@@ -158,7 +158,7 @@ export default function ResetScreen() {
                     style={{
                       color: canReset ? palette.onBrand : palette.textMuted,
                       fontSize: TYPE.section,
-                      fontWeight: '400',
+                      fontWeight: FONT_WEIGHT.regular,
                     }}
                   >
                     Erase Everything
@@ -183,7 +183,7 @@ export default function ResetScreen() {
                 style={{
                   color: isResetting ? palette.textSoft : palette.textMuted,
                   fontSize: TYPE.section,
-                  fontWeight: '500',
+                  fontWeight: FONT_WEIGHT.medium,
                 }}
               >
                 Cancel

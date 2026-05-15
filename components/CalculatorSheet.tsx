@@ -10,9 +10,9 @@ import {
   getCalculatorPreviewResult,
   prettifyCalculatorValue,
 } from '../lib/calculatorMath';
-import { SCREEN_GUTTER } from '../lib/design';
+import { SCREEN_GUTTER , FONT_WEIGHT} from '../lib/design';
 import { AppThemePalette } from '../lib/theme';
-import { BUTTON_TOKENS, PRIMARY_ACTION } from '../lib/layoutTokens';
+import { BUTTON_TOKENS, PRIMARY_ACTION , HOME_RADIUS} from '../lib/layoutTokens';
 
 interface CalculatorSheetProps {
   visible: boolean;
@@ -96,7 +96,7 @@ export function CalculatorSheet({
             style={{
               fontSize: displayMetrics.fontSize,
               lineHeight: displayMetrics.lineHeight,
-              fontWeight: '700',
+              fontWeight: FONT_WEIGHT.bold,
               color: palette.text,
               letterSpacing: 0,
               textAlign: 'right',
@@ -112,7 +112,7 @@ export function CalculatorSheet({
               minHeight: 24,
               marginTop: 6,
               fontSize: 20,
-              fontWeight: '600',
+              fontWeight: FONT_WEIGHT.semibold,
               color: palette.textMuted,
               textAlign: 'right',
               letterSpacing: 0,
@@ -220,7 +220,7 @@ function CalcButton({
       style={{
         flex: 1,
         minHeight: 58,
-        borderRadius: 14,
+        borderRadius: HOME_RADIUS.pill,
         backgroundColor: bg,
         borderWidth: 1,
         borderColor: primary ? (brandColor || palette.tabActive) : palette.divider,

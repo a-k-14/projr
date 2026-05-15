@@ -32,7 +32,6 @@ import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { PillIconButton } from '../../components/ui/PillIconButton';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
-import { useDevProfiler } from '../../lib/dev-profiler';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   getNavigableDateRange,
@@ -48,8 +47,8 @@ import {
   getTransactionCashflowImpact,
   groupTransactionsByDate
 } from '../../lib/derived';
-import { CARD_PADDING } from '../../lib/design';
-import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig } from '../../lib/layoutTokens';
+import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
+import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS} from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
@@ -90,7 +89,7 @@ function AccountTypeBadge({ account, palette }: { account?: Account; palette: Re
       style={{
         width: 36,
         height: 36,
-        borderRadius: 12,
+        borderRadius: HOME_RADIUS.chip,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: `${color}18`,
@@ -105,7 +104,6 @@ function AccountTypeBadge({ account, palette }: { account?: Account; palette: Re
 
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
-  const profiler = useDevProfiler('Activity');
   const routeParams = useLocalSearchParams<{
     source?: string;
     period?: string;
@@ -132,8 +130,10 @@ export default function ActivityScreen() {
   const storeTransactions = useTransactionsStore((s) => s.transactions);
   const storeTransactionsLoaded = useTransactionsStore((s) => s.isLoaded);
   const storeTransactionsHasMore = useTransactionsStore((s) => s.hasMore);
+  const storeTransactionsIsLoadingMore = useTransactionsStore((s) => s.isLoadingMore);
   const loadStoreTransactions = useTransactionsStore((s) => s.load);
   const loadMoreStoreTransactions = useTransactionsStore((s) => s.loadMore);
+  const trimStoreTransactionsToFirstPage = useTransactionsStore((s) => s.trimToFirstPage);
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
@@ -182,12 +182,11 @@ export default function ActivityScreen() {
 
   const flatListRef = useRef<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const pendingListResetRef = useRef(false);
   const pendingScrollToTopRef = useRef(false);
+  const pendingBackgroundResetRef = useRef(false);
   const lastFilterScrollSignatureRef = useRef<string | null>(null);
   const canScrollSectionListRef = useRef(false);
   const storePrefetchStartedRef = useRef(false);
-  const [listResetKey, setListResetKey] = useState(0);
 
   const scrollToTop = useCallback((animated: boolean) => {
     if (flatListRef.current?.scrollToOffset) {
@@ -237,18 +236,19 @@ export default function ActivityScreen() {
       setShowPeriodSheet(false);
       setShowMoreSheet(false);
       if (mode === 'background') {
-        pendingListResetRef.current = true;
+        pendingBackgroundResetRef.current = true;
+        trimStoreTransactionsToFirstPage();
+        resetAllFilters(false);
       } else {
-        pendingListResetRef.current = false;
+        pendingBackgroundResetRef.current = false;
         resetAllFilters(animated);
       }
     });
-  }, [resetAllFilters, scrollToTop]);
+  }, [resetAllFilters, scrollToTop, trimStoreTransactionsToFirstPage]);
 
   useEffect(() => {
-    if (!isFocused || !pendingListResetRef.current) return;
-    pendingListResetRef.current = false;
-    setListResetKey((value) => value + 1);
+    if (!isFocused || !pendingBackgroundResetRef.current) return;
+    pendingBackgroundResetRef.current = false;
     queueScrollToTop(false);
   }, [isFocused, queueScrollToTop]);
 
@@ -393,7 +393,6 @@ export default function ActivityScreen() {
       if (loadingRef.current && !isInitial) return;
       const requestId = ++requestIdRef.current;
       loadingRef.current = true;
-      profiler.mark(isInitial ? 'fetch start initial' : 'fetch start more');
       try {
         const currentOffset = isInitial ? 0 : offsetRef.current;
         const effectiveTypeFilter =
@@ -426,7 +425,6 @@ export default function ActivityScreen() {
           offsetRef.current += results.length;
           setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
         }
-      profiler.mark(isInitial ? `fetch done initial (${results.length})` : `fetch done more (${results.length})`);
         if (isInitial) {
           lastLoadedRemoteQueryRef.current = remoteQuerySignature;
         }
@@ -434,7 +432,7 @@ export default function ActivityScreen() {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, cashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, profiler, remoteQuerySignature, selectedAccountId, typeFilter],
+    [cashflowBucket, cashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, remoteQuerySignature, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
@@ -460,17 +458,19 @@ export default function ActivityScreen() {
     }
   }, [hasContent, isDefaultView, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, remoteQuerySignature, source, storeTransactionsLoaded]);
 
+  // In default view, the SectionList reads `storeTransactions` directly via
+  // `activeTransactions` below — we no longer mirror it into local `transactions`
+  // state. We still mirror hasMore and the transition flag (cheap booleans),
+  // and keep offsetRef in sync so `onLoadMore` in custom-view fallback works.
   useEffect(() => {
     if (!isDefaultView) return;
-    setTransactions(storeTransactions);
     setHasMore(storeTransactionsHasMore);
     offsetRef.current = storeTransactions.length;
     if (storeTransactionsLoaded) {
       setIsTransitioning(false);
       lastLoadedRemoteQueryRef.current = remoteQuerySignature;
-      profiler.mark(`store visible (${storeTransactions.length})`);
     }
-  }, [isDefaultView, profiler, remoteQuerySignature, storeTransactions, storeTransactionsHasMore, storeTransactionsLoaded]);
+  }, [isDefaultView, remoteQuerySignature, storeTransactions.length, storeTransactionsHasMore, storeTransactionsLoaded]);
 
   useEffect(() => {
     if (!loansLoaded) loadLoans().catch(() => undefined);
@@ -575,9 +575,14 @@ export default function ActivityScreen() {
   };
 
   const onLoadMore = async () => {
-    if (!hasUserScrolledRef.current || !hasMore || loadingRef.current || isLoadingMore) return;
+    if (
+      !hasUserScrolledRef.current ||
+      !hasMore ||
+      loadingRef.current ||
+      isLoadingMore ||
+      (isDefaultView && storeTransactionsIsLoadingMore)
+    ) return;
     setIsLoadingMore(true);
-    profiler.mark('load more spinner');
     try {
       if (isDefaultView) {
         await loadMoreStoreTransactions();
@@ -660,6 +665,10 @@ export default function ActivityScreen() {
     }
   };
 
+  // In default view, read from the store directly — avoids a double-render
+  // every time the store's transactions array updates.
+  const sourceTransactions = isDefaultView ? storeTransactions : transactions;
+
   const filteredTransactions = useMemo(() => {
     const minAmount = amountMinStr ? Number(amountMinStr) : undefined;
     const maxAmount = amountMaxStr ? Number(amountMaxStr) : undefined;
@@ -673,7 +682,7 @@ export default function ActivityScreen() {
         .forEach((child) => selectedCategoryAndDescendants.add(child.id));
     });
 
-    return transactions.filter((tx) => {
+    return sourceTransactions.filter((tx) => {
       const incomeExpenseImpact = getTransactionCashflowImpact(tx, {
         includeTransfers: cashflowMode === 'total',
         includeLoans: cashflowMode === 'total',
@@ -736,7 +745,7 @@ export default function ActivityScreen() {
       }
       return true;
     });
-  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, cashflowMode, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, transactions, typeFilter, selectedAccountId]);
+  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, cashflowMode, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, sourceTransactions, typeFilter, selectedAccountId]);
 
   const drilldownTransactions = useMemo(
     () => getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown),
@@ -828,10 +837,13 @@ export default function ActivityScreen() {
     });
   }, [categoryDrilldown, drilldownTransactions, filteredTransactions, includeTotalCashflow]);
   const dateSections = useMemo(
-    () => grouped.map((group) => ({ ...group, data: group.items })),
+    () => grouped.map((group) => ({ ...group, key: group.groupKey, data: group.items })),
     [grouped],
   );
-  canScrollSectionListRef.current = dateSections.some((section) => section.data.length > 0);
+  // Side-effect ref must not be assigned during render; useEffect after dateSections.
+  useEffect(() => {
+    canScrollSectionListRef.current = dateSections.some((section) => section.data.length > 0);
+  }, [dateSections]);
 
   const categoryHierarchy = useMemo(() => {
     const parentMap = new Map<
@@ -968,6 +980,8 @@ export default function ActivityScreen() {
     [categoryHierarchy],
   );
 
+  const showLoadingMoreFooter = isLoadingMore || (isDefaultView && storeTransactionsIsLoadingMore);
+
   const toggleSectionExpansion = useCallback((parentKeys: string[]) => {
     if (parentKeys.length === 0) return;
     setExpandedCategoryIds((prev) => {
@@ -980,42 +994,29 @@ export default function ActivityScreen() {
 
   const renderDateSectionHeader = useCallback(
     ({ section }: { section: ActivityGroup & { data: Transaction[] } }) => {
+      // Keep date headers as a single fixed-height opaque View.
+      // Nested wrappers + flexWrap caused the "jumble" while scrolling.
+      const labelSuffix = section.subtitle ? `  •  ${section.subtitle}` : '';
       return (
         <View
           style={{
+            height: 32,
+            paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
+            paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
+            paddingBottom: 1,
             backgroundColor: palette.background,
-            paddingTop: 0,
-            paddingBottom: 8,
-            minHeight: 30,
-            zIndex: 2,
+            flexDirection: 'row',
+            alignItems: 'center',
           }}
         >
-          <View
-            style={[
-              styles.groupHeader,
-              {
-                paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
-                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
-                marginBottom: 0,
-              },
-            ]}
+          <Text
+            appWeight="medium"
+            numberOfLines={1}
+            style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}
           >
-            <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '600', color: palette.text }}>
-                {section.title}
-              </Text>
-              {section.subtitle ? (
-                <>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted, marginHorizontal: 6 }}>
-                    •
-                  </Text>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: '500', color: palette.textMuted }}>
-                    {section.subtitle}
-                  </Text>
-                </>
-              ) : null}
-            </View>
-          </View>
+            {section.title}
+            <Text style={{ color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>{labelSuffix}</Text>
+          </Text>
         </View>
       );
     },
@@ -1056,7 +1057,7 @@ export default function ActivityScreen() {
           useTypeAmountColor
           onPress={handleTransactionPress}
           style={{
-            marginTop: isFirst ? -6 : 0,
+            marginTop: isFirst ? -2 : 0,
             marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
             backgroundColor: palette.surface,
             borderLeftWidth: 1,
@@ -1131,7 +1132,7 @@ export default function ActivityScreen() {
             <AppChevron direction="left" size={16} tone="secondary" palette={palette} />
             <Text
               numberOfLines={1}
-              style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '700', color: palette.text }}
+              style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text }}
             >
               {categoryDrilldown.compactLabel
                 ? categoryDrilldown.parentLabel
@@ -1173,7 +1174,7 @@ export default function ActivityScreen() {
       ) : (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
           <View style={styles.topBarMainRow}>
-            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
+            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
               Activity
             </Text>
 
@@ -1191,7 +1192,6 @@ export default function ActivityScreen() {
       <>
           {groupByMode === 'date' || categoryDrilldown ? (
             <SectionList
-              key={`activity-${listResetKey}`}
               ref={flatListRef}
               sections={dateSections}
               keyExtractor={(item) => item.id}
@@ -1203,7 +1203,7 @@ export default function ActivityScreen() {
               }}
               scrollEventThrottle={64}
               onEndReached={onLoadMore}
-              stickySectionHeadersEnabled
+              stickySectionHeadersEnabled={false}
               initialNumToRender={20}
               maxToRenderPerBatch={20}
               windowSize={10}
@@ -1211,11 +1211,10 @@ export default function ActivityScreen() {
               onEndReachedThreshold={0.28}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
               ListHeaderComponent={activityHeader}
-              ListFooterComponent={isLoadingMore ? (
-                <View style={{ paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
-                  <ActivityIndicator size="small" color={palette.brand} />
-                  <Text style={{ marginTop: 8, fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>
-                    Loading more transactions
+              ListFooterComponent={showLoadingMoreFooter ? (
+                <View style={{ paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
+                    Loading...
                   </Text>
                 </View>
               ) : null}
@@ -1234,7 +1233,7 @@ export default function ActivityScreen() {
               renderSectionHeader={renderDateSectionHeader}
               renderItem={renderDateSectionItem}
               SectionSeparatorComponent={({ leadingItem }) =>
-                leadingItem ? <View style={{ height: 14 }} /> : <View style={{ height: 4 }} />
+                leadingItem ? <View style={{ height: 10 }} /> : <View style={{ height: 2 }} />
               }
             />
           ) : null}
@@ -1273,7 +1272,7 @@ export default function ActivityScreen() {
                               style={{
                                 flex: 1,
                                 fontSize: HOME_TEXT.tiny + 1,
-                                fontWeight: '800',
+                                fontWeight: FONT_WEIGHT.heavy,
                                 letterSpacing: 0.8,
                                 textTransform: 'uppercase',
                                 color: palette.text,
@@ -1369,13 +1368,13 @@ export default function ActivityScreen() {
                                   strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
                                   noBackground
                                 />
-                                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.text, flex: 1 }} numberOfLines={1}>
+                                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.text, flex: 1 }} numberOfLines={1}>
                                   {category.parentLabel}
                                 </Text>
                                 <Text
                                   style={{
                                     fontSize: HOME_TEXT.bodySmall,
-                                    fontWeight: '500',
+                                    fontWeight: FONT_WEIGHT.medium,
                                     color: category.total >= 0 ? palette.positive : palette.negative,
                                     marginRight: 2
                                   }}
@@ -1421,13 +1420,13 @@ export default function ActivityScreen() {
                                         backgroundColor: palette.surface,
                                       }}
                                     >
-                                      <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: '400', color: palette.text }}>
+                                      <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
                                         {sub.subLabel}
                                       </Text>
                                       <Text
                                         style={{
                                           fontSize: HOME_TEXT.bodySmall,
-                                          fontWeight: '500',
+                                          fontWeight: FONT_WEIGHT.medium,
                                           color: sub.total >= 0 ? palette.positive : palette.negative,
                                           marginRight: 10
                                         }}
@@ -1539,7 +1538,7 @@ export default function ActivityScreen() {
                   },
                 ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '400', color: (pendingCustomFrom || customFrom) ? palette.text : palette.textSoft }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: (pendingCustomFrom || customFrom) ? palette.text : palette.textSoft }}>
                   {pendingCustomFrom ? formatDateFull(pendingCustomFrom) : (customFrom ? formatDateFull(customFrom) : 'From')}
                 </Text>
               </TouchableOpacity>
@@ -1557,7 +1556,7 @@ export default function ActivityScreen() {
                   },
                 ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '400', color: (pendingCustomTo || customTo) ? palette.text : palette.textSoft }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: (pendingCustomTo || customTo) ? palette.text : palette.textSoft }}>
                   {pendingCustomTo ? formatDateFull(pendingCustomTo) : (customTo ? formatDateFull(customTo) : 'To')}
                 </Text>
               </TouchableOpacity>
@@ -1569,13 +1568,13 @@ export default function ActivityScreen() {
                 styles.applyBtn,
                 {
                   height: 48,
-                  borderRadius: 14,
+                  borderRadius: HOME_RADIUS.pill,
                   backgroundColor: (pendingCustomFrom && pendingCustomTo) ? palette.brand : palette.borderSoft
                 },
               ]}
               activeOpacity={0.8}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+              <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.bold, color: '#FFFFFF' }}>
                 Apply
               </Text>
             </TouchableOpacity>
@@ -1674,14 +1673,14 @@ const styles = StyleSheet.create({
   },
   dateField: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: HOME_RADIUS.chip,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10
   },
   applyBtn: {
     marginTop: 12,
-    borderRadius: 12,
+    borderRadius: HOME_RADIUS.chip,
     paddingVertical: 13,
     alignItems: 'center'
   },

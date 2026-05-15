@@ -54,10 +54,15 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
 // ─── Border-radius tokens ──────────────────────────────────────────────────────
 export const HOME_RADIUS = {
   card: 22,
+  cardSm: 18,
+  button: 16,
   pill: DESIGN_RADIUS.md - 2,
   tab: DESIGN_RADIUS.md - 2,
+  chip: 12,
+  chipSm: 11,
   fab: DESIGN_RADIUS.xl + 4,
   chartBar: 6,
+  xs: 6,
   small: DESIGN_RADIUS.sm - 2,
   large: DESIGN_RADIUS.xl,
   xl: DESIGN_RADIUS.xl + 4,

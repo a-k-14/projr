@@ -73,7 +73,7 @@ export function AppCard({
       backgroundColor: palette.surface,
       borderWidth: 1,
       borderColor: palette.borderSoft,
-      borderRadius: 22,
+      borderRadius: HOME_RADIUS.card,
     },
     style,
   ];

@@ -3,37 +3,18 @@ import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
+import { getDaysUntil } from '../lib/dateUtils';
 import { formatCurrency } from '../lib/derived';
-import { FIXED_DEPOSITS, getFixedDepositSummary, type FixedDeposit } from '../lib/fixed-deposits';
-import { HOME_TEXT, SCREEN_GUTTER } from '../lib/design';
+import { HOME_TEXT, SCREEN_GUTTER , FONT_WEIGHT} from '../lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE } from '../lib/layoutTokens';
 import { useAppTheme } from '../lib/theme';
+import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useUIStore } from '../stores/useUIStore';
-
-const useFixedDepositsStore = () => {
-  const [deposits] = useState<FixedDeposit[]>(FIXED_DEPOSITS);
-  const summary = getFixedDepositSummary(deposits);
-
-  return {
-    deposits,
-    totalInvested: summary.totalInvested,
-    totalMaturityValue: summary.totalMaturityValue,
-    totalInterest: summary.totalInterest,
-    refresh: async () => { /* placeholder */ },
-  };
-};
-
-function getDaysUntilMaturity(maturityDate: string): number {
-  const today = new Date();
-  const maturity = new Date(maturityDate);
-  const diffTime = maturity.getTime() - today.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-}
 
 function DepositsScreenContent() {
   const insets = useSafeAreaInsets();
@@ -101,10 +82,10 @@ function DepositsScreenContent() {
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>
+                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>
                     Total Invested
                   </Text>
-                  <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5 }}>
+                  <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.bold, color: '#FFFFFF', letterSpacing: -0.5 }}>
                     {formatCurrency(totalInvested, sym)}
                   </Text>
                 </View>
@@ -113,7 +94,7 @@ function DepositsScreenContent() {
                 <View style={{
                   width: 44,
                   height: 44,
-                  borderRadius: 12,
+                  borderRadius: HOME_RADIUS.chip,
                   backgroundColor: 'rgba(255, 255, 255, 0.15)',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -124,12 +105,12 @@ function DepositsScreenContent() {
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
                 <View>
-                  <Text style={{ fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
                     Total Returns
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <AppIcon name="trending-up" size={14} color="#4ADE80" />
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#4ADE80' }}>
+                    <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: '#4ADE80' }}>
                       +{formatCurrency(totalInterest, sym)}
                     </Text>
                   </View>
@@ -138,10 +119,10 @@ function DepositsScreenContent() {
                 <View style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.2)', opacity: 0.6 }} />
 
                 <View>
-                  <Text style={{ fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
                     Maturity Value
                   </Text>
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF' }}>
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: '#FFFFFF' }}>
                     {formatCurrency(totalMaturityValue, sym)}
                   </Text>
                 </View>
@@ -154,7 +135,7 @@ function DepositsScreenContent() {
                 <Text
                   style={{
                     fontSize: HOME_TEXT.sectionTitle,
-                    fontWeight: '700',
+                    fontWeight: FONT_WEIGHT.bold,
                     color: palette.text,
                     marginBottom: HOME_SPACE.md,
                   }}
@@ -164,7 +145,7 @@ function DepositsScreenContent() {
 
                 <View style={{ gap: HOME_SPACE.md }}>
                   {activeDeposits.map((deposit) => {
-                    const daysLeft = getDaysUntilMaturity(deposit.maturityDate);
+                    const daysLeft = getDaysUntil(deposit.maturityDate);
                     return (
                       <TouchableOpacity
                         delayPressIn={0}
@@ -189,7 +170,7 @@ function DepositsScreenContent() {
                               numberOfLines={1}
                               style={{
                                 fontSize: HOME_TEXT.body,
-                                fontWeight: '700',
+                                fontWeight: FONT_WEIGHT.bold,
                                 color: palette.text,
                                 marginTop: 2,
                               }}
@@ -205,7 +186,7 @@ function DepositsScreenContent() {
                               borderRadius: HOME_RADIUS.pill,
                             }}
                           >
-                            <Text style={{ fontSize: 12, fontWeight: '600', color: palette.positive }}>
+                            <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.positive }}>
                               {deposit.interestRate}%
                             </Text>
                           </View>
@@ -215,13 +196,13 @@ function DepositsScreenContent() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: HOME_SPACE.md }}>
                           <View>
                             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Invested</Text>
-                            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginTop: 2 }}>
+                            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: 2 }}>
                               {formatCurrency(deposit.principalAmount, sym)}
                             </Text>
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
                             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Maturity Value</Text>
-                            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.positive, marginTop: 2 }}>
+                            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.positive, marginTop: 2 }}>
                               {formatCurrency(deposit.maturityValue, sym)}
                             </Text>
                           </View>
@@ -244,8 +225,8 @@ function DepositsScreenContent() {
                           <Text
                             style={{
                               fontSize: HOME_TEXT.caption,
-                              fontWeight: '600',
-                              color: daysLeft <= 30 ? palette.negative : daysLeft <= 90 ? '#F2B84B' : palette.textMuted,
+                              fontWeight: FONT_WEIGHT.semibold,
+                              color: daysLeft <= 30 ? palette.negative : daysLeft <= 90 ? palette.warning : palette.textMuted,
                             }}
                           >
                             {daysLeft > 0 ? `${daysLeft} days left` : 'Matured'}
@@ -264,7 +245,7 @@ function DepositsScreenContent() {
                 <Text
                   style={{
                     fontSize: HOME_TEXT.sectionTitle,
-                    fontWeight: '700',
+                    fontWeight: FONT_WEIGHT.bold,
                     color: palette.text,
                     marginBottom: HOME_SPACE.md,
                   }}
@@ -297,7 +278,7 @@ function DepositsScreenContent() {
                             numberOfLines={1}
                             style={{
                               fontSize: HOME_TEXT.body,
-                              fontWeight: '600',
+                              fontWeight: FONT_WEIGHT.semibold,
                               color: palette.text,
                               marginTop: 2,
                             }}
@@ -306,7 +287,7 @@ function DepositsScreenContent() {
                           </Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text }}>
+                          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
                             {formatCurrency(deposit.maturityValue, sym)}
                           </Text>
                           <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>

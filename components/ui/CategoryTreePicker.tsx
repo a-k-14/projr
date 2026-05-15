@@ -5,8 +5,8 @@ import { Text } from '@/components/ui/AppText';
 import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
-import { CARD_PADDING, SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT, HOME_LAYOUT } from '../../lib/layoutTokens';
+import { CARD_PADDING, SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { isEmojiIcon } from '../../lib/ui-format';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -155,11 +155,11 @@ export function CategoryTreePicker({
           <TouchableOpacity delayPressIn={0} onPress={onBack} style={{ padding: 4, marginRight: 12 }}>
             <AppIcon name="arrow-left" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, flex: 1 }}>
+          <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, flex: 1 }}>
             {title}
           </Text>
           <TouchableOpacity delayPressIn={0} onPress={() => { onBack(); router.push('/settings/categories'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.brand }}>Manage</Text>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -250,7 +250,7 @@ export function CategorySearchBox({
           flexDirection: 'row',
           alignItems: 'center',
           backgroundColor: palette.surface,
-          borderRadius: 16,
+          borderRadius: HOME_RADIUS.button,
           paddingHorizontal: CARD_PADDING,
           borderWidth: 1,
           borderColor: palette.divider }}
@@ -330,7 +330,7 @@ export function CategoryTreeList({
                         style={{
                           width: 22,
                           height: 22,
-                          borderRadius: 11,
+                          borderRadius: HOME_RADIUS.chipSm,
                           backgroundColor: palette.tabActive,
                           alignItems: 'center',
                           justifyContent: 'center' }}
@@ -370,7 +370,7 @@ export function CategoryTreeList({
                                 style={{
                                   width: 22,
                                   height: 22,
-                                  borderRadius: 11,
+                                  borderRadius: HOME_RADIUS.chipSm,
                                   backgroundColor: palette.tabActive,
                                   alignItems: 'center',
                                   justifyContent: 'center' }}

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import Animated, { FadeInRight, FadeOutRight, LinearTransition } from 'react-native-reanimated';
 import { Text } from '@/components/ui/AppText';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
+import { FONT_WEIGHT } from '@/lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '@/lib/layoutTokens';
 
 function formatDate(dateStr: string) {
@@ -51,7 +52,7 @@ export function PeriodSelector({
         fontSize={HOME_TEXT.caption}
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
-        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: '400', color: theme.text }}></Text>
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: theme.text }}></Text>
         <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', flexShrink: 1 }}>
           <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: theme.textMuted ?? theme.muted }}>
             {formatDate(from)}

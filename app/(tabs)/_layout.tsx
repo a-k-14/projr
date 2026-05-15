@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDevProfiler } from '../../lib/dev-profiler';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
@@ -40,7 +39,6 @@ function AppTabBar({
   insetsBottom: number;
   palette: AppThemePalette;
 }) {
-  const profiler = useDevProfiler('Tabs');
   const { width } = useWindowDimensions();
   const tabHeight = 52;
   const routes = VISIBLE_TAB_NAMES
@@ -59,12 +57,6 @@ function AppTabBar({
     pillX.value = withTiming(getPillTarget(activeSlotIndex), { duration: 160 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSlotIndex, itemWidth]);
-
-  useEffect(() => {
-    if (activeRouteName) {
-      profiler.mark(`active ${activeRouteName}`);
-    }
-  }, [activeRouteName, profiler]);
 
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: pillX.value }],
@@ -111,10 +103,7 @@ function AppTabBar({
                 key="add"
                 delayPressIn={0}
                 activeOpacity={0.88}
-                onPress={() => {
-                  profiler.mark(`press add`);
-                  router.push('/modals/add-transaction');
-                }}
+                onPress={() => router.push('/modals/add-transaction')}
                 style={{
                   width: itemWidth,
                   height: tabHeight,
@@ -158,7 +147,6 @@ function AppTabBar({
 
           const onPress = () => {
             const leavingRouteName = state.routes[state.index]?.name;
-            profiler.mark(`press ${route.name}`);
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,

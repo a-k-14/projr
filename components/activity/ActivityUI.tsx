@@ -2,6 +2,7 @@ import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
 /**
@@ -37,7 +38,7 @@ export function CategoryIconBadge({
       style={{
         width: badgeSize,
         height: badgeSize,
-        borderRadius: 10,
+        borderRadius: HOME_RADIUS.small,
         backgroundColor: noBackground ? 'transparent' : palette.background,
         alignItems: 'center',
         justifyContent: 'center',

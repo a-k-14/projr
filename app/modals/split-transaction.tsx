@@ -9,8 +9,8 @@ import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { SectionCard } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
-import { SCREEN_GUTTER } from '../../lib/design';
-import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
+import { HOME_RADIUS, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -200,7 +200,7 @@ export default function SplitTransactionModal() {
                       style={{
                         flex: 1,
                         fontSize: HOME_TEXT.sectionTitle,
-                        fontWeight: '500',
+                        fontWeight: FONT_WEIGHT.medium,
                         color: row.amountStr ? amountColor : palette.text,
                         textAlign: 'right',
                         paddingVertical: 0,
@@ -214,7 +214,7 @@ export default function SplitTransactionModal() {
                       width: 34,
                       height: 34,
                       marginLeft: 14,
-                      borderRadius: 12,
+                      borderRadius: HOME_RADIUS.chip,
                       backgroundColor: pressed ? palette.surface : palette.background,
                       alignItems: 'center',
                       justifyContent: 'center' })}
@@ -240,8 +240,8 @@ export default function SplitTransactionModal() {
           backgroundColor: palette.background }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 }}>
-          <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: '600' }}>Total</Text>
-          <Text style={{ fontSize: HOME_TEXT.rowLabel, color: palette.text, fontWeight: '700' }}>{formatIndianNumberStr(String(total || 0))}</Text>
+          <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: FONT_WEIGHT.semibold }}>Total</Text>
+          <Text style={{ fontSize: HOME_TEXT.rowLabel, color: palette.text, fontWeight: FONT_WEIGHT.bold }}>{formatIndianNumberStr(String(total || 0))}</Text>
         </View>
         <FilledButton label="Done" onPress={handleDone} palette={palette} tone="brand" />
       </View>

@@ -83,6 +83,7 @@ export interface AppThemePalette {
   statusBarStyle: 'light' | 'dark';
   positive: string;
   negative: string;
+  warning: string;
   navigationButtonStyle: 'light' | 'dark';
   surfaceRaised: string;
   textSecondary: string;
@@ -146,6 +147,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       tabActive: BRAND_DARK,
       chartBar: POSITIVE_DARK,
       negative: NEGATIVE_DARK,
+      warning: '#F2B84B',
       brandSoft: tint(BRAND_DARK, 0.1, 0.14, mode),
       loan: '#F1F5F9',
       loanSoft: budgetSoft,
@@ -196,6 +198,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     tabActive: BRAND_LIGHT,
     chartBar: POSITIVE_LIGHT,
     negative: NEGATIVE_LIGHT,
+    warning: '#B45309',
     brandSoft: tint(BRAND_LIGHT, 0.12, 0.18, mode),
     loan: '#334155',
     loanSoft: tint(BUDGET_LIGHT, 0.12, 0.18, mode),

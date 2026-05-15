@@ -13,12 +13,14 @@ import { useAccountsStore } from '../stores/useAccountsStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useAppTheme } from '../lib/theme';
+import { FONT_WEIGHT } from '../lib/design';
 import { HOME_TEXT } from '../lib/layoutTokens';
 import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/settings';
 import { FilledButton } from '../components/ui/AppButton';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SecurityGuard } from '../components/SecurityGuard';
 
 export default function RootLayout() {
@@ -80,7 +82,7 @@ export default function RootLayout() {
         <Text
           style={{
             fontSize: HOME_TEXT.heroValue,
-            fontWeight: '700',
+            fontWeight: FONT_WEIGHT.bold,
             color: palette.text,
             marginBottom: 12,
             textAlign: 'center' }}
@@ -124,6 +126,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaProvider>
+        <ErrorBoundary>
         <SecurityGuard>
           <Stack
             screenOptions={{
@@ -138,8 +141,9 @@ export default function RootLayout() {
             <Stack.Screen name="budget" options={{ headerShown: false }} />
             <Stack.Screen name="budget/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="chart-prototype" options={{ headerShown: false }} />
-            <Stack.Screen name="net-worth-prototype" options={{ headerShown: false }} />
+            {__DEV__ && <Stack.Screen name="chart-prototype" options={{ headerShown: false }} />}
+            {__DEV__ && <Stack.Screen name="net-worth-prototype" options={{ headerShown: false }} />}
+            <Stack.Screen name="assets" options={{ headerShown: false }} />
             <Stack.Screen
               name="modals/add-transaction"
               options={{ headerShown: false }}
@@ -170,6 +174,7 @@ export default function RootLayout() {
             />
           </Stack>
         </SecurityGuard>
+        </ErrorBoundary>
         <StatusBar
           style={palette.statusBarStyle}
           backgroundColor={palette.background}

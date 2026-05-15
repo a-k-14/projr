@@ -10,7 +10,8 @@ import {
 import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { CARD_PADDING, RADIUS, SCREEN_GUTTER, TYPE } from '../../lib/design';
+import { CARD_PADDING, RADIUS, SCREEN_GUTTER, TYPE, FONT_WEIGHT } from '../../lib/design';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, formatDisplayCurrency, getAccountTypeLabel } from '../../lib/settings-shared';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -52,14 +53,14 @@ export default function AccountsScreen() {
             activeOpacity={0.7}
             style={{
               minHeight: 48,
-              borderRadius: 14,
+              borderRadius: HOME_RADIUS.pill,
               borderWidth: 1,
               borderColor: palette.brand,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: '600', color: palette.brand }}>
+            <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>
               + Add Account
             </Text>
           </TouchableOpacity>
@@ -147,7 +148,7 @@ function SettingsAccountCard({
           style={{
             width: 38,
             height: 38,
-            borderRadius: 12,
+            borderRadius: HOME_RADIUS.chip,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: typeMeta.bg ?? `${typeMeta.color}18`,
@@ -160,13 +161,13 @@ function SettingsAccountCard({
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
-            style={{ fontSize: TYPE.section, fontWeight: '500', color: palette.text }}
+            style={{ fontSize: TYPE.section, fontWeight: FONT_WEIGHT.medium, color: palette.text }}
             numberOfLines={1}
           >
             {formatAccountDisplayName(item.name, item.accountNumber)}
           </Text>
           <Text
-            style={{ fontSize: TYPE.body, color: palette.textMuted, marginTop: 2, fontWeight: '400' }}
+            style={{ fontSize: TYPE.body, color: palette.textMuted, marginTop: 2, fontWeight: FONT_WEIGHT.regular }}
             numberOfLines={1}
           >
             {typeLabel}
@@ -179,7 +180,7 @@ function SettingsAccountCard({
             maxWidth: 112,
             marginLeft: 10,
             fontSize: TYPE.body,
-            fontWeight: '500',
+            fontWeight: FONT_WEIGHT.medium,
             color: item.initialBalance < 0 ? palette.negative : palette.text,
             textAlign: 'right',
           }}

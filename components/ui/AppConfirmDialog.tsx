@@ -2,6 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Modal, Pressable, View } from 'react-native';
 import { TextButton } from './AppButton';
+import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -66,7 +67,7 @@ export function AppConfirmDialog({
             >
               <AppIcon name="alert-circle" size={16} color={confirm.destructive ? palette.negative : palette.brand} />
             </View>
-            <Text appWeight="medium" style={{ flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: '600', color: palette.text }}>
+            <Text appWeight="medium" style={{ flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
               {title}
             </Text>
           </View>

@@ -21,7 +21,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate } from '../../lib/dateUtils';
-import { TYPE } from '../../lib/design';
+import { TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SPACING } from '../../lib/layoutTokens';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 
@@ -201,7 +201,7 @@ export default function InsightsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <View style={{ paddingTop: insets.top + 8, paddingBottom: SPACING.md, paddingHorizontal: 14 }}>
-        <Text style={{ fontSize: TYPE.title, fontWeight: '400', color: palette.text, letterSpacing: -0.5 }}>
+        <Text style={{ fontSize: TYPE.title, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
           Insights
         </Text>
       </View>
@@ -274,7 +274,7 @@ export default function InsightsScreen() {
             onPress={() => { }}
             style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.large, padding: HOME_SPACE.xxl, borderWidth: 1, borderColor: palette.divider }}
           >
-            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: '700', color: palette.text, marginBottom: 8 }}>
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginBottom: 8 }}>
               Custom range
             </Text>
             <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginBottom: 16 }}>
@@ -283,13 +283,13 @@ export default function InsightsScreen() {
             <View style={{ gap: HOME_SPACE.md, marginBottom: HOME_SPACE.lg }}>
               <TouchableOpacity delayPressIn={0} onPress={() => openDatePicker('from')} style={{ borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.inputBg, borderRadius: HOME_RADIUS.card, paddingHorizontal: HOME_SPACE.lg, paddingVertical: 12 }}>
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>From</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                   {formatDate(customDraftFrom.toISOString())}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity delayPressIn={0} onPress={() => openDatePicker('to')} style={{ borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.inputBg, borderRadius: HOME_RADIUS.card, paddingHorizontal: HOME_SPACE.lg, paddingVertical: 12 }}>
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginBottom: 4 }}>To</Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '600', color: palette.text }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
                   {formatDate(customDraftTo.toISOString())}
                 </Text>
               </TouchableOpacity>

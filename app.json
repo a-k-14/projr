@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "com.reni.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "allowBackup": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",

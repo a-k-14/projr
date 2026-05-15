@@ -17,8 +17,8 @@ import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
-import { CARD_PADDING, SPACING, TYPE } from '../../lib/design';
-import { HOME_LAYOUT } from '../../lib/layoutTokens';
+import { CARD_PADDING, SPACING, TYPE , FONT_WEIGHT} from '../../lib/design';
+import { HOME_LAYOUT , HOME_RADIUS} from '../../lib/layoutTokens';
 import {
   CATEGORY_EMOJI_GROUPS,
   CATEGORY_ICONS,
@@ -268,7 +268,7 @@ export default function CategoryFormScreen() {
               style={{
                 width: 56,
                 height: 56,
-                borderRadius: 14,
+                borderRadius: HOME_RADIUS.pill,
                 borderWidth: 1,
                 borderColor: palette.border,
                 backgroundColor: palette.surface,
@@ -324,7 +324,7 @@ export default function CategoryFormScreen() {
                     appWeight="medium"
                     style={{
                       fontSize: TYPE.rowValue,
-                      fontWeight: '600',
+                      fontWeight: FONT_WEIGHT.semibold,
                       color: palette.brand,
                       letterSpacing: 0.2 }}
                   >
@@ -417,7 +417,7 @@ export default function CategoryFormScreen() {
                     style={{
                       flex: 1,
                       minHeight: 38,
-                      borderRadius: 12,
+                      borderRadius: HOME_RADIUS.chip,
                       alignItems: 'center',
                       justifyContent: 'center',
                       borderWidth: 1,
@@ -425,7 +425,7 @@ export default function CategoryFormScreen() {
                       backgroundColor: selected ? palette.brandSoft : palette.surface,
                     }}
                   >
-                    <Text appWeight="medium" style={{ fontSize: TYPE.body, fontWeight: '700', color: selected ? palette.tabActive : palette.textMuted }}>
+                    <Text appWeight="medium" style={{ fontSize: TYPE.body, fontWeight: FONT_WEIGHT.bold, color: selected ? palette.tabActive : palette.textMuted }}>
                       {tab === 'icons' ? 'Icons' : 'Emojis'}
                     </Text>
                   </TouchableOpacity>
@@ -436,7 +436,7 @@ export default function CategoryFormScreen() {
               <>
                 {suggestedEmojis.length > 0 && (
                   <View style={{ gap: 8, marginBottom: 12 }}>
-                    <Text style={{ fontSize: TYPE.body, fontWeight: '700', color: palette.textMuted }}>
+                    <Text style={{ fontSize: TYPE.body, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted }}>
                       Suggested For "{name.trim()}"
                     </Text>
                     <IconGrid
@@ -452,7 +452,7 @@ export default function CategoryFormScreen() {
                 )}
                 {CATEGORY_EMOJI_GROUPS.map((group) => (
                   <View key={group.name} style={{ gap: 8, marginBottom: 16 }}>
-                    <Text style={{ fontSize: TYPE.body, fontWeight: '700', color: palette.textMuted }}>
+                    <Text style={{ fontSize: TYPE.body, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted }}>
                       {group.name}
                     </Text>
                     <IconGrid

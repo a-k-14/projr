@@ -12,7 +12,8 @@ import { useUIStore } from '../../stores/useUIStore';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { formatCurrency } from '../../lib/derived';
-import { SCREEN_GUTTER } from '../../lib/layoutTokens';
+import { FONT_WEIGHT } from '../../lib/design';
+import { HOME_RADIUS, HOME_TEXT, SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -255,7 +256,7 @@ function AccountCard({
       onLongPress={customMode ? drag : undefined}
       style={{
         backgroundColor: palette.surface,
-        borderRadius: 18,
+        borderRadius: HOME_RADIUS.cardSm,
         borderWidth: 1,
         borderColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E2E7F0',
         paddingHorizontal: 16,
@@ -289,7 +290,7 @@ function AccountCard({
           style={{
             width: 38,
             height: 38,
-            borderRadius: 12,
+            borderRadius: HOME_RADIUS.chip,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: typeMeta.bg ?? `${typeMeta.color}18`,
@@ -301,10 +302,10 @@ function AccountCard({
           <AppIcon name={typeMeta.icon} size={20} color={typeMeta.color} strokeWidth={1.5} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '500', color: palette.text }}>
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
             {formatAccountDisplayName(item.name, item.accountNumber)}
           </Text>
-          <Text numberOfLines={1} style={{ fontSize: 13, color: palette.textMuted, marginTop: 2, fontWeight: '400' }}>
+          <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginTop: 2, fontWeight: FONT_WEIGHT.regular }}>
             {typeLabel}
           </Text>
         </View>
@@ -314,8 +315,8 @@ function AccountCard({
         ellipsizeMode="tail"
         style={{
           maxWidth: 128,
-          fontSize: 16,
-          fontWeight: '500',
+          fontSize: HOME_TEXT.rowLabel,
+          fontWeight: FONT_WEIGHT.medium,
           color: isNegative ? palette.negative : palette.text,
           textAlign: 'right',
         }}
