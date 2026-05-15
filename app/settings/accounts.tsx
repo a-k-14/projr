@@ -9,6 +9,7 @@ import {
 } from '../../components/settings-ui';
 import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, TYPE, FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
@@ -70,7 +71,7 @@ export default function AccountsScreen() {
       <FlatList
         data={sortedAccounts}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 70 }}
+        contentContainerStyle={{ paddingTop: 12, paddingBottom: getScrollableBottomPadding(insets) + 30 }}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={

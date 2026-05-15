@@ -6,17 +6,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CircleIconBadge } from '../components/ui/CircleIconBadge';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
+import { getCompactScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
 import { ASSET_BG, ASSET_TONE } from '../lib/assetVisuals';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
 import { useAppTheme } from '../lib/theme';
+import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 
 export default function AssetsScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
+    <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
       <ScreenHeader
         title="Assets"
         palette={palette}
@@ -27,7 +29,7 @@ export default function AssetsScreen() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: SCREEN_GUTTER,
-          paddingBottom: insets.bottom + HOME_LAYOUT.fabContentBottomPadding,
+          paddingBottom: getCompactScrollableBottomPadding(insets),
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -62,6 +64,6 @@ export default function AssetsScreen() {
           illustration={<FinanceEmptyMascot palette={palette} variant="account" />}
         />
       </ScrollView>
-    </View>
+    </ScreenScaffold>
   );
 }

@@ -1,5 +1,6 @@
 import { HeaderEditButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
+import { getCompactScrollableBottomPadding } from '@/components/ui/safeBottom';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import {
@@ -74,7 +75,7 @@ export default function BudgetDetailScreen() {
           )
         }} 
       />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: getCompactScrollableBottomPadding(insets) }}>
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SPACE.md }}>
           <View
             style={{

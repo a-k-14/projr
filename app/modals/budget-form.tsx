@@ -5,8 +5,10 @@ import { Text } from '@/components/ui/AppText';
 import { Keyboard, ScrollView, View , TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthSheet, formatBudgetMonthLabel } from '../../components/budget-ui';
+import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER } from '../../lib/design';
@@ -147,7 +149,7 @@ export default function BudgetFormModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + HOME_LAYOUT.screenSafeBottom + 40 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) }}>
         <SectionCard palette={palette}>
           <PickerRow
             label="Month"
@@ -198,7 +200,7 @@ export default function BudgetFormModal() {
         brandSoft={palette.budgetSoft}
         brandOnColor={palette.onBudget}
         onClose={() => setShowCalculator(false)}
-        onApply={(finalValue) => {
+        onApply={(finalValue: string) => {
           setShowCalculator(false);
           setAmountStr(formatIndianNumberStr(finalValue));
         }}

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
+import { getSheetBottomPadding } from './safeBottom';
 const OPEN_ANIMATION_DURATION_MS = 150;
 const CLOSE_ANIMATION_DURATION_MS = 140;
 const BACKDROP_COLOR = 'rgb(0,0,0)';
@@ -89,12 +90,11 @@ export function BottomSheet({
   const isFocused = useIsFocused();
 
   const maxSheetHeight = screenHeight * (maxHeightRatio ?? 0.75);
-  const bottomInset = hasNavBar ? 0 : insets.bottom;
-  const bottomOffset = extraBottomPadding + bottomInset;
+  const bottomOffset = hasNavBar ? extraBottomPadding : getSheetBottomPadding(insets, extraBottomPadding + 14);
   // Sheet height must reserve space for both the manual extra padding AND the
   // safe-area inset; otherwise paddingBottom squeezes the inner content and the
   // last row sits behind the OS nav bar.
-  const modalHeightBoost = extraBottomPadding + bottomInset;
+  const modalHeightBoost = bottomOffset;
 
   const translateY = useRef(new Animated.Value(screenHeight)).current;
   const opacity = useRef(new Animated.Value(0)).current;

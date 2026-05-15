@@ -8,11 +8,13 @@ import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
+import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
 import { getDaysUntil } from '../lib/dateUtils';
 import { formatCurrency } from '../lib/derived';
 import { HOME_TEXT, SCREEN_GUTTER , FONT_WEIGHT} from '../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE } from '../lib/layoutTokens';
+import { HOME_RADIUS, HOME_SPACE } from '../lib/layoutTokens';
 import { useAppTheme } from '../lib/theme';
+import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useUIStore } from '../stores/useUIStore';
 
@@ -31,7 +33,7 @@ function DepositsScreenContent() {
   const maturedDeposits = useMemo(() => deposits.filter((d) => d.status === 'matured'), [deposits]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
+    <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
       <ScreenHeader
         title="Deposits"
         palette={palette}
@@ -50,7 +52,7 @@ function DepositsScreenContent() {
             tintColor={palette.brand}
           />
         }
-        contentContainerStyle={{ paddingBottom: insets.bottom + HOME_LAYOUT.fabContentBottomPadding + 20 }}
+        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) }}
         showsVerticalScrollIndicator={false}
       >
         {hasDeposits ? (
@@ -313,7 +315,7 @@ function DepositsScreenContent() {
         )}
 
       </ScrollView>
-    </View>
+    </ScreenScaffold>
   );
 }
 

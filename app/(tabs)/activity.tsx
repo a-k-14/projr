@@ -30,6 +30,7 @@ import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
+import { getTabScreenBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { PillIconButton } from '../../components/ui/PillIconButton';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
@@ -611,7 +612,7 @@ export default function ActivityScreen() {
         hasUserScrolledRef.current = true;
       }
       const shouldShowStickyDate =
-        activityHeaderHeight > 0 && nativeEvent.contentOffset.y >= Math.max(activityHeaderHeight - 2, 0);
+        activityHeaderHeight > 0 && nativeEvent.contentOffset.y >= activityHeaderHeight;
       if (showStickyDateLabelRef.current !== shouldShowStickyDate) {
         showStickyDateLabelRef.current = shouldShowStickyDate;
         setShowStickyDateLabel(shouldShowStickyDate);
@@ -1178,7 +1179,7 @@ export default function ActivityScreen() {
         const nextHeight = event.nativeEvent.layout.height;
         setActivityHeaderHeight((current) => (Math.abs(current - nextHeight) > 1 ? nextHeight : current));
       }}
-      style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}
+      style={{ paddingTop: 4 }}
     >
       <ActivityFilterBar
         accountLabel={accountLabel}
@@ -1316,7 +1317,7 @@ export default function ActivityScreen() {
               getItemType={(item) => item.type}
               drawDistance={900}
               maintainVisibleContentPosition={{ disabled: true }}
-              contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
+              contentContainerStyle={{ paddingBottom: getTabScreenBottomPadding(insets) }}
               ListHeaderComponent={activityHeader}
               ListFooterComponent={showLoadingMoreFooter ? (
                 <View style={{ paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
@@ -1346,12 +1347,12 @@ export default function ActivityScreen() {
               pointerEvents="none"
               style={{
                 position: 'absolute',
-                top: insets.top + Math.max(topBarHeight - 22, 0),
+                top: insets.top + topBarHeight - 4,
                 left: 0,
                 right: 0,
-                height: 28,
-                paddingLeft: ACTIVITY_LAYOUT.headerPaddingX,
-                paddingRight: ACTIVITY_LAYOUT.headerPaddingX,
+                height: 34,
+                paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
+                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
                 backgroundColor: palette.background,
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -1375,7 +1376,7 @@ export default function ActivityScreen() {
             <ScrollView
               ref={scrollViewRef}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-              contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
+              contentContainerStyle={{ paddingBottom: getTabScreenBottomPadding(insets) }}
             >
               <>
                 {activityHeader}
@@ -1763,7 +1764,6 @@ export default function ActivityScreen() {
           </Text>
         </View>
       ) : null}
-
     </View>
   );
 }
@@ -1782,7 +1782,7 @@ const styles = StyleSheet.create({
   topBar: {
     paddingHorizontal: 14,
     paddingTop: 8,
-    paddingBottom: 12,
+    paddingBottom: 6,
     borderBottomWidth: 0
   },
   topBarMainRow: {

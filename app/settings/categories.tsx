@@ -10,6 +10,7 @@ import {
   FixedBottomActions
 } from '../../components/settings-ui';
 import { CATEGORY_TREE_ROW, CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { CARD_PADDING, TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_LAYOUT , HOME_RADIUS} from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
@@ -66,7 +67,7 @@ export default function CategoriesScreen() {
     return (
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 42 }}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: getScrollableBottomPadding(insets) }}
         showsVerticalScrollIndicator={false}
       >
         <CardSection palette={palette}>

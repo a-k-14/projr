@@ -9,6 +9,8 @@ import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT} from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { FilledButton, TextButton } from './ui/AppButton';
+import { BottomActionBar } from './ui/ScreenScaffold';
+import { getScrollableBottomPadding } from './ui/safeBottom';
 
 export function ScreenTitle({
   title,
@@ -554,23 +556,10 @@ export function FixedBottomActions({
     palette: AppThemePalette;
     useBudgetSpacing?: boolean;
   }) {
-  const insets = useSafeAreaInsets();
   return (
-    <View
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        paddingHorizontal: SCREEN_GUTTER,
-        paddingTop: 8,
-        paddingBottom: Math.max(insets.bottom, 28) + 18,
-        backgroundColor: palette.background,
-        gap: 4
-      }}
-    >
+    <BottomActionBar palette={palette}>
       {children}
-    </View>
+    </BottomActionBar>
   );
 }
 
@@ -585,14 +574,18 @@ export function SettingsScreenLayout({
     bottomAction?: ReactNode;
     scrollEnabled?: boolean;
     useScrollView?: boolean;
-  }) {
+}) {
+  const insets = useSafeAreaInsets();
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       {useScrollView ? (
         <ScrollView
           style={{ flex: 1 }}
           scrollEnabled={scrollEnabled}
-          contentContainerStyle={{ paddingTop: SPACING.md, paddingBottom: bottomAction ? 100 : 8 }}
+          contentContainerStyle={{
+            paddingTop: SPACING.md,
+            paddingBottom: bottomAction ? getScrollableBottomPadding(insets) + 48 : SPACING.sm,
+          }}
         >
           {children}
         </ScrollView>
@@ -613,7 +606,8 @@ export function SettingsFormLayout({
     palette: AppThemePalette;
     bottomActions?: ReactNode;
     scrollRef?: RefObject<ScrollView | null>;
-  }) {
+}) {
+  const insets = useSafeAreaInsets();
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <KeyboardAvoidingView
@@ -627,7 +621,7 @@ export function SettingsFormLayout({
           contentContainerStyle={{
             paddingHorizontal: SCREEN_GUTTER,
             paddingTop: SPACING.md,
-            paddingBottom: 170,
+            paddingBottom: getScrollableBottomPadding(insets) + 88,
           }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"

@@ -9,6 +9,7 @@ import { CARD_PADDING, SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { isEmojiIcon } from '../../lib/ui-format';
 import type { AppThemePalette } from '../../lib/theme';
+import { getCompactScrollableBottomPadding } from './safeBottom';
 
 type PickerCategory = {
   id: string;
@@ -175,7 +176,7 @@ export function CategoryTreePicker({
         onSelect={onSelect}
         palette={palette}
         emptyMessage={emptyMessage}
-        contentBottomPadding={insets.bottom + 24}
+        contentBottomPadding={getCompactScrollableBottomPadding(insets)}
       />
     </View>
   );

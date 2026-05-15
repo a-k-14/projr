@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -27,6 +27,7 @@ import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import {
   AmountRow,
   DisplayRow,
@@ -97,6 +98,7 @@ function AccountTypeBadge({ account, palette }: { account: Account; palette: App
 // We compute TYPE_CONFIG dynamically inside the component to use the derived palette
 
 export default function AddTransactionModal() {
+  const insets = useSafeAreaInsets();
   const {
     editId,
     accountId: sourceAccountId,
@@ -783,8 +785,8 @@ export default function AddTransactionModal() {
 
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={{ paddingBottom: 132 + keyboardHeight }}
-        keyboardDismissMode="on-drag"
+        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 132) + keyboardHeight }}
+        keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ paddingBottom: 20 }}>

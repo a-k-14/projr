@@ -9,6 +9,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useAppTheme } from '../../lib/theme';
 import { BUTTON_TOKENS, HOME_TEXT, SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
+import { getSheetBottomPadding } from '../../components/ui/safeBottom';
 
 export default function SelectTagSheet() {
   const tags = useCategoriesStore((s) => s.tags);
@@ -32,7 +33,7 @@ export default function SelectTagSheet() {
           borderTopLeftRadius: RADIUS.xl,
           borderTopRightRadius: RADIUS.xl,
           paddingTop: 12,
-          paddingBottom: insets.bottom + 14,
+          paddingBottom: getSheetBottomPadding(insets),
           paddingHorizontal: SHEET_GUTTER }}
       >
         <View style={{ alignItems: 'center', marginBottom: 12 }}>

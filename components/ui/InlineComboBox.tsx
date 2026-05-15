@@ -278,7 +278,8 @@ export function InlineComboBox({
           <ScrollView
             keyboardShouldPersistTaps="handled"
             scrollEnabled={rowCount > MAX_VISIBLE}
-            bounces={false}
+            nestedScrollEnabled
+            bounces={rowCount <= MAX_VISIBLE}
           >
             {/* "Add X" row — person only */}
             {showAddRow ? (

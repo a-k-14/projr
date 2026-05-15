@@ -6,6 +6,7 @@ import { Keyboard, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, V
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
+import { getBottomActionPadding, getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { SectionCard } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
@@ -127,7 +128,7 @@ export default function SplitTransactionModal() {
 
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 128 }}
+        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 128) }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
@@ -236,7 +237,7 @@ export default function SplitTransactionModal() {
           bottom: 0,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 12,
-          paddingBottom: (insets.bottom || 16) + 4,
+          paddingBottom: getBottomActionPadding(insets, 4),
           backgroundColor: palette.background }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 }}>

@@ -14,13 +14,15 @@ import { useUIStore } from '../../stores/useUIStore';
 
 import { Text } from '@/components/ui/AppText';
 import { HomeAccountPage } from '../(tabs)/index';
+import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
 import type { HomeChartMode } from '../../components/HomeDonutChartBlock';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import type { PeriodType } from '../../types';
 
@@ -114,7 +116,7 @@ export default function AccountDetailScreen() {
   if (!account) return null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
+    <ScreenScaffold palette={palette}>
       <Stack.Screen
         options={{
           headerShown: true,
@@ -161,7 +163,7 @@ export default function AccountDetailScreen() {
         getCategoryFullDisplayName={getCategoryFullDisplayName}
         loansLoaded={loansLoaded}
         loadLoans={loadLoans}
-        contentBottomPadding={insets.bottom + HOME_LAYOUT.screenSafeBottom + 40}
+        contentBottomPadding={getScrollableBottomPadding(insets)}
       />
 
       <Modal
@@ -209,6 +211,6 @@ export default function AccountDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </ScreenScaffold>
   );
 }

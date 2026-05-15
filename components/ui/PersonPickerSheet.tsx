@@ -16,6 +16,7 @@ import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
 import { HOME_TEXT , HOME_RADIUS} from '../../lib/layoutTokens';
 import { normalizePerson } from '../../services/persons';
 import type { AppThemePalette } from '../../lib/theme';
+import { getSheetBottomPadding } from './safeBottom';
 
 interface PersonPickerSheetProps {
   persons: string[];
@@ -74,7 +75,7 @@ export function PersonPickerSheet({
             justifyContent: 'center',
             paddingHorizontal: 20,
             paddingTop: insets.top + 16,
-            paddingBottom: insets.bottom + 16,
+            paddingBottom: getSheetBottomPadding(insets, 16),
           }}
           onPress={onClose}
         >

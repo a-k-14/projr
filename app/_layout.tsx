@@ -13,6 +13,7 @@ import { useAccountsStore } from '../stores/useAccountsStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useAppTheme } from '../lib/theme';
+import { SystemBottomGuard } from '../components/ui/safeBottom';
 import { FONT_WEIGHT } from '../lib/design';
 import { HOME_TEXT } from '../lib/layoutTokens';
 import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/settings';
@@ -144,6 +145,7 @@ export default function RootLayout() {
             {__DEV__ && <Stack.Screen name="chart-prototype" options={{ headerShown: false }} />}
             {__DEV__ && <Stack.Screen name="net-worth-prototype" options={{ headerShown: false }} />}
             <Stack.Screen name="assets" options={{ headerShown: false }} />
+            <Stack.Screen name="net-worth" options={{ headerShown: false }} />
             <Stack.Screen
               name="modals/add-transaction"
               options={{ headerShown: false }}

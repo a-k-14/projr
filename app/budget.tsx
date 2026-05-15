@@ -10,9 +10,10 @@ import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudget
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
+import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
 import { formatCurrency } from '../lib/derived';
 import { SCREEN_GUTTER } from '../lib/design';
-import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../lib/layoutTokens';
 import { getCategoryDisplayIcon } from '../lib/category-utils';
 import { registerTabReset } from '../lib/tabResetRegistry';
 import { useAppTheme, type AppThemePalette } from '../lib/theme';
@@ -26,6 +27,8 @@ import type { BudgetWithSpent } from '../types';
 function monthStartIso(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0).toISOString();
 }
+
+import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 
 export default function BudgetScreen() {
   const isFocused = useIsFocused();
@@ -104,8 +107,8 @@ export default function BudgetScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
-      <ScreenHeader 
+    <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
+      <ScreenHeader
         title="Budgets"
         palette={palette}
         showBack={true}
@@ -117,7 +120,7 @@ export default function BudgetScreen() {
       <ScrollView
         ref={scrollViewRef}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-        contentContainerStyle={{ paddingBottom: insets.bottom + HOME_LAYOUT.screenSafeBottom + 40 }}
+        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) }}
       >
         <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop, paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
           <BudgetOverviewCard
@@ -179,7 +182,7 @@ export default function BudgetScreen() {
         onSelect={setSelectedMonth}
         onClose={() => setShowMonthSheet(false)}
       />
-    </View>
+    </ScreenScaffold>
   );
 }
 

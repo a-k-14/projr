@@ -17,6 +17,7 @@ import { HOME_RADIUS, HOME_TEXT, SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { ChoiceRow } from '../../components/settings-ui';
 import type { Account } from '../../types';
 
@@ -163,7 +164,7 @@ export default function AllAccountsScreen() {
         contentContainerStyle={{
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 10,
-          paddingBottom: insets.bottom + 120,
+          paddingBottom: getScrollableBottomPadding(insets, 120),
         }}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}

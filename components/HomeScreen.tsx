@@ -2,6 +2,7 @@ import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { FabButton } from '@/components/ui/FabButton';
+import { getTabScreenBottomPadding } from '@/components/ui/safeBottom';
 import { formatAccountDisplayName } from '@/lib/account-utils';
 import { formatDate, getDateRange } from '@/lib/dateUtils';
 import {
@@ -728,7 +729,7 @@ export default function HomeScreen({
           ref={(node) => {
             scrollRef.current = node as ScrollView | null;
           }}
-          contentContainerStyle={[styles.content, styles.homeScrollContent, { paddingBottom: HOME_LAYOUT.fabContentBottomPadding + 90 }]}
+          contentContainerStyle={[styles.content, styles.homeScrollContent, { paddingBottom: getTabScreenBottomPadding(insets.bottom) }]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />}
           scrollEventThrottle={16}
@@ -772,7 +773,7 @@ export default function HomeScreen({
           ref={(node) => {
             scrollRef.current = node as ScrollView | null;
           }}
-          contentContainerStyle={[styles.content, { paddingBottom: HOME_LAYOUT.fabContentBottomPadding + 90 }]}
+          contentContainerStyle={[styles.content, { paddingBottom: getTabScreenBottomPadding(insets.bottom) }]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />}
           scrollEventThrottle={16}

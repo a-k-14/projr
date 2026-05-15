@@ -11,6 +11,7 @@ import { useAppTheme } from '../../lib/theme';
 import { SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
+import { getSheetBottomPadding } from '../../components/ui/safeBottom';
 
 export default function SelectAccountSheet() {
   const accounts = useAccountsStore((s) => s.accounts);
@@ -28,7 +29,7 @@ export default function SelectAccountSheet() {
           borderTopLeftRadius: RADIUS.xl,
           borderTopRightRadius: RADIUS.xl,
           paddingTop: 12,
-          paddingBottom: insets.bottom + 14 }}
+          paddingBottom: getSheetBottomPadding(insets) }}
       >
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <View

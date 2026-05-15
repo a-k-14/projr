@@ -15,6 +15,7 @@ import { FixedBottomActions } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
@@ -150,7 +151,10 @@ export default function LoanDetailScreen() {
       />
 
       <View style={{ flex: 1 }}>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + (loan.status === 'open' ? 156 : 24) }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, loan.status === 'open' ? 128 : 24) }}
+        >
           <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             {/* Loan details */}
             <View

@@ -18,11 +18,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../components/settings-ui';
 import { BottomSheet } from '../components/ui/BottomSheet';
+import { getTabScreenBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FilterChip } from '../components/ui/FilterChip';
 import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../components/ui/ListHeading';
+import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
 import { formatCurrency, getLoanSummary } from '../lib/derived';
@@ -326,7 +328,7 @@ export default function LoansScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
+    <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
       {isSearchActive ? (
         <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}>
           <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
@@ -375,7 +377,7 @@ export default function LoansScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />
         }
-        contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
+        contentContainerStyle={{ paddingBottom: getTabScreenBottomPadding(insets) }}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
@@ -595,7 +597,7 @@ export default function LoansScreen() {
           </View>
         </BottomSheet>
       ) : null}
-    </View>
+    </ScreenScaffold>
   );
 }
 
