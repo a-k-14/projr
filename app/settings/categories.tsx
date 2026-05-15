@@ -185,7 +185,7 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       <View style={{ flex: 1 }}>
         <Stack.Screen
           options={{
@@ -279,6 +279,6 @@ export default function CategoriesScreen() {
           </TouchableOpacity>
         </FixedBottomActions>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

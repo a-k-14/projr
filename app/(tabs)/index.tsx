@@ -1741,6 +1741,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   loansLoaded,
   loadLoans,
   hideAmounts,
+  contentBottomPadding,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1775,6 +1776,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   loansLoaded: boolean;
   loadLoans: (filters?: { accountId?: string; status?: LoanStatus }) => Promise<void>;
   hideAmounts?: boolean;
+  contentBottomPadding?: number;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1936,7 +1938,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       <Animated.ScrollView
         ref={mainScrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: accountInsets.bottom + HOME_LAYOUT.fabContentBottomPadding }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: contentBottomPadding ?? accountInsets.bottom + HOME_LAYOUT.fabContentBottomPadding }}
         onScroll={verticalScrollHandler}
         scrollEventThrottle={1}
         showsVerticalScrollIndicator={false}

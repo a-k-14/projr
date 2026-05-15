@@ -1,5 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -8,9 +9,9 @@ import {
   BackHandler,
   InteractionManager,
   LayoutAnimation,
+  LayoutChangeEvent,
   RefreshControl,
   ScrollView,
-  SectionList,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -69,6 +70,21 @@ type ActivityGroup = {
   net: number;
   items: Transaction[];
 };
+type ActivityDateRow =
+  | {
+      type: 'dateHeader';
+      key: string;
+      title: string;
+      subtitle?: string;
+      isFirst: boolean;
+    }
+  | {
+      type: 'transaction';
+      key: string;
+      tx: Transaction;
+      indexInSection: number;
+      sectionLength: number;
+    };
 type GroupByMode = 'date' | 'category';
 type CategoryDrilldown = {
   parentKey: string;
@@ -168,6 +184,10 @@ export default function ActivityScreen() {
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+  const [topBarHeight, setTopBarHeight] = useState(0);
+  const [activityHeaderHeight, setActivityHeaderHeight] = useState(0);
+  const [stickyDateLabel, setStickyDateLabel] = useState<{ key: string; title: string; subtitle?: string } | null>(null);
+  const [showStickyDateLabel, setShowStickyDateLabel] = useState(false);
 
   const [pendingPeriod, setPendingPeriod] = useState<ActivityPeriod>('all');
   const [pendingCustomFrom, setPendingCustomFrom] = useState<string | undefined>();
@@ -183,16 +203,15 @@ export default function ActivityScreen() {
   const flatListRef = useRef<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const pendingScrollToTopRef = useRef(false);
-  const pendingBackgroundResetRef = useRef(false);
   const lastFilterScrollSignatureRef = useRef<string | null>(null);
-  const canScrollSectionListRef = useRef(false);
   const storePrefetchStartedRef = useRef(false);
+  const showStickyDateLabelRef = useRef(false);
+  const stickyDateKeyRef = useRef<string | null>(null);
+  const dateRowsViewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 1, minimumViewTime: 0 });
 
   const scrollToTop = useCallback((animated: boolean) => {
     if (flatListRef.current?.scrollToOffset) {
       flatListRef.current.scrollToOffset({ offset: 0, animated });
-    } else if (canScrollSectionListRef.current) {
-      flatListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated });
     }
     scrollViewRef.current?.scrollTo({ y: 0, animated });
   }, []);
@@ -236,21 +255,13 @@ export default function ActivityScreen() {
       setShowPeriodSheet(false);
       setShowMoreSheet(false);
       if (mode === 'background') {
-        pendingBackgroundResetRef.current = true;
         trimStoreTransactionsToFirstPage();
         resetAllFilters(false);
       } else {
-        pendingBackgroundResetRef.current = false;
         resetAllFilters(animated);
       }
     });
   }, [resetAllFilters, scrollToTop, trimStoreTransactionsToFirstPage]);
-
-  useEffect(() => {
-    if (!isFocused || !pendingBackgroundResetRef.current) return;
-    pendingBackgroundResetRef.current = false;
-    queueScrollToTop(false);
-  }, [isFocused, queueScrollToTop]);
 
   useEffect(() => {
     if (storeTransactionsLoaded || storePrefetchStartedRef.current) return;
@@ -458,7 +469,7 @@ export default function ActivityScreen() {
     }
   }, [hasContent, isDefaultView, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, remoteQuerySignature, source, storeTransactionsLoaded]);
 
-  // In default view, the SectionList reads `storeTransactions` directly via
+  // In default view, the FlashList reads `storeTransactions` directly via
   // `activeTransactions` below — we no longer mirror it into local `transactions`
   // state. We still mirror hasMore and the transition flag (cheap booleans),
   // and keep offsetRef in sync so `onLoadMore` in custom-view fallback works.
@@ -593,6 +604,26 @@ export default function ActivityScreen() {
       setIsLoadingMore(false);
     }
   };
+
+  const maybePrefetchMore = useCallback(
+    (nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number }; contentSize: { height: number } }) => {
+      if (nativeEvent.contentOffset.y > 24) {
+        hasUserScrolledRef.current = true;
+      }
+      const shouldShowStickyDate =
+        activityHeaderHeight > 0 && nativeEvent.contentOffset.y >= Math.max(activityHeaderHeight - 2, 0);
+      if (showStickyDateLabelRef.current !== shouldShowStickyDate) {
+        showStickyDateLabelRef.current = shouldShowStickyDate;
+        setShowStickyDateLabel(shouldShowStickyDate);
+      }
+      const distanceFromEnd =
+        nativeEvent.contentSize.height - nativeEvent.layoutMeasurement.height - nativeEvent.contentOffset.y;
+      if (distanceFromEnd < 900) {
+        void onLoadMore();
+      }
+    },
+    [activityHeaderHeight, onLoadMore],
+  );
 
   const goPrev = () => {
     if (period !== 'all' && period !== 'custom') {
@@ -836,14 +867,29 @@ export default function ActivityScreen() {
       };
     });
   }, [categoryDrilldown, drilldownTransactions, filteredTransactions, includeTotalCashflow]);
-  const dateSections = useMemo(
-    () => grouped.map((group) => ({ ...group, key: group.groupKey, data: group.items })),
-    [grouped],
-  );
-  // Side-effect ref must not be assigned during render; useEffect after dateSections.
-  useEffect(() => {
-    canScrollSectionListRef.current = dateSections.some((section) => section.data.length > 0);
-  }, [dateSections]);
+  const dateRows = useMemo<ActivityDateRow[]>(() => {
+    return grouped.flatMap((group, groupIndex) => {
+      const rows: ActivityDateRow[] = [
+        {
+          type: 'dateHeader',
+          key: `header:${group.groupKey}`,
+          title: group.title,
+          subtitle: group.subtitle,
+          isFirst: groupIndex === 0,
+        },
+      ];
+      group.items.forEach((tx, index) => {
+        rows.push({
+          type: 'transaction',
+          key: tx.id,
+          tx,
+          indexInSection: index,
+          sectionLength: group.items.length,
+        });
+      });
+      return rows;
+    });
+  }, [grouped]);
 
   const categoryHierarchy = useMemo(() => {
     const parentMap = new Map<
@@ -982,6 +1028,61 @@ export default function ActivityScreen() {
 
   const showLoadingMoreFooter = isLoadingMore || (isDefaultView && storeTransactionsIsLoadingMore);
 
+  const updateStickyDateFromIndex = useCallback(
+    (index: number | null) => {
+      if (index == null || index < 0) return;
+      for (let cursor = Math.min(index, dateRows.length - 1); cursor >= 0; cursor -= 1) {
+        const row = dateRows[cursor];
+        if (row?.type === 'dateHeader') {
+          if (stickyDateKeyRef.current !== row.key) {
+            stickyDateKeyRef.current = row.key;
+            setStickyDateLabel({ key: row.key, title: row.title, subtitle: row.subtitle });
+          }
+          return;
+        }
+      }
+    },
+    [dateRows],
+  );
+
+  const handleDateRowsViewableChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<{ item: ActivityDateRow; index: number | null; isViewable: boolean }> }) => {
+      const firstVisible = viewableItems
+        .filter((item) => item.isViewable && item.index != null)
+        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))[0];
+      updateStickyDateFromIndex(firstVisible?.index ?? null);
+    },
+  );
+
+  useEffect(() => {
+    handleDateRowsViewableChanged.current = ({ viewableItems }) => {
+      const firstVisible = viewableItems
+        .filter((item) => item.isViewable && item.index != null)
+        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))[0];
+      updateStickyDateFromIndex(firstVisible?.index ?? null);
+    };
+  }, [updateStickyDateFromIndex]);
+
+  useEffect(() => {
+    const firstHeader = dateRows.find((row) => row.type === 'dateHeader');
+    if (!firstHeader) {
+      stickyDateKeyRef.current = null;
+      setStickyDateLabel(null);
+      return;
+    }
+    if (stickyDateKeyRef.current === null) {
+      stickyDateKeyRef.current = firstHeader.key;
+      setStickyDateLabel({ key: firstHeader.key, title: firstHeader.title, subtitle: firstHeader.subtitle });
+    }
+  }, [dateRows]);
+
+  const handleDateRowsViewable = useCallback(
+    (info: { viewableItems: Array<{ item: ActivityDateRow; index: number | null; isViewable: boolean }> }) => {
+      handleDateRowsViewableChanged.current(info);
+    },
+    [],
+  );
+
   const toggleSectionExpansion = useCallback((parentKeys: string[]) => {
     if (parentKeys.length === 0) return;
     setExpandedCategoryIds((prev) => {
@@ -992,62 +1093,58 @@ export default function ActivityScreen() {
     });
   }, []);
 
-  const renderDateSectionHeader = useCallback(
-    ({ section }: { section: ActivityGroup & { data: Transaction[] } }) => {
-      // Keep date headers as a single fixed-height opaque View.
-      // Nested wrappers + flexWrap caused the "jumble" while scrolling.
-      const labelSuffix = section.subtitle ? `  •  ${section.subtitle}` : '';
-      return (
-        <View
-          style={{
-            height: 32,
-            paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
-            paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
-            paddingBottom: 1,
-            backgroundColor: palette.background,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          <Text
-            appWeight="medium"
-            numberOfLines={1}
-            style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}
+  const renderDateRow = useCallback(
+    ({ item }: ListRenderItemInfo<ActivityDateRow>) => {
+      if (item.type === 'dateHeader') {
+        const labelSuffix = item.subtitle ? `  •  ${item.subtitle}` : '';
+        return (
+          <View
+            style={{
+              height: 34,
+              paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
+              paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
+              paddingBottom: 1,
+              backgroundColor: palette.background,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
           >
-            {section.title}
-            <Text style={{ color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>{labelSuffix}</Text>
-          </Text>
-        </View>
-      );
-    },
-    [palette],
-  );
+            <Text
+              appWeight="medium"
+              numberOfLines={1}
+              style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}
+            >
+              {item.title}
+              <Text style={{ color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>{labelSuffix}</Text>
+            </Text>
+          </View>
+        );
+      }
 
-  const renderDateSectionItem = useCallback(
-    ({ item, index, section }: { item: Transaction; index: number; section: ActivityGroup & { data: Transaction[] } }) => {
-      const accountName = accountsById.get(item.accountId);
-      const linkedAccountName = item.linkedAccountId ? accountsById.get(item.linkedAccountId) : undefined;
-      const loan = item.loanId ? loansById.get(item.loanId) : undefined;
-      const isFirst = index === 0;
-      const isLast = index === section.items.length - 1;
+      const tx = item.tx;
+      const accountName = accountsById.get(tx.accountId);
+      const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
+      const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
+      const isFirst = item.indexInSection === 0;
+      const isLast = item.indexInSection === item.sectionLength - 1;
 
       return (
         <TransactionListItem
-          key={item.id}
-          tx={item}
+          key={tx.id}
+          tx={tx}
           sym={sym}
           palette={palette}
           isLast={isLast}
           paddingY={HOME_LAYOUT.listRowPaddingY + 2}
-          categoryName={item.categoryId ? getCategoryFullDisplayName(item.categoryId, ' › ') : undefined}
-          categoryIcon={getCategoryDisplayIcon(categoriesById, item.categoryId)}
+          categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined}
+          categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
           accountName={accountName}
           linkedAccountName={linkedAccountName}
           loanPersonName={loan?.personName}
           loanDirection={loan?.direction}
           tertiaryText={
-            item.tags.length > 0
-              ? item.tags
+            tx.tags.length > 0
+              ? tx.tags
                 .map((tagId) => tagNamesById.get(tagId))
                 .filter((value): value is string => !!value)
                 .join(' • ') || undefined
@@ -1076,7 +1173,13 @@ export default function ActivityScreen() {
   );
 
   const activityHeader = useMemo(() => (
-    <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
+    <View
+      onLayout={(event: LayoutChangeEvent) => {
+        const nextHeight = event.nativeEvent.layout.height;
+        setActivityHeaderHeight((current) => (Math.abs(current - nextHeight) > 1 ? nextHeight : current));
+      }}
+      style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}
+    >
       <ActivityFilterBar
         accountLabel={accountLabel}
         setShowAccountSheet={setShowAccountSheet}
@@ -1147,7 +1250,10 @@ export default function ActivityScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       {isSearchActive ? (
-        <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}>
+        <View
+          onLayout={(event: LayoutChangeEvent) => setTopBarHeight(event.nativeEvent.layout.height)}
+          style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}
+        >
           <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
             <AppIcon name="search" size={15} color={palette.textMuted} />
             <TextInput
@@ -1172,7 +1278,10 @@ export default function ActivityScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}>
+        <View
+          onLayout={(event: LayoutChangeEvent) => setTopBarHeight(event.nativeEvent.layout.height)}
+          style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}
+        >
           <View style={styles.topBarMainRow}>
             <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
               Activity
@@ -1191,24 +1300,22 @@ export default function ActivityScreen() {
 
       <>
           {groupByMode === 'date' || categoryDrilldown ? (
-            <SectionList
+            <FlashList
               ref={flatListRef}
-              sections={dateSections}
-              keyExtractor={(item) => item.id}
+              data={dateRows}
+              keyExtractor={(item) => item.key}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
               onScroll={({ nativeEvent }) => {
-                if (nativeEvent.contentOffset.y > 24) {
-                  hasUserScrolledRef.current = true;
-                }
+                maybePrefetchMore(nativeEvent);
               }}
-              scrollEventThrottle={64}
+              scrollEventThrottle={32}
               onEndReached={onLoadMore}
-              stickySectionHeadersEnabled={false}
-              initialNumToRender={20}
-              maxToRenderPerBatch={20}
-              windowSize={10}
-              removeClippedSubviews={false}
-              onEndReachedThreshold={0.28}
+              onEndReachedThreshold={0.6}
+              viewabilityConfig={dateRowsViewabilityConfigRef.current}
+              onViewableItemsChanged={handleDateRowsViewable}
+              getItemType={(item) => item.type}
+              drawDistance={900}
+              maintainVisibleContentPosition={{ disabled: true }}
               contentContainerStyle={{ paddingBottom: insets.bottom + ACTIVITY_LAYOUT.listBottomPadding }}
               ListHeaderComponent={activityHeader}
               ListFooterComponent={showLoadingMoreFooter ? (
@@ -1230,12 +1337,38 @@ export default function ActivityScreen() {
                   </View>
                 ) : null
               }
-              renderSectionHeader={renderDateSectionHeader}
-              renderItem={renderDateSectionItem}
-              SectionSeparatorComponent={({ leadingItem }) =>
-                leadingItem ? <View style={{ height: 10 }} /> : <View style={{ height: 2 }} />
-              }
+              renderItem={renderDateRow}
             />
+          ) : null}
+
+          {showStickyDateLabel && stickyDateLabel && !isSearchActive && (groupByMode === 'date' || categoryDrilldown) ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: insets.top + Math.max(topBarHeight - 22, 0),
+                left: 0,
+                right: 0,
+                height: 28,
+                paddingLeft: ACTIVITY_LAYOUT.headerPaddingX,
+                paddingRight: ACTIVITY_LAYOUT.headerPaddingX,
+                backgroundColor: palette.background,
+                flexDirection: 'row',
+                alignItems: 'center',
+                zIndex: 20,
+              }}
+            >
+              <Text
+                appWeight="medium"
+                numberOfLines={1}
+                style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}
+              >
+                {stickyDateLabel.title}
+                <Text style={{ color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>
+                  {stickyDateLabel.subtitle ? `  •  ${stickyDateLabel.subtitle}` : ''}
+                </Text>
+              </Text>
+            </View>
           ) : null}
 
           {groupByMode === 'category' && !categoryDrilldown ? (

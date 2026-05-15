@@ -221,7 +221,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ freezeOnBlur: false }} />
-      <Tabs.Screen name="activity" options={{ lazy: false }} />
+      <Tabs.Screen name="activity" options={{ lazy: false, freezeOnBlur: false }} />
       <Tabs.Screen name="insights" options={{ lazy: false }} />
       <Tabs.Screen name="settings" options={{ lazy: false }} />
     </Tabs>

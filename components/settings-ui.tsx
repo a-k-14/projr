@@ -564,9 +564,7 @@ export function FixedBottomActions({
         right: 0,
         paddingHorizontal: SCREEN_GUTTER,
         paddingTop: 8,
-        paddingBottom: useBudgetSpacing
-          ? Math.max(Math.min(insets.bottom, 34), 12) + 18
-          : Math.max(Math.min(insets.bottom, 34), 12) + 18,
+        paddingBottom: Math.max(insets.bottom, 28) + 18,
         backgroundColor: palette.background,
         gap: 4
       }}

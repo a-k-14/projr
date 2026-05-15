@@ -117,7 +117,7 @@ export default function BudgetScreen() {
       <ScrollView
         ref={scrollViewRef}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-        contentContainerStyle={{ paddingBottom: insets.bottom + HOME_LAYOUT.fabContentBottomPadding }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + HOME_LAYOUT.screenSafeBottom + 40 }}
       >
         <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop, paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
           <BudgetOverviewCard
@@ -178,7 +178,6 @@ export default function BudgetScreen() {
         selectedMonth={selectedMonth}
         onSelect={setSelectedMonth}
         onClose={() => setShowMonthSheet(false)}
-        hasNavBar
       />
     </View>
   );

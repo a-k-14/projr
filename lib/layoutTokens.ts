@@ -144,6 +144,7 @@ export const HOME_LAYOUT = {
   fabContentBottomPadding: 20,
   handleWidth: 42,
   handleHeight: 4,
+  screenSafeBottom: 32,
 } as const;
 
 export const BUTTON_TOKENS = {

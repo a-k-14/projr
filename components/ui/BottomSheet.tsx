@@ -104,7 +104,7 @@ export function BottomSheet({
   const footerHeight = useRef(0);
 
   const commitHeight = useCallback(() => {
-    let nextHeight = Math.min(headerHeight.current + contentHeight.current + footerHeight.current + modalHeightBoost, maxSheetHeight);
+    let nextHeight = Math.min(headerHeight.current + contentHeight.current + footerHeight.current, maxSheetHeight - bottomOffset);
     if (fixedHeightRatio) {
       nextHeight = Math.min(screenHeight * fixedHeightRatio, maxSheetHeight);
     }

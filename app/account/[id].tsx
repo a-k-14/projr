@@ -20,7 +20,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import type { PeriodType } from '../../types';
 
@@ -161,6 +161,7 @@ export default function AccountDetailScreen() {
         getCategoryFullDisplayName={getCategoryFullDisplayName}
         loansLoaded={loansLoaded}
         loadLoans={loadLoans}
+        contentBottomPadding={insets.bottom + HOME_LAYOUT.screenSafeBottom + 40}
       />
 
       <Modal

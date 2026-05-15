@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Keyboard, ScrollView, View , TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthSheet, formatBudgetMonthLabel } from '../../components/budget-ui';
 import { FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -16,8 +16,8 @@ import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { useAppDialog } from '../../components/ui/useAppDialog';
+import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import type { BudgetWithSpent, Category } from '../../types';
 
 export default function BudgetFormModal() {
@@ -31,6 +31,7 @@ export default function BudgetFormModal() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
 
   const draftCategoryId = useBudgetDraftStore((s) => s.categoryId);
@@ -47,6 +48,7 @@ export default function BudgetFormModal() {
   const [startMonth, setStartMonth] = useState(month || new Date().toISOString());
   const [repeat, setRepeat] = useState(true);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
+  const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const initializedRef = useRef(false);
 
@@ -81,10 +83,7 @@ export default function BudgetFormModal() {
 
   const openCategoryPicker = () => {
     Keyboard.dismiss();
-    setDraftCategoryId(categoryId);
-    requestAnimationFrame(() => {
-      router.push('/modals/select-budget-category');
-    });
+    setShowCategorySheet(true);
   };
 
   const handleSave = async () => {
@@ -148,7 +147,7 @@ export default function BudgetFormModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + HOME_LAYOUT.screenSafeBottom + 40 }}>
         <SectionCard palette={palette}>
           <PickerRow
             label="Month"
@@ -204,6 +203,23 @@ export default function BudgetFormModal() {
           setAmountStr(formatIndianNumberStr(finalValue));
         }}
       />
+      {showCategorySheet && (
+        <CategoryPickerSheet
+          categories={categories}
+          transactionType="out"
+          selectedCategoryId={categoryId}
+          palette={palette}
+          onClose={() => setShowCategorySheet(false)}
+          onManage={() => {
+            setShowCategorySheet(false);
+            router.push('/settings/categories');
+          }}
+          onSelect={(id) => {
+            setCategoryId(id);
+            setShowCategorySheet(false);
+          }}
+        />
+      )}
       {dialog}
     </View>
   );
