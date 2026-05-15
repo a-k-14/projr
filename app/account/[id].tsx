@@ -20,6 +20,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
+import { getTotalBalance } from '../../lib/derived';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
@@ -54,6 +55,7 @@ export default function AccountDetailScreen() {
     loadCategories().catch(() => undefined);
   }, [isFocused, loadCategories]);
 
+  const allAccountsTotal = useMemo(() => getTotalBalance(accounts), [accounts]);
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
@@ -164,6 +166,7 @@ export default function AccountDetailScreen() {
         loansLoaded={loansLoaded}
         loadLoans={loadLoans}
         contentBottomPadding={getScrollableBottomPadding(insets)}
+        allAccountsTotal={allAccountsTotal}
       />
 
       <Modal

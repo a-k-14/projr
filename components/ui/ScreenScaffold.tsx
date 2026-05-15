@@ -28,7 +28,7 @@ export function BottomActionBar({
   children,
   palette,
   horizontalPadding = SCREEN_GUTTER,
-  extraBottom = 18,
+  extraBottom = 4,
   gap = 4,
 }: {
   children: ReactNode;

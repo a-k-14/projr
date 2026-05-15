@@ -90,7 +90,7 @@ export function BottomSheet({
   const isFocused = useIsFocused();
 
   const maxSheetHeight = screenHeight * (maxHeightRatio ?? 0.75);
-  const bottomOffset = hasNavBar ? extraBottomPadding : getSheetBottomPadding(insets, extraBottomPadding + 14);
+  const bottomOffset = hasNavBar ? extraBottomPadding : getSheetBottomPadding(insets, extraBottomPadding + 3);
   // Sheet height must reserve space for both the manual extra padding AND the
   // safe-area inset; otherwise paddingBottom squeezes the inner content and the
   // last row sits behind the OS nav bar.

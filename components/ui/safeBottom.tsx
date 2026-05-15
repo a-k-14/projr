@@ -8,7 +8,7 @@ const ACTION_EXTRA = 8;
 const CONTENT_EXTRA = 8;
 const COMPACT_CONTENT_EXTRA = 4;
 const SHEET_EXTRA = 4;
-const TAB_BAR_EXTRA = 56;
+const TAB_BAR_EXTRA = 52;
 
 export function getSafeBottomInset(insetsOrBottom: EdgeInsets | number): number {
   const bottom = typeof insetsOrBottom === 'number' ? insetsOrBottom : insetsOrBottom.bottom;

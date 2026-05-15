@@ -10,6 +10,7 @@ import {
   LayoutAnimation,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -66,6 +67,7 @@ import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore'
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { InlineComboBox } from '../../components/ui/InlineComboBox';
+import { AutocompleteDropdown } from '../../components/ui/AutocompleteDropdown';
 import type {
   Account,
   Category,
@@ -174,6 +176,10 @@ export default function AddTransactionModal() {
   const isHydratingEditRef = useRef(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const payeeAnchorRef = useRef<View>(null);
+  const personAnchorRef = useRef<View>(null);
+  const [isPayeeFocused, setIsPayeeFocused] = useState(false);
+  const [isPersonFocused, setIsPersonFocused] = useState(false);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
@@ -789,7 +795,7 @@ export default function AddTransactionModal() {
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ paddingBottom: 20 }}>
+        <Pressable onPress={Keyboard.dismiss} style={{ paddingBottom: 20 }}>
           <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
@@ -903,14 +909,27 @@ export default function AddTransactionModal() {
                   custom
                 />
               )}
-              <InlineComboBox
-                label="Payee"
-                value={payee}
-                onChange={setPayee}
+              <View ref={payeeAnchorRef} collapsable={false}>
+                <InlineComboBox
+                  label="Payee"
+                  value={payee}
+                  onChange={setPayee}
+                  suggestions={[]}
+                  placeholder="Add payee"
+                  palette={palette}
+                  accentColor={activeConfig.color}
+                  onFocus={() => setIsPayeeFocused(true)}
+                  onBlur={() => setIsPayeeFocused(false)}
+                />
+              </View>
+              <AutocompleteDropdown
                 suggestions={payeeSuggestions}
-                placeholder="Add payee"
+                onSelect={(v) => { setPayee(v); setIsPayeeFocused(false); Keyboard.dismiss(); }}
+                anchorRef={payeeAnchorRef}
+                keyboardHeight={keyboardHeight}
                 palette={palette}
-                accentColor={activeConfig.color}
+                visible={isPayeeFocused && payeeSuggestions.length > 0}
+                onRequestClose={() => setIsPayeeFocused(false)}
               />
               <ReceiptSection
                 palette={palette}
@@ -1080,17 +1099,20 @@ export default function AddTransactionModal() {
                       palette={palette}
                     />
                   ) : (
-                    <InlineComboBox
-                      label="Person"
-                      value={personName}
-                      onChange={setPersonName}
-                      suggestions={persons}
-                      filterLocally
-                      showAdd
-                      palette={palette}
-                      accentColor={activeConfig.color}
-                      autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
-                    />
+                    <View ref={personAnchorRef} collapsable={false}>
+                      <InlineComboBox
+                        label="Person"
+                        value={personName}
+                        onChange={setPersonName}
+                        suggestions={[]}
+                        filterLocally
+                        palette={palette}
+                        accentColor={activeConfig.color}
+                        autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
+                        onFocus={() => setIsPersonFocused(true)}
+                        onBlur={() => setIsPersonFocused(false)}
+                      />
+                    </View>
                   )}
                 </>
               )}
@@ -1125,7 +1147,7 @@ export default function AddTransactionModal() {
           )}
 
 
-        </View>
+        </Pressable>
       </ScrollView>
 
       <FixedBottomActions palette={palette}>

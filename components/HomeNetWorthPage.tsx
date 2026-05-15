@@ -236,6 +236,7 @@ export function HomeNetWorthPage({
   compactTop = false,
   hideTitle = false,
   onOpenAccount,
+  bottomPadding,
 }: {
   pageHeight: number;
   palette: AppThemePalette;
@@ -250,6 +251,7 @@ export function HomeNetWorthPage({
   compactTop?: boolean;
   hideTitle?: boolean;
   onOpenAccount: (accountId: string | 'all') => void;
+  bottomPadding?: number;
 }) {
   const [accountViewMode, setAccountViewMode] = useState<'account' | 'type'>('type');
   const [selectedType, setSelectedType] = useState<AccountType | null>(null);
@@ -391,7 +393,7 @@ export function HomeNetWorthPage({
       contentContainerStyle={{
         paddingHorizontal: SCREEN_GUTTER,
         paddingTop: 0,
-        paddingBottom: HOME_LAYOUT.fabContentBottomPadding,
+        paddingBottom: bottomPadding ?? HOME_LAYOUT.fabContentBottomPadding,
       }}
       onScroll={verticalScrollHandler}
       scrollEventThrottle={1}

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
+import { getScrollableBottomPadding } from '../components/ui/safeBottom';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { HomeNetWorthPage } from '../components/HomeNetWorthPage';
 import { useAccountsStore } from '../stores/useAccountsStore';
@@ -51,6 +52,7 @@ export default function NetWorthScreen() {
           isSelected={false}
           compactTop
           hideTitle
+          bottomPadding={getScrollableBottomPadding(insets)}
           onOpenAccount={(accountId) => {
             router.push(`/account/${accountId}`);
           }}

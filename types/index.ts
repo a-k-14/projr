@@ -188,6 +188,42 @@ export interface CreateLoanInput {
   date: string;
 }
 
+export type DepositStatus = 'active' | 'matured' | 'closed';
+
+export interface Deposit {
+  id: string;
+  name: string;
+  bankName?: string;
+  accountId: string;
+  principalAmount: number;
+  interestRate?: number;
+  tenureMonths?: number;
+  startDate: string;
+  maturityDate?: string;
+  maturityValue?: number;
+  status: DepositStatus;
+  note?: string;
+  createdAt: string;
+}
+
+export interface CreateDepositInput {
+  name: string;
+  bankName?: string;
+  accountId: string;
+  principalAmount: number;
+  interestRate?: number;
+  tenureMonths?: number;
+  startDate: string;
+  maturityDate?: string;
+  maturityValue?: number;
+  note?: string;
+}
+
+export interface DepositFilters {
+  status?: DepositStatus;
+  accountId?: string;
+}
+
 export interface CreateBudgetInput {
   categoryId: string;
   amount: number;

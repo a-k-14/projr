@@ -78,6 +78,22 @@ export const settings = sqliteTable('settings', {
   value: text('value').notNull(),
 });
 
+export const deposits = sqliteTable('deposits', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  bankName: text('bank_name'),
+  accountId: text('account_id').notNull().references(() => accounts.id),
+  principalAmount: real('principal_amount').notNull(),
+  interestRate: real('interest_rate'),
+  tenureMonths: integer('tenure_months'),
+  startDate: text('start_date').notNull(),
+  maturityDate: text('maturity_date'),
+  maturityValue: real('maturity_value'),
+  status: text('status').notNull().default('active'),
+  note: text('note'),
+  createdAt: text('created_at').notNull(),
+});
+
 export const persons = sqliteTable('persons', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),

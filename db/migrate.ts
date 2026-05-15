@@ -87,6 +87,23 @@ export async function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_budget_category_start ON budget(category_id, start_date);
     CREATE INDEX IF NOT EXISTS idx_loans_account_status_date ON loans(account_id, status, date);
     CREATE INDEX IF NOT EXISTS idx_categories_parent_type ON categories(parent_id, type);
+
+    CREATE TABLE IF NOT EXISTS deposits (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      bank_name TEXT,
+      account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+      principal_amount REAL NOT NULL,
+      interest_rate REAL,
+      tenure_months INTEGER,
+      start_date TEXT NOT NULL,
+      maturity_date TEXT,
+      maturity_value REAL,
+      status TEXT NOT NULL DEFAULT 'active',
+      note TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_deposits_account_status ON deposits(account_id, status);
   `);
 
   try {
