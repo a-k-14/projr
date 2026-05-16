@@ -687,7 +687,7 @@ function AccountSummaryCard({
     const r = parseInt(typeColor.slice(1, 3), 16);
     const g = parseInt(typeColor.slice(3, 5), 16);
     const b = parseInt(typeColor.slice(5, 7), 16);
-    const factor = 0.28;
+    const factor = accountType === 'cash' ? 0.48 : 0.28;
     const lr = Math.round(r + (255 - r) * factor);
     const lg = Math.round(g + (255 - g) * factor);
     const lb = Math.round(b + (255 - b) * factor);

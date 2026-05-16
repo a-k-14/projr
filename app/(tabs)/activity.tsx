@@ -613,7 +613,7 @@ export default function ActivityScreen() {
         hasUserScrolledRef.current = true;
       }
       const shouldShowStickyDate =
-        activityHeaderHeight > 0 && nativeEvent.contentOffset.y >= activityHeaderHeight;
+        activityHeaderHeight > 0 && nativeEvent.contentOffset.y >= activityHeaderHeight + 8;
       if (showStickyDateLabelRef.current !== shouldShowStickyDate) {
         showStickyDateLabelRef.current = shouldShowStickyDate;
         setShowStickyDateLabel(shouldShowStickyDate);
@@ -1111,10 +1111,11 @@ export default function ActivityScreen() {
         return (
           <View
             style={{
-              height: 34,
+              height: item.isFirst ? 30 : 54,
               paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
               paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
               paddingBottom: 1,
+              paddingTop: item.isFirst ? 0 : 20,
               backgroundColor: palette.background,
               flexDirection: 'row',
               alignItems: 'center',
@@ -1168,7 +1169,6 @@ export default function ActivityScreen() {
           useTypeAmountColor
           onPress={handleTransactionPress}
           style={{
-            marginTop: isFirst ? -2 : 0,
             marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
             backgroundColor: palette.surface,
             borderLeftWidth: 1,
@@ -1360,7 +1360,7 @@ export default function ActivityScreen() {
               pointerEvents="none"
               style={{
                 position: 'absolute',
-                top: insets.top + topBarHeight - 4,
+                top: insets.top + topBarHeight,
                 left: 0,
                 right: 0,
                 height: 34,
