@@ -61,6 +61,7 @@ import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useAssetsStore } from '../../stores/useAssetsStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
@@ -202,7 +203,8 @@ function HomeScreenContent() {
   const loanSummary = useMemo(() => getLoanSummary(loans), [loans]);
   const depositsList = useFixedDepositsStore((s) => s.deposits);
   const depositSummary = useMemo(() => getFixedDepositSummary(depositsList), [depositsList]);
-  const netWorth = totalBalance + loanSummary.net + depositSummary.activeMaturityValue;
+  const assetsValue = useAssetsStore((s) => s.totalValue);
+  const netWorth = totalBalance + loanSummary.net + depositSummary.activeMaturityValue + assetsValue;
   const budgetSummary = useMemo(() => {
     const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.amount, 0);
     const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);

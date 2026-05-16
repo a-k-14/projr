@@ -518,11 +518,14 @@ export function ActionButton({
   label,
   onPress,
   variant = 'primary',
-  palette }: {
+  palette,
+  disabled,
+}: {
     label: string;
     onPress: () => void;
     variant?: 'primary' | 'danger' | 'secondary';
     palette: AppThemePalette;
+    disabled?: boolean;
   }) {
   const styles = {
     primary: 'brand',
@@ -531,7 +534,7 @@ export function ActionButton({
   } as const;
 
   if (variant === 'primary') {
-    return <FilledButton label={label} onPress={onPress} palette={palette} tone={styles.primary} />;
+    return <FilledButton label={label} onPress={onPress} palette={palette} tone={styles.primary} disabled={disabled} />;
   }
 
   return (
@@ -540,6 +543,7 @@ export function ActionButton({
       onPress={onPress}
       palette={palette}
       tone={variant === 'danger' ? styles.danger : styles.secondary}
+      disabled={disabled}
     />
   );
 }

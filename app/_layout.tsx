@@ -155,6 +155,10 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="modals/asset-form"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="modals/select-account"
               options={{ presentation: 'transparentModal', headerShown: false }}
             />

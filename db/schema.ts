@@ -101,3 +101,12 @@ export const persons = sqliteTable('persons', {
   name: text('name').notNull(),
   createdAt: text('created_at').notNull(),
 });
+
+export const assets = sqliteTable('assets', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  icon: text('icon').notNull().default('gem'),
+  value: real('value').notNull().default(0),
+  note: text('note'),
+  createdAt: text('created_at').notNull(),
+});

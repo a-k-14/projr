@@ -103,7 +103,15 @@ export async function runMigrations() {
       note TEXT,
       created_at TEXT NOT NULL
     );
-    CREATE INDEX IF NOT EXISTS idx_deposits_account_status ON deposits(account_id, status);
+    CREATE TABLE IF NOT EXISTS assets (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'gem',
+      value REAL NOT NULL DEFAULT 0,
+      note TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_assets_created ON assets(created_at);
   `);
 
   try {
