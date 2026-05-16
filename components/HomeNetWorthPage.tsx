@@ -130,7 +130,6 @@ export function NetWorthDonut({
   const selectedItem = selectedId ? slices.find((item) => item.id === selectedId) ?? null : null;
   const selectedAmount = selectedItem ? selectedItem.amount : total;
   const selectedValue = selectedItem ? selectedItem.value : total;
-  const selectedPercent = selectedItem ? Math.round((selectedItem.amount / total) * 100) : 100;
   const donutSlices = slices.map((item) => ({
     id: item.id,
     percent: item.amount / total,
@@ -163,9 +162,6 @@ export function NetWorthDonut({
         </Text>
         <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.heavy, color: palette.text, marginTop: 4, textAlign: 'center' }}>
           {selectedAmount === 0 ? '—' : `${selectedValue < 0 ? '-' : ''}${formatCurrency(Math.abs(selectedValue), currencySymbol)}`}
-        </Text>
-        <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, marginTop: 2, color: palette.textMuted }}>
-          {selectedPercent}% of Total
         </Text>
       </View>
     </View>

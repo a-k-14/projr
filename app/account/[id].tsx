@@ -55,7 +55,6 @@ export default function AccountDetailScreen() {
     loadCategories().catch(() => undefined);
   }, [isFocused, loadCategories]);
 
-  const allAccountsTotal = useMemo(() => getTotalBalance(accounts), [accounts]);
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
@@ -166,7 +165,6 @@ export default function AccountDetailScreen() {
         loansLoaded={loansLoaded}
         loadLoans={loadLoans}
         contentBottomPadding={getScrollableBottomPadding(insets)}
-        allAccountsTotal={allAccountsTotal}
       />
 
       <Modal

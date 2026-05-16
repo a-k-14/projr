@@ -172,6 +172,7 @@ function HomeScreenContent() {
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
 
   const totalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
+
   const loanSummary = useMemo(() => getLoanSummary(loans), [loans]);
   const depositsList = useFixedDepositsStore((s) => s.deposits);
   const depositSummary = useMemo(() => getFixedDepositSummary(depositsList), [depositsList]);
@@ -301,7 +302,6 @@ function HomeScreenContent() {
           const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(amountLabel.length, 14) * 3));
           const typeMeta = ACCOUNT_TYPE_META[acc.type];
           const typeColor = typeMeta.color;
-          const pct = totalBalance !== 0 ? Math.round(Math.abs(acc.balance) / Math.abs(totalBalance) * 100) : 0;
           return (
             <AccountCarouselCard
               key={acc.id}
@@ -309,7 +309,6 @@ function HomeScreenContent() {
               palette={palette}
               amountLabel={amountLabel}
               cardWidth={cardWidth}
-              pct={pct}
               hideAmounts={hideAmounts}
               totalBalance={totalBalance}
             />
@@ -564,7 +563,6 @@ function AccountSummaryCard({
   children,
   heroMetricPeriod,
   onHeroMetricPeriodChange,
-  allAccountsTotal,
 }: {
   accountName: string;
   accountTypeLabel: string;
@@ -593,12 +591,11 @@ function AccountSummaryCard({
   children?: React.ReactNode;
   heroMetricPeriod?: 'today' | 'month';
   onHeroMetricPeriodChange?: (p: 'today' | 'month') => void;
-  allAccountsTotal?: number;
 }) {
   const isAll = accountName === 'All';
   const isAccountHero = heroMode && !isAll;
   const isHomeHero = heroMode && isAll;
-  const isWalletHero = isAccountHero && (accountType === 'wallet' || accountType === 'cash');
+  const isWalletHero = isAccountHero;
   // Home hero is white in light mode; account heroes stay coloured
   const isLightHeroCard = isHomeHero && !palette.isDark;
   const typeMeta = accountType ? ACCOUNT_TYPE_META[accountType] : undefined;
@@ -609,13 +606,16 @@ function AccountSummaryCard({
     const r = parseInt(typeColor.slice(1, 3), 16);
     const g = parseInt(typeColor.slice(3, 5), 16);
     const b = parseInt(typeColor.slice(5, 7), 16);
-    const factor = 0.18;
-    const lr = Math.round(r + (255 - r) * factor);
-    const lg = Math.round(g + (255 - g) * factor);
-    const lb = Math.round(b + (255 - b) * factor);
-    const lighter = `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
-    return [lighter, typeColor];
+    // top: full type color; bottom: darkened ~30% toward black for depth
+    const darkFactor = 0.68;
+    const dr = Math.round(r * darkFactor);
+    const dg = Math.round(g * darkFactor);
+    const db = Math.round(b * darkFactor);
+    const darker = `#${dr.toString(16).padStart(2, '0')}${dg.toString(16).padStart(2, '0')}${db.toString(16).padStart(2, '0')}`;
+    return [typeColor, darker];
   }, [accountType, typeColor]);
+  // Home hero gradient: brand color → darkened, same depth treatment as account heroes
+  const homeHeroGradient: [string, string] = palette.isDark ? ['#1A1E30', '#16192A'] : ['#1B2F47', '#2F4A6B'];
   // heroText / heroMutedText / heroSoftText: white on dark cards, palette on white cards
   const heroText = isLightHeroCard ? palette.text : (heroMode ? '#FFFFFF' : palette.text);
   const heroMutedText = isLightHeroCard ? palette.textMuted : (heroMode ? 'rgba(255,255,255,0.75)' : palette.textMuted);
@@ -626,20 +626,14 @@ function AccountSummaryCard({
   const netWorthStripBorder = isLightHeroCard
     ? palette.borderSoft
     : heroMode ? 'rgba(255,255,255,0.18)' : palette.isDark ? palette.divider : '#D8E0F0';
-  const isCashAccountHero = isAccountHero && accountType === 'cash';
   const heroMetricStripBg = isLightHeroCard
     ? palette.inputBg
     : isAccountHero
-      ? (isCashAccountHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.15)')
-      : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
-  const heroMetricStripBg2 = isLightHeroCard
-    ? palette.inputBg
-    : isAccountHero
-      ? (isCashAccountHero ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.12)')
+      ? 'rgba(255,255,255,0.15)'
       : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
   const heroMetricDivider = isLightHeroCard
     ? palette.divider
-    : isAccountHero ? 'rgba(255,255,255,0.12)' : heroMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.10)';
+    : heroMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.10)';
 
   const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
@@ -667,6 +661,25 @@ function AccountSummaryCard({
 
   // Press-scale animation — must be declared before any conditional return
   const [tickContainerWidth, setTickContainerWidth] = useState(0);
+
+  // Tick data — drives the speedometer sweep animation
+  const tickIn = isCashflow ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
+  const tickOut = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
+  const totalTick = tickIn + tickOut;
+  const incomeFraction = totalTick > 0 ? tickIn / totalTick : 0;
+  const animatedIncomeFraction = useSharedValue(incomeFraction);
+  const tickActivityProgress = useSharedValue(totalTick > 0 ? 1 : 0);
+  React.useEffect(() => {
+    animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9 });
+    tickActivityProgress.value = withTiming(totalTick > 0 ? 1 : 0, { duration: 250 });
+  }, [tickIn, tickOut]);
+  const incomeTickOverlayStyle = useAnimatedStyle(() => ({
+    width: tickActivityProgress.value * animatedIncomeFraction.value * tickContainerWidth,
+  }));
+  const expenseTickOverlayStyle = useAnimatedStyle(() => ({
+    width: tickActivityProgress.value * (1 - animatedIncomeFraction.value) * tickContainerWidth,
+  }));
+
   const cardScale = useSharedValue(1);
   const cardScaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: cardScale.value }] }));
   const handleCardPressIn = () => { cardScale.value = withSpring(0.972, { damping: 22, stiffness: 380, mass: 0.8 }); };
@@ -702,14 +715,14 @@ function AccountSummaryCard({
   const content = (
     <View
       style={{
-        backgroundColor: isLightHeroCard ? '#FFFFFF' : 'transparent',
-        borderColor: heroMode
-          ? (isLightHeroCard ? '#E2E7F4' : 'rgba(255,255,255,0.10)')
+        backgroundColor: isHomeHero ? homeHeroGradient[0] : 'transparent',
+        borderColor: isHomeHero ? 'transparent' : heroMode
+          ? ((isLightHeroCard && !isHomeHero) ? '#E2E7F4' : 'rgba(255,255,255,0.10)')
           : palette.isDark ? palette.borderSoft : '#D0D8EE',
-        borderWidth: 1,
+        borderWidth: isHomeHero ? 0 : 1,
         borderRadius: HOME_RADIUS.card,
         overflow: 'hidden',
-        ...((isLightHeroCard || (isAccountHero && !palette.isDark)) ? {
+        ...((isAccountHero || isHomeHero) && !palette.isDark ? {
           elevation: 6,
           shadowColor: '#94A3B8',
           shadowOffset: { width: 0, height: 3 },
@@ -721,22 +734,20 @@ function AccountSummaryCard({
     >
       <LinearGradient
         colors={
-          isLightHeroCard
-            ? ['#FFFFFF', '#FFFFFF']
-            : isWalletHero
-              ? [accountHeroDarkGradient[0], accountHeroDarkGradient[1], palette.card, palette.card]
-              : heroMode
-                ? (isAccountHero ? accountHeroDarkGradient : ['#16192A', '#1A1E30'])
-                : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']
+          isWalletHero
+            ? [accountHeroDarkGradient[0], accountHeroDarkGradient[1], palette.card, palette.card]
+            : isHomeHero
+              ? [homeHeroGradient[0], homeHeroGradient[1]]
+              : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']
         }
-        locations={isWalletHero ? [0, 0.44, 0.44, 1] : heroMode ? [0, 1] : undefined}
+        locations={isWalletHero ? [0, 0.44, 0.44, 1] : undefined}
         start={{ x: 0, y: 0 }}
-        end={isWalletHero ? { x: 0, y: 1 } : { x: 1, y: 1 }}
+        end={isWalletHero ? { x: 0, y: 1 } : isHomeHero ? { x: 1, y: 0 } : { x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
 
 
-      <View style={{ paddingHorizontal: heroMode ? 14 : CARD_PADDING, paddingTop: heroMode ? 14 : 20, paddingBottom: isWalletHero ? 0 : heroMode ? 12 : 22 }}>
+      <View style={{ paddingHorizontal: heroMode ? 14 : CARD_PADDING, paddingTop: heroMode ? 14 : 20, paddingBottom: (isWalletHero || isHomeHero) ? 0 : heroMode ? 12 : 22 }}>
         {/* Top Section */}
         {isAccountHero ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
@@ -756,17 +767,12 @@ function AccountSummaryCard({
                 />
               </View>
             )}
-            {/* Col 2: [name · % of total] on row 1, balance on row 2 */}
+            {/* Col 2: name row 1, balance row 2 */}
             <View style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: heroMutedText, letterSpacing: 0.4, flexShrink: 1, marginRight: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: heroMutedText, letterSpacing: 0.4 }}>
                   {accountName}
                 </Text>
-                {allAccountsTotal !== undefined && allAccountsTotal !== 0 && (
-                  <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: heroMutedText, flexShrink: 0 }}>
-                    {Math.round((Math.abs(balance) / Math.abs(allAccountsTotal)) * 100)}% of Total
-                  </Text>
-                )}
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                 {currencySymbol && (
@@ -782,11 +788,11 @@ function AccountSummaryCard({
             </View>
           </View>
         ) : heroMode ? (
-          /* Home hero: aurora bg, label top-left + NW top-right, big balance, no icon */
+          /* Home hero: dark gradient top, label + NW chip + big balance */
           <View style={{ marginBottom: 14 }}>
             {/* Row 1: label (left) + NW tappable (right) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.bold, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.8, textTransform: 'uppercase' }}>
                 All Accounts
               </Text>
               {onOpenNetWorth && typeof netWorth === 'number' ? (
@@ -796,7 +802,7 @@ function AccountSummaryCard({
                   onPress={onOpenNetWorth}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
                 >
-                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.brand, fontFamily: 'monospace' }}>
+                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.90)', fontFamily: 'monospace' }}>
                     {hideAmounts ? 'NW ••••' : `NW ${formatNetWorthStripValue(netWorth, currencySymbol)}`}
                   </Text>
                   {netWorthChange !== undefined && (
@@ -809,7 +815,7 @@ function AccountSummaryCard({
                       </Text>
                     </View>
                   )}
-                  <AppIcon name="chevron-right" size={12} color={palette.textSoft} strokeWidth={2} />
+                  <AppIcon name="chevron-right" size={12} color='rgba(255,255,255,0.40)' strokeWidth={2} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -817,7 +823,7 @@ function AccountSummaryCard({
             {/* Row 2: big balance number */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
               {currencySymbol ? (
-                <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, marginRight: 4 }}>
+                <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.65)', marginRight: 4 }}>
                   {currencySymbol}
                 </Text>
               ) : null}
@@ -825,12 +831,12 @@ function AccountSummaryCard({
                 appWeight="medium"
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: FONT_WEIGHT.bold, color: palette.text, letterSpacing: -0.5, flexShrink: 1 }}
+                style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: FONT_WEIGHT.semibold, color: '#FFFFFF', letterSpacing: -0.5, flexShrink: 1 }}
               >
                 {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
               </Text>
               {balanceDec ? (
-                <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: -0.2 }}>
+                <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.65)', letterSpacing: -0.2 }}>
                   {balanceDec}
                 </Text>
               ) : null}
@@ -879,12 +885,6 @@ function AccountSummaryCard({
           const TICK_TOTAL = tickContainerWidth > 0
             ? Math.floor((tickContainerWidth + TICK_GAP) / (TICK_W + TICK_GAP))
             : 40;
-          const tickIn = isCashflow ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
-          const tickOut = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
-          const totalMetric = tickIn + tickOut;
-          const hasActivity = totalMetric > 0;
-          const incomeTicks = hasActivity ? Math.round(TICK_TOTAL * (tickIn / totalMetric)) : 0;
-          const expenseTicks = hasActivity ? TICK_TOTAL - incomeTicks : 0;
           const walletCardBg = palette.isDark ? '#1A1F2E' : '#FFFFFF';
           return (
             <View style={{ marginHorizontal: -14, marginBottom: -12 }}>
@@ -952,17 +952,28 @@ function AccountSummaryCard({
                     </Animated.View>
                   )}
                 </View>
-                {/* Tick chart — fixed-width ticks, count derived from measured container */}
+                {/* Tick chart — speedometer sweep: overlays animate width from each edge */}
                 <View
                   style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 6 }}
                   onLayout={(e) => setTickContainerWidth(e.nativeEvent.layout.width)}
                 >
                   {Array.from({ length: TICK_TOTAL }).map((_, i) => (
-                    <View
-                      key={i}
-                      style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: !hasActivity ? (palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)') : i < incomeTicks ? '#0D9488' : '#F87171' }}
-                    />
+                    <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
                   ))}
+                  <Animated.View style={[{ position: 'absolute', left: 0, top: 0, height: 12, overflow: 'hidden' }, incomeTickOverlayStyle]}>
+                    <View style={{ flexDirection: 'row', gap: TICK_GAP }}>
+                      {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+                        <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: '#0D9488' }} />
+                      ))}
+                    </View>
+                  </Animated.View>
+                  <Animated.View style={[{ position: 'absolute', right: 0, top: 0, height: 12, overflow: 'hidden' }, expenseTickOverlayStyle]}>
+                    <View style={{ position: 'absolute', right: 0, flexDirection: 'row', gap: TICK_GAP }}>
+                      {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+                        <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: '#F87171' }} />
+                      ))}
+                    </View>
+                  </Animated.View>
                 </View>
                 {/* Income / Expense values */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
@@ -993,134 +1004,13 @@ function AccountSummaryCard({
           );
         })()}
 
-        {/* ── Account Hero: unified container — period switch + cashflow/date row + income/expense strip ── */}
-        {isAccountHero && !isWalletHero ? (
-          <View style={{
-            marginTop: 8,
-            borderRadius: HOME_RADIUS.cardSm,
-            overflow: 'hidden',
-            borderWidth: 1,
-            borderColor: isLightHeroCard ? 'rgba(0,0,0,0.07)' : (isCashAccountHero ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.12)'),
-            backgroundColor: heroMetricStripBg2,
-          }}>
-            {/* Period switch */}
-            {period && onPeriodChange && (
-              <View style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 0 }}>
-                <SegmentedPillSwitch
-                  options={periodOptions}
-                  value={period}
-                  onChange={(key) => {
-                    const nextPeriod = key as HomePeriodType;
-                    if (nextPeriod === 'custom') { onOpenCustomRange?.(); return; }
-                    onPeriodChange(nextPeriod);
-                  }}
-                  backgroundColor={isLightHeroCard ? palette.background : 'rgba(0,0,0,0.14)'}
-                  pillColor={isLightHeroCard ? palette.brand : 'rgba(255,255,255,0.24)'}
-                  borderColor={isLightHeroCard ? 'transparent' : 'rgba(255,255,255,0.20)'}
-                  activeTextColor='#FFFFFF'
-                  inactiveTextColor={isLightHeroCard ? heroMutedText : 'rgba(255,255,255,0.65)'}
-                  height={32}
-                  radius={14}
-                  fontSize={10.5}
-                  itemMinWidth={54}
-                  style={{ alignSelf: 'stretch' }}
-                />
 
-                {/* Cashflow toggle (left) + date (right, top-aligned) — same row */}
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 7, marginBottom: 8 }}>
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    activeOpacity={0.78}
-                    onPress={() => onToggleCashflowView?.(!isCashflowView)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
-                  >
-                    <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: heroMutedText }}>
-                      Cashflow
-                    </Text>
-                    <Animated.View style={[cashflowTrackStyle, {
-                      width: TOGGLE_W, height: 20,
-                      borderRadius: HOME_RADIUS.full,
-                      borderWidth: 1,
-                      borderColor: isCashflowView ? palette.brand : (isLightHeroCard ? palette.borderSoft : 'rgba(255,255,255,0.22)'),
-                    }]}>
-                      <Animated.View style={[cashflowThumbStyle, {
-                        position: 'absolute',
-                        top: TOGGLE_PAD,
-                        width: TOGGLE_THUMB, height: TOGGLE_THUMB,
-                        borderRadius: TOGGLE_THUMB / 2,
-                        backgroundColor: isCashflowView ? '#FFFFFF' : (isLightHeroCard ? palette.textSoft : 'rgba(255,255,255,0.90)'),
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.18,
-                        shadowRadius: 2,
-                        elevation: 2,
-                      }]} />
-                    </Animated.View>
-                  </TouchableOpacity>
-
-                  {/* Date — right side, top-aligned with toggle */}
-                  {from && to && (
-                    <Animated.View
-                      layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)}
-                      style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 1, justifyContent: 'flex-end' }}
-                    >
-                      <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 10, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                        {formatDate(from)}
-                      </Text>
-                      {period !== 'today' && (
-                        <Animated.View entering={FadeInRight.duration(200)} exiting={FadeOutRight.duration(200)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: 10, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                            {` - ${formatDate(to)}`}
-                          </Text>
-                        </Animated.View>
-                      )}
-                    </Animated.View>
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* Divider + income/expense halves — always rendered so values update in-place */}
-            <View style={{ height: 1, backgroundColor: heroMetricDivider }} />
-            <View style={{ flexDirection: 'row' }}>
-              <TouchableOpacity delayPressIn={0} activeOpacity={0.76} disabled={!onPressMetricIn} onPress={onPressMetricIn} style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                  <AppIcon name="arrow-down-left" size={11} color={heroSoftText} strokeWidth={2} />
-                  <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>{metricLeftLabel}</Text>
-                </View>
-                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
-                  {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
-                </Text>
-              </TouchableOpacity>
-              <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: heroMetricDivider }} />
-              <TouchableOpacity delayPressIn={0} activeOpacity={0.76} disabled={!onPressMetricOut} onPress={onPressMetricOut} style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'flex-end' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                  <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>{metricRightLabel}</Text>
-                  <AppIcon name="arrow-up-right" size={11} color={heroSoftText} strokeWidth={2} />
-                </View>
-                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
-                  {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : null}
-
-        {/* ── Home Hero metric strip (unchanged) ── */}
+        {/* ── Home Hero metric strip — flat white bottom section, mirrors wallet card layout ── */}
         {isHomeHero && incomeExpense ? (
-          <View
-            style={{
-              borderRadius: HOME_RADIUS.cardSm,
-              overflow: 'hidden',
-              borderWidth: 1,
-              borderColor: isLightHeroCard ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)',
-              backgroundColor: heroMetricStripBg,
-            }}
-          >
-            {/* Strip header: period toggle + cashflow switch (home only) */}
-            {isHomeHero && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 }}>
-                {/* Today / Month pills */}
+          <View style={{ marginHorizontal: -14, marginBottom: 0 }}>
+            <View style={{ backgroundColor: palette.isDark ? '#1A1F2E' : '#FFFFFF', paddingTop: 10, paddingBottom: 12 }}>
+              {/* Period toggle + cashflow switch */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingBottom: 8 }}>
                 <View style={{ flexDirection: 'row', gap: 2 }}>
                   {(['today', 'month'] as const).map((p) => {
                     const active = (heroMetricPeriod ?? 'today') === p;
@@ -1134,26 +1024,23 @@ function AccountSummaryCard({
                           paddingHorizontal: 12,
                           paddingVertical: 5,
                           borderRadius: HOME_RADIUS.pill,
-                          backgroundColor: active
-                            ? (isHomeHero ? palette.brand : 'rgba(255,255,255,0.18)')
-                            : 'transparent',
+                          backgroundColor: active ? palette.brand : 'transparent',
                         }}
                       >
-                        <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: active ? '600' : '400', color: active ? (isHomeHero ? '#FFFFFF' : '#FFFFFF') : heroSoftText }}>
+                        <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: active ? '600' : '400', color: active ? '#FFFFFF' : palette.textMuted }}>
                           {p === 'today' ? 'Today' : 'Month'}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-                {/* Cashflow toggle */}
                 <TouchableOpacity
                   delayPressIn={0}
                   activeOpacity={0.78}
                   onPress={() => onToggleCashflowView?.(!isCashflowView)}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
                 >
-                  <Text style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.medium, color: isCashflow ? (isHomeHero ? palette.brand : heroMutedText) : heroSoftText }}>
+                  <Text style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.medium, color: isCashflow ? palette.brand : palette.textMuted }}>
                     Cashflow
                   </Text>
                   <View style={{
@@ -1167,50 +1054,50 @@ function AccountSummaryCard({
                   </View>
                 </TouchableOpacity>
               </View>
-            )}
 
-            {/* Divider */}
-            {isHomeHero && <View style={{ height: 1, backgroundColor: heroMetricDivider }} />}
+              {/* Divider */}
+              <View style={{ height: 1, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : palette.divider }} />
 
-            {/* Income | Expense halves */}
-            <View style={{ flexDirection: 'row' }}>
-              <TouchableOpacity
-                delayPressIn={0}
-                activeOpacity={0.76}
-                disabled={!onPressMetricIn}
-                onPress={onPressMetricIn}
-                style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10 }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                  <AppIcon name="arrow-down-left" size={11} color={heroSoftText} strokeWidth={2} />
-                  <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                    {metricLeftLabel}
+              {/* Income | Expense halves */}
+              <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity
+                  delayPressIn={0}
+                  activeOpacity={0.76}
+                  disabled={!onPressMetricIn}
+                  onPress={onPressMetricIn}
+                  style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10 }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                    <AppIcon name="arrow-down-left" size={11} color={palette.textMuted} strokeWidth={2} />
+                    <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                      {metricLeftLabel}
+                    </Text>
+                  </View>
+                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                    {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
                   </Text>
-                </View>
-                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
-                  {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
-                </Text>
-              </TouchableOpacity>
+                </TouchableOpacity>
 
-              <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: heroMetricDivider }} />
+                <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : palette.divider }} />
 
-              <TouchableOpacity
-                delayPressIn={0}
-                activeOpacity={0.76}
-                disabled={!onPressMetricOut}
-                onPress={onPressMetricOut}
-                style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'flex-end' }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                  <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: heroSoftText, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                    {metricRightLabel}
+                <TouchableOpacity
+                  delayPressIn={0}
+                  activeOpacity={0.76}
+                  disabled={!onPressMetricOut}
+                  onPress={onPressMetricOut}
+                  style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'flex-end' }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                    <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                      {metricRightLabel}
+                    </Text>
+                    <AppIcon name="arrow-up-right" size={11} color={palette.textMuted} strokeWidth={2} />
+                  </View>
+                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                    {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
                   </Text>
-                  <AppIcon name="arrow-up-right" size={11} color={heroSoftText} strokeWidth={2} />
-                </View>
-                <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? heroSoftText : heroText, letterSpacing: -0.2 }}>
-                  {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
-                </Text>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ) : null}
@@ -1377,7 +1264,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   loadLoans,
   hideAmounts,
   contentBottomPadding,
-  allAccountsTotal,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1413,7 +1299,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   loadLoans: (filters?: { accountId?: string; status?: LoanStatus }) => Promise<void>;
   hideAmounts?: boolean;
   contentBottomPadding?: number;
-  allAccountsTotal?: number;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1614,7 +1499,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
             from={from}
             to={to}
-            allAccountsTotal={accountId !== 'all' ? allAccountsTotal : undefined}
           />
           <View
             onLayout={(event) => {
@@ -1776,7 +1660,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   );
 });
 
-function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, pct, hideAmounts, totalBalance }: any) {
+function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts, totalBalance }: any) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const typeMeta = ACCOUNT_TYPE_META[acc.type as AccountType];
@@ -1817,14 +1701,23 @@ function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, pct, hideAm
             </View>
           </View>
           <View style={{ marginTop: 16 }}>
-            <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: acc.balance < 0 ? palette.negative : palette.text }}>
-              {amountLabel}
-            </Text>
-            {totalBalance !== 0 && !hideAmounts && (
-              <Text style={{ fontSize: HOME_TEXT.metaTiny, color: palette.textMuted, marginTop: 2 }}>
-                {pct}% of Total
-              </Text>
-            )}
+            {(() => {
+              if (hideAmounts || !amountLabel.includes('.')) {
+                return (
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: acc.balance < 0 ? palette.negative : palette.text }}>
+                    {amountLabel}
+                  </Text>
+                );
+              }
+              const dotIndex = amountLabel.lastIndexOf('.');
+              const intPart = amountLabel.slice(0, dotIndex);
+              const decPart = amountLabel.slice(dotIndex);
+              return (
+                <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: acc.balance < 0 ? palette.negative : palette.text }}>
+                  {intPart}<Text style={{ fontSize: HOME_TEXT.rowLabel - 4 }}>{decPart}</Text>
+                </Text>
+              );
+            })()}
           </View>
         </View>
       </Animated.View>

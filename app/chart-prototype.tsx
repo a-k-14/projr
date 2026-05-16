@@ -315,11 +315,6 @@ export default function ChartPrototypeScreen() {
               <Text style={[styles.centerAmount, { color: theme.text }]}>
                 {formatMoney(drillParentId && selectedParentSlice ? selectedParentSlice.amount : total)}
               </Text>
-              <Text style={[styles.centerMeta, { color: theme.muted }]}>
-                {drillParentId && selectedParentSlice
-                  ? `${Math.round(selectedParentSlice.percent * 100)}% of total`
-                  : '100% of total'}
-              </Text>
             </View>
           </View>
 

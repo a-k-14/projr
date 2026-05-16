@@ -235,7 +235,7 @@ export function HomeDonutChartBlock({
   const isEmpty = parentSlices.length === 0;
   const showEmptySubcategories = isSubcategoryLevel && visibleListSlices.length === 0;
   const selectedSliceAmount = visibleListSlices.find((slice) => slice.id === selectedSliceId)?.amount;
-  const selectedSlicePercent = visibleListSlices.find((slice) => slice.id === selectedSliceId)?.percent;
+
 
   useEffect(() => {
     if (controlledMode === undefined) setInternalMode(initialMode);
@@ -399,13 +399,6 @@ export function HomeDonutChartBlock({
                 {(selectedSliceAmount ?? selectedParentSlice?.amount ?? total) === 0
                   ? '—'
                   : formatCurrency(selectedSliceAmount ?? selectedParentSlice?.amount ?? total, sym)}
-              </Text>
-              <Text style={[styles.centerMeta, { color: theme.muted }]}>
-                {selectedSliceId
-                  ? `${Math.round((selectedSlicePercent ?? 0) * 100)}% of Total`
-                  : selectedParentSlice
-                    ? `${Math.round(selectedParentSlice.percent * 100)}% of Total`
-                    : '100% of Total'}
               </Text>
             </View>
           </>
