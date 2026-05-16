@@ -26,40 +26,36 @@ import Animated, {
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { HomeDonutChartBlock, type HomeChartMode } from '../../components/HomeDonutChartBlock';
-import { HomeNetWorthPage } from '../../components/HomeNetWorthPage';
 import { ScreenTitle } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
-import { AppDonutChart } from '../../components/ui/AppDonutChart';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { getCompactScrollableBottomPadding } from '../../components/ui/safeBottom';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
+import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   formatDate,
   getDateRange,
   toLocalDayEndISO,
   toLocalDayStartISO
 } from '../../lib/dateUtils';
-import { formatCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
-import { CARD_PADDING, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../../lib/design';
-import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
-import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
+import { formatCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
+import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
+import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
   BUTTON_TOKENS,
-  HOME_LAYOUT,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_SURFACE,
-  HOME_TEXT,
-  SCREEN_HEADER
+  HOME_TEXT
 } from '../../lib/layoutTokens';
-import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
+import { ACCOUNT_TYPE_META } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot } from '../../services/analytics';
@@ -67,11 +63,10 @@ import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import type {
-  Account,
   AccountType,
   CashflowSummary,
   Category,
@@ -744,7 +739,7 @@ function AccountSummaryCard({
   // Cashflow toggle animation — track: 36×20, thumb: 14×14, padding: 2
   const TOGGLE_W = 36, TOGGLE_THUMB = 14, TOGGLE_PAD = 2;
   const TOGGLE_OFF = TOGGLE_PAD;
-  const TOGGLE_ON  = TOGGLE_W - TOGGLE_THUMB - TOGGLE_PAD;
+  const TOGGLE_ON = TOGGLE_W - TOGGLE_THUMB - TOGGLE_PAD;
   const cashflowThumb = useSharedValue(isCashflowView ? TOGGLE_ON : TOGGLE_OFF);
   React.useEffect(() => {
     cashflowThumb.value = withTiming(isCashflowView ? TOGGLE_ON : TOGGLE_OFF, { duration: 150 });
@@ -1795,7 +1790,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           )}
 
           {accountId === 'all' && (
-            <View style={{ width: '100%', alignItems: 'center', marginBottom: -70 }}>
+            <View style={{ width: '100%', alignItems: 'center', marginBottom: -100 }}>
               <Text
                 style={{
                   fontSize: 180,
