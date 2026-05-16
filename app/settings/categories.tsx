@@ -186,7 +186,7 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
       <View style={{ flex: 1 }}>
         <Stack.Screen
           options={{
@@ -200,7 +200,6 @@ export default function CategoriesScreen() {
             width: '100%',
             borderBottomWidth: 1,
             borderBottomColor: palette.divider,
-            marginBottom: 8,
             position: 'relative'
           }}
         >

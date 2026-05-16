@@ -134,7 +134,6 @@ export default function RootLayout() {
         <SecurityGuard>
           <Stack
             screenOptions={{
-              animationDuration: 200,
               contentStyle: {
                 backgroundColor: palette.background } }}
           >

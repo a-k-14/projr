@@ -41,7 +41,7 @@ export function getTransactionCashflowImpact(tx: {
   if (tx.type === 'in') return 'in';
   if (tx.type === 'out') return 'out';
   if (tx.type === 'deposit') {
-    // Creating a deposit moves money OUT of source; closing brings it back IN.
+    // Creating a deposit moves money OUT of source; closing/maturity brings it back IN.
     return tx.depositTransactionType === 'closed' ? 'in' : 'out';
   }
   if (tx.type === 'loan' && options?.includeLoans !== false) {

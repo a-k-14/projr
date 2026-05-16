@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { View, TouchableOpacity } from 'react-native';
+import { View, Pressable } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { BottomSheet } from './ui/BottomSheet';
 import { CALCULATOR_DISPLAY_MAX_LINES, getCalculatorDisplayMetrics } from '../lib/calculatorDisplay';
@@ -212,35 +213,45 @@ function CalcButton({
         ? (brandSoft || palette.brandSoft)
         : palette.surface;
 
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
   return (
-    <TouchableOpacity
-      delayPressIn={0}
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.4}
-      style={{
-        flex: 1,
-        minHeight: 58,
-        borderRadius: HOME_RADIUS.pill,
-        backgroundColor: bg,
-        borderWidth: 1,
-        borderColor: primary ? (brandColor || palette.tabActive) : palette.divider,
-        alignItems: 'center',
-        justifyContent: 'center',
+      onPressIn={() => {
+        scale.value = withTiming(0.9, { duration: 80 });
       }}
+      onPressOut={() => {
+        scale.value = withTiming(1, { duration: 100 });
+      }}
+      style={{ flex: 1 }}
     >
-      {label === '⌫' ? (
-        <AppIcon name="delete" size={22} color={primary ? (brandOnColor || palette.onBrand) : palette.text} strokeWidth={1.9} />
-      ) : (
-        <Text
-          style={{
-            fontSize: label === 'OK' ? 16 : 18,
-            fontWeight: primary ? PRIMARY_ACTION.labelWeight : BUTTON_TOKENS.text.labelWeight,
-            color: primary ? (brandOnColor || palette.onBrand) : palette.text,
-          }}
-        >
-          {label}
-        </Text>
-      )}
-    </TouchableOpacity>
+      <Animated.View
+        style={[animStyle, {
+          minHeight: 58,
+          borderRadius: HOME_RADIUS.pill,
+          backgroundColor: bg,
+          borderWidth: 1,
+          borderColor: primary ? (brandColor || palette.tabActive) : palette.divider,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }]}
+      >
+        {label === '⌫' ? (
+          <AppIcon name="delete" size={22} color={primary ? (brandOnColor || palette.onBrand) : palette.text} strokeWidth={1.9} />
+        ) : (
+          <Text
+            style={{
+              fontSize: label === 'OK' ? 16 : 18,
+              fontWeight: primary ? PRIMARY_ACTION.labelWeight : BUTTON_TOKENS.text.labelWeight,
+              color: primary ? (brandOnColor || palette.onBrand) : palette.text,
+            }}
+          >
+            {label}
+          </Text>
+        )}
+      </Animated.View>
+    </Pressable>
   );
 }

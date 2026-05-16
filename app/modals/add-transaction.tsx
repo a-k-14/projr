@@ -914,7 +914,7 @@ export default function AddTransactionModal() {
                   style={{
                     paddingVertical: 8,
                     paddingHorizontal: 18,
-                    borderRadius: 20,
+                    borderRadius: HOME_RADIUS.card,
                     borderWidth: 1.5,
                     alignItems: 'center',
                     borderColor: type === t ? TYPE_CONFIG[t].borderColor : palette.border,

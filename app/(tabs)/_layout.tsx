@@ -115,7 +115,7 @@ function AppTabBar({
                   style={{
                     width: 54,
                     height: 44,
-                    borderRadius: 15,
+                    borderRadius: HOME_RADIUS.button,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: palette.isDark ? palette.surfaceRaised : palette.text,

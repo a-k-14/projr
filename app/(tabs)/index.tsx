@@ -26,7 +26,6 @@ import Animated, {
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { HomeDonutChartBlock, type HomeChartMode } from '../../components/HomeDonutChartBlock';
 import { ScreenTitle } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
@@ -98,33 +97,6 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
   year: 'Year',
   custom: 'Custom'
 };
-function HeroCardAurora({ palette }: { palette: AppThemePalette }) {
-  const brand = palette.brand;
-  return (
-    <Svg
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      width="100%"
-      height="100%"
-      viewBox="0 0 400 230"
-      preserveAspectRatio="none"
-    >
-      <Defs>
-        {/* Top-right blob */}
-        <RadialGradient id="aur1" cx="88%" cy="15%" r="55%" fx="88%" fy="15%">
-          <Stop offset="0%" stopColor={brand} stopOpacity={palette.isDark ? 0.22 : 0.14} />
-          <Stop offset="100%" stopColor={brand} stopOpacity={0} />
-        </RadialGradient>
-        {/* Bottom-left blob */}
-        <RadialGradient id="aur2" cx="8%" cy="88%" r="42%" fx="8%" fy="88%">
-          <Stop offset="0%" stopColor={brand} stopOpacity={palette.isDark ? 0.14 : 0.09} />
-          <Stop offset="100%" stopColor={brand} stopOpacity={0} />
-        </RadialGradient>
-      </Defs>
-      <Rect x={0} y={0} width={400} height={230} fill="url(#aur1)" />
-      <Rect x={0} y={0} width={400} height={230} fill="url(#aur2)" />
-    </Svg>
-  );
-}
 
 const ACCOUNT_TYPE_SORT_ORDER: Record<AccountType, number> = {
   savings: 0,
@@ -331,69 +303,19 @@ function HomeScreenContent() {
           const typeColor = typeMeta.color;
           const pct = totalBalance !== 0 ? Math.round(Math.abs(acc.balance) / Math.abs(totalBalance) * 100) : 0;
           return (
-            <TouchableOpacity
+            <AccountCarouselCard
               key={acc.id}
-              onPress={() => router.push(`/account/${acc.id}`)}
-              activeOpacity={0.78}
-              style={{
-                width: cardWidth,
-                backgroundColor: palette.surface,
-                borderRadius: HOME_RADIUS.card,
-                borderWidth: 1,
-                borderColor: palette.borderSoft,
-                overflow: 'hidden',
-              }}
-            >
-              <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 116, justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: HOME_RADIUS.chip,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: typeMeta.bg ?? `${typeColor}18`,
-                    }}
-                  >
-                    <AppIcon name={typeMeta.icon} size={18} color={typeColor} strokeWidth={1.8} />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
-                  </View>
-                </View>
-                <View style={{ marginTop: 16 }}>
-                  <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: acc.balance < 0 ? palette.negative : palette.text }}>
-                    {amountLabel}
-                  </Text>
-                  {totalBalance !== 0 && !hideAmounts && (
-                    <Text style={{ fontSize: HOME_TEXT.metaTiny, color: palette.textMuted, marginTop: 2 }}>
-                      {pct}% of Total
-                    </Text>
-                  )}
-                </View>
-              </View>
-            </TouchableOpacity>
+              acc={acc}
+              palette={palette}
+              amountLabel={amountLabel}
+              cardWidth={cardWidth}
+              pct={pct}
+              hideAmounts={hideAmounts}
+              totalBalance={totalBalance}
+            />
           );
         })}
-        <TouchableOpacity
-          onPress={() => router.push('/settings/account-form')}
-          style={{
-            width: 140,
-            padding: 16,
-            backgroundColor: palette.surface,
-            borderRadius: HOME_RADIUS.card,
-            borderWidth: 1,
-            borderStyle: 'dashed',
-            borderColor: palette.borderSoft,
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          }}
-        >
-          <AppIcon name="plus-circle" size={22} color={palette.text} />
-          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Add Account</Text>
-        </TouchableOpacity>
+        <AccountCarouselAddCard palette={palette} />
       </ScrollView>
 
       <View style={{ marginTop: 30, marginBottom: 14 }}>
@@ -563,15 +485,18 @@ function MoreShortcutCard({
   };
   palette: AppThemePalette;
 }) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
   return (
-    <TouchableOpacity
-      delayPressIn={0}
+    <Pressable
       onPress={() => router.push(feature.route as any)}
-      activeOpacity={0.78}
+      onPressIn={() => { scale.value = withTiming(0.96, { duration: 100 }); }}
+      onPressOut={() => { scale.value = withTiming(1, { duration: 150 }); }}
       style={{ width: '48.2%' }}
     >
-      <View
-        style={{
+      <Animated.View
+        style={[animStyle, {
           height: 124,
           padding: 16,
           borderRadius: HOME_RADIUS.card,
@@ -579,7 +504,7 @@ function MoreShortcutCard({
           borderColor: palette.borderSoft,
           backgroundColor: palette.surface,
           justifyContent: 'space-between',
-        }}
+        }]}
       >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <View
@@ -605,8 +530,8 @@ function MoreShortcutCard({
             {feature.meta}
           </Text>
         </View>
-      </View>
-    </TouchableOpacity>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -673,7 +598,7 @@ function AccountSummaryCard({
   const isAll = accountName === 'All';
   const isAccountHero = heroMode && !isAll;
   const isHomeHero = heroMode && isAll;
-  const isWalletHero = isAccountHero && accountType === 'wallet';
+  const isWalletHero = isAccountHero && (accountType === 'wallet' || accountType === 'cash');
   // Home hero is white in light mode; account heroes stay coloured
   const isLightHeroCard = isHomeHero && !palette.isDark;
   const typeMeta = accountType ? ACCOUNT_TYPE_META[accountType] : undefined;
@@ -684,7 +609,7 @@ function AccountSummaryCard({
     const r = parseInt(typeColor.slice(1, 3), 16);
     const g = parseInt(typeColor.slice(3, 5), 16);
     const b = parseInt(typeColor.slice(5, 7), 16);
-    const factor = accountType === 'cash' ? 0.48 : 0.28;
+    const factor = 0.18;
     const lr = Math.round(r + (255 - r) * factor);
     const lg = Math.round(g + (255 - g) * factor);
     const lb = Math.round(b + (255 - b) * factor);
@@ -701,9 +626,17 @@ function AccountSummaryCard({
   const netWorthStripBorder = isLightHeroCard
     ? palette.borderSoft
     : heroMode ? 'rgba(255,255,255,0.18)' : palette.isDark ? palette.divider : '#D8E0F0';
+  const isCashAccountHero = isAccountHero && accountType === 'cash';
   const heroMetricStripBg = isLightHeroCard
     ? palette.inputBg
-    : isAccountHero ? 'rgba(255,255,255,0.12)' : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
+    : isAccountHero
+      ? (isCashAccountHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.15)')
+      : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
+  const heroMetricStripBg2 = isLightHeroCard
+    ? palette.inputBg
+    : isAccountHero
+      ? (isCashAccountHero ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.12)')
+      : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
   const heroMetricDivider = isLightHeroCard
     ? palette.divider
     : isAccountHero ? 'rgba(255,255,255,0.12)' : heroMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.10)';
@@ -733,6 +666,7 @@ function AccountSummaryCard({
   const periodOptions = PERIODS.map((item) => ({ key: item, label: PERIOD_LABELS[item] }));
 
   // Press-scale animation — must be declared before any conditional return
+  const [tickContainerWidth, setTickContainerWidth] = useState(0);
   const cardScale = useSharedValue(1);
   const cardScaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: cardScale.value }] }));
   const handleCardPressIn = () => { cardScale.value = withSpring(0.972, { damping: 22, stiffness: 380, mass: 0.8 }); };
@@ -743,8 +677,10 @@ function AccountSummaryCard({
   const TOGGLE_OFF = TOGGLE_PAD;
   const TOGGLE_ON = TOGGLE_W - TOGGLE_THUMB - TOGGLE_PAD;
   const cashflowThumb = useSharedValue(isCashflowView ? TOGGLE_ON : TOGGLE_OFF);
+  const cashflowNoteProgress = useSharedValue(isCashflowView ? 1 : 0);
   React.useEffect(() => {
     cashflowThumb.value = withTiming(isCashflowView ? TOGGLE_ON : TOGGLE_OFF, { duration: 150 });
+    cashflowNoteProgress.value = withTiming(isCashflowView ? 1 : 0, { duration: 220 });
   }, [isCashflowView]);
   const cashflowThumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: cashflowThumb.value }],
@@ -756,6 +692,12 @@ function AccountSummaryCard({
       [isLightHeroCard ? palette.inputBg : 'rgba(0,0,0,0.14)', palette.brand]
     ),
   }));
+  const CASHFLOW_NOTE_H = 30;
+  const cashflowNoteStyle = useAnimatedStyle(() => ({
+    height: cashflowNoteProgress.value * CASHFLOW_NOTE_H,
+    opacity: cashflowNoteProgress.value,
+    overflow: 'hidden',
+  }));
 
   const content = (
     <View
@@ -765,7 +707,7 @@ function AccountSummaryCard({
           ? (isLightHeroCard ? '#E2E7F4' : 'rgba(255,255,255,0.10)')
           : palette.isDark ? palette.borderSoft : '#D0D8EE',
         borderWidth: 1,
-        borderRadius: heroMode ? 28 : 22,
+        borderRadius: HOME_RADIUS.card,
         overflow: 'hidden',
         ...((isLightHeroCard || (isAccountHero && !palette.isDark)) ? {
           elevation: 6,
@@ -792,7 +734,7 @@ function AccountSummaryCard({
         end={isWalletHero ? { x: 0, y: 1 } : { x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      {null}
+
 
       <View style={{ paddingHorizontal: heroMode ? 14 : CARD_PADDING, paddingTop: heroMode ? 14 : 20, paddingBottom: isWalletHero ? 0 : heroMode ? 12 : 22 }}>
         {/* Top Section */}
@@ -933,10 +875,16 @@ function AccountSummaryCard({
 
         {/* ── Wallet Hero: two-tone card — flat bottom section with tick chart ── */}
         {isWalletHero && (() => {
-          const TICK_TOTAL = 65;
-          const totalMetric = (incomeExpense?.income ?? 0) + (incomeExpense?.expense ?? 0);
-          const incomeTicks = totalMetric > 0 ? Math.round(TICK_TOTAL * (incomeExpense!.income / totalMetric)) : Math.round(TICK_TOTAL / 2);
-          const expenseTicks = TICK_TOTAL - incomeTicks;
+          const TICK_W = 2.3, TICK_GAP = 4;
+          const TICK_TOTAL = tickContainerWidth > 0
+            ? Math.floor((tickContainerWidth + TICK_GAP) / (TICK_W + TICK_GAP))
+            : 40;
+          const tickIn = isCashflow ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
+          const tickOut = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
+          const totalMetric = tickIn + tickOut;
+          const hasActivity = totalMetric > 0;
+          const incomeTicks = hasActivity ? Math.round(TICK_TOTAL * (tickIn / totalMetric)) : 0;
+          const expenseTicks = hasActivity ? TICK_TOTAL - incomeTicks : 0;
           const walletCardBg = palette.isDark ? '#1A1F2E' : '#FFFFFF';
           return (
             <View style={{ marginHorizontal: -14, marginBottom: -12 }}>
@@ -951,10 +899,10 @@ function AccountSummaryCard({
                       if (nextPeriod === 'custom') { onOpenCustomRange?.(); return; }
                       onPeriodChange(nextPeriod);
                     }}
-                    backgroundColor={palette.isDark ? 'rgba(255,255,255,0.06)' : '#EEF2F8'}
-                    pillColor={palette.isDark ? palette.surface : '#0F172A'}
-                    borderColor={'transparent'}
-                    activeTextColor='#FFFFFF'
+                    backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
+                    pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
+                    borderColor={palette.isDark ? 'transparent' : '#DFE5EF'}
+                    activeTextColor={palette.text}
                     inactiveTextColor={palette.textMuted}
                     height={32}
                     radius={14}
@@ -1004,12 +952,15 @@ function AccountSummaryCard({
                     </Animated.View>
                   )}
                 </View>
-                {/* Tick chart — single flex row so all ticks share equal width */}
-                <View style={{ flexDirection: 'row', gap: 2, marginBottom: 6 }}>
+                {/* Tick chart — fixed-width ticks, count derived from measured container */}
+                <View
+                  style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 6 }}
+                  onLayout={(e) => setTickContainerWidth(e.nativeEvent.layout.width)}
+                >
                   {Array.from({ length: TICK_TOTAL }).map((_, i) => (
                     <View
                       key={i}
-                      style={{ flex: 1, height: 12, borderRadius: 2, backgroundColor: i < incomeTicks ? '#0D9488' : '#F87171' }}
+                      style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: !hasActivity ? (palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)') : i < incomeTicks ? '#0D9488' : '#F87171' }}
                     />
                   ))}
                 </View>
@@ -1028,6 +979,15 @@ function AccountSummaryCard({
                     <AppIcon name="arrow-up-right" size={13} color={palette.negative} strokeWidth={2.2} />
                   </TouchableOpacity>
                 </View>
+                {/* Cashflow note — expands when toggle is on */}
+                <Animated.View style={cashflowNoteStyle}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 8 }}>
+                    <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
+                    <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
+                      Cashflow includes Transfers, Deposits & Loans movement
+                    </Text>
+                  </View>
+                </Animated.View>
               </View>
             </View>
           );
@@ -1040,8 +1000,8 @@ function AccountSummaryCard({
             borderRadius: HOME_RADIUS.cardSm,
             overflow: 'hidden',
             borderWidth: 1,
-            borderColor: isLightHeroCard ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.12)',
-            backgroundColor: heroMetricStripBg,
+            borderColor: isLightHeroCard ? 'rgba(0,0,0,0.07)' : (isCashAccountHero ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.12)'),
+            backgroundColor: heroMetricStripBg2,
           }}>
             {/* Period switch */}
             {period && onPeriodChange && (
@@ -1173,7 +1133,7 @@ function AccountSummaryCard({
                         style={{
                           paddingHorizontal: 12,
                           paddingVertical: 5,
-                          borderRadius: 20,
+                          borderRadius: HOME_RADIUS.pill,
                           backgroundColor: active
                             ? (isHomeHero ? palette.brand : 'rgba(255,255,255,0.18)')
                             : 'transparent',
@@ -1553,7 +1513,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const displayedCashflow = cashflow;
   const displayedPeriodTransactions = periodTransactions;
 
-  // Income/expense (excludes transfers & loans); cashflow = all in/out
+  // Income/expense: only type in/out, excludes transfers, loans & deposits
+  // Cashflow: includes transfers, deposits & loans movement
   const incExpSummary = useMemo(() => {
     let income = 0, expense = 0;
     displayedPeriodTransactions.forEach((tx) => {
@@ -1814,3 +1775,91 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     </View>
   );
 });
+
+function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, pct, hideAmounts, totalBalance }: any) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const typeMeta = ACCOUNT_TYPE_META[acc.type as AccountType];
+  const typeColor = typeMeta.color;
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/account/${acc.id}`)}
+      onPressIn={() => { scale.value = withTiming(0.96, { duration: 100 }); }}
+      onPressOut={() => { scale.value = withTiming(1, { duration: 150 }); }}
+    >
+      <Animated.View
+        style={[animStyle, {
+          width: cardWidth,
+          backgroundColor: palette.surface,
+          borderRadius: HOME_RADIUS.card,
+          borderWidth: 1,
+          borderColor: palette.borderSoft,
+          overflow: 'hidden',
+        }]}
+      >
+        <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 116, justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: HOME_RADIUS.chip,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: typeMeta.bg ?? `${typeColor}18`,
+              }}
+            >
+              <AppIcon name={typeMeta.icon} size={18} color={typeColor} strokeWidth={1.8} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>{formatAccountDisplayName(acc.name, acc.accountNumber)}</Text>
+            </View>
+          </View>
+          <View style={{ marginTop: 16 }}>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: acc.balance < 0 ? palette.negative : palette.text }}>
+              {amountLabel}
+            </Text>
+            {totalBalance !== 0 && !hideAmounts && (
+              <Text style={{ fontSize: HOME_TEXT.metaTiny, color: palette.textMuted, marginTop: 2 }}>
+                {pct}% of Total
+              </Text>
+            )}
+          </View>
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+function AccountCarouselAddCard({ palette }: any) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <Pressable
+      onPress={() => router.push('/settings/account-form')}
+      onPressIn={() => { scale.value = withTiming(0.96, { duration: 100 }); }}
+      onPressOut={() => { scale.value = withTiming(1, { duration: 150 }); }}
+    >
+      <Animated.View
+        style={[animStyle, {
+          width: 90,
+          minHeight: 116,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: palette.isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)',
+          borderRadius: HOME_RADIUS.card,
+          borderWidth: 1,
+          borderStyle: 'dashed',
+          borderColor: palette.borderSoft,
+        }]}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+          <AppIcon name="plus" size={16} color={palette.textMuted} strokeWidth={2.5} />
+        </View>
+        <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>Add</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}

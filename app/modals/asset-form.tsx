@@ -12,6 +12,7 @@ import { ActionButton, FixedBottomActions, InputField } from '@/components/setti
 import { useAppTheme } from '@/lib/theme';
 import { useAssetsStore } from '@/stores/useAssetsStore';
 import { useUIStore } from '@/stores/useUIStore';
+import { useAppDialog } from '@/components/ui/useAppDialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '@/lib/derived';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER } from '@/lib/layoutTokens';
@@ -33,6 +34,7 @@ export default function AssetFormScreen() {
   const { assets, add, update, remove } = useAssetsStore();
   const currencySymbol = useUIStore((s) => s.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.showCurrencySymbol);
+  const { showConfirm, dialog } = useAppDialog(palette);
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
@@ -54,7 +56,7 @@ export default function AssetFormScreen() {
       if (asset) {
         setName(asset.name);
         setIcon(asset.icon);
-        setValueStr(String(asset.value));
+        setValueStr(formatIndianNumberStr(String(asset.value)));
         setNote(asset.note ?? '');
       }
     }
@@ -85,10 +87,18 @@ export default function AssetFormScreen() {
     router.back();
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (isEditing && id) {
-      await remove(id);
-      router.back();
+      showConfirm({
+        title: 'Delete Asset',
+        message: 'Are you sure you want to remove this asset? This cannot be undone.',
+        confirmLabel: 'Delete',
+        destructive: true,
+        onConfirm: async () => {
+          await remove(id);
+          router.back();
+        },
+      });
     }
   };
 
@@ -111,7 +121,8 @@ export default function AssetFormScreen() {
         title={isEditing ? 'Edit Asset' : 'Add Asset'}
         palette={palette}
         showBack
-        titleSize={SCREEN_HEADER.detailTitleSize}
+        titleSize={SCREEN_HEADER.titleSize}
+        titleWeight={SCREEN_HEADER.titleWeight}
         onBack={() => router.back()}
       />
 
@@ -152,7 +163,7 @@ export default function AssetFormScreen() {
                 bottom: -28,
                 width: 44,
                 height: 44,
-                borderRadius: 14,
+                borderRadius: HOME_RADIUS.button,
                 backgroundColor: 'transparent',
                 borderWidth: 1,
                 borderColor: palette.border,
@@ -273,6 +284,8 @@ export default function AssetFormScreen() {
         }}
         palette={palette}
       />
+
+      {dialog}
     </ScreenScaffold>
   );
 }

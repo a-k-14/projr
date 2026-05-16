@@ -91,10 +91,14 @@ export function BottomSheet({
   const isFocused = useIsFocused();
 
   const maxSheetHeight = screenHeight * (maxHeightRatio ?? 0.75);
-  const bottomOffset = hasNavBar ? extraBottomPadding : getSheetBottomPadding(insets, extraBottomPadding + 3);
-  // Sheet height must reserve space for both the manual extra padding AND the
-  // safe-area inset; otherwise paddingBottom squeezes the inner content and the
-  // last row sits behind the OS nav bar.
+  // When hasNavBar=true the tab bar already covers the OS gesture area, so we
+  // don't need the floor overlay and only need minimal bottom padding.
+  // When hasNavBar=false (full-screen) the floor IS needed, so bottomOffset must
+  // be at least as tall as the floor to prevent it masking the last row.
+  const floorHeight = hasNavBar ? 0 : Math.max(insets.bottom, MIN_NAV_FLOOR_HEIGHT);
+  const bottomOffset = hasNavBar
+    ? extraBottomPadding
+    : Math.max(getSheetBottomPadding(insets, extraBottomPadding + 3), floorHeight);
   const modalHeightBoost = bottomOffset;
 
   const translateY = useRef(new Animated.Value(screenHeight)).current;
@@ -304,20 +308,23 @@ export function BottomSheet({
         </Animated.View>
       </View>
 
-      {/* Floor — rendered last so it's always above the backdrop and sheet.
-          Fills the OS gesture-bar zone with the sheet colour so screen content
-          never bleeds through during open/close animations. */}
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: Math.max(insets.bottom, MIN_NAV_FLOOR_HEIGHT),
-          backgroundColor: backgroundColor ?? palette.card,
-        }}
-        pointerEvents="none"
-      />
+      {/* Floor — only needed when there's no nav bar below (full-screen sheets).
+          Fills the OS gesture-bar zone so screen content doesn't bleed through
+          during open/close animations. Skipped when hasNavBar=true because the
+          tab bar already covers that zone. */}
+      {!hasNavBar && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: Math.max(insets.bottom, MIN_NAV_FLOOR_HEIGHT),
+            backgroundColor: backgroundColor ?? palette.card,
+          }}
+          pointerEvents="none"
+        />
+      )}
     </View>
   );
 }

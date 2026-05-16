@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { AppIcon } from './AppIcon';
 import type { AppThemePalette } from '../../lib/theme';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 
 interface CalculatorTriggerProps {
   palette: AppThemePalette;
@@ -32,7 +33,7 @@ export function CalculatorTrigger({
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        borderRadius: isLarge ? 14 : 12,
+        borderRadius: isLarge ? HOME_RADIUS.button : HOME_RADIUS.chip,
         backgroundColor: pressed ? palette.surface : 'transparent',
       })}
     >
@@ -40,7 +41,7 @@ export function CalculatorTrigger({
         style={{
           width: width ?? height ?? (isLarge ? 44 : 30),
           height: height ?? (isLarge ? 44 : 30),
-          borderRadius: isLarge ? 14 : 12,
+          borderRadius: isLarge ? HOME_RADIUS.button : HOME_RADIUS.chip,
           backgroundColor: palette.surface,
           borderWidth: 1,
           borderColor: palette.divider,

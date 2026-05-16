@@ -1,4 +1,4 @@
-import { CARD_PADDING, RADIUS as DESIGN_RADIUS, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING } from './design';
+import { APP_CARD_RADIUS, CARD_PADDING, RADIUS as DESIGN_RADIUS, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING } from './design';
 
 export { CARD_PADDING, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING };
 
@@ -53,19 +53,19 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
 
 // ─── Border-radius tokens ──────────────────────────────────────────────────────
 export const HOME_RADIUS = {
-  card: 22,
-  cardSm: 18,
-  button: 16,
-  pill: DESIGN_RADIUS.md - 2,
-  tab: DESIGN_RADIUS.md - 2,
-  chip: 12,
+  card: APP_CARD_RADIUS,           // 18 — main card radius, driven by APP_CARD_RADIUS
+  cardSm: APP_CARD_RADIUS - 6,    // 12 — inner strips / sub-containers
+  button: APP_CARD_RADIUS - 4,    // 14 — buttons
+  pill: DESIGN_RADIUS.md - 2,     // 14 — segmented pills
+  tab: DESIGN_RADIUS.md - 2,      // 14 — tab items
+  chip: 12,                        // small chips / icon badges
   chipSm: 11,
-  fab: DESIGN_RADIUS.xl + 4,
+  fab: DESIGN_RADIUS.xl + 4,      // 28 — FAB, intentionally rounder
   chartBar: 6,
   xs: 6,
-  small: DESIGN_RADIUS.sm - 2,
-  large: DESIGN_RADIUS.xl,
-  xl: DESIGN_RADIUS.xl + 4,
+  small: DESIGN_RADIUS.sm - 2,    // 10
+  large: APP_CARD_RADIUS,         // 18 — modals / bottom sheets, same as card
+  xl: DESIGN_RADIUS.xl + 4,       // 28
   full: 999,
 } as const;
 

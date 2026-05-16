@@ -14,6 +14,7 @@ interface ScreenHeaderProps {
   showBack?: boolean;
   height?: number;
   titleSize?: number;
+  titleWeight?: string;
   backgroundColor?: string;
   titleColor?: string;
   iconColor?: string;
@@ -100,6 +101,7 @@ export function ScreenHeader({
   showBack = true,
   height = 54,
   titleSize = 27,
+  titleWeight = FONT_WEIGHT.regular,
   backgroundColor,
   titleColor,
   iconColor,
@@ -137,7 +139,7 @@ export function ScreenHeader({
         style={{
           flex: 1,
           fontSize: titleSize,
-          fontWeight: FONT_WEIGHT.regular,
+          fontWeight: titleWeight as any,
           color: resolvedTitle,
           letterSpacing: -0.5,
           marginLeft: showBack ? 0 : 4,
