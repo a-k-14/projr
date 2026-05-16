@@ -23,7 +23,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { getTotalBalance } from '../../lib/derived';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import type { PeriodType } from '../../types';
 
@@ -129,7 +129,7 @@ export default function AccountDetailScreen() {
                 title="Account Details"
                 onBack={() => router.back()}
                 palette={palette}
-                titleSize={24}
+                titleSize={SCREEN_HEADER.detailTitleSize}
               />
             </View>
           )
@@ -137,7 +137,7 @@ export default function AccountDetailScreen() {
       />
 
       <HomeAccountPage
-        pageHeight={1000} // We don't need fixed pager height anymore, but pass a safe default
+        pageHeight={1000}
         accountId={account.id}
         accountName={formatAccountDisplayName(account.name, account.accountNumber)}
         accountTypeLabel={getAccountTypeLabel(account.type)}

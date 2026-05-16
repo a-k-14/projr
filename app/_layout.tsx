@@ -12,6 +12,7 @@ import { runMigrations } from '../db/migrate';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
+import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useAppTheme } from '../lib/theme';
 import { SystemBottomGuard } from '../components/ui/safeBottom';
 import { FONT_WEIGHT } from '../lib/design';
@@ -28,6 +29,7 @@ export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
   const loadSettings = useUIStore((s) => s.load);
   const loadCategories = useCategoriesStore((s) => s.load);
+  const loadDeposits = useFixedDepositsStore((s) => s.load);
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const { palette } = useAppTheme();
@@ -38,7 +40,8 @@ export default function RootLayout() {
 
     try {
       await runMigrations();
-      await Promise.all([loadAccounts(), loadSettings(), loadCategories()]);
+      await Promise.all([loadAccounts(), loadSettings(), loadCategories(), loadDeposits()]);
+
 
       // Only seed starter data on a true first run, not after a user-triggered reset.
       if (
@@ -60,7 +63,7 @@ export default function RootLayout() {
     } finally {
       SplashScreen.hideAsync().catch(() => undefined);
     }
-  }, [loadAccounts, loadCategories, loadSettings]);
+  }, [loadAccounts, loadCategories, loadSettings, loadDeposits]);
 
   useEffect(() => {
     init();
@@ -144,6 +147,7 @@ export default function RootLayout() {
             <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
             {__DEV__ && <Stack.Screen name="chart-prototype" options={{ headerShown: false }} />}
             {__DEV__ && <Stack.Screen name="net-worth-prototype" options={{ headerShown: false }} />}
+            {__DEV__ && <Stack.Screen name="palette-preview" options={{ headerShown: false }} />}
             <Stack.Screen name="assets" options={{ headerShown: false }} />
             <Stack.Screen name="net-worth" options={{ headerShown: false }} />
             <Stack.Screen

@@ -167,6 +167,9 @@ export const SCREEN_HEADER = {
   titleSize: 18,
   titleWeight: '500' as const,
   iconTitleGap: HOME_SPACE.md,
+  paddingX: 14,
+  /** Large title used by push-navigation detail screens (budget, account, etc.) */
+  detailTitleSize: 25,
 } as const;
 
 export const ACTIVITY_LAYOUT = {

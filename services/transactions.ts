@@ -1,6 +1,6 @@
 import { eq, and, gte, lte, desc, inArray, sql, or, like } from 'drizzle-orm';
 import { db } from '../db/client';
-import { accounts, categories, transactions } from '../db/schema';
+import { accounts, categories, deposits, transactions } from '../db/schema';
 import type {
   Transaction,
   CreateTransactionInput,
@@ -53,6 +53,8 @@ function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
     linkedAccountId: row.linkedAccountId ?? undefined,
     loanId: row.loanId ?? undefined,
     loanTransactionType: (row.loanTransactionType as Transaction['loanTransactionType']) ?? undefined,
+    depositId: row.depositId ?? undefined,
+    depositTransactionType: (row.depositTransactionType as Transaction['depositTransactionType']) ?? undefined,
     categoryId: row.categoryId ?? undefined,
     payee: row.payee ?? undefined,
     tags: parseTags(row.tags),
@@ -107,6 +109,7 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
   if (filters.type) conditions.push(eq(transactions.type, filters.type));
   if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
   if (filters.loanId) conditions.push(eq(transactions.loanId, filters.loanId));
+  if (filters.depositId) conditions.push(eq(transactions.depositId, filters.depositId));
   if (filters.fromDate) conditions.push(gte(transactions.date, filters.fromDate));
   if (filters.toDate) conditions.push(lte(transactions.date, filters.toDate));
 
@@ -162,6 +165,8 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       linkedAccountId: data.linkedAccountId ?? null,
       loanId: null,
       loanTransactionType: null,
+      depositId: null,
+      depositTransactionType: null,
       categoryId: null,
       payee: data.payee ?? null,
       tags: '[]',
@@ -180,6 +185,8 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       linkedAccountId: data.accountId,
       loanId: null,
       loanTransactionType: null,
+      depositId: null,
+      depositTransactionType: null,
       categoryId: null,
       payee: data.payee ?? null,
       tags: '[]',
@@ -209,6 +216,8 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     linkedAccountId: data.linkedAccountId ?? null,
     loanId: data.loanId ?? null,
     loanTransactionType: data.loanTransactionType ?? null,
+    depositId: data.depositId ?? null,
+    depositTransactionType: data.depositTransactionType ?? null,
     categoryId: data.categoryId ?? null,
     payee: data.payee ?? null,
     tags: JSON.stringify(data.tags ?? []),
@@ -436,6 +445,8 @@ export async function createSplitTransactionGroup(data: SplitGroupInput): Promis
       linkedAccountId: null,
       loanId: null,
       loanTransactionType: null,
+      depositId: null,
+      depositTransactionType: null,
       categoryId: item.categoryId,
       payee: data.payee ?? null,
       tags: JSON.stringify(data.tags ?? []),
@@ -490,6 +501,8 @@ export async function updateSplitTransactionGroup(
       linkedAccountId: null,
       loanId: null,
       loanTransactionType: null,
+      depositId: null,
+      depositTransactionType: null,
       categoryId: item.categoryId,
       payee: data.payee ?? null,
       tags: JSON.stringify(data.tags ?? []),
@@ -544,7 +557,16 @@ export async function countByTag(tagId: string): Promise<number> {
   return rows[0]?.count ?? 0;
 }
 
-export async function deleteTransaction(id: string): Promise<void> {
+/**
+ * Deletes a transaction.
+ *
+ * `skipDepositCascade=true` is used by `deleteDeposit` / `reopenDeposit` in
+ * `services/fixedDeposits.ts` to break the parent→child cascade cycle (they're
+ * already handling the deposit row themselves). All other callers (e.g. user
+ * deleting from the edit modal) should leave it false so the parent deposit
+ * row is cleaned up / status flipped as appropriate.
+ */
+export async function deleteTransaction(id: string, opts: { skipDepositCascade?: boolean } = {}): Promise<void> {
   const existing = await getTransactionById(id);
   if (!existing) return;
 
@@ -590,6 +612,17 @@ export async function deleteTransaction(id: string): Promise<void> {
     await tx.delete(transactions).where(eq(transactions.id, id));
   });
   await deleteReceiptOwnerDirectory(id);
+
+  // Parent-row cascade for deposit-linked transactions:
+  // - 'new' tx deleted → drop the parent deposit row (orphan cleanup)
+  // - 'closed' tx deleted → flip status back to 'active' (it's effectively a reopen)
+  if (!opts.skipDepositCascade && existing.type === 'deposit' && existing.depositId) {
+    if (existing.depositTransactionType === 'new') {
+      await db.delete(deposits).where(eq(deposits.id, existing.depositId));
+    } else if (existing.depositTransactionType === 'closed') {
+      await db.update(deposits).set({ status: 'active' }).where(eq(deposits.id, existing.depositId));
+    }
+  }
 }
 
 export async function getRecentPayees(search?: string, limit = 10): Promise<string[]> {

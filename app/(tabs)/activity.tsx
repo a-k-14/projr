@@ -60,6 +60,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { Account, Category, Transaction, TransactionFilters, TransactionType } from '../../types';
 
@@ -701,6 +702,11 @@ export default function ActivityScreen() {
   // every time the store's transactions array updates.
   const sourceTransactions = isDefaultView ? storeTransactions : transactions;
 
+  // Deposit lookup mirrors `loansById` — used to pass deposit name/bank
+  // through to TransactionListItem for type='deposit' rows.
+  const deposits = useFixedDepositsStore((s) => s.deposits);
+  const depositsById = useMemo(() => new Map(deposits.map((d) => [d.id, d])), [deposits]);
+
   const filteredTransactions = useMemo(() => {
     const minAmount = amountMinStr ? Number(amountMinStr) : undefined;
     const maxAmount = amountMaxStr ? Number(amountMaxStr) : undefined;
@@ -846,6 +852,10 @@ export default function ActivityScreen() {
   };
 
   const handleTransactionPress = useCallback((transaction: Transaction) => {
+    if (transaction.type === 'deposit' && transaction.depositId) {
+      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: transaction.depositId } });
+      return;
+    }
     if (transaction.type === 'loan' && transaction.loanId) {
       const loan = loans.find((item) => item.id === transaction.loanId);
       if (loan && getLoanTransactionKind(transaction, loan.direction) === 'settlement') {
@@ -1126,6 +1136,7 @@ export default function ActivityScreen() {
       const accountName = accountsById.get(tx.accountId);
       const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
       const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
+      const deposit = tx.depositId ? depositsById.get(tx.depositId) : undefined;
       const isFirst = item.indexInSection === 0;
       const isLast = item.indexInSection === item.sectionLength - 1;
 
@@ -1143,6 +1154,8 @@ export default function ActivityScreen() {
           linkedAccountName={linkedAccountName}
           loanPersonName={loan?.personName}
           loanDirection={loan?.direction}
+          depositName={deposit?.name}
+          depositBankName={deposit?.bankName}
           tertiaryText={
             tx.tags.length > 0
               ? tx.tags
@@ -1170,7 +1183,7 @@ export default function ActivityScreen() {
         />
       );
     },
-    [accountsById, categoriesById, loansById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
+    [accountsById, categoriesById, loansById, depositsById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
   );
 
   const activityHeader = useMemo(() => (
@@ -1708,7 +1721,7 @@ export default function ActivityScreen() {
               ]}
               activeOpacity={0.8}
             >
-              <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.bold, color: '#FFFFFF' }}>
+              <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.bold, color: palette.onBrand }}>
                 Apply
               </Text>
             </TouchableOpacity>

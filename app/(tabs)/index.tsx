@@ -16,11 +16,13 @@ import Animated, {
   FadeInRight,
   FadeOutRight,
   LinearTransition,
+  interpolateColor,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +48,8 @@ import {
 import { formatCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
+import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
+import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import {
   BUTTON_TOKENS,
   HOME_LAYOUT,
@@ -201,7 +205,8 @@ function HomeScreenContent() {
 
   const totalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
   const loanSummary = useMemo(() => getLoanSummary(loans), [loans]);
-  const depositSummary = useMemo(() => getFixedDepositSummary(), []);
+  const depositsList = useFixedDepositsStore((s) => s.deposits);
+  const depositSummary = useMemo(() => getFixedDepositSummary(depositsList), [depositsList]);
   const netWorth = totalBalance + loanSummary.net + depositSummary.activeMaturityValue;
   const budgetSummary = useMemo(() => {
     const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.amount, 0);
@@ -272,11 +277,11 @@ function HomeScreenContent() {
     {
       id: 'Deposits',
       label: 'Deposits',
-      icon: 'vault',
+      icon: DEPOSIT_VISUAL.icon,
       route: '/deposits',
       meta: depositMeta,
-      tone: '#A23B72',
-      bg: '#FCE7F3',
+      tone: DEPOSIT_VISUAL.tone,
+      bg: DEPOSIT_VISUAL.bg,
     },
     {
       id: 'Loans',
@@ -284,7 +289,8 @@ function HomeScreenContent() {
       icon: 'hand-coins',
       route: '/loans',
       meta: loanMeta,
-      tone: '#0369A1',
+      tone: '#4F6B7A',
+      bg: '#E8F0F3',
     },
     {
       id: 'Budgets',
@@ -292,8 +298,8 @@ function HomeScreenContent() {
       icon: 'pie-chart',
       route: '/budget',
       meta: budgetMeta,
-      tone: '#4338CA',
-      bg: '#F0F2FF',
+      tone: '#5A56A3',
+      bg: '#F0EFFA',
     },
     {
       id: 'Assets',
@@ -670,23 +676,24 @@ function AccountSummaryCard({
   const isAll = accountName === 'All';
   const isAccountHero = heroMode && !isAll;
   const isHomeHero = heroMode && isAll;
+  const isWalletHero = isAccountHero && accountType === 'wallet';
   // Home hero is white in light mode; account heroes stay coloured
   const isLightHeroCard = isHomeHero && !palette.isDark;
-  // Per-type gradients — one step lighter than before, still vivid
-  const ACCOUNT_TYPE_HERO_DARK: Record<string, [string, string]> = {
-    savings:    ['#3B82F6', '#2563EB'],   // blue-500 → blue-600
-    cash:       ['#10B981', '#059669'],   // emerald-500 → emerald-600
-    wallet:     ['#D97706', '#B45309'],   // amber-600 → amber-700
-    investment: ['#8B5CF6', '#7C3AED'],   // violet-500 → violet-600
-    credit:     ['#DC2626', '#B91C1C'],   // red-600 → red-700
-    other:      ['#64748B', '#475569'],   // slate-500 → slate-600
-  };
   const typeMeta = accountType ? ACCOUNT_TYPE_META[accountType] : undefined;
   const typeColor = typeMeta?.color ?? palette.brand;
-  const accountHeroDarkGradient: [string, string] =
-    accountType && ACCOUNT_TYPE_HERO_DARK[accountType]
-      ? ACCOUNT_TYPE_HERO_DARK[accountType]
-      : ['#16192A', '#1A1E30'];
+  // Derive gradient from the icon color — lighter tint → icon color (always in sync with META)
+  const accountHeroDarkGradient: [string, string] = useMemo(() => {
+    if (!accountType || !typeColor.startsWith('#') || typeColor.length < 7) return ['#16192A', '#1A1E30'];
+    const r = parseInt(typeColor.slice(1, 3), 16);
+    const g = parseInt(typeColor.slice(3, 5), 16);
+    const b = parseInt(typeColor.slice(5, 7), 16);
+    const factor = 0.28;
+    const lr = Math.round(r + (255 - r) * factor);
+    const lg = Math.round(g + (255 - g) * factor);
+    const lb = Math.round(b + (255 - b) * factor);
+    const lighter = `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
+    return [lighter, typeColor];
+  }, [accountType, typeColor]);
   // heroText / heroMutedText / heroSoftText: white on dark cards, palette on white cards
   const heroText = isLightHeroCard ? palette.text : (heroMode ? '#FFFFFF' : palette.text);
   const heroMutedText = isLightHeroCard ? palette.textMuted : (heroMode ? 'rgba(255,255,255,0.75)' : palette.textMuted);
@@ -699,10 +706,10 @@ function AccountSummaryCard({
     : heroMode ? 'rgba(255,255,255,0.18)' : palette.isDark ? palette.divider : '#D8E0F0';
   const heroMetricStripBg = isLightHeroCard
     ? palette.inputBg
-    : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
+    : isAccountHero ? 'rgba(255,255,255,0.12)' : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
   const heroMetricDivider = isLightHeroCard
     ? palette.divider
-    : heroMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.10)';
+    : isAccountHero ? 'rgba(255,255,255,0.12)' : heroMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.10)';
 
   const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
@@ -734,6 +741,25 @@ function AccountSummaryCard({
   const handleCardPressIn = () => { cardScale.value = withSpring(0.972, { damping: 22, stiffness: 380, mass: 0.8 }); };
   const handleCardPressOut = () => { cardScale.value = withSpring(1, { damping: 18, stiffness: 220, mass: 0.8 }); };
 
+  // Cashflow toggle animation — track: 36×20, thumb: 14×14, padding: 2
+  const TOGGLE_W = 36, TOGGLE_THUMB = 14, TOGGLE_PAD = 2;
+  const TOGGLE_OFF = TOGGLE_PAD;
+  const TOGGLE_ON  = TOGGLE_W - TOGGLE_THUMB - TOGGLE_PAD;
+  const cashflowThumb = useSharedValue(isCashflowView ? TOGGLE_ON : TOGGLE_OFF);
+  React.useEffect(() => {
+    cashflowThumb.value = withTiming(isCashflowView ? TOGGLE_ON : TOGGLE_OFF, { duration: 150 });
+  }, [isCashflowView]);
+  const cashflowThumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: cashflowThumb.value }],
+  }));
+  const cashflowTrackStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      cashflowThumb.value,
+      [TOGGLE_OFF, TOGGLE_ON],
+      [isLightHeroCard ? palette.inputBg : 'rgba(0,0,0,0.14)', palette.brand]
+    ),
+  }));
+
   const content = (
     <View
       style={{
@@ -744,7 +770,7 @@ function AccountSummaryCard({
         borderWidth: 1,
         borderRadius: heroMode ? 28 : 22,
         overflow: 'hidden',
-        ...(isLightHeroCard ? {
+        ...((isLightHeroCard || (isAccountHero && !palette.isDark)) ? {
           elevation: 6,
           shadowColor: '#94A3B8',
           shadowOffset: { width: 0, height: 3 },
@@ -758,32 +784,34 @@ function AccountSummaryCard({
         colors={
           isLightHeroCard
             ? ['#FFFFFF', '#FFFFFF']
-            : heroMode
-              ? (isAccountHero ? accountHeroDarkGradient : ['#16192A', '#1A1E30'])
-              : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']
+            : isWalletHero
+              ? [accountHeroDarkGradient[0], accountHeroDarkGradient[1], palette.card, palette.card]
+              : heroMode
+                ? (isAccountHero ? accountHeroDarkGradient : ['#16192A', '#1A1E30'])
+                : palette.isDark ? ['#0F172A', '#1E293B'] : ['#E8EFFC', '#F8FAFF']
         }
-        locations={heroMode ? [0, 1] : undefined}
+        locations={isWalletHero ? [0, 0.44, 0.44, 1] : heroMode ? [0, 1] : undefined}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={isWalletHero ? { x: 0, y: 1 } : { x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
       {null}
 
-      <View style={{ paddingHorizontal: heroMode ? 14 : CARD_PADDING, paddingTop: heroMode ? 16 : 20, paddingBottom: heroMode ? 14 : 22 }}>
+      <View style={{ paddingHorizontal: heroMode ? 14 : CARD_PADDING, paddingTop: heroMode ? 14 : 20, paddingBottom: isWalletHero ? 0 : heroMode ? 12 : 22 }}>
         {/* Top Section */}
         {isAccountHero ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             {/* Col 1: icon — uses account type color, same as carousel */}
             {accountType && (
               <View style={{
                 backgroundColor: isLightHeroCard ? (typeMeta?.bg ?? `${typeColor}18`) : heroMetricStripBg,
-                width: 48, height: 48,
-                borderRadius: HOME_RADIUS.cardSm,
+                width: 42, height: 42,
+                borderRadius: HOME_RADIUS.chip,
                 alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 <AppIcon
                   name={typeMeta?.icon ?? 'wallet'}
-                  size={24}
+                  size={20}
                   color={isLightHeroCard ? typeColor : 'rgba(255,255,255,0.90)'}
                   strokeWidth={1.9}
                 />
@@ -906,19 +934,121 @@ function AccountSummaryCard({
           </>
         )}
 
+        {/* ── Wallet Hero: two-tone card — flat bottom section with tick chart ── */}
+        {isWalletHero && (() => {
+          const TICK_TOTAL = 65;
+          const totalMetric = (incomeExpense?.income ?? 0) + (incomeExpense?.expense ?? 0);
+          const incomeTicks = totalMetric > 0 ? Math.round(TICK_TOTAL * (incomeExpense!.income / totalMetric)) : Math.round(TICK_TOTAL / 2);
+          const expenseTicks = TICK_TOTAL - incomeTicks;
+          const walletCardBg = palette.isDark ? '#1A1F2E' : '#FFFFFF';
+          return (
+            <View style={{ marginHorizontal: -14, marginBottom: -12 }}>
+              <View style={{ backgroundColor: walletCardBg, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12 }}>
+                {/* Period pills */}
+                {period && onPeriodChange && (
+                  <SegmentedPillSwitch
+                    options={periodOptions}
+                    value={period}
+                    onChange={(key) => {
+                      const nextPeriod = key as HomePeriodType;
+                      if (nextPeriod === 'custom') { onOpenCustomRange?.(); return; }
+                      onPeriodChange(nextPeriod);
+                    }}
+                    backgroundColor={palette.isDark ? 'rgba(255,255,255,0.06)' : '#EEF2F8'}
+                    pillColor={palette.isDark ? palette.surface : '#0F172A'}
+                    borderColor={'transparent'}
+                    activeTextColor='#FFFFFF'
+                    inactiveTextColor={palette.textMuted}
+                    height={32}
+                    radius={14}
+                    fontSize={10.5}
+                    itemMinWidth={54}
+                    style={{ alignSelf: 'stretch' }}
+                  />
+                )}
+                {/* Cashflow toggle + date */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 10 }}>
+                  <TouchableOpacity
+                    delayPressIn={0}
+                    activeOpacity={0.78}
+                    onPress={() => onToggleCashflowView?.(!isCashflowView)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
+                  >
+                    <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
+                      Cashflow
+                    </Text>
+                    <Animated.View style={[cashflowTrackStyle, {
+                      width: TOGGLE_W, height: 20,
+                      borderRadius: HOME_RADIUS.full,
+                      borderWidth: 1,
+                      borderColor: isCashflowView ? palette.brand : palette.borderSoft,
+                    }]}>
+                      <Animated.View style={[cashflowThumbStyle, {
+                        position: 'absolute', top: TOGGLE_PAD,
+                        width: TOGGLE_THUMB, height: TOGGLE_THUMB,
+                        borderRadius: TOGGLE_THUMB / 2,
+                        backgroundColor: isCashflowView ? '#FFFFFF' : palette.textSoft,
+                        elevation: 2,
+                      }]} />
+                    </Animated.View>
+                  </TouchableOpacity>
+                  {from && to && (
+                    <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, justifyContent: 'flex-end' }}>
+                      <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                        {formatDate(from)}
+                      </Text>
+                      {period !== 'today' && (
+                        <Animated.View entering={FadeInRight.duration(200)} exiting={FadeOutRight.duration(200)}>
+                          <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                            {` – ${formatDate(to)}`}
+                          </Text>
+                        </Animated.View>
+                      )}
+                    </Animated.View>
+                  )}
+                </View>
+                {/* Tick chart — single flex row so all ticks share equal width */}
+                <View style={{ flexDirection: 'row', gap: 2, marginBottom: 6 }}>
+                  {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+                    <View
+                      key={i}
+                      style={{ flex: 1, height: 12, borderRadius: 2, backgroundColor: i < incomeTicks ? '#0D9488' : '#F87171' }}
+                    />
+                  ))}
+                </View>
+                {/* Income / Expense values */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
+                  <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <AppIcon name="arrow-down-left" size={13} color={palette.positive} strokeWidth={2.2} />
+                    <Text style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text, letterSpacing: -0.4 }}>
+                      {hideAmounts ? '••••' : metricLeftAmount.toLocaleString('en-IN')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Text style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text, letterSpacing: -0.4 }}>
+                      {hideAmounts ? '••••' : metricRightAmount.toLocaleString('en-IN')}
+                    </Text>
+                    <AppIcon name="arrow-up-right" size={13} color={palette.negative} strokeWidth={2.2} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
+
         {/* ── Account Hero: unified container — period switch + cashflow/date row + income/expense strip ── */}
-        {isAccountHero ? (
+        {isAccountHero && !isWalletHero ? (
           <View style={{
             marginTop: 8,
             borderRadius: HOME_RADIUS.cardSm,
             overflow: 'hidden',
             borderWidth: 1,
-            borderColor: isLightHeroCard ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.10)',
+            borderColor: isLightHeroCard ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.12)',
             backgroundColor: heroMetricStripBg,
           }}>
             {/* Period switch */}
             {period && onPeriodChange && (
-              <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 0 }}>
+              <View style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 0 }}>
                 <SegmentedPillSwitch
                   options={periodOptions}
                   value={period}
@@ -927,11 +1057,11 @@ function AccountSummaryCard({
                     if (nextPeriod === 'custom') { onOpenCustomRange?.(); return; }
                     onPeriodChange(nextPeriod);
                   }}
-                  backgroundColor={isLightHeroCard ? palette.background : 'rgba(0,0,0,0.18)'}
-                  pillColor={isLightHeroCard ? palette.brand : 'rgba(255,255,255,0.22)'}
-                  borderColor={isLightHeroCard ? 'transparent' : 'rgba(255,255,255,0.18)'}
+                  backgroundColor={isLightHeroCard ? palette.background : 'rgba(0,0,0,0.14)'}
+                  pillColor={isLightHeroCard ? palette.brand : 'rgba(255,255,255,0.24)'}
+                  borderColor={isLightHeroCard ? 'transparent' : 'rgba(255,255,255,0.20)'}
                   activeTextColor='#FFFFFF'
-                  inactiveTextColor={isLightHeroCard ? heroMutedText : 'rgba(255,255,255,0.55)'}
+                  inactiveTextColor={isLightHeroCard ? heroMutedText : 'rgba(255,255,255,0.65)'}
                   height={32}
                   radius={14}
                   fontSize={10.5}
@@ -940,7 +1070,7 @@ function AccountSummaryCard({
                 />
 
                 {/* Cashflow toggle (left) + date (right, top-aligned) — same row */}
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 8, marginBottom: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 7, marginBottom: 8 }}>
                   <TouchableOpacity
                     delayPressIn={0}
                     activeOpacity={0.78}
@@ -950,17 +1080,25 @@ function AccountSummaryCard({
                     <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: heroMutedText }}>
                       Cashflow
                     </Text>
-                    <View style={{
-                      width: 36, height: 20,
+                    <Animated.View style={[cashflowTrackStyle, {
+                      width: TOGGLE_W, height: 20,
                       borderRadius: HOME_RADIUS.full,
-                      padding: 2,
-                      backgroundColor: isCashflowView ? palette.brand : (isLightHeroCard ? palette.inputBg : 'rgba(0,0,0,0.18)'),
                       borderWidth: 1,
-                      borderColor: isCashflowView ? palette.brand : (isLightHeroCard ? palette.borderSoft : 'rgba(255,255,255,0.16)'),
-                      alignItems: isCashflowView ? 'flex-end' : 'flex-start',
-                    }}>
-                      <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: isCashflowView ? '#FFFFFF' : (isLightHeroCard ? palette.textSoft : 'rgba(255,255,255,0.70)') }} />
-                    </View>
+                      borderColor: isCashflowView ? palette.brand : (isLightHeroCard ? palette.borderSoft : 'rgba(255,255,255,0.22)'),
+                    }]}>
+                      <Animated.View style={[cashflowThumbStyle, {
+                        position: 'absolute',
+                        top: TOGGLE_PAD,
+                        width: TOGGLE_THUMB, height: TOGGLE_THUMB,
+                        borderRadius: TOGGLE_THUMB / 2,
+                        backgroundColor: isCashflowView ? '#FFFFFF' : (isLightHeroCard ? palette.textSoft : 'rgba(255,255,255,0.90)'),
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.18,
+                        shadowRadius: 2,
+                        elevation: 2,
+                      }]} />
+                    </Animated.View>
                   </TouchableOpacity>
 
                   {/* Date — right side, top-aligned with toggle */}
@@ -1639,6 +1777,18 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   }}
                 >
                   Open Net Worth Prototype
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity delayPressIn={0} onPress={() => router.push('/palette-preview')} style={{ marginTop: 10 }}>
+                <Text
+                  appWeight="medium"
+                  style={{
+                    fontSize: HOME_TEXT.bodySmall,
+                    color: palette.brand,
+                    fontWeight: BUTTON_TOKENS.text.labelWeight,
+                  }}
+                >
+                  Open Palette Preview
                 </Text>
               </TouchableOpacity>
             </View>

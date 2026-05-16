@@ -21,6 +21,8 @@ interface Props {
   linkedAccountName?: string;
   loanPersonName?: string;
   loanDirection?: 'lent' | 'borrowed';
+  depositName?: string;
+  depositBankName?: string;
   tertiaryText?: string;
   showAmountSign?: boolean;
   useTypeAmountColor?: boolean;
@@ -49,6 +51,8 @@ function TransactionListItemBase({
   linkedAccountName,
   loanPersonName,
   loanDirection,
+  depositName,
+  depositBankName,
   tertiaryText,
   showAmountSign = true,
   useTypeAmountColor = true,
@@ -109,6 +113,15 @@ function TransactionListItemBase({
     noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
   }
 
+  // Deposit transaction (mirrors loan rendering pattern).
+  if (tx.type === 'deposit') {
+    const state = tx.depositTransactionType === 'closed' ? 'Closed' : 'New';
+    title = `Deposit \u203a ${state}`;
+    titleSecondaryText = undefined;
+    subtitle = [depositBankName, depositName].filter(Boolean).join(' \u2022 ');
+    noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
+  }
+
   if (hideNote) {
     noteLine = undefined;
   }
@@ -132,9 +145,11 @@ function TransactionListItemBase({
   ) : null;
 
   const iconName =
-    inOutCategoryIcon && isValidIcon(inOutCategoryIcon)
-      ? inOutCategoryIcon
-      : cfg.iconName;
+    tx.type === 'deposit'
+      ? 'vault'
+      : inOutCategoryIcon && isValidIcon(inOutCategoryIcon)
+        ? inOutCategoryIcon
+        : cfg.iconName;
   const iconColor = palette.brand;
 
   return (
@@ -226,6 +241,8 @@ function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.linkedAccountName !== next.linkedAccountName) return false;
   if (prev.loanPersonName !== next.loanPersonName) return false;
   if (prev.loanDirection !== next.loanDirection) return false;
+  if (prev.depositName !== next.depositName) return false;
+  if (prev.depositBankName !== next.depositBankName) return false;
   if (prev.tertiaryText !== next.tertiaryText) return false;
   if (prev.showAmountSign !== next.showAmountSign) return false;
   if (prev.useTypeAmountColor !== next.useTypeAmountColor) return false;

@@ -67,9 +67,9 @@ function AppTabBar({
       style={{
         height: tabHeight + insetsBottom,
         paddingBottom: insetsBottom,
-        backgroundColor: palette.isDark ? palette.surface : '#ECEEF4',
+        backgroundColor: palette.isDark ? palette.surface : palette.background,
         borderTopWidth: 1,
-        borderTopColor: palette.isDark ? palette.border : '#DCDFE8',
+        borderTopColor: palette.border,
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: palette.isDark ? 0.12 : 0.04,

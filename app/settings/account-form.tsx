@@ -274,7 +274,7 @@ export default function AccountFormScreen() {
                       borderRadius: HOME_RADIUS.chip,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: `${typeMeta.color}18`,
+                      backgroundColor: typeMeta.bg ?? `${typeMeta.color}18`,
                       borderWidth: 1,
                       borderColor: `${typeMeta.color}30`,
                     }}

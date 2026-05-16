@@ -1,5 +1,6 @@
 export type AccountType = 'savings' | 'credit' | 'cash' | 'wallet' | 'investment' | 'other';
-export type TransactionType = 'in' | 'out' | 'transfer' | 'loan';
+export type TransactionType = 'in' | 'out' | 'transfer' | 'loan' | 'deposit';
+export type DepositTransactionType = 'new' | 'closed';
 export type LoanDirection = 'lent' | 'borrowed';
 export type LoanStatus = 'open' | 'closed';
 export type LoanTransactionType = 'principal' | 'interest' | 'others' | 'charges' | 'adjustment';
@@ -29,6 +30,8 @@ export interface Transaction {
   linkedAccountId?: string;
   loanId?: string;
   loanTransactionType?: LoanTransactionType;
+  depositId?: string;
+  depositTransactionType?: DepositTransactionType;
   categoryId?: string;
   payee?: string;
   tags: string[];
@@ -141,6 +144,7 @@ export interface TransactionFilters {
   fromDate?: string;
   toDate?: string;
   loanId?: string;
+  depositId?: string;
   search?: string;
   limit?: number;
   offset?: number;
@@ -170,6 +174,8 @@ export interface CreateTransactionInput {
   linkedAccountId?: string;
   loanId?: string;
   loanTransactionType?: LoanTransactionType;
+  depositId?: string;
+  depositTransactionType?: DepositTransactionType;
   categoryId?: string;
   payee?: string;
   tags?: string[];
@@ -188,7 +194,7 @@ export interface CreateLoanInput {
   date: string;
 }
 
-export type DepositStatus = 'active' | 'matured' | 'closed';
+export type DepositStatus = 'active' | 'closed';
 
 export interface Deposit {
   id: string;
@@ -208,14 +214,21 @@ export interface Deposit {
 
 export interface CreateDepositInput {
   name: string;
-  bankName?: string;
+  bankName?: string | null;
   accountId: string;
   principalAmount: number;
-  interestRate?: number;
-  tenureMonths?: number;
+  interestRate?: number | null;
+  tenureMonths?: number | null;
   startDate: string;
-  maturityDate?: string;
-  maturityValue?: number;
+  maturityDate?: string | null;
+  maturityValue?: number | null;
+  note?: string | null;
+}
+
+export interface CloseDepositInput {
+  amount?: number;
+  accountId?: string;
+  date?: string;
   note?: string;
 }
 

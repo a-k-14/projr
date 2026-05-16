@@ -30,6 +30,7 @@ const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
   { label: 'Expense', value: 'out' },
   { label: 'Transfer', value: 'transfer' },
   { label: 'Loan', value: 'loan' },
+  { label: 'Deposit', value: 'deposit' },
 ];
 
 export function ActivityFilterBar({

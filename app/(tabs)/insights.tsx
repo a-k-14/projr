@@ -22,7 +22,7 @@ import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate } from '../../lib/dateUtils';
 import { TYPE , FONT_WEIGHT} from '../../lib/design';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SPACING } from '../../lib/layoutTokens';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING } from '../../lib/layoutTokens';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 
 type HomePeriodType = 'today' | PeriodType;
@@ -200,7 +200,7 @@ export default function InsightsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <View style={{ paddingTop: insets.top + 8, paddingBottom: SPACING.md, paddingHorizontal: 14 }}>
+      <View style={{ paddingTop: insets.top + 8, paddingBottom: SPACING.md, paddingHorizontal: SCREEN_HEADER.paddingX }}>
         <Text style={{ fontSize: TYPE.title, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
           Insights
         </Text>

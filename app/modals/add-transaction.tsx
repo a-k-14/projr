@@ -62,6 +62,7 @@ import { createSplitTransactionGroup, deleteTransaction, getRecentNotes, getRece
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
+import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { usePersonsStore } from '../../stores/usePersonsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
@@ -107,8 +108,12 @@ export default function AddTransactionModal() {
     type: initialType,
     loanId: routeLoanId,
     settlement,
-    addMore } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string }>();
-  const isEditing = !!editId;
+    addMore,
+    editDepositId,
+    closeDepositId } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string }>();
+  const isEditingDeposit = !!editDepositId;
+  const isClosingDeposit = !!closeDepositId;
+  const isEditing = !!editId || isEditingDeposit;
   const isLoanAddMore = !isEditing && !!routeLoanId && addMore === '1';
 
   const addTransaction = useTransactionsStore((s) => s.add);
@@ -119,6 +124,8 @@ export default function AddTransactionModal() {
   const addLoanPrincipal = useLoansStore((s) => s.addPrincipal);
   const updateLoanOrigin = useLoansStore((s) => s.updateOrigin);
   const removeLoan = useLoansStore((s) => s.remove);
+  const removeDeposit = useFixedDepositsStore((s) => s.remove);
+  const closeDeposit = useFixedDepositsStore((s) => s.close);
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
@@ -136,7 +143,15 @@ export default function AddTransactionModal() {
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
   const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
   const clearSplitRows = useTransactionDraftStore((s) => s.clearSplitRows);
-  const [type, setType] = useState<TransactionType>((initialType as TransactionType) || 'out');
+  const [type, setType] = useState<TransactionType | 'deposit'>(
+    isEditingDeposit || isClosingDeposit ? 'deposit' : ((initialType as TransactionType | 'deposit') || 'out'),
+  );
+  // Deposit-only fields (used when type === 'deposit')
+  const [depositName, setDepositName] = useState('');
+  const [depositBank, setDepositBank] = useState('');
+  const [depositTenure, setDepositTenure] = useState('');
+  const [depositInterest, setDepositInterest] = useState('');
+  const [depositMaturityDate, setDepositMaturityDate] = useState<string | undefined>(undefined);
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
   const [linkedAccountId, setLinkedAccountId] = useState('');
@@ -172,7 +187,7 @@ export default function AddTransactionModal() {
   const [showCalculator, setShowCalculator] = useState(false);
   const splitIdSeed = useRef(0);
   const hadSplitRows = useRef(false);
-  const previousType = useRef<TransactionType>((initialType as TransactionType) || 'out');
+  const previousType = useRef<TransactionType | 'deposit'>((initialType as TransactionType | 'deposit') || 'out');
   const isHydratingEditRef = useRef(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -197,7 +212,8 @@ export default function AddTransactionModal() {
     in: { label: 'Income', color: palette.positive, onColor: palette.onBrand, borderColor: palette.positive, bg: palette.inBg },
     out: { label: 'Expense', color: palette.negative, onColor: palette.onBrand, borderColor: palette.negative, bg: palette.outBg },
     transfer: { label: 'Transfer', color: palette.transferText, onColor: palette.onBrand, borderColor: palette.transferText, bg: palette.transferBg },
-    loan: { label: 'Loan', color: palette.loan, onColor: palette.onLoan, borderColor: palette.loan, bg: palette.loanBg }
+    loan: { label: 'Loan', color: palette.loan, onColor: palette.onLoan, borderColor: palette.loan, bg: palette.loanBg },
+    deposit: { label: 'Deposit', color: palette.brand, onColor: palette.onBrand, borderColor: palette.brand, bg: palette.budgetSoft }
   };
 
   useEffect(() => {
@@ -281,6 +297,23 @@ export default function AddTransactionModal() {
       setNoteSuggestions(results.filter(r => r.toLowerCase() !== term.toLowerCase()));
     });
   }, [note]);
+
+  // Hydrate form from existing deposit when editing or closing.
+  useEffect(() => {
+    const depositId = editDepositId ?? closeDepositId;
+    if ((!isEditingDeposit && !isClosingDeposit) || !depositId) return;
+    const found = useFixedDepositsStore.getState().deposits.find((d) => d.id === depositId);
+    if (!found) return;
+    setType('deposit');
+    setAmountStr(formatIndianNumberStr(String(isClosingDeposit ? (found.maturityValue ?? found.principalAmount) : found.principalAmount)));
+    setAccountId(found.accountId);
+    setDate(isClosingDeposit ? nowUTC() : found.startDate);
+    setDepositName(found.name);
+    setDepositBank(found.bankName ?? '');
+    setDepositTenure(found.tenureMonths != null ? String(found.tenureMonths) : '');
+    setDepositInterest(found.interestRate != null ? String(found.interestRate) : '');
+    setNote(isClosingDeposit ? '' : found.note ?? '');
+  }, [closeDepositId, editDepositId, isClosingDeposit, isEditingDeposit]);
 
   useEffect(() => {
     if (!isEditing || !editId) return;
@@ -406,7 +439,7 @@ export default function AddTransactionModal() {
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
-  const lockTypeSelection = isEditing && (isTransferEdit || (type === 'loan' && !!editingLoanId));
+  const lockTypeSelection = isEditingDeposit || isClosingDeposit || (isEditing && (isTransferEdit || (type === 'loan' && !!editingLoanId)));
   const lockLoanDirection = isLoanAddMore || (isEditing && type === 'loan' && !!editingLoanId);
   const displaySym = showCurrencySymbol ? sym : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
@@ -460,47 +493,55 @@ export default function AddTransactionModal() {
 
   const hasNonZeroAmount = Number.isFinite(amount) && amount !== 0;
   const isValid =
-    type === 'transfer'
-      ? amount > 0 && accountId && linkedAccountId
-      : isLoanAddMore
-        ? amount > 0 && accountId && personName.trim().length > 0
-        : type === 'loan'
-          ? hasNonZeroAmount && accountId && personName.trim().length > 0
-          : usableSplitRows.length > 0
-            ? splitTotal !== 0 && accountId
-            : hasNonZeroAmount && accountId && categoryId;
+    isClosingDeposit
+      ? amount > 0 && !!accountId
+      : type === 'deposit'
+      ? amount > 0 && !!accountId && depositName.trim().length > 0
+      : type === 'transfer'
+        ? amount > 0 && accountId && linkedAccountId
+        : isLoanAddMore
+          ? amount > 0 && accountId && personName.trim().length > 0
+          : type === 'loan'
+            ? hasNonZeroAmount && accountId && personName.trim().length > 0
+            : usableSplitRows.length > 0
+              ? splitTotal !== 0 && accountId
+              : hasNonZeroAmount && accountId && categoryId;
 
-  const actionLabel = isEditing
-    ? 'Save Changes'
-    : isLoanAddMore
-      ? 'Add More'
-      : type === 'loan' && routeLoanId && settlement === '1'
-        ? loanDirection === 'lent'
-          ? 'Add Receipt'
-          : 'Add Payment'
-        : type === 'in'
-          ? 'Add Income'
-          : type === 'transfer'
-            ? 'Move Money'
-            : type === 'loan'
-              ? 'Add Loan'
-              : 'Add Expense';
-  const actionButtonColor = type === 'loan' ? palette.brand : activeConfig.color;
+  const actionLabel = (() => {
+    if (isEditing) return 'Save Changes';
+    if (isClosingDeposit) return 'Close Deposit';
+    if (isLoanAddMore) return 'Add More';
+    if (type === 'loan' && routeLoanId && settlement === '1') {
+      return loanDirection === 'lent' ? 'Add Receipt' : 'Add Payment';
+    }
+    if (type === 'in') return 'Add Income';
+    if (type === 'transfer') return 'Move Money';
+    if (type === 'loan') return 'Add Loan';
+    if (type === 'deposit') return 'Add Deposit';
+    return 'Add Expense';
+  })();
+  const actionButtonColor = type === 'loan' || type === 'deposit' ? palette.brand : activeConfig.color;
   const screenTitle = isEditing
-    ? type === 'in'
-      ? 'Edit Income'
-      : type === 'out'
-        ? 'Edit Expense'
-        : type === 'transfer'
-          ? 'Edit Transfer'
-          : loanEditMode === 'settlement'
-            ? loanDirection === 'lent'
-              ? 'Edit Receipt'
-              : 'Edit Payment'
-            : 'Edit Loan'
+    ? type === 'deposit'
+      ? 'Edit Deposit'
+      : type === 'in'
+        ? 'Edit Income'
+        : type === 'out'
+          ? 'Edit Expense'
+          : type === 'transfer'
+            ? 'Edit Transfer'
+            : loanEditMode === 'settlement'
+              ? loanDirection === 'lent'
+                ? 'Edit Receipt'
+                : 'Edit Payment'
+              : 'Edit Loan'
+    : isClosingDeposit
+      ? 'Close Deposit'
     : isLoanAddMore
       ? 'Add More'
-      : 'New Transaction';
+      : type === 'deposit'
+        ? 'New Deposit'
+        : 'New Transaction';
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -508,6 +549,60 @@ export default function AddTransactionModal() {
     try {
       if (!isEditing && accountId) {
         updateSettings({ lastUsedAccountId: accountId }).catch(() => { });
+      }
+
+      if (type === 'deposit') {
+        if (isClosingDeposit && closeDepositId) {
+          await closeDeposit(closeDepositId, {
+            amount,
+            accountId,
+            date,
+            note: note.trim() || undefined,
+          });
+          router.back();
+          return;
+        }
+
+        const tenureRaw = depositTenure.trim() ? parseInt(depositTenure.trim(), 10) : NaN;
+        const interestRaw = depositInterest.trim() ? parseFloat(depositInterest.trim()) : NaN;
+        const tenureMonths = Number.isFinite(tenureRaw) ? tenureRaw : undefined;
+        const interestRate = Number.isFinite(interestRaw) ? interestRaw : undefined;
+
+        // Auto-compute maturity date from tenure if provided. Full ISO format
+        // matches startDate and the rest of the app's date storage.
+        let maturityDate: string | null = null;
+        if (tenureMonths) {
+          const start = new Date(date);
+          start.setMonth(start.getMonth() + tenureMonths);
+          maturityDate = start.toISOString();
+        }
+        // Quarterly-compounded maturity-value estimate (standard for Indian FDs).
+        let maturityValue: number | null = null;
+        if (tenureMonths && interestRate) {
+          const quartersElapsed = tenureMonths / 3;
+          const ratePerQuarter = (interestRate / 100) / 4;
+          maturityValue = amount * Math.pow(1 + ratePerQuarter, quartersElapsed);
+        }
+
+        const depositPayload = {
+          name: depositName.trim(),
+          bankName: depositBank.trim() || null,
+          accountId,
+          principalAmount: amount,
+          interestRate: interestRate ?? null,
+          tenureMonths: tenureMonths ?? null,
+          startDate: date,
+          maturityDate,
+          maturityValue,
+          note: note.trim() || null,
+        };
+        if (isEditingDeposit && editDepositId) {
+          await useFixedDepositsStore.getState().update(editDepositId, depositPayload);
+        } else {
+          await useFixedDepositsStore.getState().add(depositPayload);
+        }
+        router.back();
+        return;
       }
 
       const data: CreateTransactionInput = {
@@ -637,16 +732,21 @@ export default function AddTransactionModal() {
 
   const handleDelete = () => {
     const isLoanOrigin = type === 'loan' && loanEditMode === 'origin' && editingLoanId;
+    const isDepositEdit = isEditingDeposit && editDepositId;
     showConfirm({
-      title: isLoanOrigin ? 'Delete Loan' : 'Delete Transaction',
+      title: isLoanOrigin ? 'Delete Loan' : isDepositEdit ? 'Delete Deposit' : 'Delete Transaction',
       message: isLoanOrigin
         ? 'This will delete the loan and all its recorded entries. This cannot be undone.'
+        : isDepositEdit
+          ? 'This will delete the deposit and its linked activity entries. This cannot be undone.'
         : 'This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
         if (isLoanOrigin) {
           await removeLoan(editingLoanId!);
+        } else if (isDepositEdit) {
+          await removeDeposit(editDepositId!);
         } else if (editId) {
           await removeTransaction(editId);
         }
@@ -796,9 +896,14 @@ export default function AddTransactionModal() {
         keyboardShouldPersistTaps="handled"
       >
         <Pressable onPress={Keyboard.dismiss} style={{ paddingBottom: 20 }}>
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 12 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {(Object.keys(TYPE_CONFIG) as TransactionType[]).map((t) => (
+          <View style={{ paddingTop: 2, paddingBottom: 12 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, gap: 8 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {(Object.keys(TYPE_CONFIG) as Array<TransactionType | 'deposit'>).map((t) => (
                 <TouchableOpacity delayPressIn={0}
                   key={t}
                   onPress={() => {
@@ -807,8 +912,8 @@ export default function AddTransactionModal() {
                   }}
                   disabled={lockTypeSelection && t !== type}
                   style={{
-                    flex: 1,
                     paddingVertical: 8,
+                    paddingHorizontal: 18,
                     borderRadius: 20,
                     borderWidth: 1.5,
                     alignItems: 'center',
@@ -828,7 +933,7 @@ export default function AddTransactionModal() {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
           {type === 'in' || type === 'out' ? (
@@ -1021,7 +1126,7 @@ export default function AddTransactionModal() {
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
             </SectionCard>
-          ) : (
+          ) : type === 'loan' ? (
             <SectionCard palette={palette}>
               <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
               {loanEditMode === 'settlement' ? (
@@ -1099,20 +1204,34 @@ export default function AddTransactionModal() {
                       palette={palette}
                     />
                   ) : (
-                    <View ref={personAnchorRef} collapsable={false}>
-                      <InlineComboBox
-                        label="Person"
-                        value={personName}
-                        onChange={setPersonName}
-                        suggestions={[]}
-                        filterLocally
+                    <>
+                      <View ref={personAnchorRef} collapsable={false}>
+                        <InlineComboBox
+                          label="Person"
+                          value={personName}
+                          onChange={setPersonName}
+                          suggestions={[]}
+                          palette={palette}
+                          accentColor={activeConfig.color}
+                          autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
+                          onFocus={() => setIsPersonFocused(true)}
+                          onBlur={() => setIsPersonFocused(false)}
+                        />
+                      </View>
+                      <AutocompleteDropdown
+                        suggestions={(() => {
+                          const q = personName.trim().toLowerCase();
+                          if (!q) return persons.slice(0, 6);
+                          return persons.filter((name) => name.toLowerCase().includes(q)).slice(0, 6);
+                        })()}
+                        onSelect={(v) => { setPersonName(v); setIsPersonFocused(false); Keyboard.dismiss(); }}
+                        anchorRef={personAnchorRef}
+                        keyboardHeight={keyboardHeight}
                         palette={palette}
-                        accentColor={activeConfig.color}
-                        autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
-                        onFocus={() => setIsPersonFocused(true)}
-                        onBlur={() => setIsPersonFocused(false)}
+                        visible={isPersonFocused}
+                        onRequestClose={() => setIsPersonFocused(false)}
                       />
-                    </View>
+                    </>
                   )}
                 </>
               )}
@@ -1144,7 +1263,83 @@ export default function AddTransactionModal() {
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
             </SectionCard>
-          )}
+          ) : null}
+
+          {type === 'deposit' ? (
+            <SectionCard palette={palette}>
+              <InteractiveDateTimeRow
+                date={date}
+                onOpenDate={openDate}
+                onOpenTime={openTime}
+                palette={palette}
+              />
+              <PickerRow
+                label="Source"
+                value={getAccountName(accounts, accountId) || 'Select...'}
+                subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
+                placeholder={!accountId}
+                palette={palette}
+                onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
+              />
+              <AmountRow
+                sym={displaySym}
+                amountStr={amountStr}
+                setAmountStr={setAmountStr}
+                onOpenCalculator={handleOpenCalculator}
+                palette={palette}
+                accentColor={activeConfig.color}
+                autoFocus
+              />
+              {!isClosingDeposit ? (
+                <>
+                  <InlineComboBox
+                    label="Name"
+                    value={depositName}
+                    onChange={setDepositName}
+                    suggestions={[]}
+                    palette={palette}
+                    accentColor={activeConfig.color}
+                  />
+                  <InlineComboBox
+                    label="Bank"
+                    value={depositBank}
+                    onChange={setDepositBank}
+                    suggestions={[]}
+                    palette={palette}
+                    accentColor={activeConfig.color}
+                  />
+                  <InlineComboBox
+                    label="Tenure (months)"
+                    value={depositTenure}
+                    onChange={setDepositTenure}
+                    suggestions={[]}
+                    palette={palette}
+                    accentColor={activeConfig.color}
+                    keyboardType="number-pad"
+                  />
+                  <InlineComboBox
+                    label="Interest rate (%)"
+                    value={depositInterest}
+                    onChange={setDepositInterest}
+                    suggestions={[]}
+                    palette={palette}
+                    accentColor={activeConfig.color}
+                    keyboardType="decimal-pad"
+                  />
+                </>
+              ) : null}
+              <InlineComboBox
+                label="Notes"
+                value={note}
+                onChange={setNote}
+                suggestions={[]}
+                multiline
+                palette={palette}
+                accentColor={activeConfig.color}
+                onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+              />
+            </SectionCard>
+          ) : null}
 
 
         </Pressable>
@@ -1160,7 +1355,12 @@ export default function AddTransactionModal() {
           style={{ backgroundColor: isValid ? actionButtonColor : palette.textSoft }}
         />
         {isEditing && (
-          <TextButton label="Delete transaction" onPress={handleDelete} palette={palette} tone="danger" />
+          <TextButton
+            label={isEditingDeposit ? 'Delete deposit' : 'Delete transaction'}
+            onPress={handleDelete}
+            palette={palette}
+            tone="danger"
+          />
         )}
       </FixedBottomActions>
 
@@ -1296,7 +1496,7 @@ export default function AddTransactionModal() {
       {showCategorySheet ? (
         <CategoryPickerSheet
           categories={categories}
-          transactionType={type}
+          transactionType={type === 'deposit' ? undefined : type}
           selectedCategoryId={categoryId}
           palette={palette}
           onClose={() => setShowCategorySheet(false)}
@@ -1454,7 +1654,7 @@ export default function AddTransactionModal() {
               onPress={() => setReceiptPreviewOpen(false)}
               style={{
                 position: 'absolute',
-                top: 48,
+                top: insets.top + 8,
                 left: 18,
                 zIndex: 2,
                 width: 44,

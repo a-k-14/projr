@@ -29,6 +29,7 @@ export function getTransactionCashflowImpact(tx: {
   type: string;
   note?: string | null;
   transferPairId?: string | null;
+  depositTransactionType?: string | null;
 }, options?: {
   // Transfer impact is relative to the concrete transfer leg represented by tx.type.
   includeTransfers?: boolean;
@@ -39,6 +40,10 @@ export function getTransactionCashflowImpact(tx: {
   }
   if (tx.type === 'in') return 'in';
   if (tx.type === 'out') return 'out';
+  if (tx.type === 'deposit') {
+    // Creating a deposit moves money OUT of source; closing brings it back IN.
+    return tx.depositTransactionType === 'closed' ? 'in' : 'out';
+  }
   if (tx.type === 'loan' && options?.includeLoans !== false) {
     const note = (tx.note ?? '').toLowerCase();
     if (
@@ -64,6 +69,7 @@ export function getTransactionBalanceDelta(tx: {
   amount: number;
   note?: string | null;
   transferPairId?: string | null;
+  depositTransactionType?: string | null;
 }): number {
   const impact = getTransactionCashflowImpact(tx);
   if (impact === 'in') return tx.amount;

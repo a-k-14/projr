@@ -1,9 +1,10 @@
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/client';
 import { deposits } from '../db/schema';
-import type { Deposit, CreateDepositInput, DepositFilters, DepositStatus } from '../types';
+import type { CloseDepositInput, Deposit, CreateDepositInput, DepositFilters, DepositStatus } from '../types';
 import { generateId } from '../lib/ids';
-import { todayUTC } from '../lib/dateUtils';
+import { nowUTC, todayUTC } from '../lib/dateUtils';
+import { createTransaction, deleteTransaction, getTransactions, updateTransaction } from './transactions';
 
 function rowToDeposit(row: typeof deposits.$inferSelect): Deposit {
   return {
@@ -21,6 +22,11 @@ function rowToDeposit(row: typeof deposits.$inferSelect): Deposit {
     note: row.note ?? undefined,
     createdAt: row.createdAt,
   };
+}
+
+async function findLinkedTx(depositId: string, kind: 'new' | 'closed') {
+  const linked = await getTransactions({ depositId });
+  return linked.find((tx) => tx.depositTransactionType === kind);
 }
 
 export async function getDeposits(filters: DepositFilters = {}): Promise<Deposit[]> {
@@ -41,6 +47,11 @@ export async function getDepositById(id: string): Promise<Deposit | null> {
   return rowToDeposit(rows[0]);
 }
 
+/**
+ * Creates a deposit + a paired `type='deposit'` transaction
+ * (depositTransactionType='new') that debits the source account.
+ * Mirrors the loan creation pattern.
+ */
 export async function createDeposit(data: CreateDepositInput): Promise<Deposit> {
   const id = generateId();
   const now = todayUTC();
@@ -60,10 +71,70 @@ export async function createDeposit(data: CreateDepositInput): Promise<Deposit> 
     createdAt: now,
   };
   await db.insert(deposits).values(row);
+
+  try {
+    await createTransaction({
+      type: 'deposit',
+      amount: data.principalAmount,
+      accountId: data.accountId,
+      depositId: id,
+      depositTransactionType: 'new',
+      note: data.note ?? undefined,
+      date: data.startDate,
+    });
+  } catch (error) {
+    await db.delete(deposits).where(eq(deposits.id, id));
+    throw error;
+  }
+
   return rowToDeposit(row);
 }
 
-export async function updateDeposit(id: string, data: Partial<CreateDepositInput> & { status?: DepositStatus }): Promise<Deposit> {
+/**
+ * Updates the deposit row and mirrors changes to the linked 'new' transaction
+ * (amount, account, date, note). Auto-recomputes maturityDate/maturityValue
+ * if startDate / tenureMonths / interestRate / principalAmount changed and the
+ * caller didn't pass them explicitly.
+ */
+export async function updateDeposit(
+  id: string,
+  data: Partial<CreateDepositInput> & { status?: DepositStatus },
+): Promise<Deposit> {
+  const existing = await getDepositById(id);
+  if (!existing) throw new Error('Deposit not found');
+
+  const nextStartDate = data.startDate ?? existing.startDate;
+  const nextTenureMonths = data.tenureMonths !== undefined ? data.tenureMonths : existing.tenureMonths;
+  const nextInterestRate = data.interestRate !== undefined ? data.interestRate : existing.interestRate;
+  const nextPrincipal = data.principalAmount ?? existing.principalAmount;
+
+  const inputsChanged =
+    data.startDate !== undefined ||
+    data.tenureMonths !== undefined ||
+    data.interestRate !== undefined ||
+    data.principalAmount !== undefined;
+
+  let computedMaturityDate: string | null | undefined = undefined;
+  let computedMaturityValue: number | null | undefined = undefined;
+  if (inputsChanged && data.maturityDate === undefined) {
+    if (nextTenureMonths) {
+      const start = new Date(nextStartDate);
+      start.setMonth(start.getMonth() + nextTenureMonths);
+      computedMaturityDate = start.toISOString();
+    } else {
+      computedMaturityDate = null;
+    }
+  }
+  if (inputsChanged && data.maturityValue === undefined) {
+    if (nextTenureMonths && nextInterestRate) {
+      const quartersElapsed = nextTenureMonths / 3;
+      const ratePerQuarter = (nextInterestRate / 100) / 4;
+      computedMaturityValue = nextPrincipal * Math.pow(1 + ratePerQuarter, quartersElapsed);
+    } else {
+      computedMaturityValue = null;
+    }
+  }
+
   const patch: Record<string, unknown> = {};
   if (data.name !== undefined) patch.name = data.name;
   if (data.bankName !== undefined) patch.bankName = data.bankName ?? null;
@@ -73,15 +144,92 @@ export async function updateDeposit(id: string, data: Partial<CreateDepositInput
   if (data.tenureMonths !== undefined) patch.tenureMonths = data.tenureMonths ?? null;
   if (data.startDate !== undefined) patch.startDate = data.startDate;
   if (data.maturityDate !== undefined) patch.maturityDate = data.maturityDate ?? null;
+  else if (computedMaturityDate !== undefined) patch.maturityDate = computedMaturityDate;
   if (data.maturityValue !== undefined) patch.maturityValue = data.maturityValue ?? null;
+  else if (computedMaturityValue !== undefined) patch.maturityValue = computedMaturityValue;
   if (data.note !== undefined) patch.note = data.note ?? null;
   if (data.status !== undefined) patch.status = data.status;
 
   await db.update(deposits).set(patch as any).where(eq(deposits.id, id));
+
+  // Mirror amount/account/date/note onto the 'new' transaction so the
+  // Activity row and account balance stay in sync.
+  const linkedNewTx = await findLinkedTx(id, 'new');
+  if (linkedNewTx) {
+    const txPatch: Record<string, unknown> = {};
+    if (data.principalAmount !== undefined) txPatch.amount = data.principalAmount;
+    if (data.accountId !== undefined) txPatch.accountId = data.accountId;
+    if (data.startDate !== undefined) txPatch.date = data.startDate;
+    if (data.note !== undefined) txPatch.note = data.note ?? undefined;
+    if (Object.keys(txPatch).length > 0) {
+      await updateTransaction(linkedNewTx.id, txPatch as any);
+    }
+  }
+
   const rows = await db.select().from(deposits).where(eq(deposits.id, id));
   return rowToDeposit(rows[0]);
 }
 
+/**
+ * Marks a deposit closed (covers both matured and closed states) and creates
+ * a paired `type='deposit'` transaction (depositTransactionType='closed') that
+ * credits the source account with the maturityValue (or principal if no
+ * maturity value is set).
+ */
+export async function closeDeposit(id: string, data: CloseDepositInput = {}): Promise<Deposit> {
+  const existing = await getDepositById(id);
+  if (!existing) throw new Error('Deposit not found');
+
+  const amount = data.amount ?? existing.maturityValue ?? existing.principalAmount;
+  const accountId = data.accountId ?? existing.accountId;
+  const date = data.date ?? nowUTC();
+  const note = data.note;
+
+  // Already-closed state is unreachable from the UI (the Close button is hidden
+  // for status !== 'active'). Caller can call reopenDeposit first if they want
+  // to re-close with new values.
+  if (existing.status === 'closed') return existing;
+
+  await createTransaction({
+    type: 'deposit',
+    amount,
+    accountId,
+    depositId: id,
+    depositTransactionType: 'closed',
+    date,
+    note,
+  });
+
+  await db.update(deposits).set({ status: 'closed' }).where(eq(deposits.id, id));
+  const rows = await db.select().from(deposits).where(eq(deposits.id, id));
+  return rowToDeposit(rows[0]);
+}
+
+/**
+ * Reverses closeDeposit: removes the 'closed' transaction (refunds the credit
+ * via the regular delete flow) and flips status back to 'active'.
+ */
+export async function reopenDeposit(id: string): Promise<Deposit> {
+  const existing = await getDepositById(id);
+  if (!existing) throw new Error('Deposit not found');
+  if (existing.status !== 'closed') return existing;
+  const closedTx = await findLinkedTx(id, 'closed');
+  if (closedTx) {
+    await deleteTransaction(closedTx.id, { skipDepositCascade: true });
+  }
+  await db.update(deposits).set({ status: 'active' }).where(eq(deposits.id, id));
+  const rows = await db.select().from(deposits).where(eq(deposits.id, id));
+  return rowToDeposit(rows[0]);
+}
+
+/**
+ * Cascades: removes both linked transactions (new + closed if present), each
+ * via deleteTransaction so balances auto-unwind, then drops the deposit row.
+ */
 export async function deleteDeposit(id: string): Promise<void> {
+  const linked = await getTransactions({ depositId: id });
+  for (const tx of linked) {
+    await deleteTransaction(tx.id, { skipDepositCascade: true });
+  }
   await db.delete(deposits).where(eq(deposits.id, id));
 }

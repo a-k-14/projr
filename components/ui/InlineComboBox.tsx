@@ -49,6 +49,8 @@ interface Props {
   autoFocus?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Force a specific keyboard (e.g. 'decimal-pad' for numeric fields). Default is text. */
+  keyboardType?: 'default' | 'numeric' | 'decimal-pad' | 'number-pad';
 }
 
 export function InlineComboBox({
@@ -65,6 +67,7 @@ export function InlineComboBox({
   autoFocus = false,
   onFocus: onFocusProp,
   onBlur: onBlurProp,
+  keyboardType = 'default',
 }: Props) {
   const [query, setQuery] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
@@ -248,7 +251,8 @@ export function InlineComboBox({
               onBlur={handleBlur}
               placeholder={placeholder ?? ''}
               placeholderTextColor={palette.textSoft}
-              autoCapitalize="words"
+              autoCapitalize={keyboardType === 'default' ? 'words' : 'none'}
+              keyboardType={keyboardType}
               cursorColor={focusedColor}
               autoFocus={autoFocus}
               style={[inputBaseStyle, {

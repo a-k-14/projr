@@ -126,6 +126,21 @@ export async function runMigrations() {
     console.warn('Migration patch (loan_transaction_type) error:', err);
   }
 
+  try {
+    const tableInfo3 = await sqlite.getAllAsync<{ name: string }>('PRAGMA table_info(transactions);');
+    const hasDepositIdCol = tableInfo3.some((col) => col.name === 'deposit_id');
+    if (!hasDepositIdCol) {
+      await sqlite.execAsync('ALTER TABLE transactions ADD COLUMN deposit_id TEXT;');
+      await sqlite.execAsync('CREATE INDEX IF NOT EXISTS idx_transactions_deposit ON transactions(deposit_id);');
+    }
+    const hasDepositTxTypeCol = tableInfo3.some((col) => col.name === 'deposit_transaction_type');
+    if (!hasDepositTxTypeCol) {
+      await sqlite.execAsync('ALTER TABLE transactions ADD COLUMN deposit_transaction_type TEXT;');
+    }
+  } catch (err) {
+    console.warn('Migration patch (deposit_id) error:', err);
+  }
+
   // Persons table — used for loan (and future deposit) person name autocomplete
   try {
     await sqlite.execAsync(`

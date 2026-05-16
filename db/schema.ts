@@ -38,6 +38,8 @@ export const transactions = sqliteTable('transactions', {
   linkedAccountId: text('linked_account_id'),
   loanId: text('loan_id'),
   loanTransactionType: text('loan_transaction_type'),
+  depositId: text('deposit_id'),
+  depositTransactionType: text('deposit_transaction_type'),
   categoryId: text('category_id'),
   payee: text('payee'),
   tags: text('tags').notNull().default('[]'),

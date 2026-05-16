@@ -91,7 +91,7 @@ export function Checkbox({ selected, partial = false, palette }: CheckboxProps) 
       }}
     >
       {selected && <AppIcon name="check" size={15} color={palette.onBrand} />}
-      {partial && <View style={{ width: 10, height: 2.5, borderRadius: 99, backgroundColor: palette.brand }} />}
+      {partial && <View style={{ width: 10, height: 2.5, borderRadius: HOME_RADIUS.full, backgroundColor: palette.brand }} />}
     </View>
   );
 }

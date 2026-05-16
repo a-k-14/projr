@@ -28,7 +28,8 @@ const SHADOW_OFFSET_Y = -2;
 const SHADOW_OPACITY = 0.08;
 const SHADOW_RADIUS = 8;
 const ELEVATION = 20;
-const SHEET_RADIUS = 24;
+const SHEET_RADIUS = HOME_RADIUS.large;
+const MIN_NAV_FLOOR_HEIGHT = 24;
 const SWIPE_ACTIVATION_THRESHOLD = 8;
 const SWIPE_DISMISS_DISTANCE = 80;
 const SWIPE_DISMISS_VELOCITY = 0.5;
@@ -302,6 +303,21 @@ export function BottomSheet({
           </Animated.View>
         </Animated.View>
       </View>
+
+      {/* Floor — rendered last so it's always above the backdrop and sheet.
+          Fills the OS gesture-bar zone with the sheet colour so screen content
+          never bleeds through during open/close animations. */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: Math.max(insets.bottom, MIN_NAV_FLOOR_HEIGHT),
+          backgroundColor: backgroundColor ?? palette.card,
+        }}
+        pointerEvents="none"
+      />
     </View>
   );
 }

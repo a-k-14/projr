@@ -5,7 +5,7 @@ import { forwardRef, ReactNode, RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../lib/design';
-import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT} from '../lib/layoutTokens';
+import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT, SCREEN_HEADER} from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { FilledButton, TextButton } from './ui/AppButton';
@@ -23,7 +23,7 @@ export function ScreenTitle({
     right?: ReactNode;
   }) {
   return (
-    <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: SPACING.md }}>
+    <View style={{ paddingHorizontal: SCREEN_HEADER.paddingX, paddingTop: 8, paddingBottom: SPACING.md }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.md }}>
         <Text style={{ flex: 1, fontSize: TYPE.title, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
           {title}
@@ -47,7 +47,7 @@ export function SectionLabel({ label, palette }: { label: string; palette: AppTh
         fontSize: HOME_TEXT.caption,
         fontWeight: FONT_WEIGHT.bold,
         color: palette.textSecondary,
-        marginHorizontal: 14,
+        marginHorizontal: SCREEN_HEADER.paddingX,
         marginBottom: 6,
         marginTop: 4,
         letterSpacing: 0.3

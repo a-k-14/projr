@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -33,6 +33,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getLoanById } from '../../services/loans';
@@ -55,6 +56,7 @@ export default function LoanSettlementModal() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const displaySym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
 
   const [resolvedLoanId, setResolvedLoanId] = useState(loanId ?? '');
@@ -191,7 +193,7 @@ export default function LoanSettlementModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 132 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 120) }}>
         <View style={{ paddingBottom: 20 }}>
           <SectionCard palette={palette}>
             <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />

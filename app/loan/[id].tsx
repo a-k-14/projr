@@ -16,6 +16,7 @@ import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
+import { StatusPill } from '../../components/ui/StatusPill';
 import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
@@ -182,25 +183,13 @@ export default function LoanDetailScreen() {
                     {loan.personName}
                   </Text>
                 </View>
-                <TouchableOpacity delayPressIn={0}
+                <StatusPill
+                  label={loan.status === 'open' ? 'Open' : 'Closed'}
+                  color={loan.status === 'open' ? (isLent ? palette.negative : palette.positive) : palette.textSecondary}
+                  backgroundColor={loan.status === 'open' ? (isLent ? palette.outBg : palette.inBg) : palette.inputBg}
+                  palette={palette}
                   onPress={handleToggleStatus}
-                  style={{
-                    paddingHorizontal: HOME_SPACE.md,
-                    paddingVertical: HOME_SPACE.xs,
-                    borderRadius: HOME_RADIUS.small,
-                    backgroundColor: loan.status === 'open' ? (isLent ? palette.outBg : palette.inBg) : palette.inputBg
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: HOME_TEXT.bodySmall,
-                      fontWeight: FONT_WEIGHT.semibold,
-                      color: loan.status === 'open' ? (isLent ? palette.negative : palette.positive) : palette.textSecondary
-                    }}
-                  >
-                    {loan.status === 'open' ? 'Open' : 'Closed'}
-                  </Text>
-                </TouchableOpacity>
+                />
               </View>
 
               <View style={{ flexDirection: 'row', marginTop: HOME_SPACE.sm, marginBottom: HOME_SPACE.lg }}>

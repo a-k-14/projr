@@ -1,5 +1,5 @@
 import { StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import { HOME_LAYOUT } from '../../lib/layoutTokens';
+import { HOME_LAYOUT, HOME_RADIUS } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { AppIcon } from './AppIcon';
 
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     right: HOME_LAYOUT.fabRightOffset,
     width: HOME_LAYOUT.fabSize,
     height: HOME_LAYOUT.fabSize,
-    borderRadius: 28,
+    borderRadius: HOME_RADIUS.fab,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 10,

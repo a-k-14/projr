@@ -48,12 +48,12 @@ export function getAccountTypeLabel(type?: string): string {
 }
 
 export const ACCOUNT_TYPE_META: Record<AccountType, { icon: string; color: string; bg?: string }> = {
-  savings: { icon: 'landmark', color: '#2563EB' },
-  cash: { icon: 'banknote', color: '#059669' },
-  wallet: { icon: 'wallet', color: '#92400E' },
-  investment: { icon: 'trending-up', color: '#7C3AED' },
-  credit: { icon: 'credit-card', color: '#b02221', bg: '#f7eaeb' },
-  other: { icon: 'circle-dollar-sign', color: '#64748B' },
+  savings: { icon: 'landmark', color: '#3B5B7A', bg: '#EAF0F6' },
+  cash: { icon: 'banknote', color: '#4F7D5D', bg: '#EAF3ED' },
+  wallet: { icon: 'wallet', color: '#8A6548', bg: '#F2ECE5' },
+  investment: { icon: 'trending-up', color: '#6E5A8A', bg: '#EEEAF4' },
+  credit: { icon: 'credit-card', color: '#9B4A46', bg: '#F4E8E7' },
+  other: { icon: 'circle-dollar-sign', color: '#667085', bg: '#EEF1F5' },
 };
 
 export const ACCOUNT_ICONS = [

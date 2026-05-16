@@ -14,6 +14,9 @@ interface ScreenHeaderProps {
   showBack?: boolean;
   height?: number;
   titleSize?: number;
+  backgroundColor?: string;
+  titleColor?: string;
+  iconColor?: string;
 }
 
 import { PillIconButton } from './PillIconButton';
@@ -89,15 +92,21 @@ export function HeaderEditButton({
   );
 }
 
-export function ScreenHeader({ 
-  title, 
-  palette, 
-  rightAction, 
-  onBack, 
+export function ScreenHeader({
+  title,
+  palette,
+  rightAction,
+  onBack,
   showBack = true,
   height = 54,
   titleSize = 27,
+  backgroundColor,
+  titleColor,
+  iconColor,
 }: ScreenHeaderProps) {
+  const resolvedBg = backgroundColor ?? palette.background;
+  const resolvedTitle = titleColor ?? palette.text;
+  const resolvedIcon = iconColor ?? palette.text;
   return (
     <View
       style={{
@@ -105,7 +114,7 @@ export function ScreenHeader({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: SCREEN_GUTTER,
-        backgroundColor: palette.background,
+        backgroundColor: resolvedBg,
       }}
     >
       {showBack && (
@@ -120,16 +129,16 @@ export function ScreenHeader({
             },
           ]}
         >
-          <AppIcon name="arrow-left" size={22} color={palette.text} strokeWidth={2} />
+          <AppIcon name="arrow-left" size={22} color={resolvedIcon} strokeWidth={2} />
         </TouchableOpacity>
       )}
-      
-      <Text 
-        style={{ 
-          flex: 1, 
+
+      <Text
+        style={{
+          flex: 1,
           fontSize: titleSize,
           fontWeight: FONT_WEIGHT.regular,
-          color: palette.text, 
+          color: resolvedTitle,
           letterSpacing: -0.5,
           marginLeft: showBack ? 0 : 4,
         }}

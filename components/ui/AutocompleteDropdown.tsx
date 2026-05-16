@@ -127,7 +127,7 @@ export function AutocompleteDropdown({
           <View
             style={{
               backgroundColor: palette.card,
-              borderRadius: HOME_RADIUS.medium,
+              borderRadius: HOME_RADIUS.cardSm,
               borderWidth: 1,
               borderColor: palette.divider,
               overflow: 'hidden',
