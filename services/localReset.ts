@@ -7,6 +7,7 @@ import { useLoansStore } from '../stores/useLoansStore';
 import { useTransactionDraftStore } from '../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../stores/useTransactionsStore';
 import { useUIStore } from '../stores/useUIStore';
+import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { deleteAllReceipts } from './receiptStorage';
 import { seedDatabase } from '../db/seed';
 import { markStarterDataSeeded } from './settings';
@@ -20,6 +21,14 @@ export function resetInMemoryStores(): void {
   useBudgetStore.getState().reset();
   useBudgetDraftStore.getState().reset();
   useUIStore.getState().reset();
+  useFixedDepositsStore.setState({
+    deposits: [],
+    isLoaded: false,
+    totalInvested: 0,
+    totalMaturityValue: 0,
+    totalInterest: 0,
+    activeMaturityValue: 0,
+  });
 }
 
 export async function resetLocalAppData(): Promise<void> {
@@ -35,5 +44,6 @@ export async function resetLocalAppData(): Promise<void> {
     useTransactionsStore.getState().load(),
     useLoansStore.getState().load(),
     useBudgetStore.getState().load(),
+    useFixedDepositsStore.getState().load(),
   ]);
 }

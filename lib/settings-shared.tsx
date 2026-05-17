@@ -24,12 +24,13 @@ export const MONTHS = [
 export const CURRENCIES = [
   { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
   { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'CAD', symbol: '$', name: 'Canadian Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'GBP', symbol: '£', name: 'British Pound' },
 ];
 
 export const THEMES = [
-  { key: 'auto', label: 'Auto' },
+  { key: 'auto', label: 'Device Theme' },
   { key: 'light', label: 'Light' },
   { key: 'dark', label: 'Dark' },
 ] as const;

@@ -1,5 +1,5 @@
 import { db } from '../db/client';
-import { accounts, budget, categories, loans, settings, tags, transactions } from '../db/schema';
+import { accounts, budget, categories, loans, settings, tags, transactions, deposits, persons, assets } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import type { Settings } from '../types';
 
@@ -71,10 +71,13 @@ export async function clearLocalData(): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.delete(transactions);
     await tx.delete(loans);
+    await tx.delete(deposits);
     await tx.delete(budget);
     await tx.delete(tags);
+    await tx.delete(persons);
+    await tx.delete(assets);
     // Categories and Accounts have foreign key relationships, 
-    // but transactions/loans/budget refer to them. We cleared those first.
+    // but transactions/loans/budget/deposits refer to them. We cleared those first.
     await tx.delete(categories);
     await tx.delete(accounts);
     await tx.delete(settings);

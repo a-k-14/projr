@@ -7,7 +7,8 @@ import { Animated, ScrollView, TouchableOpacity, View, useWindowDimensions } fro
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CardSection,
-  FixedBottomActions
+  FixedBottomActions,
+  SettingsScreenLayout
 } from '../../components/settings-ui';
 import { CATEGORY_TREE_ROW, CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
@@ -67,7 +68,7 @@ export default function CategoriesScreen() {
     return (
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 4, paddingBottom: getScrollableBottomPadding(insets) }}
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: getScrollableBottomPadding(insets, 60) }}
         showsVerticalScrollIndicator={false}
       >
         <CardSection palette={palette}>
@@ -186,79 +187,10 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <View style={{ flex: 1 }}>
-        <Stack.Screen
-          options={{
-            title: 'Categories',
-            headerRight: undefined,
-          }}
-        />
-        <View
-          style={{
-            flexDirection: 'row',
-            width: '100%',
-            borderBottomWidth: 1,
-            borderBottomColor: palette.divider,
-            position: 'relative'
-          }}
-        >
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: 0,
-              bottom: -1,
-              width: `${50}%`,
-              height: 2,
-              backgroundColor: palette.brand,
-              transform: [{ translateX: underlineTranslateX }]
-            }}
-          />
-          {(['in', 'out'] as const).map((t) => (
-            <TouchableOpacity delayPressIn={0}
-              key={t}
-              onPress={() => setTab(t)}
-              activeOpacity={0.7}
-              style={{
-                flex: 1,
-                paddingVertical: 14,
-                alignItems: 'center'
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: TYPE.rowValue,
-                  fontWeight: FONT_WEIGHT.semibold,
-                  color: tab === t ? palette.brand : palette.textMuted
-                }}
-              >
-                {t === 'in' ? 'Income' : 'Expense'} ({visibleByTab[t].length})
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Animated.ScrollView
-          ref={pagerRef}
-          horizontal
-          pagingEnabled
-          directionalLockEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true },
-          )}
-          scrollEventThrottle={16}
-          onMomentumScrollEnd={(event) => {
-            const next = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
-            setTab(next === 0 ? 'in' : 'out');
-          }}
-        >
-          <View style={{ width }}>{renderCategoryList('in')}</View>
-          <View style={{ width }}>{renderCategoryList('out')}</View>
-        </Animated.ScrollView>
-
+    <SettingsScreenLayout
+      palette={palette}
+      useScrollView={false}
+      bottomAction={
         <FixedBottomActions palette={palette}>
           <TouchableOpacity
             delayPressIn={0}
@@ -278,7 +210,79 @@ export default function CategoriesScreen() {
             </Text>
           </TouchableOpacity>
         </FixedBottomActions>
+      }
+    >
+      <Stack.Screen
+        options={{
+          title: 'Categories',
+          headerRight: undefined,
+        }}
+      />
+      <View
+        style={{
+          flexDirection: 'row',
+          width: '100%',
+          borderBottomWidth: 1,
+          borderBottomColor: palette.divider,
+          position: 'relative',
+          marginTop: -6,
+        }}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            bottom: -1,
+            width: `${50}%`,
+            height: 2,
+            backgroundColor: palette.brand,
+            transform: [{ translateX: underlineTranslateX }]
+          }}
+        />
+        {(['in', 'out'] as const).map((t) => (
+          <TouchableOpacity delayPressIn={0}
+            key={t}
+            onPress={() => setTab(t)}
+            activeOpacity={0.7}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              alignItems: 'center'
+            }}
+          >
+            <Text
+              style={{
+                fontSize: TYPE.rowValue,
+                fontWeight: FONT_WEIGHT.semibold,
+                color: tab === t ? palette.brand : palette.textMuted
+              }}
+            >
+              {t === 'in' ? 'Income' : 'Expense'} ({visibleByTab[t].length})
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
-    </View>
+
+      <Animated.ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        directionalLockEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={(event) => {
+          const next = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
+          setTab(next === 0 ? 'in' : 'out');
+        }}
+      >
+        <View style={{ width }}>{renderCategoryList('in')}</View>
+        <View style={{ width }}>{renderCategoryList('out')}</View>
+      </Animated.ScrollView>
+    </SettingsScreenLayout>
   );
 }

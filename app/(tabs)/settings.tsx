@@ -145,7 +145,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="sun"
                 label="Theme"
-                value={capitalize(settings.theme)}
+                value={settings.theme === 'auto' ? 'Device Theme' : capitalize(settings.theme)}
                 palette={palette}
                 onPress={() => setPicker('theme')}
                 noBorder
@@ -314,7 +314,7 @@ export default function SettingsScreen() {
               <ChoiceRow
                 key={theme.key}
                 title={theme.label}
-                leftElement={<AppIcon name={themeIcon(theme.key)} size={18} color={settings.theme === theme.key ? palette.tabActive : palette.textMuted} />}
+                leftElement={<AppIcon name={themeIcon(theme.key)} size={18} color={palette.text} />}
                 selected={settings.theme === theme.key}
                 palette={palette}
                 onPress={() => {

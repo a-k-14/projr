@@ -238,3 +238,8 @@ export const PROGRESS = PROGRESS_LAYOUT;
 // ─── Shared page size ─────────────────────────────────────────────────────────
 // Used by useTransactionsStore and activity.tsx so both stay in sync.
 export const TRANSACTIONS_PAGE_SIZE = 20;
+
+// ─── Help Texts ──────────────────────────────────────────────────────────────
+export const HELP_TEXTS = {
+  cashflowNote: 'Cashflow includes Transfer, Deposit & Loan movements',
+} as const;

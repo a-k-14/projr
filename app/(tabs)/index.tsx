@@ -53,7 +53,8 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_SURFACE,
-  HOME_TEXT
+  HOME_TEXT,
+  HELP_TEXTS
 } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
@@ -690,12 +691,39 @@ function AccountSummaryCard({
     animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9 });
     tickActivityProgress.value = withTiming(totalTick > 0 ? 1 : 0, { duration: 250 });
   }, [tickIn, tickOut]);
-  const incomeTickOverlayStyle = useAnimatedStyle(() => ({
-    width: tickActivityProgress.value * animatedIncomeFraction.value * tickContainerWidth,
-  }));
-  const expenseTickOverlayStyle = useAnimatedStyle(() => ({
-    width: tickActivityProgress.value * (1 - animatedIncomeFraction.value) * tickContainerWidth,
-  }));
+  const incomeTickOverlayStyle = useAnimatedStyle(() => {
+    const TICK_W = 2.3, TICK_GAP = 4;
+    const TICK_TOTAL = tickContainerWidth > 0
+      ? Math.floor((tickContainerWidth + TICK_GAP) / (TICK_W + TICK_GAP))
+      : 40;
+    const progress = tickActivityProgress.value;
+    const fraction = animatedIncomeFraction.value;
+    const greenTicksCount = Math.round(fraction * TICK_TOTAL);
+    const currentGreenTicks = greenTicksCount * progress;
+    const width = currentGreenTicks > 0
+      ? currentGreenTicks * TICK_W + (currentGreenTicks - 1) * TICK_GAP
+      : 0;
+    return {
+      width: Math.max(0, width),
+    };
+  });
+  const expenseTickOverlayStyle = useAnimatedStyle(() => {
+    const TICK_W = 2.3, TICK_GAP = 4;
+    const TICK_TOTAL = tickContainerWidth > 0
+      ? Math.floor((tickContainerWidth + TICK_GAP) / (TICK_W + TICK_GAP))
+      : 40;
+    const progress = tickActivityProgress.value;
+    const fraction = animatedIncomeFraction.value;
+    const greenTicksCount = Math.round(fraction * TICK_TOTAL);
+    const redTicksCount = TICK_TOTAL - greenTicksCount;
+    const currentRedTicks = redTicksCount * progress;
+    const width = currentRedTicks > 0
+      ? currentRedTicks * TICK_W + (currentRedTicks - 1) * TICK_GAP
+      : 0;
+    return {
+      width: Math.max(0, width),
+    };
+  });
 
   const cardScale = useSharedValue(1);
   const cardScaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: cardScale.value }] }));
@@ -886,6 +914,8 @@ function AccountSummaryCard({
           const TICK_TOTAL = tickContainerWidth > 0
             ? Math.floor((tickContainerWidth + TICK_GAP) / (TICK_W + TICK_GAP))
             : 40;
+          const tickContentWidth = TICK_TOTAL * (TICK_W + TICK_GAP) - TICK_GAP;
+          const tickRemainder = tickContainerWidth > 0 ? (tickContainerWidth - tickContentWidth) : 0;
           const walletCardBg = palette.isDark ? '#1A1F2E' : '#FFFFFF';
           return (
             <View style={{ marginHorizontal: -14, marginBottom: -12 }}>
@@ -957,8 +987,8 @@ function AccountSummaryCard({
                       ))}
                     </View>
                   </Animated.View>
-                  <Animated.View style={[{ position: 'absolute', right: 0, top: 0, height: 12, overflow: 'hidden' }, expenseTickOverlayStyle]}>
-                    <View style={{ position: 'absolute', right: 0, flexDirection: 'row', gap: TICK_GAP }}>
+                  <Animated.View style={[{ position: 'absolute', right: tickRemainder, top: 0, height: 12, overflow: 'hidden' }, expenseTickOverlayStyle]}>
+                    <View style={{ position: 'absolute', right: 0, flexDirection: 'row', gap: TICK_GAP, width: tickContentWidth }}>
                       {Array.from({ length: TICK_TOTAL }).map((_, i) => (
                         <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: '#F87171' }} />
                       ))}
@@ -997,7 +1027,7 @@ function AccountSummaryCard({
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 8 }}>
                     <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
                     <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
-                      Cashflow includes Transfers, Deposits & Loans movements
+                      {HELP_TEXTS.cashflowNote}
                     </Text>
                   </View>
                 </Animated.View>
@@ -1096,7 +1126,7 @@ function AccountSummaryCard({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 6, paddingBottom: 6, paddingHorizontal: 14 }}>
                   <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
                   <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
-                    Cashflow includes Transfers, Deposits & Loans movements
+                    {HELP_TEXTS.cashflowNote}
                   </Text>
                 </View>
               </Animated.View>

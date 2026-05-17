@@ -110,6 +110,9 @@ export default function AssetFormScreen() {
     }
     const parts = cleaned.split('.');
     if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
+    if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') {
+      cleaned = cleaned.substring(1);
+    }
     setValueStr(formatIndianNumberStr(cleaned));
   };
 

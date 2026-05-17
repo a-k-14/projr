@@ -15,6 +15,7 @@ import { StatusPill } from '../../components/ui/StatusPill';
 import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
+import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   ACTIVITY_LAYOUT,
   HOME_RADIUS,
@@ -43,6 +44,10 @@ export default function LoanDetailScreen() {
   const { palette } = useAppTheme();
   const tags = useCategoriesStore((s) => s.tags);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
+  const categories = useCategoriesStore((s) => s.categories);
+  const loadCategories = useCategoriesStore((s) => s.load);
+  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [filterNonPrincipal, setFilterNonPrincipal] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -67,7 +72,8 @@ export default function LoanDetailScreen() {
 
   useEffect(() => {
     loadLoans();
-  }, [loadLoans]);
+    loadCategories().catch(() => undefined);
+  }, [loadLoans, loadCategories]);
 
   useEffect(() => {
     if (loansLoaded && !loan && id) {
