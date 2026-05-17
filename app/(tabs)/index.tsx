@@ -684,13 +684,21 @@ function AccountSummaryCard({
   const tickIn = isCashflow ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
   const tickOut = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
   const totalTick = tickIn + tickOut;
-  const incomeFraction = totalTick > 0 ? tickIn / totalTick : 0;
+  const incomeFraction = totalTick > 0 ? tickIn / totalTick : 0.5;
   const animatedIncomeFraction = useSharedValue(incomeFraction);
   const tickActivityProgress = useSharedValue(totalTick > 0 ? 1 : 0);
+
+  const prevTotalTickRef = React.useRef(totalTick);
+
   React.useEffect(() => {
-    animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9 });
+    if (prevTotalTickRef.current === 0 && totalTick > 0) {
+      animatedIncomeFraction.value = incomeFraction;
+    } else {
+      animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9 });
+    }
     tickActivityProgress.value = withTiming(totalTick > 0 ? 1 : 0, { duration: 250 });
-  }, [tickIn, tickOut]);
+    prevTotalTickRef.current = totalTick;
+  }, [tickIn, tickOut, incomeFraction, totalTick]);
   const incomeTickOverlayStyle = useAnimatedStyle(() => {
     const TICK_W = 2.3, TICK_GAP = 4;
     const TICK_TOTAL = tickContainerWidth > 0
