@@ -56,7 +56,7 @@ import {
   HOME_TEXT,
   HELP_TEXTS
 } from '../../lib/layoutTokens';
-import { ACCOUNT_TYPE_META } from '../../lib/settings-shared';
+import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { getCashflowSnapshot } from '../../services/analytics';
@@ -69,6 +69,7 @@ import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type {
+  Account,
   AccountType,
   CashflowSummary,
   Category,
@@ -128,7 +129,10 @@ function HomeScreenContent() {
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const homeExcludedAccountIds = useUIStore((s) => s.settings.homeExcludedAccountIds);
+  const updateSettings = useUIStore((s) => s.updateSettings);
   const [hideAmounts, setHideAmounts] = useState(false);
+  const [showBalanceVisibilitySheet, setShowBalanceVisibilitySheet] = useState(false);
 
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -173,13 +177,19 @@ function HomeScreenContent() {
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
 
-  const totalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
+  const trackedTotalBalance = useMemo(() => getTotalBalance(accounts), [accounts]);
+  const includedAccountIds = useMemo(() => new Set(homeExcludedAccountIds), [homeExcludedAccountIds]);
+  const includedAccounts = useMemo(
+    () => accounts.filter((account) => !includedAccountIds.has(account.id)),
+    [accounts, includedAccountIds],
+  );
+  const includedHomeBalance = useMemo(() => getTotalBalance(includedAccounts), [includedAccounts]);
 
   const loanSummary = useMemo(() => getLoanSummary(loans), [loans]);
   const depositsList = useFixedDepositsStore((s) => s.deposits);
   const depositSummary = useMemo(() => getFixedDepositSummary(depositsList), [depositsList]);
   const assetsValue = useAssetsStore((s) => s.totalValue);
-  const netWorth = totalBalance + loanSummary.net + depositSummary.activeMaturityValue + assetsValue;
+  const netWorth = trackedTotalBalance + loanSummary.net + depositSummary.activeMaturityValue + assetsValue;
   const budgetSummary = useMemo(() => {
     const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.amount, 0);
     const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
@@ -220,6 +230,20 @@ function HomeScreenContent() {
     setPeriod('custom');
     setCustomRangeOpen(false);
   }, [customDraftFrom, customDraftTo]);
+
+  const toggleHomeAccountInclusion = useCallback((accountId: string, included: boolean) => {
+    const next = new Set(homeExcludedAccountIds);
+    if (included) {
+      next.delete(accountId);
+    } else {
+      next.add(accountId);
+    }
+    updateSettings({ homeExcludedAccountIds: Array.from(next) }, 'home-balance-visibility').catch(() => undefined);
+  }, [homeExcludedAccountIds, updateSettings]);
+
+  const resetHomeAccountInclusion = useCallback(() => {
+    updateSettings({ homeExcludedAccountIds: [] }, 'home-balance-visibility-reset').catch(() => undefined);
+  }, [updateSettings]);
 
   const openDatePicker = useCallback(
     (stage: 'from' | 'to') => {
@@ -327,7 +351,7 @@ function HomeScreenContent() {
               amountLabel={amountLabel}
               cardWidth={cardWidth}
               hideAmounts={hideAmounts}
-              totalBalance={totalBalance}
+              totalBalance={trackedTotalBalance}
             />
           );
         })}
@@ -376,7 +400,7 @@ function HomeScreenContent() {
           setCustomDraftTo(new Date(customRangeTo));
           setCustomRangeOpen(true);
         }}
-        totalBalance={totalBalance}
+        totalBalance={includedHomeBalance}
         onRefresh={refreshAccounts}
         isSelected={true}
         pageIndex={0}
@@ -397,6 +421,9 @@ function HomeScreenContent() {
         loansLoaded={loansLoaded}
         loadLoans={loadLoans}
         onOpenNetWorth={() => router.push('/net-worth')}
+        onOpenBalanceVisibility={() => setShowBalanceVisibilitySheet(true)}
+        homeExcludedCount={homeExcludedAccountIds.length}
+        homeTotalCount={accounts.length}
         netWorth={netWorth}
         middleContent={middleContent}
         onOpenChartExpanded={(transactions, mode, range, resetTrigger) => {
@@ -450,6 +477,20 @@ function HomeScreenContent() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {showBalanceVisibilitySheet ? (
+        <BalanceVisibilitySheet
+          accounts={accounts}
+          excludedAccountIds={homeExcludedAccountIds}
+          includedTotal={includedHomeBalance}
+          trackedTotal={trackedTotalBalance}
+          currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+          palette={palette}
+          onToggleAccount={toggleHomeAccountInclusion}
+          onReset={resetHomeAccountInclusion}
+          onClose={() => setShowBalanceVisibilitySheet(false)}
+        />
+      ) : null}
 
       {expandedChartState ? (
         <BottomSheet
@@ -562,6 +603,9 @@ function AccountSummaryCard({
   onPress,
   onLayout,
   onOpenNetWorth,
+  onOpenBalanceVisibility,
+  homeExcludedCount = 0,
+  homeTotalCount = 0,
   netWorth,
   netWorthChange,
   incomeExpense,
@@ -590,6 +634,9 @@ function AccountSummaryCard({
   onPress?: () => void;
   onLayout?: (height: number) => void;
   onOpenNetWorth?: () => void;
+  onOpenBalanceVisibility?: () => void;
+  homeExcludedCount?: number;
+  homeTotalCount?: number;
   netWorth?: number;
   netWorthChange?: number;
   incomeExpense?: { income: number; expense: number };
@@ -826,39 +873,42 @@ function AccountSummaryCard({
           </View>
         ) : heroMode ? (
           /* Home hero: dark gradient top, label + NW chip + big balance */
-          <View style={{ marginBottom: 14 }}>
+          <View style={{ marginBottom: 8 }}>
             {/* Row 1: label (left) + NW tappable (right) */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.bold, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.8, textTransform: 'uppercase' }}>
-                All Accounts
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                {homeExcludedCount > 0 ? `${homeTotalCount - homeExcludedCount} of ${homeTotalCount} Accounts` : 'All Accounts'}
               </Text>
-              {onOpenNetWorth && typeof netWorth === 'number' ? (
-                <TouchableOpacity
-                  delayPressIn={0}
-                  activeOpacity={0.75}
-                  onPress={onOpenNetWorth}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
-                >
-                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.90)', fontFamily: 'monospace' }}>
-                    {hideAmounts ? 'NW ••••' : `NW ${formatNetWorthStripValue(netWorth, currencySymbol)}`}
-                  </Text>
-                  {netWorthChange !== undefined && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 6, paddingVertical: 2 }}>
-                      {nwChangeTone !== 'neutral' && (
-                        <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={9} color={nwChangeInk} strokeWidth={2.5} />
-                      )}
-                      <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, color: nwChangeInk }}>
-                        {nwChangeTone === 'neutral' ? '—' : `${Math.abs(netWorthChange).toFixed(1)}%`}
-                      </Text>
-                    </View>
+              <TouchableOpacity
+                delayPressIn={0}
+                activeOpacity={onOpenNetWorth && typeof netWorth === 'number' ? 0.75 : 1}
+                disabled={!(onOpenNetWorth && typeof netWorth === 'number')}
+                onPress={onOpenNetWorth}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, opacity: onOpenNetWorth && typeof netWorth === 'number' ? 1 : 0 }}
+              >
+                <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.88)', fontFamily: 'monospace' }}>
+                  {hideAmounts ? 'NW ••••' : `NW ${formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}`}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 7, paddingVertical: 3, opacity: netWorthChange !== undefined ? 1 : 0 }}>
+                  {nwChangeTone !== 'neutral' && (
+                    <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={10} color={nwChangeInk} strokeWidth={2.4} />
                   )}
-                  <AppIcon name="chevron-right" size={12} color='rgba(255,255,255,0.40)' strokeWidth={2} />
-                </TouchableOpacity>
-              ) : null}
+                  <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: nwChangeInk, fontFamily: 'monospace' }}>
+                    {nwChangeTone === 'neutral' ? '—' : formatNetWorthStripValue(Math.abs(netWorthChange ?? 0), currencySymbol)}
+                  </Text>
+                </View>
+                <AppIcon name="chevron-right" size={12} color='rgba(255,255,255,0.40)' strokeWidth={2} />
+              </TouchableOpacity>
             </View>
 
             {/* Row 2: big balance number */}
-            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+            <TouchableOpacity
+              delayPressIn={0}
+              activeOpacity={onOpenBalanceVisibility ? 0.78 : 1}
+              disabled={!onOpenBalanceVisibility}
+              onPress={onOpenBalanceVisibility}
+              style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'baseline' }}
+            >
               {currencySymbol ? (
                 <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.65)', marginRight: 4 }}>
                   {currencySymbol}
@@ -877,7 +927,7 @@ function AccountSummaryCard({
                   {balanceDec}
                 </Text>
               ) : null}
-            </View>
+            </TouchableOpacity>
           </View>
         ) : (
           <>
@@ -1179,8 +1229,8 @@ function AccountSummaryCard({
                   {nwChangeTone === 'neutral' ? null : (
                     <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={11} color={nwChangeInk} strokeWidth={2.4} />
                   )}
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: nwChangeInk }}>
-                    {nwChangeTone === 'neutral' ? '-' : `${Math.abs(netWorthChange).toFixed(1)}%`}
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: nwChangeInk, fontFamily: 'monospace' }}>
+                    {nwChangeTone === 'neutral' ? '-' : formatNetWorthStripValue(Math.abs(netWorthChange), currencySymbol)}
                   </Text>
                 </View>
               ) : null}
@@ -1207,7 +1257,7 @@ function AccountSummaryCard({
                     />
                   )}
                   <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: netWorthChange === 0 ? palette.textMuted : netWorthChange > 0 ? palette.positive : palette.negative }}>
-                    {Math.abs(netWorthChange).toFixed(1)}%
+                    {netWorthChange === 0 ? '—' : formatNetWorthStripValue(Math.abs(netWorthChange), currencySymbol)}
                   </Text>
                 </View>
               )}
@@ -1246,11 +1296,11 @@ function formatNetWorthStripValue(value: number, currencySymbol: string) {
   const abs = Math.abs(value);
   const sign = value < 0 ? '-' : '';
   const unit = abs >= 10000000
-    ? { divisor: 10000000, suffix: ' Cr' }
+    ? { divisor: 10000000, suffix: 'Cr' }
     : abs >= 100000
-      ? { divisor: 100000, suffix: ' L' }
+      ? { divisor: 100000, suffix: 'L' }
       : abs >= 1000
-        ? { divisor: 1000, suffix: ' K' }
+        ? { divisor: 1000, suffix: 'K' }
         : null;
 
   if (!unit) return `${sign}${formatCurrency(abs, currencySymbol)}`;
@@ -1282,6 +1332,167 @@ function getHomeDateRange(
   );
 }
 
+function BalanceVisibilitySheet({
+  accounts,
+  excludedAccountIds,
+  includedTotal,
+  trackedTotal,
+  currencySymbol,
+  palette,
+  onToggleAccount,
+  onReset,
+  onClose,
+}: {
+  accounts: Account[];
+  excludedAccountIds: string[];
+  includedTotal: number;
+  trackedTotal: number;
+  currencySymbol: string;
+  palette: AppThemePalette;
+  onToggleAccount: (accountId: string, included: boolean) => void;
+  onReset: () => void;
+  onClose: () => void;
+}) {
+  const excludedSet = useMemo(() => new Set(excludedAccountIds), [excludedAccountIds]);
+  const sortedAccounts = useMemo(
+    () => accounts.slice().sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance)),
+    [accounts],
+  );
+
+  return (
+    <BottomSheet
+      title="Balance Visibility"
+      palette={palette}
+      onClose={onClose}
+      hasNavBar
+      backgroundColor={palette.background}
+      headerRight={
+        <TouchableOpacity
+          delayPressIn={0}
+          onPress={onReset}
+          hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+          style={{ marginRight: 4 }}
+        >
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Reset</Text>
+        </TouchableOpacity>
+      }
+    >
+      <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: HOME_SPACE.lg }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: HOME_SPACE.lg, marginBottom: HOME_SPACE.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: HOME_SPACE.xs }}>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>Total</Text>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+              {signedBalance(trackedTotal, currencySymbol)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: HOME_SPACE.xs }}>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>Selected</Text>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>
+              {signedBalance(includedTotal, currencySymbol)}
+            </Text>
+          </View>
+        </View>
+        <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.borderSoft, backgroundColor: palette.card, overflow: 'hidden' }}>
+          {sortedAccounts.map((account, index) => {
+            const included = !excludedSet.has(account.id);
+            return (
+              <BalanceAccountRow
+                key={account.id}
+                account={account}
+                included={included}
+                currencySymbol={currencySymbol}
+                palette={palette}
+                isLast={index === sortedAccounts.length - 1}
+                onToggle={() => onToggleAccount(account.id, !included)}
+              />
+            );
+          })}
+        </View>
+      </View>
+    </BottomSheet>
+  );
+}
+
+function BalanceAccountRow({
+  account,
+  included,
+  currencySymbol,
+  palette,
+  isLast,
+  onToggle,
+}: {
+  account: Account;
+  included: boolean;
+  currencySymbol: string;
+  palette: AppThemePalette;
+  isLast: boolean;
+  onToggle: () => void;
+}) {
+  const typeMeta = ACCOUNT_TYPE_META[account.type];
+  const balanceColor = account.balance < 0 ? palette.negative : palette.text;
+
+  return (
+    <TouchableOpacity
+      delayPressIn={0}
+      activeOpacity={0.65}
+      onPress={onToggle}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: HOME_SPACE.md,
+        paddingHorizontal: HOME_SPACE.md,
+        paddingVertical: 18,
+        borderBottomWidth: isLast ? 0 : 0.5,
+        borderBottomColor: palette.divider,
+      }}
+    >
+      <View
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: HOME_RADIUS.chip,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: typeMeta.bg ?? `${typeMeta.color}18`,
+        }}
+      >
+        <AppIcon name={typeMeta.icon} size={18} color={typeMeta.color} strokeWidth={1.8} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: HOME_SPACE.sm }}>
+          <Text appWeight="medium" numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
+            {formatAccountDisplayName(account.name, account.accountNumber)}
+          </Text>
+          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: balanceColor }}>
+            {signedBalance(account.balance, currencySymbol)}
+          </Text>
+          <View
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: included ? palette.brand : 'transparent',
+              borderWidth: included ? 0 : 1.5,
+              borderColor: palette.borderSoft,
+            }}
+          >
+            {included ? <AppIcon name="check" size={8} color="#fff" strokeWidth={2.5} /> : null}
+          </View>
+        </View>
+        <Text style={{ marginTop: 2, fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+          {getAccountTypeLabel(account.type)}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function signedBalance(value: number, currencySymbol: string) {
+  return `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`;
+}
+
 export const HomeAccountPage = React.memo(function HomeAccountPage({
   pageHeight,
   accountId,
@@ -1306,6 +1517,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   registerScrollTop,
   onOpenChartExpanded,
   onOpenNetWorth,
+  onOpenBalanceVisibility,
+  homeExcludedCount,
+  homeTotalCount,
   netWorth,
   isPageReady,
   middleContent,
@@ -1342,6 +1556,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   registerScrollTop: (id: string, fn: (() => void) | null) => void;
   onOpenChartExpanded?: (transactions: Transaction[], mode: HomeChartMode, range: { period: HomePeriodType; from: string; to: string }, resetTrigger: number) => void;
   onOpenNetWorth?: () => void;
+  onOpenBalanceVisibility?: () => void;
+  homeExcludedCount?: number;
+  homeTotalCount?: number;
   netWorth?: number;
   isPageReady: boolean;
   middleContent?: React.ReactNode;
@@ -1480,6 +1697,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     loadLoans().catch(() => undefined);
   }, [isPageReady, isScreenFocused, isSelected, loadLoans, loansLoaded]);
 
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await onRefresh();
@@ -1493,11 +1711,13 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         pathname: '/(tabs)/activity',
         params: {
           source: period === 'today' ? 'home-today' : 'home-period',
-          period: period === 'today' ? 'day' : period,
+          // Always pass the exact computed date range so activity never
+          // re-derives it independently (different function = potential drift).
+          period: 'custom',
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
           cashflowBucket: kind,
-          cashflowMode: cashflowIsCashflow ? 'total' : 'incomeExpense',
+          cashflowMode: 'incomeExpense',
           from,
           to,
           ts: String(Date.now())
@@ -1542,13 +1762,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             currencySymbol={currencySymbol}
             palette={palette}
             onOpenNetWorth={accountId === 'all' ? onOpenNetWorth : undefined}
+            onOpenBalanceVisibility={accountId === 'all' ? onOpenBalanceVisibility : undefined}
+            homeExcludedCount={accountId === 'all' ? homeExcludedCount : undefined}
+            homeTotalCount={accountId === 'all' ? homeTotalCount : undefined}
             netWorth={accountId === 'all' ? netWorth : undefined}
-            netWorthChange={(() => {
-              if (accountId !== 'all' || !netWorth) return undefined;
-              const netChange = displayedCashflow.net;
-              const nwAtStart = netWorth - netChange;
-              return Math.abs(nwAtStart) > 0 ? (netChange / Math.abs(nwAtStart)) * 100 : 0;
-            })()}
+            netWorthChange={accountId === 'all' ? displayedCashflow.net : undefined}
             incomeExpense={incExpSummary}
             cashflowSummary={displayedCashflow}
             period={accountId === 'all' ? undefined : period}
@@ -1723,7 +1941,7 @@ function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts
           overflow: 'hidden',
         }]}
       >
-        <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 116, justifyContent: 'space-between' }}>
+        <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 184, justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View
               style={{
@@ -1779,7 +1997,7 @@ function AccountCarouselAddCard({ palette }: any) {
       <Animated.View
         style={[animStyle, {
           width: 90,
-          minHeight: 116,
+          minHeight: 184,
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: palette.isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)',

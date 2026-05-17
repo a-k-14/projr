@@ -37,6 +37,30 @@ export async function getCashflowSummary(
   return snapshot.summary;
 }
 
+/**
+ * Fetch a full (unpaginated) cashflow summary for an account+date range.
+ * Unlike getCashflowSnapshot, this accepts includeTransfers/includeLoans flags
+ * to match the activity screen's cashflow mode setting.
+ */
+export async function getActivityPeriodCashflow(
+  accountId: string | 'all',
+  fromDate: string,
+  toDate: string,
+  options: { includeTransfers?: boolean; includeLoans?: boolean } = {}
+): Promise<CashflowSummary> {
+  const rows = await getTransactionsInRange(accountId, fromDate, toDate);
+  let inTotal = 0, outTotal = 0;
+  for (const row of rows) {
+    const impact = getTransactionCashflowImpact(row, {
+      includeTransfers: options.includeTransfers ?? false,
+      includeLoans: options.includeLoans ?? false,
+    });
+    if (impact === 'in') inTotal += row.amount;
+    else if (impact === 'out') outTotal += row.amount;
+  }
+  return { in: inTotal, out: outTotal, net: inTotal - outTotal };
+}
+
 export async function getCashflowSnapshot(
   accountId: string | 'all',
   fromDate: string,

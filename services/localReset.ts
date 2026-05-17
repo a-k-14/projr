@@ -8,6 +8,8 @@ import { useTransactionDraftStore } from '../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../stores/useTransactionsStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
+import { useAssetsStore } from '../stores/useAssetsStore';
+import { usePersonsStore } from '../stores/usePersonsStore';
 import { deleteAllReceipts } from './receiptStorage';
 import { seedDatabase } from '../db/seed';
 import { markStarterDataSeeded } from './settings';
@@ -21,6 +23,8 @@ export function resetInMemoryStores(): void {
   useBudgetStore.getState().reset();
   useBudgetDraftStore.getState().reset();
   useUIStore.getState().reset();
+  useAssetsStore.getState().reset();
+  usePersonsStore.getState().reset();
   useFixedDepositsStore.setState({
     deposits: [],
     isLoaded: false,
@@ -45,5 +49,7 @@ export async function resetLocalAppData(): Promise<void> {
     useLoansStore.getState().load(),
     useBudgetStore.getState().load(),
     useFixedDepositsStore.getState().load(),
+    useAssetsStore.getState().load(),
+    usePersonsStore.getState().load(),
   ]);
 }

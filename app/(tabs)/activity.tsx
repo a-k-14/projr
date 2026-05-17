@@ -56,13 +56,15 @@ import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
 import * as transactionsService from '../../services/transactions';
+import { getActivityPeriodCashflow } from '../../services/analytics';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import type { Account, Category, Transaction, TransactionFilters, TransactionType } from '../../types';
+import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
+import type { Account, CashflowSummary, Category, Transaction, TransactionFilters, TransactionType } from '../../types';
 
 type ActivityPeriod = 'all' | 'day' | 'week' | 'month' | 'year' | 'custom';
 type ActivityGroup = {
@@ -183,9 +185,12 @@ export default function ActivityScreen() {
   const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
   const [isInitialParamSyncComplete, setIsInitialParamSyncComplete] = useState(!routeParams.source);
 
+  const [serverCashflow, setServerCashflow] = useState<CashflowSummary | null>(null);
+
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+  const [chipScrollResetToken, setChipScrollResetToken] = useState(0);
   const [topBarHeight, setTopBarHeight] = useState(0);
   const [activityHeaderHeight, setActivityHeaderHeight] = useState(0);
   const [stickyDateLabel, setStickyDateLabel] = useState<{ key: string; title: string; subtitle?: string } | null>(null);
@@ -231,6 +236,11 @@ export default function ActivityScreen() {
     });
   }, [scrollToTop]);
 
+  const resetActivityScrollState = useCallback((animated: boolean) => {
+    setChipScrollResetToken((value) => value + 1);
+    queueScrollToTop(animated);
+  }, [queueScrollToTop]);
+
   const resetAllFilters = useCallback((animated: boolean) => {
     setPeriod('all');
     setPeriodOffset(0);
@@ -248,8 +258,9 @@ export default function ActivityScreen() {
     setGroupByMode('date');
     setCategoryDrilldown(null);
     setIsSearchActive(false);
-    queueScrollToTop(animated);
-  }, [queueScrollToTop]);
+    setServerCashflow(null);
+    resetActivityScrollState(animated);
+  }, [resetActivityScrollState]);
 
   useEffect(() => {
     return registerTabReset('activity', ({ mode, animated }) => {
@@ -258,12 +269,12 @@ export default function ActivityScreen() {
       setShowMoreSheet(false);
       if (mode === 'background') {
         trimStoreTransactionsToFirstPage();
-        resetAllFilters(false);
+        resetActivityScrollState(false);
       } else {
         resetAllFilters(animated);
       }
     });
-  }, [resetAllFilters, scrollToTop, trimStoreTransactionsToFirstPage]);
+  }, [resetActivityScrollState, resetAllFilters, trimStoreTransactionsToFirstPage]);
 
   useEffect(() => {
     if (storeTransactionsLoaded || storePrefetchStartedRef.current) return;
@@ -386,6 +397,12 @@ export default function ActivityScreen() {
     !amountMinStr &&
     !amountMaxStr;
 
+  const setHasActiveFilters = useActivityFiltersStore((s) => s.setHasActiveFilters);
+  useEffect(() => {
+    setHasActiveFilters(!isDefaultView);
+    return () => setHasActiveFilters(false);
+  }, [isDefaultView, setHasActiveFilters]);
+
   useEffect(() => {
     if (!isFocused) return;
     if (isDefaultView) {
@@ -424,12 +441,25 @@ export default function ActivityScreen() {
           limit: TRANSACTIONS_PAGE_SIZE,
           offset: currentOffset
         };
-        const results = await transactionsService.getTransactions(filters);
+        // Fetch paginated rows and (on initial load) server-side totals in parallel.
+        const totalsPromise = isInitial && dateRange?.from && dateRange?.to
+          ? getActivityPeriodCashflow(
+              selectedAccountId,
+              dateRange.from,
+              dateRange.to,
+              { includeTransfers: cashflowMode === 'total', includeLoans: cashflowMode === 'total' }
+            )
+          : Promise.resolve(null);
+        const [results, totals] = await Promise.all([
+          transactionsService.getTransactions(filters),
+          totalsPromise,
+        ]);
         if (requestId !== requestIdRef.current) return;
         if (isInitial) {
           setTransactions(results);
           offsetRef.current = results.length;
           setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
+          setServerCashflow(totals);
         } else {
           setTransactions((prev) => {
             const ids = new Set(prev.map((tx) => tx.id));
@@ -587,17 +617,22 @@ export default function ActivityScreen() {
     }
   };
 
-  const onLoadMore = async () => {
+  // Stable ref mirrors for hasMore + isDefaultView to avoid stale closures inside useCallback.
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
+  const isDefaultViewRef = useRef(isDefaultView);
+  isDefaultViewRef.current = isDefaultView;
+
+  const onLoadMore = useCallback(async () => {
     if (
       !hasUserScrolledRef.current ||
-      !hasMore ||
+      !hasMoreRef.current ||
       loadingRef.current ||
-      isLoadingMore ||
-      (isDefaultView && storeTransactionsIsLoadingMore)
+      (isDefaultViewRef.current && storeTransactionsIsLoadingMore)
     ) return;
     setIsLoadingMore(true);
     try {
-      if (isDefaultView) {
+      if (isDefaultViewRef.current) {
         await loadMoreStoreTransactions();
         return;
       }
@@ -605,7 +640,7 @@ export default function ActivityScreen() {
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [loadData, loadMoreStoreTransactions, storeTransactionsIsLoadingMore]);
 
   const maybePrefetchMore = useCallback(
     (nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number }; contentSize: { height: number } }) => {
@@ -794,6 +829,16 @@ export default function ActivityScreen() {
     () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, includeTotalCashflow, includeTotalCashflow),
     [categoryDrilldown, filteredTransactions, includeTotalCashflow],
   );
+
+  // SummaryCard totals: use server-side aggregate (accurate for all pages) when available.
+  // Apply cashflowBucket so the card matches the filtered list — when viewing only income,
+  // only show income total; when viewing only expenses, only show expense total.
+  const summaryCardCashflow = useMemo((): CashflowSummary => {
+    const base = serverCashflow ?? displayedCashflow;
+    if (cashflowBucket === 'in') return { in: base.in, out: 0, net: base.in };
+    if (cashflowBucket === 'out') return { in: 0, out: base.out, net: -base.out };
+    return base;
+  }, [serverCashflow, displayedCashflow, cashflowBucket]);
 
   const moreActiveCount =
     selectedCategoryIds.length +
@@ -1209,6 +1254,7 @@ export default function ActivityScreen() {
         setShowMoreSheet={setShowMoreSheet}
         moreActiveCount={moreActiveCount}
         palette={palette}
+        chipScrollResetToken={chipScrollResetToken}
         periodNavigation={
           <ActivityPeriodHeader
             period={period}
@@ -1224,7 +1270,7 @@ export default function ActivityScreen() {
 
       {period !== 'all' ? (
         <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-          <SummaryCard cashflow={displayedCashflow} sym={sym} palette={palette} />
+          <SummaryCard cashflow={summaryCardCashflow} sym={sym} palette={palette} />
         </View>
       ) : null}
 
@@ -1259,7 +1305,7 @@ export default function ActivityScreen() {
         </View>
       ) : null}
     </View>
-  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, setCashflowBucket, setShowMoreSheet, moreActiveCount, palette, period, periodLabel, goPrev, goNext, canGoNext, handleOpenPeriodSheet, displayedCashflow, sym]);
+  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, setCashflowBucket, setShowMoreSheet, moreActiveCount, palette, chipScrollResetToken, period, periodLabel, goPrev, goNext, canGoNext, handleOpenPeriodSheet, summaryCardCashflow, sym]);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>

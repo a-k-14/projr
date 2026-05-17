@@ -32,11 +32,12 @@ export const NW_ACCOUNT_COLORS = [
 ] as const;
 
 export const ACCOUNT_TYPE_SORT_ORDER: Record<AccountType, number> = {
-  liquid: 0,
-  saving: 1,
-  investment: 2,
-  fixed_deposit: 3,
-  debt: 4,
+  savings: 0,
+  cash: 1,
+  wallet: 2,
+  investment: 3,
+  credit: 4,
+  other: 5,
 };
 
 const NW_BALANCE_BY_OPTIONS = [

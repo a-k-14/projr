@@ -65,7 +65,7 @@ function TransactionListItemBase({
   isCard = false }: Props) {
   const effectiveType = tx.transferPairId ? 'transfer' : tx.type;
   const accountNameSelected = accountName;
-  const inOutCategoryIcon = (tx.type === 'in' || tx.type === 'out') && categoryIcon ? categoryIcon : null;
+  const inOutCategoryIcon = !tx.transferPairId && (tx.type === 'in' || tx.type === 'out') && categoryIcon ? categoryIcon : null;
 
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;

@@ -196,7 +196,7 @@ export const ACTIVITY_LAYOUT = {
   filterChipVerticalPadding: 7,
   filterChipGap: 6,
   moreButtonGap: 8,
-  periodArrowWidth: 36,
+  periodArrowWidth: 32,
   summaryPaddingTop: 6,
   summaryPaddingBottom: 14,
   groupHeaderPaddingX: 12,

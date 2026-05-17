@@ -25,7 +25,9 @@ export default function AssetsScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
   const { assets, load, isLoaded, totalValue } = useAssetsStore();
-  const showCurrencySymbol = useUIStore((s) => s.showCurrencySymbol);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const displaySymbol = showCurrencySymbol ? currencySymbol : '';
 
   useEffect(() => {
     if (!isLoaded) load();
@@ -92,7 +94,7 @@ export default function AssetsScreen() {
                 Total Asset Value
               </Text>
               <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.bold, color: '#FFFFFF', letterSpacing: -0.5 }}>
-                {formatCurrency(totalValue, { hideSymbol: !showCurrencySymbol })}
+                {formatCurrency(totalValue, displaySymbol)}
               </Text>
             </View>
           </View>
@@ -149,7 +151,7 @@ export default function AssetsScreen() {
                   )}
                 </View>
                 <Text style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
-                  {formatCurrency(asset.value, { hideSymbol: !showCurrencySymbol })}
+                  {formatCurrency(asset.value, displaySymbol)}
                 </Text>
               </TouchableOpacity>
             ))}

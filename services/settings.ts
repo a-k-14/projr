@@ -17,11 +17,17 @@ export const DEFAULT_SETTINGS: Settings = {
   cloudBackupEnabled: false,
   biometricLock: false,
   homeAccountViewMode: 'swipe',
+  homeExcludedAccountIds: [],
 };
 
 export async function getSettings(): Promise<Settings> {
   const rows = await db.select().from(settings);
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const homeExcludedAccountIds = parseStringArraySetting(
+    map['homeExcludedAccountIds'],
+    DEFAULT_SETTINGS.homeExcludedAccountIds,
+  );
+
   return {
     defaultAccountId: map['defaultAccountId'] ?? DEFAULT_SETTINGS.defaultAccountId,
     lastUsedAccountId: map['lastUsedAccountId'] ?? DEFAULT_SETTINGS.lastUsedAccountId,
@@ -33,6 +39,7 @@ export async function getSettings(): Promise<Settings> {
     cloudBackupEnabled: map['cloudBackupEnabled'] === 'true',
     biometricLock: map['biometricLock'] === 'true',
     homeAccountViewMode: map['homeAccountViewMode'] === 'list' ? 'list' : 'swipe',
+    homeExcludedAccountIds,
     supabaseUserId: map['supabaseUserId'],
   };
 }
@@ -45,10 +52,24 @@ export async function updateSettings(data: Partial<Settings>): Promise<void> {
     updates.map(([key, value]) =>
       db
         .insert(settings)
-        .values({ key, value: String(value) })
-        .onConflictDoUpdate({ target: settings.key, set: { value: String(value) } }),
+        .values({ key, value: serializeSettingValue(value) })
+        .onConflictDoUpdate({ target: settings.key, set: { value: serializeSettingValue(value) } }),
     ),
   );
+}
+
+function parseStringArraySetting(value: string | undefined, fallback: string[]) {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : fallback;
+  } catch {
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  }
+}
+
+function serializeSettingValue(value: Settings[keyof Settings]) {
+  return Array.isArray(value) ? JSON.stringify(value) : String(value);
 }
 
 async function setInternalSetting(key: string, value: string): Promise<void> {

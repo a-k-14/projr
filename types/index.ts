@@ -109,6 +109,7 @@ export interface Settings {
   cloudBackupEnabled: boolean;
   biometricLock: boolean;
   homeAccountViewMode: 'swipe' | 'list';
+  homeExcludedAccountIds: string[];
   supabaseUserId?: string;
 }
 
@@ -235,6 +236,22 @@ export interface CloseDepositInput {
 export interface DepositFilters {
   status?: DepositStatus;
   accountId?: string;
+}
+
+export interface Asset {
+  id: string;
+  name: string;
+  icon: string;
+  value: number;
+  note?: string;
+  createdAt: string;
+}
+
+export interface CreateAssetInput {
+  name: string;
+  icon: string;
+  value: number;
+  note?: string | null;
 }
 
 export interface CreateBudgetInput {

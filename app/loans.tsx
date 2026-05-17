@@ -488,7 +488,7 @@ export default function LoansScreen() {
 
       {showMoreSheet ? (
         <BottomSheet
-          title="More filters"
+          title="More Filters"
           palette={palette}
           onClose={() => setShowMoreSheet(false)}
           hasNavBar
@@ -499,7 +499,7 @@ export default function LoansScreen() {
                 style={{ backgroundColor: palette.brand, borderRadius: HOME_RADIUS.button, paddingVertical: 16, alignItems: 'center' }}
                 activeOpacity={0.85}
               >
-                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>Apply filters</Text>
+                <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: BUTTON_TOKENS.filled.labelWeight, color: palette.onBrand }}>Apply</Text>
               </TouchableOpacity>
             </View>
           }
@@ -516,7 +516,7 @@ export default function LoansScreen() {
               hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
               style={styles.clearAllButton}
             >
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: BUTTON_TOKENS.text.labelWeight, color: palette.brand }}>Clear all</Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: BUTTON_TOKENS.text.labelWeight, color: palette.brand }}>Clear All</Text>
             </TouchableOpacity>
           }
         >

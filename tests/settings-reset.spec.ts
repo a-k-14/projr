@@ -235,6 +235,7 @@ describe('local reset', () => {
         cloudBackupEnabled: true,
         biometricLock: true,
         homeAccountViewMode: 'list',
+        homeExcludedAccountIds: ['acc1'],
       },
       isLoaded: true,
       loadError: 'previous',

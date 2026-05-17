@@ -57,7 +57,11 @@ export function ActivityPeriodHeader({
           activeOpacity={0.7}
           hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
         >
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }} numberOfLines={1}>
+          <Text
+            appWeight="medium"
+            style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}
+            numberOfLines={1}
+          >
             {periodLabel}
           </Text>
         </TouchableOpacity>
@@ -97,6 +101,7 @@ const styles = StyleSheet.create({
   },
   periodCenter: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center'
   },

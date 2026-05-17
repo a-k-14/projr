@@ -67,7 +67,7 @@ export function ActivityMoreFiltersSheet({
       footer={
         <View style={{ padding: 16 }}>
           <FilledButton
-            label="Apply filters"
+            label="Apply"
             onPress={() => {
               setShowMoreSheet(false);
             }}
@@ -81,7 +81,7 @@ export function ActivityMoreFiltersSheet({
           hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
           style={styles.clearAllButton}
         >
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Clear all</Text>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Clear All</Text>
         </TouchableOpacity>
       }
     >

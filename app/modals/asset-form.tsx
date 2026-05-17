@@ -32,8 +32,8 @@ export default function AssetFormScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
   const { assets, add, update, remove } = useAssetsStore();
-  const currencySymbol = useUIStore((s) => s.currencySymbol);
-  const showCurrencySymbol = useUIStore((s) => s.showCurrencySymbol);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const { showConfirm, dialog } = useAppDialog(palette);
 
   const [name, setName] = useState('');
@@ -63,7 +63,7 @@ export default function AssetFormScreen() {
   }, [id, assets]);
 
   const handleSave = async () => {
-    if (!name.trim() || parseFormattedNumber(valueStr) <= 0) return;
+    if (!name.trim() || Number(parseFormattedNumber(valueStr)) <= 0) return;
 
     if (!icon && !hintIcon) {
       setHintIcon(true);
@@ -77,7 +77,7 @@ export default function AssetFormScreen() {
     }
 
     const finalIcon = icon || CATEGORY_ICONS[0];
-    const valNum = parseFormattedNumber(valueStr);
+    const valNum = Number(parseFormattedNumber(valueStr));
 
     if (isEditing && id) {
       await update(id, { name: name.trim(), icon: finalIcon, value: valNum, note: note.trim() || null });
@@ -116,7 +116,7 @@ export default function AssetFormScreen() {
     setValueStr(formatIndianNumberStr(cleaned));
   };
 
-  const isFormValid = name.trim().length > 0 && parseFormattedNumber(valueStr) > 0;
+  const isFormValid = name.trim().length > 0 && Number(parseFormattedNumber(valueStr)) > 0;
 
   return (
     <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>

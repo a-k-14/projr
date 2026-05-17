@@ -1,7 +1,7 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { FONT_WEIGHT } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
@@ -22,6 +22,7 @@ interface ActivityFilterBarProps {
   moreActiveCount: number;
   palette: AppThemePalette;
   periodNavigation: React.ReactNode;
+  chipScrollResetToken?: number;
 }
 
 const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
@@ -44,7 +45,14 @@ export function ActivityFilterBar({
   setShowMoreSheet,
   moreActiveCount,
   palette,
-  periodNavigation }: ActivityFilterBarProps) {
+  periodNavigation,
+  chipScrollResetToken = 0 }: ActivityFilterBarProps) {
+  const chipScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    chipScrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [chipScrollResetToken]);
+
   return (
     <View>
       <View
@@ -85,6 +93,7 @@ export function ActivityFilterBar({
           onChange={setViewMode}
         />
         <ScrollView
+          ref={chipScrollRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           style={{ flex: 1 }}
