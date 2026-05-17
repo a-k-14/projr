@@ -61,7 +61,8 @@
         {
           "faceIDPermission": "Allow Reni to use Face ID for secure access to your financial data."
         }
-      ]
+      ],
+      "expo-quick-actions"
     ],
     "experiments": {
       "typedRoutes": true

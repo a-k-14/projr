@@ -148,6 +148,23 @@ export async function getBudgetWithSpent(selectedMonthIso: string = todayUTC()):
   return result;
 }
 
+export async function getBudgetTransactions(categoryId: string, monthIso: string): Promise<Transaction[]> {
+  const { from, to } = getMonthRange(monthIso);
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.categoryId, categoryId),
+        eq(transactions.type, 'out'),
+        gte(transactions.date, from),
+        lte(transactions.date, to)
+      )
+    )
+    .orderBy(transactions.date);
+  return rows as unknown as Transaction[];
+}
+
 export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
   await assertBudgetableCategory(data.categoryId);
   const budgetList = await getBudgetList();

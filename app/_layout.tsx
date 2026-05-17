@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View, ActivityIndicator } from 'react-native';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as QuickActions from 'expo-quick-actions';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,6 +19,7 @@ import { SystemBottomGuard } from '../components/ui/safeBottom';
 import { FONT_WEIGHT } from '../lib/design';
 import { HOME_TEXT } from '../lib/layoutTokens';
 import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/settings';
+import { isAutoBackupDue, runAutoBackup } from '../services/backup';
 import { FilledButton } from '../components/ui/AppButton';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -72,6 +74,38 @@ export default function RootLayout() {
   useEffect(() => {
     NavigationBar.setButtonStyleAsync(palette.navigationButtonStyle).catch(() => undefined);
   }, [palette.navigationButtonStyle]);
+
+  const settings = useUIStore((s) => s.settings);
+  const updateSettings = useUIStore((s) => s.updateSettings);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!isAutoBackupDue(settings)) return;
+    runAutoBackup(settings.autoBackupFolderUri, settings.autoBackupKeepCount)
+      .then(() => updateSettings({ lastAutoBackupAt: new Date().toISOString(), lastAutoBackupError: '' }))
+      .catch((e: any) => updateSettings({ lastAutoBackupError: e?.message ?? 'Backup failed' }).catch(() => undefined));
+  }, [ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    QuickActions.setItems([
+      { id: 'add-income', title: 'Add Income', icon: 'add', params: { type: 'in' } },
+      { id: 'add-expense', title: 'Add Expense', icon: 'add', params: { type: 'out' } },
+      { id: 'add-transfer', title: 'Add Transfer', icon: 'add', params: { type: 'transfer' } },
+    ]).catch(() => undefined);
+
+    if (QuickActions.initial) {
+      const { type } = QuickActions.initial.params ?? {};
+      if (type) router.push({ pathname: '/modals/add-transaction', params: { type: String(type) } });
+    }
+
+    const sub = QuickActions.addListener((action) => {
+      const { type } = action.params ?? {};
+      if (type) router.push({ pathname: '/modals/add-transaction', params: { type: String(type) } });
+    });
+    return () => sub.remove();
+  }, [ready]);
 
   if (initError) {
     return (
@@ -144,7 +178,6 @@ export default function RootLayout() {
             <Stack.Screen name="budget" options={{ headerShown: false }} />
             <Stack.Screen name="budget/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
-            {__DEV__ && <Stack.Screen name="chart-prototype" options={{ headerShown: false }} />}
             {__DEV__ && <Stack.Screen name="net-worth-prototype" options={{ headerShown: false }} />}
             {__DEV__ && <Stack.Screen name="palette-preview" options={{ headerShown: false }} />}
             <Stack.Screen name="assets" options={{ headerShown: false }} />

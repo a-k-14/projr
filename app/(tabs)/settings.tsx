@@ -207,14 +207,19 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="cloud-off"
                 label="Cloud Backup"
-                value="Not available"
+                value="Not Available"
                 palette={palette}
+              />
+              <SettingsRow
+                icon="archive"
+                label="Backup & Restore"
+                palette={palette}
+                onPress={() => router.push('/settings/backup')}
               />
               <SettingsRow
                 leftElement={<AppIcon name="refresh-cw" size={18} color={palette.negative} />}
                 label="Reset App"
                 labelStyle={{ color: palette.negative }}
-                value="Erase everything"
                 palette={palette}
                 onPress={() => router.push('/settings/reset')}
                 noBorder

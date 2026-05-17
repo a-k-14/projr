@@ -25,7 +25,7 @@ import Animated, {
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HomeDonutChartBlock, type HomeChartMode } from '../../components/HomeDonutChartBlock';
+import type { HomeChartMode } from '../../components/HomeDonutChartBlock';
 import { ScreenTitle } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -40,6 +40,8 @@ import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   formatDate,
   getDateRange,
+  getRelativeDateLabel,
+  toLocalDateKey,
   toLocalDayEndISO,
   toLocalDayStartISO
 } from '../../lib/dateUtils';
@@ -166,11 +168,7 @@ function HomeScreenContent() {
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
 
-  const [expandedChartState, setExpandedChartState] = useState<{
-    transactions: Transaction[];
-    mode: HomeChartMode;
-    resetTrigger: number;
-  } | null>(null);
+
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -323,12 +321,12 @@ function HomeScreenContent() {
   ] as const;
 
   const middleContent = (
-    <View style={{ marginTop: 0, marginBottom: 34 }}>
+    <View style={{ marginTop: 0, marginBottom: 20 }}>
       <TouchableOpacity
         onPress={() => router.push('/accounts')}
         delayPressIn={0}
         activeOpacity={0.72}
-        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, marginTop: 0, paddingVertical: 2 }}
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 0, paddingVertical: 2 }}
       >
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Accounts</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
@@ -357,7 +355,7 @@ function HomeScreenContent() {
         <AccountCarouselAddCard palette={palette} />
       </ScrollView>
 
-      <View style={{ marginTop: 24, marginBottom: 14 }}>
+      <View style={{ marginTop: 20, marginBottom: 12 }}>
         <Text appWeight="medium" style={{ fontSize: 17, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>More</Text>
       </View>
 
@@ -425,9 +423,7 @@ function HomeScreenContent() {
         homeTotalCount={accounts.length}
         netWorth={netWorth}
         middleContent={middleContent}
-        onOpenChartExpanded={(transactions, mode, range, resetTrigger) => {
-          setExpandedChartState({ transactions, mode, resetTrigger });
-        }}
+
         hideAmounts={hideAmounts}
       />
 
@@ -491,39 +487,7 @@ function HomeScreenContent() {
         />
       ) : null}
 
-      {expandedChartState ? (
-        <BottomSheet
-          title="Category Breakdown"
-          palette={palette}
-          backgroundColor={palette.background}
-          disableShadow
-          onClose={() => {
-            setExpandedChartState(null);
-          }}
-          maxHeightRatio={0.80}
-          fixedHeightRatio={0.80}
-          hasNavBar
-        >
-          <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 0, backgroundColor: palette.background }}>
-            <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, overflow: 'hidden' }}>
-              <HomeDonutChartBlock
-                transactions={expandedChartState.transactions}
-                categoriesById={categoriesById}
-                sym={showCurrencySymbol ? currencySymbol : ''}
-                listPalette={palette}
-                getCategoryFullDisplayName={getCategoryFullDisplayName}
-                theme={{ brand: palette.brand, card: palette.card, surface: '#EEF2F8', inputBg: '#FFFFFF', progressTrack: '#DDE4F0', border: '#DFE5EF', text: palette.text, muted: '#7C8498', textMuted: palette.textMuted, accent: palette.brand, positive: palette.positive, negative: palette.negative }}
-                expanded
-                initialMode={expandedChartState.mode}
-                resetTrigger={expandedChartState.resetTrigger}
-                accountsById={accountsById}
-                loansById={loansById}
-                onTransactionPress={handleChartTransactionPress}
-              />
-            </View>
-          </View>
-        </BottomSheet>
-      ) : null}
+
     </View>
   );
 }
@@ -1307,7 +1271,7 @@ function formatNetWorthStripValue(value: number, currencySymbol: string) {
     .toFixed(2)
     .replace(/\.00$/, '')
     .replace(/(\.\d)0$/, '$1');
-  return `${sign}${currencySymbol}${compact}${unit.suffix}`;
+  return `${sign}${currencySymbol}${compact}${unit.suffix.trimStart()}`;
 }
 
 function getHomeDateRange(
@@ -1515,7 +1479,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   selectedChartCategoryId,
   onChartCategorySelect,
   registerScrollTop,
-  onOpenChartExpanded,
   onOpenNetWorth,
   onOpenBalanceVisibility,
   homeExcludedCount,
@@ -1554,7 +1517,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   selectedChartCategoryId: string | null;
   onChartCategorySelect: (id: string | null) => void;
   registerScrollTop: (id: string, fn: (() => void) | null) => void;
-  onOpenChartExpanded?: (transactions: Transaction[], mode: HomeChartMode, range: { period: HomePeriodType; from: string; to: string }, resetTrigger: number) => void;
   onOpenNetWorth?: () => void;
   onOpenBalanceVisibility?: () => void;
   homeExcludedCount?: number;
@@ -1611,7 +1573,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     setPeriodDataRangeKey(null);
     const accountFilter = accountId === 'all' ? undefined : accountId;
     const [periodSnapshot, recentTransactions, periodScopedTransactions] = await Promise.all([
-      getCashflowSnapshot(accountId, rangeFrom, rangeTo),
+      getCashflowSnapshot(accountId, rangeFrom, rangeTo, { includeTransfers: true, includeLoans: true }),
       getTransactions({ accountId: accountFilter, limit: 10 }),
       getTransactions({ accountId: accountFilter, fromDate: rangeFrom, toDate: rangeTo }),
     ]);
@@ -1798,9 +1760,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
           {middleContent}
 
-          {/* ── Recent transactions — flat in main scroll, no nested scroll ── */}
+          {/* ── Recent transactions — date-grouped ── */}
           <View style={{ marginBottom: HOME_SPACE.pageBottom }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
               <TouchableOpacity
                 delayPressIn={0}
@@ -1812,61 +1774,80 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
               </TouchableOpacity>
             </View>
-            <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
-              {transactions.length === 0 ? (
+            {transactions.length === 0 ? (
+              <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface }}>
                 <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 20 }}>
                   No transactions yet
                 </Text>
-              ) : (
-                transactions.map((transaction, index) => {
-                  const accountName = accountsById.get(transaction.accountId);
-                  const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
-                  const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
-                  const deposit = transaction.depositId ? depositsById.get(transaction.depositId) : undefined;
-                  const tertiaryText = transaction.tags.length > 0
-                    ? transaction.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined
-                    : undefined;
-                  return (
-                    <TransactionListItem
-                      key={transaction.id}
-                      tx={transaction}
-                      sym={currencySymbol}
-                      palette={palette}
-                      isLast={index === transactions.length - 1}
-                      categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
-                      categoryIcon={getCategoryDisplayIcon(categoriesById, transaction.categoryId)}
-                      accountName={accountName}
-                      linkedAccountName={linkedAccountName}
-                      loanPersonName={loan?.personName}
-                      loanDirection={loan?.direction}
-                      depositName={deposit?.name}
-                      depositBankName={deposit?.bankName ?? undefined}
-                      tertiaryText={tertiaryText}
-                      showAmountSign={false}
-                      onPress={handleTransactionPress}
-                    />
-                  );
-                })
-              )}
-            </View>
+              </View>
+            ) : (
+              (() => {
+                const groups: { dateKey: string; items: typeof transactions }[] = [];
+                for (const tx of transactions) {
+                  const key = toLocalDateKey(tx.date);
+                  const last = groups[groups.length - 1];
+                  if (last?.dateKey === key) last.items.push(tx);
+                  else groups.push({ dateKey: key, items: [tx] });
+                }
+                return (
+                  <View style={{ gap: HOME_SPACE.sm + 4 }}>
+                    {groups.map(({ dateKey, items }) => {
+                      const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00');
+                      return (
+                        <View key={dateKey}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.sm, paddingHorizontal: 2 }}>
+                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{date}</Text>
+                            {label ? (
+                              <>
+                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginHorizontal: 5 }}>•</Text>
+                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{label}</Text>
+                              </>
+                            ) : null}
+                          </View>
+                          <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
+                            {items.map((transaction, index) => {
+                              const accountName = accountsById.get(transaction.accountId);
+                              const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
+                              const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
+                              const deposit = transaction.depositId ? depositsById.get(transaction.depositId) : undefined;
+                              const tertiaryText = transaction.tags.length > 0
+                                ? transaction.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined
+                                : undefined;
+                              return (
+                                <TransactionListItem
+                                  key={transaction.id}
+                                  tx={transaction}
+                                  sym={currencySymbol}
+                                  palette={palette}
+                                  isLast={index === items.length - 1}
+                                  categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
+                                  categoryIcon={getCategoryDisplayIcon(categoriesById, transaction.categoryId)}
+                                  accountName={accountName}
+                                  linkedAccountName={linkedAccountName}
+                                  loanPersonName={loan?.personName}
+                                  loanDirection={loan?.direction}
+                                  depositName={deposit?.name}
+                                  depositBankName={deposit?.bankName ?? undefined}
+                                  tertiaryText={tertiaryText}
+                                  showAmountSign={false}
+                                  onPress={handleTransactionPress}
+                                />
+                              );
+                            })}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })()
+            )}
           </View>
 
 
           {__DEV__ && accountId === 'all' && (
             <View style={{ alignItems: 'center', marginTop: 2 }}>
-              <TouchableOpacity delayPressIn={0} onPress={() => router.push('/chart-prototype')}>
-                <Text
-                  appWeight="medium"
-                  style={{
-                    fontSize: HOME_TEXT.bodySmall,
-                    color: palette.brand,
-                    fontWeight: BUTTON_TOKENS.text.labelWeight,
-                  }}
-                >
-                  Open Chart Prototype
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity delayPressIn={0} onPress={() => router.push('/net-worth-prototype')} style={{ marginTop: 10 }}>
+              <TouchableOpacity delayPressIn={0} onPress={() => router.push('/net-worth-prototype')}>
                 <Text
                   appWeight="medium"
                   style={{

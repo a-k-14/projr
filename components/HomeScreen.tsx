@@ -630,11 +630,7 @@ export default function HomeScreen({
           </View>
         </View>
 
-        <View style={styles.prototypeLinks}>
-          <TouchableOpacity activeOpacity={0.82} onPress={() => router.push('/chart-prototype')}>
-            <Text style={[styles.prototypeLinkText, { color: theme.accent }]}>Open Chart Prototype</Text>
-          </TouchableOpacity>
-        </View>
+
 
       </>
     );

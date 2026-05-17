@@ -64,9 +64,12 @@ export async function getActivityPeriodCashflow(
 export async function getCashflowSnapshot(
   accountId: string | 'all',
   fromDate: string,
-  toDate: string
+  toDate: string,
+  options?: { includeTransfers?: boolean; includeLoans?: boolean }
 ): Promise<{ summary: CashflowSummary; daily: DailyCashflow[] }> {
   const rows = await getTransactionsInRange(accountId, fromDate, toDate);
+  const includeTransfers = options?.includeTransfers ?? false;
+  const includeLoans = options?.includeLoans ?? false;
 
   let inTotal = 0,
     outTotal = 0;
@@ -75,7 +78,7 @@ export async function getCashflowSnapshot(
     const dateKey = safeLocalDateKey(row.date);
     if (!dateKey) continue;
     if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
-    const impact = getTransactionCashflowImpact(row, { includeTransfers: false, includeLoans: false });
+    const impact = getTransactionCashflowImpact(row, { includeTransfers, includeLoans });
     if (impact === 'in') {
       inTotal += row.amount;
       byDate[dateKey].in += row.amount;

@@ -18,6 +18,13 @@ export const DEFAULT_SETTINGS: Settings = {
   biometricLock: false,
   homeAccountViewMode: 'swipe',
   homeExcludedAccountIds: [],
+  autoBackupEnabled: false,
+  autoBackupFolderUri: '',
+  autoBackupFrequencyDays: 1,
+  lastAutoBackupAt: '',
+  autoBackupKeepCount: 7,
+  lastManualBackupAt: '',
+  lastAutoBackupError: '',
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -41,6 +48,13 @@ export async function getSettings(): Promise<Settings> {
     homeAccountViewMode: map['homeAccountViewMode'] === 'list' ? 'list' : 'swipe',
     homeExcludedAccountIds,
     supabaseUserId: map['supabaseUserId'],
+    autoBackupEnabled: map['autoBackupEnabled'] === 'true',
+    autoBackupFolderUri: map['autoBackupFolderUri'] ?? '',
+    autoBackupFrequencyDays: map['autoBackupFrequencyDays'] ? parseInt(map['autoBackupFrequencyDays']) : DEFAULT_SETTINGS.autoBackupFrequencyDays,
+    lastAutoBackupAt: map['lastAutoBackupAt'] ?? '',
+    autoBackupKeepCount: map['autoBackupKeepCount'] ? parseInt(map['autoBackupKeepCount']) : DEFAULT_SETTINGS.autoBackupKeepCount,
+    lastManualBackupAt: map['lastManualBackupAt'] ?? '',
+    lastAutoBackupError: map['lastAutoBackupError'] ?? '',
   };
 }
 

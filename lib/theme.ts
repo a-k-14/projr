@@ -5,10 +5,10 @@ export type AppThemeMode = 'light' | 'dark';
 
 const BRAND_LIGHT = '#1E293B';
 const BRAND_DARK = '#CBD5E1';
-const POSITIVE_LIGHT = '#047857';
-const POSITIVE_DARK = '#34D399';
-const NEGATIVE_LIGHT = '#B32020';
-const NEGATIVE_DARK = '#FCA5A5';
+const POSITIVE_LIGHT = '#0D9488';
+const POSITIVE_DARK = '#2DD4BF';
+const NEGATIVE_LIGHT = '#D9383A';
+const NEGATIVE_DARK = '#FFA3A3';
 const WHITE = '#FFFFFF';
 const ON_DARK_ACCENT = '#07100B';
 const ON_BUDGET = '#111827';

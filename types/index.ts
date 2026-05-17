@@ -111,6 +111,13 @@ export interface Settings {
   homeAccountViewMode: 'swipe' | 'list';
   homeExcludedAccountIds: string[];
   supabaseUserId?: string;
+  autoBackupEnabled: boolean;
+  autoBackupFolderUri: string;
+  autoBackupFrequencyDays: number;
+  lastAutoBackupAt: string;
+  autoBackupKeepCount: number;
+  lastManualBackupAt: string;
+  lastAutoBackupError: string;
 }
 
 export interface CashflowSummary {
