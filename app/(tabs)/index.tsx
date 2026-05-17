@@ -16,7 +16,6 @@ import Animated, {
   FadeInRight,
   FadeOutRight,
   LinearTransition,
-  interpolateColor,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -31,10 +30,10 @@ import { ScreenTitle } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppIcon } from '../../components/ui/AppIcon';
+import { AppSwitch } from '../../components/ui/AppSwitch';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { getCompactScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
-import { AppSwitch } from '../../components/ui/AppSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
@@ -50,11 +49,11 @@ import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
   BUTTON_TOKENS,
+  HELP_TEXTS,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_SURFACE,
-  HOME_TEXT,
-  HELP_TEXTS
+  HOME_TEXT
 } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
@@ -324,7 +323,7 @@ function HomeScreenContent() {
   ] as const;
 
   const middleContent = (
-    <View style={{ marginTop: 0, marginBottom: 36 }}>
+    <View style={{ marginTop: 0, marginBottom: 34 }}>
       <TouchableOpacity
         onPress={() => router.push('/accounts')}
         delayPressIn={0}
@@ -358,7 +357,7 @@ function HomeScreenContent() {
         <AccountCarouselAddCard palette={palette} />
       </ScrollView>
 
-      <View style={{ marginTop: 32, marginBottom: 14 }}>
+      <View style={{ marginTop: 24, marginBottom: 14 }}>
         <Text appWeight="medium" style={{ fontSize: 17, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>More</Text>
       </View>
 
@@ -862,7 +861,7 @@ function AccountSummaryCard({
                 {currencySymbol && (
                   <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: heroMutedText, marginRight: 3 }}>{currencySymbol}</Text>
                 )}
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 24, fontWeight: FONT_WEIGHT.semibold, color: heroText }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 24, fontWeight: FONT_WEIGHT.medium, color: heroText }}>
                   {balanceInt.startsWith(currencySymbol || '') ? balanceInt.slice((currencySymbol || '').length) : balanceInt}
                 </Text>
                 {balanceDec && (
@@ -910,7 +909,7 @@ function AccountSummaryCard({
               style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'baseline' }}
             >
               {currencySymbol ? (
-                <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.65)', marginRight: 4 }}>
+                <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.65)', marginRight: 4 }}>
                   {currencySymbol}
                 </Text>
               ) : null}
@@ -918,12 +917,12 @@ function AccountSummaryCard({
                 appWeight="medium"
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: FONT_WEIGHT.semibold, color: '#FFFFFF', letterSpacing: -0.5, flexShrink: 1 }}
+                style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF', letterSpacing: -0.5, flexShrink: 1 }}
               >
                 {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
               </Text>
               {balanceDec ? (
-                <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.65)', letterSpacing: -0.2 }}>
+                <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.65)', letterSpacing: -0.2 }}>
                   {balanceDec}
                 </Text>
               ) : null}
@@ -1098,7 +1097,7 @@ function AccountSummaryCard({
         {isHomeHero && incomeExpense ? (
           <View style={{ marginHorizontal: -14, marginBottom: 0 }}>
             <View style={{ backgroundColor: palette.isDark ? '#1A1F2E' : '#FFFFFF', paddingTop: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingBottom: 8 }}>
                 {/* Period pills */}
                 <SegmentedPillSwitch
                   options={[
@@ -1144,7 +1143,7 @@ function AccountSummaryCard({
                   activeOpacity={0.76}
                   disabled={!onPressMetricIn}
                   onPress={onPressMetricIn}
-                  style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10 }}
+                  style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 15 }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
                     <AppIcon name="arrow-down-left" size={11} color={palette.textMuted} strokeWidth={2} />
@@ -1164,7 +1163,7 @@ function AccountSummaryCard({
                   activeOpacity={0.76}
                   disabled={!onPressMetricOut}
                   onPress={onPressMetricOut}
-                  style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'flex-end' }}
+                  style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 15, alignItems: 'flex-end' }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
                     <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
@@ -1296,11 +1295,11 @@ function formatNetWorthStripValue(value: number, currencySymbol: string) {
   const abs = Math.abs(value);
   const sign = value < 0 ? '-' : '';
   const unit = abs >= 10000000
-    ? { divisor: 10000000, suffix: 'Cr' }
+    ? { divisor: 10000000, suffix: ' Cr' }
     : abs >= 100000
-      ? { divisor: 100000, suffix: 'L' }
+      ? { divisor: 100000, suffix: ' L' }
       : abs >= 1000
-        ? { divisor: 1000, suffix: 'K' }
+        ? { divisor: 1000, suffix: ' K' }
         : null;
 
   if (!unit) return `${sign}${formatCurrency(abs, currencySymbol)}`;
@@ -1711,13 +1710,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         pathname: '/(tabs)/activity',
         params: {
           source: period === 'today' ? 'home-today' : 'home-period',
-          // Always pass the exact computed date range so activity never
-          // re-derives it independently (different function = potential drift).
-          period: 'custom',
+          period: period === 'today' ? 'day' : period,
           accountId: accountId === 'all' ? 'all' : accountId,
           type: 'all',
           cashflowBucket: kind,
-          cashflowMode: 'incomeExpense',
+          cashflowMode: cashflowIsCashflow ? 'total' : 'incomeExpense',
           from,
           to,
           ts: String(Date.now())
@@ -1791,7 +1788,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: accountId === 'all' ? 32 : 26 }}
+            style={{ height: accountId === 'all' ? 34 : 26 }}
           />
         </View>
 
@@ -1941,7 +1938,7 @@ function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts
           overflow: 'hidden',
         }]}
       >
-        <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 184, justifyContent: 'space-between' }}>
+        <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 96, justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View
               style={{
@@ -1997,7 +1994,7 @@ function AccountCarouselAddCard({ palette }: any) {
       <Animated.View
         style={[animStyle, {
           width: 90,
-          minHeight: 184,
+          minHeight: 116,
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: palette.isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)',
