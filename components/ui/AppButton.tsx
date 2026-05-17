@@ -19,7 +19,7 @@ function getFilledColors(palette: AppThemePalette, tone: FilledTone, disabled?: 
     case 'budget':
       return { backgroundColor: palette.budget, textColor: palette.onBudget };
     case 'danger':
-      return { backgroundColor: palette.negative, textColor: palette.onBrand };
+      return { backgroundColor: palette.uiNegative, textColor: palette.onBrand };
     case 'neutral':
       return { backgroundColor: palette.surface, textColor: palette.text };
     case 'brand':
@@ -34,7 +34,7 @@ function getTextColor(palette: AppThemePalette, tone: TextTone, disabled?: boole
     case 'loan':
       return palette.loan;
     case 'danger':
-      return palette.negative;
+      return palette.uiNegative;
     case 'muted':
       return palette.textSecondary;
     case 'default':
@@ -152,7 +152,7 @@ export function ActionChip({
   palette: AppThemePalette;
   onPress: () => void;
 }) {
-  const color = destructive ? palette.negative : palette.text;
+  const color = destructive ? palette.uiNegative : palette.text;
   return (
     <TouchableOpacity
       delayPressIn={0}
@@ -167,7 +167,7 @@ export function ActionChip({
         borderRadius: HOME_RADIUS.button,
         borderWidth: 1,
         borderColor: destructive
-          ? `${palette.negative}60`
+          ? `${palette.uiNegative}60`
           : (palette.isDark ? '#2E3547' : '#C0CADB'),
         backgroundColor: destructive
           ? 'transparent'

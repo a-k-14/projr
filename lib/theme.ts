@@ -5,10 +5,18 @@ export type AppThemeMode = 'light' | 'dark';
 
 const BRAND_LIGHT = '#1E293B';
 const BRAND_DARK = '#CBD5E1';
-const POSITIVE_LIGHT = '#0D9488';
-const POSITIVE_DARK = '#2DD4BF';
-const NEGATIVE_LIGHT = '#C4607A';
-const NEGATIVE_DARK = '#EE90A5';
+
+// Yesterday's Emerald/Crimson for UI elements
+const POSITIVE_LIGHT = '#047857';
+const POSITIVE_DARK = '#34D399';
+const NEGATIVE_LIGHT = '#B32020';
+const NEGATIVE_DARK = '#FCA5A5';
+
+// Current Teal/Rose for numbers only
+const NUMBER_POSITIVE_LIGHT = '#0D9488';
+const NUMBER_POSITIVE_DARK = '#2DD4BF';
+const NUMBER_NEGATIVE_LIGHT = '#C4607A';
+const NUMBER_NEGATIVE_DARK = '#EE90A5';
 const WHITE = '#FFFFFF';
 const ON_DARK_ACCENT = '#07100B';
 const ON_BUDGET = '#111827';
@@ -83,6 +91,10 @@ export interface AppThemePalette {
   statusBarStyle: 'light' | 'dark';
   positive: string;
   negative: string;
+  uiPositive: string;
+  uiNegative: string;
+  numberPositive: string;
+  numberNegative: string;
   warning: string;
   navigationButtonStyle: 'light' | 'dark';
   surfaceRaised: string;
@@ -147,6 +159,10 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       tabActive: BRAND_DARK,
       chartBar: POSITIVE_DARK,
       negative: NEGATIVE_DARK,
+      uiPositive: POSITIVE_DARK,
+      uiNegative: NEGATIVE_DARK,
+      numberPositive: NUMBER_POSITIVE_DARK,
+      numberNegative: NUMBER_NEGATIVE_DARK,
       warning: '#F2B84B',
       brandSoft: tint(BRAND_DARK, 0.1, 0.14, mode),
       loan: '#F1F5F9',
@@ -198,6 +214,10 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     tabActive: BRAND_LIGHT,
     chartBar: POSITIVE_LIGHT,
     negative: NEGATIVE_LIGHT,
+    uiPositive: POSITIVE_LIGHT,
+    uiNegative: NEGATIVE_LIGHT,
+    numberPositive: NUMBER_POSITIVE_LIGHT,
+    numberNegative: NUMBER_NEGATIVE_LIGHT,
     warning: '#B45309',
     brandSoft: tint(BRAND_LIGHT, 0.12, 0.18, mode),
     loan: '#334155',

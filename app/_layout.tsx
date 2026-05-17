@@ -90,9 +90,9 @@ export default function RootLayout() {
     if (!ready) return;
 
     QuickActions.setItems([
-      { id: 'add-income', title: 'Add Income', icon: 'add', params: { type: 'in' } },
-      { id: 'add-expense', title: 'Add Expense', icon: 'add', params: { type: 'out' } },
-      { id: 'add-transfer', title: 'Add Transfer', icon: 'add', params: { type: 'transfer' } },
+      { id: 'add-income', title: 'Add Income', icon: 'shortcut_income', params: { type: 'in' } },
+      { id: 'add-expense', title: 'Add Expense', icon: 'shortcut_expense', params: { type: 'out' } },
+      { id: 'add-transfer', title: 'Add Transfer', icon: 'shortcut_transfer', params: { type: 'transfer' } },
     ]).catch(() => undefined);
 
     if (QuickActions.initial) {

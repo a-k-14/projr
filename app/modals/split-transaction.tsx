@@ -60,7 +60,7 @@ export default function SplitTransactionModal() {
     (sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0),
     0,
   );
-  const amountColor = txType === 'in' ? palette.positive : palette.negative;
+  const amountColor = txType === 'in' ? palette.uiPositive : palette.uiNegative;
 
   const updateRow = (id: string, patch: Partial<SplitDraftRow>) => {
     setSplitRows(splitRows.map((row) => (row.id === id ? { ...row, ...patch } : row)));

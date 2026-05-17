@@ -133,7 +133,7 @@ export default function BudgetDetailScreen() {
             <View style={{ gap: HOME_SPACE.md }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ fontSize: HOME_TEXT.body, color: palette.textSecondary }}>Spent</Text>
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: isOver ? palette.negative : palette.text }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: isOver ? palette.numberNegative : palette.text }}>
                   {formatCurrency(budget.spent, sym)}
                 </Text>
               </View>
@@ -153,7 +153,7 @@ export default function BudgetDetailScreen() {
                 <Text style={{ fontSize: HOME_TEXT.body, color: palette.textSecondary }}>
                   {isOver ? 'Over budget' : 'Remaining'}
                 </Text>
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: isOver ? palette.negative : palette.positive }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: isOver ? palette.numberNegative : palette.numberPositive }}>
                   {formatCurrency(Math.abs(budget.remaining), sym)}
                 </Text>
               </View>

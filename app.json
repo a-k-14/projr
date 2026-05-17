@@ -62,7 +62,25 @@
           "faceIDPermission": "Allow Reni to use Face ID for secure access to your financial data."
         }
       ],
-      "expo-quick-actions"
+      [
+        "expo-quick-actions",
+        {
+          "androidIcons": {
+            "shortcut_income": {
+              "foregroundImage": "./assets/images/shortcut-income.svg",
+              "backgroundColor": "#FFFFFF"
+            },
+            "shortcut_expense": {
+              "foregroundImage": "./assets/images/shortcut-expense.svg",
+              "backgroundColor": "#FFFFFF"
+            },
+            "shortcut_transfer": {
+              "foregroundImage": "./assets/images/shortcut-transfer.svg",
+              "backgroundColor": "#FFFFFF"
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

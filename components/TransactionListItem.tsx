@@ -130,7 +130,7 @@ function TransactionListItemBase({
   const amountPrefix = getAmountPrefix(amountValue, displayImpact, showAmountSign);
   const amountDisplay = amountPrefix ? `${amountPrefix}${formatCurrency(Math.abs(amountValue), sym)}` : formatCurrency(Math.abs(amountValue), sym);
   const amountColor = useTypeAmountColor
-    ? (displayImpact === 'in' ? palette.positive : displayImpact === 'out' ? palette.negative : palette.text)
+    ? (displayImpact === 'in' ? palette.numberPositive : displayImpact === 'out' ? palette.numberNegative : palette.text)
     : palette.text;
   const tertiaryLine = [tertiaryText, noteLine].filter((value): value is string => !!value).join(' | ') || undefined;
   const supportIcons = tx.splitGroupId || hasReceipt ? (

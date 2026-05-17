@@ -115,7 +115,7 @@ export default function ResetScreen() {
                 textAlign: 'center',
                 color: palette.text,
                 borderWidth: 1,
-                borderColor: isConfirmed ? palette.negative : palette.border,
+                borderColor: isConfirmed ? palette.uiNegative : palette.border,
               }}
             />
 
@@ -125,7 +125,7 @@ export default function ResetScreen() {
                   marginTop: 10,
                   fontSize: TYPE.body,
                   lineHeight: 18,
-                  color: palette.negative,
+                  color: palette.uiNegative,
                   fontWeight: FONT_WEIGHT.regular,
                 }}
               >
@@ -142,7 +142,7 @@ export default function ResetScreen() {
                 minHeight: 50,
                 marginTop: 18,
                 borderRadius: RADIUS.md,
-                backgroundColor: canReset ? palette.negative : palette.divider,
+                backgroundColor: canReset ? palette.uiNegative : palette.divider,
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'row',

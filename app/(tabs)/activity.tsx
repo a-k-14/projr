@@ -30,7 +30,7 @@ import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { getTabScreenBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
+import { getScrollableBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { PillIconButton } from '../../components/ui/PillIconButton';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
@@ -622,13 +622,17 @@ export default function ActivityScreen() {
   hasMoreRef.current = hasMore;
   const isDefaultViewRef = useRef(isDefaultView);
   isDefaultViewRef.current = isDefaultView;
+  // Ref mirror so onLoadMore stays stable and doesn't recreate maybePrefetchMore on every
+  // loading-state tick (which was the root cause of "Maximum update depth exceeded").
+  const storeLoadingMoreRef = useRef(storeTransactionsIsLoadingMore);
+  storeLoadingMoreRef.current = storeTransactionsIsLoadingMore;
 
   const onLoadMore = useCallback(async () => {
     if (
       !hasUserScrolledRef.current ||
       !hasMoreRef.current ||
       loadingRef.current ||
-      (isDefaultViewRef.current && storeTransactionsIsLoadingMore)
+      (isDefaultViewRef.current && storeLoadingMoreRef.current)
     ) return;
     setIsLoadingMore(true);
     try {
@@ -640,7 +644,7 @@ export default function ActivityScreen() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [loadData, loadMoreStoreTransactions, storeTransactionsIsLoadingMore]);
+  }, [loadData, loadMoreStoreTransactions]);
 
   const maybePrefetchMore = useCallback(
     (nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number }; contentSize: { height: number } }) => {
@@ -1376,7 +1380,7 @@ export default function ActivityScreen() {
               getItemType={(item) => item.type}
               drawDistance={900}
               maintainVisibleContentPosition={{ disabled: true }}
-              contentContainerStyle={{ paddingBottom: getTabScreenBottomPadding(insets) }}
+              contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) }}
               ListHeaderComponent={activityHeader}
               ListFooterComponent={showLoadingMoreFooter ? (
                 <View style={{ paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
@@ -1435,7 +1439,7 @@ export default function ActivityScreen() {
             <ScrollView
               ref={scrollViewRef}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-              contentContainerStyle={{ paddingBottom: getTabScreenBottomPadding(insets) }}
+              contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) }}
             >
               <>
                 {activityHeader}
@@ -1568,7 +1572,7 @@ export default function ActivityScreen() {
                                   style={{
                                     fontSize: HOME_TEXT.bodySmall,
                                     fontWeight: FONT_WEIGHT.medium,
-                                    color: category.total >= 0 ? palette.positive : palette.negative,
+                                    color: category.total >= 0 ? palette.numberPositive : palette.numberNegative,
                                     marginRight: 2
                                   }}
                                 >
@@ -1620,7 +1624,7 @@ export default function ActivityScreen() {
                                         style={{
                                           fontSize: HOME_TEXT.bodySmall,
                                           fontWeight: FONT_WEIGHT.medium,
-                                          color: sub.total >= 0 ? palette.positive : palette.negative,
+                                          color: sub.total >= 0 ? palette.numberPositive : palette.numberNegative,
                                           marginRight: 10
                                         }}
                                       >

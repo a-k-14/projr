@@ -1,5 +1,6 @@
 import { AppIcon, IconName } from '../../components/ui/AppIcon';
 import * as LocalAuthentication from 'expo-local-authentication';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, ScrollView, TouchableWithoutFeedback, View } from 'react-native';
@@ -217,9 +218,9 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/settings/backup')}
               />
               <SettingsRow
-                leftElement={<AppIcon name="refresh-cw" size={18} color={palette.negative} />}
+                leftElement={<AppIcon name="refresh-cw" size={18} color={palette.uiNegative} />}
                 label="Reset App"
-                labelStyle={{ color: palette.negative }}
+                labelStyle={{ color: palette.uiNegative }}
                 palette={palette}
                 onPress={() => router.push('/settings/reset')}
                 noBorder
@@ -227,19 +228,21 @@ export default function SettingsScreen() {
             </CardSection>
           </View>
 
-          <View>
-            <SectionLabel label="DEVELOPMENT" palette={palette} />
-            <CardSection palette={palette}>
-              <SettingsRow
-                icon="database"
-                label="Seed 1,000 Transactions"
-                value="Add test data"
-                palette={palette}
-                onPress={handleSeedMassiveData}
-                noBorder
-              />
-            </CardSection>
-          </View>
+          {Constants.executionEnvironment === 'storeClient' && (
+            <View>
+              <SectionLabel label="DEVELOPMENT" palette={palette} />
+              <CardSection palette={palette}>
+                <SettingsRow
+                  icon="database"
+                  label="Seed 1,000 Transactions"
+                  value="Add test data"
+                  palette={palette}
+                  onPress={handleSeedMassiveData}
+                  noBorder
+                />
+              </CardSection>
+            </View>
+          )}
         </ScrollView>
       </TouchableWithoutFeedback>
 

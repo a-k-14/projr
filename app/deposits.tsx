@@ -332,7 +332,7 @@ function DepositListCard({
               label={maturityLabel}
               value={formatCurrency(deposit.maturityValue ?? deposit.principalAmount, sym)}
               palette={palette}
-              valueColor={palette.positive}
+              valueColor={palette.numberPositive}
               align="right"
             />
           </View>

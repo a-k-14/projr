@@ -110,8 +110,8 @@ export default function InsightsScreen() {
     muted: '#7C8498',
     textMuted: palette.textMuted,
     accent: palette.brand,
-    positive: palette.positive,
-    negative: palette.negative,
+    positive: palette.numberPositive,
+    negative: palette.numberNegative,
   }), [palette]);
 
   const dateRange = useMemo(() => {
@@ -226,7 +226,7 @@ export default function InsightsScreen() {
       <Animated.ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >

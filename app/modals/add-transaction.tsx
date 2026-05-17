@@ -213,8 +213,8 @@ export default function AddTransactionModal() {
   }, []);
 
   const TYPE_CONFIG = {
-    in: { label: 'Income', color: palette.positive, onColor: palette.onBrand, borderColor: palette.positive, bg: palette.inBg },
-    out: { label: 'Expense', color: palette.negative, onColor: palette.onBrand, borderColor: palette.negative, bg: palette.outBg },
+    in: { label: 'Income', color: palette.uiPositive, onColor: palette.onBrand, borderColor: palette.uiPositive, bg: palette.inBg },
+    out: { label: 'Expense', color: palette.uiNegative, onColor: palette.onBrand, borderColor: palette.uiNegative, bg: palette.outBg },
     transfer: { label: 'Transfer', color: palette.transferText, onColor: palette.onBrand, borderColor: palette.transferText, bg: palette.transferBg },
     loan: { label: 'Loan', color: palette.loan, onColor: palette.onLoan, borderColor: palette.loan, bg: palette.loanBg },
     deposit: { label: 'Deposit', color: palette.brand, onColor: palette.onBrand, borderColor: palette.brand, bg: palette.budgetSoft }

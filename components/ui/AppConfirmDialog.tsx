@@ -65,7 +65,7 @@ export function AppConfirmDialog({
                 justifyContent: 'center',
               }}
             >
-              <AppIcon name="alert-circle" size={16} color={confirm.destructive ? palette.negative : palette.brand} />
+              <AppIcon name="alert-circle" size={16} color={confirm.destructive ? palette.uiNegative : palette.brand} />
             </View>
             <Text appWeight="medium" style={{ flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
               {title}

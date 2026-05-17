@@ -667,7 +667,7 @@ function AccountSummaryCard({
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
   const balanceInt = hideAmounts ? '••••' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
   const balanceDec = hideAmounts ? '' : (dotIdx >= 0 ? balanceFormatted!.slice(dotIdx) : '');
-  const balanceColor = heroMode ? heroText : balance < 0 ? palette.negative : palette.text;
+  const balanceColor = heroMode ? heroText : balance < 0 ? palette.numberNegative : palette.text;
   const heroBalanceDigitCount = balanceInt.replace(currencySymbol, '').replace(/[^0-9]/g, '').length;
   const heroBalanceFontSize = heroBalanceDigitCount >= 9 ? 21 : heroBalanceDigitCount >= 7 ? 23 : heroBalanceDigitCount >= 5 ? 25 : 28;
   const heroBalanceLineHeight = heroBalanceFontSize + 16;
@@ -701,11 +701,15 @@ function AccountSummaryCard({
   const prevTotalTickRef = React.useRef(totalTick);
 
   React.useEffect(() => {
-    if (prevTotalTickRef.current === 0 && totalTick > 0) {
-      animatedIncomeFraction.value = incomeFraction;
-    } else {
-      animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9 });
+    if (totalTick > 0) {
+      if (prevTotalTickRef.current === 0) {
+        animatedIncomeFraction.value = incomeFraction;
+      } else {
+        animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9 });
+      }
     }
+    // When totalTick drops to 0, leave the fraction unchanged so both bars collapse
+    // proportionally as progress animates to 0 — prevents red appearing mid-transition.
     tickActivityProgress.value = withTiming(totalTick > 0 ? 1 : 0, { duration: 250 });
     prevTotalTickRef.current = totalTick;
   }, [tickIn, tickOut, incomeFraction, totalTick]);
@@ -852,7 +856,7 @@ function AccountSummaryCard({
                 <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.88)', fontFamily: 'monospace' }}>
                   {hideAmounts ? 'NW ••••' : `NW ${formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}`}
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 7, paddingVertical: 3, opacity: netWorthChange !== undefined ? 1 : 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 7, paddingVertical: 3, minWidth: 36, justifyContent: 'center', opacity: netWorthChange !== undefined ? 1 : 0 }}>
                   {nwChangeTone !== 'neutral' && (
                     <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={10} color={nwChangeInk} strokeWidth={2.4} />
                   )}
@@ -965,7 +969,11 @@ function AccountSummaryCard({
                 )}
                 {/* Cashflow toggle + date */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => onToggleCashflowView?.(!isCashflowView)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
+                  >
                     <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
                       Cashflow
                     </Text>
@@ -977,7 +985,7 @@ function AccountSummaryCard({
                       height={20}
                       thumbSize={14}
                     />
-                  </View>
+                  </TouchableOpacity>
                   {from && to && (
                     <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, justifyContent: 'flex-end' }}>
                       <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 }}>
@@ -1215,11 +1223,11 @@ function AccountSummaryCard({
                     <AppIcon
                       name={netWorthChange > 0 ? 'trending-up' : 'trending-down'}
                       size={11}
-                      color={netWorthChange > 0 ? palette.positive : palette.negative}
+                      color={netWorthChange > 0 ? palette.numberPositive : palette.numberNegative}
                       strokeWidth={2.5}
                     />
                   )}
-                  <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: netWorthChange === 0 ? palette.textMuted : netWorthChange > 0 ? palette.positive : palette.negative }}>
+                  <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: netWorthChange === 0 ? palette.textMuted : netWorthChange > 0 ? palette.numberPositive : palette.numberNegative }}>
                     {netWorthChange === 0 ? '—' : formatNetWorthStripValue(Math.abs(netWorthChange), currencySymbol)}
                   </Text>
                 </View>
@@ -1761,7 +1769,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           {middleContent}
 
           {/* ── Recent transactions — date-grouped ── */}
-          <View style={{ marginBottom: HOME_SPACE.pageBottom }}>
+          <View style={{ marginBottom: 4 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
               <TouchableOpacity

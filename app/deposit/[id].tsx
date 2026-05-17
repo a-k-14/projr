@@ -202,14 +202,14 @@ export default function DepositDetailScreen() {
               label="Return"
               value={`+${formatCurrency(earnings, sym)}`}
               palette={palette}
-              valueColor={earnings > 0 ? palette.positive : palette.text}
+              valueColor={earnings > 0 ? palette.numberPositive : palette.text}
               withDivider
             />
             <HeroMetric
               label={deposit.status === 'closed' ? 'Received' : 'Maturity'}
               value={formatCurrency(deposit.maturityValue ?? deposit.principalAmount, sym)}
               palette={palette}
-              valueColor={palette.positive}
+              valueColor={palette.numberPositive}
               withDivider
             />
           </View>
