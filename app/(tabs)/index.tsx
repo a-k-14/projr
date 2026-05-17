@@ -1365,6 +1365,7 @@ function BalanceVisibilitySheet({
       onClose={onClose}
       hasNavBar
       backgroundColor={palette.background}
+      maxHeightRatio={0.65}
       headerRight={
         <TouchableOpacity
           delayPressIn={0}
