@@ -1090,7 +1090,11 @@ function AccountSummaryCard({
                   style={{ width: 114 }}
                 />
                 {/* Cashflow toggle */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={() => onToggleCashflowView?.(!isCashflowView)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
+                >
                   <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
                     Cashflow
                   </Text>
@@ -1102,7 +1106,7 @@ function AccountSummaryCard({
                     height={20}
                     thumbSize={14}
                   />
-                </View>
+                </TouchableOpacity>
               </View>
 
               {/* Divider */}
