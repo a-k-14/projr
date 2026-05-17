@@ -17,7 +17,7 @@ import { HOME_RADIUS, HOME_TEXT, SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { BottomSheet } from '../../components/ui/BottomSheet';
-import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
+import { getScrollableBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
 import { ChoiceRow } from '../../components/settings-ui';
 import type { Account } from '../../types';
 
@@ -222,6 +222,7 @@ export default function AllAccountsScreen() {
           })}
         </BottomSheet>
       ) : null}
+      <SystemBottomGuard />
     </View>
   );
 }

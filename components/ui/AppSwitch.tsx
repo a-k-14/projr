@@ -1,12 +1,12 @@
-import React from 'react';
-import { Pressable, StyleSheet } from 'react-native';
-import Animated, { 
-  interpolateColor, 
-  useAnimatedStyle, 
-  useSharedValue, 
-  withSpring 
+import React, { useEffect } from 'react';
+import { TouchableOpacity } from 'react-native';
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
-import { AppThemePalette } from '../../lib/theme';
+import type { AppThemePalette } from '../../lib/theme';
 
 interface AppSwitchProps {
   value: boolean;
@@ -19,108 +19,80 @@ interface AppSwitchProps {
   padding?: number;
   activeTrackColor?: string;
   inactiveTrackColor?: string;
-  activeBorderColor?: string;
-  inactiveBorderColor?: string;
-  activeThumbColor?: string;
-  inactiveThumbColor?: string;
 }
+
+const SPRING = { damping: 18, stiffness: 280, mass: 0.5 } as const;
 
 export function AppSwitch({
   value,
   onValueChange,
   palette,
   disabled,
-  width = 46,
-  height = 26,
-  thumbSize = 20,
+  width = 43,
+  height = 25,
+  thumbSize = 19,
   padding = 3,
   activeTrackColor,
   inactiveTrackColor,
-  activeBorderColor,
-  inactiveBorderColor,
-  activeThumbColor,
-  inactiveThumbColor,
 }: AppSwitchProps) {
-  const trackWidth = width;
-  const trackHeight = height;
-  
-  const translateX = useSharedValue(value ? trackWidth - thumbSize - padding : padding);
+  const offX = padding;
+  const onX = width - thumbSize - padding;
 
-  React.useEffect(() => {
-    translateX.value = withSpring(value ? trackWidth - thumbSize - padding : padding, {
-      damping: 22,
-      stiffness: 300,
-      mass: 0.6,
-    });
-  }, [value, translateX, trackWidth, thumbSize, padding]);
+  const progress = useSharedValue(value ? 1 : 0);
 
-  const animatedTrackStyle = useAnimatedStyle(() => {
-    const backgroundColor = interpolateColor(
-      translateX.value,
-      [padding, trackWidth - thumbSize - padding],
-      [inactiveTrackColor ?? palette.divider, activeTrackColor ?? palette.brand]
-    );
-    const borderColor = interpolateColor(
-      translateX.value,
-      [padding, trackWidth - thumbSize - padding],
-      [inactiveBorderColor ?? 'transparent', activeBorderColor ?? 'transparent']
-    );
-    return { 
-      backgroundColor,
-      borderColor,
-      borderWidth: (inactiveBorderColor || activeBorderColor) ? 1 : 0
-    };
-  });
+  useEffect(() => {
+    progress.value = withSpring(value ? 1 : 0, SPRING);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const animatedThumbStyle = useAnimatedStyle(() => {
-    const backgroundColor = interpolateColor(
-      translateX.value,
-      [padding, trackWidth - thumbSize - padding],
-      [inactiveThumbColor ?? palette.textSoft, activeThumbColor ?? '#FFFFFF']
-    );
-    return {
-      transform: [{ translateX: translateX.value }],
-      backgroundColor,
-    };
-  });
+  const trackColor = activeTrackColor ?? palette.brand;
+  const offColor = inactiveTrackColor ?? (palette.isDark ? 'rgba(255,255,255,0.12)' : palette.divider);
+
+  const animatedTrack = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(progress.value, [0, 1], [offColor, trackColor]),
+  }));
+
+  const animatedThumb = useAnimatedStyle(() => ({
+    transform: [{ translateX: offX + progress.value * (onX - offX) }],
+  }));
 
   return (
-    <Pressable
+    <TouchableOpacity
+      delayPressIn={0}
+      activeOpacity={0.85}
       disabled={disabled}
       onPress={() => onValueChange(!value)}
-      style={[styles.container, { width: trackWidth, height: trackHeight, opacity: disabled ? 0.5 : 1 }]}
+      style={{ opacity: disabled ? 0.45 : 1 }}
+      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
     >
-      <Animated.View style={[styles.track, animatedTrackStyle, { borderRadius: trackHeight / 2 }]}>
-        <Animated.View 
+      <Animated.View
+        style={[
+          {
+            width,
+            height,
+            borderRadius: height / 2,
+            justifyContent: 'center',
+          },
+          animatedTrack,
+        ]}
+      >
+        <Animated.View
           style={[
-            styles.thumb, 
-            animatedThumbStyle, 
-            { 
-              width: thumbSize, 
-              height: thumbSize, 
-              borderRadius: thumbSize / 2, 
+            {
+              position: 'absolute',
+              width: thumbSize,
+              height: thumbSize,
+              borderRadius: thumbSize / 2,
+              backgroundColor: '#FFFFFF',
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1.5 },
-              shadowOpacity: 0.12,
-              shadowRadius: 2.0,
-              elevation: 2
-            }
-          ]} 
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.18,
+              shadowRadius: 2,
+              elevation: 2,
+            },
+            animatedThumb,
+          ]}
         />
       </Animated.View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    justifyContent: 'center',
-  },
-  track: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  thumb: {
-    position: 'absolute',
-  },
-});

@@ -743,7 +743,7 @@ function AccountSummaryCard({
         }
         locations={isWalletHero ? [0, 0.44, 0.44, 1] : undefined}
         start={{ x: 0, y: 0 }}
-        end={isWalletHero ? { x: 0, y: 1 } : isHomeHero ? { x: 1, y: 0 } : { x: 1, y: 1 }}
+        end={isWalletHero ? { x: 0, y: 1 } : { x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
 
@@ -925,13 +925,6 @@ function AccountSummaryCard({
                       width={36}
                       height={20}
                       thumbSize={14}
-                      padding={2.5}
-                      inactiveTrackColor={isLightHeroCard ? palette.inputBg : 'rgba(0,0,0,0.14)'}
-                      activeTrackColor={palette.brand}
-                      inactiveBorderColor={palette.borderSoft}
-                      activeBorderColor={palette.brand}
-                      inactiveThumbColor={palette.textSoft}
-                      activeThumbColor="#FFFFFF"
                     />
                   </View>
                   {from && to && (
@@ -1049,13 +1042,6 @@ function AccountSummaryCard({
                     width={36}
                     height={20}
                     thumbSize={14}
-                    padding={2.5}
-                    inactiveTrackColor={isLightHeroCard ? palette.inputBg : 'rgba(0,0,0,0.14)'}
-                    activeTrackColor={palette.brand}
-                    inactiveBorderColor={palette.borderSoft}
-                    activeBorderColor={palette.brand}
-                    inactiveThumbColor={palette.textSoft}
-                    activeThumbColor="#FFFFFF"
                   />
                 </View>
               </View>
