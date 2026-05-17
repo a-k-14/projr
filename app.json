@@ -67,15 +67,15 @@
         {
           "androidIcons": {
             "shortcut_income": {
-              "foregroundImage": "./assets/images/shortcut-income.svg",
+              "foregroundImage": "./assets/images/shortcut-income.png",
               "backgroundColor": "#FFFFFF"
             },
             "shortcut_expense": {
-              "foregroundImage": "./assets/images/shortcut-expense.svg",
+              "foregroundImage": "./assets/images/shortcut-expense.png",
               "backgroundColor": "#FFFFFF"
             },
             "shortcut_transfer": {
-              "foregroundImage": "./assets/images/shortcut-transfer.svg",
+              "foregroundImage": "./assets/images/shortcut-transfer.png",
               "backgroundColor": "#FFFFFF"
             }
           }
