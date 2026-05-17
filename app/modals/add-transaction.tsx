@@ -111,8 +111,8 @@ export default function AddTransactionModal() {
     addMore,
     editDepositId,
     closeDepositId } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string }>();
-  const isEditingDeposit = !!editDepositId;
-  const isClosingDeposit = !!closeDepositId;
+  const isEditingDeposit = !!editDepositId && editDepositId !== '';
+  const isClosingDeposit = !!closeDepositId && closeDepositId !== '' && !isEditingDeposit;
   const isEditing = !!editId || isEditingDeposit;
   const isLoanAddMore = !isEditing && !!routeLoanId && addMore === '1';
 
@@ -124,6 +124,9 @@ export default function AddTransactionModal() {
   const addLoanPrincipal = useLoansStore((s) => s.addPrincipal);
   const updateLoanOrigin = useLoansStore((s) => s.updateOrigin);
   const removeLoan = useLoansStore((s) => s.remove);
+  const deposits = useFixedDepositsStore((s) => s.deposits);
+  const isDepositsLoaded = useFixedDepositsStore((s) => s.isLoaded);
+  const loadDeposits = useFixedDepositsStore((s) => s.load);
   const removeDeposit = useFixedDepositsStore((s) => s.remove);
   const closeDeposit = useFixedDepositsStore((s) => s.close);
   const accounts = useAccountsStore((s) => s.accounts);
@@ -189,6 +192,7 @@ export default function AddTransactionModal() {
   const hadSplitRows = useRef(false);
   const previousType = useRef<TransactionType | 'deposit'>((initialType as TransactionType | 'deposit') || 'out');
   const isHydratingEditRef = useRef(false);
+  const isDepositHydratedRef = useRef(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const payeeAnchorRef = useRef<View>(null);
@@ -302,8 +306,18 @@ export default function AddTransactionModal() {
   useEffect(() => {
     const depositId = editDepositId ?? closeDepositId;
     if ((!isEditingDeposit && !isClosingDeposit) || !depositId) return;
-    const found = useFixedDepositsStore.getState().deposits.find((d) => d.id === depositId);
+    // Only hydrate once — prevent dep-change re-runs from overwriting user edits.
+    if (isDepositHydratedRef.current) return;
+
+    if (!isDepositsLoaded) {
+      loadDeposits().catch(() => {});
+      return;
+    }
+
+    const found = deposits.find((d) => d.id === depositId);
     if (!found) return;
+
+    isDepositHydratedRef.current = true;
     setType('deposit');
     setAmountStr(formatIndianNumberStr(String(isClosingDeposit ? (found.maturityValue ?? found.principalAmount) : found.principalAmount)));
     setAccountId(found.accountId);
@@ -313,7 +327,7 @@ export default function AddTransactionModal() {
     setDepositTenure(found.tenureMonths != null ? String(found.tenureMonths) : '');
     setDepositInterest(found.interestRate != null ? String(found.interestRate) : '');
     setNote(isClosingDeposit ? '' : found.note ?? '');
-  }, [closeDepositId, editDepositId, isClosingDeposit, isEditingDeposit]);
+  }, [closeDepositId, editDepositId, isClosingDeposit, isEditingDeposit, deposits, isDepositsLoaded, loadDeposits]);
 
   useEffect(() => {
     if (!isEditing || !editId) return;

@@ -34,6 +34,7 @@ import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { getCompactScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
+import { AppSwitch } from '../../components/ui/AppSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
@@ -44,7 +45,7 @@ import {
   toLocalDayStartISO
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
-import { formatCurrency, getLoanSummary, getTotalBalance } from '../../lib/derived';
+import { formatCurrency, getLoanSummary, getLoanTransactionKind, getTotalBalance } from '../../lib/derived';
 import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
@@ -193,6 +194,21 @@ function HomeScreenContent() {
     loadBudgets(new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString()).catch(() => undefined);
   }, [loadBudgets]);
 
+  const handleChartTransactionPress = useCallback((tx: Transaction) => {
+    if (tx.type === 'deposit' && tx.depositId) {
+      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
+      return;
+    }
+    if (tx.type === 'loan' && tx.loanId) {
+      const loan = loansById.get(tx.loanId);
+      if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
+        router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });
+        return;
+      }
+    }
+    router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } });
+  }, [loansById]);
+
   const handleCustomRangeDone = useCallback(() => {
     const fromDate = customDraftFrom <= customDraftTo ? customDraftFrom : customDraftTo;
     const toDate = customDraftTo >= customDraftFrom ? customDraftTo : customDraftFrom;
@@ -283,12 +299,12 @@ function HomeScreenContent() {
   ] as const;
 
   const middleContent = (
-    <View style={{ marginTop: 0, marginBottom: 30 }}>
+    <View style={{ marginTop: 0, marginBottom: 36 }}>
       <TouchableOpacity
         onPress={() => router.push('/accounts')}
         delayPressIn={0}
         activeOpacity={0.72}
-        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, marginTop: 8, paddingVertical: 2 }}
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, marginTop: 0, paddingVertical: 2 }}
       >
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Accounts</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
@@ -317,7 +333,7 @@ function HomeScreenContent() {
         <AccountCarouselAddCard palette={palette} />
       </ScrollView>
 
-      <View style={{ marginTop: 30, marginBottom: 14 }}>
+      <View style={{ marginTop: 32, marginBottom: 14 }}>
         <Text appWeight="medium" style={{ fontSize: 17, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>More</Text>
       </View>
 
@@ -461,6 +477,7 @@ function HomeScreenContent() {
                 resetTrigger={expandedChartState.resetTrigger}
                 accountsById={accountsById}
                 loansById={loansById}
+                onTransactionPress={handleChartTransactionPress}
               />
             </View>
           </View>
@@ -685,26 +702,10 @@ function AccountSummaryCard({
   const handleCardPressIn = () => { cardScale.value = withSpring(0.972, { damping: 22, stiffness: 380, mass: 0.8 }); };
   const handleCardPressOut = () => { cardScale.value = withSpring(1, { damping: 18, stiffness: 220, mass: 0.8 }); };
 
-  // Cashflow toggle animation — track: 36×20, thumb: 14×14, padding: 2
-  const TOGGLE_W = 36, TOGGLE_THUMB = 14, TOGGLE_PAD = 2;
-  const TOGGLE_OFF = TOGGLE_PAD;
-  const TOGGLE_ON = TOGGLE_W - TOGGLE_THUMB - TOGGLE_PAD;
-  const cashflowThumb = useSharedValue(isCashflowView ? TOGGLE_ON : TOGGLE_OFF);
   const cashflowNoteProgress = useSharedValue(isCashflowView ? 1 : 0);
   React.useEffect(() => {
-    cashflowThumb.value = withTiming(isCashflowView ? TOGGLE_ON : TOGGLE_OFF, { duration: 150 });
     cashflowNoteProgress.value = withTiming(isCashflowView ? 1 : 0, { duration: 220 });
   }, [isCashflowView]);
-  const cashflowThumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: cashflowThumb.value }],
-  }));
-  const cashflowTrackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      cashflowThumb.value,
-      [TOGGLE_OFF, TOGGLE_ON],
-      [isLightHeroCard ? palette.inputBg : 'rgba(0,0,0,0.14)', palette.brand]
-    ),
-  }));
   const CASHFLOW_NOTE_H = 30;
   const cashflowNoteStyle = useAnimatedStyle(() => ({
     height: cashflowNoteProgress.value * CASHFLOW_NOTE_H,
@@ -913,30 +914,26 @@ function AccountSummaryCard({
                 )}
                 {/* Cashflow toggle + date */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 10 }}>
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    activeOpacity={0.78}
-                    onPress={() => onToggleCashflowView?.(!isCashflowView)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
-                  >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
                     <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
                       Cashflow
                     </Text>
-                    <Animated.View style={[cashflowTrackStyle, {
-                      width: TOGGLE_W, height: 20,
-                      borderRadius: HOME_RADIUS.full,
-                      borderWidth: 1,
-                      borderColor: isCashflowView ? palette.brand : palette.borderSoft,
-                    }]}>
-                      <Animated.View style={[cashflowThumbStyle, {
-                        position: 'absolute', top: TOGGLE_PAD,
-                        width: TOGGLE_THUMB, height: TOGGLE_THUMB,
-                        borderRadius: TOGGLE_THUMB / 2,
-                        backgroundColor: isCashflowView ? '#FFFFFF' : palette.textSoft,
-                        elevation: 2,
-                      }]} />
-                    </Animated.View>
-                  </TouchableOpacity>
+                    <AppSwitch
+                      value={!!isCashflowView}
+                      onValueChange={(val) => onToggleCashflowView?.(val)}
+                      palette={palette}
+                      width={36}
+                      height={20}
+                      thumbSize={14}
+                      padding={2.5}
+                      inactiveTrackColor={isLightHeroCard ? palette.inputBg : 'rgba(0,0,0,0.14)'}
+                      activeTrackColor={palette.brand}
+                      inactiveBorderColor={palette.borderSoft}
+                      activeBorderColor={palette.brand}
+                      inactiveThumbColor={palette.textSoft}
+                      activeThumbColor="#FFFFFF"
+                    />
+                  </View>
                   {from && to && (
                     <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, justifyContent: 'flex-end' }}>
                       <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 }}>
@@ -976,26 +973,38 @@ function AccountSummaryCard({
                   </Animated.View>
                 </View>
                 {/* Income / Expense values */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
-                  <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <AppIcon name="arrow-down-left" size={13} color={palette.positive} strokeWidth={2.2} />
-                    <Text style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text, letterSpacing: -0.4 }}>
-                      {hideAmounts ? '••••' : metricLeftAmount.toLocaleString('en-IN')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <Text style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text, letterSpacing: -0.4 }}>
-                      {hideAmounts ? '••••' : metricRightAmount.toLocaleString('en-IN')}
-                    </Text>
-                    <AppIcon name="arrow-up-right" size={13} color={palette.negative} strokeWidth={2.2} />
-                  </TouchableOpacity>
-                </View>
+                {(() => {
+                  const leftSplit = splitTickAmount(metricLeftAmount);
+                  const rightSplit = splitTickAmount(metricRightAmount);
+                  const leftIsZero = metricLeftAmount === 0;
+                  const rightIsZero = metricRightAmount === 0;
+                  return (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
+                      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <AppIcon name="arrow-down-left" size={13} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
+                        <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                          {hideAmounts ? '••••' : leftIsZero ? '—' : (
+                            <Text>{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
+                          )}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                          {hideAmounts ? '••••' : rightIsZero ? '—' : (
+                            <Text>{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
+                          )}
+                        </Text>
+                        <AppIcon name="arrow-up-right" size={13} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })()}
                 {/* Cashflow note — expands when toggle is on */}
                 <Animated.View style={cashflowNoteStyle}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 8 }}>
                     <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
                     <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
-                      Cashflow includes Transfers, Deposits & Loans movement
+                      Cashflow includes Transfers, Deposits & Loans movements
                     </Text>
                   </View>
                 </Animated.View>
@@ -1004,55 +1013,51 @@ function AccountSummaryCard({
           );
         })()}
 
-
         {/* ── Home Hero metric strip — flat white bottom section, mirrors wallet card layout ── */}
         {isHomeHero && incomeExpense ? (
           <View style={{ marginHorizontal: -14, marginBottom: 0 }}>
-            <View style={{ backgroundColor: palette.isDark ? '#1A1F2E' : '#FFFFFF', paddingTop: 10, paddingBottom: 12 }}>
-              {/* Period toggle + cashflow switch */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingBottom: 8 }}>
-                <View style={{ flexDirection: 'row', gap: 2 }}>
-                  {(['today', 'month'] as const).map((p) => {
-                    const active = (heroMetricPeriod ?? 'today') === p;
-                    return (
-                      <TouchableOpacity
-                        key={p}
-                        delayPressIn={0}
-                        activeOpacity={0.75}
-                        onPress={() => onHeroMetricPeriodChange?.(p)}
-                        style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 5,
-                          borderRadius: HOME_RADIUS.pill,
-                          backgroundColor: active ? palette.brand : 'transparent',
-                        }}
-                      >
-                        <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: active ? '600' : '400', color: active ? '#FFFFFF' : palette.textMuted }}>
-                          {p === 'today' ? 'Today' : 'Month'}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                <TouchableOpacity
-                  delayPressIn={0}
-                  activeOpacity={0.78}
-                  onPress={() => onToggleCashflowView?.(!isCashflowView)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
-                >
-                  <Text style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.medium, color: isCashflow ? palette.brand : palette.textMuted }}>
+            <View style={{ backgroundColor: palette.isDark ? '#1A1F2E' : '#FFFFFF', paddingTop: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingBottom: 10 }}>
+                {/* Period pills */}
+                <SegmentedPillSwitch
+                  options={[
+                    { key: 'today', label: 'Today' },
+                    { key: 'month', label: 'Month' }
+                  ]}
+                  value={heroMetricPeriod ?? 'today'}
+                  onChange={(key) => onHeroMetricPeriodChange?.(key as 'today' | 'month')}
+                  backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
+                  pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
+                  borderColor={palette.isDark ? 'transparent' : '#DFE5EF'}
+                  activeTextColor={palette.text}
+                  inactiveTextColor={palette.textMuted}
+                  height={32}
+                  radius={14}
+                  fontSize={10.5}
+                  itemMinWidth={54}
+                  style={{ width: 114 }}
+                />
+                {/* Cashflow toggle */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
                     Cashflow
                   </Text>
-                  <View style={{
-                    width: 36, height: 20, borderRadius: HOME_RADIUS.small, padding: 2,
-                    backgroundColor: isCashflow ? palette.brand : palette.inputBg,
-                    borderWidth: 1,
-                    borderColor: isCashflow ? palette.brand : palette.borderSoft,
-                    alignItems: isCashflow ? 'flex-end' : 'flex-start',
-                  }}>
-                    <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: isCashflow ? '#FFFFFF' : palette.textSoft }} />
-                  </View>
-                </TouchableOpacity>
+                  <AppSwitch
+                    value={!!isCashflowView}
+                    onValueChange={(val) => onToggleCashflowView?.(val)}
+                    palette={palette}
+                    width={36}
+                    height={20}
+                    thumbSize={14}
+                    padding={2.5}
+                    inactiveTrackColor={isLightHeroCard ? palette.inputBg : 'rgba(0,0,0,0.14)'}
+                    activeTrackColor={palette.brand}
+                    inactiveBorderColor={palette.borderSoft}
+                    activeBorderColor={palette.brand}
+                    inactiveThumbColor={palette.textSoft}
+                    activeThumbColor="#FFFFFF"
+                  />
+                </View>
               </View>
 
               {/* Divider */}
@@ -1098,6 +1103,18 @@ function AccountSummaryCard({
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Cashflow note — expands when toggle is on */}
+              <Animated.View style={cashflowNoteStyle}>
+                <View style={{ height: 1, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : palette.divider }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 6, paddingBottom: 6, paddingHorizontal: 14 }}>
+                  <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
+                  <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
+                    Cashflow includes Transfers, Deposits & Loans movements
+                  </Text>
+                </View>
+              </Animated.View>
+
             </View>
           </View>
         ) : null}
@@ -1189,6 +1206,18 @@ function AccountSummaryCard({
   );
 }
 
+/** Truncate (not round) to 2 decimal places and split into integer + ".XX" strings for two-size rendering.
+ *  `dec` is empty string when the fractional part is zero. */
+function splitTickAmount(amount: number): { int: string; dec: string } {
+  const truncated = Math.floor(amount * 100) / 100;
+  const intPart = Math.floor(truncated);
+  const cents = Math.round((truncated - intPart) * 100);
+  return {
+    int: intPart.toLocaleString('en-IN'),
+    dec: cents > 0 ? '.' + String(cents).padStart(2, '0') : '',
+  };
+}
+
 function formatNetWorthStripValue(value: number, currencySymbol: string) {
   const abs = Math.abs(value);
   const sign = value < 0 ? '-' : '';
@@ -1264,6 +1293,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   loadLoans,
   hideAmounts,
   contentBottomPadding,
+  onScrollBeginDrag,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1299,9 +1329,14 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   loadLoans: (filters?: { accountId?: string; status?: LoanStatus }) => Promise<void>;
   hideAmounts?: boolean;
   contentBottomPadding?: number;
+  onScrollBeginDrag?: () => void;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
+  const deposits = useFixedDepositsStore((s) => s.deposits);
+  const depositsById = useMemo(() => new Map(deposits.map((d) => [d.id, d])), [deposits]);
+  const tags = useCategoriesStore((s) => s.tags);
+  const tagNamesById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(null);
@@ -1318,7 +1353,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   } | null>(null);
 
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
-  const recentScrollRef = useRef<ScrollView | null>(null);
 
   useEffect(() => {
     loadRequestIdRef.current += 1;
@@ -1363,7 +1397,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   useEffect(() => {
     registerScrollTop(accountId, () => {
       mainScrollRef.current?.scrollTo({ y: 0, animated: true });
-      recentScrollRef.current?.scrollTo({ y: 0, animated: true });
       const arr = verticalScrolls.value.slice();
       arr[pageIndex] = 0;
       verticalScrolls.value = arr;
@@ -1399,7 +1432,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const displayedPeriodTransactions = periodTransactions;
 
   // Income/expense: only type in/out, excludes transfers, loans & deposits
-  // Cashflow: includes transfers, deposits & loans movement
+  // Cashflow: includes transfers, deposits & loans movements
   const incExpSummary = useMemo(() => {
     let income = 0, expense = 0;
     displayedPeriodTransactions.forEach((tx) => {
@@ -1451,11 +1484,19 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   );
 
   const handleTransactionPress = useCallback((tx: Transaction) => {
-    router.push({
-      pathname: '/modals/add-transaction',
-      params: { editId: tx.id }
-    });
-  }, []);
+    if (tx.type === 'deposit' && tx.depositId) {
+      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
+      return;
+    }
+    if (tx.type === 'loan' && tx.loanId) {
+      const loan = loansById.get(tx.loanId);
+      if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
+        router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });
+        return;
+      }
+    }
+    router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } });
+  }, [loansById]);
 
   return (
     <View style={{ flex: 1, height: pageHeight }}>
@@ -1464,6 +1505,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: contentBottomPadding ?? getCompactScrollableBottomPadding(accountInsets) }}
         onScroll={verticalScrollHandler}
+        onScrollBeginDrag={onScrollBeginDrag}
         scrollEventThrottle={1}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -1507,7 +1549,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: accountId === 'all' ? 18 : 26 }}
+            style={{ height: accountId === 'all' ? 32 : 26 }}
           />
         </View>
 
@@ -1516,39 +1558,13 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
           {middleContent}
 
-          <View
-            style={{
-              backgroundColor: palette.surface,
-              borderRadius: HOME_RADIUS.card,
-              borderWidth: 1,
-              borderColor: palette.border,
-              paddingTop: HOME_SURFACE.cardPaddingY,
-              paddingBottom: 4,
-              marginBottom: HOME_SPACE.pageBottom,
-              overflow: 'hidden',
-            }}
-          >
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: HOME_SPACE.sm,
-                paddingHorizontal: CARD_PADDING
-              }}
-            >
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
-              <TouchableOpacity delayPressIn={0}
-                onPress={() =>
-                  router.navigate({
-                    pathname: '/(tabs)/activity',
-                    params: {
-                      source: 'home-view-all',
-                      accountId: accountId === 'all' ? 'all' : accountId,
-                      ts: String(Date.now())
-                    }
-                  })
-                }
+          {/* ── Recent transactions — flat in main scroll, no nested scroll ── */}
+          <View style={{ marginBottom: HOME_SPACE.pageBottom }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
+              <TouchableOpacity
+                delayPressIn={0}
+                onPress={() => router.navigate({ pathname: '/(tabs)/activity', params: { source: 'home-view-all', accountId: accountId === 'all' ? 'all' : accountId, ts: String(Date.now()) } })}
                 activeOpacity={0.7}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
               >
@@ -1556,15 +1572,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
               </TouchableOpacity>
             </View>
-            <ScrollView
-              ref={recentScrollRef}
-              style={{ maxHeight: HOME_SURFACE.listMaxHeight }}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: HOME_SURFACE.cardPaddingBottom }}
-            >
+            <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
               {transactions.length === 0 ? (
-                <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
+                <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 20 }}>
                   No transactions yet
                 </Text>
               ) : (
@@ -1572,6 +1582,10 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   const accountName = accountsById.get(transaction.accountId);
                   const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
                   const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
+                  const deposit = transaction.depositId ? depositsById.get(transaction.depositId) : undefined;
+                  const tertiaryText = transaction.tags.length > 0
+                    ? transaction.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined
+                    : undefined;
                   return (
                     <TransactionListItem
                       key={transaction.id}
@@ -1585,13 +1599,16 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                       linkedAccountName={linkedAccountName}
                       loanPersonName={loan?.personName}
                       loanDirection={loan?.direction}
+                      depositName={deposit?.name}
+                      depositBankName={deposit?.bankName ?? undefined}
+                      tertiaryText={tertiaryText}
                       showAmountSign={false}
                       onPress={handleTransactionPress}
                     />
                   );
                 })
               )}
-            </ScrollView>
+            </View>
           </View>
 
 

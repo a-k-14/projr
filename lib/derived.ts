@@ -135,7 +135,14 @@ export function groupTransactionsByDate(
   }
   return Array.from(map.entries())
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([dateKey, items]) => ({ dateKey, items }));
+    .map(([dateKey, items]) => ({
+      dateKey,
+      items: items.slice().sort((a, b) => {
+        const dateDelta = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (dateDelta !== 0) return dateDelta;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }),
+    }));
 }
 
 export function groupTransactionsByCategory(

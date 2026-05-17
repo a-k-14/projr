@@ -136,3 +136,55 @@ export function TextButton({
     </TouchableOpacity>
   );
 }
+
+import { AppIcon } from './AppIcon';
+
+export function ActionChip({
+  icon,
+  label,
+  destructive,
+  palette,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  destructive?: boolean;
+  palette: AppThemePalette;
+  onPress: () => void;
+}) {
+  const color = destructive ? palette.negative : palette.text;
+  return (
+    <TouchableOpacity
+      delayPressIn={0}
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        height: 36,
+        paddingHorizontal: 14,
+        borderRadius: HOME_RADIUS.button,
+        borderWidth: 1,
+        borderColor: destructive
+          ? `${palette.negative}60`
+          : (palette.isDark ? '#2E3547' : '#C0CADB'),
+        backgroundColor: destructive
+          ? 'transparent'
+          : (palette.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'),
+      }}
+    >
+      <AppIcon name={icon} size={15} color={color} strokeWidth={1.9} />
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: '500',
+          color,
+        }}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+

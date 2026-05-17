@@ -11,6 +11,8 @@ import type { AppThemePalette } from '@/lib/theme';
 import type { Category, LoanWithSummary, Transaction } from '@/types';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
+import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { AppDonutChart, type DonutSlice } from './ui/AppDonutChart';
 
 export type HomeChartMode = 'expense' | 'income';
@@ -166,6 +168,7 @@ export function HomeDonutChartBlock({
   loansById,
   getCategoryFullDisplayName,
   onCategorySelect,
+  onTransactionPress,
 }: {
   transactions: Transaction[];
   categoriesById: Map<string, Category>;
@@ -196,7 +199,12 @@ export function HomeDonutChartBlock({
   loansById?: Map<string, LoanWithSummary>;
   getCategoryFullDisplayName?: (categoryId: string, separator?: string) => string;
   onCategorySelect?: (categoryId: string | null) => void;
+  onTransactionPress?: (tx: Transaction) => void;
 }) {
+  const depositsList = useFixedDepositsStore((s) => s.deposits);
+  const depositsById = useMemo(() => new Map(depositsList.map((d) => [d.id, d])), [depositsList]);
+  const tagsList = useCategoriesStore((s) => s.tags);
+  const tagNamesById = useMemo(() => new Map(tagsList.map((t) => [t.id, t.name])), [tagsList]);
   const [internalMode, setInternalMode] = useState<HomeChartMode>(initialMode);
   const [drillParentId, setDrillParentId] = useState<string | null>(null);
   const [selectedSliceId, setSelectedSliceId] = useState<string | null>(null);
@@ -465,8 +473,12 @@ export function HomeDonutChartBlock({
                 linkedAccountName={tx.linkedAccountId ? accountsById?.get(tx.linkedAccountId) : undefined}
                 loanPersonName={tx.loanId ? loansById?.get(tx.loanId)?.personName : undefined}
                 loanDirection={tx.loanId ? loansById?.get(tx.loanId)?.direction : undefined}
+                depositName={tx.depositId ? depositsById.get(tx.depositId)?.name : undefined}
+                depositBankName={tx.depositId ? (depositsById.get(tx.depositId)?.bankName ?? undefined) : undefined}
+                tertiaryText={tx.tags.length > 0 ? tx.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined : undefined}
                 showAmountSign={false}
                 paddingY={14}
+                onPress={onTransactionPress ? () => onTransactionPress(tx) : undefined}
               />
             ))}
             {selectedTransactions.length === 0 ? (

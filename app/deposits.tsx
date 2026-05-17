@@ -49,7 +49,7 @@ function DepositsScreenContent() {
         showBack={true}
         onBack={() => router.replace('/')}
         rightAction={
-          <HeaderAddButton palette={palette} onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'deposit' } })} />
+          <HeaderAddButton palette={palette} onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'deposit', editDepositId: '', closeDepositId: '' } })} />
         }
       />
 

@@ -853,7 +853,7 @@ export default function ActivityScreen() {
 
   const handleTransactionPress = useCallback((transaction: Transaction) => {
     if (transaction.type === 'deposit' && transaction.depositId) {
-      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: transaction.depositId } });
+      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: transaction.depositId, closeDepositId: '' } });
       return;
     }
     if (transaction.type === 'loan' && transaction.loanId) {

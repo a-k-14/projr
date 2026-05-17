@@ -4,17 +4,12 @@ import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FixedBottomActions } from '../../components/settings-ui';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { TransactionListItem } from '../../components/TransactionListItem';
-import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
+import { ActionChip } from '../../components/ui/AppButton';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
@@ -50,6 +45,23 @@ export default function LoanDetailScreen() {
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [filterNonPrincipal, setFilterNonPrincipal] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const panelProgress = useSharedValue(0);
+
+  const toggleActions = () => {
+    const nextShow = !showActions;
+    setShowActions(nextShow);
+    panelProgress.value = withTiming(nextShow ? 1 : 0, { duration: 220 });
+  };
+  const closePanel = () => {
+    setShowActions(false);
+    panelProgress.value = withTiming(0, { duration: 220 });
+  };
+
+  const actionsAnimatedStyle = useAnimatedStyle(() => ({
+    height: panelProgress.value * 56, // 36 height + 20 vertical padding
+    opacity: panelProgress.value,
+  }));
 
   const loan = loans.find((l) => l.id === id);
 
@@ -137,13 +149,23 @@ export default function LoanDetailScreen() {
                 palette={palette}
                 titleSize={25}
                 rightAction={
-                  <HeaderEditButton
-                    palette={palette}
-                    onPress={() => {
-                      if (!originTx) return;
-                      router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
-                    }}
-                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <HeaderEditButton
+                      palette={palette}
+                      onPress={() => {
+                        if (!originTx) return;
+                        router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
+                      }}
+                    />
+                    <TouchableOpacity
+                      delayPressIn={0}
+                      activeOpacity={0.75}
+                      onPress={toggleActions}
+                      style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <AppIcon name={showActions ? 'x' : 'more-vertical'} size={18} color={palette.text} strokeWidth={2} />
+                    </TouchableOpacity>
+                  </View>
                 }
               />
             </View>
@@ -152,9 +174,28 @@ export default function LoanDetailScreen() {
       />
 
       <View style={{ flex: 1 }}>
+        <Animated.View style={[actionsAnimatedStyle, { backgroundColor: palette.isDark ? palette.surface : '#EAEDF4', overflow: 'hidden' }]}>
+          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: SCREEN_GUTTER, paddingVertical: 10 }}>
+            {loan.pendingAmount > 0 && (
+              <ActionChip
+                icon={isLent ? 'arrow-down-left' : 'arrow-up-right'}
+                label={isLent ? 'Record Receipt' : 'Record Payment'}
+                palette={palette}
+                onPress={() => { closePanel(); router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } }); }}
+              />
+            )}
+            <ActionChip
+              icon="plus"
+              label="Add More"
+              palette={palette}
+              onPress={() => { closePanel(); router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } }); }}
+            />
+          </View>
+        </Animated.View>
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, loan.status === 'open' ? 128 : 24) }}
+          onScrollBeginDrag={closePanel}
+          contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 24) }}
         >
           <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             {/* Loan details */}
@@ -163,6 +204,7 @@ export default function LoanDetailScreen() {
                 backgroundColor: palette.surface,
                 borderRadius: HOME_RADIUS.card,
                 padding: HOME_SPACE.xl,
+                marginTop: 12,
                 marginBottom: HOME_SPACE.md
               }}
             >
@@ -427,6 +469,8 @@ export default function LoanDetailScreen() {
                           showAmountSign={false}
                           loanPersonName={loan.personName}
                           loanDirection={loan.direction}
+                          categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined}
+                          categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
                           tertiaryText={
                             tx.tags.length > 0
                               ? tx.tags
@@ -454,28 +498,6 @@ export default function LoanDetailScreen() {
           </View>
         </ScrollView>
 
-        {loan.status === 'open' && (
-          <FixedBottomActions palette={palette}>
-            {loan.pendingAmount > 0 ? (
-              <FilledButton
-                label={isLent ? 'Record Receipt' : 'Record Payment'}
-                onPress={() =>
-                  router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } })
-                }
-                palette={palette}
-                tone="brand"
-              />
-            ) : null}
-            <TextButton
-              label="Add More"
-              onPress={() =>
-                router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } })
-              }
-              palette={palette}
-              tone="brand"
-            />
-          </FixedBottomActions>
-        )}
       </View>
       <AppConfirmDialog
         visible={showCloseConfirm}
@@ -495,6 +517,8 @@ export default function LoanDetailScreen() {
     </View>
   );
 }
+
+
 
 function describeLoanDetailTransaction(loan: LoanWithSummary, tx: LoanWithSummary['transactions'][number]) {
   const kind = getLoanTransactionKind(tx, loan.direction);

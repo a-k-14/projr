@@ -3,7 +3,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../lib/theme';
@@ -22,7 +22,9 @@ import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { getTotalBalance } from '../../lib/derived';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
-import { FONT_WEIGHT } from '../../lib/design';
+import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { ActionChip } from '../../components/ui/AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { getAccountTypeLabel } from '../../lib/settings-shared';
 import type { PeriodType } from '../../types';
@@ -71,6 +73,23 @@ export default function AccountDetailScreen() {
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const panelProgress = useSharedValue(0);
+
+  const toggleActions = () => {
+    const nextShow = !showActions;
+    setShowActions(nextShow);
+    panelProgress.value = withTiming(nextShow ? 1 : 0, { duration: 220 });
+  };
+  const closePanel = () => {
+    setShowActions(false);
+    panelProgress.value = withTiming(0, { duration: 220 });
+  };
+
+  const actionsAnimatedStyle = useAnimatedStyle(() => ({
+    height: panelProgress.value * 56, // 36 height + 20 vertical padding
+    opacity: panelProgress.value,
+  }));
 
   const handleCustomRangeDone = useCallback(() => {
     const fromDate = customDraftFrom <= customDraftTo ? customDraftFrom : customDraftTo;
@@ -129,11 +148,35 @@ export default function AccountDetailScreen() {
                 onBack={() => router.back()}
                 palette={palette}
                 titleSize={SCREEN_HEADER.detailTitleSize}
+                rightAction={
+                  <TouchableOpacity
+                    delayPressIn={0}
+                    activeOpacity={0.75}
+                    onPress={toggleActions}
+                    style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <AppIcon name={showActions ? 'x' : 'more-vertical'} size={18} color={palette.text} strokeWidth={2} />
+                  </TouchableOpacity>
+                }
               />
             </View>
           )
         }}
       />
+
+      <Animated.View style={[actionsAnimatedStyle, { backgroundColor: palette.isDark ? palette.surface : '#EAEDF4', overflow: 'hidden' }]}>
+        <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: SCREEN_GUTTER, paddingVertical: 10 }}>
+          <ActionChip
+            icon="edit"
+            label="Edit Account"
+            palette={palette}
+            onPress={() => {
+              closePanel();
+              router.push({ pathname: '/settings/account-form', params: { id: account.id } });
+            }}
+          />
+        </View>
+      </Animated.View>
 
       <HomeAccountPage
         pageHeight={1000}
@@ -165,6 +208,7 @@ export default function AccountDetailScreen() {
         loansLoaded={loansLoaded}
         loadLoans={loadLoans}
         contentBottomPadding={getScrollableBottomPadding(insets)}
+        onScrollBeginDrag={closePanel}
       />
 
       <Modal

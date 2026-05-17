@@ -4,7 +4,7 @@ import Animated, {
   interpolateColor, 
   useAnimatedStyle, 
   useSharedValue, 
-  withTiming 
+  withSpring 
 } from 'react-native-reanimated';
 import { AppThemePalette } from '../../lib/theme';
 
@@ -17,6 +17,12 @@ interface AppSwitchProps {
   height?: number;
   thumbSize?: number;
   padding?: number;
+  activeTrackColor?: string;
+  inactiveTrackColor?: string;
+  activeBorderColor?: string;
+  inactiveBorderColor?: string;
+  activeThumbColor?: string;
+  inactiveThumbColor?: string;
 }
 
 export function AppSwitch({
@@ -28,6 +34,12 @@ export function AppSwitch({
   height = 26,
   thumbSize = 20,
   padding = 3,
+  activeTrackColor,
+  inactiveTrackColor,
+  activeBorderColor,
+  inactiveBorderColor,
+  activeThumbColor,
+  inactiveThumbColor,
 }: AppSwitchProps) {
   const trackWidth = width;
   const trackHeight = height;
@@ -35,23 +47,40 @@ export function AppSwitch({
   const translateX = useSharedValue(value ? trackWidth - thumbSize - padding : padding);
 
   React.useEffect(() => {
-    translateX.value = withTiming(value ? trackWidth - thumbSize - padding : padding, {
-      duration: 150,
+    translateX.value = withSpring(value ? trackWidth - thumbSize - padding : padding, {
+      damping: 22,
+      stiffness: 300,
+      mass: 0.6,
     });
-  }, [value, translateX]);
+  }, [value, translateX, trackWidth, thumbSize, padding]);
 
   const animatedTrackStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       translateX.value,
       [padding, trackWidth - thumbSize - padding],
-      [palette.divider, palette.brand]
+      [inactiveTrackColor ?? palette.divider, activeTrackColor ?? palette.brand]
     );
-    return { backgroundColor };
+    const borderColor = interpolateColor(
+      translateX.value,
+      [padding, trackWidth - thumbSize - padding],
+      [inactiveBorderColor ?? 'transparent', activeBorderColor ?? 'transparent']
+    );
+    return { 
+      backgroundColor,
+      borderColor,
+      borderWidth: (inactiveBorderColor || activeBorderColor) ? 1 : 0
+    };
   });
 
   const animatedThumbStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(
+      translateX.value,
+      [padding, trackWidth - thumbSize - padding],
+      [inactiveThumbColor ?? palette.textSoft, activeThumbColor ?? '#FFFFFF']
+    );
     return {
       transform: [{ translateX: translateX.value }],
+      backgroundColor,
     };
   });
 
@@ -70,12 +99,11 @@ export function AppSwitch({
               width: thumbSize, 
               height: thumbSize, 
               borderRadius: thumbSize / 2, 
-              backgroundColor: palette.surface,
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.15,
-              shadowRadius: 2.5,
-              elevation: 3
+              shadowOffset: { width: 0, height: 1.5 },
+              shadowOpacity: 0.12,
+              shadowRadius: 2.0,
+              elevation: 2
             }
           ]} 
         />

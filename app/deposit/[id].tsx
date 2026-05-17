@@ -5,10 +5,9 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FixedBottomActions } from '../../components/settings-ui';
-import { FilledButton } from '../../components/ui/AppButton';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
-import { BottomSheet } from '../../components/ui/BottomSheet';
+import { ActionChip } from '../../components/ui/AppButton';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
 import { StatusPill } from '../../components/ui/StatusPill';
@@ -35,6 +34,7 @@ export default function DepositDetailScreen() {
   const { palette } = useAppTheme();
   const deposits = useFixedDepositsStore((s) => s.deposits);
   const isLoaded = useFixedDepositsStore((s) => s.isLoaded);
+  const loadDeposits = useFixedDepositsStore((s) => s.load);
   const reopenDeposit = useFixedDepositsStore((s) => s.reopen);
   const removeDeposit = useFixedDepositsStore((s) => s.remove);
   const accounts = useAccountsStore((s) => s.accounts);
@@ -51,7 +51,29 @@ export default function DepositDetailScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
-  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const panelProgress = useSharedValue(0);
+
+  const toggleActions = () => {
+    const nextShow = !showActions;
+    setShowActions(nextShow);
+    panelProgress.value = withTiming(nextShow ? 1 : 0, { duration: 220 });
+  };
+  const closePanel = () => {
+    setShowActions(false);
+    panelProgress.value = withTiming(0, { duration: 220 });
+  };
+
+  const actionsAnimatedStyle = useAnimatedStyle(() => ({
+    height: panelProgress.value * 56, // 36 height + 20 vertical padding
+    opacity: panelProgress.value,
+  }));
+
+  useEffect(() => {
+    if (!isLoaded) {
+      loadDeposits().catch(() => undefined);
+    }
+  }, [isLoaded, loadDeposits]);
 
   useEffect(() => {
     if (isLoaded && !deposit) {
@@ -78,20 +100,13 @@ export default function DepositDetailScreen() {
   const handleReopen = () => reopenDeposit(deposit.id);
 
   const today = toLocalDateKey(new Date().toISOString());
-  const isReadyToClose =
-    deposit.status === 'active' &&
-    !!deposit.maturityDate &&
-    deposit.maturityDate <= today;
-  const showBottomClose = deposit.status === 'active' && isReadyToClose;
-  const showBottomReopen = deposit.status === 'closed';
-  const hasBottomAction = showBottomClose || showBottomReopen;
 
   const handleDelete = async () => {
     await removeDeposit(deposit.id);
     router.back();
   };
-  const openEdit = () => router.push({ pathname: '/modals/add-transaction', params: { editDepositId: deposit.id } });
-  const openClose = () => router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: deposit.id } });
+  const openEdit = () => router.push({ pathname: '/modals/add-transaction', params: { editDepositId: deposit.id, closeDepositId: '' } });
+  const openClose = () => router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: deposit.id, editDepositId: '' } });
 
   return (
     <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
@@ -106,27 +121,31 @@ export default function DepositDetailScreen() {
             <HeaderEditButton palette={palette} onPress={openEdit} />
             <TouchableOpacity
               delayPressIn={0}
-              activeOpacity={0.78}
-              onPress={() => setShowActionSheet(true)}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: HOME_RADIUS.full,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: palette.surface,
-                borderWidth: 1,
-                borderColor: palette.divider,
-              }}
+              activeOpacity={0.75}
+              onPress={toggleActions}
+              style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center' }}
             >
-              <AppIcon name="more-vertical" size={18} color={palette.text} strokeWidth={2} />
+              <AppIcon name={showActions ? 'x' : 'more-vertical'} size={18} color={palette.text} strokeWidth={2} />
             </TouchableOpacity>
           </View>
         }
       />
 
+      <Animated.View style={[actionsAnimatedStyle, { backgroundColor: palette.isDark ? palette.surface : '#EAEDF4', overflow: 'hidden' }]}>
+        <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: SCREEN_GUTTER, paddingVertical: 10 }}>
+          {deposit.status === 'active' && (
+            <ActionChip icon="check-circle" label="Close deposit" palette={palette} onPress={() => { closePanel(); setShowCloseConfirm(true); }} />
+          )}
+          {deposit.status === 'closed' && (
+            <ActionChip icon="rotate-ccw" label="Reopen" palette={palette} onPress={() => { closePanel(); setShowReopenConfirm(true); }} />
+          )}
+          <ActionChip icon="trash-2" label="Delete" destructive palette={palette} onPress={() => { closePanel(); setShowDeleteConfirm(true); }} />
+        </View>
+      </Animated.View>
+
       <ScrollView
-        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) + (hasBottomAction ? 96 : 18) }}
+        onScrollBeginDrag={closePanel}
+        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) + 16 }}
         showsVerticalScrollIndicator={false}
       >
         <View
@@ -230,27 +249,6 @@ export default function DepositDetailScreen() {
         </View>
       </ScrollView>
 
-      {hasBottomAction ? (
-        <FixedBottomActions palette={palette}>
-          {showBottomClose ? (
-            <FilledButton
-              label="Close deposit"
-              onPress={() => setShowCloseConfirm(true)}
-              palette={palette}
-              tone="brand"
-            />
-          ) : null}
-          {showBottomReopen ? (
-            <FilledButton
-              label="Reopen"
-              onPress={() => setShowReopenConfirm(true)}
-              palette={palette}
-              tone="brand"
-            />
-          ) : null}
-        </FixedBottomActions>
-      ) : null}
-
       <AppConfirmDialog
         visible={showDeleteConfirm}
         title="Delete deposit?"
@@ -298,101 +296,11 @@ export default function DepositDetailScreen() {
         palette={palette}
       />
 
-      {showActionSheet ? (
-        <BottomSheet
-          title="Deposit actions"
-          palette={palette}
-          onClose={() => setShowActionSheet(false)}
-          horizontalPadding={SCREEN_GUTTER}
-          extraBottomPadding={28}
-          backgroundColor={palette.card}
-          scrollEnabled={false}
-        >
-          <View style={{ gap: 10, marginHorizontal: SCREEN_GUTTER, paddingBottom: 8 }}>
-            {deposit.status === 'active' && !showBottomClose ? (
-              <ActionSheetButton
-                icon="check-circle"
-                label="Close deposit"
-                palette={palette}
-                onPress={() => {
-                  setShowActionSheet(false);
-                  setShowCloseConfirm(true);
-                }}
-              />
-            ) : null}
-            <ActionSheetButton
-              icon="trash-2"
-              label="Delete deposit"
-              destructive
-              palette={palette}
-              onPress={() => {
-                setShowActionSheet(false);
-                setShowDeleteConfirm(true);
-              }}
-            />
-          </View>
-        </BottomSheet>
-      ) : null}
     </ScreenScaffold>
   );
 }
 
-function ActionSheetButton({
-  icon,
-  label,
-  destructive,
-  palette,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  destructive?: boolean;
-  palette: AppThemePalette;
-  onPress: () => void;
-}) {
-  const color = destructive ? palette.negative : palette.text;
-  return (
-    <TouchableOpacity
-      delayPressIn={0}
-      activeOpacity={0.78}
-      onPress={onPress}
-      style={{
-        minHeight: 52,
-        borderRadius: HOME_RADIUS.button,
-        borderWidth: 1,
-        borderColor: destructive ? `${palette.negative}30` : palette.divider,
-        backgroundColor: destructive ? palette.outBg : palette.surface,
-        paddingHorizontal: HOME_SPACE.md,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-      }}
-    >
-      <View
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: HOME_RADIUS.full,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: destructive ? `${palette.negative}14` : palette.brandSoft,
-        }}
-      >
-        <AppIcon name={icon} size={15} color={destructive ? palette.negative : palette.brand} strokeWidth={1.9} />
-      </View>
-      <Text
-        style={{
-          flex: 1,
-          fontSize: HOME_TEXT.body,
-          fontWeight: FONT_WEIGHT.semibold,
-          color,
-        }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
+
 
 function HeroMetric({
   label,

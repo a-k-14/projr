@@ -273,7 +273,7 @@ export default function CategoriesScreen() {
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: TYPE.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>
+            <Text style={{ fontSize: TYPE.section, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>
               + Add Category
             </Text>
           </TouchableOpacity>

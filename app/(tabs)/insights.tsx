@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, RefreshControl, Modal, Pressable, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
@@ -21,6 +22,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate } from '../../lib/dateUtils';
+import { getLoanTransactionKind } from '../../lib/derived';
 import { TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING } from '../../lib/layoutTokens';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
@@ -81,6 +83,21 @@ export default function InsightsScreen() {
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
+
+  const handleTransactionPress = useCallback((tx: Transaction) => {
+    if (tx.type === 'deposit' && tx.depositId) {
+      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
+      return;
+    }
+    if (tx.type === 'loan' && tx.loanId) {
+      const loan = loansById.get(tx.loanId);
+      if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
+        router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });
+        return;
+      }
+    }
+    router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } });
+  }, [loansById]);
 
   const chartTheme = useMemo(() => ({
     brand: palette.brand,
@@ -253,6 +270,7 @@ export default function InsightsScreen() {
             resetTrigger={`${period}:${dateRange.from}:${dateRange.to}:${chartResetNonce}`}
             accountsById={accountsById}
             loansById={loansById}
+            onTransactionPress={handleTransactionPress}
             onExpand={(mode) => {
               setExpandedChartState({ transactions: periodTransactions, mode, resetTrigger: Date.now() });
             }}
@@ -333,6 +351,7 @@ export default function InsightsScreen() {
                 resetTrigger={expandedChartState.resetTrigger}
                 accountsById={accountsById}
                 loansById={loansById}
+                onTransactionPress={handleTransactionPress}
               />
             </View>
           </View>
