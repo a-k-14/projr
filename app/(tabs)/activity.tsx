@@ -5,8 +5,10 @@ import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   ActivityIndicator,
   BackHandler,
+  Easing,
   InteractionManager,
   LayoutAnimation,
   LayoutChangeEvent,
@@ -193,6 +195,8 @@ export default function ActivityScreen() {
   const [chipScrollResetToken, setChipScrollResetToken] = useState(0);
   const [topBarHeight, setTopBarHeight] = useState(0);
   const [activityHeaderHeight, setActivityHeaderHeight] = useState(0);
+  const resetBtnPresence = useRef(new Animated.Value(0)).current;
+  const resetBtnSpin = useRef(new Animated.Value(0)).current;
   const [stickyDateLabel, setStickyDateLabel] = useState<{ key: string; title: string; subtitle?: string } | null>(null);
   const [showStickyDateLabel, setShowStickyDateLabel] = useState(false);
 
@@ -402,6 +406,40 @@ export default function ActivityScreen() {
     setHasActiveFilters(!isDefaultView);
     return () => setHasActiveFilters(false);
   }, [isDefaultView, setHasActiveFilters]);
+
+  useEffect(() => {
+    if (isDefaultView) {
+      Animated.parallel([
+        Animated.timing(resetBtnPresence, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(resetBtnSpin, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.spring(resetBtnPresence, {
+          toValue: 1,
+          damping: 12,
+          stiffness: 260,
+          useNativeDriver: true,
+        }),
+        Animated.timing(resetBtnSpin, {
+          toValue: 1,
+          duration: 460,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isDefaultView, resetBtnPresence, resetBtnSpin]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -1350,6 +1388,20 @@ export default function ActivityScreen() {
             <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
               Activity
             </Text>
+
+            <Animated.View style={{
+              alignSelf: 'center',
+              opacity: resetBtnPresence,
+              transform: [
+                { scale: resetBtnPresence.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) },
+                { rotate: resetBtnSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
+              ],
+              pointerEvents: isDefaultView ? 'none' : 'auto',
+            }}>
+              <TouchableOpacity delayPressIn={0} activeOpacity={0.5} onPress={() => resetAllFilters(true)}>
+                <AppIcon name="rotate-ccw" size={17} color={palette.brand} strokeWidth={2.4} />
+              </TouchableOpacity>
+            </Animated.View>
 
             <View style={{ flex: 1 }} />
 

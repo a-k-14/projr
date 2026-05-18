@@ -10,6 +10,7 @@ interface ScreenHeaderProps {
   title: string;
   palette: AppThemePalette;
   rightAction?: ReactNode;
+  titleAddon?: ReactNode;
   onBack?: () => void;
   showBack?: boolean;
   height?: number;
@@ -97,6 +98,7 @@ export function ScreenHeader({
   title,
   palette,
   rightAction,
+  titleAddon,
   onBack,
   showBack = true,
   height = 54,
@@ -135,19 +137,21 @@ export function ScreenHeader({
         </TouchableOpacity>
       )}
 
-      <Text
-        style={{
-          flex: 1,
-          fontSize: titleSize,
-          fontWeight: titleWeight as any,
-          color: resolvedTitle,
-          letterSpacing: -0.5,
-          marginLeft: showBack ? 0 : 4,
-        }}
-        numberOfLines={1}
-      >
-        {title}
-      </Text>
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: showBack ? 0 : 4 }}>
+        <Text
+          style={{
+            flexShrink: 1,
+            fontSize: titleSize,
+            fontWeight: titleWeight as any,
+            color: resolvedTitle,
+            letterSpacing: -0.5,
+          }}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+        {titleAddon}
+      </View>
 
       {rightAction && (
         <View style={{ marginLeft: 10 }}>

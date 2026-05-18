@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
-import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
 
 const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
   index: { icon: 'house', label: 'Home' },
@@ -43,7 +42,6 @@ function AppTabBar({
   palette: AppThemePalette;
 }) {
   const { width } = useWindowDimensions();
-  const activityHasFilters = useActivityFiltersStore((s) => s.hasActiveFilters);
   const tabHeight = 64;
   const routes = VISIBLE_TAB_NAMES
     .map((name) => state.routes.find((route: any) => route.name === name))
@@ -163,8 +161,6 @@ function AppTabBar({
 
           const focused = activeRouteName === route.name;
           const item = TAB_ITEMS[route.name] ?? TAB_ITEMS.index;
-          const showFilterDot = route.name === 'activity' && activityHasFilters && focused;
-
           const onPress = () => {
             const leavingRouteName = state.routes[state.index]?.name;
             const event = navigation.emit({
@@ -205,24 +201,12 @@ function AppTabBar({
                 paddingTop: 21,
               }}
             >
-              <View style={{ position: 'relative' }}>
-                <AppIcon
-                  name={item.icon as any}
-                  size={21}
-                  color={focused ? palette.brand : palette.textSecondary}
-                  strokeWidth={focused ? 2 : 1.75}
-                />
-                <View style={{
-                  position: 'absolute',
-                  top: -1,
-                  right: -3,
-                  width: 5,
-                  height: 5,
-                  borderRadius: 2.5,
-                  backgroundColor: palette.brand,
-                  opacity: showFilterDot ? 1 : 0,
-                }} />
-              </View>
+              <AppIcon
+                name={item.icon as any}
+                size={21}
+                color={focused ? palette.brand : palette.textSecondary}
+                strokeWidth={focused ? 2 : 1.75}
+              />
             </TouchableOpacity>
           );
         })}

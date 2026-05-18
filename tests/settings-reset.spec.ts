@@ -48,6 +48,9 @@ beforeEach(() => {
     DROP TABLE IF EXISTS categories;
     DROP TABLE IF EXISTS accounts;
     DROP TABLE IF EXISTS settings;
+    DROP TABLE IF EXISTS deposits;
+    DROP TABLE IF EXISTS assets;
+    DROP TABLE IF EXISTS persons;
 
     CREATE TABLE accounts (
       id TEXT PRIMARY KEY,
@@ -110,6 +113,8 @@ beforeEach(() => {
       linked_account_id TEXT,
       loan_id TEXT,
       loan_transaction_type TEXT,
+      deposit_id TEXT,
+      deposit_transaction_type TEXT,
       category_id TEXT,
       tags TEXT NOT NULL DEFAULT '[]',
       payee TEXT,
@@ -123,6 +128,29 @@ beforeEach(() => {
     CREATE TABLE settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
+    );
+
+    CREATE TABLE deposits (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+      principal_amount REAL NOT NULL,
+      start_date TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE assets (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      value REAL NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE persons (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL
     );
 
     INSERT INTO accounts (id, name, type, balance, created_at) VALUES ('acc1', 'Savings', 'savings', 1000, '2026-04-20T00:00:00.000Z');
@@ -140,7 +168,7 @@ describe('local reset', () => {
   it('clears local data and suppresses starter data reseeding', async () => {
     await clearLocalData();
 
-    for (const table of ['transactions', 'loans', 'budget', 'tags', 'categories', 'accounts']) {
+    for (const table of ['transactions', 'loans', 'budget', 'tags', 'categories', 'accounts', 'deposits', 'assets', 'persons']) {
       const row = sqlite.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as { count: number };
       expect(row.count).toBe(0);
     }
