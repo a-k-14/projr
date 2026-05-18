@@ -72,10 +72,8 @@ export default function RootLayout() {
   }, [init]);
 
   useEffect(() => {
-    const navBarColor = palette.isDark ? palette.surface : palette.background;
-    NavigationBar.setBackgroundColorAsync(navBarColor).catch(() => undefined);
     NavigationBar.setButtonStyleAsync(palette.navigationButtonStyle).catch(() => undefined);
-  }, [palette.isDark, palette.surface, palette.background, palette.navigationButtonStyle]);
+  }, [palette.navigationButtonStyle]);
 
   const settings = useUIStore((s) => s.settings);
   const updateSettings = useUIStore((s) => s.updateSettings);

@@ -1,7 +1,7 @@
 import { AppIcon, IconName } from '@/components/ui/AppIcon';
 import { router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
-import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
@@ -10,9 +10,9 @@ import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
 
 const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
-  index: { icon: 'layout-panel-left', label: 'Home' },
+  index: { icon: 'house', label: 'Home' },
   activity: { icon: 'activity', label: 'Activity' },
-  insights: { icon: 'bar-chart-2', label: 'Insights' },
+  insights: { icon: 'chart-column-increasing', label: 'Insights' },
   settings: { icon: 'settings', label: 'Settings' },
 };
 
@@ -65,19 +65,23 @@ function AppTabBar({
     transform: [{ translateX: pillX.value }],
   }));
 
+  const navBarBg = palette.isDark ? '#080C14' : '#ECEFF6';
+
   return (
     <View
       style={{
         height: tabHeight + insetsBottom,
         paddingBottom: insetsBottom,
-        backgroundColor: palette.isDark ? palette.surface : palette.background,
-        borderTopWidth: 1,
-        borderTopColor: palette.border,
+        backgroundColor: navBarBg,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderTopWidth: 0,
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: palette.isDark ? 0.12 : 0.04,
-        shadowRadius: 6,
-        elevation: 6,
+        shadowOffset: { width: 0, height: -12 },
+        shadowOpacity: palette.isDark ? 0.38 : 0.18,
+        shadowRadius: 20,
+        elevation: 24,
+        overflow: 'visible',
       }}
     >
       <View style={{ height: tabHeight, flexDirection: 'row', position: 'relative' }}>
@@ -116,27 +120,29 @@ function AppTabBar({
               >
                 <View
                   style={{
-                    width: 54,
-                    height: 44,
-                    borderRadius: HOME_RADIUS.button,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: palette.isDark ? palette.surfaceRaised : palette.text,
-                    borderWidth: 1,
-                    borderColor: palette.isDark ? palette.borderSoft : '#24345A',
-                    shadowColor: '#000000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: palette.isDark ? 0.20 : 0.14,
-                    shadowRadius: 8,
-                    elevation: 5,
+                    paddingHorizontal: 4,
+                    borderRadius: HOME_RADIUS.button + 3,
+                    backgroundColor: navBarBg,
                   }}
                 >
-                  <AppIcon
-                    name="plus"
-                    size={22}
-                    color={palette.isDark ? palette.listText : palette.surface}
-                    strokeWidth={1.8}
-                  />
+                  <View
+                    style={{
+                      width: 54,
+                      height: 44,
+                      borderRadius: HOME_RADIUS.button,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: palette.isDark ? palette.surfaceRaised : palette.text,
+                      elevation: 6,
+                    }}
+                  >
+                    <AppIcon
+                      name="plus"
+                      size={22}
+                      color={palette.isDark ? palette.listText : palette.surface}
+                      strokeWidth={1.8}
+                    />
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -233,6 +239,12 @@ export default function TabLayout() {
         freezeOnBlur: true,
         sceneStyle: {
           backgroundColor: palette.background,
+        },
+        tabBarStyle: {
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
+          overflow: 'visible',
         },
       }}
     >
