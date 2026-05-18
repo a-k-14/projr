@@ -829,7 +829,7 @@ function AccountSummaryCard({
                 {currencySymbol && (
                   <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: heroMutedText, marginRight: 3 }}>{currencySymbol}</Text>
                 )}
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 24, fontWeight: FONT_WEIGHT.medium, color: heroText }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.heroCardValue, fontWeight: FONT_WEIGHT.medium, color: heroText }}>
                   {balanceInt.startsWith(currencySymbol || '') ? balanceInt.slice((currencySymbol || '').length) : balanceInt}
                 </Text>
                 {balanceDec && (

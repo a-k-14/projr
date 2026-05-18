@@ -389,6 +389,7 @@ export default function LoansScreen() {
                 borrowed={summary.youOwe}
                 net={summary.net}
                 netPositive={netPositive}
+                openCount={loans.filter(l => l.status === 'open').length}
                 sym={sym}
                 palette={palette}
               />
@@ -606,17 +607,19 @@ function LoanSummaryCard({
   borrowed,
   net,
   netPositive,
+  openCount,
   sym,
   palette }: {
     lent: number;
     borrowed: number;
     net: number;
     netPositive: boolean;
+    openCount: number;
     sym: string;
     palette: AppThemePalette;
   }) {
   const isZero = borrowed === 0 && lent === 0;
-  const badgeLabel = isZero ? 'No Loans' : netPositive ? 'Net Lent' : 'Net Owed';
+  const badgeLabel = '';
   const footerLabel = isZero ? 'Net' : netPositive ? 'Net Lent' : 'Net Owed';
 
   return (

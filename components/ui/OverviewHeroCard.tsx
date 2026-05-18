@@ -1,3 +1,4 @@
+import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
@@ -67,35 +68,67 @@ export function OverviewHeroCard({
 
   return (
     <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.divider }]}>
-      <View style={styles.header}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', position: 'relative' }}>
         {icon ? (
           <View style={[styles.iconContainer, { backgroundColor: iconBg }]}>
             <AppIcon name={icon as any} size={20} color={iconColor} strokeWidth={1.9} />
           </View>
         ) : null}
-        <View style={styles.headerCopy}>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>
-            {eyebrow}
-          </Text>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: HOME_SPACE.xs }}>
-            {title}
-          </Text>
-        </View>
-        <View style={[styles.pill, { backgroundColor: badgeBg, borderColor: badgeBorder ?? badgeBg }]}>
-          <Text numberOfLines={1} appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: badgeColor }}>
-            {badgeLabel}
-          </Text>
-        </View>
-      </View>
+        
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+          {metrics.map((metric, index) => {
+            const val = metric.value;
+            const dotIdx = val.lastIndexOf('.');
+            const hasDot = dotIdx !== -1;
+            const intPart = hasDot ? val.slice(0, dotIdx) : val;
+            const decPart = hasDot ? val.slice(dotIdx) : '';
+            
+            // Extract currency symbol if present to render it smaller and match AccountSummaryCard
+            let symbol = '';
+            let mainVal = intPart;
+            const isNegative = intPart.startsWith('-');
+            const temp = isNegative ? intPart.slice(1) : intPart;
+            if (temp.length > 0 && !/[\d]/.test(temp[0])) {
+              const numericIdx = temp.search(/[\d]/);
+              if (numericIdx !== -1) {
+                symbol = temp.slice(0, numericIdx).trim();
+                mainVal = (isNegative ? '-' : '') + temp.slice(numericIdx);
+              }
+            }
 
-      <View style={styles.metrics}>
-        {metrics.map((metric, index) => (
-          <View key={metric.key} style={[styles.metricBlock, index > 0 ? { marginLeft: HOME_SPACE.md } : null]}>
-            {index > 0 ? <View style={[styles.metricDivider, { backgroundColor: palette.divider }]} /> : null}
-            <Text appWeight="medium" style={styles.metricLabel(palette)}>{metric.label}</Text>
-            <Text appWeight="medium" style={styles.metricValue(metric.valueColor ?? palette.text)}>{metric.value}</Text>
+            return (
+              <React.Fragment key={metric.key}>
+                {index > 0 && <View style={[styles.metricDivider, { backgroundColor: palette.divider }]} />}
+                <View style={{ flex: 1, paddingRight: index === metrics.length - 1 ? (badgeLabel ? 48 : 0) : 0 }}>
+                  <Text style={styles.metricLabel(palette)}>{metric.label}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                    {symbol ? (
+                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginRight: 3 }}>
+                        {symbol}
+                      </Text>
+                    ) : null}
+                    <Text adjustsFontSizeToFit numberOfLines={1} style={styles.metricValueInt(metric.valueColor ?? palette.text)}>
+                      {mainVal}
+                    </Text>
+                    {decPart ? (
+                      <Text style={styles.metricValueDec(palette.textMuted)}>
+                        {decPart}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              </React.Fragment>
+            );
+          })}
+        </View>
+
+        {badgeLabel ? (
+          <View style={[styles.pill, { backgroundColor: badgeBg, borderColor: badgeBorder ?? badgeBg }]}>
+            <Text numberOfLines={1} appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: badgeColor }}>
+              {badgeLabel}
+            </Text>
           </View>
-        ))}
+        ) : null}
       </View>
 
       {showProgress ? (
@@ -118,21 +151,23 @@ export function OverviewHeroCard({
         </View>
       ) : null}
 
-      <View style={[styles.footerBlock, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
-        <View style={styles.footer}>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
-            {footerLabel}
-          </Text>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: footerValueColor }}>
-            {footerValue}
-          </Text>
+      {(footerLabel || footerValue) ? (
+        <View style={[styles.footerBlock, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
+          <View style={styles.footer}>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
+              {footerLabel}
+            </Text>
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: footerValueColor }}>
+              {footerValue}
+            </Text>
+          </View>
+          {footerNote ? (
+            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: footerNoteColor ?? palette.textSecondary, marginTop: 5 }}>
+              {footerNote}
+            </Text>
+          ) : null}
         </View>
-        {footerNote ? (
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: footerNoteColor ?? palette.textSecondary, marginTop: 5 }}>
-            {footerNote}
-          </Text>
-        ) : null}
-      </View>
+      ) : null}
     </View>
   );
 }
@@ -140,19 +175,15 @@ export function OverviewHeroCard({
 const styles = {
   card: {
     borderRadius: HOME_RADIUS.card,
-    padding: CARD_PADDING,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
     borderWidth: 1,
     elevation: 6,
     shadowColor: '#94A3B8',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.13,
     shadowRadius: 10,
-  },
-  header: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'flex-start' as const,
-    gap: HOME_SPACE.md,
   },
   iconContainer: {
     width: 42,
@@ -161,50 +192,43 @@ const styles = {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     flexShrink: 0,
-  },
-  headerCopy: {
-    flex: 1,
-    minWidth: 0,
+    marginRight: 14,
   },
   pill: {
-    minHeight: 30,
+    minHeight: 26,
     borderRadius: HOME_RADIUS.full,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     flexShrink: 1,
     maxWidth: 132,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-  },
-  metrics: {
-    flexDirection: 'row' as const,
-    alignItems: 'stretch' as const,
-    marginTop: HOME_SPACE.lg,
-  },
-  metricBlock: {
-    flex: 1,
-    minWidth: 0,
+    position: 'absolute' as const,
+    top: 0,
+    right: 0,
   },
   metricDivider: {
-    position: 'absolute' as const,
-    left: -HOME_SPACE.md / 2,
-    top: 0,
-    bottom: 0,
     width: 1,
+    height: 34,
+    marginHorizontal: 14,
   },
   metricLabel: (palette: AppThemePalette) => ({
-    fontSize: HOME_TEXT.tiny,
+    fontSize: HOME_TEXT.metaSmall,
     color: palette.textMuted,
-    fontWeight: FONT_WEIGHT.bold,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
+    fontWeight: FONT_WEIGHT.semibold,
+    marginBottom: 4,
   }),
-  metricValue: (color: string) => ({
-    fontSize: HOME_TEXT.heroValue,
-    lineHeight: 30,
-    fontWeight: FONT_WEIGHT.heavy,
+  metricValueInt: (color: string) => ({
+    fontSize: HOME_TEXT.heroCardValue,
+    fontWeight: FONT_WEIGHT.medium,
+    letterSpacing: -0.5,
     color,
-    marginTop: HOME_SPACE.xs + 2,
+  }),
+  metricValueDec: (color: string) => ({
+    fontSize: HOME_TEXT.rowLabel,
+    fontWeight: FONT_WEIGHT.medium,
+    letterSpacing: -0.2,
+    color,
   }),
   progressRow: {
     flexDirection: 'row' as const,

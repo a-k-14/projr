@@ -26,6 +26,7 @@ export const HOME_TEXT = {
   subhead: 18,
   heroLabel: 16,
   heroValue: 22,
+  heroCardValue: 24,
   rowLabel: 16,
   sectionTitle: 15,
   bodyLarge: 14.5,

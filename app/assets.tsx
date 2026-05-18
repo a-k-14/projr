@@ -82,15 +82,48 @@ export default function AssetsScreen() {
               <AppIcon name="gem" size={20} color={ASSET_TONE} strokeWidth={1.9} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginBottom: 6 }}>
+              <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, marginBottom: 4 }}>
                 Total Asset Value
               </Text>
-              <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, letterSpacing: -0.5 }}>
-                {formatCurrency(totalValue, displaySymbol)}
-              </Text>
+              {(() => {
+                const val = formatCurrency(totalValue, displaySymbol);
+                const dotIdx = val.lastIndexOf('.');
+                const hasDot = dotIdx !== -1;
+                const intPart = hasDot ? val.slice(0, dotIdx) : val;
+                const decPart = hasDot ? val.slice(dotIdx) : '';
+                
+                let symbol = '';
+                let mainVal = intPart;
+                const isNegative = intPart.startsWith('-');
+                const temp = isNegative ? intPart.slice(1) : intPart;
+                if (temp.length > 0 && !/[\d]/.test(temp[0])) {
+                  const numericIdx = temp.search(/[\d]/);
+                  if (numericIdx !== -1) {
+                    symbol = temp.slice(0, numericIdx).trim();
+                    mainVal = (isNegative ? '-' : '') + temp.slice(numericIdx);
+                  }
+                }
+
+                return (
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                    {symbol ? (
+                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginRight: 3 }}>
+                        {symbol}
+                      </Text>
+                    ) : null}
+                    <Text adjustsFontSizeToFit numberOfLines={1} style={{ fontSize: HOME_TEXT.heroCardValue, fontWeight: FONT_WEIGHT.medium, color: palette.text, letterSpacing: -0.5 }}>
+                      {mainVal}
+                    </Text>
+                    {decPart ? (
+                      <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, letterSpacing: -0.2 }}>
+                        {decPart}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              })()}
             </View>
           </View>
-
         </View>
 
         {assets.length === 0 ? (
