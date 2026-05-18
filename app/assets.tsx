@@ -1,6 +1,5 @@
 import { Text } from '@/components/ui/AppText';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { ScreenHeroCard } from '../components/ui/ScreenHeroCard';
 import { router } from 'expo-router';
 import { ScrollView, View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,16 +54,44 @@ export default function AssetsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <ScreenHeroCard
-          palette={palette}
-          accentColor={ASSET_TONE}
-          icon="gem"
-          screenLabel="Assets"
-          badge={assets.length > 0 ? { label: `${assets.length} ${assets.length === 1 ? 'asset' : 'assets'}` } : undefined}
-          eyebrow="Total Asset Value"
-          primaryValue={formatCurrency(totalValue, displaySymbol)}
-          style={{ marginTop: 12, marginBottom: 20 }}
-        />
+        <View
+          style={{
+            marginTop: 12,
+            marginBottom: 20,
+            borderRadius: HOME_RADIUS.card,
+            borderWidth: 1,
+            borderColor: palette.divider,
+            backgroundColor: palette.card,
+            padding: 20,
+            elevation: 6,
+            shadowColor: '#94A3B8',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.13,
+            shadowRadius: 10,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <View style={{
+              width: 42,
+              height: 42,
+              borderRadius: HOME_RADIUS.chip,
+              backgroundColor: ASSET_BG,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <AppIcon name="gem" size={20} color={ASSET_TONE} strokeWidth={1.9} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginBottom: 6 }}>
+                Total Asset Value
+              </Text>
+              <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, letterSpacing: -0.5 }}>
+                {formatCurrency(totalValue, displaySymbol)}
+              </Text>
+            </View>
+          </View>
+
+        </View>
 
         {assets.length === 0 ? (
           <EmptyStateCard

@@ -9,8 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../components/budget-ui';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
-import { ScreenHeroCard } from '../components/ui/ScreenHeroCard';
-import { BUDGET_VISUAL } from '../lib/budgetVisuals';
+import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
 import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
 import { formatCurrency } from '../lib/derived';
 import { SCREEN_GUTTER } from '../lib/design';
@@ -212,25 +211,29 @@ function BudgetOverviewCard({
     ? formatCurrency(Math.abs(totalRemaining), sym)
     : '';
 
-  const primaryValue = hasBudgetSet
-    ? formatCurrency(totalSpent, sym)
-    : '—';
-
   return (
-    <ScreenHeroCard
+    <OverviewHeroCard
       palette={palette}
-      accentColor={BUDGET_VISUAL.tone}
-      icon={BUDGET_VISUAL.icon}
-      screenLabel={monthLabel}
-      badge={{ label: monthBudgetsLabel(totalBudgeted, overBudgetCount) }}
-      eyebrow="Total Spent"
-      primaryValue={primaryValue}
-      metrics={hasBudgetSet ? [
-        { key: 'budgeted', label: 'Budgeted', value: formatCurrency(totalBudgeted, sym) },
-        { key: 'remaining', label: isOver ? 'Over by' : 'Remaining', value: formatCurrency(Math.abs(totalRemaining), sym), valueColor: isOver ? palette.negative : palette.positive },
-      ] : undefined}
-      progressPercent={hasBudgetSet ? progress * 100 : undefined}
-      progressColor={isOver ? palette.negative : palette.positive}
+      icon="pie-chart"
+      iconBg="#F0EFFA"
+      iconColor="#5A56A3"
+      eyebrow="Budget overview"
+      title={monthLabel}
+      badgeLabel={monthBudgetsLabel(totalBudgeted, overBudgetCount)}
+      badgeBg={totalBudgeted <= 0 ? palette.background : overBudgetCount > 0 ? palette.outBg : palette.inBg}
+      badgeColor={totalBudgeted <= 0 ? palette.textSecondary : overBudgetCount > 0 ? palette.negative : palette.positive}
+      metrics={[
+        { key: 'budgeted', label: 'Budgeted', value: formatCurrency(totalBudgeted, sym), valueColor: palette.text },
+        { key: 'spent', label: 'Spent', value: formatCurrency(totalSpent, sym), valueColor: isOver ? palette.negative : palette.text },
+      ]}
+      progressLabelLeft={usageText}
+      progressLabelRight=""
+      progressPercent={progress * 100}
+      progressColor={palette.budget}
+      progressTrackColor={palette.budgetSoft}
+      footerLabel={statusLabel}
+      footerValue={statusValue}
+      footerValueColor={isOver ? palette.negative : palette.budget}
     />
   );
 }

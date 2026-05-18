@@ -36,8 +36,6 @@ import { getCompactScrollableBottomPadding } from '../../components/ui/safeBotto
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
-import { LOAN_VISUAL } from '../../lib/loanVisuals';
-import { BUDGET_VISUAL } from '../../lib/budgetVisuals';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   formatDate,
@@ -296,20 +294,20 @@ function HomeScreenContent() {
     {
       id: 'Loans',
       label: 'Loans',
-      icon: LOAN_VISUAL.icon,
+      icon: 'hand-coins',
       route: '/loans',
       meta: loanMeta,
-      tone: LOAN_VISUAL.tone,
-      bg: LOAN_VISUAL.bg,
+      tone: '#4F6B7A',
+      bg: '#E8F0F3',
     },
     {
       id: 'Budgets',
       label: 'Budgets',
-      icon: BUDGET_VISUAL.icon,
+      icon: 'pie-chart',
       route: '/budget',
       meta: budgetMeta,
-      tone: BUDGET_VISUAL.tone,
-      bg: BUDGET_VISUAL.bg,
+      tone: '#5A56A3',
+      bg: '#F0EFFA',
     },
     {
       id: 'Assets',
@@ -1789,12 +1787,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               </TouchableOpacity>
             </View>
             {transactions.length === 0 ? (
-              <View style={{
-                borderRadius: HOME_RADIUS.card,
-                borderWidth: 1,
-                borderColor: palette.border,
-                backgroundColor: palette.surface,
-              }}>
+              <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface }}>
                 <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 20 }}>
                   No transactions yet
                 </Text>
@@ -1823,42 +1816,36 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                               </>
                             ) : null}
                           </View>
-                          <View
-                            style={{
-                              borderRadius: HOME_RADIUS.card,
-                            }}
-                          >
-                            <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
-                              {items.map((transaction, index) => {
-                                const accountName = accountsById.get(transaction.accountId);
-                                const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
-                                const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
-                                const deposit = transaction.depositId ? depositsById.get(transaction.depositId) : undefined;
-                                const tertiaryText = transaction.tags.length > 0
-                                  ? transaction.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined
-                                  : undefined;
-                                return (
-                                  <TransactionListItem
-                                    key={transaction.id}
-                                    tx={transaction}
-                                    sym={currencySymbol}
-                                    palette={palette}
-                                    isLast={index === items.length - 1}
-                                    categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
-                                    categoryIcon={getCategoryDisplayIcon(categoriesById, transaction.categoryId)}
-                                    accountName={accountName}
-                                    linkedAccountName={linkedAccountName}
-                                    loanPersonName={loan?.personName}
-                                    loanDirection={loan?.direction}
-                                    depositName={deposit?.name}
-                                    depositBankName={deposit?.bankName ?? undefined}
-                                    tertiaryText={tertiaryText}
-                                    showAmountSign={false}
-                                    onPress={handleTransactionPress}
-                                  />
-                                );
-                              })}
-                            </View>
+                          <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
+                            {items.map((transaction, index) => {
+                              const accountName = accountsById.get(transaction.accountId);
+                              const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
+                              const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
+                              const deposit = transaction.depositId ? depositsById.get(transaction.depositId) : undefined;
+                              const tertiaryText = transaction.tags.length > 0
+                                ? transaction.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined
+                                : undefined;
+                              return (
+                                <TransactionListItem
+                                  key={transaction.id}
+                                  tx={transaction}
+                                  sym={currencySymbol}
+                                  palette={palette}
+                                  isLast={index === items.length - 1}
+                                  categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
+                                  categoryIcon={getCategoryDisplayIcon(categoriesById, transaction.categoryId)}
+                                  accountName={accountName}
+                                  linkedAccountName={linkedAccountName}
+                                  loanPersonName={loan?.personName}
+                                  loanDirection={loan?.direction}
+                                  depositName={deposit?.name}
+                                  depositBankName={deposit?.bankName ?? undefined}
+                                  tertiaryText={tertiaryText}
+                                  showAmountSign={false}
+                                  onPress={handleTransactionPress}
+                                />
+                              );
+                            })}
                           </View>
                         </View>
                       );
@@ -1942,6 +1929,7 @@ function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts
           borderRadius: HOME_RADIUS.card,
           borderWidth: 1,
           borderColor: palette.borderSoft,
+          overflow: 'hidden',
         }]}
       >
         <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 96, justifyContent: 'space-between' }}>

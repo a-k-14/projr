@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/AppText';
-import { LinearGradient } from 'expo-linear-gradient';
 import { View } from 'react-native';
-import { CARD_PADDING, FONT_WEIGHT } from '../../lib/design';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -14,6 +14,9 @@ type HeroMetric = {
 
 export function OverviewHeroCard({
   palette,
+  icon,
+  iconBg,
+  iconColor,
   eyebrow,
   title,
   badgeLabel,
@@ -31,10 +34,11 @@ export function OverviewHeroCard({
   footerValueColor,
   footerNote,
   footerNoteColor,
-  decorativeColor,
-  gradient = false,
 }: {
   palette: AppThemePalette;
+  icon?: string;
+  iconBg?: string;
+  iconColor?: string;
   eyebrow: string;
   title: string;
   badgeLabel: string;
@@ -52,8 +56,6 @@ export function OverviewHeroCard({
   footerValueColor: string;
   footerNote?: string;
   footerNoteColor?: string;
-  decorativeColor: string;
-  gradient?: boolean;
 }) {
   const showProgress =
     progressLabelLeft !== undefined &&
@@ -63,38 +65,19 @@ export function OverviewHeroCard({
     progressTrackColor !== undefined;
   const clampedPercent = progressPercent !== undefined ? Math.min(Math.max(progressPercent, 0), 100) : 0;
 
-  const eyebrowColor = gradient ? 'rgba(255,255,255,0.65)' : palette.textMuted;
-  const titleColor = gradient ? '#FFFFFF' : palette.text;
-  const dividerColor = gradient ? 'rgba(255,255,255,0.22)' : palette.divider;
-  const metricLabelColor = gradient ? 'rgba(255,255,255,0.65)' : palette.textMuted;
-  const progressLabelColor = gradient ? 'rgba(255,255,255,0.65)' : palette.textSecondary;
-  const footerLabelColor = gradient ? 'rgba(255,255,255,0.65)' : palette.textMuted;
-  const footerNoteResolvedColor = gradient
-    ? 'rgba(255,255,255,0.5)'
-    : (footerNoteColor ?? palette.textSecondary);
-
-  const gradientColors = palette.isDark
-    ? (['#172033', '#0F172A'] as const)
-    : ([palette.brand, '#3C4760'] as const);
-
-  const cardBg = gradient ? palette.brand : palette.surface;
-  const cardBorder = gradient ? 'rgba(255,255,255,0.12)' : palette.divider;
-
-  const inner = (
-    <>
-      {!gradient && (
-        <>
-          <View style={[styles.glowLarge, { backgroundColor: decorativeColor, opacity: palette.isDark ? 0.18 : 0.12 }]} />
-          <View style={[styles.glowSmall, { backgroundColor: decorativeColor, opacity: palette.isDark ? 0.1 : 0.07 }]} />
-        </>
-      )}
-
+  return (
+    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.divider }]}>
       <View style={styles.header}>
+        {icon ? (
+          <View style={[styles.iconContainer, { backgroundColor: iconBg }]}>
+            <AppIcon name={icon as any} size={20} color={iconColor} strokeWidth={1.9} />
+          </View>
+        ) : null}
         <View style={styles.headerCopy}>
-          <Text style={{ fontSize: HOME_TEXT.caption, color: eyebrowColor, fontWeight: FONT_WEIGHT.regular }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>
             {eyebrow}
           </Text>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: titleColor, marginTop: HOME_SPACE.xs }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: HOME_SPACE.xs }}>
             {title}
           </Text>
         </View>
@@ -108,9 +91,9 @@ export function OverviewHeroCard({
       <View style={styles.metrics}>
         {metrics.map((metric, index) => (
           <View key={metric.key} style={[styles.metricBlock, index > 0 ? { marginLeft: HOME_SPACE.md } : null]}>
-            {index > 0 ? <View style={[styles.metricDivider, { backgroundColor: dividerColor }]} /> : null}
-            <Text appWeight="medium" style={styles.metricLabel(metricLabelColor)}>{metric.label}</Text>
-            <Text appWeight="medium" style={styles.metricValue(metric.valueColor ?? (gradient ? '#FFFFFF' : palette.text))}>{metric.value}</Text>
+            {index > 0 ? <View style={[styles.metricDivider, { backgroundColor: palette.divider }]} /> : null}
+            <Text appWeight="medium" style={styles.metricLabel(palette)}>{metric.label}</Text>
+            <Text appWeight="medium" style={styles.metricValue(metric.valueColor ?? palette.text)}>{metric.value}</Text>
           </View>
         ))}
       </View>
@@ -118,8 +101,8 @@ export function OverviewHeroCard({
       {showProgress ? (
         <View style={{ marginTop: HOME_SPACE.lg }}>
           <View style={styles.progressRow}>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: progressLabelColor }}>{progressLabelLeft}</Text>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: progressLabelColor }}>{progressLabelRight}</Text>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>{progressLabelLeft}</Text>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>{progressLabelRight}</Text>
           </View>
           <View style={[styles.progressTrack, { backgroundColor: progressTrackColor }]}>
             <View
@@ -137,7 +120,7 @@ export function OverviewHeroCard({
 
       <View style={[styles.footerBlock, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
         <View style={styles.footer}>
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: footerLabelColor }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
             {footerLabel}
           </Text>
           <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: footerValueColor }}>
@@ -145,32 +128,11 @@ export function OverviewHeroCard({
           </Text>
         </View>
         {footerNote ? (
-          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: footerNoteResolvedColor, marginTop: 5 }}>
+          <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: footerNoteColor ?? palette.textSecondary, marginTop: 5 }}>
             {footerNote}
           </Text>
         ) : null}
       </View>
-    </>
-  );
-
-  if (gradient) {
-    return (
-      <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-        <LinearGradient
-          pointerEvents="none"
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-        />
-        {inner}
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-      {inner}
     </View>
   );
 }
@@ -179,31 +141,26 @@ const styles = {
   card: {
     borderRadius: HOME_RADIUS.card,
     padding: CARD_PADDING,
-    overflow: 'hidden' as const,
-    position: 'relative' as const,
     borderWidth: 1,
-  },
-  glowLarge: {
-    position: 'absolute' as const,
-    width: 200,
-    height: 200,
-    borderRadius: HOME_RADIUS.full,
-    top: -65,
-    right: -45,
-  },
-  glowSmall: {
-    position: 'absolute' as const,
-    width: 120,
-    height: 120,
-    borderRadius: HOME_RADIUS.full,
-    bottom: -40,
-    left: -30,
+    elevation: 6,
+    shadowColor: '#94A3B8',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.13,
+    shadowRadius: 10,
   },
   header: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
     gap: HOME_SPACE.md,
+  },
+  iconContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: HOME_RADIUS.chip,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    flexShrink: 0,
   },
   headerCopy: {
     flex: 1,
@@ -235,9 +192,9 @@ const styles = {
     bottom: 0,
     width: 1,
   },
-  metricLabel: (color: string) => ({
+  metricLabel: (palette: AppThemePalette) => ({
     fontSize: HOME_TEXT.tiny,
-    color,
+    color: palette.textMuted,
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
