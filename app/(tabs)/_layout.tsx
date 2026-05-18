@@ -1,7 +1,8 @@
 import { AppIcon, IconName } from '@/components/ui/AppIcon';
 import { router, Tabs } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
-import { Platform, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
@@ -65,25 +66,33 @@ function AppTabBar({
     transform: [{ translateX: pillX.value }],
   }));
 
-  const navBarBg = palette.card;
-
   return (
-    <View
-      style={{
-        height: tabHeight + insetsBottom,
-        paddingBottom: insetsBottom,
-        backgroundColor: navBarBg,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        borderTopWidth: 0,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -10 },
-        shadowOpacity: palette.isDark ? 0.4 : 0.22,
-        shadowRadius: 18,
-        elevation: 32,
-        overflow: 'visible',
-      }}
-    >
+    <View style={{ width: '100%', position: 'relative', overflow: 'visible' }}>
+      <LinearGradient
+        colors={['transparent', palette.isDark ? 'rgba(0,0,0,0.22)' : 'rgba(148,163,184,0.15)']}
+        style={{
+          position: 'absolute',
+          top: -12,
+          left: 0,
+          right: 0,
+          height: 12,
+          zIndex: 1,
+        }}
+      />
+      <View
+        style={{
+          width: '100%',
+          height: tabHeight + insetsBottom,
+          paddingBottom: insetsBottom,
+          backgroundColor: palette.background,
+          borderTopWidth: 0,
+          elevation: 12,
+          shadowColor: palette.isDark ? '#000000' : '#94A3B8',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: palette.isDark ? 0.22 : 0.15,
+          shadowRadius: 12,
+        }}
+      >
       <View style={{ height: tabHeight, flexDirection: 'row', position: 'relative' }}>
         <Animated.View
           pointerEvents="none"
@@ -123,7 +132,7 @@ function AppTabBar({
                   style={{
                     paddingHorizontal: 4,
                     borderRadius: HOME_RADIUS.button + 3,
-                    backgroundColor: navBarBg,
+                    backgroundColor: palette.card,
                   }}
                 >
                   <View
@@ -134,7 +143,7 @@ function AppTabBar({
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: palette.isDark ? palette.surfaceRaised : palette.text,
-                      elevation: 6,
+                      elevation: 0,
                     }}
                   >
                     <AppIcon
@@ -218,6 +227,7 @@ function AppTabBar({
           );
         })}
       </View>
+    </View>
     </View>
   );
 }

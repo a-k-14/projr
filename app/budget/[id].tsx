@@ -2,7 +2,7 @@ import { HeaderEditButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { getCompactScrollableBottomPadding } from '@/components/ui/safeBottom';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -35,9 +35,10 @@ export default function BudgetDetailScreen() {
   const budgets = useBudgetStore((s) => s.budgets);
   const loadBudgets = useBudgetStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
-  const categoriesById = useCategoriesStore((s) => new Map(s.categories.map((c) => [c.id, c])));
+  const categories = useCategoriesStore((s) => s.categories);
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const accounts = useAccountsStore((s) => s.accounts);
-  const accountsById = new Map(accounts.map((a) => [a.id, a.name]));
+  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';

@@ -49,10 +49,7 @@ const styles = StyleSheet.create({
     borderRadius: HOME_RADIUS.fab,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 10,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.24,
-    shadowRadius: 16,
+    elevation: 0,
     zIndex: 10,
   },
 });

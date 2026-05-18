@@ -1,8 +1,8 @@
 import { Text } from '@/components/ui/AppText';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ScreenHeroCard } from '../components/ui/ScreenHeroCard';
 import { router } from 'expo-router';
-import { ScrollView, View, TouchableOpacity, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ScrollView, View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CircleIconBadge } from '../components/ui/CircleIconBadge';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
@@ -55,51 +55,16 @@ export default function AssetsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={{
-            marginTop: 12,
-            marginBottom: 20,
-            borderRadius: HOME_RADIUS.card,
-            borderWidth: 1,
-            borderColor: palette.divider,
-            backgroundColor: palette.brand,
-            padding: 20,
-            overflow: 'hidden',
-          }}
-        >
-          <LinearGradient
-            pointerEvents="none"
-            colors={[
-              palette.isDark ? '#172033' : palette.brand,
-              palette.isDark ? '#0F172A' : '#3C4760',
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View style={{
-              width: 44,
-              height: 44,
-              borderRadius: HOME_RADIUS.chip,
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <AppIcon name="gem" size={22} color="#FFFFFF" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>
-                Total Asset Value
-              </Text>
-              <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.bold, color: '#FFFFFF', letterSpacing: -0.5 }}>
-                {formatCurrency(totalValue, displaySymbol)}
-              </Text>
-            </View>
-          </View>
-
-        </View>
+        <ScreenHeroCard
+          palette={palette}
+          accentColor={ASSET_TONE}
+          icon="gem"
+          screenLabel="Assets"
+          badge={assets.length > 0 ? { label: `${assets.length} ${assets.length === 1 ? 'asset' : 'assets'}` } : undefined}
+          eyebrow="Total Asset Value"
+          primaryValue={formatCurrency(totalValue, displaySymbol)}
+          style={{ marginTop: 12, marginBottom: 20 }}
+        />
 
         {assets.length === 0 ? (
           <EmptyStateCard

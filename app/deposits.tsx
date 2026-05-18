@@ -1,7 +1,7 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ScreenHeroCard } from '../components/ui/ScreenHeroCard';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
@@ -66,78 +66,20 @@ function DepositsScreenContent() {
       >
         {hasDeposits ? (
           <>
-            {/* Modernized Hero Card with Gradient */}
-            <View 
-              style={{ 
-                marginHorizontal: SCREEN_GUTTER,
-                marginTop: 12,
-                marginBottom: 20,
-                borderRadius: HOME_RADIUS.card,
-                borderWidth: 1,
-                borderColor: palette.divider,
-                backgroundColor: palette.brand,
-                padding: 20,
-                overflow: 'hidden',
-              }}
-            >
-              <LinearGradient
-                pointerEvents="none"
-                colors={[
-                  palette.isDark ? '#172033' : palette.brand,
-                  palette.isDark ? '#0F172A' : '#3C4760'
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-              />
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-                {/* Glass Icon Container — left */}
-                <View style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: HOME_RADIUS.chip,
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                    <AppIcon name="vault" size={22} color="#FFFFFF" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>
-                    Total Invested
-                  </Text>
-                  <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.bold, color: '#FFFFFF', letterSpacing: -0.5 }}>
-                    {formatCurrency(totalInvested, sym)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row' }}>
-                <View style={{ flex: 1, paddingRight: 12 }}>
-                  <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4 }}>
-                    Total Returns
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <AppIcon name="trending-up" size={14} color="#4ADE80" />
-                    <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: '#4ADE80', letterSpacing: -0.2 }}>
-                      +{formatCurrency(totalInterest, sym)}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.22)' }} />
-
-                <View style={{ flex: 1, paddingLeft: 12, alignItems: 'flex-end' }}>
-                  <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4 }}>
-                    Maturity Value
-                  </Text>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: '#FFFFFF', letterSpacing: -0.2 }}>
-                    {formatCurrency(totalMaturityValue, sym)}
-                  </Text>
-                </View>
-              </View>
-            </View>
+            <ScreenHeroCard
+              palette={palette}
+              accentColor={DEPOSIT_VISUAL.tone}
+              icon={DEPOSIT_VISUAL.icon}
+              screenLabel="Fixed Deposits"
+              badge={{ label: `${deposits.length} ${deposits.length === 1 ? 'deposit' : 'deposits'}` }}
+              eyebrow="Total Invested"
+              primaryValue={formatCurrency(totalInvested, sym)}
+              metrics={[
+                { key: 'returns', label: 'Returns', value: `+${formatCurrency(totalInterest, sym)}`, valueColor: palette.positive, iconName: 'trending-up' },
+                { key: 'maturity', label: 'Maturity Value', value: formatCurrency(totalMaturityValue, sym) },
+              ]}
+              style={{ marginHorizontal: SCREEN_GUTTER, marginTop: 12, marginBottom: 20 }}
+            />
 
             {/* Filter pills */}
             <View style={{ flexDirection: 'row', paddingHorizontal: SCREEN_GUTTER, gap: 8, marginBottom: HOME_SPACE.md }}>

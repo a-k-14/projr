@@ -25,7 +25,8 @@ import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../components/ui/ListHeading';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
-import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
+import { ScreenHeroCard } from '../components/ui/ScreenHeroCard';
+import { LOAN_VISUAL } from '../lib/loanVisuals';
 import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
 import { formatCurrency, getLoanSummary } from '../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../lib/design';
@@ -617,24 +618,21 @@ function LoanSummaryCard({
   }) {
   const isZero = borrowed === 0 && lent === 0;
   const badgeLabel = isZero ? 'No Loans' : netPositive ? 'Net Lent' : 'Net Owed';
-  const footerLabel = isZero ? 'Net' : netPositive ? 'Net Lent' : 'Net Owed';
+  const netValue = isZero ? '—' : formatCurrency(Math.abs(net), sym);
 
   return (
-    <OverviewHeroCard
+    <ScreenHeroCard
       palette={palette}
-      eyebrow="Loans Overview"
-      title="Current Position"
-      badgeLabel={badgeLabel}
-      badgeBg={isZero ? palette.background : palette.brandSoft}
-      badgeColor={isZero ? palette.textSecondary : palette.brand}
+      accentColor={LOAN_VISUAL.tone}
+      icon={LOAN_VISUAL.icon}
+      screenLabel="Loans"
+      badge={{ label: badgeLabel }}
+      eyebrow="Net Position"
+      primaryValue={netValue}
       metrics={[
-        { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
-        { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },
+        { key: 'lent', label: 'You Lent', value: formatCurrency(lent, sym) },
+        { key: 'borrowed', label: 'You Owe', value: formatCurrency(borrowed, sym) },
       ]}
-      footerLabel={footerLabel}
-      footerValue={formatCurrency(Math.abs(net), sym)}
-      footerValueColor={isZero ? palette.textMuted : palette.brand}
-      decorativeColor="#F8FAFD"
     />
   );
 }

@@ -72,9 +72,9 @@ export default function RootLayout() {
   }, [init]);
 
   useEffect(() => {
+    NavigationBar.setBackgroundColorAsync(palette.background).catch(() => undefined);
     NavigationBar.setButtonStyleAsync(palette.navigationButtonStyle).catch(() => undefined);
-    NavigationBar.setBackgroundColorAsync(palette.card).catch(() => undefined);
-  }, [palette.navigationButtonStyle, palette.card]);
+  }, [palette.background, palette.navigationButtonStyle]);
 
   const settings = useUIStore((s) => s.settings);
   const updateSettings = useUIStore((s) => s.updateSettings);
@@ -220,8 +220,8 @@ export default function RootLayout() {
         </ErrorBoundary>
         <StatusBar
           style={palette.statusBarStyle}
-          backgroundColor={palette.background}
-          translucent={false}
+          backgroundColor="transparent"
+          translucent
         />
       </SafeAreaProvider>
     </GestureHandlerRootView>

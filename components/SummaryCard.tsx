@@ -21,13 +21,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory }: Summary
   ] as const;
 
   return (
-    <View style={[
-      styles.card, 
-      { 
-        backgroundColor: palette.card, 
-        borderColor: palette.divider,
-      }
-    ]}>
+    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.divider }]}>
       {categories.map((category, index) => (
         <TouchableOpacity delayPressIn={0}
           key={category.key}

@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": false,
+      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
@@ -67,16 +67,16 @@
         {
           "androidIcons": {
             "shortcut_income": {
-              "foregroundImage": "./assets/images/shortcut-income.png",
-              "backgroundColor": "#1E293B"
+              "foregroundImage": "./assets/images/shortcut-income.svg",
+              "backgroundColor": "#1F2A44"
             },
             "shortcut_expense": {
-              "foregroundImage": "./assets/images/shortcut-expense.png",
-              "backgroundColor": "#1E293B"
+              "foregroundImage": "./assets/images/shortcut-expense.svg",
+              "backgroundColor": "#1F2A44"
             },
             "shortcut_transfer": {
-              "foregroundImage": "./assets/images/shortcut-transfer.png",
-              "backgroundColor": "#1E293B"
+              "foregroundImage": "./assets/images/shortcut-transfer.svg",
+              "backgroundColor": "#1F2A44"
             }
           }
         }
