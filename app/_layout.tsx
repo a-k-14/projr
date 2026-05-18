@@ -73,7 +73,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     NavigationBar.setButtonStyleAsync(palette.navigationButtonStyle).catch(() => undefined);
-  }, [palette.navigationButtonStyle]);
+    NavigationBar.setBackgroundColorAsync(palette.card).catch(() => undefined);
+  }, [palette.navigationButtonStyle, palette.card]);
 
   const settings = useUIStore((s) => s.settings);
   const updateSettings = useUIStore((s) => s.updateSettings);

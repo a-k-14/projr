@@ -941,7 +941,7 @@ function AccountSummaryCard({
             : 40;
           const tickContentWidth = TICK_TOTAL * (TICK_W + TICK_GAP) - TICK_GAP;
           const tickRemainder = tickContainerWidth > 0 ? (tickContainerWidth - tickContentWidth) : 0;
-          const walletCardBg = palette.isDark ? '#1A1F2E' : '#FFFFFF';
+          const walletCardBg = palette.isDark ? '#1A1F2E' : palette.card;
           return (
             <View style={{ marginHorizontal: -14, marginBottom: -12 }}>
               <View style={{ backgroundColor: walletCardBg, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12 }}>
@@ -1068,7 +1068,7 @@ function AccountSummaryCard({
         {/* ── Home Hero metric strip — flat white bottom section, mirrors wallet card layout ── */}
         {isHomeHero && incomeExpense ? (
           <View style={{ marginHorizontal: -14, marginBottom: 0 }}>
-            <View style={{ backgroundColor: palette.isDark ? '#1A1F2E' : '#FFFFFF', paddingTop: 10 }}>
+            <View style={{ backgroundColor: palette.isDark ? '#1A1F2E' : palette.card, paddingTop: 10 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingBottom: 8 }}>
                 {/* Period pills */}
                 <SegmentedPillSwitch

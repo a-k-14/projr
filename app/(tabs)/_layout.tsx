@@ -43,7 +43,7 @@ function AppTabBar({
 }) {
   const { width } = useWindowDimensions();
   const activityHasFilters = useActivityFiltersStore((s) => s.hasActiveFilters);
-  const tabHeight = 52;
+  const tabHeight = 64;
   const routes = VISIBLE_TAB_NAMES
     .map((name) => state.routes.find((route: any) => route.name === name))
     .filter(Boolean);
@@ -65,7 +65,7 @@ function AppTabBar({
     transform: [{ translateX: pillX.value }],
   }));
 
-  const navBarBg = palette.isDark ? '#080C14' : '#ECEFF6';
+  const navBarBg = palette.card;
 
   return (
     <View
@@ -77,10 +77,10 @@ function AppTabBar({
         borderTopRightRadius: 24,
         borderTopWidth: 0,
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -12 },
-        shadowOpacity: palette.isDark ? 0.38 : 0.18,
-        shadowRadius: 20,
-        elevation: 24,
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: palette.isDark ? 0.4 : 0.22,
+        shadowRadius: 18,
+        elevation: 32,
         overflow: 'visible',
       }}
     >
@@ -90,7 +90,7 @@ function AppTabBar({
           style={[
             {
               position: 'absolute',
-              top: (tabHeight - pillHeight) / 2,
+              top: 14,
               left: 0,
               width: pillWidth,
               height: pillHeight,
@@ -115,7 +115,8 @@ function AppTabBar({
                   width: itemWidth,
                   height: tabHeight,
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  justifyContent: 'flex-start',
+                  paddingTop: 10,
                 }}
               >
                 <View
@@ -191,7 +192,8 @@ function AppTabBar({
                 width: itemWidth,
                 height: tabHeight,
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'flex-start',
+                paddingTop: 21,
               }}
             >
               <View style={{ position: 'relative' }}>

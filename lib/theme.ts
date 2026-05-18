@@ -198,9 +198,9 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
 
   return {
     isDark: false,
-    background: '#F5F7FB',
-    surface: '#FFFFFF',
-    card: '#FFFFFF',
+    background: '#EEF1F7',
+    surface: '#F8FAFD',
+    card: '#F8FAFD',
     border: '#E2E6EE',
     divider: '#E8EBF0',
     text: '#1F2A44',
