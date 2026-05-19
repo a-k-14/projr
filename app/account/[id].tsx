@@ -150,7 +150,16 @@ export default function AccountDetailScreen() {
                 palette={palette}
                 titleSize={SCREEN_HEADER.detailTitleSize}
                 rightAction={
-                  <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                    <TouchableOpacity
+                      delayPressIn={0}
+                      activeOpacity={0.5}
+                      onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: palette.brand }}>+ Add</Text>
+                    </TouchableOpacity>
+                    <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
+                  </View>
                 }
               />
             </View>

@@ -9,6 +9,7 @@ interface TransactionsStore {
   isLoaded: boolean;
   hasMore: boolean;
   isLoadingMore: boolean;
+  mutationVersion: number;
   load: (filters?: TransactionFilters) => Promise<void>;
   reset: () => void;
   trimToFirstPage: () => void;
@@ -25,6 +26,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   isLoaded: false,
   hasMore: true,
   isLoadingMore: false,
+  mutationVersion: 0,
 
   load: async (filters) => {
     const f = { ...get().filters, ...filters, limit: PAGE_SIZE, offset: 0 };
@@ -84,6 +86,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     // pages the user has already loaded via infinite scroll.
     set((state) => ({
       transactions: insertTransaction(state.transactions, tx),
+      mutationVersion: state.mutationVersion + 1,
     }));
     return tx;
   },
@@ -93,6 +96,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     if (!updated) return;
     set((state) => ({
       transactions: patchTransaction(state.transactions, id, updated),
+      mutationVersion: state.mutationVersion + 1,
     }));
   },
 
@@ -100,6 +104,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     await transactionsService.deleteTransaction(id);
     set((state) => ({
       transactions: state.transactions.filter((t) => t.id !== id),
+      mutationVersion: state.mutationVersion + 1,
     }));
   },
 

@@ -109,7 +109,7 @@ export function BalanceTrendChart({ data, palette, sym, period }: Props): React.
 
         {activePoint ? (
           <View style={{
-            backgroundColor: palette.brand + '18',
+            backgroundColor: palette.background,
             borderRadius: 8,
             paddingHorizontal: 10,
             paddingVertical: 5,

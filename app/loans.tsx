@@ -125,10 +125,6 @@ export default function LoansScreen() {
     setListResetKey((value) => value + 1);
   }, [isFocused]);
 
-  useEffect(() => {
-    loadLoans();
-  }, [loadLoans]);
-
   const onRefresh = async () => {
     setRefreshing(true);
     await loadLoans(filters);

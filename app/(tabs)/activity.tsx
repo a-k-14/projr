@@ -154,6 +154,7 @@ export default function ActivityScreen() {
   const storeTransactionsLoaded = useTransactionsStore((s) => s.isLoaded);
   const storeTransactionsHasMore = useTransactionsStore((s) => s.hasMore);
   const storeTransactionsIsLoadingMore = useTransactionsStore((s) => s.isLoadingMore);
+  const storeMutationVersion = useTransactionsStore((s) => s.mutationVersion);
   const loadStoreTransactions = useTransactionsStore((s) => s.load);
   const loadMoreStoreTransactions = useTransactionsStore((s) => s.loadMore);
   const trimStoreTransactionsToFirstPage = useTransactionsStore((s) => s.trimToFirstPage);
@@ -348,6 +349,7 @@ export default function ActivityScreen() {
   const requestIdRef = useRef(0);
   const lastAppliedRouteTsRef = useRef<string | null>(null);
   const lastLoadedRemoteQueryRef = useRef<string | null>(null);
+  const lastSeenMutationVersionRef = useRef(0);
 
   useEffect(() => {
     if (!isFocused || groupByMode !== 'category' || !categoryDrilldown) return;
@@ -496,18 +498,21 @@ export default function ActivityScreen() {
       } else {
         // Only load data if we aren't waiting for an initial param sync
         if (!source || isInitialParamSyncComplete) {
-          if (hasContent && lastLoadedRemoteQueryRef.current === remoteQuerySignature) {
+          const queryUnchanged = hasContent && lastLoadedRemoteQueryRef.current === remoteQuerySignature;
+          const noNewMutations = lastSeenMutationVersionRef.current === storeMutationVersion;
+          if (queryUnchanged && noNewMutations) {
             setIsTransitioning(false);
             return;
           }
-          setIsTransitioning(true);
+          lastSeenMutationVersionRef.current = storeMutationVersion;
+          if (!queryUnchanged) setIsTransitioning(true);
           loadData(true).finally(() => {
             setIsTransitioning(false);
           });
         }
       }
     }
-  }, [hasContent, isDefaultView, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, remoteQuerySignature, source, storeTransactionsLoaded]);
+  }, [hasContent, isDefaultView, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, remoteQuerySignature, source, storeMutationVersion, storeTransactionsLoaded]);
 
   // In default view, the FlashList reads `storeTransactions` directly via
   // `activeTransactions` below — we no longer mirror it into local `transactions`

@@ -187,6 +187,10 @@ function HomeScreenContent() {
   const depositSummary = useMemo(() => getFixedDepositSummary(depositsList), [depositsList]);
   const assetsValue = useAssetsStore((s) => s.totalValue);
   const netWorth = trackedTotalBalance + loanSummary.net + depositSummary.activeMaturityValue + assetsValue;
+  // Retain last non-zero NW so a transient reload cycle never flashes 0 on the chip
+  const lastNonZeroNWRef = useRef(netWorth);
+  if (netWorth !== 0) lastNonZeroNWRef.current = netWorth;
+  const stableNetWorth = netWorth !== 0 ? netWorth : lastNonZeroNWRef.current;
   const budgetSummary = useMemo(() => {
     const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.amount, 0);
     const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
@@ -421,7 +425,7 @@ function HomeScreenContent() {
         onOpenBalanceVisibility={() => setShowBalanceVisibilitySheet(true)}
         homeExcludedCount={homeExcludedAccountIds.length}
         homeTotalCount={accounts.length}
-        netWorth={netWorth}
+        netWorth={stableNetWorth}
         middleContent={middleContent}
 
         hideAmounts={hideAmounts}
@@ -763,6 +767,20 @@ function AccountSummaryCard({
     overflow: 'hidden',
   }));
 
+  // NW chip sweep animation — fires when netWorth genuinely updates (non-zero → new value)
+  const nwSweepX = useSharedValue(-80);
+  const prevNWRef = React.useRef<number | undefined>(netWorth);
+  React.useEffect(() => {
+    if (netWorth !== undefined && netWorth !== 0 && netWorth !== prevNWRef.current) {
+      prevNWRef.current = netWorth;
+      nwSweepX.value = -80;
+      nwSweepX.value = withTiming(320, { duration: 1100 });
+    }
+  }, [netWorth, nwSweepX]);
+  const nwSweepStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: nwSweepX.value }],
+  }));
+
   const content = (
     <View
       style={{
@@ -856,13 +874,24 @@ function AccountSummaryCard({
                 <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.88)', fontFamily: 'monospace' }}>
                   {hideAmounts ? 'NW ••••' : `NW ${formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}`}
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 7, paddingVertical: 3, minWidth: 36, justifyContent: 'center', opacity: netWorthChange !== undefined ? 1 : 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 7, paddingVertical: 3, minWidth: 36, justifyContent: 'center', opacity: netWorthChange !== undefined ? 1 : 0, overflow: 'hidden' }}>
                   {nwChangeTone !== 'neutral' && (
                     <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={10} color={nwChangeInk} strokeWidth={2.4} />
                   )}
                   <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: nwChangeInk, fontFamily: 'monospace' }}>
                     {nwChangeTone === 'neutral' ? '—' : formatNetWorthStripValue(Math.abs(netWorthChange ?? 0), currencySymbol)}
                   </Text>
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[nwSweepStyle, { position: 'absolute', top: -3, bottom: -3, width: 40, left: 0 }]}
+                  >
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.28)', 'rgba(255,255,255,0)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{ flex: 1 }}
+                    />
+                  </Animated.View>
                 </View>
                 <AppIcon name="chevron-right" size={12} color='rgba(255,255,255,0.40)' strokeWidth={2} />
               </TouchableOpacity>
