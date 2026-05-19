@@ -198,8 +198,8 @@ export default function InsightsScreen() {
   const scrollRef = useRef<any>(null);
 
   useEffect(() => {
-    return registerTabReset('insights', ({ mode }) => {
-      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    return registerTabReset('insights', ({ mode, animated }) => {
+      scrollRef.current?.scrollTo({ y: 0, animated });
       if (mode === 'full') {
         setPeriod('week');
         setSelectedChartCategoryId(null);
@@ -272,7 +272,7 @@ export default function InsightsScreen() {
           ],
           pointerEvents: isDefaultView ? 'none' : 'auto',
         }}>
-          <TouchableOpacity delayPressIn={0} activeOpacity={0.5} onPress={() => getTabReset('insights')?.({ mode: 'full', animated: false })}>
+          <TouchableOpacity delayPressIn={0} activeOpacity={0.5} onPress={() => getTabReset('insights')?.({ mode: 'full', animated: true })}>
             <AppIcon name="rotate-ccw" size={17} color={palette.brand} strokeWidth={2.4} />
           </TouchableOpacity>
         </Animated.View>

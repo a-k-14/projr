@@ -276,7 +276,7 @@ export async function runMigrations() {
     `);
     // Update name/icon for existing rows (INSERT OR IGNORE won't update already-seeded rows)
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Automated', icon = 'cpu'
+      UPDATE categories SET name = 'Automated', icon = 'zap'
       WHERE id = '__sys_financial_income__'
     `);
     await sqlite.runAsync(`

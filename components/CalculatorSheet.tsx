@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { View, Pressable } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { View, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { BottomSheet } from './ui/BottomSheet';
-import { CALCULATOR_DISPLAY_MAX_LINES, getCalculatorDisplayMetrics } from '../lib/calculatorDisplay';
+import { getCalculatorDisplayMetrics } from '../lib/calculatorDisplay';
 import {
   appendCalculatorToken,
   evaluateCalculatorExpression,
   getCalculatorPreviewResult,
   prettifyCalculatorValue,
 } from '../lib/calculatorMath';
-import { SCREEN_GUTTER , FONT_WEIGHT} from '../lib/design';
+import { SCREEN_GUTTER, FONT_WEIGHT } from '../lib/design';
 import { AppThemePalette } from '../lib/theme';
-import { BUTTON_TOKENS, PRIMARY_ACTION , HOME_RADIUS} from '../lib/layoutTokens';
+import { BUTTON_TOKENS, PRIMARY_ACTION, HOME_RADIUS } from '../lib/layoutTokens';
 
 interface CalculatorSheetProps {
   visible: boolean;
@@ -43,12 +42,19 @@ export function CalculatorSheet({
   onApply,
 }: CalculatorSheetProps) {
   const [display, setDisplay] = useState(prettifyCalculatorValue(value) || '0');
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (visible) {
       setDisplay(prettifyCalculatorValue(value) || '0');
     }
   }, [value, visible]);
+
+  useEffect(() => {
+    if (visible) {
+      scrollRef.current?.scrollToEnd({ animated: false });
+    }
+  }, [display, visible]);
 
   if (!visible) return null;
 
@@ -58,8 +64,9 @@ export function CalculatorSheet({
 
   const backspace = () => {
     setDisplay((current) => {
-      const next = current.slice(0, -1);
-      return next || '0';
+      const raw = current.replace(/,/g, '');
+      const next = raw.slice(0, -1);
+      return next ? prettifyCalculatorValue(next) || '0' : '0';
     });
   };
 
@@ -78,8 +85,13 @@ export function CalculatorSheet({
     setDisplay(prettifyCalculatorValue(evaluate()));
   };
 
-  const displayMetrics = getCalculatorDisplayMetrics(display, 36);
+  const displayMetrics = getCalculatorDisplayMetrics(display);
   const previewResult = getCalculatorPreviewResult(display);
+
+  const isPureNumber = !/[+−×÷%]/.test(display);
+  const formattedDisplay = isPureNumber
+    ? display
+    : display.replace(/([+−×÷])/g, ' $1 ').replace(/\s+/g, ' ').trim();
 
   return (
     <BottomSheet
@@ -89,22 +101,28 @@ export function CalculatorSheet({
       onClose={onClose}
     >
       <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 20 }}>
-        <View style={{ minHeight: 118, justifyContent: 'center', alignItems: 'flex-end', marginBottom: 16 }}>
-          <Text
-            numberOfLines={CALCULATOR_DISPLAY_MAX_LINES}
-            adjustsFontSizeToFit
-            minimumFontScale={0.55}
-            style={{
-              fontSize: displayMetrics.fontSize,
-              lineHeight: displayMetrics.lineHeight,
-              fontWeight: FONT_WEIGHT.bold,
-              color: palette.text,
-              letterSpacing: 0,
-              textAlign: 'right',
-            }}
+        <View style={{ marginBottom: 16 }}>
+          <ScrollView
+            ref={scrollRef}
+            scrollEnabled
+            showsVerticalScrollIndicator={false}
+            style={{ height: 80 }}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'flex-end' }}
+            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
           >
-            {display}
-          </Text>
+            <Text
+              style={{
+                fontSize: displayMetrics.fontSize,
+                lineHeight: displayMetrics.lineHeight,
+                fontWeight: FONT_WEIGHT.regular,
+                color: palette.text,
+                letterSpacing: 0,
+                textAlign: 'right',
+              }}
+            >
+              {formattedDisplay}
+            </Text>
+          </ScrollView>
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -204,54 +222,59 @@ function CalcButton({
   brandOnColor?: string;
 }) {
   const isOperator = ['÷', '×', '−', '+', '%', '='].includes(label);
-  const isAction = ['C', '⌫', 'OK'].includes(label);
+
   const bg = primary
     ? (brandColor || palette.tabActive)
-    : isAction
-      ? palette.surface
-      : isOperator
-        ? (brandSoft || palette.brandSoft)
-        : palette.surface;
+    : isOperator
+      ? (brandSoft || palette.brandSoft)
+      : palette.surface;
 
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const borderColor = primary || isOperator
+    ? 'transparent'
+    : palette.isDark
+      ? 'rgba(255,255,255,0.18)'
+      : 'rgba(0,0,0,0.13)';
+
+  const pressOverlay = primary || isOperator
+    ? 'rgba(255,255,255,0.14)'
+    : palette.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)';
 
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={() => {
-        scale.value = withTiming(0.9, { duration: 80 });
-      }}
-      onPressOut={() => {
-        scale.value = withTiming(1, { duration: 100 });
-      }}
       style={{ flex: 1 }}
     >
-      <Animated.View
-        style={[animStyle, {
-          minHeight: 58,
-          borderRadius: HOME_RADIUS.pill,
-          backgroundColor: bg,
-          borderWidth: 1,
-          borderColor: primary ? (brandColor || palette.tabActive) : palette.divider,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }]}
-      >
-        {label === '⌫' ? (
-          <AppIcon name="delete" size={22} color={primary ? (brandOnColor || palette.onBrand) : palette.text} strokeWidth={1.9} />
-        ) : (
-          <Text
-            style={{
-              fontSize: label === 'OK' ? 16 : 18,
-              fontWeight: primary ? PRIMARY_ACTION.labelWeight : BUTTON_TOKENS.text.labelWeight,
-              color: primary ? (brandOnColor || palette.onBrand) : palette.text,
-            }}
-          >
-            {label}
-          </Text>
-        )}
-      </Animated.View>
+      {({ pressed }) => (
+        <View
+          style={{
+            minHeight: 58,
+            borderRadius: HOME_RADIUS.pill,
+            backgroundColor: bg,
+            borderWidth: 0.7,
+            borderColor,
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          {pressed && (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: pressOverlay }]} />
+          )}
+          {label === '⌫' ? (
+            <AppIcon name="delete" size={22} color={primary ? (brandOnColor || palette.onBrand) : palette.text} strokeWidth={1.9} />
+          ) : (
+            <Text
+              style={{
+                fontSize: label === 'OK' ? 16 : 18,
+                fontWeight: primary ? PRIMARY_ACTION.labelWeight : BUTTON_TOKENS.text.labelWeight,
+                color: primary ? (brandOnColor || palette.onBrand) : palette.text,
+              }}
+            >
+              {label}
+            </Text>
+          )}
+        </View>
+      )}
     </Pressable>
   );
 }

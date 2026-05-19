@@ -104,7 +104,7 @@ export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
   },
   {
     name: 'Transport',
-    emojis: ['🚗', '🚕', '🚌', '🚆', '✈️', '⛵', '⛽', '🅿️', '🚲', '🏍️', '🚁', '🛴', '🚇', '🚢', '🚙', '🚚', '🚐', '🛺', '🚉', '🛣️', '🛫', '🛬', '🛹', ' canoe', '🚠'],
+    emojis: ['🚗', '🚕', '🚌', '🚆', '✈️', '⛵', '⛽', '🅿️', '🚲', '🏍️', '🚁', '🛴', '🚇', '🚢', '🚙', '🚚', '🚐', '🛺', '🚉', '🛣️', '🛫', '🛬', '🛹', '🛶', '🚠'],
     keywords: ['transport', 'travel', 'car', 'bike', 'bus', 'train', 'flight', 'fuel', 'gas', 'parking', 'taxi', 'commute', 'metro', 'cab'],
   },
   {
@@ -192,7 +192,9 @@ export const CATEGORY_ICONS = [
   'tag',
   'gift',
   'box',
+  'package',
   'archive',
+  'scissors',
   // Food & drink
   'coffee',
   'feather',
@@ -200,19 +202,24 @@ export const CATEGORY_ICONS = [
   'star',
   // Home & utilities
   'home',
-  'zap',
   'droplet',
   'wifi',
   'phone',
   'tv',
   'tool',
   'settings',
+  'key',
+  'battery',
+  'printer',
   // Transport
   'truck',
   'navigation',
   'map-pin',
   'map',
   'anchor',
+  'plane',
+  'bike',
+  'watch',
   // Finance
   'credit-card',
   'dollar-sign',
@@ -221,12 +228,16 @@ export const CATEGORY_ICONS = [
   'trending-down',
   'bar-chart-2',
   'pie-chart',
+  'send',
   // Health & wellness
   'heart',
   'activity',
   'shield',
   'plus-circle',
   'user',
+  'users',
+  'moon',
+  'sunrise',
   // Entertainment & lifestyle
   'music',
   'film',
@@ -237,12 +248,27 @@ export const CATEGORY_ICONS = [
   'globe',
   'monitor',
   'smartphone',
+  'server',
+  'code',
   // Travel
   'compass',
   'umbrella',
   'sun',
   'cloud',
   'wind',
+  // Productivity & communication
+  'bell',
+  'calendar',
+  'clock',
+  'repeat',
+  'flag',
+  'target',
+  'mail',
+  'message-square',
+  'file-text',
+  'folder',
+  'check-square',
+  'at-sign',
   // Education
   'edit',
   'clipboard',
@@ -252,6 +278,7 @@ export const CATEGORY_ICONS = [
   'layers',
   'grid',
   'more-horizontal',
+  'hash',
 ] as const;
 
 /** @deprecated use ENTITY_COLORS */

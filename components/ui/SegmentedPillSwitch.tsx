@@ -4,6 +4,13 @@ import { Animated, LayoutChangeEvent, StyleProp, TouchableOpacity, View, ViewSty
 
 const SWITCH_INSET = 2;
 
+function getIndicatorX(width: number, selectedIndex: number, optionCount: number) {
+  const innerWidth = Math.max(width - 2, 0);
+  const segmentWidth = innerWidth / Math.max(optionCount, 1);
+  const isLast = selectedIndex === optionCount - 1;
+  return selectedIndex * segmentWidth + (isLast ? 0.5 : 0);
+}
+
 export function SegmentedPillSwitch({
   options,
   value,
@@ -36,19 +43,19 @@ export function SegmentedPillSwitch({
   animated?: boolean;
 }) {
   const [controlWidth, setControlWidth] = useState(0);
-  const [isReady, setIsReady] = useState(false);
+  const selectedIndex = Math.max(0, options.findIndex((option) => option.key === value));
+  const optionCount = Math.max(options.length, 1);
   const indicatorX = useRef(new Animated.Value(0)).current;
   const hasLaidOut = useRef(false);
-  const selectedIndex = Math.max(0, options.findIndex((option) => option.key === value));
+
   const innerWidth = Math.max(controlWidth - 2, 0);
-  const segmentWidth = controlWidth > 0 ? innerWidth / options.length : 0;
+  const segmentWidth = controlWidth > 0 ? innerWidth / optionCount : 0;
   const pillRadius = Math.max(radius - SWITCH_INSET, 0);
 
   useEffect(() => {
     if (segmentWidth <= 0) return;
-    const isLast = selectedIndex === options.length - 1;
-    const nextX = selectedIndex * segmentWidth + (isLast ? 0.5 : 0);
-    // Skip animation on first layout — jump straight to position
+    const nextX = getIndicatorX(controlWidth, selectedIndex, optionCount);
+    // Skip animation on first layout so the selected pill is present immediately.
     if (!animated || !hasLaidOut.current) {
       indicatorX.setValue(nextX);
       hasLaidOut.current = true;
@@ -61,28 +68,36 @@ export function SegmentedPillSwitch({
       stiffness: 220,
       useNativeDriver: true,
     }).start();
-  }, [animated, indicatorX, segmentWidth, selectedIndex, options.length]);
+  }, [animated, controlWidth, indicatorX, optionCount, segmentWidth, selectedIndex]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
     if (width > 0) {
-      setControlWidth(width);
       if (!hasLaidOut.current) {
-        requestAnimationFrame(() => {
-          setIsReady(true);
-        });
+        indicatorX.setValue(getIndicatorX(width, selectedIndex, optionCount));
+        hasLaidOut.current = true;
       }
+      setControlWidth(width);
     }
   };
 
   const highlightStyle = useMemo(
-    () => ({
-      width: Math.max(segmentWidth - SWITCH_INSET * 2, 0),
-      backgroundColor: pillColor,
-      borderColor,
-      transform: [{ translateX: indicatorX }],
-    }),
-    [borderColor, indicatorX, pillColor, segmentWidth],
+    () => {
+      if (controlWidth === 0) {
+        const pctLeft = `${(selectedIndex * 100) / optionCount}%`;
+        const pctWidth = `${100 / optionCount}%`;
+        return {
+          left: pctLeft,
+          width: pctWidth,
+        } as any;
+      }
+      return {
+        left: 0,
+        width: segmentWidth,
+        transform: [{ translateX: indicatorX }],
+      } as any;
+    },
+    [controlWidth, selectedIndex, optionCount, segmentWidth, indicatorX],
   );
 
   return (
@@ -103,22 +118,31 @@ export function SegmentedPillSwitch({
         style,
       ]}
     >
-      {segmentWidth > 0 && isReady ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            {
-              position: 'absolute',
-              top: SWITCH_INSET,
-              bottom: SWITCH_INSET,
-              left: SWITCH_INSET,
-              borderRadius: pillRadius,
-              borderWidth: 1,
-            },
-            highlightStyle,
-          ]}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+          },
+          highlightStyle,
+        ]}
+      >
+        <View
+          style={{
+            flex: 1,
+            marginTop: SWITCH_INSET,
+            marginBottom: SWITCH_INSET,
+            marginLeft: SWITCH_INSET,
+            marginRight: SWITCH_INSET,
+            borderRadius: pillRadius,
+            backgroundColor: pillColor,
+            borderColor,
+            borderWidth: 1,
+          }}
         />
-      ) : null}
+      </Animated.View>
       {options.map((option) => {
         const selected = option.key === value;
         return (
@@ -147,6 +171,7 @@ export function SegmentedPillSwitch({
                 textAlignVertical: 'center',
                 includeFontPadding: false,
                 color: selected ? activeTextColor : inactiveTextColor,
+                zIndex: 2,
               }}
             >
               {option.label}

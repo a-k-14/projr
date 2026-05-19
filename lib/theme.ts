@@ -194,7 +194,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       scrim: SCRIM,
       scrimHeavy: SCRIM_HEAVY,
       pressedBg: PRESSED_BG_DARK,
-      stripBg: '#0C1018',
+      stripBg: '#070A12',
     };
   }
 
@@ -250,7 +250,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     scrim: SCRIM,
     scrimHeavy: SCRIM_HEAVY,
     pressedBg: PRESSED_BG_LIGHT,
-    stripBg: '#E0E1E6',
+    stripBg: '#E5E8F0',
   };
 }
 

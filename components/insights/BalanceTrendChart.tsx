@@ -166,13 +166,12 @@ export function BalanceTrendChart({ data, palette, sym, period }: Props): React.
         maxValue={yCeil - yFloor}
         pointerConfig={{
           pointerStripHeight: CHART_H,
-          pointerStripColor: `${palette.brand}30`,
-          pointerStripWidth: 1.5,
+          pointerStripWidth: 0,
           pointerColor: palette.brand,
           radius: 5,
           pointerLabelWidth: 1,
           pointerLabelHeight: 1,
-          activatePointersOnLongPress: false,
+          activatePointersOnLongPress: true,
           autoAdjustPointerLabelPosition: false,
           pointerLabelComponent: (items: any[]) => {
             const item = items[0];

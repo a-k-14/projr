@@ -49,7 +49,7 @@ export function DepositListCard({
           style={{
             width: 36,
             height: 36,
-            borderRadius: HOME_RADIUS.chip,
+            borderRadius: HOME_RADIUS.small,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: DEPOSIT_VISUAL.bg,
@@ -125,7 +125,7 @@ function DepositAmountText({
       style={{ flex: 1, minWidth: 0, textAlign: align, fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary }}
     >
       {label}{' '}
-      <Text style={{ fontWeight: FONT_WEIGHT.bold, color: valueColor ?? palette.text }}>{value}</Text>
+      <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: valueColor ?? palette.text }}>{value}</Text>
     </Text>
   );
 }

@@ -1,6 +1,6 @@
 export const CALCULATOR_DISPLAY_MAX_LINES = 2;
 
-export function getCalculatorDisplayMetrics(value: string, maxFontSize: number) {
+export function getCalculatorDisplayMetrics(value: string, maxFontSize = 28) {
   const compactLength = value.replace(/\s/g, '').length;
   const twoLineTargetLength = 24;
   const minimumFontSize = Math.round(maxFontSize * 0.58);

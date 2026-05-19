@@ -162,7 +162,7 @@ export function OverviewHeroCard({
                   <Text appWeight="medium" style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted }}>
                     {m.label}
                   </Text>
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.regular, color: m.valueColor ?? palette.text }}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: m.valueColor ?? palette.text }}>
                     {m.value}
                   </Text>
                 </View>
@@ -173,7 +173,7 @@ export function OverviewHeroCard({
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
                 {footerLabel}
               </Text>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: footerValueColor }}>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: footerValueColor }}>
                 {footerValue}
               </Text>
             </View>

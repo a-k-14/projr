@@ -258,7 +258,7 @@ function AccountCard({
       onLongPress={customMode ? drag : undefined}
       style={{
         backgroundColor: palette.surface,
-        borderRadius: HOME_RADIUS.cardSm,
+        borderRadius: HOME_RADIUS.card,
         borderWidth: 1,
         borderColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E2E7F0',
         paddingHorizontal: 16,
