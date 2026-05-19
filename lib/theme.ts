@@ -126,6 +126,7 @@ export interface AppThemePalette {
   scrim: string;
   scrimHeavy: string;
   pressedBg: string;
+  stripBg: string;
 }
 
 export function resolveTheme(theme: Theme, systemScheme: ColorSchemeName): AppThemeMode {
@@ -193,6 +194,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       scrim: SCRIM,
       scrimHeavy: SCRIM_HEAVY,
       pressedBg: PRESSED_BG_DARK,
+      stripBg: '#0C1018',
     };
   }
 
@@ -248,6 +250,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     scrim: SCRIM,
     scrimHeavy: SCRIM_HEAVY,
     pressedBg: PRESSED_BG_LIGHT,
+    stripBg: '#E0E1E6',
   };
 }
 

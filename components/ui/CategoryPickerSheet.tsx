@@ -40,6 +40,7 @@ export function CategoryPickerSheet({
       categories,
       search,
       parentFilter: (category) => {
+        if (category.systemKey) return false;
         if (transactionType === undefined || transactionType === 'transfer' || transactionType === 'loan') return true;
         return category.type === transactionType || category.type === 'both';
       },

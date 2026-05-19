@@ -21,6 +21,7 @@ export const categories = sqliteTable('categories', {
   icon: text('icon').notNull().default('tag'),
   color: text('color').notNull().default('#6B7280'),
   type: text('type').notNull().default('both'),
+  systemKey: text('system_key'),
 });
 
 export const tags = sqliteTable('tags', {

@@ -939,8 +939,15 @@ export default function ActivityScreen() {
   };
 
   const handleTransactionPress = useCallback((transaction: Transaction) => {
-    if (transaction.type === 'deposit' && transaction.depositId) {
+    // Deposit 'new' transaction → edit deposit form
+    if (transaction.type === 'deposit' && transaction.depositId && transaction.depositTransactionType === 'new') {
       router.push({ pathname: '/modals/add-transaction', params: { editDepositId: transaction.depositId, closeDepositId: '' } });
+      return;
+    }
+    // Deposit close or interest income linked to a deposit → close deposit form
+    if (transaction.depositId && (transaction.depositTransactionType === 'closed' || transaction.type === 'in')) {
+      const focusField = transaction.type === 'in' ? 'interest' : 'principal';
+      router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: transaction.depositId, editDepositId: '', focusField } });
       return;
     }
     if (transaction.type === 'loan' && transaction.loanId) {
@@ -956,12 +963,21 @@ export default function ActivityScreen() {
   const grouped = useMemo<ActivityGroup[]>(() => {
     return groupTransactionsByDate(categoryDrilldown ? drilldownTransactions : filteredTransactions).map((group) => {
       const { date, label } = getRelativeDateLabel(group.dateKey);
+      const items = group.items.slice().sort((a, b) => {
+        // Within same deposit: closed (principal) before interest income
+        if (a.depositId && a.depositId === b.depositId) {
+          const aOrder = a.depositTransactionType === 'closed' ? 0 : 1;
+          const bOrder = b.depositTransactionType === 'closed' ? 0 : 1;
+          return aOrder - bOrder;
+        }
+        return 0;
+      });
       return {
         groupKey: group.dateKey,
         title: date,
         subtitle: label || undefined,
-        net: getCashflowFromList(group.items, includeTotalCashflow, includeTotalCashflow).net,
-        items: group.items
+        net: getCashflowFromList(items, includeTotalCashflow, includeTotalCashflow).net,
+        items,
       };
     });
   }, [categoryDrilldown, drilldownTransactions, filteredTransactions, includeTotalCashflow]);

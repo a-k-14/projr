@@ -5,6 +5,7 @@ import type { CloseDepositInput, Deposit, CreateDepositInput, DepositFilters, De
 import { generateId } from '../lib/ids';
 import { nowUTC, todayUTC } from '../lib/dateUtils';
 import { createTransaction, deleteTransaction, getTransactions, updateTransaction } from './transactions';
+import { getCategoryBySystemKey } from './categories';
 
 function rowToDeposit(row: typeof deposits.$inferSelect): Deposit {
   return {
@@ -180,7 +181,8 @@ export async function closeDeposit(id: string, data: CloseDepositInput = {}): Pr
   const existing = await getDepositById(id);
   if (!existing) throw new Error('Deposit not found');
 
-  const amount = data.amount ?? existing.maturityValue ?? existing.principalAmount;
+  const principalAmount = data.principalAmount ?? existing.principalAmount;
+  const interestAmount = data.interestAmount ?? 0;
   const accountId = data.accountId ?? existing.accountId;
   const date = data.date ?? nowUTC();
   const note = data.note;
@@ -190,9 +192,10 @@ export async function closeDeposit(id: string, data: CloseDepositInput = {}): Pr
   // to re-close with new values.
   if (existing.status === 'closed') return existing;
 
+  // Transaction 1: return of principal capital
   await createTransaction({
     type: 'deposit',
-    amount,
+    amount: principalAmount,
     accountId,
     depositId: id,
     depositTransactionType: 'closed',
@@ -200,7 +203,24 @@ export async function closeDeposit(id: string, data: CloseDepositInput = {}): Pr
     note,
   });
 
-  await db.update(deposits).set({ status: 'closed' }).where(eq(deposits.id, id));
+  // Transaction 2: interest income (only if interest > 0)
+  if (interestAmount > 0) {
+    const interestCategory = await getCategoryBySystemKey('interest_on_deposit');
+    await createTransaction({
+      type: 'in',
+      amount: interestAmount,
+      accountId,
+      categoryId: interestCategory?.id ?? undefined,
+      depositId: id,
+      date,
+      note: note ? `${note} (interest)` : `Interest on ${existing.name}`,
+    });
+  }
+
+  // Store the total maturity value (principal + interest) on the deposit record
+  await db.update(deposits)
+    .set({ status: 'closed', maturityValue: principalAmount + interestAmount })
+    .where(eq(deposits.id, id));
   const rows = await db.select().from(deposits).where(eq(deposits.id, id));
   return rowToDeposit(rows[0]);
 }
@@ -213,9 +233,12 @@ export async function reopenDeposit(id: string): Promise<Deposit> {
   const existing = await getDepositById(id);
   if (!existing) throw new Error('Deposit not found');
   if (existing.status !== 'closed') return existing;
-  const closedTx = await findLinkedTx(id, 'closed');
-  if (closedTx) {
-    await deleteTransaction(closedTx.id, { skipDepositCascade: true });
+  // Delete all deposit-linked transactions (close + interest income)
+  const linked = await getTransactions({ depositId: id });
+  for (const tx of linked) {
+    if (tx.depositTransactionType === 'closed' || tx.type === 'in') {
+      await deleteTransaction(tx.id, { skipDepositCascade: true });
+    }
   }
   await db.update(deposits).set({ status: 'active' }).where(eq(deposits.id, id));
   const rows = await db.select().from(deposits).where(eq(deposits.id, id));

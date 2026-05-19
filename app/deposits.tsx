@@ -7,23 +7,22 @@ import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
+import { DepositListCard } from '../components/ui/cards/DepositListCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { getScrollableBottomPadding } from '../components/ui/safeBottom';
-import { getDepositProgress } from '../lib/depositDisplay';
 import { DEPOSIT_VISUAL } from '../lib/depositVisuals';
 import { formatCurrency } from '../lib/derived';
-import { HOME_TEXT, SCREEN_GUTTER , FONT_WEIGHT} from '../lib/design';
-import { CARD_TEXT, HOME_RADIUS, HOME_SPACE } from '../lib/layoutTokens';
-import { useAppTheme, type AppThemePalette } from '../lib/theme';
+import { FONT_WEIGHT, SCREEN_GUTTER } from '../lib/design';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
+import { useAppTheme } from '../lib/theme';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useUIStore } from '../stores/useUIStore';
-import type { Deposit } from '../types';
 
 function DepositsScreenContent() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
-  const { deposits, totalInvested, totalMaturityValue, totalInterest, refresh } = useFixedDepositsStore();
+  const { deposits, totalInvested, refresh } = useFixedDepositsStore();
 
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
@@ -31,15 +30,28 @@ function DepositsScreenContent() {
 
   const hasDeposits = deposits.length > 0;
 
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'closed' | 'all'>('active');
   const activeDeposits = useMemo(() => deposits.filter((d) => d.status === 'active'), [deposits]);
-  const closedDeposits = useMemo(
-    () => deposits.filter((d) => d.status === 'closed'),
+  const closedDeposits = useMemo(() => deposits.filter((d) => d.status === 'closed'), [deposits]);
+  const showActive = statusFilter === 'all' || statusFilter === 'active';
+  const showClosed = statusFilter === 'all' || statusFilter === 'closed';
+
+  // Total maturity value across all deposits
+  const totalMaturity = useMemo(
+    () => deposits.reduce((sum, d) => sum + (d.maturityValue ?? d.principalAmount), 0),
     [deposits],
   );
-  const maturedDeposits = closedDeposits;
-  const showActive = statusFilter === 'all' || statusFilter === 'active';
-  const showMatured = statusFilter === 'all' || statusFilter === 'closed';
+  // Expected return: unrealised gains from active deposits only (shown in footer)
+  const expectedReturn = useMemo(
+    () => activeDeposits.reduce((sum, d) => sum + Math.max(0, (d.maturityValue ?? d.principalAmount) - d.principalAmount), 0),
+    [activeDeposits],
+  );
+
+  const pills = [
+    { key: 'active' as const, label: 'Active', count: activeDeposits.length },
+    { key: 'closed' as const, label: 'Closed', count: closedDeposits.length },
+    { key: 'all' as const, label: 'All', count: deposits.length },
+  ];
 
   return (
     <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
@@ -80,21 +92,21 @@ function DepositsScreenContent() {
                 badgeColor="transparent"
                 metrics={[
                   { key: 'invested', label: 'Invested', value: formatCurrency(totalInvested, sym), valueColor: palette.text },
-                  { key: 'maturity', label: 'Maturity', value: formatCurrency(totalMaturityValue, sym), valueColor: palette.text },
+                  { key: 'maturity', label: 'Maturity', value: formatCurrency(totalMaturity, sym), valueColor: palette.text },
                 ]}
-                footerLabel="Active"
-                footerValue={activeDeposits.length.toString()}
+                footerLabel=""
+                footerValue=""
                 footerValueColor={palette.text}
+                footerMetrics={[
+                  { key: 'active', label: 'Active', value: String(activeDeposits.length), valueColor: palette.text },
+                  { key: 'return', label: 'Expected Return', value: expectedReturn > 0 ? formatCurrency(expectedReturn, sym) : '—', valueColor: expectedReturn > 0 ? palette.numberPositive : palette.textMuted },
+                ]}
               />
             </View>
 
-            {/* Filter pills */}
+            {/* Filter pills — Active / Closed / All */}
             <View style={{ flexDirection: 'row', paddingHorizontal: SCREEN_GUTTER, gap: 8, marginBottom: HOME_SPACE.md }}>
-              {([
-                { key: 'all', label: 'All', count: deposits.length },
-                { key: 'active', label: 'Active', count: activeDeposits.length },
-                { key: 'closed', label: 'Closed', count: closedDeposits.length },
-              ] as const).map((pill) => {
+              {pills.map((pill) => {
                 const selected = statusFilter === pill.key;
                 return (
                   <TouchableOpacity
@@ -112,7 +124,7 @@ function DepositsScreenContent() {
                     }}
                   >
                     <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: selected ? palette.onBrand : palette.text }}>
-                      {pill.label} {pill.count > 0 ? `(${pill.count})` : ''}
+                      {pill.label}{pill.count > 0 ? ` (${pill.count})` : ''}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -122,18 +134,12 @@ function DepositsScreenContent() {
             {/* Active Deposits */}
             {showActive && activeDeposits.length > 0 && (
               <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.lg }}>
-                <Text
-                  style={{
-                    fontSize: HOME_TEXT.sectionTitle,
-                    fontWeight: FONT_WEIGHT.bold,
-                    color: palette.text,
-                    marginBottom: HOME_SPACE.md,
-                  }}
-                >
-                  Active Deposits ({activeDeposits.length})
-                </Text>
-
-                <View style={{ gap: HOME_SPACE.md }}>
+                {statusFilter === 'all' && (
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginBottom: HOME_SPACE.md }}>
+                    Active
+                  </Text>
+                )}
+                <View style={{ gap: HOME_SPACE.lg }}>
                   {activeDeposits.map((deposit) => (
                     <DepositListCard
                       key={deposit.id}
@@ -147,22 +153,16 @@ function DepositsScreenContent() {
               </View>
             )}
 
-            {/* Matured Deposits */}
-            {showMatured && maturedDeposits.length > 0 && (
+            {/* Closed Deposits */}
+            {showClosed && closedDeposits.length > 0 && (
               <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-                <Text
-                  style={{
-                    fontSize: HOME_TEXT.sectionTitle,
-                    fontWeight: FONT_WEIGHT.bold,
-                    color: palette.text,
-                    marginBottom: HOME_SPACE.md,
-                  }}
-                >
-                  Closed ({maturedDeposits.length})
-                </Text>
-
-                <View style={{ gap: HOME_SPACE.md }}>
-                  {maturedDeposits.map((deposit) => (
+                {statusFilter === 'all' && (
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginBottom: HOME_SPACE.md }}>
+                    Closed
+                  </Text>
+                )}
+                <View style={{ gap: HOME_SPACE.lg }}>
+                  {closedDeposits.map((deposit) => (
                     <DepositListCard
                       key={deposit.id}
                       deposit={deposit}
@@ -185,7 +185,6 @@ function DepositsScreenContent() {
             />
           </View>
         )}
-
       </ScrollView>
     </ScreenScaffold>
   );
@@ -193,133 +192,4 @@ function DepositsScreenContent() {
 
 export default function DepositsScreen() {
   return <DepositsScreenContent />;
-}
-
-function DepositListCard({
-  deposit,
-  sym,
-  palette,
-  onPress,
-}: {
-  deposit: Deposit;
-  sym: string;
-  palette: AppThemePalette;
-  onPress: () => void;
-}) {
-  const progress = getDepositProgress(deposit);
-  const isClosed = deposit.status === 'closed';
-  const maturityLabel = isClosed ? 'Received' : 'Maturity';
-  const statusLabel = isClosed ? 'Closed' : deposit.maturityDate ? progress.label : '-';
-
-  return (
-    <TouchableOpacity
-      delayPressIn={0}
-      activeOpacity={0.82}
-      onPress={onPress}
-      style={{
-        paddingHorizontal: HOME_SPACE.lg,
-        paddingVertical: 12,
-        borderRadius: HOME_RADIUS.card,
-        borderWidth: 1,
-        borderColor: isClosed ? palette.divider : palette.borderSoft,
-        backgroundColor: isClosed ? palette.surface : palette.card,
-        opacity: isClosed ? 0.86 : 1,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: HOME_RADIUS.chip,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: DEPOSIT_VISUAL.bg,
-          }}
-        >
-          <AppIcon name={DEPOSIT_VISUAL.icon} size={18} color={DEPOSIT_VISUAL.tone} strokeWidth={1.8} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text
-              appWeight="medium"
-              numberOfLines={1}
-              style={{
-                flex: 1,
-                fontSize: CARD_TEXT.line1,
-                color: palette.text,
-              }}
-            >
-              {deposit.bankName ? `${deposit.name} · ${deposit.bankName}` : deposit.name}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={{
-                fontSize: HOME_TEXT.caption,
-                fontWeight: FONT_WEIGHT.semibold,
-                color: progress.isUrgent ? palette.warning : isClosed ? palette.textMuted : palette.brand,
-              }}
-            >
-              {statusLabel}
-            </Text>
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              marginTop: 5,
-            }}
-          >
-            <AmountText
-              label="Invested"
-              value={formatCurrency(deposit.principalAmount, sym)}
-              palette={palette}
-            />
-            <AmountText
-              label={maturityLabel}
-              value={formatCurrency(deposit.maturityValue ?? deposit.principalAmount, sym)}
-              palette={palette}
-              valueColor={palette.numberPositive}
-              align="right"
-            />
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function AmountText({
-  label,
-  value,
-  palette,
-  valueColor,
-  align = 'left',
-}: {
-  label: string;
-  value: string;
-  palette: AppThemePalette;
-  valueColor?: string;
-  align?: 'left' | 'right';
-}) {
-  return (
-    <Text
-      numberOfLines={1}
-      adjustsFontSizeToFit
-      style={{
-        flex: 1,
-        minWidth: 0,
-        textAlign: align,
-        fontSize: HOME_TEXT.bodySmall,
-        color: palette.textSecondary,
-      }}
-    >
-      {label}{' '}
-      <Text style={{ fontWeight: FONT_WEIGHT.bold, color: valueColor ?? palette.text }}>
-        {value}
-      </Text>
-    </Text>
-  );
 }

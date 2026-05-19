@@ -836,6 +836,7 @@ export default function HomeScreen({
           scrim: 'rgba(0, 0, 0, 0.4)',
           scrimHeavy: 'rgba(0, 0, 0, 0.55)',
           pressedBg: 'rgba(0, 0, 0, 0.04)',
+          stripBg: '#E0E1E6',
         }}
         bottom={getFabBottomOffset(insets.bottom)}
         backgroundColor={HOME_FAB_COLOR}
@@ -896,6 +897,7 @@ export default function HomeScreen({
             scrim: 'rgba(0, 0, 0, 0.4)',
             scrimHeavy: 'rgba(0, 0, 0, 0.55)',
             pressedBg: 'rgba(0, 0, 0, 0.04)',
+            stripBg: '#E0E1E6',
           }}
           onClose={() => setChartExpandedAccountId(null)}
           showHeaderTitle={false}

@@ -1,5 +1,5 @@
 import { AppIcon } from '@/components/ui/AppIcon';
-import { HeaderEditButton, ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderMoreButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
@@ -10,6 +10,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-na
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
 import { ActionChip } from '../../components/ui/AppButton';
+import { ActionStrip } from '../../components/ui/ActionStrip';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
@@ -144,76 +145,65 @@ export default function LoanDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerShown: true,
           headerShadowVisible: false,
           header: () => (
             <View style={{ paddingTop: insets.top, backgroundColor: palette.background }}>
-              <ScreenHeader 
+              <ScreenHeader
                 title={`${loan.personName} • ${isLent ? 'Lent' : 'Borrowed'}`}
                 palette={palette}
                 titleSize={25}
                 rightAction={
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <HeaderEditButton
-                      palette={palette}
-                      onPress={() => {
-                        if (!originTx) return;
-                        router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
-                      }}
-                    />
-                    <TouchableOpacity
-                      delayPressIn={0}
-                      activeOpacity={0.75}
-                      onPress={toggleActions}
-                      style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <AppIcon name={showActions ? 'x' : 'more-vertical'} size={18} color={palette.text} strokeWidth={2} />
-                    </TouchableOpacity>
-                  </View>
+                  <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
                 }
               />
             </View>
           )
-        }} 
+        }}
       />
 
       <View style={{ flex: 1 }}>
-        <Animated.View style={[actionsAnimatedStyle, { backgroundColor: palette.isDark ? palette.surface : '#EAEDF4', overflow: 'hidden' }]}>
-          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: SCREEN_GUTTER, paddingVertical: 10 }}>
-            {loan.pendingAmount > 0 && (
-              <ActionChip
-                icon={isLent ? 'arrow-down-left' : 'arrow-up-right'}
-                label={isLent ? 'Record Receipt' : 'Record Payment'}
-                palette={palette}
-                onPress={() => { closePanel(); router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } }); }}
-              />
-            )}
+        {/* Action strip */}
+        <ActionStrip palette={palette} animatedStyle={actionsAnimatedStyle}>
+          <ActionChip
+            icon="edit-2"
+            label="Edit"
+            palette={palette}
+            onPress={() => {
+              if (!originTx) return;
+              closePanel();
+              router.push({ pathname: '/modals/add-transaction', params: { editId: originTx.id } });
+            }}
+          />
+          {loan.pendingAmount > 0 && (
             <ActionChip
-              icon="plus"
-              label="Add More"
+              icon={isLent ? 'arrow-down-left' : 'arrow-up-right'}
+              label={isLent ? 'Record Receipt' : 'Record Payment'}
               palette={palette}
-              onPress={() => { closePanel(); router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } }); }}
+              onPress={() => { closePanel(); router.push({ pathname: '/modals/loan-settlement', params: { loanId: loan.id } }); }}
             />
-          </View>
-        </Animated.View>
-        <ScrollView
-          style={{ flex: 1 }}
-          onScrollBeginDrag={closePanel}
-          contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 24) }}
-        >
-          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-            {/* Loan details */}
-            <View
-              style={{
-                backgroundColor: palette.surface,
-                borderRadius: HOME_RADIUS.card,
-                padding: HOME_SPACE.xl,
-                marginTop: 12,
-                marginBottom: HOME_SPACE.md
-              }}
-            >
+          )}
+          <ActionChip
+            icon="plus"
+            label="Add More"
+            palette={palette}
+            onPress={() => { closePanel(); router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } }); }}
+          />
+        </ActionStrip>
+
+        {/* Hero card — sticky outside ScrollView */}
+        <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: HOME_RADIUS.card,
+              padding: HOME_SPACE.xl,
+              marginTop: 12,
+              marginBottom: HOME_SPACE.md,
+            }}
+          >
               <View
                 style={{
                   flexDirection: 'row',
@@ -357,7 +347,15 @@ export default function LoanDetailScreen() {
                 </View>
               ) : null}
             </View>
+          </View>
 
+        <ScrollView
+          style={{ flex: 1 }}
+          onScrollBeginDrag={closePanel}
+          contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 24) }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             {filterNonPrincipal ? (
               groupedByType.map(({ title, total, items }) => {
                 const groupedByDateForType = groupTransactionsByDate(items);

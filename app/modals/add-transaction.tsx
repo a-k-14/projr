@@ -110,7 +110,8 @@ export default function AddTransactionModal() {
     settlement,
     addMore,
     editDepositId,
-    closeDepositId } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string }>();
+    closeDepositId,
+    focusField } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string; focusField?: string }>();
   const isEditingDeposit = !!editDepositId && editDepositId !== '';
   const isClosingDeposit = !!closeDepositId && closeDepositId !== '' && !isEditingDeposit;
   const isEditing = !!editId || isEditingDeposit;
@@ -154,7 +155,11 @@ export default function AddTransactionModal() {
   const [depositBank, setDepositBank] = useState('');
   const [depositTenure, setDepositTenure] = useState('');
   const [depositInterest, setDepositInterest] = useState('');
+  const [depositMaturityStr, setDepositMaturityStr] = useState('');
   const [depositMaturityDate, setDepositMaturityDate] = useState<string | undefined>(undefined);
+  // Close-deposit split fields
+  const [closePrincipalStr, setClosePrincipalStr] = useState('');
+  const [closeInterestStr, setCloseInterestStr] = useState('');
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
   const [linkedAccountId, setLinkedAccountId] = useState('');
@@ -304,7 +309,7 @@ export default function AddTransactionModal() {
 
   // Hydrate form from existing deposit when editing or closing.
   useEffect(() => {
-    const depositId = editDepositId ?? closeDepositId;
+    const depositId = editDepositId || closeDepositId;
     if ((!isEditingDeposit && !isClosingDeposit) || !depositId) return;
     // Only hydrate once — prevent dep-change re-runs from overwriting user edits.
     if (isDepositHydratedRef.current) return;
@@ -319,15 +324,47 @@ export default function AddTransactionModal() {
 
     isDepositHydratedRef.current = true;
     setType('deposit');
-    setAmountStr(formatIndianNumberStr(String(isClosingDeposit ? (found.maturityValue ?? found.principalAmount) : found.principalAmount)));
+
+    // When closing: compute principal + interest split for the two-field form.
+    if (isClosingDeposit) {
+      const principal = found.principalAmount;
+      let maturity = found.maturityValue ?? principal;
+      if (!found.maturityValue && found.tenureMonths && found.interestRate) {
+        maturity = principal * Math.pow(1 + found.interestRate / 400, found.tenureMonths / 3);
+      }
+      const interest = Math.max(0, Math.round(maturity - principal));
+      setClosePrincipalStr(formatIndianNumberStr(String(Math.round(principal))));
+      setCloseInterestStr(interest > 0 ? formatIndianNumberStr(String(interest)) : '');
+    }
+
+    setAmountStr(formatIndianNumberStr(String(Math.round(found.principalAmount))));
     setAccountId(found.accountId);
     setDate(isClosingDeposit ? nowUTC() : found.startDate);
     setDepositName(found.name);
     setDepositBank(found.bankName ?? '');
     setDepositTenure(found.tenureMonths != null ? String(found.tenureMonths) : '');
     setDepositInterest(found.interestRate != null ? String(found.interestRate) : '');
+    if (!isClosingDeposit && found.maturityValue != null) {
+      setDepositMaturityStr(formatIndianNumberStr(String(Math.round(found.maturityValue))));
+    }
     setNote(isClosingDeposit ? '' : found.note ?? '');
   }, [closeDepositId, editDepositId, isClosingDeposit, isEditingDeposit, deposits, isDepositsLoaded, loadDeposits]);
+
+  // Auto-compute maturity value from principal + tenure + interest rate.
+  // Runs for new deposits and whenever the user changes core inputs while editing.
+  useEffect(() => {
+    if (type !== 'deposit' || isClosingDeposit) return;
+    const principal = parseFloat(parseFormattedNumber(amountStr)) || 0;
+    const tenure = parseInt(depositTenure.trim(), 10);
+    const interest = parseFloat(depositInterest.trim());
+    if (principal > 0 && Number.isFinite(tenure) && tenure > 0 && Number.isFinite(interest) && interest > 0) {
+      const quarters = tenure / 3;
+      const mv = principal * Math.pow(1 + interest / 400, quarters);
+      setDepositMaturityStr(formatIndianNumberStr(String(Math.round(mv))));
+    } else if (!isDepositHydratedRef.current) {
+      setDepositMaturityStr('');
+    }
+  }, [amountStr, depositTenure, depositInterest, type, isClosingDeposit]);
 
   useEffect(() => {
     if (!isEditing || !editId) return;
@@ -452,6 +489,8 @@ export default function AddTransactionModal() {
   }, [addMore, isEditing, routeLoanId, settlement]);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
+  const closePrincipal = parseFloat(parseFormattedNumber(closePrincipalStr)) || 0;
+  const closeInterest = parseFloat(parseFormattedNumber(closeInterestStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
   const lockTypeSelection = isEditingDeposit || isClosingDeposit || (isEditing && (isTransferEdit || (type === 'loan' && !!editingLoanId)));
   const lockLoanDirection = isLoanAddMore || (isEditing && type === 'loan' && !!editingLoanId);
@@ -508,7 +547,7 @@ export default function AddTransactionModal() {
   const hasNonZeroAmount = Number.isFinite(amount) && amount !== 0;
   const isValid =
     isClosingDeposit
-      ? amount > 0 && !!accountId
+      ? closePrincipal > 0 && !!accountId
       : type === 'deposit'
       ? amount > 0 && !!accountId && depositName.trim().length > 0
       : type === 'transfer'
@@ -568,7 +607,8 @@ export default function AddTransactionModal() {
       if (type === 'deposit') {
         if (isClosingDeposit && closeDepositId) {
           await closeDeposit(closeDepositId, {
-            amount,
+            principalAmount: closePrincipal,
+            interestAmount: closeInterest > 0 ? closeInterest : undefined,
             accountId,
             date,
             note: note.trim() || undefined,
@@ -590,12 +630,14 @@ export default function AddTransactionModal() {
           start.setMonth(start.getMonth() + tenureMonths);
           maturityDate = start.toISOString();
         }
-        // Quarterly-compounded maturity-value estimate (standard for Indian FDs).
+        // Use the maturity value from the editable field (auto-computed or user-overridden).
         let maturityValue: number | null = null;
-        if (tenureMonths && interestRate) {
-          const quartersElapsed = tenureMonths / 3;
-          const ratePerQuarter = (interestRate / 100) / 4;
-          maturityValue = amount * Math.pow(1 + ratePerQuarter, quartersElapsed);
+        const maturityParsed = parseFloat(parseFormattedNumber(depositMaturityStr));
+        if (Number.isFinite(maturityParsed) && maturityParsed > 0) {
+          maturityValue = maturityParsed;
+        } else if (tenureMonths && interestRate) {
+          // Fallback: quarterly-compounded estimate if field was empty.
+          maturityValue = amount * Math.pow(1 + interestRate / 400, tenureMonths / 3);
         }
 
         const depositPayload = {
@@ -1295,15 +1337,48 @@ export default function AddTransactionModal() {
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
               />
-              <AmountRow
-                sym={displaySym}
-                amountStr={amountStr}
-                setAmountStr={setAmountStr}
-                onOpenCalculator={handleOpenCalculator}
-                palette={palette}
-                accentColor={activeConfig.color}
-                autoFocus
-              />
+              {isClosingDeposit ? (
+                <>
+                  <InlineComboBox
+                    label="Principal"
+                    value={closePrincipalStr}
+                    onChange={setClosePrincipalStr}
+                    suggestions={[]}
+                    palette={palette}
+                    accentColor={activeConfig.color}
+                    keyboardType="decimal-pad"
+                    autoFocus={focusField !== 'interest'}
+                  />
+                  <InlineComboBox
+                    label="Interest"
+                    value={closeInterestStr}
+                    onChange={setCloseInterestStr}
+                    suggestions={[]}
+                    palette={palette}
+                    accentColor={activeConfig.color}
+                    keyboardType="decimal-pad"
+                    autoFocus={focusField === 'interest'}
+                  />
+                  {(closePrincipal > 0 || closeInterest > 0) && (
+                    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 10, flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
+                      <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.textSecondary }}>Total Received</Text>
+                      <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
+                        {displaySym}{formatCurrency(closePrincipal + closeInterest, '')}
+                      </Text>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <AmountRow
+                  sym={displaySym}
+                  amountStr={amountStr}
+                  setAmountStr={setAmountStr}
+                  onOpenCalculator={handleOpenCalculator}
+                  palette={palette}
+                  accentColor={activeConfig.color}
+                  autoFocus
+                />
+              )}
               {!isClosingDeposit ? (
                 <>
                   <InlineComboBox
@@ -1323,18 +1398,29 @@ export default function AddTransactionModal() {
                     accentColor={activeConfig.color}
                   />
                   <InlineComboBox
-                    label="Tenure (months)"
+                    label="Tenure"
                     value={depositTenure}
                     onChange={setDepositTenure}
                     suggestions={[]}
                     palette={palette}
                     accentColor={activeConfig.color}
                     keyboardType="number-pad"
+                    rightAnnotation="months"
                   />
                   <InlineComboBox
-                    label="Interest rate (%)"
+                    label="Interest %"
                     value={depositInterest}
                     onChange={setDepositInterest}
+                    suggestions={[]}
+                    palette={palette}
+                    accentColor={activeConfig.color}
+                    keyboardType="decimal-pad"
+                    rightAnnotation="p.a."
+                  />
+                  <InlineComboBox
+                    label="Maturity Value"
+                    value={depositMaturityStr}
+                    onChange={(v) => setDepositMaturityStr(formatIndianNumberStr(parseFormattedNumber(v)) || v)}
                     suggestions={[]}
                     palette={palette}
                     accentColor={activeConfig.color}

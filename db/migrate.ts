@@ -251,4 +251,39 @@ export async function runMigrations() {
   } catch (err) {
     console.warn('Icon migration patch error:', err);
   }
+
+  // Add system_key column to categories (system-reserved, non-editable by user)
+  try {
+    const catCols = await sqlite.getAllAsync<{ name: string }>('PRAGMA table_info(categories);');
+    if (!catCols.some((c) => c.name === 'system_key')) {
+      await sqlite.execAsync('ALTER TABLE categories ADD COLUMN system_key TEXT;');
+    }
+  } catch (err) {
+    console.warn('Migration patch (categories.system_key) error:', err);
+  }
+
+  // Seed system categories used internally (non-editable by user)
+  try {
+    // Parent: Automated — refresh-cw icon suggests recurring/automatic; system-managed
+    await sqlite.runAsync(`
+      INSERT OR IGNORE INTO categories (id, name, icon, color, type, system_key)
+      VALUES ('__sys_financial_income__', 'Automated', 'zap', '#16A34A', 'in', 'financial_income')
+    `);
+    // Child: Deposit Interest — percent icon; excluded from icon picker
+    await sqlite.runAsync(`
+      INSERT OR IGNORE INTO categories (id, name, parent_id, icon, color, type, system_key)
+      VALUES ('__sys_interest_on_deposit__', 'Deposit Interest', '__sys_financial_income__', 'percent', '#16A34A', 'in', 'interest_on_deposit')
+    `);
+    // Update name/icon for existing rows (INSERT OR IGNORE won't update already-seeded rows)
+    await sqlite.runAsync(`
+      UPDATE categories SET name = 'Automated', icon = 'cpu'
+      WHERE id = '__sys_financial_income__'
+    `);
+    await sqlite.runAsync(`
+      UPDATE categories SET name = 'Deposit Interest', icon = 'percent'
+      WHERE id = '__sys_interest_on_deposit__'
+    `);
+  } catch (err) {
+    console.warn('Migration patch (system categories) error:', err);
+  }
 }

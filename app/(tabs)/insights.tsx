@@ -20,13 +20,19 @@ import { SummaryCard } from '../../components/SummaryCard';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 
-import { getCashflowSnapshot } from '../../services/analytics';
+import { getCashflowSnapshot, getBalanceTrend, getIncomeExpenseByBuckets, getCategorySpendingByBuckets, getDailySpending } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate } from '../../lib/dateUtils';
 import { getLoanTransactionKind } from '../../lib/derived';
 import { TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING } from '../../lib/layoutTokens';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
+import { getTimeBuckets } from '../../lib/chartUtils';
+import { BalanceTrendChart } from '../../components/insights/BalanceTrendChart';
+import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart';
+import { CategoryStackedChart } from '../../components/insights/CategoryStackedChart';
+import { CashFlowCalendar } from '../../components/insights/CashFlowCalendar';
+import type { IncomeExpenseBucket, CategoryStackBucket } from '../../services/analytics';
 
 type HomePeriodType = 'today' | PeriodType;
 
@@ -80,6 +86,12 @@ export default function InsightsScreen() {
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [refreshing, setRefreshing] = useState(false);
+
+  const [balanceTrend, setBalanceTrend] = useState<{ date: string; balance: number }[]>([]);
+  const [incomeExpenseData, setIncomeExpenseData] = useState<IncomeExpenseBucket[]>([]);
+  const [categoryStackData, setCategoryStackData] = useState<CategoryStackBucket[]>([]);
+  const [topCategories, setTopCategories] = useState<{ categoryId: string; name: string }[]>([]);
+  const [dailySpending, setDailySpending] = useState<{ date: string; amount: number }[]>([]);
 
   const isDefaultView = period === 'week' && selectedChartCategoryId === null;
   const resetBtnPresence = useRef(new Animated.Value(0)).current;
@@ -148,14 +160,24 @@ export default function InsightsScreen() {
 
   const loadData = useCallback(async () => {
     const requestId = ++loadRequestIdRef.current;
-    const [snapshot, txs] = await Promise.all([
+    const buckets = getTimeBuckets(period, dateRange.from, dateRange.to);
+    const [snapshot, txs, trend, incExp, catSpending, dailySpend] = await Promise.all([
       getCashflowSnapshot('all', dateRange.from, dateRange.to),
       getTransactions({ fromDate: dateRange.from, toDate: dateRange.to }),
+      getBalanceTrend(dateRange.from, dateRange.to),
+      getIncomeExpenseByBuckets(buckets, dateRange.from, dateRange.to),
+      getCategorySpendingByBuckets(buckets, dateRange.from, dateRange.to, 5),
+      getDailySpending('all', dateRange.from, dateRange.to),
     ]);
     if (requestId !== loadRequestIdRef.current) return;
     setCashflow(snapshot.summary);
     setPeriodTransactions(txs);
-  }, [dateRange]);
+    setBalanceTrend(trend);
+    setIncomeExpenseData(incExp);
+    setCategoryStackData(catSpending.buckets);
+    setTopCategories(catSpending.topCategories);
+    setDailySpending(dailySpend);
+  }, [dateRange, period]);
 
   useEffect(() => {
     loadData();
@@ -309,6 +331,24 @@ export default function InsightsScreen() {
             }}
           />
         </View>
+
+        <View style={{ height: 12 }} />
+
+        <BalanceTrendChart data={balanceTrend} palette={palette} sym={showCurrencySymbol ? currencySymbol : ''} period={period} />
+        <IncomeExpenseChart data={incomeExpenseData} palette={palette} sym={showCurrencySymbol ? currencySymbol : ''} period={period} />
+        <CategoryStackedChart
+          data={categoryStackData}
+          palette={palette}
+          sym={showCurrencySymbol ? currencySymbol : ''}
+          topCategories={topCategories}
+        />
+        <CashFlowCalendar
+          data={dailySpending}
+          fromDate={dateRange.from}
+          toDate={dateRange.to}
+          palette={palette}
+          sym={showCurrencySymbol ? currencySymbol : ''}
+        />
       </ReAnimated.ScrollView>
 
       <Modal

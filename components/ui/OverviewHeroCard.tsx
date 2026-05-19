@@ -35,6 +35,7 @@ export function OverviewHeroCard({
   footerValueColor,
   footerNote,
   footerNoteColor,
+  footerMetrics,
 }: {
   palette: AppThemePalette;
   icon?: string;
@@ -57,6 +58,7 @@ export function OverviewHeroCard({
   footerValueColor: string;
   footerNote?: string;
   footerNoteColor?: string;
+  footerMetrics?: { key: string; label: string; value: string; valueColor?: string }[];
 }) {
   const showProgress =
     progressLabelLeft !== undefined &&
@@ -151,16 +153,31 @@ export function OverviewHeroCard({
         </View>
       ) : null}
 
-      {(footerLabel || footerValue) ? (
-        <View style={[styles.footerBlock, { marginTop: showProgress ? HOME_SPACE.lg : HOME_SPACE.md }]}>
-          <View style={styles.footer}>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
-              {footerLabel}
-            </Text>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: footerValueColor }}>
-              {footerValue}
-            </Text>
-          </View>
+      {(footerLabel || footerValue || footerMetrics) ? (
+        <View style={[styles.footerBlock, { marginTop: footerMetrics ? 18 : (showProgress ? HOME_SPACE.lg : HOME_SPACE.md) }]}>
+          {footerMetrics ? (
+            <View style={styles.footer}>
+              {footerMetrics.map((m, i) => (
+                <View key={m.key} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: i === footerMetrics.length - 1 ? 'flex-end' : 'flex-start' }}>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted }}>
+                    {m.label}
+                  </Text>
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.regular, color: m.valueColor ?? palette.text }}>
+                    {m.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.footer}>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
+                {footerLabel}
+              </Text>
+              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: footerValueColor }}>
+                {footerValue}
+              </Text>
+            </View>
+          )}
           {footerNote ? (
             <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: footerNoteColor ?? palette.textSecondary, marginTop: 5 }}>
               {footerNote}
@@ -177,7 +194,7 @@ const styles = {
     borderRadius: HOME_RADIUS.card,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 16,
+    paddingBottom: 10,
     borderWidth: 1,
     elevation: 6,
     shadowColor: '#94A3B8',

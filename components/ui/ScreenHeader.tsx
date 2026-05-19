@@ -94,6 +94,27 @@ export function HeaderEditButton({
   );
 }
 
+export function HeaderMoreButton({
+  palette,
+  isOpen,
+  onPress,
+}: {
+  palette: AppThemePalette;
+  isOpen: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      delayPressIn={0}
+      activeOpacity={0.75}
+      onPress={onPress}
+      style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <AppIcon name={isOpen ? 'x' : 'more-vertical'} size={18} color={palette.text} strokeWidth={2} />
+    </TouchableOpacity>
+  );
+}
+
 export function ScreenHeader({
   title,
   palette,

@@ -113,22 +113,24 @@ export default function CategoriesScreen() {
                       {subs.length}
                     </Text>
                   )}
-                  <TouchableOpacity delayPressIn={0}
-                    onPress={() =>
-                      router.push({ pathname: '/settings/category-form', params: { id: cat.id } })
-                    }
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 4 }}
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 8,
-                      backgroundColor: palette.isDark ? 'rgba(255,255,255,0.04)' : palette.background,
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <AppIcon name="edit-2" size={14} color={palette.iconTint} />
-                  </TouchableOpacity>
+                  {!cat.systemKey && (
+                    <TouchableOpacity delayPressIn={0}
+                      onPress={() =>
+                        router.push({ pathname: '/settings/category-form', params: { id: cat.id } })
+                      }
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 4 }}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 8,
+                        backgroundColor: palette.isDark ? 'rgba(255,255,255,0.04)' : palette.background,
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <AppIcon name="edit-2" size={14} color={palette.iconTint} />
+                    </TouchableOpacity>
+                  )}
                   <AppChevron direction={isOpen ? 'up' : 'down'} size={18} tone="secondary" palette={palette} />
                 </TouchableOpacity>
 
@@ -174,6 +176,25 @@ export default function CategoriesScreen() {
                         }}
                       >
                         <Text style={{ fontSize: TYPE.body, color: palette.textSoft }}>No subcategories</Text>
+                      </View>
+                    )}
+                    {cat.systemKey && (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                          paddingHorizontal: CARD_PADDING,
+                          paddingVertical: 10,
+                          borderTopWidth: 1,
+                          borderTopColor: palette.divider,
+                          backgroundColor: palette.background,
+                        }}
+                      >
+                        <AppIcon name="lock" size={13} color={palette.iconTint} strokeWidth={2} />
+                        <Text style={{ flex: 1, fontSize: TYPE.caption, color: palette.textSecondary, lineHeight: 18 }}>
+                          This category is used by the app for automatic transactions.
+                        </Text>
                       </View>
                     )}
                   </View>

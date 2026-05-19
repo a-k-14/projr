@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { ScrollView, View , TouchableOpacity } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import {
   ActionButton,
   ChoiceRow,
@@ -75,6 +76,20 @@ export default function CategoryFormScreen() {
 
   const editingCategory = id ? categories.find((c) => c.id === id) : undefined;
   const isSubcategory = !!editingCategory?.parentId;
+  const isSystem = !!editingCategory?.systemKey;
+
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeOffset.value }] }));
+
+  function triggerSystemShake() {
+    shakeOffset.value = withSequence(
+      withTiming(8, { duration: 50 }),
+      withTiming(-8, { duration: 50 }),
+      withTiming(8, { duration: 50 }),
+      withTiming(0, { duration: 50 }),
+    );
+    showAlert('System Category', 'This category is used internally to track interest income from deposits and cannot be edited.');
+  }
 
   useEffect(() => {
     if (!isCategoriesLoaded) loadCategories().catch(() => undefined);
@@ -241,13 +256,15 @@ export default function CategoryFormScreen() {
         scrollRef={formScrollRef}
         bottomActions={
           <FixedBottomActions palette={palette}>
-            <ActionButton
-              label={isEditing ? 'Save' : 'Create Category'}
-              variant="primary"
-              palette={palette}
-              onPress={onSave}
-            />
-            {isEditing ? (
+            {!isSystem && (
+              <ActionButton
+                label={isEditing ? 'Save' : 'Create Category'}
+                variant="primary"
+                palette={palette}
+                onPress={onSave}
+              />
+            )}
+            {isEditing && !isSystem ? (
               <ActionButton
                 label="Delete Category"
                 variant="danger"
@@ -260,10 +277,18 @@ export default function CategoryFormScreen() {
       >
         <View style={{ gap: SPACING.md }}>
           <SectionLabel label="General Info" palette={palette} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.md }}>
+          {isSystem && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, backgroundColor: `${palette.brand}14`, marginBottom: 4 }}>
+              <AppIcon name="lock" size={14} color={palette.brand} strokeWidth={2} />
+              <Text style={{ fontSize: 13, color: palette.brand, flex: 1 }}>
+                System category — used to track interest income from deposits.
+              </Text>
+            </View>
+          )}
+          <Animated.View style={[{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.md }, shakeStyle]}>
             <TouchableOpacity
               delayPressIn={0}
-              onPress={() => runAfterKeyboardDismiss(() => setShowIconPicker(true))}
+              onPress={() => isSystem ? triggerSystemShake() : runAfterKeyboardDismiss(() => setShowIconPicker(true))}
               activeOpacity={0.7}
               style={{
                 width: 56,
@@ -288,12 +313,14 @@ export default function CategoryFormScreen() {
               <InputField
                 palette={palette}
                 value={name}
-                onChangeText={setName}
+                onChangeText={isSystem ? () => triggerSystemShake() : setName}
+                onFocus={isSystem ? () => triggerSystemShake() : undefined}
                 placeholder="Category name"
-                autoFocus={!isEditing}
+                autoFocus={!isEditing && !isSystem}
+                editable={!isSystem}
               />
             </View>
-          </View>
+          </Animated.View>
 
           {!hideTypePicker && (
             <SelectTrigger

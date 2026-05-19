@@ -1,10 +1,11 @@
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { db } from '../db/client';
-import { transactions } from '../db/schema';
+import { transactions, accounts as accountsTable } from '../db/schema';
 import { getTransactionCashflowImpact } from '../lib/derived';
-import { toLocalDateKey } from '../lib/dateUtils';
+import { toLocalDateKey, toLocalDayEndISO } from '../lib/dateUtils';
 import type { CashflowSummary, DailySpending, CategoryBreakdown, DailyCashflow } from '../types';
 import { getCategories } from './categories';
+import type { TimeBucket } from '../lib/chartUtils';
 
 function safeLocalDateKey(value: string | null | undefined): string {
   if (!value) return '';
@@ -122,6 +123,160 @@ export async function getDailyCashflow(
 ): Promise<DailyCashflow[]> {
   const snapshot = await getCashflowSnapshot(accountId, fromDate, toDate);
   return snapshot.daily;
+}
+
+export async function getBalanceTrend(
+  fromDate: string,
+  toDate: string,
+): Promise<{ date: string; balance: number }[]> {
+  // 1. Current total balance across all accounts
+  const accountRows = await db.select({ balance: accountsTable.balance }).from(accountsTable);
+  const currentBalance = accountRows.reduce((sum, r) => sum + r.balance, 0);
+
+  // 2. All transactions from fromDate to end of today (to reverse back to fromDate)
+  const todayEnd = toLocalDayEndISO(new Date());
+  const rows = await getTransactionsInRange('all', fromDate, todayEnd);
+
+  if (rows.length === 0 && currentBalance === 0) return [];
+
+  // 3. Build delta map: day -> net cashflow impact
+  const deltaByDay = new Map<string, number>();
+  for (const row of rows) {
+    const dayKey = safeLocalDateKey(row.date);
+    if (!dayKey) continue;
+    const impact = getTransactionCashflowImpact(row, { includeLoans: true, includeTransfers: false });
+    const delta = impact === 'in' ? row.amount : impact === 'out' ? -row.amount : 0;
+    if (delta !== 0) {
+      deltaByDay.set(dayKey, (deltaByDay.get(dayKey) ?? 0) + delta);
+    }
+  }
+
+  // 4. Build all days in [fromDate..toDate]
+  const fromDateKey = fromDate.split('T')[0];
+  const toDateKey2 = toDate.split('T')[0];
+  const days: string[] = [];
+  const cur = new Date(
+    ...([...fromDateKey.split('-').map(Number)] as [number, number, number]).map((v, i) =>
+      i === 1 ? v - 1 : v
+    ) as [number, number, number],
+    12, 0, 0,
+  );
+  while (true) {
+    const key = `${cur.getFullYear()}-${(cur.getMonth() + 1).toString().padStart(2, '0')}-${cur.getDate().toString().padStart(2, '0')}`;
+    days.push(key);
+    if (key >= toDateKey2) break;
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  // 5. endBalance = currentBalance minus all deltas AFTER toDate
+  let endBalance = currentBalance;
+  for (const [day, delta] of deltaByDay.entries()) {
+    if (day > toDateKey2) {
+      endBalance -= delta;
+    }
+  }
+
+  // 6. Walk backwards from end to start
+  const result: { date: string; balance: number }[] = new Array(days.length);
+  let bal = endBalance;
+  for (let i = days.length - 1; i >= 0; i--) {
+    result[i] = { date: days[i], balance: bal };
+    bal -= deltaByDay.get(days[i]) ?? 0;
+  }
+
+  return result;
+}
+
+export type IncomeExpenseBucket = { label: string; income: number; expense: number };
+
+export async function getIncomeExpenseByBuckets(
+  buckets: TimeBucket[],
+  fromDate: string,
+  toDate: string,
+): Promise<IncomeExpenseBucket[]> {
+  const rows = await getTransactionsInRange('all', fromDate, toDate);
+
+  return buckets.map((bucket) => {
+    const bucketFrom = bucket.from.split('T')[0];
+    const bucketTo = bucket.to.split('T')[0];
+    let income = 0;
+    let expense = 0;
+    for (const row of rows) {
+      const dayKey = safeLocalDateKey(row.date);
+      if (!dayKey || dayKey < bucketFrom || dayKey > bucketTo) continue;
+      const impact = getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false });
+      if (impact === 'in') income += row.amount;
+      else if (impact === 'out') expense += row.amount;
+    }
+    return { label: bucket.label, income, expense };
+  });
+}
+
+export type CategoryTotal = { categoryId: string; name: string; amount: number };
+export type CategoryStackBucket = { label: string; categoryTotals: CategoryTotal[] };
+export type CategorySpendingResult = {
+  buckets: CategoryStackBucket[];
+  topCategories: { categoryId: string; name: string }[];
+};
+
+export async function getCategorySpendingByBuckets(
+  buckets: TimeBucket[],
+  fromDate: string,
+  toDate: string,
+  topN = 5,
+): Promise<CategorySpendingResult> {
+  const [rows, allCategories] = await Promise.all([
+    getTransactionsInRange('all', fromDate, toDate),
+    getCategories(),
+  ]);
+  const catNameById = new Map(allCategories.map((c) => [c.id, c.name]));
+
+  // Determine top N categories by total spending
+  const totalByCat = new Map<string, number>();
+  for (const row of rows) {
+    if (getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false }) !== 'out') continue;
+    if (!row.categoryId) continue;
+    totalByCat.set(row.categoryId, (totalByCat.get(row.categoryId) ?? 0) + row.amount);
+  }
+  const sortedCats = [...totalByCat.entries()].sort((a, b) => b[1] - a[1]);
+  const topCatIds = new Set(sortedCats.slice(0, topN).map(([id]) => id));
+  const topCategories = sortedCats.slice(0, topN).map(([id]) => ({
+    categoryId: id,
+    name: catNameById.get(id) ?? 'Unknown',
+  }));
+
+  const resultBuckets: CategoryStackBucket[] = buckets.map((bucket) => {
+    const bucketFrom = bucket.from.split('T')[0];
+    const bucketTo = bucket.to.split('T')[0];
+    const bucketByCat = new Map<string, number>();
+    let othersTotal = 0;
+
+    for (const row of rows) {
+      const dayKey = safeLocalDateKey(row.date);
+      if (!dayKey || dayKey < bucketFrom || dayKey > bucketTo) continue;
+      if (getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false }) !== 'out') continue;
+      const catId = row.categoryId ?? '__uncategorized__';
+      if (topCatIds.has(catId)) {
+        bucketByCat.set(catId, (bucketByCat.get(catId) ?? 0) + row.amount);
+      } else {
+        othersTotal += row.amount;
+      }
+    }
+
+    const categoryTotals: CategoryTotal[] = topCategories.map(({ categoryId, name }) => ({
+      categoryId,
+      name,
+      amount: bucketByCat.get(categoryId) ?? 0,
+    }));
+
+    if (othersTotal > 0) {
+      categoryTotals.push({ categoryId: '__others__', name: 'Others', amount: othersTotal });
+    }
+
+    return { label: bucket.label, categoryTotals };
+  });
+
+  return { buckets: resultBuckets, topCategories };
 }
 
 export async function getCategoryBreakdown(

@@ -1,6 +1,4 @@
-import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
-import { AppIcon } from '@/components/ui/AppIcon';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -9,20 +7,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudgetMonth } from '../components/budget-ui';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
-import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
+import { BudgetListCard, BudgetOverviewCard } from '../components/ui/cards';
 import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
 import { formatCurrency } from '../lib/derived';
 import { SCREEN_GUTTER } from '../lib/design';
-import { ACTIVITY_LAYOUT, CARD_TEXT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_SPACE } from '../lib/layoutTokens';
 import { getCategoryDisplayIcon } from '../lib/category-utils';
 import { registerTabReset } from '../lib/tabResetRegistry';
-import { useAppTheme, type AppThemePalette } from '../lib/theme';
-import { isEmojiIcon } from '../lib/ui-format';
-import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
+import { useAppTheme } from '../lib/theme';
 import { useBudgetStore } from '../stores/useBudgetStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useUIStore } from '../stores/useUIStore';
-import type { BudgetWithSpent } from '../types';
 
 function monthStartIso(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0).toISOString();
@@ -147,7 +142,7 @@ export default function BudgetScreen() {
         {monthBudgets.length > 0 ? (
           <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
             {monthBudgets.map((budget) => (
-              <BudgetCard
+              <BudgetListCard
                 key={budget.id}
                 budget={budget}
                 sym={sym}
@@ -186,130 +181,3 @@ export default function BudgetScreen() {
   );
 }
 
-function BudgetOverviewCard({
-  palette,
-  monthLabel,
-  totalBudgeted,
-  totalSpent,
-  totalRemaining,
-  overBudgetCount,
-  sym }: {
-    palette: AppThemePalette;
-    monthLabel: string;
-    totalBudgeted: number;
-    totalSpent: number;
-    totalRemaining: number;
-    overBudgetCount: number;
-    sym: string;
-  }) {
-  const hasBudgetSet = totalBudgeted > 0;
-  const isOver = hasBudgetSet && totalRemaining < 0;
-  const progress = totalBudgeted > 0 ? Math.min(totalSpent / totalBudgeted, 1) : 0;
-  const usageText = totalBudgeted > 0 ? `${Math.round((totalSpent / totalBudgeted) * 100)}% used` : 'Not set';
-  const statusLabel = hasBudgetSet ? (isOver ? 'Over' : 'Left') : 'No budget set';
-  const statusValue = hasBudgetSet
-    ? formatCurrency(Math.abs(totalRemaining), sym)
-    : '';
-
-  return (
-    <OverviewHeroCard
-      palette={palette}
-      icon="pie-chart"
-      iconBg="#F0EFFA"
-      iconColor="#5A56A3"
-      eyebrow="Budget overview"
-      title={monthLabel}
-      badgeLabel={monthBudgetsLabel(totalBudgeted, overBudgetCount)}
-      badgeBg={totalBudgeted <= 0 ? palette.background : overBudgetCount > 0 ? palette.outBg : palette.inBg}
-      badgeColor={totalBudgeted <= 0 ? palette.textSecondary : overBudgetCount > 0 ? palette.negative : palette.positive}
-      metrics={[
-        { key: 'budgeted', label: 'Budgeted', value: formatCurrency(totalBudgeted, sym), valueColor: palette.text },
-        { key: 'spent', label: 'Spent', value: formatCurrency(totalSpent, sym), valueColor: isOver ? palette.negative : palette.text },
-      ]}
-      progressLabelLeft={usageText}
-      progressLabelRight=""
-      progressPercent={progress * 100}
-      progressColor={palette.budget}
-      progressTrackColor={palette.budgetSoft}
-      footerLabel={statusLabel}
-      footerValue={statusValue}
-      footerValueColor={isOver ? palette.negative : palette.budget}
-    />
-  );
-}
-
-function monthBudgetsLabel(totalBudgeted: number, overBudgetCount: number) {
-  if (totalBudgeted <= 0) return 'Not set';
-  return overBudgetCount > 0 ? 'Overspent' : 'On track';
-}
-
-function BudgetCard({
-  budget,
-  sym,
-  palette,
-  categoryLabel,
-  categoryIcon,
-  onPress }: {
-    budget: BudgetWithSpent;
-    sym: string;
-    palette: AppThemePalette;
-    categoryLabel: string;
-    categoryIcon: string;
-    onPress: () => void;
-  }) {
-  const isOver = budget.amount > 0 && budget.remaining < 0;
-
-  return (
-    <AppCard
-      palette={palette}
-      onPress={onPress}
-      style={{ 
-        marginBottom: HOME_SPACE.md,
-        borderWidth: 1,
-        borderColor: palette.border,
-        borderRadius: HOME_RADIUS.card,
-      }}
-      icon={isEmojiIcon(categoryIcon) ? (
-        <Text style={{ fontSize: HOME_TEXT.rowLabel }}>{categoryIcon}</Text>
-      ) : (
-        <AppIcon name={categoryIcon as any} size={17} color={palette.budget} />
-      )}
-      topRow={
-        <CardTitleRow
-          title={categoryLabel}
-          amount={formatCurrency(budget.amount, sym)}
-          palette={palette}
-        />
-      }
-      bottomRow={
-        <CardSubtitleRow
-          text={budget.repeat ? 'Repeats monthly' : `One-time • ${formatBudgetMonthLabel(budget.startDate)}`}
-          rightText={`Spent ${formatCurrency(budget.spent, sym)}`}
-          palette={palette}
-        />
-      }
-      footer={
-        <>
-          <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
-            <View
-              style={{
-                height: PROGRESS.cardHeight,
-                width: `${Math.min(Math.max(budget.percent, 0), 100)}%`,
-                backgroundColor: palette.budget,
-                borderRadius: PROGRESS.radius
-              }}
-            />
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: HOME_SPACE.sm }}>
-            <Text style={{ fontSize: CARD_TEXT.tertiary, color: isOver ? palette.negative : palette.textMuted }}>
-              {Math.round(budget.percent)}%
-            </Text>
-            <Text style={{ fontSize: CARD_TEXT.tertiary, color: isOver ? palette.negative : palette.textMuted }}>
-              {isOver ? `Over ${formatCurrency(Math.abs(budget.remaining), sym)}` : `Left ${formatCurrency(budget.remaining, sym)}`}
-            </Text>
-          </View>
-        </>
-      }
-    />
-  );
-}

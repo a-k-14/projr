@@ -12,6 +12,7 @@ function rowToCategory(row: typeof categories.$inferSelect): Category {
     icon: row.icon,
     color: row.color,
     type: row.type as Category['type'],
+    systemKey: row.systemKey ?? undefined,
   };
 }
 
@@ -44,6 +45,11 @@ export async function getCategories(): Promise<Category[]> {
 
 export async function getCategoryById(id: string): Promise<Category | null> {
   const rows = await db.select().from(categories).where(eq(categories.id, id));
+  return rows[0] ? rowToCategory(rows[0]) : null;
+}
+
+export async function getCategoryBySystemKey(key: string): Promise<Category | null> {
+  const rows = await db.select().from(categories).where(eq(categories.systemKey, key));
   return rows[0] ? rowToCategory(rows[0]) : null;
 }
 

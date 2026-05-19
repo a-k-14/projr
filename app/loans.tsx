@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/AppText';
-import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
@@ -25,17 +25,14 @@ import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../components/ui/ListHeading';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
-import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
-import { AppCard, CardTitleRow, CardSubtitleRow } from '../components/ui/AppCard';
+import { LoanListCard, LoanOverviewCard } from '../components/ui/cards';
 import { formatCurrency, getLoanSummary } from '../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../lib/design';
 import {
   ACTIVITY_LAYOUT,
   BUTTON_TOKENS,
-  HOME_LAYOUT,
   HOME_RADIUS,
   HOME_TEXT,
-  PROGRESS
 } from '../lib/layoutTokens';
 import { registerTabReset } from '../lib/tabResetRegistry';
 import { useAppTheme, type AppThemePalette } from '../lib/theme';
@@ -57,100 +54,7 @@ const DIRECTION_OPTIONS = [
 ] as const;
 const SHOW_EMPTY_STATE_PREVIEW = false;
 
-function LoanRow({
-  loan,
-  accountName,
-  sym,
-  palette,
-  onPressLoan }: {
-    loan: LoanWithSummary;
-    accountName?: string;
-    sym: string;
-    palette: AppThemePalette;
-    onPressLoan: (loanId: string) => void;
-  }) {
-  const isLent = loan.direction === 'lent';
-  const dirColor = isLent ? palette.negative : palette.positive;
-  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.positive);
-  const directionLabel = isLent ? 'Lent' : 'Borrowed';
-  const progressPercent = loan.repaidPercent;
-  const balanceAmount = loan.pendingAmount;
-  return (
-    <View style={{ marginBottom: 12, position: 'relative' }}>
-      <AppCard
-        palette={palette}
-        onPress={() => onPressLoan(loan.id)}
-        style={{
-          marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-          borderRadius: HOME_RADIUS.card,
-          borderWidth: 1,
-          borderColor: palette.border,
-          paddingTop: loan.status === 'closed' ? 28 : 14,
-          paddingBottom: loan.status === 'closed' ? 16 : 14,
-        }}
-        icon={<AppIcon name={isLent ? 'arrow-up-right' : 'arrow-down-left'} size={Math.round(HOME_LAYOUT.listIconSize * 0.45)} color={dirColor} />}
-        iconBg={isLent ? palette.outBg : palette.inBg}
-        topRow={
-          <CardTitleRow
-            title={loan.personName}
-            secondary={directionLabel}
-            amount={formatCurrency(loan.givenAmount, sym)}
-            palette={palette}
-          />
-        }
-        bottomRow={
-          <CardSubtitleRow
-            text={`${formatLoanRowDate(loan.date)} \u2022 ${accountName ?? 'Unknown account'}`}
-            rightText={`Bal ${formatCurrency(balanceAmount, sym)}`}
-            palette={palette}
-          />
-        }
-        footer={
-          <View
-            style={{
-              height: PROGRESS.cardHeight,
-              backgroundColor: palette.divider,
-              borderRadius: PROGRESS.radius,
-              overflow: 'hidden'
-            }}
-          >
-            <View
-              style={{
-                height: PROGRESS.cardHeight,
-                width: `${progressPercent}%`,
-                backgroundColor: progressColor,
-                borderRadius: PROGRESS.radius
-              }}
-            />
-          </View>
-        }
-      />
-      {loan.status === 'closed' && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: ACTIVITY_LAYOUT.headerPaddingX,
-            minHeight: 22,
-            paddingHorizontal: 8,
-            borderTopRightRadius: HOME_RADIUS.card,
-            borderBottomLeftRadius: HOME_RADIUS.card,
-            borderWidth: 1,
-            borderColor: palette.border,
-            backgroundColor: palette.border,
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2
-          }}
-        >
-          <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, color: palette.textSecondary }}>Closed</Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
-const MemoizedLoanRow = memo(LoanRow);
+const MemoizedLoanRow = memo(LoanListCard);
 
 export default function LoansScreen() {
   const isFocused = useIsFocused();
@@ -290,7 +194,7 @@ export default function LoansScreen() {
           accountName={accountName}
           sym={sym}
           palette={palette}
-          onPressLoan={openLoanDetail}
+          onPress={() => openLoanDetail(item.id)}
         />
       );
     },
@@ -384,12 +288,11 @@ export default function LoansScreen() {
         ListHeaderComponent={
           <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
             <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: 12 }}>
-              <LoanSummaryCard
+              <LoanOverviewCard
                 lent={summary.youLent}
                 borrowed={summary.youOwe}
                 net={summary.net}
                 netPositive={netPositive}
-                openCount={loans.filter(l => l.status === 'open').length}
                 sym={sym}
                 palette={palette}
               />
@@ -602,47 +505,6 @@ export default function LoansScreen() {
   );
 }
 
-function LoanSummaryCard({
-  lent,
-  borrowed,
-  net,
-  netPositive,
-  openCount,
-  sym,
-  palette }: {
-    lent: number;
-    borrowed: number;
-    net: number;
-    netPositive: boolean;
-    openCount: number;
-    sym: string;
-    palette: AppThemePalette;
-  }) {
-  const isZero = borrowed === 0 && lent === 0;
-  const badgeLabel = '';
-  const footerLabel = isZero ? 'Net' : netPositive ? 'Net Lent' : 'Net Owed';
-
-  return (
-    <OverviewHeroCard
-      palette={palette}
-      icon="hand-coins"
-      iconBg="#E8F0F3"
-      iconColor="#4F6B7A"
-      eyebrow="Loans Overview"
-      title="Current Position"
-      badgeLabel={badgeLabel}
-      badgeBg={isZero ? palette.background : palette.brandSoft}
-      badgeColor={isZero ? palette.textSecondary : palette.brand}
-      metrics={[
-        { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
-        { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },
-      ]}
-      footerLabel={footerLabel}
-      footerValue={formatCurrency(Math.abs(net), sym)}
-      footerValueColor={isZero ? palette.textMuted : palette.brand}
-    />
-  );
-}
 
 const styles = StyleSheet.create({
   topBar: {
@@ -752,10 +614,3 @@ function endOfDayIso(date: Date) {
   return next.toISOString();
 }
 
-function formatLoanRowDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-}

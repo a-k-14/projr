@@ -1,5 +1,7 @@
-import { HeaderEditButton, ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderMoreButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { ActionStrip } from '../../components/ui/ActionStrip';
 import { getCompactScrollableBottomPadding } from '@/components/ui/safeBottom';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -10,6 +12,8 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { ActionChip } from '../../components/ui/AppButton';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import { getRelativeDateLabel, toLocalDateKey } from '../../lib/dateUtils';
@@ -46,6 +50,23 @@ export default function BudgetDetailScreen() {
 
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const panelProgress = useSharedValue(0);
+
+  const toggleActions = () => {
+    const nextShow = !showActions;
+    setShowActions(nextShow);
+    panelProgress.value = withTiming(nextShow ? 1 : 0, { duration: 220 });
+  };
+  const closePanel = () => {
+    setShowActions(false);
+    panelProgress.value = withTiming(0, { duration: 220 });
+  };
+
+  const actionsAnimatedStyle = useAnimatedStyle(() => ({
+    height: panelProgress.value * 56,
+    opacity: panelProgress.value,
+  }));
 
   const budget = budgets.find((b) => b.id === id);
 
@@ -75,7 +96,6 @@ export default function BudgetDetailScreen() {
   const isOver = budget.amount > 0 && budget.remaining < 0;
   const categoryLabel = getCategoryFullDisplayName(budget.categoryId, ' › ');
 
-  // Group transactions by date
   const groups: { dateKey: string; items: Transaction[] }[] = [];
   for (const tx of txns) {
     const key = toLocalDateKey(tx.date);
@@ -99,19 +119,30 @@ export default function BudgetDetailScreen() {
                 showBack={true}
                 titleSize={SCREEN_HEADER.detailTitleSize}
                 rightAction={
-                  <HeaderEditButton
-                    palette={palette}
-                    onPress={() => router.push({ pathname: '/modals/budget-form', params: { budgetId: budget.id } })}
-                  />
+                  <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
                 }
               />
             </View>
           )
         }}
       />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: getCompactScrollableBottomPadding(insets) }}>
+
+      <View style={{ flex: 1 }}>
+        {/* Action strip */}
+        <ActionStrip palette={palette} animatedStyle={actionsAnimatedStyle}>
+          <ActionChip
+            icon="edit-2"
+            label="Edit"
+            palette={palette}
+            onPress={() => {
+              closePanel();
+              router.push({ pathname: '/modals/budget-form', params: { budgetId: budget.id } });
+            }}
+          />
+        </ActionStrip>
+
+        {/* Hero card — sticky outside ScrollView */}
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SPACE.md }}>
-          {/* Budget summary card */}
           <View
             style={{
               backgroundColor: palette.surface,
@@ -160,57 +191,67 @@ export default function BudgetDetailScreen() {
               </View>
             </View>
           </View>
-
-          {/* Transaction list */}
-          {txnsLoading ? (
-            <ActivityIndicator color={palette.brand} style={{ marginTop: HOME_SPACE.lg }} />
-          ) : txns.length === 0 ? (
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, textAlign: 'center', paddingVertical: HOME_SPACE.xl }}>
-              No transactions this month
-            </Text>
-          ) : (
-            <View style={{ gap: HOME_SPACE.sm + 4, marginBottom: HOME_SPACE.md }}>
-              {groups.map(({ dateKey, items }) => {
-                const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00');
-                return (
-                  <View key={dateKey}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.sm, paddingHorizontal: 2 }}>
-                      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{date}</Text>
-                      {label ? (
-                        <>
-                          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginHorizontal: 5 }}>•</Text>
-                          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{label}</Text>
-                        </>
-                      ) : null}
-                    </View>
-                    <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
-                      {items.map((tx, i) => (
-                        <TouchableOpacity
-                          key={tx.id}
-                          delayPressIn={0}
-                          activeOpacity={0.75}
-                          onPress={() => router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } })}
-                        >
-                          <TransactionListItem
-                            tx={tx}
-                            sym={sym}
-                            palette={palette}
-                            isLast={i === items.length - 1}
-                            categoryName={getCategoryFullDisplayName(tx.categoryId ?? '', ' › ')}
-                            categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
-                            accountName={accountsById.get(tx.accountId)}
-                            showAmountSign={false}
-                          />
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
         </View>
-      </ScrollView>
+
+        {/* Scrollable transaction list */}
+        <ScrollView
+          style={{ flex: 1 }}
+          onScrollBeginDrag={closePanel}
+          contentContainerStyle={{ paddingBottom: getCompactScrollableBottomPadding(insets) }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
+            {txnsLoading ? (
+              <ActivityIndicator color={palette.brand} style={{ marginTop: HOME_SPACE.lg }} />
+            ) : txns.length === 0 ? (
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, textAlign: 'center', paddingVertical: HOME_SPACE.xl }}>
+                No transactions this month
+              </Text>
+            ) : (
+              <View style={{ gap: HOME_SPACE.sm + 4, marginBottom: HOME_SPACE.md }}>
+                {groups.map(({ dateKey, items }) => {
+                  const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00');
+                  return (
+                    <View key={dateKey}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.sm, paddingHorizontal: 2 }}>
+                        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{date}</Text>
+                        {label ? (
+                          <>
+                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginHorizontal: 5 }}>•</Text>
+                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{label}</Text>
+                          </>
+                        ) : null}
+                      </View>
+                      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
+                        {items.map((tx, i) => (
+                          <TouchableOpacity
+                            key={tx.id}
+                            delayPressIn={0}
+                            activeOpacity={0.75}
+                            onPress={() => router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } })}
+                          >
+                            <TransactionListItem
+                              tx={tx}
+                              sym={sym}
+                              palette={palette}
+                              isLast={i === items.length - 1}
+                              categoryName={getCategoryFullDisplayName(tx.categoryId ?? '', ' › ')}
+                              categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
+                              accountName={accountsById.get(tx.accountId)}
+                              showAmountSign={false}
+                            />
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </View>
     </View>
   );
 }
+

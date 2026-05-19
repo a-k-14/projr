@@ -17,7 +17,8 @@ import { HomeAccountPage } from '../(tabs)/index';
 import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
 import type { HomeChartMode } from '../../components/HomeDonutChartBlock';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { ActionStrip } from '../../components/ui/ActionStrip';
+import { HeaderMoreButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { getTotalBalance } from '../../lib/derived';
@@ -149,14 +150,7 @@ export default function AccountDetailScreen() {
                 palette={palette}
                 titleSize={SCREEN_HEADER.detailTitleSize}
                 rightAction={
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    activeOpacity={0.75}
-                    onPress={toggleActions}
-                    style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <AppIcon name={showActions ? 'x' : 'more-vertical'} size={18} color={palette.text} strokeWidth={2} />
-                  </TouchableOpacity>
+                  <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
                 }
               />
             </View>
@@ -164,8 +158,7 @@ export default function AccountDetailScreen() {
         }}
       />
 
-      <Animated.View style={[actionsAnimatedStyle, { backgroundColor: palette.isDark ? palette.surface : '#EAEDF4', overflow: 'hidden' }]}>
-        <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: SCREEN_GUTTER, paddingVertical: 10 }}>
+      <ActionStrip palette={palette} animatedStyle={actionsAnimatedStyle}>
           <ActionChip
             icon="edit"
             label="Edit Account"
@@ -175,8 +168,7 @@ export default function AccountDetailScreen() {
               router.push({ pathname: '/settings/account-form', params: { id: account.id } });
             }}
           />
-        </View>
-      </Animated.View>
+      </ActionStrip>
 
       <HomeAccountPage
         pageHeight={1000}

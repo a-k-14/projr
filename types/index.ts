@@ -71,6 +71,7 @@ export interface Category {
   icon: string;
   color: string;
   type: 'in' | 'out' | 'both';
+  systemKey?: string;
 }
 
 export interface Tag {
@@ -234,7 +235,8 @@ export interface CreateDepositInput {
 }
 
 export interface CloseDepositInput {
-  amount?: number;
+  principalAmount?: number;
+  interestAmount?: number;
   accountId?: string;
   date?: string;
   note?: string;

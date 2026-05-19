@@ -51,6 +51,8 @@ interface Props {
   onBlur?: () => void;
   /** Force a specific keyboard (e.g. 'decimal-pad' for numeric fields). Default is text. */
   keyboardType?: 'default' | 'numeric' | 'decimal-pad' | 'number-pad';
+  /** Short annotation shown to the right of the input (e.g. "% p.a.") */
+  rightAnnotation?: string;
 }
 
 export function InlineComboBox({
@@ -68,6 +70,7 @@ export function InlineComboBox({
   onFocus: onFocusProp,
   onBlur: onBlurProp,
   keyboardType = 'default',
+  rightAnnotation,
 }: Props) {
   const [query, setQuery] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
@@ -243,7 +246,7 @@ export function InlineComboBox({
           >
             {label}
           </Text>
-          <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' }}>
             <TextInput
               value={query}
               onChangeText={handleChangeText}
@@ -256,11 +259,17 @@ export function InlineComboBox({
               cursorColor={focusedColor}
               autoFocus={autoFocus}
               style={[inputBaseStyle, {
+                flex: 1,
                 paddingLeft: 4,
                 fontWeight: '400',
                 lineHeight: 20,
               }]}
             />
+            {rightAnnotation ? (
+              <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '500', color: palette.textSecondary, marginLeft: 6, paddingBottom: 2 }}>
+                {rightAnnotation}
+              </Text>
+            ) : null}
           </View>
         </View>
       )}
