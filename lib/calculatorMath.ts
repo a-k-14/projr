@@ -17,13 +17,11 @@ function isBasicOperator(value: string) {
 
 function normalizeNumberToken(token: string) {
   if (!token) return token;
-  const hasTrailingDecimal = token.endsWith('.');
   const [integerPart = '', decimalPart] = token.split('.');
   const normalizedInteger = integerPart.replace(/^0+(?=\d)/, '') || '0';
-  const normalized = decimalPart === undefined
+  return decimalPart === undefined
     ? normalizedInteger
     : `${normalizedInteger}.${decimalPart}`;
-  return hasTrailingDecimal ? normalized.replace(/\.$/, '') : normalized;
 }
 
 function normalizeExpressionNumbers(expression: string) {

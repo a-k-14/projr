@@ -3,14 +3,14 @@ export const CALCULATOR_DISPLAY_MAX_LINES = 2;
 export function getCalculatorDisplayMetrics(value: string, maxFontSize = 28) {
   const compactLength = value.replace(/\s/g, '').length;
   const twoLineTargetLength = 24;
-  const minimumFontSize = Math.round(maxFontSize * 0.58);
 
-  if (compactLength <= twoLineTargetLength) {
-    return buildMetrics(maxFontSize);
+  if (maxFontSize === 28) {
+    const fontSize = compactLength <= twoLineTargetLength ? 28 : 24;
+    return buildMetrics(fontSize);
   }
 
-  const shrinkSteps = Math.ceil((compactLength - twoLineTargetLength) / 8);
-  const fontSize = Math.max(minimumFontSize, maxFontSize - shrinkSteps * 4);
+  // Fallback for tests or other custom maxFontSize
+  const fontSize = compactLength <= twoLineTargetLength ? maxFontSize : Math.max(24, maxFontSize - 4);
   return buildMetrics(fontSize);
 }
 

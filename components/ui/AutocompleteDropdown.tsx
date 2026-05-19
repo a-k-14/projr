@@ -1,14 +1,5 @@
-/**
- * AutocompleteDropdown — floating suggestion popup that overlays the form.
- *
- * Renders inside a transparent, non-dismissing Modal so the list is never
- * clipped by parent scroll views or hidden under the keyboard.
- *
- * Smart placement:
- *   If `screenHeight - keyboardHeight - inputBottomY >= MIN_BELOW_SPACE`
- *   the dropdown opens BELOW the anchor, otherwise ABOVE.
- */
 import { Text } from '@/components/ui/AppText';
+import { AppIcon } from '@/components/ui/AppIcon';
 import React, { RefObject, useCallback, useEffect, useState } from 'react';
 import {
   Dimensions,
@@ -20,7 +11,7 @@ import {
 import { HOME_RADIUS, HOME_SHADOW, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 50;
 const MIN_BELOW_SPACE = 200;
 const HORIZONTAL_MARGIN = 16;
 
@@ -40,6 +31,7 @@ interface Props {
   visible: boolean;
   onRequestClose?: () => void;
   maxItems?: number;
+  type?: 'person' | 'payee';
 }
 
 export function AutocompleteDropdown({
@@ -51,6 +43,7 @@ export function AutocompleteDropdown({
   visible,
   onRequestClose,
   maxItems = 6,
+  type = 'payee',
 }: Props) {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
 
@@ -127,7 +120,7 @@ export function AutocompleteDropdown({
           <View
             style={{
               backgroundColor: palette.card,
-              borderRadius: HOME_RADIUS.cardSm,
+              borderRadius: HOME_RADIUS.card,
               borderWidth: 1,
               borderColor: palette.divider,
               overflow: 'hidden',
@@ -136,6 +129,10 @@ export function AutocompleteDropdown({
           >
             {items.map((item, i) => {
               const last = i === items.length - 1;
+              const iconName = type === 'person' ? 'user' : 'shopping-bag';
+              const iconBg = palette.isDark ? 'rgba(255,255,255,0.06)' : `${palette.brand}10`;
+              const iconColor = palette.brand;
+
               return (
                 <TouchableOpacity
                   key={`${item}-${i}`}
@@ -144,16 +141,32 @@ export function AutocompleteDropdown({
                   style={{
                     height: ROW_HEIGHT,
                     paddingHorizontal: 14,
-                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    alignItems: 'center',
                     borderBottomWidth: last ? 0 : 1,
                     borderBottomColor: palette.divider,
                     backgroundColor: palette.card,
+                    gap: 12,
                   }}
                 >
+                  <View
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      backgroundColor: iconBg,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <AppIcon name={iconName} size={15} color={iconColor} strokeWidth={2} />
+                  </View>
                   <Text
                     numberOfLines={1}
                     style={{
+                      flex: 1,
                       fontSize: HOME_TEXT.body,
+                      fontWeight: '500',
                       color: palette.text,
                     }}
                   >

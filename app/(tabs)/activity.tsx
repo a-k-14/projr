@@ -29,6 +29,7 @@ import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
+import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
@@ -195,8 +196,7 @@ export default function ActivityScreen() {
   const [chipScrollResetToken, setChipScrollResetToken] = useState(0);
   const [topBarHeight, setTopBarHeight] = useState(0);
   const [activityHeaderHeight, setActivityHeaderHeight] = useState(0);
-  const resetBtnPresence = useRef(new Animated.Value(0)).current;
-  const resetBtnSpin = useRef(new Animated.Value(0)).current;
+
   const [stickyDateLabel, setStickyDateLabel] = useState<{ key: string; title: string; subtitle?: string } | null>(null);
   const [showStickyDateLabel, setShowStickyDateLabel] = useState(false);
 
@@ -401,45 +401,15 @@ export default function ActivityScreen() {
     !amountMinStr &&
     !amountMaxStr;
 
+  const isFullyDefault = isDefaultView && groupByMode === 'date';
+
   const setHasActiveFilters = useActivityFiltersStore((s) => s.setHasActiveFilters);
   useEffect(() => {
-    setHasActiveFilters(!isDefaultView);
+    setHasActiveFilters(!isFullyDefault);
     return () => setHasActiveFilters(false);
-  }, [isDefaultView, setHasActiveFilters]);
+  }, [isFullyDefault, setHasActiveFilters]);
 
-  useEffect(() => {
-    if (isDefaultView) {
-      Animated.parallel([
-        Animated.timing(resetBtnPresence, {
-          toValue: 0,
-          duration: 200,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(resetBtnSpin, {
-          toValue: 0,
-          duration: 200,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.spring(resetBtnPresence, {
-          toValue: 1,
-          damping: 12,
-          stiffness: 260,
-          useNativeDriver: true,
-        }),
-        Animated.timing(resetBtnSpin, {
-          toValue: 1,
-          duration: 460,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [isDefaultView, resetBtnPresence, resetBtnSpin]);
+
 
   useEffect(() => {
     if (!isFocused) return;
@@ -1405,19 +1375,12 @@ export default function ActivityScreen() {
               Activity
             </Text>
 
-            <Animated.View style={{
-              alignSelf: 'center',
-              opacity: resetBtnPresence,
-              transform: [
-                { scale: resetBtnPresence.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) },
-                { rotate: resetBtnSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
-              ],
-              pointerEvents: isDefaultView ? 'none' : 'auto',
-            }}>
-              <TouchableOpacity delayPressIn={0} activeOpacity={0.5} onPress={() => resetAllFilters(true)}>
-                <AppIcon name="rotate-ccw" size={17} color={palette.brand} strokeWidth={2.4} />
-              </TouchableOpacity>
-            </Animated.View>
+            <HeaderResetButton
+              visible={!isFullyDefault}
+              onPress={() => resetAllFilters(true)}
+              palette={palette}
+              isFocused={isFocused}
+            />
 
             <View style={{ flex: 1 }} />
 
@@ -1638,8 +1601,8 @@ export default function ActivityScreen() {
                                 </Text>
                                 <Text
                                   style={{
-                                    fontSize: HOME_TEXT.bodySmall,
-                                    fontWeight: FONT_WEIGHT.medium,
+                                    fontSize: HOME_TEXT.body,
+                                    fontWeight: FONT_WEIGHT.semibold,
                                     color: category.total >= 0 ? palette.numberPositive : palette.numberNegative,
                                     marginRight: 2
                                   }}

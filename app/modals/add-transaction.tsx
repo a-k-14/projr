@@ -1091,6 +1091,7 @@ export default function AddTransactionModal() {
                 palette={palette}
                 visible={isPayeeFocused && payeeSuggestions.length > 0}
                 onRequestClose={() => setIsPayeeFocused(false)}
+                type="payee"
               />
               <ReceiptSection
                 palette={palette}
@@ -1286,6 +1287,7 @@ export default function AddTransactionModal() {
                         palette={palette}
                         visible={isPersonFocused}
                         onRequestClose={() => setIsPersonFocused(false)}
+                        type="person"
                       />
                     </>
                   )}

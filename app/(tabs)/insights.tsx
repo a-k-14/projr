@@ -2,12 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Easing, View, RefreshControl, Modal, Pressable, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 import ReAnimated from 'react-native-reanimated';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { getTabReset, registerTabReset } from '../../lib/tabResetRegistry';
 
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '../../components/ui/AppIcon';
+import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -48,6 +50,7 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
 export default function InsightsScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
+  const isFocused = useIsFocused();
 
   const accounts = useAccountsStore((s) => s.accounts);
   const accountsLoaded = useAccountsStore((s) => s.isLoaded);
@@ -94,22 +97,6 @@ export default function InsightsScreen() {
   const [dailySpending, setDailySpending] = useState<{ date: string; amount: number }[]>([]);
 
   const isDefaultView = period === 'week' && selectedChartCategoryId === null;
-  const resetBtnPresence = useRef(new Animated.Value(0)).current;
-  const resetBtnSpin = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (isDefaultView) {
-      Animated.parallel([
-        Animated.timing(resetBtnPresence, { toValue: 0, duration: 200, easing: Easing.in(Easing.ease), useNativeDriver: true }),
-        Animated.timing(resetBtnSpin, { toValue: 0, duration: 200, easing: Easing.in(Easing.ease), useNativeDriver: true }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.spring(resetBtnPresence, { toValue: 1, damping: 12, stiffness: 260, useNativeDriver: true }),
-        Animated.timing(resetBtnSpin, { toValue: 1, duration: 460, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      ]).start();
-    }
-  }, [isDefaultView, resetBtnPresence, resetBtnSpin]);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -262,20 +249,13 @@ export default function InsightsScreen() {
         <Text style={{ fontSize: TYPE.title, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
           Insights
         </Text>
-        <Animated.View style={{
-          marginLeft: 10,
-          alignSelf: 'center',
-          opacity: resetBtnPresence,
-          transform: [
-            { scale: resetBtnPresence.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) },
-            { rotate: resetBtnSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
-          ],
-          pointerEvents: isDefaultView ? 'none' : 'auto',
-        }}>
-          <TouchableOpacity delayPressIn={0} activeOpacity={0.5} onPress={() => getTabReset('insights')?.({ mode: 'full', animated: true })}>
-            <AppIcon name="rotate-ccw" size={17} color={palette.brand} strokeWidth={2.4} />
-          </TouchableOpacity>
-        </Animated.View>
+        <HeaderResetButton
+          visible={!isDefaultView}
+          onPress={() => getTabReset('insights')?.({ mode: 'full', animated: true })}
+          palette={palette}
+          style={{ marginLeft: 10 }}
+          isFocused={isFocused}
+        />
       </View>
 
       <ReAnimated.ScrollView
