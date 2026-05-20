@@ -243,3 +243,16 @@ export const TRANSACTIONS_PAGE_SIZE = 20;
 export const HELP_TEXTS = {
   cashflowNote: 'Cashflow includes Transfer, Deposit & Loan movements',
 } as const;
+
+// ─── Net Worth Change Chip Theme ──────────────────────────────────────────────
+export function getNetWorthChangeTheme(netWorthChange?: number) {
+  const tone = !netWorthChange ? 'neutral' : netWorthChange > 0 ? 'positive' : 'negative';
+  const bg = tone === 'positive'
+    ? 'rgba(190,242,100,0.90)'
+    : tone === 'negative'
+      ? 'rgba(253,164,175,0.90)'
+      : 'rgba(226,232,240,0.80)';
+  const ink = '#111827';
+  return { tone, bg, ink };
+}
+

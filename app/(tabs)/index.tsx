@@ -55,7 +55,8 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_SURFACE,
-  HOME_TEXT
+  HOME_TEXT,
+  getNetWorthChangeTheme
 } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
@@ -694,13 +695,7 @@ function AccountSummaryCard({
   const heroBalanceLineHeight = heroBalanceFontSize + 16;
   const heroCurrencyFontSize = Math.max(15, heroBalanceFontSize - 8);
   const heroDecimalFontSize = Math.max(14, heroBalanceFontSize - 9);
-  const nwChangeTone = !netWorthChange ? 'neutral' : netWorthChange > 0 ? 'positive' : 'negative';
-  const nwChangeBg = nwChangeTone === 'positive'
-    ? 'rgba(190,242,100,0.90)'
-    : nwChangeTone === 'negative'
-      ? 'rgba(253,164,175,0.90)'
-      : 'rgba(226,232,240,0.80)';
-  const nwChangeInk = '#111827';
+  const { tone: nwChangeTone, bg: nwChangeBg, ink: nwChangeInk } = getNetWorthChangeTheme(netWorthChange);
   const isCashflow = !!isCashflowView;
   const metricLeftLabel = isCashflow ? 'Inflow' : 'Income';
   const metricRightLabel = isCashflow ? 'Outflow' : 'Expense';

@@ -201,10 +201,7 @@ export default function AddTransactionModal() {
   const isDepositHydratedRef = useRef(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const payeeAnchorRef = useRef<View>(null);
-  const personAnchorRef = useRef<View>(null);
-  const [isPayeeFocused, setIsPayeeFocused] = useState(false);
-  const [isPersonFocused, setIsPersonFocused] = useState(false);
+
 
   useEffect(() => {
     const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
@@ -1071,28 +1068,14 @@ export default function AddTransactionModal() {
                   custom
                 />
               )}
-              <View ref={payeeAnchorRef} collapsable={false}>
-                <InlineComboBox
-                  label="Payee"
-                  value={payee}
-                  onChange={setPayee}
-                  suggestions={[]}
-                  placeholder="Add payee"
-                  palette={palette}
-                  accentColor={activeConfig.color}
-                  onFocus={() => setIsPayeeFocused(true)}
-                  onBlur={() => setIsPayeeFocused(false)}
-                />
-              </View>
-              <AutocompleteDropdown
+              <InlineComboBox
+                label="Payee"
+                value={payee}
+                onChange={setPayee}
                 suggestions={payeeSuggestions}
-                onSelect={(v) => { setPayee(v); setIsPayeeFocused(false); Keyboard.dismiss(); }}
-                anchorRef={payeeAnchorRef}
-                keyboardHeight={keyboardHeight}
+                placeholder="Add payee"
                 palette={palette}
-                visible={isPayeeFocused && payeeSuggestions.length > 0}
-                onRequestClose={() => setIsPayeeFocused(false)}
-                type="payee"
+                accentColor={activeConfig.color}
               />
               <ReceiptSection
                 palette={palette}
@@ -1263,32 +1246,16 @@ export default function AddTransactionModal() {
                     />
                   ) : (
                     <>
-                      <View ref={personAnchorRef} collapsable={false}>
-                        <InlineComboBox
-                          label="Person"
-                          value={personName}
-                          onChange={setPersonName}
-                          suggestions={[]}
-                          palette={palette}
-                          accentColor={activeConfig.color}
-                          autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
-                          onFocus={() => setIsPersonFocused(true)}
-                          onBlur={() => setIsPersonFocused(false)}
-                        />
-                      </View>
-                      <AutocompleteDropdown
-                        suggestions={(() => {
-                          const q = personName.trim().toLowerCase();
-                          if (!q) return persons.slice(0, 6);
-                          return persons.filter((name) => name.toLowerCase().includes(q)).slice(0, 6);
-                        })()}
-                        onSelect={(v) => { setPersonName(v); setIsPersonFocused(false); Keyboard.dismiss(); }}
-                        anchorRef={personAnchorRef}
-                        keyboardHeight={keyboardHeight}
+                      <InlineComboBox
+                        label="Person"
+                        value={personName}
+                        onChange={setPersonName}
+                        suggestions={persons}
+                        filterLocally={true}
+                        showAdd={true}
                         palette={palette}
-                        visible={isPersonFocused}
-                        onRequestClose={() => setIsPersonFocused(false)}
-                        type="person"
+                        accentColor={activeConfig.color}
+                        autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
                       />
                     </>
                   )}

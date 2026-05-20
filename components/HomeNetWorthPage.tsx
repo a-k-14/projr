@@ -1,18 +1,23 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedRef, useAnimatedScrollHandler, type SharedValue } from 'react-native-reanimated';
+import { router } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { AppDonutChart } from '@/components/ui/AppDonutChart';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../lib/account-utils';
-import { formatCurrency } from '../lib/derived';
+import { formatCurrency, getTransactionCashflowImpact } from '../lib/derived';
 import { FONT_WEIGHT, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
-import { HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_SURFACE, HOME_TEXT, SCREEN_HEADER } from '../lib/layoutTokens';
+import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_SURFACE, HOME_TEXT, SCREEN_HEADER, getNetWorthChangeTheme } from '../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../lib/settings-shared';
 import { AppThemePalette } from '../lib/theme';
-import { Account, AccountType } from '../types';
+import { Account, AccountType, Deposit, Asset, Transaction } from '../types';
 import { CARD_PADDING } from '../lib/design';
+import { toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
+import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { getTransactions } from '../services/transactions';
+import { useTransactionsStore } from '../stores/useTransactionsStore';
 
 export const NW_ASSET_LIGHT = '#0D9488';
 export const NW_ASSET_DARK = '#00FAD9';
@@ -86,139 +91,6 @@ export function NetWorthRingMarker({ color }: { color: string }) {
   );
 }
 
-export function NetWorthDonut({
-  mode,
-  groups,
-  accounts,
-  accountColorsById,
-  palette,
-  currencySymbol,
-  selectedType,
-  onSelectType,
-  selectedAccountId,
-  onSelectAccount,
-}: {
-  mode: 'account' | 'type';
-  groups: Array<{ type: AccountType; accounts: Account[]; balance: number }>;
-  accounts: Account[];
-  accountColorsById: Map<string, string>;
-  palette: AppThemePalette;
-  currencySymbol: string;
-  selectedType: AccountType | null;
-  onSelectType: (type: AccountType | null) => void;
-  selectedAccountId: string | null;
-  onSelectAccount: (id: string | null) => void;
-}) {
-  const size = 292;
-  const chartItems = mode === 'type'
-    ? groups.map((group) => ({
-      id: group.type,
-      label: getAccountTypeLabel(group.type),
-      amount: Math.abs(group.balance),
-      value: group.balance,
-      color: ACCOUNT_TYPE_META[group.type].color,
-    }))
-    : accounts.map((account) => ({
-      id: account.id,
-      label: formatAccountDisplayName(account.name, account.accountNumber),
-      amount: Math.abs(account.balance),
-      value: account.balance,
-      color: accountColorsById.get(account.id) ?? NW_ACCOUNT_COLORS[0],
-    }));
-  const slices = chartItems.filter((item) => item.amount > 0);
-  const total = slices.reduce((sum, item) => sum + item.amount, 0) || 1;
-  const selectedId = mode === 'type' ? selectedType : selectedAccountId;
-  const selectedItem = selectedId ? slices.find((item) => item.id === selectedId) ?? null : null;
-  const selectedAmount = selectedItem ? selectedItem.amount : total;
-  const selectedValue = selectedItem ? selectedItem.value : total;
-  const donutSlices = slices.map((item) => ({
-    id: item.id,
-    percent: item.amount / total,
-    color: item.color,
-  }));
-
-  return (
-    <View style={{ height: 284, alignItems: 'center', justifyContent: 'center', marginTop: -12, marginBottom: -16 }}>
-      <AppDonutChart
-        slices={donutSlices}
-        size={size}
-        selectedId={selectedId}
-        onSelect={(id) => {
-          if (mode === 'type') {
-            onSelectType(selectedType === id ? null : id as AccountType);
-            return;
-          }
-          onSelectAccount(selectedAccountId === id ? null : id);
-        }}
-        bgHex={palette.card}
-      />
-      <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: (!selectedItem && mode === 'account') ? -4 : 0 }] }}>
-        {selectedItem ? (
-          <View style={{ minHeight: 28, marginBottom: 4, alignItems: 'center', justifyContent: 'center' }}>
-            <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: selectedItem.color }} />
-          </View>
-        ) : null}
-        <Text numberOfLines={2} style={{ maxWidth: 112, fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, textAlign: 'center', color: palette.text }}>
-          {selectedItem ? selectedItem.label : mode === 'type' ? 'All Types' : 'All'}
-        </Text>
-        <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.heavy, color: palette.text, marginTop: 4, textAlign: 'center' }}>
-          {selectedAmount === 0 ? '—' : `${selectedValue < 0 ? '-' : ''}${formatCurrency(Math.abs(selectedValue), currencySymbol)}`}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-export function NetWorthTypeRows({
-  groups,
-  palette,
-  currencySymbol,
-}: {
-  groups: Array<{ type: AccountType; accounts: Account[]; balance: number }>;
-  palette: AppThemePalette;
-  currencySymbol: string;
-}) {
-  const total = groups.reduce((sum, group) => sum + Math.abs(group.balance), 0) || 1;
-
-  return (
-    <>
-      {groups.filter((group) => Math.abs(group.balance) > 0).map((group) => {
-        const isNegative = group.balance < 0;
-        return (
-          <View
-            key={group.type}
-            style={{ minHeight: 76, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: palette.divider }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-              <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center' }}>
-                <NetWorthRingMarker color={ACCOUNT_TYPE_META[group.type].color} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.cardContent, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
-                      {getAccountTypeLabel(group.type)}
-                    </Text>
-                    <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginTop: 3 }}>
-                      {group.accounts.length} {group.accounts.length === 1 ? 'account' : 'accounts'} · {Math.round((Math.abs(group.balance) / total) * 100)}%
-                    </Text>
-                  </View>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.heavy, color: group.balance === 0 ? palette.textMuted : isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
-                    {group.balance === 0 ? '—' : `${isNegative ? '-' : ''}${formatCurrency(Math.abs(group.balance), currencySymbol)}`}
-                  </Text>
-                </View>
-                <View style={{ height: 4, borderRadius: HOME_RADIUS.full, overflow: 'hidden', backgroundColor: palette.inputBg, marginTop: 10 }}>
-                  <View style={{ height: 4, borderRadius: HOME_RADIUS.full, width: `${(Math.abs(group.balance) / total) * 100}%`, backgroundColor: ACCOUNT_TYPE_META[group.type].color }} />
-                </View>
-              </View>
-            </View>
-          </View>
-        );
-      })}
-    </>
-  );
-}
-
 export function HomeNetWorthPage({
   pageHeight,
   palette,
@@ -227,6 +99,8 @@ export function HomeNetWorthPage({
   loanSummary,
   depositSummary,
   assetsValue = 0,
+  deposits = [],
+  assets = [],
   netWorth,
   pageIndex,
   verticalScrolls,
@@ -244,6 +118,8 @@ export function HomeNetWorthPage({
   loanSummary: { youLent: number; youOwe: number; net: number };
   depositSummary?: { activeMaturityValue: number; activeInvestedValue: number; deposits: Array<{ status: string }> };
   assetsValue?: number;
+  deposits?: Deposit[];
+  assets?: Asset[];
   netWorth: number;
   pageIndex: number;
   verticalScrolls: SharedValue<number[]>;
@@ -254,21 +130,203 @@ export function HomeNetWorthPage({
   onOpenAccount: (accountId: string | 'all') => void;
   bottomPadding?: number;
 }) {
-  const [accountViewMode, setAccountViewMode] = useState<'account' | 'type'>('type');
-  const [selectedType, setSelectedType] = useState<AccountType | null>(null);
-  const [selectedChartAccountId, setSelectedChartAccountId] = useState<string | null>(null);
+  const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
+  const [period, setPeriod] = useState<'today' | 'month'>('month');
+  const [selectedBreakdownSlice, setSelectedBreakdownSlice] = useState<'assets' | 'liabilities' | null>(null);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const positiveAccountTotal = accounts.reduce((sum, account) => sum + Math.max(account.balance, 0), 0);
-  const negativeAccountTotal = accounts.reduce((sum, account) => sum + Math.abs(Math.min(account.balance, 0)), 0);
-  const activeDepositCount = depositSummary?.deposits.filter((d) => d.status === 'active').length ?? 0;
+
+  const openBreakdownActivity = (kind: 'in' | 'out') => {
+    const fromVal = period === 'today' ? todayStart : monthStart;
+    const toVal = period === 'today' ? todayEnd : monthEnd;
+    router.push({
+      pathname: '/(tabs)/activity',
+      params: {
+        source: period === 'today' ? 'nw-today' : 'nw-period',
+        period: period === 'today' ? 'day' : period,
+        accountId: 'all',
+        type: 'all',
+        cashflowBucket: kind,
+        cashflowMode: 'incomeExpense',
+        from: fromVal,
+        to: toVal,
+        ts: String(Date.now()),
+      },
+    });
+  };
+
+  const [historyTransactions, setHistoryTransactions] = useState<Transaction[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
+
+  // Grouped sections expand/collapse state
+  const [assetsAccountsExpanded, setAssetsAccountsExpanded] = useState(false);
+  const [liabilitiesAccountsExpanded, setLiabilitiesAccountsExpanded] = useState(false);
+
+
+  // Load 30d transaction history
+  useEffect(() => {
+    let active = true;
+    async function loadHistory() {
+      try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const rangeFrom = toLocalDayStartISO(thirtyDaysAgo);
+        const txs = await getTransactions({
+          fromDate: rangeFrom,
+          limit: 5000,
+        });
+        if (active) {
+          setHistoryTransactions(txs);
+          setIsLoadingHistory(false);
+        }
+      } catch (err) {
+        console.error("Failed to load net worth history transactions", err);
+        if (active) setIsLoadingHistory(false);
+      }
+    }
+    loadHistory();
+    return () => {
+      active = false;
+    };
+  }, [mutationVersion]);
+
+  // Today and Month ranges
+  const today = new Date();
+  const todayStart = toLocalDayStartISO(today);
+  const todayEnd = toLocalDayEndISO(today);
+
+  const monthStartObj = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthStart = toLocalDayStartISO(monthStartObj);
+  const monthEnd = toLocalDayEndISO(today);
+
+  // Calculate change values for a period
+  const getPeriodValues = (start: string, end: string) => {
+    let income = 0;
+    let expense = 0;
+    historyTransactions.forEach((tx) => {
+      if (tx.date >= start && tx.date <= end) {
+        const impact = getTransactionCashflowImpact(tx, { includeLoans: false, includeDeposits: false });
+        if (impact === 'in') income += tx.amount;
+        else if (impact === 'out') expense += tx.amount;
+      }
+    });
+
+    const assetAdditions = assets
+      .filter((a) => a.createdAt >= start && a.createdAt <= end)
+      .reduce((sum, a) => sum + a.value, 0);
+
+    return {
+      income,
+      expense,
+      assetAdditions,
+      netChange: (income - expense) + assetAdditions,
+    };
+  };
+
+  const todayVals = useMemo(() => getPeriodValues(todayStart, todayEnd), [historyTransactions, assets, todayStart, todayEnd]);
+  const monthVals = useMemo(() => getPeriodValues(monthStart, monthEnd), [historyTransactions, assets, monthStart, monthEnd]);
+
+  const activeVals = useMemo(() => {
+    return period === 'today' ? todayVals : monthVals;
+  }, [period, todayVals, monthVals]);
+
+  const { tone: nwChangeTone, bg: nwChangeBg, ink: nwChangeInk } = getNetWorthChangeTheme(activeVals.netChange);
+
+  // Historical 30-day net worth trend points
+  const points = useMemo(() => {
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d.toISOString().slice(0, 10)); // "YYYY-MM-DD"
+    }
+
+    const dailyChange = new Map<string, number>();
+    days.forEach(k => dailyChange.set(k, 0));
+
+    historyTransactions.forEach((tx) => {
+      const key = tx.date.slice(0, 10);
+      if (dailyChange.has(key)) {
+        const impact = getTransactionCashflowImpact(tx, { includeLoans: false, includeDeposits: false });
+        if (impact === 'in') {
+          dailyChange.set(key, (dailyChange.get(key) ?? 0) + tx.amount);
+        } else if (impact === 'out') {
+          dailyChange.set(key, (dailyChange.get(key) ?? 0) - tx.amount);
+        }
+      }
+    });
+
+    assets.forEach((asset) => {
+      const key = asset.createdAt.slice(0, 10);
+      if (dailyChange.has(key)) {
+        dailyChange.set(key, (dailyChange.get(key) ?? 0) + asset.value);
+      }
+    });
+
+    let currentVal = netWorth;
+    const pts = [];
+    for (let i = 29; i >= 0; i--) {
+      const key = days[i];
+      pts.push({ date: key, val: currentVal });
+      const dayChange = dailyChange.get(key) ?? 0;
+      currentVal -= dayChange;
+    }
+
+    return pts.reverse();
+  }, [historyTransactions, assets, netWorth]);
+
+  // SVG Chart path calculation
+  const { lineD, areaD, startY, endY } = useMemo(() => {
+    if (points.length === 0) return { lineD: '', areaD: '', startY: 60, endY: 60 };
+    const vals = points.map(p => p.val);
+    const minVal = Math.min(...vals);
+    const maxVal = Math.max(...vals);
+    const valRange = maxVal - minVal || 1;
+
+    const pts = points.map((p, idx) => {
+      const x = (idx / 29) * 300;
+      const y = 114 - ((p.val - minVal) / valRange) * 100;
+      return { x, y };
+    });
+
+    const linePath = pts.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+    const areaPath = `${linePath} L 300 120 L 0 120 Z`;
+
+    return {
+      lineD: linePath,
+      areaD: areaPath,
+      startY: pts[0].y,
+      endY: pts[pts.length - 1].y,
+    };
+  }, [points]);
+
+  // Aggregates & breakdown definitions
+  const positiveAccounts = useMemo(() => accounts.filter((a) => a.balance >= 0), [accounts]);
+  const negativeAccounts = useMemo(() => accounts.filter((a) => a.balance < 0), [accounts]);
+
+  const positiveAccountTotal = useMemo(() => positiveAccounts.reduce((sum, account) => sum + account.balance, 0), [positiveAccounts]);
+  const negativeAccountTotal = useMemo(() => negativeAccounts.reduce((sum, account) => sum + Math.abs(account.balance), 0), [negativeAccounts]);
+  const netAccountsTotal = useMemo(() => accounts.reduce((sum, account) => sum + account.balance, 0), [accounts]);
+
+  const activeDepositCount = useMemo(() => deposits.filter((d) => d.status === 'active').length, [deposits]);
   const activeDepositValue = depositSummary?.activeInvestedValue ?? 0;
+
   const assetTotal = positiveAccountTotal + loanSummary.youLent + activeDepositValue + assetsValue;
   const liabilityTotal = negativeAccountTotal + loanSummary.youOwe;
+
   const nwAssetColor = palette.isDark ? NW_ASSET_DARK : NW_ASSET_LIGHT;
   const nwLiabilityColor = palette.negative;
+
   const totalExposure = Math.max(assetTotal + liabilityTotal, 1);
   const assetShare = assetTotal / totalExposure;
   const liabilityShare = liabilityTotal / totalExposure;
+
+  const assetPercent = Math.round(assetShare * 100);
+  const liabilityPercent = Math.round(liabilityShare * 100);
+
+  const dominantPosition = liabilityShare > assetShare
+    ? { label: 'Liabilities', percent: liabilityPercent, color: nwLiabilityColor, share: liabilityShare }
+    : { label: 'Assets', percent: assetPercent, color: nwAssetColor, share: assetShare };
+
   const sortedAccounts = useMemo(() => {
     return accounts.slice().sort((a, b) => {
       const balanceDiff = b.balance - a.balance;
@@ -280,6 +338,7 @@ export function HomeNetWorthPage({
       );
     });
   }, [accounts]);
+
   const groupedAccounts = useMemo(() => {
     const groups = new Map<AccountType, Account[]>();
     sortedAccounts.forEach((account) => {
@@ -295,68 +354,11 @@ export function HomeNetWorthPage({
       }))
       .sort((a, b) => ACCOUNT_TYPE_SORT_ORDER[a.type] - ACCOUNT_TYPE_SORT_ORDER[b.type]);
   }, [sortedAccounts]);
+
   const accountColorsById = useMemo(() => new Map(sortedAccounts.map((account, index) => [
     account.id,
     NW_ACCOUNT_COLORS[index % NW_ACCOUNT_COLORS.length],
   ])), [sortedAccounts]);
-  const largestAccountBalance = Math.max(...accounts.map((account) => Math.abs(account.balance)), 1);
-  const displayedAccounts = selectedType
-    ? sortedAccounts.filter((account) => account.type === selectedType)
-    : sortedAccounts;
-  const assetPercent = Math.round(assetShare * 100);
-  const liabilityPercent = Math.round(liabilityShare * 100);
-  const dominantPosition = liabilityShare > assetShare
-    ? { label: 'Liabilities', percent: liabilityPercent, color: nwLiabilityColor, share: liabilityShare }
-    : { label: 'Assets', percent: assetPercent, color: nwAssetColor, share: assetShare };
-  const positionRows = [
-    {
-      key: 'assets',
-      label: 'Liquid assets',
-      note: `${accounts.filter((account) => account.balance > 0).length} funded accounts`,
-      value: positiveAccountTotal,
-      color: nwAssetColor,
-      icon: 'wallet' as any,
-      visible: true,
-    },
-    {
-      key: 'deposits',
-      label: 'Fixed deposits',
-      note: activeDepositCount === 0
-        ? 'No active deposits'
-        : `${activeDepositCount} active ${activeDepositCount === 1 ? 'deposit' : 'deposits'} · Invested value`,
-      value: activeDepositValue,
-      color: '#76506A',
-      icon: 'vault' as any,
-      visible: activeDepositValue > 0,
-    },
-    {
-      key: 'receivable',
-      label: 'Receivables',
-      note: 'Money you should receive',
-      value: loanSummary.youLent,
-      color: palette.brand,
-      icon: 'arrow-down-left' as any,
-      visible: loanSummary.youLent > 0,
-    },
-    {
-      key: 'other_assets',
-      label: 'Other assets',
-      note: 'Tracked non-liquid assets',
-      value: assetsValue,
-      color: '#9A7440',
-      icon: 'gem' as any,
-      visible: assetsValue > 0,
-    },
-    {
-      key: 'liability',
-      label: 'Liabilities',
-      note: 'Borrowed and negative balances',
-      value: liabilityTotal,
-      color: nwLiabilityColor,
-      icon: 'arrow-up-right' as any,
-      visible: true,
-    },
-  ].filter((row) => row.visible);
 
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
@@ -366,47 +368,74 @@ export function HomeNetWorthPage({
     verticalScrolls.value = arr;
   });
 
-  const renderAccountRow = (account: Account, isFirstInSection: boolean) => {
-    const isNegative = account.balance < 0;
-    const accountColor = accountColorsById.get(account.id) ?? NW_ACCOUNT_COLORS[0];
-    const isSelected = selectedChartAccountId === account.id;
+  // Balance formatting for hero card
+  const balanceFormatted = formatCurrency(Math.abs(netWorth), currencySymbol);
+  const dotIdx = balanceFormatted ? balanceFormatted.indexOf('.') : -1;
+  const balanceInt = dotIdx >= 0 ? balanceFormatted.slice(0, dotIdx) : (balanceFormatted ?? '');
+  const balanceDec = dotIdx >= 0 ? balanceFormatted.slice(dotIdx) : '';
+
+  const heroBalanceFontSize = HOME_TEXT.rowLabel;
+  const heroDecimalFontSize = HOME_TEXT.rowLabel - 4;
+
+  const renderSectionHeader = (
+    title: string,
+    icon: string,
+    iconColor: string,
+    iconBg: string,
+    value: number,
+    note: string,
+    isExpanded: boolean,
+    onToggle: () => void,
+    valueColor?: string,
+    isRedirect?: boolean
+  ) => {
     return (
       <TouchableOpacity
-        key={account.id}
-        delayPressIn={0}
         activeOpacity={0.75}
-        onPress={() => onOpenAccount(account.id)}
+        onPress={onToggle}
         style={{
-          minHeight: 72,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          borderTopWidth: isFirstInSection ? 0 : 1,
-          borderTopColor: palette.divider,
-          opacity: selectedChartAccountId && !isSelected ? 0.48 : 1,
+          borderRadius: (isExpanded || isRedirect) ? 0 : HOME_RADIUS.card,
+          borderTopLeftRadius: HOME_RADIUS.card,
+          borderTopRightRadius: HOME_RADIUS.card,
+          borderBottomLeftRadius: isRedirect ? HOME_RADIUS.card : isExpanded ? 0 : HOME_RADIUS.card,
+          borderBottomRightRadius: isRedirect ? HOME_RADIUS.card : isExpanded ? 0 : HOME_RADIUS.card,
+          borderWidth: 1,
+          borderColor: palette.divider,
+          backgroundColor: palette.surface,
+          paddingHorizontal: 14,
+          paddingVertical: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-          <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center' }}>
-            <NetWorthRingMarker color={accountColor} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.cardContent, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
-                  {formatAccountDisplayName(account.name, account.accountNumber)}
-                </Text>
-                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted, marginTop: 3 }}>
-                  {getAccountTypeLabel(account.type)}
-                </Text>
-              </View>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.heavy, color: account.balance === 0 ? palette.textMuted : isNegative ? palette.negative : palette.text, textAlign: 'right' }}>
-                {account.balance === 0 ? '—' : `${isNegative ? '-' : ''}${formatCurrency(Math.abs(account.balance), currencySymbol)}`}
-              </Text>
-            </View>
-            <View style={{ height: 4, borderRadius: HOME_RADIUS.full, backgroundColor: palette.inputBg, overflow: 'hidden', marginTop: 10 }}>
-              {account.balance !== 0 ? <View style={{ width: `${(Math.abs(account.balance) / largestAccountBalance) * 100}%`, height: '100%', borderRadius: HOME_RADIUS.full, backgroundColor: accountColor }} /> : null}
-            </View>
-          </View>
+        <View style={{
+          width: 36,
+          height: 36,
+          borderRadius: HOME_RADIUS.small,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: iconBg,
+          borderWidth: 1,
+          borderColor: `${iconColor}20`,
+        }}>
+          <AppIcon name={icon as any} size={18} color={iconColor} strokeWidth={1.5} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0, justifyContent: !note ? 'center' : undefined }}>
+          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
+            {title}
+          </Text>
+          {!!note && (
+            <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
+              {note}
+            </Text>
+          )}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 124, fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.medium, color: valueColor ?? palette.text, textAlign: 'right' }}>
+            {value === 0 ? '—' : `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`}
+          </Text>
+          <AppIcon name={isRedirect ? 'chevron-right' : isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={palette.textMuted} strokeWidth={2} />
         </View>
       </TouchableOpacity>
     );
@@ -434,138 +463,493 @@ export function HomeNetWorthPage({
           </View>
         </View>
       )}
+
+      {/* Redesigned Hero Card */}
       <View
         style={{
-          paddingTop: compactTop ? 12 : HOME_SURFACE.heroTop,
           borderRadius: HOME_RADIUS.card,
           borderWidth: 1,
           borderColor: palette.divider,
           backgroundColor: palette.card,
           padding: CARD_PADDING,
-          minHeight: 184,
+          minHeight: 154,
           overflow: 'hidden',
           justifyContent: 'space-between',
-          ...(!palette.isDark ? {
-            elevation: 6,
-            shadowColor: '#94A3B8',
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.13,
-            shadowRadius: 10,
-          } : {}),
+          elevation: 6,
+          shadowColor: palette.isDark ? '#000000' : '#94A3B8',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: palette.isDark ? 0.45 : 0.13,
+          shadowRadius: 10,
+          marginTop: compactTop ? 4 : 0,
         }}
       >
+        {/* Top section: Icon + Label & Value + Change chip */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
-              Net Worth
-            </Text>
-            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.heroValue + 2, lineHeight: 38, fontWeight: FONT_WEIGHT.heavy, color: netWorth < 0 ? palette.negative : palette.text, marginTop: HOME_SPACE.xs + 2 }}>
-              {netWorth < 0 ? '-' : ''}{formatCurrency(Math.abs(netWorth), currencySymbol)}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+            <View style={{
+              width: 42,
+              height: 42,
+              borderRadius: HOME_RADIUS.chip,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: `${palette.brand}18`,
+            }}>
+              <AppIcon name="land-plot" size={22} color={palette.brand} strokeWidth={1.6} />
+            </View>
+
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>
+                Net Worth
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 2 }}>
+                <Text style={{ fontSize: heroBalanceFontSize, fontWeight: FONT_WEIGHT.medium, color: netWorth < 0 ? palette.negative : palette.text }}>
+                  {netWorth < 0 ? '-' : ''}{balanceInt}
+                </Text>
+                {balanceDec ? (
+                  <Text style={{ fontSize: heroDecimalFontSize, fontWeight: FONT_WEIGHT.medium, color: netWorth < 0 ? palette.negative : palette.textMuted }}>
+                    {balanceDec}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
           </View>
-          <View style={{ width: 46, height: 46, borderRadius: HOME_RADIUS.button, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFD' }}>
-            <AppIcon name="landmark" size={22} color={palette.brand} />
+
+          {/* Change badge */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 3,
+            backgroundColor: nwChangeBg,
+            borderRadius: HOME_RADIUS.full,
+            paddingHorizontal: 7,
+            paddingVertical: 3.5,
+            marginTop: 2,
+          }}>
+            {nwChangeTone !== 'neutral' && (
+              <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={11} color={nwChangeInk} strokeWidth={2.4} />
+            )}
+            <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: nwChangeInk, fontFamily: 'monospace' }}>
+              {nwChangeTone === 'neutral' ? '—' : `${activeVals.netChange > 0 ? '+' : ''}${formatCurrency(Math.abs(activeVals.netChange), currencySymbol)}`}
+            </Text>
           </View>
         </View>
 
-        <View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: NW_HERO_PROGRESS_LABEL_GAP }}>
-            <View style={{ flex: 1, height: 6, borderRadius: HOME_RADIUS.full, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7ECF3', overflow: 'hidden' }}>
-              <View style={{ height: '100%', width: `${dominantPosition.share * 100}%`, borderRadius: HOME_RADIUS.full, backgroundColor: dominantPosition.color }} />
-            </View>
-            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ minWidth: 60, fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.heavy, color: dominantPosition.color, textAlign: 'right' }}>
-              {dominantPosition.percent}% {dominantPosition.label}
-            </Text>
+        {/* Bottom section: Progress bar & Asset/Liability split */}
+        <View style={{ marginTop: 14 }}>
+          <View style={{ height: 4, borderRadius: HOME_RADIUS.full, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7ECF3', overflow: 'hidden' }}>
+            <View style={{ height: '100%', width: `${dominantPosition.share * 100}%`, borderRadius: HOME_RADIUS.full, backgroundColor: dominantPosition.color }} />
           </View>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 14 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 8 }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Assets</Text>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.heavy, color: nwAssetColor, marginTop: 5 }}>
-                {formatCurrency(assetTotal, currencySymbol)}{assetPercent < 100 ? ` · ${assetPercent}%` : ''}
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.heavy, color: palette.text, marginTop: 2 }}>
+                {formatCurrency(assetTotal, currencySymbol)} · {assetPercent}%
               </Text>
             </View>
             <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end' }}>
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Liabilities</Text>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.heavy, color: liabilityTotal > 0 ? nwLiabilityColor : palette.textMuted, marginTop: 5, textAlign: 'right' }}>
-                {liabilityTotal > 0 ? `${formatCurrency(liabilityTotal, currencySymbol)} · ${liabilityPercent}%` : 'None'}
+              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.heavy, color: palette.text, marginTop: 2, textAlign: 'right' }}>
+                {formatCurrency(liabilityTotal, currencySymbol)} · {liabilityPercent}%
               </Text>
             </View>
           </View>
         </View>
       </View>
 
-      <View
-        onLayout={(event) => {
-          const newY = event.nativeEvent.layout.y;
-          if (isSelected && newY > 0 && indicatorY?.value !== newY) {
-            indicatorY.value = newY;
-          }
-        }}
-        style={{ height: 32 }}
-      />
+      {/* Unified Assets & Liabilities Card */}
+      <View style={{
+        marginTop: 16,
+        borderRadius: HOME_RADIUS.card,
+        borderWidth: 1,
+        borderColor: palette.divider,
+        backgroundColor: palette.card,
+        padding: 16,
+        overflow: 'hidden',
+      }}>
+        {/* Details Section */}
+        <View style={{ gap: 14 }}>
+          {/* Assets Breakdown */}
+          {(positiveAccountTotal > 0 || activeDepositValue > 0 || loanSummary.youLent > 0 || assetsValue > 0) && (
+            <View style={{ gap: 10 }}>
+              <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>
+                Assets
+              </Text>
 
-      <View style={{ gap: 10 }}>
-        {positionRows.map((row) => (
-          <View key={row.key} style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.surface, paddingHorizontal: 14, paddingVertical: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-            <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center' }}>
-              <AppIcon name={row.icon} size={16} color={row.color} />
+              {/* Accounts Card under Assets */}
+              {positiveAccountTotal > 0 && (
+                <View style={{ overflow: 'hidden' }}>
+                  {renderSectionHeader(
+                    'Accounts',
+                    'building-2',
+                    palette.brand,
+                    `${palette.brand}12`,
+                    positiveAccountTotal,
+                    `${positiveAccounts.length} positive accounts`,
+                    assetsAccountsExpanded,
+                    () => setAssetsAccountsExpanded(!assetsAccountsExpanded)
+                  )}
+                  {assetsAccountsExpanded && (
+                    <View style={{
+                      borderWidth: 1,
+                      borderTopWidth: 0,
+                      borderColor: palette.divider,
+                      borderBottomLeftRadius: HOME_RADIUS.card,
+                      borderBottomRightRadius: HOME_RADIUS.card,
+                      backgroundColor: palette.card,
+                      overflow: 'hidden',
+                    }}>
+                      {positiveAccounts.map((account, idx) => {
+                        const typeMeta = ACCOUNT_TYPE_META[account.type];
+                        return (
+                          <TouchableOpacity
+                            key={account.id}
+                            activeOpacity={0.7}
+                            onPress={() => onOpenAccount(account.id)}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              paddingHorizontal: 16,
+                              paddingVertical: 12,
+                              borderTopWidth: idx === 0 ? 0 : 1,
+                              borderTopColor: palette.divider,
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
+                              <View style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: HOME_RADIUS.small,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: typeMeta.bg ?? `${typeMeta.color}12`,
+                                marginRight: 12,
+                              }}>
+                                <AppIcon name={typeMeta.icon as any} size={16} color={typeMeta.color} strokeWidth={1.5} />
+                              </View>
+                              <View style={{ flex: 1, minWidth: 0 }}>
+                                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
+                                  {formatAccountDisplayName(account.name, account.accountNumber)}
+                                </Text>
+                                <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginTop: 2 }}>
+                                  {getAccountTypeLabel(account.type)}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                              {formatCurrency(account.balance, currencySymbol)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Deposits Card under Assets */}
+              {activeDepositValue > 0 && (
+                <View style={{ overflow: 'hidden' }}>
+                  {renderSectionHeader(
+                    'Deposits',
+                    'vault',
+                    '#76506A',
+                    '#76506A12',
+                    activeDepositValue,
+                    'Invested Value',
+                    false,
+                    () => router.push('/deposits'),
+                    undefined,
+                    true
+                  )}
+                </View>
+              )}
+
+              {/* Loans Card under Assets */}
+              {loanSummary.youLent > 0 && (
+                <View style={{ overflow: 'hidden' }}>
+                  {renderSectionHeader(
+                    'Loans \u203A lent',
+                    'hand-coins',
+                    palette.loan,
+                    `${palette.loan}12`,
+                    loanSummary.youLent,
+                    '',
+                    false,
+                    () => router.push('/loans'),
+                    palette.text,
+                    true
+                  )}
+                </View>
+              )}
+
+              {/* Assets Card under Assets */}
+              {assetsValue > 0 && (
+                <View style={{ overflow: 'hidden' }}>
+                  {renderSectionHeader(
+                    'Assets',
+                    'gem',
+                    '#9A7440',
+                    '#9A744012',
+                    assetsValue,
+                    'Tracked Assets',
+                    false,
+                    () => router.push('/assets'),
+                    undefined,
+                    true
+                  )}
+                </View>
+              )}
             </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
-                {row.label}
+          )}
+
+          {/* Liabilities Breakdown */}
+          {(negativeAccountTotal > 0 || loanSummary.youOwe > 0) && (
+            <View style={{ gap: 10, marginTop: 6 }}>
+              <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>
+                Liabilities
               </Text>
-              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
-                {row.note}
-              </Text>
+
+              {/* Accounts Card under Liabilities */}
+              {negativeAccountTotal > 0 && (
+                <View style={{ overflow: 'hidden' }}>
+                  {renderSectionHeader(
+                    'Accounts',
+                    'building-2',
+                    nwLiabilityColor,
+                    `${nwLiabilityColor}12`,
+                    negativeAccountTotal,
+                    `${negativeAccounts.length} negative accounts`,
+                    liabilitiesAccountsExpanded,
+                    () => setLiabilitiesAccountsExpanded(!liabilitiesAccountsExpanded),
+                    nwLiabilityColor
+                  )}
+                  {liabilitiesAccountsExpanded && (
+                    <View style={{
+                      borderWidth: 1,
+                      borderTopWidth: 0,
+                      borderColor: palette.divider,
+                      borderBottomLeftRadius: HOME_RADIUS.card,
+                      borderBottomRightRadius: HOME_RADIUS.card,
+                      backgroundColor: palette.card,
+                      overflow: 'hidden',
+                    }}>
+                      {negativeAccounts.map((account, idx) => {
+                        const typeMeta = ACCOUNT_TYPE_META[account.type];
+                        return (
+                          <TouchableOpacity
+                            key={account.id}
+                            activeOpacity={0.7}
+                            onPress={() => onOpenAccount(account.id)}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              paddingHorizontal: 16,
+                              paddingVertical: 12,
+                              borderTopWidth: idx === 0 ? 0 : 1,
+                              borderTopColor: palette.divider,
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
+                              <View style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: HOME_RADIUS.small,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: typeMeta.bg ?? `${typeMeta.color}12`,
+                                marginRight: 12,
+                              }}>
+                                <AppIcon name={typeMeta.icon as any} size={16} color={typeMeta.color} strokeWidth={1.5} />
+                              </View>
+                              <View style={{ flex: 1, minWidth: 0 }}>
+                                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
+                                  {formatAccountDisplayName(account.name, account.accountNumber)}
+                                </Text>
+                                <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginTop: 2 }}>
+                                  {getAccountTypeLabel(account.type)}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.negative }}>
+                              -{formatCurrency(Math.abs(account.balance), currencySymbol)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Loans Card under Liabilities */}
+              {loanSummary.youOwe > 0 && (
+                <View style={{ overflow: 'hidden' }}>
+                  {renderSectionHeader(
+                    'Loans \u203A Borrowed',
+                    'hand-coins',
+                    palette.loan,
+                    `${palette.loan}12`,
+                    loanSummary.youOwe,
+                    '',
+                    false,
+                    () => router.push('/loans'),
+                    palette.text,
+                    true
+                  )}
+                </View>
+              )}
             </View>
-            <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 132, fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.heavy, color: row.color, textAlign: 'right' }}>
-              {formatCurrency(row.value, currencySymbol)}
-            </Text>
-          </View>
-        ))}
+          )}
+        </View>
       </View>
 
+
+      {/* Change Breakdown Table */}
       <View style={{ marginTop: 16, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, overflow: 'hidden' }}>
-        <View style={{ paddingHorizontal: 10, paddingTop: 16, paddingBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
-          <NetWorthBalanceByToggle
-            mode={accountViewMode}
-            onChange={(nextMode) => {
-              setAccountViewMode(nextMode);
-              setSelectedType(null);
-              setSelectedChartAccountId(null);
-            }}
+        <View style={{
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          borderBottomWidth: 1,
+          borderBottomColor: palette.divider,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
+        }}>
+          <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
+            Net Worth Change
+          </Text>
+          <SegmentedPillSwitch
+            options={[
+              { key: 'today', label: 'Today' },
+              { key: 'month', label: 'Month' },
+            ]}
+            value={period}
+            onChange={(key) => setPeriod(key as 'today' | 'month')}
+            backgroundColor={palette.isDark ? '#1F2937' : '#EEF2F8'}
+            pillColor={palette.isDark ? '#374151' : '#FFFFFF'}
+            borderColor={palette.divider}
+            activeTextColor={palette.text}
+            inactiveTextColor={palette.textMuted}
+            height={28}
+            radius={HOME_RADIUS.button}
+            fontSize={11}
+            itemMinWidth={60}
+            style={{ width: 124 }}
           />
         </View>
-        <NetWorthDonut
-          mode={accountViewMode}
-          groups={groupedAccounts}
-          accounts={sortedAccounts}
-          accountColorsById={accountColorsById}
-          palette={palette}
-          currencySymbol={currencySymbol}
-          selectedType={selectedType}
-          onSelectType={(type) => {
-            setSelectedType(type);
-            setSelectedChartAccountId(null);
-          }}
-          selectedAccountId={selectedChartAccountId}
-          onSelectAccount={(accountId) => {
-            setSelectedChartAccountId(accountId);
-            setSelectedType(null);
-          }}
-        />
-        <View style={{ height: 1, backgroundColor: palette.divider, marginTop: 8 }} />
-        {accountViewMode === 'type'
-          ? displayedAccounts.map((account, index) => renderAccountRow(account, index === 0))
-          : (
-            <NetWorthTypeRows
-              groups={groupedAccounts}
-              palette={palette}
-              currencySymbol={currencySymbol}
-            />
-          )}
+        <View>
+          {/* Income Row */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => openBreakdownActivity('in')}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: palette.divider }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: `${palette.positive}12` }}>
+                <AppIcon name="arrow-down-left" size={12} color={palette.positive} strokeWidth={2} />
+              </View>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Income</Text>
+            </View>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.positive }}>
+              {formatCurrency(activeVals.income, currencySymbol)}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Expense Row */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => openBreakdownActivity('out')}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: palette.divider }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: `${palette.negative}12` }}>
+                <AppIcon name="arrow-up-right" size={12} color={palette.negative} strokeWidth={2} />
+              </View>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Expense</Text>
+            </View>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.negative }}>
+              {formatCurrency(activeVals.expense, currencySymbol)}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Assets Row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: palette.divider }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#9A744012' }}>
+                <AppIcon name="gem" size={11} color="#9A7440" strokeWidth={2} />
+              </View>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Assets</Text>
+            </View>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand }}>
+              +{formatCurrency(activeVals.assetAdditions, currencySymbol)}
+            </Text>
+          </View>
+
+          {/* Net Change Row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.012)' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: activeVals.netChange >= 0 ? `${palette.positive}12` : `${palette.negative}12` }}>
+                <AppIcon name={activeVals.netChange >= 0 ? 'trending-up' : 'trending-down'} size={12} color={activeVals.netChange >= 0 ? palette.positive : palette.negative} strokeWidth={2.2} />
+              </View>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>Net Change</Text>
+            </View>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.heavy, color: activeVals.netChange >= 0 ? palette.positive : palette.negative }}>
+              {formatCurrency(activeVals.netChange, currencySymbol)}
+            </Text>
+          </View>
+        </View>
       </View>
+
+      {/* Historical Trend Chart */}
+      <View style={{
+        marginTop: 16,
+        borderRadius: HOME_RADIUS.card,
+        borderWidth: 1,
+        borderColor: palette.divider,
+        backgroundColor: palette.card,
+        padding: 16,
+      }}>
+        <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, marginBottom: 12 }}>
+          Net Worth Trend (Last 30 Days)
+        </Text>
+        {isLoadingHistory ? (
+          <View style={{ height: 120, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>Loading trend...</Text>
+          </View>
+        ) : (
+          <View>
+            <View style={{ height: 110 }}>
+              <Svg width="100%" height="100%" viewBox="0 0 300 120">
+                <Defs>
+                  <LinearGradient id="chartAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0%" stopColor={palette.brand} stopOpacity={0.24} />
+                    <Stop offset="100%" stopColor={palette.brand} stopOpacity={0.0} />
+                  </LinearGradient>
+                </Defs>
+                <Path d={areaD} fill="url(#chartAreaGrad)" />
+                <Path d={lineD} fill="none" stroke={palette.brand} strokeWidth={2} />
+                <Circle cx={0} cy={startY} r={3.5} fill={palette.brand} stroke="#FFFFFF" strokeWidth={1.2} />
+                <Circle cx={300} cy={endY} r={3.5} fill={palette.brand} stroke="#FFFFFF" strokeWidth={1.2} />
+              </Svg>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 }}>
+              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted }}>
+                30d ago ({formatCurrency(points[0].val, currencySymbol)})
+              </Text>
+              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted }}>
+                Today ({formatCurrency(points[29].val, currencySymbol)})
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+
     </Animated.ScrollView>
   );
 }

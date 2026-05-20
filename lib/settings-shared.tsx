@@ -1,8 +1,4 @@
-import { ReactNode } from 'react';
-import { ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AppThemePalette } from './theme';
-import { CardSection, SectionLabel } from '../components/settings-ui';
 import { formatCurrency } from './derived';
 import type { AccountType } from '../types';
 
@@ -297,20 +293,4 @@ export function formatDisplayCurrency(amount: number, symbol: string) {
   return formatCurrency(amount, symbol);
 }
 
-export function SettingsScreenShell({
-  palette,
-  children,
-}: {
-  palette: AppThemePalette;
-  children: ReactNode;
-}) {
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
-        {children}
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
 
-export { CardSection, SectionLabel };

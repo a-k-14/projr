@@ -80,9 +80,9 @@ export function LoanListCard({
                 }}
               >
                 <Text
-                  appWeight="semibold"
+                  appWeight="medium"
                   style={{
-                    fontSize: HOME_TEXT.tiny,
+                    fontSize: HOME_TEXT.tiny + 1,
                     color: isLent ? palette.negative : palette.positive,
                   }}
                 >

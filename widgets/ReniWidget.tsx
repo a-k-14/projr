@@ -163,7 +163,7 @@ function ActionButton({
       }}
     >
       {repeatIcon && (
-        <SvgWidget svg={repeatSvg(colors.icon)} width={11} height={11} />
+        <SvgWidget svg={repeatSvg(colors.icon)} style={{ width: 11, height: 11 }} />
       )}
       <TextWidget
         text={label}
@@ -244,8 +244,7 @@ function ReniWidgetLayout({
           <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', flexGap: 4, flexGapColor: GAP }}>
             <SvgWidget
               svg={arrowDownLeftSvg(incomeIsZero ? p.label : p.activityIn)}
-              width={16}
-              height={16}
+              style={{ width: 16, height: 16 }}
             />
             <TextWidget
               text={incomeIsZero ? '—' : fmtFull(todayIncome, sym)}
@@ -267,8 +266,7 @@ function ReniWidgetLayout({
             />
             <SvgWidget
               svg={arrowUpRightSvg(expenseIsZero ? p.label : p.activityOut)}
-              width={16}
-              height={16}
+              style={{ width: 16, height: 16 }}
             />
           </FlexWidget>
         </FlexWidget>

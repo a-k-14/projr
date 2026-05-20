@@ -30,6 +30,7 @@ export default function NetWorthScreen() {
   const depositsLoaded = useFixedDepositsStore((s) => s.isLoaded);
   const loadDeposits = useFixedDepositsStore((s) => s.load);
 
+  const assets = useAssetsStore((s) => s.assets);
   const assetsValue = useAssetsStore((s) => s.totalValue);
   const assetsLoaded = useAssetsStore((s) => s.isLoaded);
   const loadAssets = useAssetsStore((s) => s.load);
@@ -73,6 +74,8 @@ export default function NetWorthScreen() {
           loanSummary={loanSummary}
           depositSummary={depositSummary}
           assetsValue={assetsValue}
+          deposits={depositsList}
+          assets={assets}
           netWorth={netWorth}
           pageIndex={0}
           verticalScrolls={undefined as any}
