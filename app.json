@@ -66,6 +66,27 @@
         }
       ],
       [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "ReniWidget",
+              "label": "Reni",
+              "description": "Balance, cashflow chart and quick actions",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "500dp",
+              "maxResizeHeight": "220dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 0,
+              "widgetFeatures": "reconfigurable|configuration_optional"
+            }
+          ]
+        }
+      ],
+      [
         "expo-quick-actions",
         {
           "androidIcons": {

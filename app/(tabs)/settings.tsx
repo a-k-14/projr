@@ -228,7 +228,21 @@ export default function SettingsScreen() {
             </CardSection>
           </View>
 
-          {Constants.executionEnvironment === 'storeClient' && (
+          <View>
+            <SectionLabel label="WIDGET" palette={palette} />
+            <CardSection palette={palette}>
+              <SettingsRow
+                icon="layout"
+                label="Widget Preview"
+                value="Test before placing"
+                palette={palette}
+                onPress={() => router.push('/settings/widget-preview' as any)}
+                noBorder
+              />
+            </CardSection>
+          </View>
+
+          {__DEV__ && (
             <View>
               <SectionLabel label="DEVELOPMENT" palette={palette} />
               <CardSection palette={palette}>

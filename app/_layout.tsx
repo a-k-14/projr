@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { View, ActivityIndicator } from 'react-native';
+import { AppState, View, ActivityIndicator, Platform } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as QuickActions from 'expo-quick-actions';
+import '../widgets/widgetTaskHandler';
+import { updateAllReniWidgets } from '../widgets/widgetTaskHandler';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -88,6 +90,19 @@ export default function RootLayout() {
     runAutoBackup(settings.autoBackupFolderUri, settings.autoBackupKeepCount)
       .then(() => updateSettings({ lastAutoBackupAt: new Date().toISOString(), lastAutoBackupError: '' }))
       .catch((e: any) => updateSettings({ lastAutoBackupError: e?.message ?? 'Backup failed' }).catch(() => undefined));
+  }, [ready]);
+
+  // Update widget when app goes to background — only place new transactions can happen
+  const appStateRef = useRef(AppState.currentState);
+  useEffect(() => {
+    if (!ready || Platform.OS !== 'android') return;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (appStateRef.current === 'active' && next === 'background') {
+        updateAllReniWidgets().catch(() => undefined);
+      }
+      appStateRef.current = next;
+    });
+    return () => sub.remove();
   }, [ready]);
 
   useEffect(() => {
