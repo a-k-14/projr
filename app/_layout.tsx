@@ -201,6 +201,8 @@ export default function RootLayout() {
             {__DEV__ && <Stack.Screen name="palette-preview" options={{ headerShown: false }} />}
             <Stack.Screen name="assets" options={{ headerShown: false }} />
             <Stack.Screen name="net-worth" options={{ headerShown: false }} />
+            <Stack.Screen name="notes" options={{ headerShown: false }} />
+            <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
             <Stack.Screen
               name="modals/add-transaction"
               options={{ headerShown: false }}

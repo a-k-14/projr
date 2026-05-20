@@ -34,6 +34,7 @@ export function getTransactionCashflowImpact(tx: {
   // Transfer impact is relative to the concrete transfer leg represented by tx.type.
   includeTransfers?: boolean;
   includeLoans?: boolean;
+  includeDeposits?: boolean;
 }): 'in' | 'out' | 'neutral' {
   if (tx.transferPairId) {
     return options?.includeTransfers && (tx.type === 'in' || tx.type === 'out') ? tx.type : 'neutral';
@@ -41,6 +42,7 @@ export function getTransactionCashflowImpact(tx: {
   if (tx.type === 'in') return 'in';
   if (tx.type === 'out') return 'out';
   if (tx.type === 'deposit') {
+    if (options?.includeDeposits === false) return 'neutral';
     // Creating a deposit moves money OUT of source; closing/maturity brings it back IN.
     return tx.depositTransactionType === 'closed' ? 'in' : 'out';
   }

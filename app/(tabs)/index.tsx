@@ -46,7 +46,7 @@ import {
   toLocalDayStartISO
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
-import { formatCurrency, getLoanSummary, getLoanTransactionKind, getTotalBalance } from '../../lib/derived';
+import { formatCurrency, getLoanSummary, getLoanTransactionKind, getTotalBalance, getLoanTransactionSubtype, getTransactionCashflowImpact } from '../../lib/derived';
 import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
@@ -186,6 +186,7 @@ function HomeScreenContent() {
   const depositsList = useFixedDepositsStore((s) => s.deposits);
   const depositSummary = useMemo(() => getFixedDepositSummary(depositsList), [depositsList]);
   const assetsValue = useAssetsStore((s) => s.totalValue);
+  const assets = useAssetsStore((s) => s.assets);
   const netWorth = trackedTotalBalance + loanSummary.net + depositSummary.activeMaturityValue + assetsValue;
   // Retain last non-zero NW so a transient reload cycle never flashes 0 on the chip
   const lastNonZeroNWRef = useRef(netWorth);
@@ -378,14 +379,24 @@ function HomeScreenContent() {
         title={getGreeting()}
         palette={palette}
         right={
-          <TouchableOpacity
-            onPress={() => setHideAmounts((v) => !v)}
-            style={{ padding: 6 }}
-            activeOpacity={0.7}
-            delayPressIn={0}
-          >
-            <AppIcon name={hideAmounts ? 'eye-closed' : 'eye'} size={20} color={palette.textMuted} strokeWidth={1.8} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <TouchableOpacity
+              onPress={() => router.push('/notes' as any)}
+              style={{ padding: 6 }}
+              activeOpacity={0.7}
+              delayPressIn={0}
+            >
+              <AppIcon name="list-todo" size={20} color={palette.textMuted} strokeWidth={1.8} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setHideAmounts((v) => !v)}
+              style={{ padding: 6 }}
+              activeOpacity={0.7}
+              delayPressIn={0}
+            >
+              <AppIcon name={hideAmounts ? 'eye-closed' : 'eye'} size={20} color={palette.textMuted} strokeWidth={1.8} />
+            </TouchableOpacity>
+          </View>
         }
       />
       <HomeAccountPage
@@ -1680,12 +1691,32 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const incExpSummary = useMemo(() => {
     let income = 0, expense = 0;
     displayedPeriodTransactions.forEach((tx) => {
-      if (tx.transferPairId || tx.type === 'loan') return;
+      if (tx.transferPairId) return;
+      if (tx.type === 'loan') {
+        const subtype = getLoanTransactionSubtype(tx);
+        if (subtype !== 'principal') {
+          const impact = getTransactionCashflowImpact(tx, { includeLoans: true });
+          if (impact === 'in') income += tx.amount;
+          else if (impact === 'out') expense += tx.amount;
+        }
+        return;
+      }
       if (tx.type === 'in') income += tx.amount;
       if (tx.type === 'out') expense += tx.amount;
     });
     return { income, expense };
   }, [displayedPeriodTransactions]);
+
+  // NW chip delta: income - expenses + assets added in this period
+  // Excludes loans, transfers, deposits (all NW-neutral). Asset additions have no
+  // offsetting account transaction so they must be added separately.
+  const periodAssets = useAssetsStore((s) => s.assets);
+  const nwChipValue = useMemo(() => {
+    const assetAdditions = periodAssets
+      .filter((a) => a.createdAt >= from && a.createdAt <= to)
+      .reduce((sum, a) => sum + a.value, 0);
+    return (incExpSummary.income - incExpSummary.expense) + assetAdditions;
+  }, [periodAssets, from, to, incExpSummary]);
   const loadPageData = useCallback(async () => {
     await loadRangeData(from, to);
   }, [from, loadRangeData, to]);
@@ -1767,7 +1798,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             homeExcludedCount={accountId === 'all' ? homeExcludedCount : undefined}
             homeTotalCount={accountId === 'all' ? homeTotalCount : undefined}
             netWorth={accountId === 'all' ? netWorth : undefined}
-            netWorthChange={accountId === 'all' ? displayedCashflow.net : undefined}
+            netWorthChange={accountId === 'all' ? nwChipValue : undefined}
             incomeExpense={incExpSummary}
             cashflowSummary={displayedCashflow}
             period={accountId === 'all' ? undefined : period}

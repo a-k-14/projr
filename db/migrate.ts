@@ -176,6 +176,41 @@ export async function runMigrations() {
     console.warn('Migration patch (persons) error:', err);
   }
 
+  // Notes and note items
+  try {
+    await sqlite.execAsync(`
+      CREATE TABLE IF NOT EXISTS notes (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL DEFAULT '',
+        type TEXT NOT NULL DEFAULT 'text',
+        body TEXT,
+        archived INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS note_items (
+        id TEXT PRIMARY KEY,
+        note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+        text TEXT NOT NULL DEFAULT '',
+        checked INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_note_items_note ON note_items(note_id);
+    `);
+  } catch (err) {
+    console.warn('Migration patch (notes) error:', err);
+  }
+
+  // Add archived column to notes if missing
+  try {
+    const noteCols = await sqlite.getAllAsync<{ name: string }>('PRAGMA table_info(notes);');
+    if (noteCols.length > 0 && !noteCols.some((c) => c.name === 'archived')) {
+      await sqlite.execAsync('ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0;');
+    }
+  } catch (err) {
+    console.warn('Migration patch (notes.archived) error:', err);
+  }
+
   // Migrate any stored Ionicons icon names to Feather equivalents
   try {
     const iconMap: Record<string, string> = {

@@ -1,3 +1,27 @@
+export type NoteType = 'text' | 'checklist';
+
+export interface Note {
+  id: string;
+  title: string;
+  type: NoteType;
+  body: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteItem {
+  id: string;
+  noteId: string;
+  text: string;
+  checked: boolean;
+  sortOrder: number;
+}
+
+export interface NoteWithItems extends Note {
+  items: NoteItem[];
+}
+
 export type AccountType = 'savings' | 'credit' | 'cash' | 'wallet' | 'investment' | 'other';
 export type TransactionType = 'in' | 'out' | 'transfer' | 'loan' | 'deposit';
 export type DepositTransactionType = 'new' | 'closed';

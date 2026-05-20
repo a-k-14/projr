@@ -2,7 +2,7 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { assets } from '../db/schema';
 import { generateId } from '../lib/ids';
-import { todayUTC } from '../lib/dateUtils';
+import { nowUTC } from '../lib/dateUtils';
 import type { Asset, CreateAssetInput } from '../types';
 
 function rowToAsset(row: typeof assets.$inferSelect): Asset {
@@ -23,7 +23,7 @@ export async function getAssets(): Promise<Asset[]> {
 
 export async function createAsset(data: CreateAssetInput): Promise<Asset> {
   const id = generateId();
-  const now = todayUTC();
+  const now = nowUTC();
   const row = {
     id,
     name: data.name,

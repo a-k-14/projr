@@ -111,3 +111,21 @@ export const assets = sqliteTable('assets', {
   note: text('note'),
   createdAt: text('created_at').notNull(),
 });
+
+export const notes = sqliteTable('notes', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull().default(''),
+  type: text('type').notNull().default('text'),
+  body: text('body'),
+  archived: integer('archived').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const noteItems = sqliteTable('note_items', {
+  id: text('id').primaryKey(),
+  noteId: text('note_id').notNull().references(() => notes.id),
+  text: text('text').notNull().default(''),
+  checked: integer('checked').notNull().default(0),
+  sortOrder: integer('sort_order').notNull().default(0),
+});
