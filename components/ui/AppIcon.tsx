@@ -20,15 +20,21 @@ function kebabToPascal(str: string) {
  * Centralized Icon component for the app.
  */
 export function AppIcon({ name, size = 20, color, strokeWidth, style }: AppIconProps) {
-  const pascalName = kebabToPascal(name);
+  const isRotated = typeof name === 'string' && name.endsWith('-rotated');
+  const baseName = isRotated ? name.slice(0, -8) : name;
+  const pascalName = kebabToPascal(baseName);
   const IconComponent = (icons as any)[pascalName] || icons.HelpCircle;
   
+  const iconStyle = isRotated
+    ? [style, { transform: [{ rotate: '180deg' }] }]
+    : style;
+
   return (
     <IconComponent
       size={size}
       color={color}
       strokeWidth={strokeWidth}
-      style={style}
+      style={iconStyle}
     />
   );
 }
@@ -38,6 +44,8 @@ export function AppIcon({ name, size = 20, color, strokeWidth, style }: AppIconP
  */
 export function isValidIcon(name: any): name is IconName {
   if (typeof name !== 'string') return false;
-  const pascalName = kebabToPascal(name);
+  const isRotated = name.endsWith('-rotated');
+  const baseName = isRotated ? name.slice(0, -8) : name;
+  const pascalName = kebabToPascal(baseName);
   return !!(icons as any)[pascalName];
 }

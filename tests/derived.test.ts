@@ -65,6 +65,69 @@ test('structured loan settlement type maps by loan direction without note labels
   );
 });
 
+test('structured loan interest/charges maps correctly even with type in/out', () => {
+  assert.equal(
+    getStructuredLoanCashflowImpact({ type: 'in', loanTransactionType: 'interest', loanId: 'loan-1' }, 'lent'),
+    'in',
+  );
+  assert.equal(
+    getStructuredLoanCashflowImpact({ type: 'out', loanTransactionType: 'interest', loanId: 'loan-1' }, 'borrowed'),
+    'out',
+  );
+});
+
 test('negative expense amounts invert balance deltas', () => {
   assert.equal(getTransactionBalanceDelta({ type: 'out', amount: -2500 }), 2500);
+});
+
+test('loan interest/charges can be included in cashflow even when includeLoans is false', () => {
+  // Principal is neutral when includeLoans: false
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'loan', note: 'Repayment to Ravi', loanTransactionType: 'principal' },
+      { includeLoans: false },
+    ),
+    'neutral',
+  );
+
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'loan', note: 'Borrowed from Ravi', loanTransactionType: null },
+      { includeLoans: false },
+    ),
+    'neutral',
+  );
+
+  // Interest/others/charges/adjustment is not neutral if there's a recognized note prefix
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'loan', note: 'Payment to Ravi', loanTransactionType: 'interest' },
+      { includeLoans: false },
+    ),
+    'out',
+  );
+
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'loan', note: 'Receipt from Ravi', loanTransactionType: 'charges' },
+      { includeLoans: false },
+    ),
+    'in',
+  );
+
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'loan', note: 'Payment to Ravi', loanTransactionType: 'adjustment' },
+      { includeLoans: false },
+    ),
+    'out',
+  );
+
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'loan', note: 'Payment to Ravi', loanTransactionType: 'others' },
+      { includeLoans: false },
+    ),
+    'out',
+  );
 });

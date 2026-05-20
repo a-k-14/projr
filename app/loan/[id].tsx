@@ -84,7 +84,8 @@ export default function LoanDetailScreen() {
 
   const account = loan ? accounts.find((a) => a.id === loan.accountId) : undefined;
   const isLent = loan?.direction === 'lent';
-  const progressColor = loan?.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.positive);
+  // Progress bar & status pill: brand when open, muted when closed — same for both directions
+  const progressColor = loan?.status === 'closed' ? palette.textSoft : palette.brand;
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const displayedTransactions = useMemo(() => {
     if (!loan) return [];
@@ -223,8 +224,8 @@ export default function LoanDetailScreen() {
                 </View>
                 <StatusPill
                   label={loan.status === 'open' ? 'Open' : 'Closed'}
-                  color={loan.status === 'open' ? (isLent ? palette.negative : palette.positive) : palette.textSecondary}
-                  backgroundColor={loan.status === 'open' ? (isLent ? palette.outBg : palette.inBg) : palette.inputBg}
+                  color={loan.status === 'open' ? palette.brand : palette.textSecondary}
+                  backgroundColor={loan.status === 'open' ? palette.loanBg : palette.inputBg}
                   palette={palette}
                   onPress={handleToggleStatus}
                 />

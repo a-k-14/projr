@@ -45,6 +45,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
 import {
   formatCurrency,
+  formatSignedCurrency,
   formatIndianNumberStr,
   getLoanSettlementLabel,
   getLoanTransactionKind,
@@ -1003,7 +1004,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="Account"
                 value={getAccountName(accounts, accountId)}
-                subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
+                subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
@@ -1124,7 +1125,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="From"
                 value={getAccountName(accounts, accountId) || 'Select...'}
-                subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
+                subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowFromAccountSheet(true))}
@@ -1151,7 +1152,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="To"
                 value={getAccountName(accounts, linkedAccountId) || 'Select...'}
-                subtitle={selectedLinkedAccount ? formatCurrency(selectedLinkedAccount.balance, displaySym) : undefined}
+                subtitle={selectedLinkedAccount ? formatSignedCurrency(selectedLinkedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!linkedAccountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowToAccountSheet(true))}
@@ -1305,7 +1306,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="Account"
                 value={getAccountName(accounts, accountId) || 'Select...'}
-                subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
+                subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
@@ -1334,7 +1335,7 @@ export default function AddTransactionModal() {
               <PickerRow
                 label="Source"
                 value={getAccountName(accounts, accountId) || 'Select...'}
-                subtitle={selectedAccount ? formatCurrency(selectedAccount.balance, displaySym) : undefined}
+                subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
@@ -1509,7 +1510,7 @@ export default function AddTransactionModal() {
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
+                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatSignedCurrency(account.balance, displaySym, { zeroPlaceholder: '0' })}`}
                   selected={accountId === account.id}
                   palette={palette}
                   leftElement={<AccountTypeBadge account={account} palette={palette} />}
@@ -1544,7 +1545,7 @@ export default function AddTransactionModal() {
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
+                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatSignedCurrency(account.balance, displaySym, { zeroPlaceholder: '0' })}`}
                   selected={accountId === account.id}
                   palette={palette}
                   leftElement={<AccountTypeBadge account={account} palette={palette} />}
@@ -1579,7 +1580,7 @@ export default function AddTransactionModal() {
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatCurrency(account.balance, displaySym)}`}
+                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatSignedCurrency(account.balance, displaySym, { zeroPlaceholder: '0' })}`}
                   selected={linkedAccountId === account.id}
                   palette={palette}
                   leftElement={<AccountTypeBadge account={account} palette={palette} />}

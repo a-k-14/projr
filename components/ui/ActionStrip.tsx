@@ -13,7 +13,7 @@ export function ActionStrip({
   children: React.ReactNode;
 }) {
   return (
-    <Animated.View style={[animatedStyle, styles.strip, { backgroundColor: palette.stripBg, borderBottomColor: palette.divider }]}>
+    <Animated.View style={[animatedStyle, styles.strip, { backgroundColor: palette.borderSoft, borderBottomColor: palette.divider }]}>
       <View style={styles.row}>
         {children}
       </View>

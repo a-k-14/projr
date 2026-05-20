@@ -225,6 +225,8 @@ export function HomeNetWorthPage({
   currencySymbol,
   accounts,
   loanSummary,
+  depositSummary,
+  assetsValue = 0,
   netWorth,
   pageIndex,
   verticalScrolls,
@@ -240,6 +242,8 @@ export function HomeNetWorthPage({
   currencySymbol: string;
   accounts: Account[];
   loanSummary: { youLent: number; youOwe: number; net: number };
+  depositSummary?: { activeMaturityValue: number; activeInvestedValue: number; deposits: Array<{ status: string }> };
+  assetsValue?: number;
   netWorth: number;
   pageIndex: number;
   verticalScrolls: SharedValue<number[]>;
@@ -256,7 +260,9 @@ export function HomeNetWorthPage({
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const positiveAccountTotal = accounts.reduce((sum, account) => sum + Math.max(account.balance, 0), 0);
   const negativeAccountTotal = accounts.reduce((sum, account) => sum + Math.abs(Math.min(account.balance, 0)), 0);
-  const assetTotal = positiveAccountTotal + loanSummary.youLent;
+  const activeDepositCount = depositSummary?.deposits.filter((d) => d.status === 'active').length ?? 0;
+  const activeDepositValue = depositSummary?.activeInvestedValue ?? 0;
+  const assetTotal = positiveAccountTotal + loanSummary.youLent + activeDepositValue + assetsValue;
   const liabilityTotal = negativeAccountTotal + loanSummary.youOwe;
   const nwAssetColor = palette.isDark ? NW_ASSET_DARK : NW_ASSET_LIGHT;
   const nwLiabilityColor = palette.negative;
@@ -309,7 +315,19 @@ export function HomeNetWorthPage({
       note: `${accounts.filter((account) => account.balance > 0).length} funded accounts`,
       value: positiveAccountTotal,
       color: nwAssetColor,
-      icon: 'wallet',
+      icon: 'wallet' as any,
+      visible: true,
+    },
+    {
+      key: 'deposits',
+      label: 'Fixed deposits',
+      note: activeDepositCount === 0
+        ? 'No active deposits'
+        : `${activeDepositCount} active ${activeDepositCount === 1 ? 'deposit' : 'deposits'} · Invested value`,
+      value: activeDepositValue,
+      color: '#76506A',
+      icon: 'vault' as any,
+      visible: activeDepositValue > 0,
     },
     {
       key: 'receivable',
@@ -317,7 +335,17 @@ export function HomeNetWorthPage({
       note: 'Money you should receive',
       value: loanSummary.youLent,
       color: palette.brand,
-      icon: 'arrow-down-left',
+      icon: 'arrow-down-left' as any,
+      visible: loanSummary.youLent > 0,
+    },
+    {
+      key: 'other_assets',
+      label: 'Other assets',
+      note: 'Tracked non-liquid assets',
+      value: assetsValue,
+      color: '#9A7440',
+      icon: 'gem' as any,
+      visible: assetsValue > 0,
     },
     {
       key: 'liability',
@@ -325,9 +353,10 @@ export function HomeNetWorthPage({
       note: 'Borrowed and negative balances',
       value: liabilityTotal,
       color: nwLiabilityColor,
-      icon: 'arrow-up-right',
+      icon: 'arrow-up-right' as any,
+      visible: true,
     },
-  ] as const;
+  ].filter((row) => row.visible);
 
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
@@ -405,7 +434,26 @@ export function HomeNetWorthPage({
           </View>
         </View>
       )}
-      <View style={{ paddingTop: compactTop ? 12 : HOME_SURFACE.heroTop, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, padding: CARD_PADDING, minHeight: 184, overflow: 'hidden', justifyContent: 'space-between' }}>
+      <View
+        style={{
+          paddingTop: compactTop ? 12 : HOME_SURFACE.heroTop,
+          borderRadius: HOME_RADIUS.card,
+          borderWidth: 1,
+          borderColor: palette.divider,
+          backgroundColor: palette.card,
+          padding: CARD_PADDING,
+          minHeight: 184,
+          overflow: 'hidden',
+          justifyContent: 'space-between',
+          ...(!palette.isDark ? {
+            elevation: 6,
+            shadowColor: '#94A3B8',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.13,
+            shadowRadius: 10,
+          } : {}),
+        }}
+      >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: HOME_SPACE.lg }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>

@@ -925,7 +925,7 @@ export default function ActivityScreen() {
       router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: transaction.depositId, editDepositId: '', focusField } });
       return;
     }
-    if (transaction.type === 'loan' && transaction.loanId) {
+    if (transaction.loanId) {
       const loan = loans.find((item) => item.id === transaction.loanId);
       if (loan && getLoanTransactionKind(transaction, loan.direction) === 'settlement') {
         router.push({ pathname: '/modals/loan-settlement', params: { editId: transaction.id } });

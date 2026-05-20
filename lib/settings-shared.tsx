@@ -229,6 +229,7 @@ export const CATEGORY_ICONS = [
   'bar-chart-2',
   'pie-chart',
   'send',
+  'zap',
   // Health & wellness
   'heart',
   'activity',

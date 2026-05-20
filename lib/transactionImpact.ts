@@ -14,11 +14,14 @@ export function getStructuredLoanCashflowImpact(
     type: string;
     note?: string | null;
     loanTransactionType?: string | null;
+    loanId?: string | null;
   },
   direction: LoanDirection,
   role?: LoanRole,
 ): 'in' | 'out' | 'neutral' {
-  if (tx.type !== 'loan') return 'neutral';
+  if (tx.type !== 'loan' && !(tx.loanId && tx.loanTransactionType && tx.loanTransactionType !== 'principal')) {
+    return 'neutral';
+  }
   if (role === 'origin') return getLoanOriginImpact(direction);
   if (role === 'settlement') return getLoanSettlementImpact(direction);
   if (tx.loanTransactionType) return getLoanSettlementImpact(direction);
@@ -30,6 +33,8 @@ export function getTransactionCashflowImpact(tx: {
   note?: string | null;
   transferPairId?: string | null;
   depositTransactionType?: string | null;
+  loanTransactionType?: string | null;
+  categoryId?: string | null;
 }, options?: {
   // Transfer impact is relative to the concrete transfer leg represented by tx.type.
   includeTransfers?: boolean;
@@ -46,7 +51,19 @@ export function getTransactionCashflowImpact(tx: {
     // Creating a deposit moves money OUT of source; closing/maturity brings it back IN.
     return tx.depositTransactionType === 'closed' ? 'in' : 'out';
   }
-  if (tx.type === 'loan' && options?.includeLoans !== false) {
+  if (tx.type === 'loan') {
+    // Check structured categories first
+    if (tx.categoryId === '__sys_loan_interest_received__' || tx.categoryId === '__sys_loan_charges_received__') {
+      return 'in';
+    }
+    if (tx.categoryId === '__sys_loan_interest_paid__' || tx.categoryId === '__sys_loan_charges_paid__') {
+      return 'out';
+    }
+
+    const isPrincipal = !tx.loanTransactionType || (tx.loanTransactionType !== 'interest' && tx.loanTransactionType !== 'others' && tx.loanTransactionType !== 'charges' && tx.loanTransactionType !== 'adjustment');
+    if (isPrincipal && options?.includeLoans === false) {
+      return 'neutral';
+    }
     const note = (tx.note ?? '').toLowerCase();
     if (
       note.startsWith('borrowed from') ||
@@ -72,6 +89,8 @@ export function getTransactionBalanceDelta(tx: {
   note?: string | null;
   transferPairId?: string | null;
   depositTransactionType?: string | null;
+  loanTransactionType?: string | null;
+  categoryId?: string | null;
 }): number {
   const impact = getTransactionCashflowImpact(tx);
   if (impact === 'in') return tx.amount;

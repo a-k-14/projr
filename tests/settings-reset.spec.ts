@@ -72,7 +72,8 @@ beforeEach(() => {
       parent_id TEXT,
       icon TEXT NOT NULL DEFAULT 'tag',
       color TEXT NOT NULL DEFAULT '#6B7280',
-      type TEXT NOT NULL DEFAULT 'both'
+      type TEXT NOT NULL DEFAULT 'both',
+      system_key TEXT
     );
 
     CREATE TABLE tags (
@@ -133,17 +134,25 @@ beforeEach(() => {
     CREATE TABLE deposits (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      bank_name TEXT,
       account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
       principal_amount REAL NOT NULL,
+      interest_rate REAL,
+      tenure_months INTEGER,
       start_date TEXT NOT NULL,
+      maturity_date TEXT,
+      maturity_value REAL,
       status TEXT NOT NULL DEFAULT 'active',
+      note TEXT,
       created_at TEXT NOT NULL
     );
 
     CREATE TABLE assets (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'gem',
       value REAL NOT NULL DEFAULT 0,
+      note TEXT,
       created_at TEXT NOT NULL
     );
 

@@ -28,13 +28,13 @@ export function LoanOverviewCard({
     <OverviewHeroCard
       palette={palette}
       icon="hand-coins"
-      iconBg="#E8F0F3"
-      iconColor="#4F6B7A"
+      iconBg={palette.loanBg}
+      iconColor={palette.loan}
       eyebrow="Loans Overview"
       title="Current Position"
       badgeLabel=""
-      badgeBg={isZero ? palette.background : palette.brandSoft}
-      badgeColor={isZero ? palette.textSecondary : palette.brand}
+      badgeBg={isZero ? palette.background : palette.loanSoft}
+      badgeColor={isZero ? palette.textSecondary : palette.loan}
       metrics={[
         { key: 'lent', label: 'Lent', value: formatCurrency(lent, sym), valueColor: palette.text },
         { key: 'borrowed', label: 'Borrowed', value: formatCurrency(borrowed, sym), valueColor: palette.text },

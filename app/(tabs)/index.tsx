@@ -46,7 +46,7 @@ import {
   toLocalDayStartISO
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
-import { formatCurrency, getLoanSummary, getLoanTransactionKind, getTotalBalance, getLoanTransactionSubtype, getTransactionCashflowImpact } from '../../lib/derived';
+import { formatCurrency, getLoanSummary, getLoanTransactionKind, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
 import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
@@ -187,11 +187,17 @@ function HomeScreenContent() {
   const depositSummary = useMemo(() => getFixedDepositSummary(depositsList), [depositsList]);
   const assetsValue = useAssetsStore((s) => s.totalValue);
   const assets = useAssetsStore((s) => s.assets);
-  const netWorth = trackedTotalBalance + loanSummary.net + depositSummary.activeMaturityValue + assetsValue;
+  const netWorth = trackedTotalBalance + loanSummary.net + depositSummary.activeInvestedValue + assetsValue;
+
+  const accountsLoaded = useAccountsStore((s) => s.isLoaded);
+  const depositsLoaded = useFixedDepositsStore((s) => s.isLoaded);
+  const assetsLoaded = useAssetsStore((s) => s.isLoaded);
+  const allLoaded = accountsLoaded && loansLoaded && depositsLoaded && assetsLoaded;
+
   // Retain last non-zero NW so a transient reload cycle never flashes 0 on the chip
   const lastNonZeroNWRef = useRef(netWorth);
   if (netWorth !== 0) lastNonZeroNWRef.current = netWorth;
-  const stableNetWorth = netWorth !== 0 ? netWorth : lastNonZeroNWRef.current;
+  const stableNetWorth = allLoaded ? netWorth : (netWorth !== 0 ? netWorth : lastNonZeroNWRef.current);
   const budgetSummary = useMemo(() => {
     const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.amount, 0);
     const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
@@ -212,7 +218,7 @@ function HomeScreenContent() {
       router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
       return;
     }
-    if (tx.type === 'loan' && tx.loanId) {
+    if (tx.loanId) {
       const loan = loansById.get(tx.loanId);
       if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
         router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });
@@ -276,7 +282,7 @@ function HomeScreenContent() {
   const activeDepositCount = depositSummary.deposits.filter((d: any) => d.status === 'active').length;
   const depositMeta = activeDepositCount === 0
     ? 'No active deposits'
-    : `${activeDepositCount} Active · ${formatNetWorthStripValue(depositSummary.activeMaturityValue, displaySymbol)}`;
+    : `${activeDepositCount} Active · ${formatNetWorthStripValue(depositSummary.activeInvestedValue, displaySymbol)}`;
   const loanMeta = loanSummary.youLent === 0 && loanSummary.youOwe === 0
     ? 'No loans'
     : `${loanSummary.net >= 0 ? 'Net Lent' : 'Net Owed'} · ${formatNetWorthStripValue(Math.abs(loanSummary.net), displaySymbol)}`;
@@ -1691,18 +1697,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const incExpSummary = useMemo(() => {
     let income = 0, expense = 0;
     displayedPeriodTransactions.forEach((tx) => {
-      if (tx.transferPairId) return;
-      if (tx.type === 'loan') {
-        const subtype = getLoanTransactionSubtype(tx);
-        if (subtype !== 'principal') {
-          const impact = getTransactionCashflowImpact(tx, { includeLoans: true });
-          if (impact === 'in') income += tx.amount;
-          else if (impact === 'out') expense += tx.amount;
-        }
-        return;
-      }
-      if (tx.type === 'in') income += tx.amount;
-      if (tx.type === 'out') expense += tx.amount;
+      const impact = getTransactionCashflowImpact(tx, { includeLoans: false, includeDeposits: false });
+      if (impact === 'in') income += tx.amount;
+      else if (impact === 'out') expense += tx.amount;
     });
     return { income, expense };
   }, [displayedPeriodTransactions]);
@@ -1764,7 +1761,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
       return;
     }
-    if (tx.type === 'loan' && tx.loanId) {
+    if (tx.loanId) {
       const loan = loansById.get(tx.loanId);
       if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
         router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });

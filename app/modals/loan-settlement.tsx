@@ -31,7 +31,7 @@ import {
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { nowUTC } from '../../lib/dateUtils';
-import { formatCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
+import { formatCurrency, formatSignedCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
@@ -240,7 +240,7 @@ export default function LoanSettlementModal() {
             <PickerRow
               label="Account"
               value={getAccountName(accounts, accountId) || 'Select...'}
-              subtitle={accountId ? formatCurrency(accounts.find((account) => account.id === accountId)?.balance ?? 0, displaySym) : undefined}
+              subtitle={accountId ? formatSignedCurrency(accounts.find((account) => account.id === accountId)?.balance ?? 0, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
               placeholder={!accountId}
               palette={palette}
               onPress={() => {
@@ -277,7 +277,7 @@ export default function LoanSettlementModal() {
             <ChoiceRow
               key={account.id}
               title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-              subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatCurrency(account.balance, displaySym)}`}
+              subtitle={`${account.type.charAt(0).toUpperCase() + account.type.slice(1)} · ${formatSignedCurrency(account.balance, displaySym, { zeroPlaceholder: '0' })}`}
               selected={accountId === account.id}
               palette={palette}
               onPress={() => {

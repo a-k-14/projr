@@ -52,10 +52,12 @@ export function getLoanTransactionUserNote(note?: string | null) {
 }
 
 export function getLoanTransactionKind(
-  tx: { type: string; note?: string | null; loanTransactionType?: string | null },
+  tx: { type: string; note?: string | null; loanTransactionType?: string | null; loanId?: string | null },
   direction: Loan['direction']
 ): 'origin' | 'settlement' | 'other' {
-  if (tx.type !== 'loan') return 'other';
+  if (tx.type !== 'loan' && !(tx.loanId && tx.loanTransactionType && tx.loanTransactionType !== 'principal')) {
+    return 'other';
+  }
   const impact = getStructuredLoanCashflowImpact(tx, direction);
   if (impact === getLoanOriginImpact(direction)) return 'origin';
   if (impact === getLoanSettlementImpact(direction)) return 'settlement';

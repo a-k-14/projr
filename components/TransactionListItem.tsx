@@ -65,13 +65,14 @@ function TransactionListItemBase({
   isCard = false }: Props) {
   const effectiveType = tx.transferPairId ? 'transfer' : tx.type;
   const accountNameSelected = accountName;
-  const inOutCategoryIcon = !tx.transferPairId && (tx.type === 'in' || tx.type === 'out') && categoryIcon ? categoryIcon : null;
+  const isInterestOrCharges = !!tx.loanId && (tx.loanTransactionType === 'interest' || tx.loanTransactionType === 'others' || tx.loanTransactionType === 'charges');
+  const inOutCategoryIcon = !tx.transferPairId && (tx.type === 'in' || tx.type === 'out' || isInterestOrCharges) && categoryIcon ? categoryIcon : null;
 
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;
   const displayImpact = getTransactionCashflowImpact(tx, { includeTransfers: true });
 
-  let title = tx.payee || cfg.label;
+  let title: React.ReactNode = tx.payee || cfg.label;
   let titleSecondaryText: string | undefined;
   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' \u2022 ');
   let noteLine: string | undefined;
@@ -84,32 +85,54 @@ function TransactionListItemBase({
     const from = tx.type === 'out' ? accountNameSelected : linkedAccountName;
     const to = tx.type === 'out' ? linkedAccountName : accountNameSelected;
     subtitle = `${from} \u2192 ${to}`;
-  } else if (tx.type === 'loan' && loanPersonName) {
+  } else if (tx.type === 'loan' && loanPersonName && !isInterestOrCharges) {
     const rawType = tx.loanTransactionType || 'principal';
     let typeLabel = 'Principal';
-    if (rawType === 'interest') {
-      typeLabel = displayImpact === 'in' ? 'Interest In' : 'Interest Out';
-    } else if (rawType === 'others') {
-      typeLabel = displayImpact === 'in' ? 'Charges In' : 'Charges Out';
-    } else if (rawType === 'principal') {
+    if (rawType === 'principal') {
       if (loanDirection === 'lent') {
         typeLabel = displayImpact === 'out' ? 'Lent' : 'Recovered';
       } else if (loanDirection === 'borrowed') {
         typeLabel = displayImpact === 'in' ? 'Borrowed' : 'Repaid';
       }
     }
-    title = `Loan › ${typeLabel}`;
+    title = (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={{ fontSize: CARD_TEXT.line1, color: palette.listText, fontWeight: '500' }}>
+          Loan ›{' '}
+        </Text>
+        <View
+          style={{
+            backgroundColor: palette.borderSoft,
+            paddingHorizontal: 6,
+            paddingVertical: 1.5,
+            borderRadius: 10,
+            borderWidth: 0.5,
+            borderColor: palette.border,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: CARD_TEXT.line1,
+              color: palette.listText,
+              fontWeight: '500',
+            }}
+          >
+            {typeLabel}
+          </Text>
+        </View>
+      </View>
+    );
     titleSecondaryText = undefined;
     subtitle = [accountNameSelected, loanPersonName].filter(Boolean).join(' \u2022 ');
     noteLine = getLoanTransactionUserNote(tx.note) || undefined;
   }
 
-  const shouldAllowCategoryWrap = !!categoryName?.includes(' › ') || title.includes(' › ');
+  const shouldAllowCategoryWrap = !!categoryName?.includes(' › ') || (typeof title === 'string' && title.includes(' › '));
 
-  if (!tx.transferPairId && (tx.type === 'in' || tx.type === 'out')) {
+  if (!tx.transferPairId && (tx.type === 'in' || tx.type === 'out' || isInterestOrCharges)) {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     titleSecondaryText = undefined;
-    subtitle = [accountNameSelected, tx.payee].filter(Boolean).join(' \u2022 ');
+    subtitle = [accountNameSelected, tx.payee || loanPersonName].filter(Boolean).join(' \u2022 ');
     noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
   }
 

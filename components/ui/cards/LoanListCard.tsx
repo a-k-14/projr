@@ -5,11 +5,12 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '../AppIcon';
 import { View } from 'react-native';
-import { AppCard, CardTitleRow, CardSubtitleRow } from '../AppCard';
+import { AppCard, CardSubtitleRow } from '../AppCard';
 import { formatCurrency } from '../../../lib/derived';
 import { FONT_WEIGHT } from '../../../lib/design';
 import {
   ACTIVITY_LAYOUT,
+  CARD_TEXT,
   HOME_LAYOUT,
   HOME_RADIUS,
   HOME_TEXT,
@@ -32,8 +33,9 @@ export function LoanListCard({
   onPress: () => void;
 }) {
   const isLent = loan.direction === 'lent';
-  const dirColor = isLent ? palette.negative : palette.positive;
-  const progressColor = loan.status === 'closed' ? palette.textSoft : (isLent ? palette.negative : palette.positive);
+  const iconColor = palette.brand;
+  // Progress bar: brand icon color when open, muted when closed
+  const progressColor = loan.status === 'closed' ? palette.textSoft : palette.loan;
   const directionLabel = isLent ? 'Lent' : 'Borrowed';
 
   return (
@@ -49,15 +51,52 @@ export function LoanListCard({
           paddingTop: loan.status === 'closed' ? 28 : 14,
           paddingBottom: loan.status === 'closed' ? 16 : 14,
         }}
-        icon={<AppIcon name={isLent ? 'arrow-up-right' : 'arrow-down-left'} size={Math.round(HOME_LAYOUT.listIconSize * 0.45)} color={dirColor} />}
-        iconBg={isLent ? palette.outBg : palette.inBg}
-        topRow={
-          <CardTitleRow
-            title={loan.personName}
-            secondary={directionLabel}
-            amount={formatCurrency(loan.givenAmount, sym)}
-            palette={palette}
+        icon={
+          <AppIcon
+            name="hand-coins"
+            size={HOME_LAYOUT.listIconInnerSize}
+            color={iconColor}
+            strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
           />
+        }
+        topRow={
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+              <Text
+                appWeight="medium"
+                numberOfLines={1}
+                style={{ fontSize: CARD_TEXT.line1, color: palette.listText }}
+              >
+                {loan.personName}
+              </Text>
+              <View
+                style={{
+                  backgroundColor: isLent ? palette.outBg : palette.inBg,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: HOME_RADIUS.card,
+                  borderWidth: 0.5,
+                  borderColor: isLent ? palette.negative : palette.positive,
+                }}
+              >
+                <Text
+                  appWeight="semibold"
+                  style={{
+                    fontSize: HOME_TEXT.tiny,
+                    color: isLent ? palette.negative : palette.positive,
+                  }}
+                >
+                  {directionLabel}
+                </Text>
+              </View>
+            </View>
+            <Text
+              appWeight="medium"
+              style={{ fontSize: CARD_TEXT.line1, color: palette.listText, textAlign: 'right', marginLeft: 14 }}
+            >
+              {formatCurrency(loan.givenAmount, sym)}
+            </Text>
+          </View>
         }
         bottomRow={
           <CardSubtitleRow
@@ -67,8 +106,15 @@ export function LoanListCard({
           />
         }
         footer={
-          <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
-            <View style={{ height: PROGRESS.cardHeight, width: `${loan.repaidPercent}%`, backgroundColor: progressColor, borderRadius: PROGRESS.radius }} />
+          <View style={{ gap: 6 }}>
+            <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
+              <View style={{ height: PROGRESS.cardHeight, width: `${loan.repaidPercent}%`, backgroundColor: progressColor, borderRadius: PROGRESS.radius }} />
+            </View>
+            {loan.repaidPercent > 0 && (
+              <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
+                {loan.repaidPercent}% Repaid
+              </Text>
+            )}
           </View>
         }
       />

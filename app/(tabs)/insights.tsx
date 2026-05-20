@@ -107,7 +107,7 @@ export default function InsightsScreen() {
       router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
       return;
     }
-    if (tx.type === 'loan' && tx.loanId) {
+    if (tx.loanId) {
       const loan = loansById.get(tx.loanId);
       if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
         router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });

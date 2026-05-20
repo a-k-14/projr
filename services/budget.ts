@@ -20,13 +20,15 @@ function rowToBudget(row: typeof budget.$inferSelect): Budget {
 
 function getMonthKey(iso: string) {
   const date = new Date(iso);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 function getMonthRange(iso: string) {
   const date = new Date(iso);
-  const from = new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
-  const to = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const from = new Date(year, month, 1, 0, 0, 0, 0);
+  const to = new Date(year, month + 1, 0, 23, 59, 59, 999);
   return { from: from.toISOString(), to: to.toISOString() };
 }
 

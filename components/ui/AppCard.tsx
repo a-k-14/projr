@@ -92,7 +92,7 @@ export function AppCard({
 // ─── Helper Components for Slots ──────────────────────────────────────────────
 
 interface CardTitleRowProps {
-  title: string;
+  title: React.ReactNode;
   secondary?: string;
   amount?: string;
   palette: AppThemePalette;
@@ -131,18 +131,24 @@ export function CardTitleRow({
 
   return (
     <>
-      <Text
-        appWeight="medium"
-        numberOfLines={titleNumberOfLines}
-        style={[{ flex: 1, fontSize: CARD_TEXT.line1, color: palette.listText }, titleStyle]}
-      >
-        {title}
-        {secondary ? (
-          <Text appWeight="medium" style={{ color: palette.listText }}>
-            {secondarySeparator}{secondary}
-          </Text>
-        ) : null}
-      </Text>
+      {React.isValidElement(title) ? (
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+          {title}
+        </View>
+      ) : (
+        <Text
+          appWeight="medium"
+          numberOfLines={titleNumberOfLines}
+          style={[{ flex: 1, fontSize: CARD_TEXT.line1, color: palette.listText }, titleStyle]}
+        >
+          {title}
+          {secondary ? (
+            <Text appWeight="medium" style={{ color: palette.listText }}>
+              {secondarySeparator}{secondary}
+            </Text>
+          ) : null}
+        </Text>
+      )}
       {amountContent && (
         onPressAmount ? (
           <TouchableOpacity

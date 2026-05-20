@@ -9,7 +9,7 @@ import { CardSection, ChoiceRow, ScreenTitle, SectionLabel, SettingsRow } from '
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { AppSwitch } from '../../components/ui/AppSwitch';
 import { useAppDialog } from '../../components/ui/useAppDialog';
-import { formatCurrency } from '../../lib/derived';
+import { formatSignedCurrency } from '../../lib/derived';
 import {
   CURRENCIES,
   MONTHS,
@@ -301,7 +301,7 @@ export default function SettingsScreen() {
                 <ChoiceRow
                   key={account.id}
                   title={account.name}
-                  subtitle={`${capitalize(account.type)} · ${formatCurrency(account.balance, displaySymbol)}`}
+                  subtitle={`${capitalize(account.type)} · ${formatSignedCurrency(account.balance, displaySymbol, { zeroPlaceholder: '0' })}`}
                   selected={settings.defaultAccountId === account.id}
                   palette={palette}
                   onPress={() => {

@@ -2,18 +2,18 @@ import { runMigrations } from '../db/migrate';
 import { getAccounts, getAccountById } from '../services/accounts';
 import { getCashflowSnapshot } from '../services/analytics';
 import { getSettings } from '../services/settings';
-import { toLocalDateKey } from '../lib/dateUtils';
+import { toLocalDateKey, toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
 import type { ReniWidgetConfig } from './widgetTypes';
 import type { WidgetData } from './widgetTypes';
 
 function monthBounds(): { from: string; to: string; label: string } {
   const now = new Date();
   const year = now.getFullYear();
-  const month = now.getMonth() + 1; // 1-based
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const from = `${year}-${pad(month)}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const to = `${year}-${pad(month)}-${pad(lastDay)}`;
+  const month = now.getMonth(); // 0-based
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const from = toLocalDayStartISO(firstDay);
+  const to = toLocalDayEndISO(lastDay);
   const label = now.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
   return { from, to, label };
 }

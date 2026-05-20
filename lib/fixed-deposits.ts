@@ -33,11 +33,16 @@ export function getFixedDepositSummary(deposits: Deposit[]) {
     .filter((d) => d.status === 'active')
     .reduce((sum, d) => sum + getDepositAccruedValue(d), 0);
 
+  const activeInvestedValue = deposits
+    .filter((d) => d.status === 'active')
+    .reduce((sum, d) => sum + d.principalAmount, 0);
+
   return {
     deposits,
     totalInvested,
     totalMaturityValue,
     activeMaturityValue,
+    activeInvestedValue,
     totalInterest: totalMaturityValue - totalInvested,
   };
 }

@@ -299,10 +299,10 @@ export async function runMigrations() {
 
   // Seed system categories used internally (non-editable by user)
   try {
-    // Parent: Automated — refresh-cw icon suggests recurring/automatic; system-managed
+    // Parent: Automated (income) — circle-arrow-down icon; system-managed
     await sqlite.runAsync(`
       INSERT OR IGNORE INTO categories (id, name, icon, color, type, system_key)
-      VALUES ('__sys_financial_income__', 'Automated', 'zap', '#16A34A', 'in', 'financial_income')
+      VALUES ('__sys_financial_income__', 'Automated', 'circle-arrow-down', '#16A34A', 'in', 'financial_income')
     `);
     // Child: Deposit Interest — percent icon; excluded from icon picker
     await sqlite.runAsync(`
@@ -311,14 +311,77 @@ export async function runMigrations() {
     `);
     // Update name/icon for existing rows (INSERT OR IGNORE won't update already-seeded rows)
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Automated', icon = 'zap'
+      UPDATE categories SET name = 'Automated', icon = 'circle-arrow-down'
       WHERE id = '__sys_financial_income__'
     `);
     await sqlite.runAsync(`
       UPDATE categories SET name = 'Deposit Interest', icon = 'percent'
       WHERE id = '__sys_interest_on_deposit__'
     `);
+
+    // Child: Loan Interest In — income type, under Automated parent
+    await sqlite.runAsync(`
+      INSERT OR IGNORE INTO categories (id, name, parent_id, icon, color, type, system_key)
+      VALUES ('__sys_loan_interest_received__', 'Loan Interest In', '__sys_financial_income__', 'circle-arrow-down', '#16A34A', 'in', 'loan_interest_received')
+    `);
+    await sqlite.runAsync(`
+      UPDATE categories SET name = 'Loan Interest In', icon = 'circle-arrow-down'
+      WHERE id = '__sys_loan_interest_received__'
+    `);
+
+    // Child: Loan Charges In — income type, under Automated parent
+    await sqlite.runAsync(`
+      INSERT OR IGNORE INTO categories (id, name, parent_id, icon, color, type, system_key)
+      VALUES ('__sys_loan_charges_received__', 'Loan Charges In', '__sys_financial_income__', 'circle-arrow-down', '#16A34A', 'in', 'loan_charges_received')
+    `);
+    await sqlite.runAsync(`
+      UPDATE categories SET name = 'Loan Charges In', icon = 'circle-arrow-down'
+      WHERE id = '__sys_loan_charges_received__'
+    `);
+
+    // Parent: Automated (expense) — circle-arrow-up icon; system-managed
+    await sqlite.runAsync(`
+      INSERT OR IGNORE INTO categories (id, name, icon, color, type, system_key)
+      VALUES ('__sys_financial_expense__', 'Automated', 'circle-arrow-up', '#DC2626', 'out', 'financial_expense')
+    `);
+    await sqlite.runAsync(`
+      UPDATE categories SET name = 'Automated', icon = 'circle-arrow-up'
+      WHERE id = '__sys_financial_expense__'
+    `);
+
+    // Child: Loan Interest Out — expense type, under Automated parent
+    await sqlite.runAsync(`
+      INSERT OR IGNORE INTO categories (id, name, parent_id, icon, color, type, system_key)
+      VALUES ('__sys_loan_interest_paid__', 'Loan Interest Out', '__sys_financial_expense__', 'circle-arrow-up', '#DC2626', 'out', 'loan_interest_paid')
+    `);
+    await sqlite.runAsync(`
+      UPDATE categories SET name = 'Loan Interest Out', icon = 'circle-arrow-up'
+      WHERE id = '__sys_loan_interest_paid__'
+    `);
+
+    // Child: Loan Charges Out — expense type, under Automated parent
+    await sqlite.runAsync(`
+      INSERT OR IGNORE INTO categories (id, name, parent_id, icon, color, type, system_key)
+      VALUES ('__sys_loan_charges_paid__', 'Loan Charges Out', '__sys_financial_expense__', 'circle-arrow-up', '#DC2626', 'out', 'loan_charges_paid')
+    `);
+    await sqlite.runAsync(`
+      UPDATE categories SET name = 'Loan Charges Out', icon = 'circle-arrow-up'
+      WHERE id = '__sys_loan_charges_paid__'
+    `);
+
+    // Migrate existing interest/charges transactions to type 'in' or 'out'
+    await sqlite.runAsync(`
+      UPDATE transactions 
+      SET type = 'in' 
+      WHERE type = 'loan' AND category_id IN ('__sys_loan_interest_received__', '__sys_loan_charges_received__')
+    `);
+    await sqlite.runAsync(`
+      UPDATE transactions 
+      SET type = 'out' 
+      WHERE type = 'loan' AND category_id IN ('__sys_loan_interest_paid__', '__sys_loan_charges_paid__')
+    `);
   } catch (err) {
     console.warn('Migration patch (system categories) error:', err);
   }
 }
+

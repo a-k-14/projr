@@ -1,6 +1,6 @@
 import { eq, and, gte, lte, desc, inArray, sql, or, like } from 'drizzle-orm';
 import { db } from '../db/client';
-import { accounts, categories, deposits, transactions } from '../db/schema';
+import { accounts, categories, deposits, transactions, loans } from '../db/schema';
 import type {
   Transaction,
   CreateTransactionInput,
@@ -14,6 +14,18 @@ import {
   deleteReceiptOwnerDirectory,
   persistReceiptImagesForOwner,
 } from './receiptStorage';
+
+async function getLoanCategoryId(loanId: string | null | undefined, loanTransactionType: string | null | undefined): Promise<string | null> {
+  if (!loanId || !loanTransactionType || loanTransactionType === 'principal') return null;
+  const rows = await db.select({ direction: loans.direction }).from(loans).where(eq(loans.id, loanId));
+  const direction = rows[0]?.direction;
+  if (!direction) return null;
+  if (direction === 'lent') {
+    return loanTransactionType === 'interest' ? '__sys_loan_interest_received__' : '__sys_loan_charges_received__';
+  } else {
+    return loanTransactionType === 'interest' ? '__sys_loan_interest_paid__' : '__sys_loan_charges_paid__';
+  }
+}
 
 type TransactionExecutor = Pick<typeof db, 'select' | 'update'>;
 
@@ -145,6 +157,18 @@ export async function getTransactionById(id: string): Promise<Transaction | null
   return rows[0] ? rowToTransaction(rows[0]) : null;
 }
 
+async function getLoanTransactionEffectiveType(
+  loanId: string | null | undefined,
+  loanTransactionType: string | null | undefined,
+  fallbackType: 'in' | 'out' | 'transfer' | 'deposit' | 'loan'
+): Promise<'in' | 'out' | 'transfer' | 'deposit' | 'loan'> {
+  if (!loanId || !loanTransactionType || loanTransactionType === 'principal') return fallbackType;
+  const rows = await db.select({ direction: loans.direction }).from(loans).where(eq(loans.id, loanId));
+  const direction = rows[0]?.direction;
+  if (!direction) return fallbackType;
+  return direction === 'lent' ? 'in' : 'out';
+}
+
 export async function createTransaction(data: CreateTransactionInput): Promise<Transaction> {
   const now = nowUTC();
   assertPositiveAmount(data.amount);
@@ -207,9 +231,11 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
 
   const id = generateId();
   const receiptImageUris = await persistReceiptImagesForOwner(id, data.receiptImageUris);
+  const derivedCategoryId = data.categoryId ?? (await getLoanCategoryId(data.loanId, data.loanTransactionType));
+  const effectiveType = await getLoanTransactionEffectiveType(data.loanId, data.loanTransactionType, data.type);
   const row = {
     id,
-    type: data.type,
+    type: effectiveType,
     amount: data.amount,
     accountId: data.accountId,
     splitGroupId: data.splitGroupId ?? null,
@@ -218,7 +244,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     loanTransactionType: data.loanTransactionType ?? null,
     depositId: data.depositId ?? null,
     depositTransactionType: data.depositTransactionType ?? null,
-    categoryId: data.categoryId ?? null,
+    categoryId: derivedCategoryId,
     payee: data.payee ?? null,
     tags: JSON.stringify(data.tags ?? []),
     note: data.note ?? null,
@@ -249,11 +275,28 @@ export async function updateTransaction(
     throw new Error('Use updateTransferTransaction to edit a transfer.');
   }
 
+  const targetType = (data.type !== undefined ? data.type : existing.type) as any;
+  const finalLoanId = data.loanId !== undefined ? data.loanId : existing.loanId;
+  const finalLoanTxType = data.loanTransactionType !== undefined ? data.loanTransactionType : existing.loanTransactionType;
+  const finalType = await getLoanTransactionEffectiveType(finalLoanId, finalLoanTxType, targetType);
+
   const updateData: Record<string, any> = {};
-  if (data.type !== undefined) updateData.type = data.type;
+  if (finalType !== existing.type) {
+    updateData.type = finalType;
+  } else if (data.type !== undefined) {
+    updateData.type = data.type;
+  }
   if (data.amount !== undefined) updateData.amount = data.amount;
   if (data.loanTransactionType !== undefined) updateData.loanTransactionType = data.loanTransactionType;
-  if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+  
+  let derivedCategoryId: string | null | undefined = data.categoryId;
+  if (derivedCategoryId === undefined) {
+    if (finalLoanId && finalLoanTxType && finalLoanTxType !== 'principal') {
+      derivedCategoryId = await getLoanCategoryId(finalLoanId, finalLoanTxType);
+    }
+  }
+  if (derivedCategoryId !== undefined) updateData.categoryId = derivedCategoryId;
+  
   if (data.payee !== undefined) updateData.payee = data.payee;
   if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);
   if (data.note !== undefined) updateData.note = data.note;
