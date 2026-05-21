@@ -64,7 +64,7 @@ export function IncomeExpenseChart({ data, palette, sym }: Props): React.ReactEl
         padding: CARD_PADDING,
         borderWidth: 1,
         borderColor: palette.divider,
-        marginBottom: 12,
+        marginBottom: 20,
         overflow: 'hidden',
       }}
     >

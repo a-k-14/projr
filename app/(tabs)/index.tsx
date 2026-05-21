@@ -1074,7 +1074,7 @@ function AccountSummaryCard({
                   return (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <AppIcon name="arrow-down-left" size={13} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
+                        <AppIcon name="arrow-down-left" size={15} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
                         <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                           {hideAmounts ? '••••' : leftIsZero ? '—' : (
                             <Text>{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
@@ -1087,7 +1087,7 @@ function AccountSummaryCard({
                             <Text>{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
                           )}
                         </Text>
-                        <AppIcon name="arrow-up-right" size={13} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
+                        <AppIcon name="arrow-up-right" size={15} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
                       </TouchableOpacity>
                     </View>
                   );
@@ -1163,7 +1163,7 @@ function AccountSummaryCard({
                   style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 15 }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                    <AppIcon name="arrow-down-left" size={11} color={palette.textMuted} strokeWidth={2} />
+                    <AppIcon name="arrow-down-left" size={14} color={palette.textMuted} strokeWidth={2} />
                     <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
                       {metricLeftLabel}
                     </Text>
@@ -1186,7 +1186,7 @@ function AccountSummaryCard({
                     <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
                       {metricRightLabel}
                     </Text>
-                    <AppIcon name="arrow-up-right" size={11} color={palette.textMuted} strokeWidth={2} />
+                    <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
                   </View>
                   <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
                     {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
@@ -1548,6 +1548,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   hideAmounts,
   contentBottomPadding,
   onScrollBeginDrag,
+  scrollEnabled = true,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1586,6 +1587,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   hideAmounts?: boolean;
   contentBottomPadding?: number;
   onScrollBeginDrag?: () => void;
+  scrollEnabled?: boolean;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1776,6 +1778,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         onScrollBeginDrag={onScrollBeginDrag}
         scrollEventThrottle={1}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
@@ -1815,7 +1818,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: accountId === 'all' ? 34 : 26 }}
+            style={{ height: accountId === 'all' ? 34 : 20 }}
           />
         </View>
 
@@ -1825,7 +1828,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           {middleContent}
 
           {/* ── Recent transactions — date-grouped ── */}
-          <View style={{ marginBottom: 4 }}>
+          <View style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
               <TouchableOpacity

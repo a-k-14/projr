@@ -30,8 +30,8 @@ import { TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING } from '../../lib/layoutTokens';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 import { getTimeBuckets } from '../../lib/chartUtils';
-import { BalanceTrendChart } from '../../components/insights/BalanceTrendChart';
 import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart';
+import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import { CategoryStackedChart } from '../../components/insights/CategoryStackedChart';
 import { CashFlowCalendar } from '../../components/insights/CashFlowCalendar';
 import type { IncomeExpenseBucket, CategoryStackBucket } from '../../services/analytics';
@@ -89,6 +89,8 @@ export default function InsightsScreen() {
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [refreshing, setRefreshing] = useState(false);
+  const [chartInteracting, setChartInteracting] = useState(false);
+  const [isLoadingTrend, setIsLoadingTrend] = useState(true);
 
   const [balanceTrend, setBalanceTrend] = useState<{ date: string; balance: number }[]>([]);
   const [incomeExpenseData, setIncomeExpenseData] = useState<IncomeExpenseBucket[]>([]);
@@ -96,9 +98,28 @@ export default function InsightsScreen() {
   const [topCategories, setTopCategories] = useState<{ categoryId: string; name: string }[]>([]);
   const [dailySpending, setDailySpending] = useState<{ date: string; amount: number }[]>([]);
 
+  const mappedTrendPoints = useMemo(() => {
+    return balanceTrend.map((t) => ({ date: t.date, val: t.balance }));
+  }, [balanceTrend]);
+
+  const dateRange = useMemo(() => {
+    if (period === 'today') {
+      const now = new Date();
+      return { from: toLocalDayStartISO(now), to: toLocalDayEndISO(now) };
+    }
+    return getDateRange(
+      period as PeriodType,
+      settingsYearStart,
+      period === 'custom' ? new Date(customRangeFrom).toISOString() : undefined,
+      period === 'custom' ? new Date(customRangeTo).toISOString() : undefined,
+    );
+  }, [period, settingsYearStart, customRangeFrom, customRangeTo]);
+
   const isDefaultView = period === 'week' && selectedChartCategoryId === null;
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
+
+
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
 
@@ -120,10 +141,10 @@ export default function InsightsScreen() {
   const chartTheme = useMemo(() => ({
     brand: palette.brand,
     card: palette.card,
-    surface: '#EEF2F8',
-    inputBg: '#FFFFFF',
-    progressTrack: '#DDE4F0',
-    border: '#DFE5EF',
+    surface: palette.isDark ? '#1F2937' : '#E2E8F0', // Higher contrast grey background
+    inputBg: palette.isDark ? '#111827' : '#FFFFFF', // Clean dark theme input background, standard white in light theme
+    progressTrack: palette.isDark ? '#374151' : '#DDE4F0',
+    border: palette.isDark ? '#374151' : '#CBD5E1', // Enhanced border contrast
     text: palette.text,
     muted: '#7C8498',
     textMuted: palette.textMuted,
@@ -132,38 +153,34 @@ export default function InsightsScreen() {
     negative: palette.numberNegative,
   }), [palette]);
 
-  const dateRange = useMemo(() => {
-    if (period === 'today') {
-      const now = new Date();
-      return { from: toLocalDayStartISO(now), to: toLocalDayEndISO(now) };
-    }
-    return getDateRange(
-      period as PeriodType,
-      settingsYearStart,
-      period === 'custom' ? new Date(customRangeFrom).toISOString() : undefined,
-      period === 'custom' ? new Date(customRangeTo).toISOString() : undefined,
-    );
-  }, [period, settingsYearStart, customRangeFrom, customRangeTo]);
-
   const loadData = useCallback(async () => {
+    setIsLoadingTrend(true);
     const requestId = ++loadRequestIdRef.current;
     const buckets = getTimeBuckets(period, dateRange.from, dateRange.to);
-    const [snapshot, txs, trend, incExp, catSpending, dailySpend] = await Promise.all([
-      getCashflowSnapshot('all', dateRange.from, dateRange.to),
-      getTransactions({ fromDate: dateRange.from, toDate: dateRange.to }),
-      getBalanceTrend(dateRange.from, dateRange.to),
-      getIncomeExpenseByBuckets(buckets, dateRange.from, dateRange.to),
-      getCategorySpendingByBuckets(buckets, dateRange.from, dateRange.to, 5),
-      getDailySpending('all', dateRange.from, dateRange.to),
-    ]);
-    if (requestId !== loadRequestIdRef.current) return;
-    setCashflow(snapshot.summary);
-    setPeriodTransactions(txs);
-    setBalanceTrend(trend);
-    setIncomeExpenseData(incExp);
-    setCategoryStackData(catSpending.buckets);
-    setTopCategories(catSpending.topCategories);
-    setDailySpending(dailySpend);
+    try {
+      const [snapshot, txs, trend, incExp, catSpending, dailySpend] = await Promise.all([
+        getCashflowSnapshot('all', dateRange.from, dateRange.to),
+        getTransactions({ fromDate: dateRange.from, toDate: dateRange.to }),
+        getBalanceTrend(dateRange.from, dateRange.to),
+        getIncomeExpenseByBuckets(buckets, dateRange.from, dateRange.to),
+        getCategorySpendingByBuckets(buckets, dateRange.from, dateRange.to, 5),
+        getDailySpending('all', dateRange.from, dateRange.to),
+      ]);
+      if (requestId !== loadRequestIdRef.current) return;
+      setCashflow(snapshot.summary);
+      setPeriodTransactions(txs);
+      setBalanceTrend(trend);
+      setIncomeExpenseData(incExp);
+      setCategoryStackData(catSpending.buckets);
+      setTopCategories(catSpending.topCategories);
+      setDailySpending(dailySpend);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (requestId === loadRequestIdRef.current) {
+        setIsLoadingTrend(false);
+      }
+    }
   }, [dateRange, period]);
 
   useEffect(() => {
@@ -264,6 +281,7 @@ export default function InsightsScreen() {
         contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 16 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        scrollEnabled={!chartInteracting}
       >
           <PeriodSelector
             period={period}
@@ -280,6 +298,22 @@ export default function InsightsScreen() {
             sym={showCurrencySymbol ? currencySymbol : ''}
             palette={palette}
           />
+
+          <TrendLineChart
+            points={mappedTrendPoints}
+            palette={palette}
+            currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+            title="All Accounts Balance Trend"
+            subtitle={`(${PERIOD_LABELS[period]})`}
+            lineColor={palette.brand}
+            onInteractionStateChange={setChartInteracting}
+            isLoading={isLoadingTrend}
+            containerStyle={{ marginTop: 4 }}
+            startDate={dateRange.from}
+            endDate={dateRange.to}
+          />
+
+          <View style={{ height: 20 }} />
 
         <View
           style={{
@@ -312,9 +346,9 @@ export default function InsightsScreen() {
           />
         </View>
 
-        <View style={{ height: 12 }} />
 
-        <BalanceTrendChart data={balanceTrend} palette={palette} sym={showCurrencySymbol ? currencySymbol : ''} period={period} />
+        <View style={{ height: 20 }} />
+
         <IncomeExpenseChart data={incomeExpenseData} palette={palette} sym={showCurrencySymbol ? currencySymbol : ''} period={period} />
         <CategoryStackedChart
           data={categoryStackData}

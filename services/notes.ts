@@ -4,15 +4,15 @@ import { notes, noteItems } from '../db/schema';
 import { generateId } from '../lib/ids';
 import type { Note, NoteItem, NoteWithItems, NoteType } from '../types';
 
-function rowToNote(row: typeof notes.$inferSelect): Note {
+function rowToNote(row: any): Note {
   return {
     id: row.id,
     title: row.title,
     type: row.type as NoteType,
     body: row.body ?? null,
-    archived: row.archived === 1,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    archived: row.archived === 1 || row.archived === true,
+    createdAt: row.createdAt ?? row.created_at,
+    updatedAt: row.updatedAt ?? row.updated_at,
   };
 }
 

@@ -70,7 +70,7 @@ export function CategoryStackedChart({ data, palette, topCategories }: Props): R
         padding: CARD_PADDING,
         borderWidth: 1,
         borderColor: palette.divider,
-        marginBottom: 12,
+        marginBottom: 20,
         overflow: 'hidden',
       }}
     >

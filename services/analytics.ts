@@ -188,6 +188,78 @@ export async function getBalanceTrend(
   return result;
 }
 
+export async function getAccountBalanceTrend(
+  accountId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<{ date: string; balance: number }[]> {
+  // 1. Current balance of this specific account
+  const accountRows = await db.select({ balance: accountsTable.balance })
+    .from(accountsTable)
+    .where(eq(accountsTable.id, accountId))
+    .limit(1);
+  const currentBalance = accountRows[0]?.balance ?? 0;
+
+  // 2. Transactions of this account from fromDate to end of today (to reverse back)
+  const todayEnd = toLocalDayEndISO(new Date());
+  const rows = await getTransactionsInRange(accountId, fromDate, todayEnd);
+
+  if (rows.length === 0 && currentBalance === 0) return [];
+
+  // 3. Build delta map: day -> net cashflow impact
+  const deltaByDay = new Map<string, number>();
+  for (const row of rows) {
+    const dayKey = safeLocalDateKey(row.date);
+    if (!dayKey) continue;
+    // For single account, transfers directly alter the balance, so include them!
+    const impact = getTransactionCashflowImpact(row, {
+      includeLoans: true,
+      includeTransfers: true,
+      includeDeposits: true,
+    });
+    const delta = impact === 'in' ? row.amount : impact === 'out' ? -row.amount : 0;
+    if (delta !== 0) {
+      deltaByDay.set(dayKey, (deltaByDay.get(dayKey) ?? 0) + delta);
+    }
+  }
+
+  // 4. Build all days in [fromDate..toDate]
+  const fromDateKey = fromDate.split('T')[0];
+  const toDateKey2 = toDate.split('T')[0];
+  const days: string[] = [];
+  const cur = new Date(
+    ...([...fromDateKey.split('-').map(Number)] as [number, number, number]).map((v, i) =>
+      i === 1 ? v - 1 : v
+    ) as [number, number, number],
+    12, 0, 0,
+  );
+  while (true) {
+    const key = `${cur.getFullYear()}-${(cur.getMonth() + 1).toString().padStart(2, '0')}-${cur.getDate().toString().padStart(2, '0')}`;
+    days.push(key);
+    if (key >= toDateKey2) break;
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  // 5. endBalance = currentBalance minus all deltas AFTER toDate
+  let endBalance = currentBalance;
+  for (const [day, delta] of deltaByDay.entries()) {
+    if (day > toDateKey2) {
+      endBalance -= delta;
+    }
+  }
+
+  // 6. Walk backwards from end to start
+  const result: { date: string; balance: number }[] = new Array(days.length);
+  let bal = endBalance;
+  for (let i = days.length - 1; i >= 0; i--) {
+    result[i] = { date: days[i], balance: bal };
+    bal -= deltaByDay.get(days[i]) ?? 0;
+  }
+
+  return result;
+}
+
+
 export type IncomeExpenseBucket = { label: string; income: number; expense: number };
 
 export async function getIncomeExpenseByBuckets(

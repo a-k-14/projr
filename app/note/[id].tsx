@@ -37,6 +37,26 @@ export default function NoteDetailScreen() {
   const [note, setNote] = useState<NoteWithItems | null>(null);
   const [showActions, setShowActions] = useState(false);
 
+  // Keep a ref to the latest note state to read during unmount without stale closures
+  const latestNoteRef = useRef<NoteWithItems | null>(null);
+  useEffect(() => {
+    latestNoteRef.current = note;
+  }, [note]);
+
+  // Discard note if it is left completely empty on unmount
+  useEffect(() => {
+    return () => {
+      const currentNote = latestNoteRef.current;
+      if (currentNote) {
+        const isEmpty = (!currentNote.title || !currentNote.title.trim()) &&
+          (!currentNote.items || currentNote.items.length === 0 || currentNote.items.every(item => !item.text || !item.text.trim()));
+        if (isEmpty) {
+          useNotesStore.getState().remove(currentNote.id);
+        }
+      }
+    };
+  }, []);
+
   // Map of item id → TextInput ref for focusing newly added items
   const itemRefs = useRef<Map<string, TextInput | null>>(new Map());
   const pendingFocusId = useRef<string | null>(null);

@@ -142,11 +142,7 @@ export function CardTitleRow({
           style={[{ flex: 1, fontSize: CARD_TEXT.line1, color: palette.listText }, titleStyle]}
         >
           {title}
-          {secondary ? (
-            <Text appWeight="medium" style={{ color: palette.listText }}>
-              {secondarySeparator}{secondary}
-            </Text>
-          ) : null}
+          {secondary ? `${secondarySeparator}${secondary}` : null}
         </Text>
       )}
       {amountContent && (

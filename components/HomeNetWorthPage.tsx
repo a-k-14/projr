@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { TouchableOpacity, View } from 'react-native';
-import Animated, { useAnimatedRef, useAnimatedScrollHandler, type SharedValue } from 'react-native-reanimated';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { Pressable, TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
@@ -15,9 +15,11 @@ import { AppThemePalette } from '../lib/theme';
 import { Account, AccountType, Deposit, Asset, Transaction } from '../types';
 import { CARD_PADDING } from '../lib/design';
 import { toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
-import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { getTransactions } from '../services/transactions';
+import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
 import { useTransactionsStore } from '../stores/useTransactionsStore';
+import { getTransactions } from '../services/transactions';
+import { TrendLineChart } from './insights/TrendLineChart';
+
 
 export const NW_ASSET_LIGHT = '#0D9488';
 export const NW_ASSET_DARK = '#00FAD9';
@@ -133,6 +135,7 @@ export function HomeNetWorthPage({
   const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
   const [period, setPeriod] = useState<'today' | 'month'>('month');
   const [selectedBreakdownSlice, setSelectedBreakdownSlice] = useState<'assets' | 'liabilities' | null>(null);
+  const [chartInteracting, setChartInteracting] = useState(false);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
   const openBreakdownActivity = (kind: 'in' | 'out') => {
@@ -275,8 +278,8 @@ export function HomeNetWorthPage({
   }, [historyTransactions, assets, netWorth]);
 
   // SVG Chart path calculation
-  const { lineD, areaD, startY, endY } = useMemo(() => {
-    if (points.length === 0) return { lineD: '', areaD: '', startY: 60, endY: 60 };
+  const { lineD, areaD, startY, endY, minVal, valRange } = useMemo(() => {
+    if (points.length === 0) return { lineD: '', areaD: '', startY: 60, endY: 60, minVal: 0, valRange: 1 };
     const vals = points.map(p => p.val);
     const minVal = Math.min(...vals);
     const maxVal = Math.max(...vals);
@@ -296,6 +299,8 @@ export function HomeNetWorthPage({
       areaD: areaPath,
       startY: pts[0].y,
       endY: pts[pts.length - 1].y,
+      minVal,
+      valRange,
     };
   }, [points]);
 
@@ -377,69 +382,7 @@ export function HomeNetWorthPage({
   const heroBalanceFontSize = HOME_TEXT.rowLabel;
   const heroDecimalFontSize = HOME_TEXT.rowLabel - 4;
 
-  const renderSectionHeader = (
-    title: string,
-    icon: string,
-    iconColor: string,
-    iconBg: string,
-    value: number,
-    note: string,
-    isExpanded: boolean,
-    onToggle: () => void,
-    valueColor?: string,
-    isRedirect?: boolean
-  ) => {
-    return (
-      <TouchableOpacity
-        activeOpacity={0.75}
-        onPress={onToggle}
-        style={{
-          borderRadius: (isExpanded || isRedirect) ? 0 : HOME_RADIUS.card,
-          borderTopLeftRadius: HOME_RADIUS.card,
-          borderTopRightRadius: HOME_RADIUS.card,
-          borderBottomLeftRadius: isRedirect ? HOME_RADIUS.card : isExpanded ? 0 : HOME_RADIUS.card,
-          borderBottomRightRadius: isRedirect ? HOME_RADIUS.card : isExpanded ? 0 : HOME_RADIUS.card,
-          borderWidth: 1,
-          borderColor: palette.divider,
-          backgroundColor: palette.surface,
-          paddingHorizontal: 14,
-          paddingVertical: 14,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
-        <View style={{
-          width: 36,
-          height: 36,
-          borderRadius: HOME_RADIUS.small,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: iconBg,
-          borderWidth: 1,
-          borderColor: `${iconColor}20`,
-        }}>
-          <AppIcon name={icon as any} size={18} color={iconColor} strokeWidth={1.5} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0, justifyContent: !note ? 'center' : undefined }}>
-          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
-            {title}
-          </Text>
-          {!!note && (
-            <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 3 }}>
-              {note}
-            </Text>
-          )}
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 124, fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.medium, color: valueColor ?? palette.text, textAlign: 'right' }}>
-            {value === 0 ? '—' : `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`}
-          </Text>
-          <AppIcon name={isRedirect ? 'chevron-right' : isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={palette.textMuted} strokeWidth={2} />
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  // (renderSectionHeader moved to SectionHeaderCard component below)
 
   return (
     <Animated.ScrollView
@@ -453,6 +396,7 @@ export function HomeNetWorthPage({
       onScroll={verticalScrollHandler}
       scrollEventThrottle={1}
       showsVerticalScrollIndicator={false}
+      scrollEnabled={!chartInteracting}
     >
       {hideTitle ? null : (
         <View style={{ paddingTop: compactTop ? 0 : 8, paddingBottom: compactTop ? 8 : SPACING.md }}>
@@ -472,9 +416,7 @@ export function HomeNetWorthPage({
           borderColor: palette.divider,
           backgroundColor: palette.card,
           padding: CARD_PADDING,
-          minHeight: 154,
           overflow: 'hidden',
-          justifyContent: 'space-between',
           elevation: 6,
           shadowColor: palette.isDark ? '#000000' : '#94A3B8',
           shadowOffset: { width: 0, height: 3 },
@@ -535,31 +477,36 @@ export function HomeNetWorthPage({
         </View>
 
         {/* Bottom section: Progress bar & Asset/Liability split */}
-        <View style={{ marginTop: 14 }}>
-          <View style={{ height: 4, borderRadius: HOME_RADIUS.full, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7ECF3', overflow: 'hidden' }}>
-            <View style={{ height: '100%', width: `${dominantPosition.share * 100}%`, borderRadius: HOME_RADIUS.full, backgroundColor: dominantPosition.color }} />
+        <View style={{ marginTop: 20 }}>
+          <View style={{ height: 4, borderRadius: HOME_RADIUS.full, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7ECF3', overflow: 'hidden', flexDirection: 'row' }}>
+            <View style={{ height: '100%', width: `${assetShare * 100}%`, backgroundColor: '#0D9488' }} />
+            <View style={{ height: '100%', width: `${liabilityShare * 100}%`, backgroundColor: '#F87171' }} />
           </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 8 }}>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Assets</Text>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.heavy, color: palette.text, marginTop: 2 }}>
-                {formatCurrency(assetTotal, currencySymbol)} · {assetPercent}%
-              </Text>
-            </View>
-            <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Liabilities</Text>
-              <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.heavy, color: palette.text, marginTop: 2, textAlign: 'right' }}>
-                {formatCurrency(liabilityTotal, currencySymbol)} · {liabilityPercent}%
-              </Text>
-            </View>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.text }}>
+              Assets · {assetPercent}%
+            </Text>
+            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.text }}>
+              Liabilities · {liabilityPercent}%
+            </Text>
           </View>
         </View>
       </View>
 
+      {/* Historical Trend Chart */}
+      <TrendLineChart
+        points={points}
+        palette={palette}
+        currencySymbol={currencySymbol}
+        title="Net Worth Trend"
+        subtitle="(Last 30 Days)"
+        onInteractionStateChange={setChartInteracting}
+      />
+
       {/* Unified Assets & Liabilities Card */}
       <View style={{
-        marginTop: 16,
+        marginTop: 20,
         borderRadius: HOME_RADIUS.card,
         borderWidth: 1,
         borderColor: palette.divider,
@@ -572,23 +519,29 @@ export function HomeNetWorthPage({
           {/* Assets Breakdown */}
           {(positiveAccountTotal > 0 || activeDepositValue > 0 || loanSummary.youLent > 0 || assetsValue > 0) && (
             <View style={{ gap: 10 }}>
-              <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>
-                Assets
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                  Assets
+                </Text>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                  {formatCurrency(assetTotal, currencySymbol)}
+                </Text>
+              </View>
 
               {/* Accounts Card under Assets */}
               {positiveAccountTotal > 0 && (
                 <View style={{ overflow: 'hidden' }}>
-                  {renderSectionHeader(
-                    'Accounts',
-                    'building-2',
-                    palette.brand,
-                    `${palette.brand}12`,
-                    positiveAccountTotal,
-                    `${positiveAccounts.length} positive accounts`,
-                    assetsAccountsExpanded,
-                    () => setAssetsAccountsExpanded(!assetsAccountsExpanded)
-                  )}
+                  <SectionHeaderCard
+                    title="Accounts"
+                    icon="building-2"
+                    iconColor={palette.brand}
+                    iconBg={`${palette.brand}12`}
+                    value={positiveAccountTotal}
+                    isExpanded={assetsAccountsExpanded}
+                    onToggle={() => setAssetsAccountsExpanded(!assetsAccountsExpanded)}
+                    palette={palette}
+                    currencySymbol={currencySymbol}
+                  />
                   {assetsAccountsExpanded && (
                     <View style={{
                       borderWidth: 1,
@@ -596,7 +549,7 @@ export function HomeNetWorthPage({
                       borderColor: palette.divider,
                       borderBottomLeftRadius: HOME_RADIUS.card,
                       borderBottomRightRadius: HOME_RADIUS.card,
-                      backgroundColor: palette.card,
+                      backgroundColor: palette.surface,
                       overflow: 'hidden',
                     }}>
                       {positiveAccounts.map((account, idx) => {
@@ -651,54 +604,55 @@ export function HomeNetWorthPage({
               {/* Deposits Card under Assets */}
               {activeDepositValue > 0 && (
                 <View style={{ overflow: 'hidden' }}>
-                  {renderSectionHeader(
-                    'Deposits',
-                    'vault',
-                    '#76506A',
-                    '#76506A12',
-                    activeDepositValue,
-                    'Invested Value',
-                    false,
-                    () => router.push('/deposits'),
-                    undefined,
-                    true
-                  )}
+                  <SectionHeaderCard
+                    title="Deposits"
+                    icon="vault"
+                    iconColor="#76506A"
+                    iconBg="#76506A12"
+                    value={activeDepositValue}
+                    isExpanded={false}
+                    onToggle={() => router.push('/deposits')}
+                    palette={palette}
+                    currencySymbol={currencySymbol}
+                    isRedirect
+                  />
                 </View>
               )}
 
               {/* Loans Card under Assets */}
               {loanSummary.youLent > 0 && (
                 <View style={{ overflow: 'hidden' }}>
-                  {renderSectionHeader(
-                    'Loans \u203A lent',
-                    'hand-coins',
-                    palette.loan,
-                    `${palette.loan}12`,
-                    loanSummary.youLent,
-                    '',
-                    false,
-                    () => router.push('/loans'),
-                    palette.text,
-                    true
-                  )}
+                  <SectionHeaderCard
+                    title={'Loans \u203A lent'}
+                    icon="hand-coins"
+                    iconColor={palette.loan}
+                    iconBg={`${palette.loan}12`}
+                    value={loanSummary.youLent}
+                    isExpanded={false}
+                    onToggle={() => router.push('/loans')}
+                    palette={palette}
+                    currencySymbol={currencySymbol}
+                    valueColor={palette.text}
+                    isRedirect
+                  />
                 </View>
               )}
 
               {/* Assets Card under Assets */}
               {assetsValue > 0 && (
                 <View style={{ overflow: 'hidden' }}>
-                  {renderSectionHeader(
-                    'Assets',
-                    'gem',
-                    '#9A7440',
-                    '#9A744012',
-                    assetsValue,
-                    'Tracked Assets',
-                    false,
-                    () => router.push('/assets'),
-                    undefined,
-                    true
-                  )}
+                  <SectionHeaderCard
+                    title="Assets"
+                    icon="gem"
+                    iconColor="#9A7440"
+                    iconBg="#9A744012"
+                    value={assetsValue}
+                    isExpanded={false}
+                    onToggle={() => router.push('/assets')}
+                    palette={palette}
+                    currencySymbol={currencySymbol}
+                    isRedirect
+                  />
                 </View>
               )}
             </View>
@@ -707,24 +661,30 @@ export function HomeNetWorthPage({
           {/* Liabilities Breakdown */}
           {(negativeAccountTotal > 0 || loanSummary.youOwe > 0) && (
             <View style={{ gap: 10, marginTop: 6 }}>
-              <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.bold, color: palette.textMuted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>
-                Liabilities
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                  Liabilities
+                </Text>
+                <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                  {formatCurrency(liabilityTotal, currencySymbol)}
+                </Text>
+              </View>
 
               {/* Accounts Card under Liabilities */}
               {negativeAccountTotal > 0 && (
                 <View style={{ overflow: 'hidden' }}>
-                  {renderSectionHeader(
-                    'Accounts',
-                    'building-2',
-                    nwLiabilityColor,
-                    `${nwLiabilityColor}12`,
-                    negativeAccountTotal,
-                    `${negativeAccounts.length} negative accounts`,
-                    liabilitiesAccountsExpanded,
-                    () => setLiabilitiesAccountsExpanded(!liabilitiesAccountsExpanded),
-                    nwLiabilityColor
-                  )}
+                  <SectionHeaderCard
+                    title="Accounts"
+                    icon="building-2"
+                    iconColor={nwLiabilityColor}
+                    iconBg={`${nwLiabilityColor}12`}
+                    value={negativeAccountTotal}
+                    isExpanded={liabilitiesAccountsExpanded}
+                    onToggle={() => setLiabilitiesAccountsExpanded(!liabilitiesAccountsExpanded)}
+                    palette={palette}
+                    currencySymbol={currencySymbol}
+                    valueColor={nwLiabilityColor}
+                  />
                   {liabilitiesAccountsExpanded && (
                     <View style={{
                       borderWidth: 1,
@@ -732,7 +692,7 @@ export function HomeNetWorthPage({
                       borderColor: palette.divider,
                       borderBottomLeftRadius: HOME_RADIUS.card,
                       borderBottomRightRadius: HOME_RADIUS.card,
-                      backgroundColor: palette.card,
+                      backgroundColor: palette.surface,
                       overflow: 'hidden',
                     }}>
                       {negativeAccounts.map((account, idx) => {
@@ -787,18 +747,19 @@ export function HomeNetWorthPage({
               {/* Loans Card under Liabilities */}
               {loanSummary.youOwe > 0 && (
                 <View style={{ overflow: 'hidden' }}>
-                  {renderSectionHeader(
-                    'Loans \u203A Borrowed',
-                    'hand-coins',
-                    palette.loan,
-                    `${palette.loan}12`,
-                    loanSummary.youOwe,
-                    '',
-                    false,
-                    () => router.push('/loans'),
-                    palette.text,
-                    true
-                  )}
+                  <SectionHeaderCard
+                    title={'Loans \u203A Borrowed'}
+                    icon="hand-coins"
+                    iconColor={palette.loan}
+                    iconBg={`${palette.loan}12`}
+                    value={loanSummary.youOwe}
+                    isExpanded={false}
+                    onToggle={() => router.push('/loans')}
+                    palette={palette}
+                    currencySymbol={currencySymbol}
+                    valueColor={palette.text}
+                    isRedirect
+                  />
                 </View>
               )}
             </View>
@@ -808,7 +769,7 @@ export function HomeNetWorthPage({
 
 
       {/* Change Breakdown Table */}
-      <View style={{ marginTop: 16, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, overflow: 'hidden' }}>
+      <View style={{ marginTop: 20, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, overflow: 'hidden' }}>
         <View style={{
           paddingHorizontal: 16,
           paddingVertical: 10,
@@ -820,7 +781,7 @@ export function HomeNetWorthPage({
           flexWrap: 'wrap',
           gap: 8,
         }}>
-          <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
             Net Worth Change
           </Text>
           <SegmentedPillSwitch
@@ -830,14 +791,14 @@ export function HomeNetWorthPage({
             ]}
             value={period}
             onChange={(key) => setPeriod(key as 'today' | 'month')}
-            backgroundColor={palette.isDark ? '#1F2937' : '#EEF2F8'}
-            pillColor={palette.isDark ? '#374151' : '#FFFFFF'}
-            borderColor={palette.divider}
+            backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
+            pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
+            borderColor={palette.isDark ? 'transparent' : '#DFE5EF'}
             activeTextColor={palette.text}
             inactiveTextColor={palette.textMuted}
-            height={28}
-            radius={HOME_RADIUS.button}
-            fontSize={11}
+            height={32}
+            radius={14}
+            fontSize={10.5}
             itemMinWidth={60}
             style={{ width: 124 }}
           />
@@ -855,8 +816,8 @@ export function HomeNetWorthPage({
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Income</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.positive }}>
-              {formatCurrency(activeVals.income, currencySymbol)}
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: palette.text }}>
+              +{formatCurrency(activeVals.income, currencySymbol)}
             </Text>
           </TouchableOpacity>
 
@@ -872,8 +833,8 @@ export function HomeNetWorthPage({
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Expense</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.negative }}>
-              {formatCurrency(activeVals.expense, currencySymbol)}
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: palette.text }}>
+              -{formatCurrency(activeVals.expense, currencySymbol)}
             </Text>
           </TouchableOpacity>
 
@@ -885,7 +846,7 @@ export function HomeNetWorthPage({
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Assets</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand }}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: palette.text }}>
               +{formatCurrency(activeVals.assetAdditions, currencySymbol)}
             </Text>
           </View>
@@ -898,58 +859,90 @@ export function HomeNetWorthPage({
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>Net Change</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.heavy, color: activeVals.netChange >= 0 ? palette.positive : palette.negative }}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, fontWeight: FONT_WEIGHT.heavy, color: activeVals.netChange >= 0 ? palette.positive : palette.negative }}>
               {formatCurrency(activeVals.netChange, currencySymbol)}
             </Text>
           </View>
         </View>
       </View>
 
-      {/* Historical Trend Chart */}
-      <View style={{
-        marginTop: 16,
-        borderRadius: HOME_RADIUS.card,
-        borderWidth: 1,
-        borderColor: palette.divider,
-        backgroundColor: palette.card,
-        padding: 16,
-      }}>
-        <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, marginBottom: 12 }}>
-          Net Worth Trend (Last 30 Days)
-        </Text>
-        {isLoadingHistory ? (
-          <View style={{ height: 120, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>Loading trend...</Text>
-          </View>
-        ) : (
-          <View>
-            <View style={{ height: 110 }}>
-              <Svg width="100%" height="100%" viewBox="0 0 300 120">
-                <Defs>
-                  <LinearGradient id="chartAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0%" stopColor={palette.brand} stopOpacity={0.24} />
-                    <Stop offset="100%" stopColor={palette.brand} stopOpacity={0.0} />
-                  </LinearGradient>
-                </Defs>
-                <Path d={areaD} fill="url(#chartAreaGrad)" />
-                <Path d={lineD} fill="none" stroke={palette.brand} strokeWidth={2} />
-                <Circle cx={0} cy={startY} r={3.5} fill={palette.brand} stroke="#FFFFFF" strokeWidth={1.2} />
-                <Circle cx={300} cy={endY} r={3.5} fill={palette.brand} stroke="#FFFFFF" strokeWidth={1.2} />
-              </Svg>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 }}>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted }}>
-                30d ago ({formatCurrency(points[0].val, currencySymbol)})
-              </Text>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted }}>
-                Today ({formatCurrency(points[29].val, currencySymbol)})
-              </Text>
-            </View>
-          </View>
-        )}
-      </View>
 
 
     </Animated.ScrollView>
+  );
+}
+
+function SectionHeaderCard({
+  title,
+  icon,
+  iconColor,
+  iconBg,
+  value,
+  isExpanded,
+  onToggle,
+  palette,
+  currencySymbol,
+  valueColor,
+  isRedirect,
+}: {
+  title: string;
+  icon: string;
+  iconColor: string;
+  iconBg: string;
+  value: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+  palette: AppThemePalette;
+  currencySymbol: string;
+  valueColor?: string;
+  isRedirect?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.75}
+      delayPressIn={0}
+      onPress={onToggle}
+      style={{
+        borderRadius: isExpanded ? 0 : HOME_RADIUS.card,
+        borderTopLeftRadius: HOME_RADIUS.card,
+        borderTopRightRadius: HOME_RADIUS.card,
+        borderBottomLeftRadius: isRedirect ? HOME_RADIUS.card : isExpanded ? 0 : HOME_RADIUS.card,
+        borderBottomRightRadius: isRedirect ? HOME_RADIUS.card : isExpanded ? 0 : HOME_RADIUS.card,
+        borderWidth: 1,
+        borderColor: palette.divider,
+        backgroundColor: palette.card,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
+      <View style={{
+        width: 36,
+        height: 36,
+        borderRadius: HOME_RADIUS.small,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: iconBg,
+        borderWidth: 1,
+        borderColor: `${iconColor}20`,
+      }}>
+        <AppIcon name={icon as any} size={18} color={iconColor} strokeWidth={1.5} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+        <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
+          {title}
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 124, fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.medium, color: valueColor ?? palette.text, textAlign: 'right' }}>
+          {value === 0 ? '—' : `${value < 0 ? '-' : ''}${formatCurrency(Math.abs(value), currencySymbol)}`}
+        </Text>
+        {!isRedirect && (
+          <AppIcon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={palette.textMuted} strokeWidth={2} />
+        )}
+      </View>
+    </TouchableOpacity>
   );
 }

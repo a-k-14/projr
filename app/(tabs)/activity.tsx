@@ -1326,14 +1326,11 @@ export default function ActivityScreen() {
             }}
           >
             <AppChevron direction="left" size={16} tone="secondary" palette={palette} />
-            <Text
-              numberOfLines={1}
-              style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text }}
-            >
-              {categoryDrilldown.compactLabel
-                ? categoryDrilldown.parentLabel
-                : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
-            </Text>
+              <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
+                {categoryDrilldown.compactLabel
+                  ? categoryDrilldown.parentLabel
+                  : `${categoryDrilldown.parentLabel} \u203a ${categoryDrilldown.subLabel}`}
+              </Text>
           </TouchableOpacity>
         </View>
       ) : null}

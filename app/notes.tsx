@@ -3,6 +3,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { ScreenHeader, HeaderAddButton } from '@/components/ui/ScreenHeader';
 import { ScreenScaffold } from '@/components/ui/ScreenScaffold';
 import { router } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { FlatList, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,7 +30,7 @@ function NoteCard({
   onPress: () => void;
   dimmed?: boolean;
 }) {
-  const preview = note.firstItem ?? (note.title || '');
+  const preview = note.firstItem || note.title || '';
 
   return (
     <TouchableOpacity
@@ -70,9 +71,12 @@ export default function NotesScreen() {
   const [showArchived, setShowArchived] = useState(false);
   const [archivedLoading, setArchivedLoading] = useState(false);
 
+  const isFocused = useIsFocused();
   useEffect(() => {
-    if (!isLoaded) load();
-  }, [isLoaded, load]);
+    if (isFocused) {
+      load();
+    }
+  }, [isFocused, load]);
 
   const handleToggleArchived = async () => {
     if (showArchived) {
@@ -130,6 +134,7 @@ export default function NotesScreen() {
             </Text>
           </View>
         }
+        ListFooterComponentStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
         ListFooterComponent={
           <View style={{ marginTop: HOME_SPACE.lg }}>
             <TouchableOpacity

@@ -11,6 +11,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
 
 import { Text } from '@/components/ui/AppText';
 import { HomeAccountPage } from '../(tabs)/index';
@@ -27,8 +28,10 @@ import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { ActionChip } from '../../components/ui/AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
-import { getAccountTypeLabel } from '../../lib/settings-shared';
+import { getAccountTypeLabel, ACCOUNT_TYPE_META } from '../../lib/settings-shared';
 import type { PeriodType } from '../../types';
+import { getAccountBalanceTrend } from '../../services/analytics';
+import { TrendLineChart } from '../../components/insights/TrendLineChart';
 
 type AccountPeriodType = 'today' | PeriodType;
 
@@ -53,10 +56,44 @@ export default function AccountDetailScreen() {
 
   const account = accounts.find((a) => a.id === id);
 
+  const [trendPoints, setTrendPoints] = useState<{ date: string; val: number }[]>([]);
+  const [isLoadingTrend, setIsLoadingTrend] = useState(true);
+  const [chartInteracting, setChartInteracting] = useState(false);
+  const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
+
   useEffect(() => {
     if (!isFocused) return;
     loadCategories().catch(() => undefined);
   }, [isFocused, loadCategories]);
+
+  useEffect(() => {
+    if (!account) return;
+    let active = true;
+    const loadTrend = async () => {
+      setIsLoadingTrend(true);
+      const today = new Date();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(today.getDate() - 29);
+      const fromStr = toLocalDayStartISO(thirtyDaysAgo);
+      const toStr = toLocalDayEndISO(today);
+      try {
+        const trend = await getAccountBalanceTrend(account.id, fromStr, toStr);
+        if (active) {
+          setTrendPoints(trend.map(t => ({ date: t.date, val: t.balance })));
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (active) {
+          setIsLoadingTrend(false);
+        }
+      }
+    };
+    loadTrend();
+    return () => {
+      active = false;
+    };
+  }, [account?.id, mutationVersion]);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -136,6 +173,22 @@ export default function AccountDetailScreen() {
 
   if (!account) return null;
 
+  const lineColor = ACCOUNT_TYPE_META[account.type]?.color ?? palette.brand;
+
+  const middleContent = (
+    <TrendLineChart
+      points={trendPoints}
+      palette={palette}
+      currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+      title="Balance Trend"
+      subtitle="(Last 30 Days)"
+      lineColor={lineColor}
+      onInteractionStateChange={setChartInteracting}
+      containerStyle={{ marginTop: 0 }}
+      isLoading={isLoadingTrend}
+    />
+  );
+
   return (
     <ScreenScaffold palette={palette}>
       <Stack.Screen
@@ -210,6 +263,8 @@ export default function AccountDetailScreen() {
         loadLoans={loadLoans}
         contentBottomPadding={getScrollableBottomPadding(insets)}
         onScrollBeginDrag={closePanel}
+        middleContent={middleContent}
+        scrollEnabled={!chartInteracting}
       />
 
       <Modal

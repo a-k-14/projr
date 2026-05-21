@@ -25,7 +25,7 @@ export function PeriodSelector({
   to: string;
   onPeriodChange: (next: string) => void;
   onOpenCustomRange: () => void;
-  theme: { surface: string; border: string; text: string; textMuted?: string; muted: string };
+  theme: { surface: string; border: string; text: string; textMuted?: string; muted: string; inputBg?: string };
   options: { key: string; label: string }[];
 }) {
   return (
@@ -41,7 +41,7 @@ export function PeriodSelector({
           onPeriodChange(next);
         }}
         backgroundColor={theme.surface}
-        pillColor="#FFFFFF"
+        pillColor={theme.inputBg ?? '#FFFFFF'}
         borderColor={theme.border}
         activeTextColor={theme.text}
         inactiveTextColor={theme.textMuted ?? theme.muted}

@@ -605,7 +605,9 @@ export default function HomeScreen({
                   <HomeIconBadge icon={iconName} color={iconColor} size={40} />
                   <View style={styles.txBody}>
                     <Text style={[styles.txDate, { color: theme.muted }]}>{formatDate(tx.date)}</Text>
-                    <Text style={[styles.txCategoryPath, { color: theme.text }]}>{displayTitle}</Text>
+                    <Text numberOfLines={1} style={[styles.txCategoryPath, { color: theme.text }]}>
+                      {displayTitle}
+                    </Text>
                     <Text numberOfLines={1} style={[styles.txTitle, { color: theme.text }]}>
                       {displaySubtitle}
                     </Text>
@@ -1117,7 +1119,7 @@ const styles = StyleSheet.create({
     borderRadius: HOME_RADIUS.button,
     padding: 14,
     borderWidth: 1,
-    marginTop: 10,
+    marginTop: 20,
     overflow: 'hidden',
   },
   transactionsHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10, paddingHorizontal: 4 },

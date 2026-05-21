@@ -92,7 +92,7 @@ export function CashFlowCalendar({ data, fromDate, toDate, palette }: Props): Re
         padding: CARD_PADDING,
         borderWidth: 1,
         borderColor: palette.divider,
-        marginBottom: 12,
+        marginBottom: 20,
         overflow: 'hidden',
       }}
     >
