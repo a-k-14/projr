@@ -246,7 +246,7 @@ export function TrendLineChart({
         }}
         style={{ height: 110 }}
       >
-        <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} overflow="visible" style={{ pointerEvents: 'none' }}>
+        <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} style={{ pointerEvents: 'none', overflow: 'visible' }}>
           <Defs>
             <LinearGradient id="reusableChartAreaGrad" x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0%" stopColor={strokeColor} stopOpacity={0.24} />
