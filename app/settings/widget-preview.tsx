@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Component, ReactNode } from 'react';
-import { ActivityIndicator, Dimensions, ScrollView, TouchableOpacity, View, Platform } from 'react-native';
+import { ActivityIndicator, Dimensions, NativeModules, ScrollView, TouchableOpacity, TurboModuleRegistry, View, Platform } from 'react-native';
 import { Text } from '@/components/ui/AppText';
 import { WidgetPreview } from 'react-native-android-widget';
 import { useAppTheme } from '../../lib/theme';
@@ -13,6 +13,13 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const WIDGET_WIDTH = SCREEN_WIDTH - SCREEN_GUTTER * 2;
 const WIDGET_HEIGHT_4x2 = 146;
 const WIDGET_HEIGHT_2x2 = 146;
+
+// Check native module availability without triggering the proxy error.
+// New arch uses TurboModuleRegistry; old arch uses NativeModules.
+const isNativeWidgetLinked =
+  Platform.OS === 'android' &&
+  (NativeModules.AndroidWidget != null ||
+    TurboModuleRegistry.get('AndroidWidget') != null);
 
 class WidgetErrorBoundary extends Component<{children: ReactNode, fallback: ReactNode}, {hasError: boolean}> {
   constructor(props: any) {
@@ -72,7 +79,7 @@ export default function WidgetPreviewScreen() {
         <View style={{ height: WIDGET_HEIGHT_4x2, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={palette.brand} />
         </View>
-      ) : Platform.OS !== 'android' ? (
+      ) : !isNativeWidgetLinked ? (
         fallbackUI
       ) : (
         <WidgetErrorBoundary fallback={fallbackUI}>

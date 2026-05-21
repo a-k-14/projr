@@ -308,12 +308,12 @@ export default function InsightsScreen() {
             lineColor={palette.brand}
             onInteractionStateChange={setChartInteracting}
             isLoading={isLoadingTrend}
-            containerStyle={{ marginTop: 4 }}
+            containerStyle={{ marginTop: 8 }}
             startDate={dateRange.from}
             endDate={dateRange.to}
           />
 
-          <View style={{ height: 20 }} />
+          <View style={{ height: 24 }} />
 
         <View
           style={{
@@ -347,7 +347,7 @@ export default function InsightsScreen() {
         </View>
 
 
-        <View style={{ height: 20 }} />
+        <View style={{ height: 24 }} />
 
         <IncomeExpenseChart data={incomeExpenseData} palette={palette} sym={showCurrencySymbol ? currencySymbol : ''} period={period} />
         <CategoryStackedChart

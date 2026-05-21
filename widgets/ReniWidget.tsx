@@ -11,8 +11,7 @@ const c = (s: string): ColorProp => s as ColorProp;
 interface BtnColors { bg: string; border: string; text: string; icon: string }
 
 interface Palette {
-  surfaceFrom: string;
-  surfaceTo: string;
+  surface: string;
   label: string;
   balance: string;
   positiveBar: string;
@@ -20,14 +19,11 @@ interface Palette {
   emptyBar: string;
   activityIn: string;
   activityOut: string;
-  btnIncome: BtnColors;
-  btnExpense: BtnColors;
-  btnTransfer: BtnColors;
+  btn: BtnColors;
 }
 
 const LIGHT: Palette = {
-  surfaceFrom: '#EEF1F7',
-  surfaceTo:   '#E6EAF3',
+  surface:     '#F2F4F3',
   label:       '#8C94AF',
   balance:     '#1F2A44',
   positiveBar: '#0D9488',
@@ -35,14 +31,11 @@ const LIGHT: Palette = {
   emptyBar:    '#D4D9E8',
   activityIn:  '#047857',
   activityOut: '#B32020',
-  btnIncome:   { bg: '#DDE3EF', border: '#C8D0E5', text: '#3D4A66', icon: '#3D4A66' },
-  btnExpense:  { bg: '#DDE3EF', border: '#C8D0E5', text: '#3D4A66', icon: '#3D4A66' },
-  btnTransfer: { bg: '#DDE3EF', border: '#C8D0E5', text: '#3D4A66', icon: '#3D4A66' },
+  btn: { bg: '#FFFFFF', border: '#E4E7ED', text: '#3D4A66', icon: '#3D4A66' },
 };
 
 const DARK: Palette = {
-  surfaceFrom: '#0C1018',
-  surfaceTo:   '#080D14',
+  surface:     '#111318',
   label:       '#66707D',
   balance:     '#D8DDE5',
   positiveBar: '#2DD4BF',
@@ -50,41 +43,31 @@ const DARK: Palette = {
   emptyBar:    '#1A2030',
   activityIn:  '#34D399',
   activityOut: '#FCA5A5',
-  btnIncome:   { bg: '#141C28', border: '#1D2A3E', text: '#8A9AB0', icon: '#8A9AB0' },
-  btnExpense:  { bg: '#141C28', border: '#1D2A3E', text: '#8A9AB0', icon: '#8A9AB0' },
-  btnTransfer: { bg: '#141C28', border: '#1D2A3E', text: '#8A9AB0', icon: '#8A9AB0' },
+  btn: { bg: '#1C2333', border: '#252F45', text: '#8A9AB0', icon: '#8A9AB0' },
 };
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-// Match app card exactly: TICK_W=2.3, TICK_H=12, TICK_GAP=4
-const TICK_W   = 2.3;
-const TICK_H   = 12;
-const TICK_GAP = 4;
-const H_PAD    = 14; // widget horizontal padding each side
+const TICK_COUNT = 40;
+const TICK_GAP   = 4;
+const H_PAD      = 18;
 const APP_SCHEME = 'financetracker';
 const GAP = c('#00000000');
-
-function tickCount(widgetWidthDp: number): number {
-  const available = widgetWidthDp - H_PAD * 2;
-  return Math.floor((available + TICK_GAP) / (TICK_W + TICK_GAP));
-}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmtFull = (n: number, sym: string) => formatCurrency(n, sym);
-
 
 function repeatSvg(color: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>`;
 }
 
 function arrowDownLeftSvg(color: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="5 5 14 14" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="5 5 14 14" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>`;
 }
 
 function arrowUpRightSvg(color: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="5 5 14 14" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="5 5 14 14" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>`;
 }
 
 // ── TickChart ──────────────────────────────────────────────────────────────
@@ -92,18 +75,15 @@ function arrowUpRightSvg(color: string): string {
 function TickChart({
   todayIncome,
   todayExpense,
-  count,
   p,
 }: {
   todayIncome: number;
   todayExpense: number;
-  count: number;
   p: Palette;
 }) {
   const total = todayIncome + todayExpense;
-  const greenCount = total > 0 ? Math.round((todayIncome / total) * count) : 0;
-  // redCount = count - greenCount → green + red always = count when data exists
-  const redCount = total > 0 ? count - greenCount : 0;
+  const greenCount = total > 0 ? Math.round((todayIncome / total) * TICK_COUNT) : 0;
+  const redCount   = total > 0 ? TICK_COUNT - greenCount : 0;
 
   return (
     <FlexWidget
@@ -116,14 +96,14 @@ function TickChart({
         flexGapColor: GAP,
       }}
     >
-      {Array.from({ length: count }, (_, i) => {
+      {Array.from({ length: TICK_COUNT }, (_, i) => {
         const isGreen = i < greenCount;
-        const isRed   = i >= count - redCount;
+        const isRed   = i >= TICK_COUNT - redCount;
         const bg = isGreen ? c(p.positiveBar) : isRed ? c(p.negativeBar) : c(p.emptyBar);
         return (
           <FlexWidget
             key={i}
-            style={{ width: TICK_W, height: TICK_H, backgroundColor: bg, borderRadius: 2 }}
+            style={{ flex: 1, height: 10, backgroundColor: bg, borderRadius: 2 }}
           />
         );
       })}
@@ -150,7 +130,7 @@ function ActionButton({
       clickActionData={{ uri }}
       style={{
         flex: 1,
-        height: 30,
+        height: 44,
         backgroundColor: c(colors.bg),
         borderRadius: 10,
         borderColor: c(colors.border),
@@ -182,12 +162,10 @@ function ReniWidgetLayout({
   data,
   config,
   p,
-  ticks,
 }: {
   data: WidgetData;
   config: ReniWidgetConfig;
   p: Palette;
-  ticks: number;
 }) {
   const { balance, currencySymbol: sym, todayIncome, todayExpense, monthLabel } = data;
   const headerRight = balance !== null ? fmtFull(balance, sym) : monthLabel;
@@ -201,16 +179,16 @@ function ReniWidgetLayout({
         width: 'match_parent',
         height: 'match_parent',
         flexDirection: 'column',
-        backgroundGradient: { from: c(p.surfaceFrom), to: c(p.surfaceTo), orientation: 'TOP_BOTTOM' },
+        backgroundColor: c(p.surface),
         borderRadius: 22,
-        paddingTop: 13,
-        paddingBottom: 12,
+        paddingTop: 18,
+        paddingBottom: 16,
         paddingLeft: H_PAD,
         paddingRight: H_PAD,
       }}
     >
-      {/* Header: Reni ·····  balance / month */}
-      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent', marginBottom: 9 }}>
+      {/* Header: label ·····  balance / month */}
+      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent', marginBottom: 14 }}>
         <TextWidget
           text="Reni"
           style={{ fontSize: 12, fontWeight: '600', color: c(p.label), letterSpacing: 0.3 }}
@@ -226,10 +204,10 @@ function ReniWidgetLayout({
         />
       </FlexWidget>
 
-      {/* Tick chart — today's income vs expense ratio; marginBottom:6 matches card */}
-      <TickChart todayIncome={todayIncome} todayExpense={todayExpense} count={ticks} p={p} />
+      {/* Tick chart — flex:1 ticks always fill full width regardless of reported widget width */}
+      <TickChart todayIncome={todayIncome} todayExpense={todayExpense} p={p} />
 
-      {/* Today's amounts — paddingTop:2 matches card spacing above amounts row */}
+      {/* Today's activity */}
       {config.showTodayActivity && (
         <FlexWidget
           style={{
@@ -240,7 +218,6 @@ function ReniWidgetLayout({
             marginBottom: 2,
           }}
         >
-          {/* Income: ↙ + amount */}
           <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', flexGap: 4, flexGapColor: GAP }}>
             <SvgWidget
               svg={arrowDownLeftSvg(incomeIsZero ? p.label : p.activityIn)}
@@ -256,7 +233,6 @@ function ReniWidgetLayout({
 
           <FlexWidget style={{ flex: 1 }} />
 
-          {/* Expense: amount + ↗ */}
           <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', flexGap: 4, flexGapColor: GAP }}>
             <TextWidget
               text={expenseIsZero ? '—' : fmtFull(todayExpense, sym)}
@@ -283,9 +259,9 @@ function ReniWidgetLayout({
             flexGapColor: GAP,
           }}
         >
-          <ActionButton label="+ Income"  uri={`${APP_SCHEME}://modals/add-transaction?type=in`}       colors={p.btnIncome} />
-          <ActionButton label="− Expense" uri={`${APP_SCHEME}://modals/add-transaction?type=out`}      colors={p.btnExpense} />
-          <ActionButton label="Transfer"  uri={`${APP_SCHEME}://modals/add-transaction?type=transfer`} colors={p.btnTransfer} repeatIcon />
+          <ActionButton label="+ Income"  uri={`${APP_SCHEME}://modals/add-transaction?type=in`}       colors={p.btn} />
+          <ActionButton label="− Expense" uri={`${APP_SCHEME}://modals/add-transaction?type=out`}      colors={p.btn} />
+          <ActionButton label="Transfer"  uri={`${APP_SCHEME}://modals/add-transaction?type=transfer`} colors={p.btn} repeatIcon />
         </FlexWidget>
       )}
     </FlexWidget>
@@ -294,10 +270,9 @@ function ReniWidgetLayout({
 
 // ── Export ─────────────────────────────────────────────────────────────────
 
-export function renderReniWidget(data: WidgetData, config: ReniWidgetConfig, widgetWidthDp = 250) {
-  const ticks = tickCount(widgetWidthDp);
+export function renderReniWidget(data: WidgetData, config: ReniWidgetConfig, _widgetWidthDp = 250) {
   return {
-    light: <ReniWidgetLayout data={data} config={config} p={LIGHT} ticks={ticks} />,
-    dark:  <ReniWidgetLayout data={data} config={config} p={DARK}  ticks={ticks} />,
+    light: <ReniWidgetLayout data={data} config={config} p={LIGHT} />,
+    dark:  <ReniWidgetLayout data={data} config={config} p={DARK}  />,
   };
 }

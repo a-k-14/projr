@@ -1818,7 +1818,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: accountId === 'all' ? 34 : 20 }}
+            style={{ height: accountId === 'all' ? 34 : 22 }}
           />
         </View>
 
@@ -1828,7 +1828,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           {middleContent}
 
           {/* ── Recent transactions — date-grouped ── */}
-          <View style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : 20 }}>
+          <View style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : 34 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
               <TouchableOpacity

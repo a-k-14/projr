@@ -74,7 +74,7 @@
               "label": "Reni",
               "description": "Balance, cashflow chart and quick actions",
               "minWidth": "250dp",
-              "minHeight": "110dp",
+              "minHeight": "100dp",
               "targetCellWidth": 4,
               "targetCellHeight": 2,
               "maxResizeWidth": "500dp",

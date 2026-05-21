@@ -33,6 +33,11 @@ import type { PeriodType } from '../../types';
 import { getAccountBalanceTrend } from '../../services/analytics';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
 
+// Persists across screen mounts — stack screens remount fresh on every navigation
+// unlike tabs which stay mounted. Cache gives instant display on revisit; mutationVersion
+// bump triggers a silent background refresh without showing the skeleton again.
+const trendCache = new Map<string, { date: string; val: number }[]>();
+
 type AccountPeriodType = 'today' | PeriodType;
 
 export default function AccountDetailScreen() {
@@ -56,8 +61,10 @@ export default function AccountDetailScreen() {
 
   const account = accounts.find((a) => a.id === id);
 
-  const [trendPoints, setTrendPoints] = useState<{ date: string; val: number }[]>([]);
-  const [isLoadingTrend, setIsLoadingTrend] = useState(true);
+  const [trendPoints, setTrendPoints] = useState<{ date: string; val: number }[]>(
+    () => trendCache.get(id ?? '') ?? []
+  );
+  const [isLoadingTrend, setIsLoadingTrend] = useState(!trendCache.has(id ?? ''));
   const [chartInteracting, setChartInteracting] = useState(false);
   const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
 
@@ -70,7 +77,8 @@ export default function AccountDetailScreen() {
     if (!account) return;
     let active = true;
     const loadTrend = async () => {
-      setIsLoadingTrend(true);
+      // Only show skeleton on the very first load; subsequent refreshes are silent.
+      if (!trendCache.has(account.id)) setIsLoadingTrend(true);
       const today = new Date();
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(today.getDate() - 29);
@@ -79,14 +87,14 @@ export default function AccountDetailScreen() {
       try {
         const trend = await getAccountBalanceTrend(account.id, fromStr, toStr);
         if (active) {
-          setTrendPoints(trend.map(t => ({ date: t.date, val: t.balance })));
+          const mapped = trend.map(t => ({ date: t.date, val: t.balance }));
+          trendCache.set(account.id, mapped);
+          setTrendPoints(mapped);
         }
       } catch (err) {
         console.error(err);
       } finally {
-        if (active) {
-          setIsLoadingTrend(false);
-        }
+        if (active) setIsLoadingTrend(false);
       }
     };
     loadTrend();
@@ -184,7 +192,6 @@ export default function AccountDetailScreen() {
       subtitle="(Last 30 Days)"
       lineColor={lineColor}
       onInteractionStateChange={setChartInteracting}
-      containerStyle={{ marginTop: 0 }}
       isLoading={isLoadingTrend}
     />
   );
