@@ -112,7 +112,9 @@ export default function AddTransactionModal() {
     addMore,
     editDepositId,
     closeDepositId,
-    focusField } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string; focusField?: string }>();
+    focusField,
+    fromWidget
+  } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string; focusField?: string; fromWidget?: string }>();
   const isEditingDeposit = !!editDepositId && editDepositId !== '';
   const isClosingDeposit = !!closeDepositId && closeDepositId !== '' && !isEditingDeposit;
   const isEditing = !!editId || isEditingDeposit;
@@ -500,6 +502,16 @@ export default function AddTransactionModal() {
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedLinkedAccount = accounts.find((account) => account.id === linkedAccountId);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const closeScreen = () => {
+    if (fromWidget === '1') {
+      router.replace('/');
+    } else {
+      router.back();
+    }
+  };
+
   // Load persons list lazily when the loan form is active
   useEffect(() => {
     if (type !== 'loan') return;
@@ -596,6 +608,8 @@ export default function AddTransactionModal() {
 
   const handleSubmit = async () => {
     if (!isValid) return;
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setShowDatePicker(false);
     try {
       if (!isEditing && accountId) {
@@ -611,7 +625,7 @@ export default function AddTransactionModal() {
             date,
             note: note.trim() || undefined,
           });
-          router.back();
+          closeScreen();
           return;
         }
 
@@ -655,7 +669,7 @@ export default function AddTransactionModal() {
         } else {
           await useFixedDepositsStore.getState().add(depositPayload);
         }
-        router.back();
+        closeScreen();
         return;
       }
 
@@ -706,7 +720,7 @@ export default function AddTransactionModal() {
           }
         }
         clearSplitRows();
-        router.back();
+        closeScreen();
         // Background refresh after navigation
         Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => { });
         return;
@@ -773,7 +787,7 @@ export default function AddTransactionModal() {
         await addTransaction(data);
       }
       clearSplitRows();
-      router.back();
+      closeScreen();
       // Background refresh after navigation
       Promise.all([
         shouldReloadTransactions ? reloadTransactions() : Promise.resolve(),
@@ -781,6 +795,7 @@ export default function AddTransactionModal() {
       ]).catch(() => { });
     } catch (e) {
       showAlert('Error', String(e));
+      setIsSubmitting(false);
     }
   };
 

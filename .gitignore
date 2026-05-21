@@ -51,3 +51,4 @@ build.log
 .expo-export-review-3/
 .expo-export-release-review/
 .expo-export-final-review/
+*.zip

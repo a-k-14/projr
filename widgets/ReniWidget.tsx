@@ -1,6 +1,6 @@
 import React from 'react';
-import { FlexWidget, TextWidget, SvgWidget } from 'react-native-android-widget';
 import type { ColorProp } from 'react-native-android-widget';
+import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 import { formatCurrency } from '../lib/derived';
 import type { ReniWidgetConfig, WidgetData } from './widgetTypes';
 
@@ -25,43 +25,43 @@ interface Palette {
 }
 
 const LIGHT: Palette = {
-  surface:      '#F2F4F3',
-  label:        '#8C94AF',
-  balance:      '#1F2A44',
-  positiveBar:  '#0D9488',
-  negativeBar:  '#F87171',
-  emptyBar:     '#D4D9E8',
-  activityIn:   '#047857',
-  activityOut:  '#B32020',
+  surface: '#F2F4F3',
+  label: '#8C94AF',
+  balance: '#1F2A44',
+  positiveBar: '#0D9488',
+  negativeBar: '#F87171',
+  emptyBar: '#D4D9E8',
+  activityIn: '#047857',
+  activityOut: '#B32020',
   btn: { bg: '#DDE3EF', border: '#C8D0E5', text: '#3D4A66', icon: '#3D4A66' },
-  stripBase:   '#1F2A44',
+  stripBase: '#1F2A44',
   stripGradTo: '#243558',
 };
 
 const DARK: Palette = {
-  surface:      '#111318',
-  label:        '#66707D',
-  balance:      '#D8DDE5',
-  positiveBar:  '#2DD4BF',
-  negativeBar:  '#F87171',
-  emptyBar:     '#1A2030',
-  activityIn:   '#34D399',
-  activityOut:  '#FCA5A5',
+  surface: '#111318',
+  label: '#66707D',
+  balance: '#D8DDE5',
+  positiveBar: '#2DD4BF',
+  negativeBar: '#F87171',
+  emptyBar: '#1A2030',
+  activityIn: '#34D399',
+  activityOut: '#FCA5A5',
   btn: { bg: '#1C2333', border: '#252F45', text: '#8A9AB0', icon: '#8A9AB0' },
-  stripBase:   '#060C16',
+  stripBase: '#060C16',
   stripGradTo: '#0C1A28',
 };
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const TICK_W     = 2.3;
-const TICK_H     = 8;
-const TICK_GAP   = 4;
-const H_PAD      = 18;
-const STRIP_H    = 22;
-const CARD_R     = 22;
+const TICK_W = 2.3;
+const TICK_H = 8; // restored original height
+const TICK_GAP = 4;
+const H_PAD = 18;
+const STRIP_H = 28; // restored original brand strip height
+const CARD_R = 22;
 const APP_SCHEME = 'financetracker';
-const GAP        = c('#00000000');
+const GAP = c('#00000000');
 
 function tickCount(widgetWidthDp: number): number {
   const available = widgetWidthDp - H_PAD * 2;
@@ -97,9 +97,9 @@ function TickChart({
   count: number;
   p: Palette;
 }) {
-  const total      = todayIncome + todayExpense;
+  const total = todayIncome + todayExpense;
   const greenCount = total > 0 ? Math.round((todayIncome / total) * count) : 0;
-  const redCount   = total > 0 ? count - greenCount : 0;
+  const redCount = total > 0 ? count - greenCount : 0;
 
   return (
     <FlexWidget
@@ -116,7 +116,7 @@ function TickChart({
     >
       {Array.from({ length: count }, (_, i) => {
         const isGreen = i < greenCount;
-        const isRed   = i >= count - redCount;
+        const isRed = i >= count - redCount;
         const bg = isGreen ? c(p.positiveBar) : isRed ? c(p.negativeBar) : c(p.emptyBar);
         return (
           <FlexWidget
@@ -145,9 +145,9 @@ function ActionButton({
   iconType?: BtnIconType;
 }) {
   const svgIcon =
-    iconType === 'income'   ? arrowDownLeftSvg(colors.icon) :
-    iconType === 'expense'  ? arrowUpRightSvg(colors.icon)  :
-    iconType === 'transfer' ? repeatSvg(colors.icon)        : null;
+    iconType === 'income' ? arrowDownLeftSvg(colors.icon) :
+      iconType === 'expense' ? arrowUpRightSvg(colors.icon) :
+        iconType === 'transfer' ? repeatSvg(colors.icon) : null;
   const iconW = iconType === 'transfer' ? 11 : 13;
   const iconH = iconType === 'transfer' ? 11 : 13;
 
@@ -197,8 +197,8 @@ function ReniWidgetLayout({
   ticks: number;
 }) {
   const { balance, balanceLabel, currencySymbol: sym, todayIncome, todayExpense, monthLabel } = data;
-  const balanceValue  = balance !== null ? fmtFull(balance, sym) : monthLabel;
-  const incomeIsZero  = todayIncome === 0;
+  const balanceValue = balance !== null ? fmtFull(balance, sym) : monthLabel;
+  const incomeIsZero = todayIncome === 0;
   const expenseIsZero = todayExpense === 0;
 
   return (
@@ -206,11 +206,11 @@ function ReniWidgetLayout({
       clickAction="OPEN_APP"
       style={{
         width: 'match_parent',
-        height: 'match_parent',
+        height: 'wrap_content', // avoid forcing full widget height so OS won't stretch vertically
         flexDirection: 'column',
         backgroundColor: c(p.surface),
         borderRadius: CARD_R,
-        paddingBottom: 10,
+        paddingBottom: 18, // more bottom padding to push content up
       }}
     >
       {/* ── Brand strip ── */}
@@ -252,7 +252,7 @@ function ReniWidgetLayout({
         >
           <TextWidget
             text={balanceLabel}
-            style={{ fontSize: 11, fontWeight: '500', color: c(p.balance), letterSpacing: 0.2 }}
+            style={{ fontSize: 12, fontWeight: '500', color: c(p.balance), letterSpacing: 0.2 }}
             allowFontScaling={false}
           />
           <FlexWidget style={{ flex: 1 }} />
@@ -289,7 +289,7 @@ function ReniWidgetLayout({
             />
             <TextWidget
               text={incomeIsZero ? '—' : fmtFull(todayIncome, sym)}
-              style={{ fontSize: 13, fontWeight: '400', color: c(incomeIsZero ? p.label : p.balance), letterSpacing: -0.3 }}
+              style={{ fontSize: 14, fontWeight: '400', color: c(incomeIsZero ? p.label : p.balance), letterSpacing: -0.3 }}
               maxLines={1}
               allowFontScaling={false}
             />
@@ -300,7 +300,7 @@ function ReniWidgetLayout({
           <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', flexGap: 4, flexGapColor: GAP }}>
             <TextWidget
               text={expenseIsZero ? '—' : fmtFull(todayExpense, sym)}
-              style={{ fontSize: 13, fontWeight: '400', color: c(expenseIsZero ? p.label : p.balance), letterSpacing: -0.3 }}
+              style={{ fontSize: 14, fontWeight: '400', color: c(expenseIsZero ? p.label : p.balance), letterSpacing: -0.3 }}
               maxLines={1}
               allowFontScaling={false}
             />
@@ -313,7 +313,7 @@ function ReniWidgetLayout({
       )}
 
       {/* ── Spacer ── */}
-      <FlexWidget style={{ flex: 1 }} />
+      <FlexWidget style={{ height: 8 }} />
 
       {/* ── Quick actions ── */}
       {config.showQuickActions && (
@@ -328,9 +328,9 @@ function ReniWidgetLayout({
             flexGapColor: GAP,
           }}
         >
-          <ActionButton label="Income"   uri={`${APP_SCHEME}://modals/add-transaction?type=in`}       colors={p.btn} iconType="income" />
-          <ActionButton label="Expense"  uri={`${APP_SCHEME}://modals/add-transaction?type=out`}      colors={p.btn} iconType="expense" />
-          <ActionButton label="Transfer" uri={`${APP_SCHEME}://modals/add-transaction?type=transfer`} colors={p.btn} iconType="transfer" />
+          <ActionButton label="Income" uri={`${APP_SCHEME}://modals/add-transaction?type=in&fromWidget=1`} colors={p.btn} iconType="income" />
+          <ActionButton label="Expense" uri={`${APP_SCHEME}://modals/add-transaction?type=out&fromWidget=1`} colors={p.btn} iconType="expense" />
+          <ActionButton label="Transfer" uri={`${APP_SCHEME}://modals/add-transaction?type=transfer&fromWidget=1`} colors={p.btn} iconType="transfer" />
         </FlexWidget>
       )}
     </FlexWidget>
@@ -343,6 +343,6 @@ export function renderReniWidget(data: WidgetData, config: ReniWidgetConfig, wid
   const ticks = tickCount(widgetWidthDp);
   return {
     light: <ReniWidgetLayout data={data} config={config} p={LIGHT} ticks={ticks} />,
-    dark:  <ReniWidgetLayout data={data} config={config} p={DARK}  ticks={ticks} />,
+    dark: <ReniWidgetLayout data={data} config={config} p={DARK} ticks={ticks} />,
   };
 }
