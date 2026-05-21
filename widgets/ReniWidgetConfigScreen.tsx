@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Appearance,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -20,7 +20,7 @@ import type { Account } from '../types';
 import type { BalanceDisplay, ReniWidgetConfig } from './widgetTypes';
 import { DEFAULT_WIDGET_CONFIG } from './widgetTypes';
 
-// ── Palette (inline, no hooks — runs before app stores are ready) ──────────
+// ── Palette (inline — runs before app stores are ready) ────────────────────
 
 const LIGHT_CFG = {
   bg: '#F0F2F8',
@@ -35,6 +35,7 @@ const LIGHT_CFG = {
   selectedText: '#FFFFFF',
   unselected: '#FFFFFF',
   unselectedBorder: '#E2E6EE',
+  switchTrackOff: '#D1D9E6',
 };
 
 const DARK_CFG = {
@@ -50,13 +51,92 @@ const DARK_CFG = {
   selectedText: '#07100B',
   unselected: '#0C1018',
   unselectedBorder: '#1A1E28',
+  switchTrackOff: '#1D2535',
 };
+
+type Palette = typeof LIGHT_CFG;
+
+// ── ConfigSwitch — matches AppSwitch visuals without needing AppThemePalette ─
+
+function ConfigSwitch({
+  value,
+  onValueChange,
+  p,
+}: {
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+  p: Palette;
+}) {
+  const W = 43, H = 25, THUMB = 19, PAD = 3;
+  const offX = PAD, onX = W - THUMB - PAD;
+
+  const progress = useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(progress, {
+      toValue: value ? 1 : 0,
+      damping: 18,
+      stiffness: 280,
+      mass: 0.5,
+      useNativeDriver: false, // backgroundColor interpolation requires JS driver
+    }).start();
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const trackBg = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [p.switchTrackOff, p.selected],
+  });
+  const thumbX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [offX, onX],
+  });
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => onValueChange(!value)}
+      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+    >
+      <Animated.View
+        style={{
+          width: W,
+          height: H,
+          borderRadius: H / 2,
+          justifyContent: 'center',
+          backgroundColor: trackBg,
+        }}
+      >
+        <Animated.View
+          style={{
+            position: 'absolute',
+            width: THUMB,
+            height: THUMB,
+            borderRadius: THUMB / 2,
+            backgroundColor: '#FFFFFF',
+            elevation: 2,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.18,
+            shadowRadius: 2,
+            transform: [{ translateX: thumbX }],
+          }}
+        />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function SectionLabel({ text, p }: { text: string; p: typeof LIGHT_CFG }) {
+function SectionLabel({ text, p }: { text: string; p: Palette }) {
+  return <Text style={[styles.sectionLabel, { color: p.textMuted }]}>{text}</Text>;
+}
+
+function Card({ children, p }: { children: React.ReactNode; p: Palette }) {
   return (
-    <Text style={[styles.sectionLabel, { color: p.textMuted }]}>{text}</Text>
+    <View style={[styles.card, { backgroundColor: p.surface, borderColor: p.border }]}>
+      {children}
+    </View>
   );
 }
 
@@ -64,18 +144,23 @@ function RadioRow({
   label,
   selected,
   onPress,
+  last,
   p,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
-  p: typeof LIGHT_CFG;
+  last?: boolean;
+  p: Palette;
 }) {
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={onPress}
-      style={[styles.radioRow, { borderBottomColor: p.divider }]}
+      style={[
+        styles.radioRow,
+        !last && { borderBottomColor: p.divider, borderBottomWidth: StyleSheet.hairlineWidth },
+      ]}
     >
       <Text style={[styles.radioLabel, { color: p.text }]}>{label}</Text>
       <View
@@ -106,30 +191,22 @@ function ToggleRow({
   value: boolean;
   onValueChange: (v: boolean) => void;
   last?: boolean;
-  p: typeof LIGHT_CFG;
+  p: Palette;
 }) {
   return (
-    <View style={[styles.toggleRow, !last && { borderBottomColor: p.divider, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+    <View
+      style={[
+        styles.toggleRow,
+        !last && { borderBottomColor: p.divider, borderBottomWidth: StyleSheet.hairlineWidth },
+      ]}
+    >
       <View style={{ flex: 1, marginRight: 12 }}>
         <Text style={[styles.toggleLabel, { color: p.text }]}>{label}</Text>
         {subtitle ? (
           <Text style={[styles.toggleSubtitle, { color: p.textMuted }]}>{subtitle}</Text>
         ) : null}
       </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: p.border, true: p.brand }}
-        thumbColor={value ? p.surface : p.surface}
-      />
-    </View>
-  );
-}
-
-function Card({ children, p }: { children: React.ReactNode; p: typeof LIGHT_CFG }) {
-  return (
-    <View style={[styles.card, { backgroundColor: p.surface, borderColor: p.border }]}>
-      {children}
+      <ConfigSwitch value={value} onValueChange={onValueChange} p={p} />
     </View>
   );
 }
@@ -182,6 +259,8 @@ export function ReniWidgetConfigScreen({
   const setBalanceDisplay = (val: BalanceDisplay) =>
     setConfig((c) => ({ ...c, balanceDisplay: val }));
 
+  const selectedAccount = accounts.find((a) => a.id === config.accountId);
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: p.bg, justifyContent: 'center', alignItems: 'center' }]}>
@@ -217,30 +296,45 @@ export function ReniWidgetConfigScreen({
             onPress={() => setBalanceDisplay('totalBalance')}
             p={p}
           />
-          {accounts.map((acc) => (
-            <RadioRow
-              key={acc.id}
-              label={acc.name}
-              selected={
-                config.balanceDisplay === 'specificAccount' && config.accountId === acc.id
-              }
-              onPress={() =>
-                setConfig((c) => ({
-                  ...c,
-                  balanceDisplay: 'specificAccount',
-                  accountId: acc.id,
-                }))
-              }
-              p={p}
-            />
-          ))}
+          <RadioRow
+            label="Specific account"
+            selected={config.balanceDisplay === 'specificAccount'}
+            onPress={() => setBalanceDisplay('specificAccount')}
+            p={p}
+          />
           <RadioRow
             label="Don't show balance"
             selected={config.balanceDisplay === 'none'}
             onPress={() => setBalanceDisplay('none')}
+            last
             p={p}
           />
         </Card>
+
+        {/* Account picker — only when specificAccount is selected */}
+        {config.balanceDisplay === 'specificAccount' && accounts.length > 0 && (
+          <>
+            <SectionLabel text="ACCOUNT" p={p} />
+            <Card p={p}>
+              <ScrollView
+                style={{ maxHeight: 220 }}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+              >
+                {accounts.map((acc, idx) => (
+                  <RadioRow
+                    key={acc.id}
+                    label={acc.name}
+                    selected={config.accountId === acc.id}
+                    onPress={() => setConfig((c) => ({ ...c, accountId: acc.id }))}
+                    last={idx === accounts.length - 1}
+                    p={p}
+                  />
+                ))}
+              </ScrollView>
+            </Card>
+          </>
+        )}
 
         {/* Toggles */}
         <SectionLabel text="OPTIONS" p={p} />
@@ -263,7 +357,7 @@ export function ReniWidgetConfigScreen({
         </Card>
       </ScrollView>
 
-      {/* Save button */}
+      {/* Save */}
       <View style={[styles.footer, { backgroundColor: p.bg, borderTopColor: p.divider }]}>
         <TouchableOpacity
           activeOpacity={0.82}
@@ -274,9 +368,7 @@ export function ReniWidgetConfigScreen({
           {saving ? (
             <ActivityIndicator color={p.selectedText} size="small" />
           ) : (
-            <Text style={[styles.saveBtnText, { color: p.selectedText }]}>
-              Add Widget
-            </Text>
+            <Text style={[styles.saveBtnText, { color: p.selectedText }]}>Save</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -302,14 +394,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   radioRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   radioLabel: { flex: 1, fontSize: 15 },
   radioCircle: {
@@ -325,13 +416,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   toggleLabel: { fontSize: 15, fontWeight: '500', marginBottom: 2 },
   toggleSubtitle: { fontSize: 12 },
   footer: {
     padding: 16,
-    paddingBottom: 20,
+    paddingBottom: 36, // clears gesture navigation bar on Android
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   saveBtn: {

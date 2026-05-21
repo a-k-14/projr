@@ -50,7 +50,7 @@ export async function fetchWidgetData(config: ReniWidgetConfig): Promise<WidgetD
 
   if (config.balanceDisplay === 'netWorth' || config.balanceDisplay === 'totalBalance') {
     balance = accounts.reduce((sum, a) => sum + a.balance, 0);
-    balanceLabel = config.balanceDisplay === 'netWorth' ? 'Net Worth' : 'Balance';
+    balanceLabel = config.balanceDisplay === 'netWorth' ? 'Net Worth' : 'All Accounts';
   } else if (config.balanceDisplay === 'specificAccount' && config.accountId) {
     const account = await getAccountById(config.accountId);
     balance = account?.balance ?? null;

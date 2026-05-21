@@ -20,39 +20,53 @@ interface Palette {
   activityIn: string;
   activityOut: string;
   btn: BtnColors;
+  stripBase: string;
+  stripGradTo: string;
 }
 
 const LIGHT: Palette = {
-  surface:     '#F2F4F3',
-  label:       '#8C94AF',
-  balance:     '#1F2A44',
-  positiveBar: '#0D9488',
-  negativeBar: '#F87171',
-  emptyBar:    '#D4D9E8',
-  activityIn:  '#047857',
-  activityOut: '#B32020',
-  btn: { bg: '#FFFFFF', border: '#E4E7ED', text: '#3D4A66', icon: '#3D4A66' },
+  surface:      '#F2F4F3',
+  label:        '#8C94AF',
+  balance:      '#1F2A44',
+  positiveBar:  '#0D9488',
+  negativeBar:  '#F87171',
+  emptyBar:     '#D4D9E8',
+  activityIn:   '#047857',
+  activityOut:  '#B32020',
+  btn: { bg: '#DDE3EF', border: '#C8D0E5', text: '#3D4A66', icon: '#3D4A66' },
+  stripBase:   '#1F2A44',
+  stripGradTo: '#243558',
 };
 
 const DARK: Palette = {
-  surface:     '#111318',
-  label:       '#66707D',
-  balance:     '#D8DDE5',
-  positiveBar: '#2DD4BF',
-  negativeBar: '#F87171',
-  emptyBar:    '#1A2030',
-  activityIn:  '#34D399',
-  activityOut: '#FCA5A5',
+  surface:      '#111318',
+  label:        '#66707D',
+  balance:      '#D8DDE5',
+  positiveBar:  '#2DD4BF',
+  negativeBar:  '#F87171',
+  emptyBar:     '#1A2030',
+  activityIn:   '#34D399',
+  activityOut:  '#FCA5A5',
   btn: { bg: '#1C2333', border: '#252F45', text: '#8A9AB0', icon: '#8A9AB0' },
+  stripBase:   '#060C16',
+  stripGradTo: '#0C1A28',
 };
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const TICK_COUNT = 40;
+const TICK_W     = 2.3;
+const TICK_H     = 8;
 const TICK_GAP   = 4;
 const H_PAD      = 18;
+const STRIP_H    = 22;
+const CARD_R     = 22;
 const APP_SCHEME = 'financetracker';
-const GAP = c('#00000000');
+const GAP        = c('#00000000');
+
+function tickCount(widgetWidthDp: number): number {
+  const available = widgetWidthDp - H_PAD * 2;
+  return Math.floor((available + TICK_GAP) / (TICK_W + TICK_GAP));
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -63,11 +77,11 @@ function repeatSvg(color: string): string {
 }
 
 function arrowDownLeftSvg(color: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="5 5 14 14" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>`;
 }
 
 function arrowUpRightSvg(color: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="5 5 14 14" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>`;
 }
 
 // ── TickChart ──────────────────────────────────────────────────────────────
@@ -75,15 +89,17 @@ function arrowUpRightSvg(color: string): string {
 function TickChart({
   todayIncome,
   todayExpense,
+  count,
   p,
 }: {
   todayIncome: number;
   todayExpense: number;
+  count: number;
   p: Palette;
 }) {
-  const total = todayIncome + todayExpense;
-  const greenCount = total > 0 ? Math.round((todayIncome / total) * TICK_COUNT) : 0;
-  const redCount   = total > 0 ? TICK_COUNT - greenCount : 0;
+  const total      = todayIncome + todayExpense;
+  const greenCount = total > 0 ? Math.round((todayIncome / total) * count) : 0;
+  const redCount   = total > 0 ? count - greenCount : 0;
 
   return (
     <FlexWidget
@@ -91,19 +107,21 @@ function TickChart({
         width: 'match_parent',
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 6,
+        paddingLeft: H_PAD,
+        paddingRight: H_PAD,
+        marginBottom: 4,
         flexGap: TICK_GAP,
         flexGapColor: GAP,
       }}
     >
-      {Array.from({ length: TICK_COUNT }, (_, i) => {
+      {Array.from({ length: count }, (_, i) => {
         const isGreen = i < greenCount;
-        const isRed   = i >= TICK_COUNT - redCount;
+        const isRed   = i >= count - redCount;
         const bg = isGreen ? c(p.positiveBar) : isRed ? c(p.negativeBar) : c(p.emptyBar);
         return (
           <FlexWidget
             key={i}
-            style={{ flex: 1, height: 10, backgroundColor: bg, borderRadius: 2 }}
+            style={{ width: TICK_W, height: TICK_H, backgroundColor: bg, borderRadius: 2 }}
           />
         );
       })}
@@ -113,24 +131,33 @@ function TickChart({
 
 // ── ActionButton ───────────────────────────────────────────────────────────
 
+type BtnIconType = 'income' | 'expense' | 'transfer';
+
 function ActionButton({
   label,
   uri,
   colors,
-  repeatIcon,
+  iconType,
 }: {
   label: string;
   uri: string;
   colors: BtnColors;
-  repeatIcon?: boolean;
+  iconType?: BtnIconType;
 }) {
+  const svgIcon =
+    iconType === 'income'   ? arrowDownLeftSvg(colors.icon) :
+    iconType === 'expense'  ? arrowUpRightSvg(colors.icon)  :
+    iconType === 'transfer' ? repeatSvg(colors.icon)        : null;
+  const iconW = iconType === 'transfer' ? 11 : 13;
+  const iconH = iconType === 'transfer' ? 11 : 13;
+
   return (
     <FlexWidget
       clickAction="OPEN_URI"
       clickActionData={{ uri }}
       style={{
         flex: 1,
-        height: 44,
+        height: 36,
         backgroundColor: c(colors.bg),
         borderRadius: 10,
         borderColor: c(colors.border),
@@ -142,8 +169,8 @@ function ActionButton({
         flexGapColor: GAP,
       }}
     >
-      {repeatIcon && (
-        <SvgWidget svg={repeatSvg(colors.icon)} style={{ width: 11, height: 11 }} />
+      {svgIcon && (
+        <SvgWidget svg={svgIcon} style={{ width: iconW, height: iconH }} />
       )}
       <TextWidget
         text={label}
@@ -162,14 +189,16 @@ function ReniWidgetLayout({
   data,
   config,
   p,
+  ticks,
 }: {
   data: WidgetData;
   config: ReniWidgetConfig;
   p: Palette;
+  ticks: number;
 }) {
-  const { balance, currencySymbol: sym, todayIncome, todayExpense, monthLabel } = data;
-  const headerRight = balance !== null ? fmtFull(balance, sym) : monthLabel;
-  const incomeIsZero = todayIncome === 0;
+  const { balance, balanceLabel, currencySymbol: sym, todayIncome, todayExpense, monthLabel } = data;
+  const balanceValue  = balance !== null ? fmtFull(balance, sym) : monthLabel;
+  const incomeIsZero  = todayIncome === 0;
   const expenseIsZero = todayExpense === 0;
 
   return (
@@ -180,40 +209,75 @@ function ReniWidgetLayout({
         height: 'match_parent',
         flexDirection: 'column',
         backgroundColor: c(p.surface),
-        borderRadius: 22,
-        paddingTop: 18,
-        paddingBottom: 16,
-        paddingLeft: H_PAD,
-        paddingRight: H_PAD,
+        borderRadius: CARD_R,
+        paddingBottom: 10,
       }}
     >
-      {/* Header: label ·····  balance / month */}
-      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent', marginBottom: 14 }}>
+      {/* ── Brand strip ── */}
+      <FlexWidget
+        style={{
+          width: 'match_parent',
+          height: STRIP_H,
+          backgroundGradient: { from: c(p.stripBase), to: c(p.stripGradTo), orientation: 'LEFT_RIGHT' },
+          borderTopLeftRadius: CARD_R,
+          borderTopRightRadius: CARD_R,
+          paddingLeft: H_PAD,
+          paddingRight: H_PAD,
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 10,
+        }}
+      >
         <TextWidget
           text="Reni"
-          style={{ fontSize: 12, fontWeight: '600', color: c(p.label), letterSpacing: 0.3 }}
-          allowFontScaling={false}
-        />
-        <FlexWidget style={{ flex: 1 }} />
-        <TextWidget
-          text={headerRight}
-          style={{ fontSize: 14, fontWeight: '700', color: c(p.balance) }}
-          maxLines={1}
-          truncate="START"
+          style={{ fontSize: 11, fontWeight: '700', color: c('#FFFFFF'), letterSpacing: 0.8 }}
           allowFontScaling={false}
         />
       </FlexWidget>
 
-      {/* Tick chart — flex:1 ticks always fill full width regardless of reported widget width */}
-      <TickChart todayIncome={todayIncome} todayExpense={todayExpense} p={p} />
+      {/* ── Balance row (always rendered to keep layout stable) ── */}
+      {config.balanceDisplay === 'none' ? (
+        // Empty spacer — same height as the balance row so the chart doesn't shift
+        <FlexWidget style={{ width: 'match_parent', height: 14, marginBottom: 10 }} />
+      ) : (
+        <FlexWidget
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            width: 'match_parent',
+            paddingLeft: H_PAD,
+            paddingRight: H_PAD,
+            marginBottom: 10,
+          }}
+        >
+          <TextWidget
+            text={balanceLabel}
+            style={{ fontSize: 11, fontWeight: '500', color: c(p.balance), letterSpacing: 0.2 }}
+            allowFontScaling={false}
+          />
+          <FlexWidget style={{ flex: 1 }} />
+          <TextWidget
+            text={balanceValue}
+            style={{ fontSize: 14, fontWeight: '600', color: c(p.balance) }}
+            maxLines={1}
+            truncate="START"
+            allowFontScaling={false}
+          />
+        </FlexWidget>
+      )}
 
-      {/* Today's activity */}
+      {/* ── Tick chart ── */}
+      <TickChart todayIncome={todayIncome} todayExpense={todayExpense} count={ticks} p={p} />
+
+      {/* ── Today's activity ── */}
       {config.showTodayActivity && (
         <FlexWidget
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             width: 'match_parent',
+            paddingLeft: H_PAD,
+            paddingRight: H_PAD,
             paddingTop: 2,
             marginBottom: 2,
           }}
@@ -247,21 +311,26 @@ function ReniWidgetLayout({
           </FlexWidget>
         </FlexWidget>
       )}
+
+      {/* ── Spacer ── */}
       <FlexWidget style={{ flex: 1 }} />
 
-      {/* Quick actions */}
+      {/* ── Quick actions ── */}
       {config.showQuickActions && (
         <FlexWidget
           style={{
             flexDirection: 'row',
             width: 'match_parent',
+            paddingLeft: H_PAD,
+            paddingRight: H_PAD,
+            marginTop: 6,
             flexGap: 6,
             flexGapColor: GAP,
           }}
         >
-          <ActionButton label="+ Income"  uri={`${APP_SCHEME}://modals/add-transaction?type=in`}       colors={p.btn} />
-          <ActionButton label="− Expense" uri={`${APP_SCHEME}://modals/add-transaction?type=out`}      colors={p.btn} />
-          <ActionButton label="Transfer"  uri={`${APP_SCHEME}://modals/add-transaction?type=transfer`} colors={p.btn} repeatIcon />
+          <ActionButton label="Income"   uri={`${APP_SCHEME}://modals/add-transaction?type=in`}       colors={p.btn} iconType="income" />
+          <ActionButton label="Expense"  uri={`${APP_SCHEME}://modals/add-transaction?type=out`}      colors={p.btn} iconType="expense" />
+          <ActionButton label="Transfer" uri={`${APP_SCHEME}://modals/add-transaction?type=transfer`} colors={p.btn} iconType="transfer" />
         </FlexWidget>
       )}
     </FlexWidget>
@@ -270,9 +339,10 @@ function ReniWidgetLayout({
 
 // ── Export ─────────────────────────────────────────────────────────────────
 
-export function renderReniWidget(data: WidgetData, config: ReniWidgetConfig, _widgetWidthDp = 250) {
+export function renderReniWidget(data: WidgetData, config: ReniWidgetConfig, widgetWidthDp = 300) {
+  const ticks = tickCount(widgetWidthDp);
   return {
-    light: <ReniWidgetLayout data={data} config={config} p={LIGHT} />,
-    dark:  <ReniWidgetLayout data={data} config={config} p={DARK}  />,
+    light: <ReniWidgetLayout data={data} config={config} p={LIGHT} ticks={ticks} />,
+    dark:  <ReniWidgetLayout data={data} config={config} p={DARK}  ticks={ticks} />,
   };
 }
