@@ -1,16 +1,19 @@
 export type BalanceDisplay = 'netWorth' | 'totalBalance' | 'specificAccount' | 'none';
+export type WidgetBgTheme = 'classic' | 'warm' | 'heroBottom';
 
 export interface ReniWidgetConfig {
   balanceDisplay: BalanceDisplay;
   accountId?: string;
   showQuickActions: boolean;
   showTodayActivity: boolean;
+  bgTheme?: WidgetBgTheme;
 }
 
 export const DEFAULT_WIDGET_CONFIG: ReniWidgetConfig = {
   balanceDisplay: 'netWorth',
   showQuickActions: true,
   showTodayActivity: true,
+  bgTheme: 'classic',
 };
 
 export interface WidgetDayBar {

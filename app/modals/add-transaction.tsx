@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   Image,
   InteractionManager,
   Keyboard,
@@ -250,6 +251,21 @@ export default function AddTransactionModal() {
       clearSplitRows();
     }
   }, [clearSplitRows, isEditing]);
+
+  // Sync state if deep-linked to a different transaction type while already mounted
+  useEffect(() => {
+    if (initialType && !isEditing && !isClosingDeposit && !isLoanAddMore) {
+      setType(initialType as TransactionType);
+      // Reset form fields to ensure a clean state
+      setAmountStr('');
+      setCategoryId('');
+      setPayee('');
+      setSelectedTagIds([]);
+      setNote('');
+      setReceiptImageUris([]);
+      clearSplitRows();
+    }
+  }, [initialType, isEditing, isClosingDeposit, isLoanAddMore, clearSplitRows]);
 
   useEffect(() => {
     if (isSyncingCategory.current) {
@@ -505,12 +521,25 @@ export default function AddTransactionModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const closeScreen = () => {
-    if (fromWidget === '1') {
+    if (fromWidget === '1' || !router.canGoBack()) {
       router.replace('/');
     } else {
       router.back();
     }
   };
+
+  // Redirect to home when app goes to background if launched from widget
+  useEffect(() => {
+    if (fromWidget !== '1') return;
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'background') {
+        router.replace('/');
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, [fromWidget]);
 
   // Load persons list lazily when the loan form is active
   useEffect(() => {
@@ -822,7 +851,7 @@ export default function AddTransactionModal() {
         await refreshAccounts();
         setEditingSplitGroupId('');
         clearSplitRows();
-        router.back();
+        closeScreen();
       },
     });
   };
@@ -949,7 +978,7 @@ export default function AddTransactionModal() {
             paddingBottom: 12
           }}
         >
-          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
+          <TouchableOpacity delayPressIn={0} onPress={closeScreen} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
             <AppIcon name="x" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>

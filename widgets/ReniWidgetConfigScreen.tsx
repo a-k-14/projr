@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Animated,
   Appearance,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WidgetConfigurationScreenProps } from 'react-native-android-widget';
 import { runMigrations } from '../db/migrate';
 import { getAccounts } from '../services/accounts';
@@ -19,6 +19,14 @@ import { fetchWidgetData } from './widgetDataService';
 import type { Account } from '../types';
 import type { BalanceDisplay, ReniWidgetConfig } from './widgetTypes';
 import { DEFAULT_WIDGET_CONFIG } from './widgetTypes';
+import { getThemePalette } from '../lib/theme';
+import { FixedBottomActions } from '../components/settings-ui';
+import { FilledButton } from '../components/ui/AppButton';
+import { getScrollableBottomPadding } from '../components/ui/safeBottom';
+import { SPACING, TYPE, FONT_WEIGHT } from '../lib/design';
+import { SCREEN_HEADER, SCREEN_GUTTER } from '../lib/layoutTokens';
+import { AppIcon } from '../components/ui/AppIcon';
+import { StatusBar } from 'expo-status-bar';
 
 // ── Palette (inline — runs before app stores are ready) ────────────────────
 
@@ -213,13 +221,15 @@ function ToggleRow({
 
 // ── Main Screen ────────────────────────────────────────────────────────────
 
-export function ReniWidgetConfigScreen({
+function ReniWidgetConfigScreenContent({
   widgetInfo,
   renderWidget,
   setResult,
 }: WidgetConfigurationScreenProps) {
   const isDark = Appearance.getColorScheme() === 'dark';
   const p = isDark ? DARK_CFG : LIGHT_CFG;
+  const palette = getThemePalette(isDark ? 'dark' : 'light');
+  const insets = useSafeAreaInsets();
 
   const [config, setConfig] = useState<ReniWidgetConfig>({ ...DEFAULT_WIDGET_CONFIG });
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -263,23 +273,62 @@ export function ReniWidgetConfigScreen({
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.root, { backgroundColor: p.bg, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator color={p.brand} />
+      <SafeAreaView edges={['left', 'right']} style={[styles.root, { backgroundColor: palette.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color={palette.brand} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: p.bg }]}>
+    <SafeAreaView edges={['left', 'right']} style={[styles.root, { backgroundColor: palette.background }]}>
+      <StatusBar style={palette.statusBarStyle} backgroundColor="transparent" translucent />
+      <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            paddingTop: 8,
+            paddingBottom: 12
+          }}
+        >
+          <TouchableOpacity
+            delayPressIn={0}
+            onPress={() => setResult('cancel')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ marginRight: SCREEN_HEADER.iconTitleGap }}
+          >
+            <AppIcon name="x" size={24} color={palette.text} />
+          </TouchableOpacity>
+          <Text
+            style={{
+              flex: 1,
+              fontSize: SCREEN_HEADER.titleSize,
+              fontWeight: SCREEN_HEADER.titleWeight,
+              color: palette.text,
+            }}
+          >
+            Configure Widget
+          </Text>
+        </View>
+      </SafeAreaView>
+
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: 8,
+            paddingBottom: getScrollableBottomPadding(insets) + 72,
+          }
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title */}
-        <Text style={[styles.title, { color: p.text }]}>Configure Widget</Text>
-        <Text style={[styles.subtitle, { color: p.textSecondary }]}>
-          Choose what Reni shows on your home screen.
-        </Text>
+        {/* Subtitle */}
+        <View style={{ paddingBottom: 16 }}>
+          <Text style={{ fontSize: TYPE.caption, color: palette.textMuted, lineHeight: 17 }}>
+            Choose what Reni shows on your home screen.
+          </Text>
+        </View>
 
         {/* Balance display */}
         <SectionLabel text="BALANCE TO DISPLAY" p={p} />
@@ -336,6 +385,30 @@ export function ReniWidgetConfigScreen({
           </>
         )}
 
+        {/* Background theme */}
+        <SectionLabel text="BACKGROUND THEME" p={p} />
+        <Card p={p}>
+          <RadioRow
+            label="Classic (Warm Gray / Dark Slate)"
+            selected={config.bgTheme === 'classic' || !config.bgTheme}
+            onPress={() => setConfig((c) => ({ ...c, bgTheme: 'classic' }))}
+            p={p}
+          />
+          <RadioRow
+            label="Warm (Vanilla Cream / Dark Amber)"
+            selected={config.bgTheme === 'warm'}
+            onPress={() => setConfig((c) => ({ ...c, bgTheme: 'warm' }))}
+            p={p}
+          />
+          <RadioRow
+            label="Hero bottom (Cool Gray / Dark Navy)"
+            selected={config.bgTheme === 'heroBottom'}
+            onPress={() => setConfig((c) => ({ ...c, bgTheme: 'heroBottom' }))}
+            last
+            p={p}
+          />
+        </Card>
+
         {/* Toggles */}
         <SectionLabel text="OPTIONS" p={p} />
         <Card p={p}>
@@ -358,21 +431,23 @@ export function ReniWidgetConfigScreen({
       </ScrollView>
 
       {/* Save */}
-      <View style={[styles.footer, { backgroundColor: p.bg, borderTopColor: p.divider }]}>
-        <TouchableOpacity
-          activeOpacity={0.82}
+      <FixedBottomActions palette={palette}>
+        <FilledButton
+          label={saving ? 'Saving...' : 'Save'}
           onPress={handleSave}
           disabled={saving}
-          style={[styles.saveBtn, { backgroundColor: p.brand, opacity: saving ? 0.7 : 1 }]}
-        >
-          {saving ? (
-            <ActivityIndicator color={p.selectedText} size="small" />
-          ) : (
-            <Text style={[styles.saveBtnText, { color: p.selectedText }]}>Save</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          palette={palette}
+        />
+      </FixedBottomActions>
     </SafeAreaView>
+  );
+}
+
+export function ReniWidgetConfigScreen(props: WidgetConfigurationScreenProps) {
+  return (
+    <SafeAreaProvider>
+      <ReniWidgetConfigScreenContent {...props} />
+    </SafeAreaProvider>
   );
 }
 
@@ -381,8 +456,6 @@ export function ReniWidgetConfigScreen({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 8 },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 14, lineHeight: 20, marginBottom: 24 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
@@ -420,16 +493,4 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { fontSize: 15, fontWeight: '500', marginBottom: 2 },
   toggleSubtitle: { fontSize: 12 },
-  footer: {
-    padding: 16,
-    paddingBottom: 36, // clears gesture navigation bar on Android
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  saveBtn: {
-    height: 52,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveBtnText: { fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
 });

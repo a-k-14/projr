@@ -2,7 +2,7 @@ import React from 'react';
 import type { ColorProp } from 'react-native-android-widget';
 import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 import { formatCurrency } from '../lib/derived';
-import type { ReniWidgetConfig, WidgetData } from './widgetTypes';
+import type { ReniWidgetConfig, WidgetData, WidgetBgTheme } from './widgetTypes';
 
 const c = (s: string): ColorProp => s as ColorProp;
 
@@ -38,7 +38,7 @@ const LIGHT: Palette = {
   activityOut: '#C95D52',
   btn: {
     bg: '#E6E1D5',
-    iconBg: '#FFFDF7',
+    iconBg: '#F3EFE3',
     text: '#1F2A44',
     incomeIcon: '#438B62',
     expenseIcon: '#C95D52',
@@ -57,13 +57,101 @@ const DARK: Palette = {
   activityOut: '#D46A60',
   btn: {
     bg: '#25262B',
-    iconBg: '#32343A',
+    iconBg: '#181A20',
     text: '#ECE8DD',
     incomeIcon: '#5AA87B',
     expenseIcon: '#D46A60',
     transferIcon: '#ECE8DD',
   },
 };
+
+function getWidgetPalette(mode: 'light' | 'dark', theme: WidgetBgTheme = 'classic'): Palette {
+  if (mode === 'light') {
+    if (theme === 'warm') {
+      return {
+        surface: '#FAF6EC',
+        label: '#8D929F',
+        balance: '#1F2A44',
+        positiveBar: '#438B62',
+        negativeBar: '#C95D52',
+        emptyBar: '#E2DDD0',
+        activityIn: '#438B62',
+        activityOut: '#C95D52',
+        btn: {
+          bg: '#EDE8DC',
+          iconBg: '#FAF6EC',
+          text: '#1F2A44',
+          incomeIcon: '#438B62',
+          expenseIcon: '#C95D52',
+          transferIcon: '#1F2A44',
+        },
+      };
+    }
+    if (theme === 'heroBottom') {
+      return {
+        surface: '#F8FAFD',
+        label: '#8C94AF',
+        balance: '#1F2A44',
+        positiveBar: '#438B62',
+        negativeBar: '#C95D52',
+        emptyBar: '#DFE3EC',
+        activityIn: '#438B62',
+        activityOut: '#C95D52',
+        btn: {
+          bg: '#ECEFF5',
+          iconBg: '#F8FAFD',
+          text: '#1F2A44',
+          incomeIcon: '#438B62',
+          expenseIcon: '#C95D52',
+          transferIcon: '#1F2A44',
+        },
+      };
+    }
+    return LIGHT;
+  } else {
+    if (theme === 'warm') {
+      return {
+        surface: '#22201D',
+        label: '#8B93A3',
+        balance: '#ECE8DD',
+        positiveBar: '#5AA87B',
+        negativeBar: '#D46A60',
+        emptyBar: '#3B3731',
+        activityIn: '#5AA87B',
+        activityOut: '#D46A60',
+        btn: {
+          bg: '#2D2A26',
+          iconBg: '#22201D',
+          text: '#ECE8DD',
+          incomeIcon: '#5AA87B',
+          expenseIcon: '#D46A60',
+          transferIcon: '#ECE8DD',
+        },
+      };
+    }
+    if (theme === 'heroBottom') {
+      return {
+        surface: '#1A1F2E',
+        label: '#8B93A3',
+        balance: '#ECE8DD',
+        positiveBar: '#5AA87B',
+        negativeBar: '#D46A60',
+        emptyBar: '#313B53',
+        activityIn: '#5AA87B',
+        activityOut: '#D46A60',
+        btn: {
+          bg: '#242B3E',
+          iconBg: '#1A1F2E',
+          text: '#ECE8DD',
+          incomeIcon: '#5AA87B',
+          expenseIcon: '#D46A60',
+          transferIcon: '#ECE8DD',
+        },
+      };
+    }
+    return DARK;
+  }
+}
 
 const H_PAD = 20;
 const CARD_R = 26;
@@ -82,8 +170,9 @@ function spacedUpper(text: string) {
 }
 
 function tickCount(widgetWidthDp: number) {
-  const available = Math.max(0, widgetWidthDp - H_PAD * 2);
-  return Math.max(8, Math.floor((available + TICK_GAP) / (TICK_W + TICK_GAP)));
+  const stableWidth = Math.round(widgetWidthDp / 80) * 80;
+  const available = Math.max(0, stableWidth - H_PAD * 2);
+  return Math.max(12, Math.floor((available + TICK_GAP) / (TICK_W + TICK_GAP)));
 }
 
 function formatWidgetDate() {
@@ -103,8 +192,8 @@ function arrowUpRightSvg(color: string): string {
 }
 
 function TickChart({ data, count, p }: { data: WidgetData; count: number; p: Palette }) {
-  const total = data.totalIncome + data.totalExpense;
-  const incomeFraction = total > 0 ? data.totalIncome / total : 0.5;
+  const total = data.todayIncome + data.todayExpense;
+  const incomeFraction = total > 0 ? data.todayIncome / total : 0.5;
   const incomeTicks = total > 0 ? Math.round(incomeFraction * count) : 0;
 
   return (
@@ -113,10 +202,11 @@ function TickChart({ data, count, p }: { data: WidgetData; count: number; p: Pal
         width: 'match_parent',
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         paddingLeft: H_PAD,
         paddingRight: H_PAD,
-        marginTop: 7,
-        marginBottom: 7,
+        marginTop: 5,
+        marginBottom: 5,
         flexGap: TICK_GAP,
         flexGapColor: GAP,
       }}
@@ -127,7 +217,7 @@ function TickChart({ data, count, p }: { data: WidgetData; count: number; p: Pal
           <FlexWidget
             key={i}
             style={{
-              width: TICK_W,
+              flex: 1,
               height: TICK_H,
               borderRadius: 2,
               backgroundColor: c(bg),
@@ -140,7 +230,7 @@ function TickChart({ data, count, p }: { data: WidgetData; count: number; p: Pal
 }
 
 function ActivityRow({ data, p }: { data: WidgetData; p: Palette }) {
-  const { currencySymbol: sym, totalIncome, totalExpense } = data;
+  const { currencySymbol: sym, todayIncome, todayExpense } = data;
 
   return (
     <FlexWidget
@@ -154,15 +244,13 @@ function ActivityRow({ data, p }: { data: WidgetData; p: Palette }) {
     >
       <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', flexGap: 6, flexGapColor: GAP }}>
         <SvgWidget svg={arrowDownLeftSvg(p.activityIn)} style={{ width: 14, height: 14 }} />
-        <TextWidget text={fmtFull(totalIncome, sym)} style={{ fontSize: 13, fontWeight: '500', color: c(p.balance) }} allowFontScaling={false} maxLines={1} />
-        <TextWidget text="in" style={{ fontSize: 12, fontWeight: '400', color: c(p.label) }} allowFontScaling={false} />
+        <TextWidget text={fmtFull(todayIncome, sym)} style={{ fontSize: 12, fontWeight: '500', color: c(p.balance) }} allowFontScaling={false} maxLines={1} />
       </FlexWidget>
 
       <FlexWidget style={{ flex: 1 }} />
 
       <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', flexGap: 6, flexGapColor: GAP }}>
-        <TextWidget text="out" style={{ fontSize: 12, fontWeight: '400', color: c(p.label) }} allowFontScaling={false} />
-        <TextWidget text={fmtFull(totalExpense, sym)} style={{ fontSize: 13, fontWeight: '500', color: c(p.balance) }} allowFontScaling={false} maxLines={1} />
+        <TextWidget text={fmtFull(todayExpense, sym)} style={{ fontSize: 12, fontWeight: '500', color: c(p.balance) }} allowFontScaling={false} maxLines={1} />
         <SvgWidget svg={arrowUpRightSvg(p.activityOut)} style={{ width: 14, height: 14 }} />
       </FlexWidget>
     </FlexWidget>
@@ -201,7 +289,7 @@ function ActionButton({
         alignItems: 'center',
         justifyContent: 'flex-start',
         flexDirection: 'row',
-        paddingLeft: 4,
+        paddingLeft: 8,
         paddingRight: 5,
       }}
     >
@@ -213,7 +301,7 @@ function ActionButton({
           backgroundColor: c(colors.iconBg),
           alignItems: 'center',
           justifyContent: 'center',
-          marginRight: 4,
+          marginRight: 6,
         }}
       >
         <SvgWidget svg={svgIcon} style={{ width: 15, height: 15 }} />
@@ -261,7 +349,6 @@ function ReniWidgetLayout({
   ticks: number;
 }) {
   const { balance, balanceLabel, currencySymbol: sym, monthLabel } = data;
-  const title = balanceLabel ? `RENI . ${spacedUpper(balanceLabel)}` : 'RENI';
   const balanceValue = balance !== null ? fmtFull(balance, sym) : monthLabel;
   const displayValue = config.balanceDisplay === 'none' ? ' ' : balanceValue;
 
@@ -278,40 +365,59 @@ function ReniWidgetLayout({
         paddingBottom: 14,
       }}
     >
+      {/* Option B: Two-Column Header Row */}
       <FlexWidget
         style={{
           width: 'match_parent',
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           paddingLeft: H_PAD,
           paddingRight: H_PAD,
           marginBottom: 10,
         }}
       >
-        <TextWidget
-          text={title}
-          style={{ fontSize: 12, fontWeight: '700', color: c(p.label), letterSpacing: 1.6 }}
-          allowFontScaling={false}
-          maxLines={1}
-          truncate="END"
-        />
-        <FlexWidget style={{ flex: 1 }} />
-        <TextWidget
-          text={formatWidgetDate()}
-          style={{ fontSize: 12, fontWeight: '700', color: c(p.activityIn) }}
-          allowFontScaling={false}
-          maxLines={1}
-        />
-      </FlexWidget>
+        {/* Left Column: RENI + Date */}
+        <FlexWidget style={{ flexDirection: 'column' }}>
+          <TextWidget
+            text="RENI"
+            style={{ fontSize: 12, fontWeight: '700', color: c(p.label) }}
+            allowFontScaling={false}
+            maxLines={1}
+          />
+          <TextWidget
+            text={formatWidgetDate()}
+            style={{ fontSize: 10, fontWeight: '500', color: c(p.label), marginTop: 2 }}
+            allowFontScaling={false}
+            maxLines={1}
+          />
+        </FlexWidget>
 
-      <FlexWidget style={{ width: 'match_parent', paddingLeft: H_PAD, paddingRight: H_PAD }}>
-        <TextWidget
-          text={displayValue}
-          style={{ fontSize: 34, fontWeight: '800', color: c(p.balance), letterSpacing: 0.2 }}
-          allowFontScaling={false}
-          maxLines={1}
-          truncate="START"
-        />
+        <FlexWidget style={{ flex: 1 }} />
+
+        {/* Right Column: Account/Label + Amount */}
+        <FlexWidget style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+          {balanceLabel ? (
+            <TextWidget
+              text={balanceLabel.toUpperCase()}
+              style={{ fontSize: 11, fontWeight: '700', color: c(p.label) }}
+              allowFontScaling={false}
+              maxLines={1}
+              truncate="END"
+            />
+          ) : null}
+          <TextWidget
+            text={displayValue}
+            style={{
+              fontSize: 24,
+              fontWeight: '600',
+              color: c(p.balance),
+              marginTop: 2,
+            }}
+            allowFontScaling={false}
+            maxLines={1}
+            truncate="START"
+          />
+        </FlexWidget>
       </FlexWidget>
 
       <TickChart data={data} count={ticks} p={p} />
@@ -325,8 +431,11 @@ function ReniWidgetLayout({
 
 export function renderReniWidget(data: WidgetData, config: ReniWidgetConfig, widgetWidthDp = 300) {
   const ticks = tickCount(widgetWidthDp);
+  const theme = config.bgTheme || 'classic';
+  const lightPalette = getWidgetPalette('light', theme);
+  const darkPalette = getWidgetPalette('dark', theme);
   return {
-    light: <ReniWidgetLayout data={data} config={config} p={LIGHT} ticks={ticks} />,
-    dark: <ReniWidgetLayout data={data} config={config} p={DARK} ticks={ticks} />,
+    light: <ReniWidgetLayout data={data} config={config} p={lightPalette} ticks={ticks} />,
+    dark: <ReniWidgetLayout data={data} config={config} p={darkPalette} ticks={ticks} />,
   };
 }
