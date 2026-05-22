@@ -391,15 +391,9 @@ function ReniWidgetConfigScreenContent({
         <SectionLabel text="BACKGROUND THEME" p={p} />
         <Card p={p}>
           <RadioRow
-            label="Classic (Warm Gray / Dark Slate)"
-            selected={config.bgTheme === 'classic' || !config.bgTheme}
+            label="Classic (Vanilla Cream / Dark Slate)"
+            selected={config.bgTheme === 'classic' || !config.bgTheme || config.bgTheme === 'warm'}
             onPress={() => setConfig((c) => ({ ...c, bgTheme: 'classic' }))}
-            p={p}
-          />
-          <RadioRow
-            label="Warm (Vanilla Cream / Dark Amber)"
-            selected={config.bgTheme === 'warm'}
-            onPress={() => setConfig((c) => ({ ...c, bgTheme: 'warm' }))}
             p={p}
           />
           <RadioRow

@@ -28,17 +28,17 @@ interface Palette {
 }
 
 const LIGHT: Palette = {
-  surface: '#F3EFE3',
+  surface: '#FAF6EC',
   label: '#8D929F',
   balance: '#1F2A44',
   positiveBar: '#438B62',
   negativeBar: '#C95D52',
-  emptyBar: '#DDD6C7',
+  emptyBar: '#E2DDD0',
   activityIn: '#438B62',
   activityOut: '#C95D52',
   btn: {
-    bg: '#E6E1D5',
-    iconBg: '#F3EFE3',
+    bg: '#EDE8DC',
+    iconBg: '#FAF6EC',
     text: '#1F2A44',
     incomeIcon: '#438B62',
     expenseIcon: '#C95D52',
@@ -49,7 +49,7 @@ const LIGHT: Palette = {
 const DARK: Palette = {
   surface: '#181A20',
   label: '#8B93A3',
-  balance: '#ECE8DD',
+  balance: '#FFFFFF',
   positiveBar: '#5AA87B',
   negativeBar: '#D46A60',
   emptyBar: '#33333A',
@@ -58,36 +58,18 @@ const DARK: Palette = {
   btn: {
     bg: '#25262B',
     iconBg: '#181A20',
-    text: '#ECE8DD',
+    text: '#FFFFFF',
     incomeIcon: '#5AA87B',
     expenseIcon: '#D46A60',
-    transferIcon: '#ECE8DD',
+    transferIcon: '#FFFFFF',
   },
 };
 
+
 function getWidgetPalette(mode: 'light' | 'dark', theme: WidgetBgTheme = 'classic'): Palette {
+  const normalizedTheme = theme === 'warm' ? 'classic' : theme;
   if (mode === 'light') {
-    if (theme === 'warm') {
-      return {
-        surface: '#FAF6EC',
-        label: '#8D929F',
-        balance: '#1F2A44',
-        positiveBar: '#438B62',
-        negativeBar: '#C95D52',
-        emptyBar: '#E2DDD0',
-        activityIn: '#438B62',
-        activityOut: '#C95D52',
-        btn: {
-          bg: '#EDE8DC',
-          iconBg: '#FAF6EC',
-          text: '#1F2A44',
-          incomeIcon: '#438B62',
-          expenseIcon: '#C95D52',
-          transferIcon: '#1F2A44',
-        },
-      };
-    }
-    if (theme === 'heroBottom') {
+    if (normalizedTheme === 'heroBottom') {
       return {
         surface: '#F8FAFD',
         label: '#8C94AF',
@@ -109,31 +91,11 @@ function getWidgetPalette(mode: 'light' | 'dark', theme: WidgetBgTheme = 'classi
     }
     return LIGHT;
   } else {
-    if (theme === 'warm') {
-      return {
-        surface: '#22201D',
-        label: '#8B93A3',
-        balance: '#ECE8DD',
-        positiveBar: '#5AA87B',
-        negativeBar: '#D46A60',
-        emptyBar: '#3B3731',
-        activityIn: '#5AA87B',
-        activityOut: '#D46A60',
-        btn: {
-          bg: '#2D2A26',
-          iconBg: '#22201D',
-          text: '#ECE8DD',
-          incomeIcon: '#5AA87B',
-          expenseIcon: '#D46A60',
-          transferIcon: '#ECE8DD',
-        },
-      };
-    }
-    if (theme === 'heroBottom') {
+    if (normalizedTheme === 'heroBottom') {
       return {
         surface: '#1A1F2E',
         label: '#8B93A3',
-        balance: '#ECE8DD',
+        balance: '#FFFFFF',
         positiveBar: '#5AA87B',
         negativeBar: '#D46A60',
         emptyBar: '#313B53',
@@ -142,10 +104,10 @@ function getWidgetPalette(mode: 'light' | 'dark', theme: WidgetBgTheme = 'classi
         btn: {
           bg: '#242B3E',
           iconBg: '#1A1F2E',
-          text: '#ECE8DD',
+          text: '#FFFFFF',
           incomeIcon: '#5AA87B',
           expenseIcon: '#D46A60',
-          transferIcon: '#ECE8DD',
+          transferIcon: '#FFFFFF',
         },
       };
     }
@@ -240,6 +202,7 @@ function ActivityRow({ data, p }: { data: WidgetData; p: Palette }) {
         width: 'match_parent',
         paddingLeft: H_PAD,
         paddingRight: H_PAD,
+        marginBottom: 8,
       }}
     >
       <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', flexGap: 6, flexGapColor: GAP }}>
@@ -324,7 +287,7 @@ function QuickActions({ p }: { p: Palette }) {
         width: 'match_parent',
         paddingLeft: 12,
         paddingRight: 12,
-        marginTop: 10,
+        marginTop: 14,
         flexDirection: 'row',
         flexGap: 7,
         flexGapColor: GAP,
@@ -362,7 +325,7 @@ function ReniWidgetLayout({
         backgroundColor: c(p.surface),
         borderRadius: CARD_R,
         paddingTop: 16,
-        paddingBottom: 14,
+        paddingBottom: 18,
       }}
     >
       {/* Option B: Two-Column Header Row */}
