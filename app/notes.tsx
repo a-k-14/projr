@@ -42,7 +42,8 @@ function NoteCard({
         borderRadius: HOME_RADIUS.card,
         borderWidth: 1,
         borderColor: palette.divider,
-        padding: 16,
+        paddingVertical: 20,
+        paddingHorizontal: 16,
         marginBottom: 10,
         opacity: dimmed ? 0.55 : 1,
       }}

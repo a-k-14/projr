@@ -72,7 +72,6 @@ export default function SettingsLayout() {
       />
       <Stack.Screen name="reset" options={{ title: 'Reset App' }} />
       <Stack.Screen name="backup" options={{ title: 'Backup & Restore' }} />
-      <Stack.Screen name="widget-preview" options={{ title: 'Widget Preview' }} />
     </Stack>
   );
 }

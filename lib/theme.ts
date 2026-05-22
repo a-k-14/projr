@@ -261,12 +261,12 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
  * preventing massive catastrophic DOM cascade teardowns across the application.
  */
 import { useMemo } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Appearance } from 'react-native';
 import { useUIStore } from '../stores/useUIStore';
 
 export function useAppTheme(): { mode: AppThemeMode; palette: AppThemePalette } {
   const theme = useUIStore((state) => state.settings.theme);
-  const systemScheme = useColorScheme();
+  const systemScheme = useColorScheme() || Appearance.getColorScheme();
   const mode = resolveTheme(theme, systemScheme);
 
   const palette = useMemo(() => getThemePalette(mode), [mode]);

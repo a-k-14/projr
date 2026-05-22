@@ -241,18 +241,33 @@ function ReniWidgetConfigScreenContent({
     (async () => {
       try {
         await runMigrations();
-        const [savedConfig, accs] = await Promise.all([
-          loadWidgetConfig(widgetInfo.widgetId),
-          getAccounts(),
-          useUIStore.getState().load(),
-        ]);
-        setConfig(savedConfig);
-        setAccounts(accs);
-      } catch {
-        // fall back to defaults
-      } finally {
-        setLoading(false);
+      } catch (e) {
+        console.warn('ConfigScreen migration error:', e);
       }
+
+      let savedConfig = { ...DEFAULT_WIDGET_CONFIG };
+      try {
+        savedConfig = await loadWidgetConfig(widgetInfo.widgetId);
+      } catch (e) {
+        console.warn('ConfigScreen load config error:', e);
+      }
+
+      let accs: Account[] = [];
+      try {
+        accs = await getAccounts();
+      } catch (e) {
+        console.warn('ConfigScreen load accounts error:', e);
+      }
+
+      try {
+        await useUIStore.getState().load();
+      } catch (e) {
+        console.warn('ConfigScreen load UI store error:', e);
+      }
+
+      setConfig(savedConfig);
+      setAccounts(accs);
+      setLoading(false);
     })();
   }, [widgetInfo.widgetId]);
 
@@ -333,7 +348,7 @@ function ReniWidgetConfigScreenContent({
         </View>
 
         {/* Balance display */}
-        <SectionLabel text="BALANCE TO DISPLAY" p={p} />
+        <SectionLabel text="Balance to Display" p={p} />
         <Card p={p}>
           <RadioRow
             label="Net worth"
@@ -365,7 +380,7 @@ function ReniWidgetConfigScreenContent({
         {/* Account picker — only when specificAccount is selected */}
         {config.balanceDisplay === 'specificAccount' && accounts.length > 0 && (
           <>
-            <SectionLabel text="ACCOUNT" p={p} />
+            <SectionLabel text="Account" p={p} />
             <Card p={p}>
               <ScrollView
                 style={{ maxHeight: 220 }}
@@ -388,7 +403,7 @@ function ReniWidgetConfigScreenContent({
         )}
 
         {/* Background theme */}
-        <SectionLabel text="BACKGROUND THEME" p={p} />
+        <SectionLabel text="Background Theme" p={p} />
         <Card p={p}>
           <RadioRow
             label="Classic (Vanilla Cream / Dark Slate)"
@@ -406,7 +421,7 @@ function ReniWidgetConfigScreenContent({
         </Card>
 
         {/* Toggles */}
-        <SectionLabel text="OPTIONS" p={p} />
+        <SectionLabel text="Options" p={p} />
         <Card p={p}>
           <ToggleRow
             label="Quick actions"

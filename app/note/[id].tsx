@@ -227,7 +227,16 @@ export default function NoteDetailScreen() {
                   }
                 }}
                 value={item.text}
-                onChangeText={(text) => handleItemTextChange(item, text)}
+                onChangeText={(text) => {
+                  if (text.includes('\n')) {
+                    const cleanText = text.replace(/\n/g, '');
+                    handleItemTextChange(item, cleanText).then(() => {
+                      handleAddItem();
+                    });
+                  } else {
+                    handleItemTextChange(item, text);
+                  }
+                }}
                 placeholderTextColor={palette.textMuted}
                 style={{
                   flex: 1,
@@ -236,9 +245,9 @@ export default function NoteDetailScreen() {
                   textDecorationLine: item.checked ? 'line-through' : 'none',
                   paddingVertical: 2,
                 }}
-                returnKeyType="done"
-                onSubmitEditing={handleAddItem}
+                multiline={true}
                 blurOnSubmit={false}
+                textBreakStrategy="simple"
               />
               <TouchableOpacity
                 onPress={() => handleDeleteItem(item)}

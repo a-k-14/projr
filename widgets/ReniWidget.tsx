@@ -315,6 +315,14 @@ function ReniWidgetLayout({
   const balanceValue = balance !== null ? fmtFull(balance, sym) : monthLabel;
   const displayValue = config.balanceDisplay === 'none' ? ' ' : balanceValue;
 
+  let integerPart = displayValue;
+  let decimalPart = '';
+  const dotIndex = displayValue.lastIndexOf('.');
+  if (dotIndex !== -1 && dotIndex > displayValue.length - 4) {
+    integerPart = displayValue.substring(0, dotIndex);
+    decimalPart = displayValue.substring(dotIndex);
+  }
+
   return (
     <FlexWidget
       clickAction="OPEN_APP"
@@ -368,18 +376,32 @@ function ReniWidgetLayout({
               truncate="END"
             />
           ) : null}
-          <TextWidget
-            text={displayValue}
-            style={{
-              fontSize: 24,
-              fontWeight: '600',
-              color: c(p.balance),
-              marginTop: 2,
-            }}
-            allowFontScaling={false}
-            maxLines={1}
-            truncate="START"
-          />
+          <FlexWidget style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 2 }}>
+            <TextWidget
+              text={integerPart}
+              style={{
+                fontSize: 24,
+                fontWeight: '600',
+                color: c(p.balance),
+              }}
+              allowFontScaling={false}
+              maxLines={1}
+              truncate="START"
+            />
+            {decimalPart ? (
+              <TextWidget
+                text={decimalPart}
+                style={{
+                  fontSize: 16,
+                  fontWeight: '600',
+                  color: c(p.balance),
+                  marginBottom: 1,
+                }}
+                allowFontScaling={false}
+                maxLines={1}
+              />
+            ) : null}
+          </FlexWidget>
         </FlexWidget>
       </FlexWidget>
 
@@ -393,7 +415,8 @@ function ReniWidgetLayout({
 }
 
 export function renderReniWidget(data: WidgetData, config: ReniWidgetConfig, widgetWidthDp = 300) {
-  const ticks = tickCount(widgetWidthDp);
+  const width = (!widgetWidthDp || widgetWidthDp < 100) ? 300 : widgetWidthDp;
+  const ticks = tickCount(width);
   const theme = config.bgTheme || 'classic';
   const lightPalette = getWidgetPalette('light', theme);
   const darkPalette = getWidgetPalette('dark', theme);

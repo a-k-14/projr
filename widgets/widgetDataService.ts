@@ -5,6 +5,11 @@ import { getSettings } from '../services/settings';
 import { toLocalDateKey, toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
 import type { ReniWidgetConfig } from './widgetTypes';
 import type { WidgetData } from './widgetTypes';
+import { getLoans } from '../services/loans';
+import { getDeposits } from '../services/fixedDeposits';
+import { getAssets } from '../services/assets';
+import { getLoanSummary } from '../lib/derived';
+import { getFixedDepositSummary } from '../lib/fixed-deposits';
 
 function monthBounds(): { from: string; to: string; label: string } {
   const now = new Date();
@@ -48,9 +53,21 @@ export async function fetchWidgetData(config: ReniWidgetConfig): Promise<WidgetD
   let balance: number | null = null;
   let balanceLabel = '';
 
-  if (config.balanceDisplay === 'netWorth' || config.balanceDisplay === 'totalBalance') {
+  if (config.balanceDisplay === 'netWorth') {
+    const [loansList, depositsList, assetsList] = await Promise.all([
+      getLoans(),
+      getDeposits(),
+      getAssets(),
+    ]);
+    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+    const loanSummary = getLoanSummary(loansList);
+    const depositSummary = getFixedDepositSummary(depositsList);
+    const assetsValue = assetsList.reduce((sum, a) => sum + a.value, 0);
+    balance = totalBalance + loanSummary.net + depositSummary.activeInvestedValue + assetsValue;
+    balanceLabel = 'Net Worth';
+  } else if (config.balanceDisplay === 'totalBalance') {
     balance = accounts.reduce((sum, a) => sum + a.balance, 0);
-    balanceLabel = config.balanceDisplay === 'netWorth' ? 'Net Worth' : 'All Accounts';
+    balanceLabel = 'All Accounts';
   } else if (config.balanceDisplay === 'specificAccount' && config.accountId) {
     const account = await getAccountById(config.accountId);
     balance = account?.balance ?? null;

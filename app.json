@@ -82,6 +82,19 @@
               "resizeMode": "horizontal|vertical",
               "updatePeriodMillis": 0,
               "widgetFeatures": "reconfigurable|configuration_optional"
+            },
+            {
+              "name": "ReniQuickWidget",
+              "label": "Reni Quick Actions",
+              "description": "Quickly add income, expense, or transfer",
+              "minWidth": "50dp",
+              "minHeight": "50dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "360dp",
+              "maxResizeHeight": "360dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 0
             }
           ]
         }

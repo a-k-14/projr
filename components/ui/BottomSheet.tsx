@@ -5,9 +5,9 @@ import { Animated,
   Dimensions,
   PanResponder,
   Pressable,
+  ScrollView,
   StyleSheet,
   View } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER , FONT_WEIGHT} from '../../lib/design';

@@ -6,7 +6,7 @@ import { sqlite } from '../db/client';
 const DB_NAME = 'finance.db';
 const DB_DIR = `${FileSystem.documentDirectory}SQLite/`;
 const DB_PATH = `${DB_DIR}${DB_NAME}`;
-const BACKUP_PREFIX = 'projr-backup-';
+const BACKUP_PREFIX = 'reni-backup-';
 
 function backupFileName(): string {
   const now = new Date();

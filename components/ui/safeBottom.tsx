@@ -10,28 +10,29 @@ const COMPACT_CONTENT_EXTRA = 4;
 const SHEET_EXTRA = 4;
 const TAB_BAR_EXTRA = 52;
 
-export function getSafeBottomInset(insetsOrBottom: EdgeInsets | number): number {
-  const bottom = typeof insetsOrBottom === 'number' ? insetsOrBottom : insetsOrBottom.bottom;
+export function getSafeBottomInset(insetsOrBottom: EdgeInsets | number | undefined | null): number {
+  if (!insetsOrBottom) return MIN_SYSTEM_BOTTOM;
+  const bottom = typeof insetsOrBottom === 'number' ? insetsOrBottom : (insetsOrBottom.bottom ?? 0);
   return Math.max(bottom, MIN_SYSTEM_BOTTOM);
 }
 
-export function getBottomActionPadding(insetsOrBottom: EdgeInsets | number, extra = ACTION_EXTRA): number {
+export function getBottomActionPadding(insetsOrBottom: EdgeInsets | number | undefined | null, extra = ACTION_EXTRA): number {
   return getSafeBottomInset(insetsOrBottom) + extra;
 }
 
-export function getScrollableBottomPadding(insetsOrBottom: EdgeInsets | number, extra = CONTENT_EXTRA): number {
+export function getScrollableBottomPadding(insetsOrBottom: EdgeInsets | number | undefined | null, extra = CONTENT_EXTRA): number {
   return getSafeBottomInset(insetsOrBottom) + extra;
 }
 
-export function getCompactScrollableBottomPadding(insetsOrBottom: EdgeInsets | number): number {
+export function getCompactScrollableBottomPadding(insetsOrBottom: EdgeInsets | number | undefined | null): number {
   return getScrollableBottomPadding(insetsOrBottom, COMPACT_CONTENT_EXTRA);
 }
 
-export function getSheetBottomPadding(insetsOrBottom: EdgeInsets | number, extra = SHEET_EXTRA): number {
+export function getSheetBottomPadding(insetsOrBottom: EdgeInsets | number | undefined | null, extra = SHEET_EXTRA): number {
   return getSafeBottomInset(insetsOrBottom) + extra;
 }
 
-export function getTabScreenBottomPadding(insetsOrBottom: EdgeInsets | number): number {
+export function getTabScreenBottomPadding(insetsOrBottom: EdgeInsets | number | undefined | null): number {
   return getSafeBottomInset(insetsOrBottom) + TAB_BAR_EXTRA;
 }
 
