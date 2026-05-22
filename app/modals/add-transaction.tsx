@@ -1,6 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
@@ -528,18 +529,35 @@ export default function AddTransactionModal() {
     }
   };
 
-  // Redirect to home when app goes to background if launched from widget
+  // Listen for incoming deep links while the modal is already mounted
   useEffect(() => {
-    if (fromWidget !== '1') return;
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'background') {
-        router.replace('/');
+    const handleUrl = (event: { url: string }) => {
+      try {
+        const parsed = Linking.parse(event.url);
+        const typeParam = Array.isArray(parsed.queryParams?.type)
+          ? parsed.queryParams.type[0]
+          : parsed.queryParams?.type;
+
+        if (typeParam === 'in' || typeParam === 'out' || typeParam === 'transfer') {
+          setType(typeParam as TransactionType);
+          setAmountStr('');
+          setCategoryId('');
+          setPayee('');
+          setSelectedTagIds([]);
+          setNote('');
+          setReceiptImageUris([]);
+          clearSplitRows();
+        }
+      } catch (err) {
+        console.warn('Failed to parse incoming deep link url:', err);
       }
-    });
+    };
+
+    const subscription = Linking.addEventListener('url', handleUrl);
     return () => {
       subscription.remove();
     };
-  }, [fromWidget]);
+  }, [clearSplitRows]);
 
   // Load persons list lazily when the loan form is active
   useEffect(() => {

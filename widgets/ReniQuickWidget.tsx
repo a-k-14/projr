@@ -51,13 +51,13 @@ interface QuickWidgetLayoutProps {
 
 function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
   const isVertical = height > width;
-  const mainDimension = isVertical ? height : width;
+  const dimensionToUse = isVertical ? height : width;
 
   // Resolve actions based on breakpoints
   let actions: Array<'income' | 'expense' | 'transfer'> = [];
-  if (mainDimension < 95) {
+  if (dimensionToUse < 110) {
     actions = ['expense'];
-  } else if (mainDimension < 145) {
+  } else if (dimensionToUse < 170) {
     actions = ['expense', 'income'];
   } else {
     actions = ['income', 'expense', 'transfer'];
