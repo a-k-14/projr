@@ -1818,7 +1818,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: accountId === 'all' ? 34 : 22 }}
+            style={{ height: accountId === 'all' ? 34 : 20 }}
           />
         </View>
 

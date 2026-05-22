@@ -19,7 +19,8 @@ import { fetchWidgetData } from './widgetDataService';
 import type { Account } from '../types';
 import type { BalanceDisplay, ReniWidgetConfig } from './widgetTypes';
 import { DEFAULT_WIDGET_CONFIG } from './widgetTypes';
-import { getThemePalette } from '../lib/theme';
+import { getThemePalette, useAppTheme } from '../lib/theme';
+import { useUIStore } from '../stores/useUIStore';
 import { FixedBottomActions } from '../components/settings-ui';
 import { FilledButton } from '../components/ui/AppButton';
 import { getScrollableBottomPadding } from '../components/ui/safeBottom';
@@ -226,9 +227,9 @@ function ReniWidgetConfigScreenContent({
   renderWidget,
   setResult,
 }: WidgetConfigurationScreenProps) {
-  const isDark = Appearance.getColorScheme() === 'dark';
+  const { mode, palette } = useAppTheme();
+  const isDark = mode === 'dark';
   const p = isDark ? DARK_CFG : LIGHT_CFG;
-  const palette = getThemePalette(isDark ? 'dark' : 'light');
   const insets = useSafeAreaInsets();
 
   const [config, setConfig] = useState<ReniWidgetConfig>({ ...DEFAULT_WIDGET_CONFIG });
@@ -243,6 +244,7 @@ function ReniWidgetConfigScreenContent({
         const [savedConfig, accs] = await Promise.all([
           loadWidgetConfig(widgetInfo.widgetId),
           getAccounts(),
+          useUIStore.getState().load(),
         ]);
         setConfig(savedConfig);
         setAccounts(accs);
@@ -259,12 +261,12 @@ function ReniWidgetConfigScreenContent({
     try {
       await saveWidgetConfig(widgetInfo.widgetId, config);
       const data = await fetchWidgetData(config);
-      renderWidget(renderReniWidget(data, config));
+      renderWidget(renderReniWidget(data, config, widgetInfo.width));
       setResult('ok');
     } catch {
       setResult('ok');
     }
-  }, [widgetInfo.widgetId, config, renderWidget, setResult]);
+  }, [widgetInfo.widgetId, widgetInfo.width, config, renderWidget, setResult]);
 
   const setBalanceDisplay = (val: BalanceDisplay) =>
     setConfig((c) => ({ ...c, balanceDisplay: val }));
