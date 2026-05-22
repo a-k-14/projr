@@ -40,7 +40,7 @@ function arrowUpRightSvg(color: string): string {
 }
 
 function repeatSvg(color: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>`;
 }
 
 interface QuickWidgetLayoutProps {
@@ -57,7 +57,7 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
   let actions: Array<'income' | 'expense' | 'transfer'> = [];
   if (dimensionToUse < 110) {
     actions = ['expense'];
-  } else if (dimensionToUse < 170) {
+  } else if (dimensionToUse < 190) {
     actions = ['expense', 'income'];
   } else {
     actions = ['income', 'expense', 'transfer'];
