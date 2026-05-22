@@ -131,3 +131,47 @@ test('loan interest/charges can be included in cashflow even when includeLoans i
     'out',
   );
 });
+
+test('deposit transaction cashflow impact maps correctly', () => {
+  // Deposit defaults to included (out/in) if options are not passed (useful for balance deltas)
+  assert.equal(
+    getTransactionCashflowImpact({ type: 'deposit', depositTransactionType: 'new' }),
+    'out',
+  );
+  assert.equal(
+    getTransactionCashflowImpact({ type: 'deposit', depositTransactionType: 'closed' }),
+    'in',
+  );
+
+  // If includeDeposits is false, both new deposit and closed deposit should be neutral
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'deposit', depositTransactionType: 'new' },
+      { includeDeposits: false },
+    ),
+    'neutral',
+  );
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'deposit', depositTransactionType: 'closed' },
+      { includeDeposits: false },
+    ),
+    'neutral',
+  );
+
+  // If includeDeposits is true, they should match their cashflow directions
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'deposit', depositTransactionType: 'new' },
+      { includeDeposits: true },
+    ),
+    'out',
+  );
+  assert.equal(
+    getTransactionCashflowImpact(
+      { type: 'deposit', depositTransactionType: 'closed' },
+      { includeDeposits: true },
+    ),
+    'in',
+  );
+});

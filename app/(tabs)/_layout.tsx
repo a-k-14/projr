@@ -2,7 +2,7 @@ import { AppIcon, IconName } from '@/components/ui/AppIcon';
 import { router, Tabs } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
-import { Platform, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOME_RADIUS } from '../../lib/layoutTokens';

@@ -11,12 +11,13 @@ interface SummaryCardProps {
   sym: string;
   palette: AppThemePalette;
   onPressCategory?: (category: 'in' | 'out' | 'net') => void;
+  isCashflowMode?: boolean;
 }
 
-export function SummaryCard({ cashflow, sym, palette, onPressCategory }: SummaryCardProps) {
+export function SummaryCard({ cashflow, sym, palette, onPressCategory, isCashflowMode }: SummaryCardProps) {
   const categories = [
-    { key: 'in', label: 'Income', color: palette.positive },
-    { key: 'out', label: 'Expense', color: palette.negative },
+    { key: 'in', label: isCashflowMode ? 'Inflow' : 'Income', color: palette.positive },
+    { key: 'out', label: isCashflowMode ? 'Outflow' : 'Expense', color: palette.negative },
     { key: 'net', label: 'Net', color: cashflow.net < 0 ? palette.negative : palette.positive },
   ] as const;
 

@@ -5,10 +5,8 @@ import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated,
   ActivityIndicator,
   BackHandler,
-  Easing,
   InteractionManager,
   LayoutAnimation,
   LayoutChangeEvent,
@@ -33,10 +31,11 @@ import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { getScrollableBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { PillIconButton } from '../../components/ui/PillIconButton';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
+import { filterTransactions } from '../../lib/transactionFilters';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   getNavigableDateRange,
@@ -49,7 +48,6 @@ import {
   formatCurrency,
   getCashflowFromList,
   getLoanTransactionKind,
-  getTransactionCashflowImpact,
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
@@ -365,6 +363,20 @@ export default function ActivityScreen() {
     if (period === 'custom') return customFrom && customTo ? { from: customFrom, to: customTo } : null;
     return getNavigableDateRange(period, periodOffset, yearStart);
   }, [customFrom, customTo, period, periodOffset, yearStart]);
+
+  const derivedCashflowMode = useMemo(() => {
+    if (typeFilter === 'transfer' || typeFilter === 'loan' || typeFilter === 'deposit') {
+      return 'total';
+    }
+    if (cashflowBucket !== 'all' && typeFilter === 'all') {
+      return 'total';
+    }
+    if (typeFilter === 'in' || typeFilter === 'out') {
+      return 'incomeExpense';
+    }
+    return cashflowMode;
+  }, [typeFilter, cashflowBucket, cashflowMode]);
+
   const remoteQuerySignature = useMemo(
     () =>
       [
@@ -375,9 +387,9 @@ export default function ActivityScreen() {
         selectedAccountId,
         typeFilter,
         cashflowBucket,
-        cashflowMode,
+        derivedCashflowMode,
       ].join('|'),
-    [cashflowBucket, cashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, selectedAccountId, typeFilter],
+    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, selectedAccountId, typeFilter],
   );
 
   const canGoNext = period !== 'all' && period !== 'custom' && periodOffset < 0;
@@ -457,7 +469,7 @@ export default function ActivityScreen() {
               selectedAccountId,
               dateRange.from,
               dateRange.to,
-              { includeTransfers: cashflowMode === 'total', includeLoans: cashflowMode === 'total' }
+              { includeTransfers: derivedCashflowMode === 'total', includeLoans: derivedCashflowMode === 'total', includeDeposits: derivedCashflowMode === 'total' }
             )
           : Promise.resolve(null);
         const [results, totals] = await Promise.all([
@@ -485,7 +497,7 @@ export default function ActivityScreen() {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, cashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, remoteQuerySignature, selectedAccountId, typeFilter],
+    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, remoteQuerySignature, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
@@ -760,90 +772,52 @@ export default function ActivityScreen() {
   const depositsById = useMemo(() => new Map(deposits.map((d) => [d.id, d])), [deposits]);
 
   const filteredTransactions = useMemo(() => {
-    const minAmount = amountMinStr ? Number(amountMinStr) : undefined;
-    const maxAmount = amountMaxStr ? Number(amountMaxStr) : undefined;
-    const selectedTagSet = new Set(selectedTagIds);
-    const selectedCategoryAndDescendants = new Set<string>();
-    const query = search.trim().toLowerCase();
-    selectedCategoryIds.forEach((id) => {
-      selectedCategoryAndDescendants.add(id);
-      categories
-        .filter((category) => category.parentId === id)
-        .forEach((child) => selectedCategoryAndDescendants.add(child.id));
-    });
-
-    return sourceTransactions.filter((tx) => {
-      const incomeExpenseImpact = getTransactionCashflowImpact(tx, {
-        includeTransfers: cashflowMode === 'total',
-        includeLoans: cashflowMode === 'total',
-      });
-
-      // Account filter
-      if (selectedAccountId !== 'all' && tx.accountId !== selectedAccountId) {
-        return false;
+    return filterTransactions(
+      sourceTransactions,
+      {
+        accountId: selectedAccountId,
+        typeFilter,
+        cashflowBucket,
+        cashflowMode: derivedCashflowMode,
+        selectedCategoryIds,
+        selectedTagIds,
+        amountMin: amountMinStr ? Number(amountMinStr) : undefined,
+        amountMax: amountMaxStr ? Number(amountMaxStr) : undefined,
+        searchQuery: search,
+      },
+      {
+        categories,
+        accountsById,
+        tagNamesById,
+        loansById,
+        getCategoryFullDisplayName,
       }
-
-      // Type filter (Incomes, Expenses, Transfers, Loans)
-      if (typeFilter === 'transfer') {
-        if (!tx.transferPairId) return false;
-      } else if (typeFilter === 'loan') {
-        if (tx.type !== 'loan') return false;
-      } else if (typeFilter !== 'all') {
-        if (tx.transferPairId || tx.type === 'loan' || tx.type !== typeFilter) return false;
-      }
-
-      // Income/expense bucket filter.
-      if (cashflowBucket !== 'all') {
-        if (cashflowBucket === 'net') {
-          if (incomeExpenseImpact === 'neutral') return false;
-        } else if (incomeExpenseImpact !== cashflowBucket) {
-          return false;
-        }
-      }
-
-      // Category filter
-      if (selectedCategoryAndDescendants.size > 0) {
-        if (!tx.categoryId || !selectedCategoryAndDescendants.has(tx.categoryId)) return false;
-      }
-
-      // Tags filter
-      if (selectedTagSet.size > 0) {
-        if (!tx.tags.some((tagId) => selectedTagSet.has(tagId))) return false;
-      }
-
-      // Amount range filter
-      if (minAmount !== undefined && !Number.isNaN(minAmount) && tx.amount < minAmount) return false;
-      if (maxAmount !== undefined && !Number.isNaN(maxAmount) && tx.amount > maxAmount) return false;
-
-      // Search filter
-      if (query) {
-        const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
-        const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
-        const searchable = [
-          tx.note,
-          tx.payee,
-          tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined,
-          accountsById.get(tx.accountId),
-          linkedAccountName,
-          loan?.personName,
-          tx.tags.map((tagId) => tagNamesById.get(tagId)).filter(Boolean).join(' • '),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        if (!searchable.includes(query)) return false;
-      }
-      return true;
-    });
-  }, [accountsById, amountMaxStr, amountMinStr, cashflowBucket, cashflowMode, categories, getCategoryFullDisplayName, loansById, search, selectedCategoryIds, selectedTagIds, tagNamesById, sourceTransactions, typeFilter, selectedAccountId]);
+    );
+  }, [
+    sourceTransactions,
+    selectedAccountId,
+    typeFilter,
+    cashflowBucket,
+    derivedCashflowMode,
+    selectedCategoryIds,
+    selectedTagIds,
+    amountMinStr,
+    amountMaxStr,
+    search,
+    categories,
+    accountsById,
+    tagNamesById,
+    loansById,
+    getCategoryFullDisplayName,
+  ]);
 
   const drilldownTransactions = useMemo(
     () => getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown),
     [categoryDrilldown, filteredTransactions],
   );
-  const includeTotalCashflow = cashflowMode === 'total';
+  const includeTotalCashflow = derivedCashflowMode === 'total';
   const displayedCashflow = useMemo(
-    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, includeTotalCashflow, includeTotalCashflow),
+    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, includeTotalCashflow, includeTotalCashflow, includeTotalCashflow),
     [categoryDrilldown, filteredTransactions, includeTotalCashflow],
   );
 
@@ -857,11 +831,14 @@ export default function ActivityScreen() {
     return base;
   }, [serverCashflow, displayedCashflow, cashflowBucket]);
 
+  const isCashflowFilterActiveInMore = cashflowBucket !== 'all';
+
   const moreActiveCount =
     selectedCategoryIds.length +
     selectedTagIds.length +
     (amountMinStr ? 1 : 0) +
-    (amountMaxStr ? 1 : 0);
+    (amountMaxStr ? 1 : 0) +
+    (isCashflowFilterActiveInMore ? 1 : 0);
 
 
   const childCategoriesByParent = useMemo(() => {
@@ -951,7 +928,7 @@ export default function ActivityScreen() {
         groupKey: group.dateKey,
         title: date,
         subtitle: label || undefined,
-        net: getCashflowFromList(items, includeTotalCashflow, includeTotalCashflow).net,
+        net: getCashflowFromList(items, includeTotalCashflow, includeTotalCashflow, includeTotalCashflow).net,
         items,
       };
     });
@@ -1000,6 +977,7 @@ export default function ActivityScreen() {
       if (tx.type === 'out') return 'out';
       if (tx.type === 'in') return 'in';
       if (tx.type === 'loan') return 'loan';
+      if (tx.type === 'deposit') return 'deposit';
       return 'transfer';
     };
 
@@ -1032,7 +1010,9 @@ export default function ActivityScreen() {
               ? 'Transfer'
               : tx.type === 'loan'
                 ? 'Loan'
-                : 'Uncategorized';
+                : tx.type === 'deposit'
+                  ? 'Deposit'
+                  : 'Uncategorized';
       const parentIcon = parent
         ? parent.icon
         : category
@@ -1049,7 +1029,9 @@ export default function ActivityScreen() {
             ? 'Transfer'
             : tx.type === 'loan'
               ? 'Loan'
-              : 'Uncategorized';
+              : tx.type === 'deposit'
+                ? 'Deposit'
+                : 'Uncategorized';
 
       if (!parentMap.has(parentKey)) {
         parentMap.set(parentKey, {
@@ -1079,13 +1061,23 @@ export default function ActivityScreen() {
         parentLabel: entry.parentLabel,
         parentIcon: entry.parentIcon,
         parentSyntheticType: entry.parentSyntheticType,
-        total: getCashflowFromList(entry.transactions, includeTotalCashflow, includeTotalCashflow).net,
+        total: getCashflowFromList(
+          entry.transactions,
+          includeTotalCashflow,
+          entry.familyKey === 'loan' ? true : includeTotalCashflow,
+          includeTotalCashflow
+        ).net,
         transactions: entry.transactions,
         subcategories: Array.from(entry.subMap.values())
           .map((sub) => ({
             subKey: sub.subKey,
             subLabel: sub.subLabel,
-            total: getCashflowFromList(sub.transactions, includeTotalCashflow, includeTotalCashflow).net,
+            total: getCashflowFromList(
+              sub.transactions,
+              includeTotalCashflow,
+              entry.familyKey === 'loan' ? true : includeTotalCashflow,
+              includeTotalCashflow
+            ).net,
             transactions: sub.transactions
           }))
           .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
@@ -1283,6 +1275,7 @@ export default function ActivityScreen() {
         }}
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
+        cashflowBucket={cashflowBucket}
         setCashflowBucket={setCashflowBucket}
         setShowMoreSheet={setShowMoreSheet}
         moreActiveCount={moreActiveCount}
@@ -1303,7 +1296,7 @@ export default function ActivityScreen() {
 
       {period !== 'all' ? (
         <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-          <SummaryCard cashflow={summaryCardCashflow} sym={sym} palette={palette} />
+          <SummaryCard cashflow={summaryCardCashflow} sym={sym} palette={palette} isCashflowMode={cashflowBucket !== 'all'} />
         </View>
       ) : null}
 
@@ -1335,7 +1328,7 @@ export default function ActivityScreen() {
         </View>
       ) : null}
     </View>
-  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, setCashflowBucket, setShowMoreSheet, moreActiveCount, palette, chipScrollResetToken, period, periodLabel, goPrev, goNext, canGoNext, handleOpenPeriodSheet, summaryCardCashflow, sym]);
+  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, cashflowBucket, setCashflowBucket, derivedCashflowMode, setShowMoreSheet, moreActiveCount, palette, chipScrollResetToken, period, periodLabel, goPrev, goNext, canGoNext, handleOpenPeriodSheet, summaryCardCashflow, sym]);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
@@ -1642,7 +1635,7 @@ export default function ActivityScreen() {
                                         flexDirection: 'row',
                                         alignItems: 'center',
                                         paddingVertical: 12,
-                                        paddingLeft: CARD_PADDING + 40,
+                                        paddingLeft: CARD_PADDING + 52,
                                         paddingRight: CARD_PADDING,
                                         minHeight: 52,
                                         borderTopWidth: 1,
@@ -1828,8 +1821,12 @@ export default function ActivityScreen() {
           setShowMoreSheet={setShowMoreSheet}
           categories={categories}
           tags={tags}
-          transactions={transactions}
           palette={palette}
+          cashflowBucket={cashflowBucket}
+          onCashflowBucketChange={(bucket) => {
+            setTypeFilter('all');
+            setCashflowBucket(bucket);
+          }}
           clearAll={() => {
             setSelectedCategoryIds([]);
             setSelectedTagIds([]);
@@ -1838,6 +1835,7 @@ export default function ActivityScreen() {
             setExpandedCategoryIds([]);
             setGroupByMode('date');
             setCategoryDrilldown(null);
+            setCashflowBucket('all');
           }}
         />
       ) : null}

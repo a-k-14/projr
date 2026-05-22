@@ -25,10 +25,12 @@ export function getActivityDisplayedCashflow(
   categoryDrilldown: ActivityDrilldownLike,
   includeTransfers = false,
   includeLoans = false,
+  includeDeposits = false,
 ): CashflowSummary {
   return getCashflowFromList(
     getActivityDrilldownTransactions(filteredTransactions, categoryDrilldown),
     includeTransfers,
     includeLoans,
+    includeDeposits,
   );
 }

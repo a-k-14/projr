@@ -15,7 +15,7 @@ import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { AppDonutChart, type DonutSlice } from './ui/AppDonutChart';
 
-export type HomeChartMode = 'expense' | 'income';
+export type CategoryChartMode = 'expense' | 'income';
 
 type HomeNode = {
   id: string;
@@ -52,7 +52,7 @@ function collectIds(node: HomeNode): string[] {
 }
 
 function buildModeHierarchy(
-  mode: HomeChartMode,
+  mode: CategoryChartMode,
   transactions: Transaction[],
   categoriesById: Map<string, Category>,
 ): HomeNode[] {
@@ -60,7 +60,7 @@ function buildModeHierarchy(
   const parentMap = new Map<string, HomeNode & { childMap: Map<string, HomeNode> }>();
 
   transactions.forEach((tx) => {
-    const impact = getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false });
+    const impact = getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false, includeDeposits: false });
     if (impact !== targetImpact) return;
 
     const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
@@ -119,7 +119,7 @@ function sumForNode(node: HomeNode, transactions: Transaction[]) {
     .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
-function buildSlices(nodes: HomeNode[], transactions: Transaction[], mode: HomeChartMode): HomeSlice[] {
+function buildSlices(nodes: HomeNode[], transactions: Transaction[], mode: CategoryChartMode): HomeSlice[] {
   const palette = mode === 'income' ? INCOME_COLORS : EXPENSE_COLORS;
   const raw = nodes
     .map((node) => ({ ...node, amount: sumForNode(node, transactions) }))
@@ -151,7 +151,7 @@ function HomeDonut({
   );
 }
 
-export function HomeDonutChartBlock({
+export function CategoryDonutChartBlock({
   transactions,
   categoriesById,
   sym,
@@ -189,10 +189,10 @@ export function HomeDonutChartBlock({
   };
   listPalette?: AppThemePalette;
   expanded?: boolean;
-  onExpand?: (mode: HomeChartMode) => void;
-  initialMode?: HomeChartMode;
-  mode?: HomeChartMode;
-  onModeChange?: (mode: HomeChartMode) => void;
+  onExpand?: (mode: CategoryChartMode) => void;
+  initialMode?: CategoryChartMode;
+  mode?: CategoryChartMode;
+  onModeChange?: (mode: CategoryChartMode) => void;
   selectedCategoryId?: string | null;
   resetTrigger?: number | string;
   accountsById?: Map<string, string>;
@@ -205,7 +205,7 @@ export function HomeDonutChartBlock({
   const depositsById = useMemo(() => new Map(depositsList.map((d) => [d.id, d])), [depositsList]);
   const tagsList = useCategoriesStore((s) => s.tags);
   const tagNamesById = useMemo(() => new Map(tagsList.map((t) => [t.id, t.name])), [tagsList]);
-  const [internalMode, setInternalMode] = useState<HomeChartMode>(initialMode);
+  const [internalMode, setInternalMode] = useState<CategoryChartMode>(initialMode);
   const [drillParentId, setDrillParentId] = useState<string | null>(null);
   const [selectedSliceId, setSelectedSliceId] = useState<string | null>(null);
   const listScrollRef = useRef<ScrollView | null>(null);
@@ -229,7 +229,7 @@ export function HomeDonutChartBlock({
   const selectionNode = selectedSubcategoryNode ?? selectedParent ?? null;
   const selectedIds = useMemo(() => (selectionNode ? new Set(collectIds(selectionNode)) : null), [selectionNode]);
   const modeTransactions = useMemo(
-    () => transactions.filter((tx) => getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false }) === (mode === 'income' ? 'in' : 'out')),
+    () => transactions.filter((tx) => getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false, includeDeposits: false }) === (mode === 'income' ? 'in' : 'out')),
     [mode, transactions],
   );
   const selectedTransactions = useMemo(
@@ -264,7 +264,7 @@ export function HomeDonutChartBlock({
     onCategorySelect?.(selectionNode?.id ?? null);
   }, [selectionNode?.id]);
 
-  const handleModeChange = (next: HomeChartMode) => {
+  const handleModeChange = (next: CategoryChartMode) => {
     if (onModeChange) onModeChange(next);
     else setInternalMode(next);
     setDrillParentId(null);
@@ -352,7 +352,7 @@ export function HomeDonutChartBlock({
         <SegmentedPillSwitch
           options={switchOptions}
           value={mode}
-          onChange={(next) => handleModeChange(next as HomeChartMode)}
+          onChange={(next) => handleModeChange(next as CategoryChartMode)}
           backgroundColor={theme.surface}
           pillColor={theme.inputBg}
           borderColor={theme.border}

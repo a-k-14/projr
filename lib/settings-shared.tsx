@@ -1,4 +1,3 @@
-import type { AppThemePalette } from './theme';
 import { formatCurrency } from './derived';
 import type { AccountType } from '../types';
 
@@ -77,9 +76,6 @@ export const ENTITY_COLORS = [
   '#7C3AED',
   '#0F766E',
 ] as const;
-
-/** @deprecated use ENTITY_COLORS */
-export const ACCOUNT_COLORS = ENTITY_COLORS;
 
 type CategoryEmojiGroup = {
   name: string;
@@ -278,12 +274,6 @@ export const CATEGORY_ICONS = [
   'hash',
 ] as const;
 
-/** @deprecated use ENTITY_COLORS */
-export const CATEGORY_COLORS = ENTITY_COLORS;
-
-/** @deprecated use ENTITY_COLORS */
-export const TAG_COLORS = ENTITY_COLORS;
-
 /** Returns the currency symbol for a known currency code, defaulting to the code itself. */
 export function symbolFor(currencyCode: string): string {
   return CURRENCIES.find((c) => c.code === currencyCode)?.symbol ?? currencyCode;
@@ -292,5 +282,3 @@ export function symbolFor(currencyCode: string): string {
 export function formatDisplayCurrency(amount: number, symbol: string) {
   return formatCurrency(amount, symbol);
 }
-
-

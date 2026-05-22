@@ -3,7 +3,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../lib/theme';
@@ -16,16 +16,13 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { Text } from '@/components/ui/AppText';
 import { HomeAccountPage } from '../(tabs)/index';
 import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
-import type { HomeChartMode } from '../../components/HomeDonutChartBlock';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { ActionStrip } from '../../components/ui/ActionStrip';
 import { HeaderMoreButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { getTotalBalance } from '../../lib/derived';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
-import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
-import { AppIcon } from '@/components/ui/AppIcon';
+import { FONT_WEIGHT } from '../../lib/design';
 import { ActionChip } from '../../components/ui/AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { getAccountTypeLabel, ACCOUNT_TYPE_META } from '../../lib/settings-shared';
@@ -111,8 +108,6 @@ export default function AccountDetailScreen() {
   const indicatorY = useSharedValue(0);
 
   const [period, setPeriod] = useState<AccountPeriodType>('today');
-  const [chartMode, setChartMode] = useState<HomeChartMode>('expense');
-  const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
 
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
   const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
@@ -256,10 +251,6 @@ export default function AccountDetailScreen() {
         indicatorY={indicatorY}
         period={period}
         onPeriodChange={setPeriod}
-        chartMode={chartMode}
-        onChartModeChange={setChartMode}
-        selectedChartCategoryId={selectedChartCategoryId}
-        onChartCategorySelect={setSelectedChartCategoryId}
         registerScrollTop={() => { }}
         isPageReady={true}
         accountsById={accountsById}

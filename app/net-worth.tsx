@@ -5,7 +5,7 @@ import { router, Stack } from 'expo-router';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 import { getScrollableBottomPadding } from '../components/ui/safeBottom';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
-import { HomeNetWorthPage } from '../components/HomeNetWorthPage';
+import { NetWorthDetailBlock } from '../components/NetWorthDetailBlock';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useLoansStore } from '../stores/useLoansStore';
 import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
@@ -66,7 +66,7 @@ export default function NetWorthScreen() {
         onBack={() => router.back()}
       />
       <View style={{ flex: 1 }}>
-        <HomeNetWorthPage
+        <NetWorthDetailBlock
           pageHeight={800}
           palette={palette}
           currencySymbol={showCurrencySymbol ? currencySymbol : ''}
@@ -74,7 +74,6 @@ export default function NetWorthScreen() {
           loanSummary={loanSummary}
           depositSummary={depositSummary}
           assetsValue={assetsValue}
-          deposits={depositsList}
           assets={assets}
           netWorth={netWorth}
           pageIndex={0}

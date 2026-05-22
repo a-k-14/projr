@@ -17,6 +17,7 @@ interface ActivityFilterBarProps {
   setViewMode: (mode: 'date' | 'category') => void;
   typeFilter: TransactionType | 'all';
   setTypeFilter: (type: TransactionType | 'all') => void;
+  cashflowBucket: 'all' | 'in' | 'out' | 'net';
   setCashflowBucket: (bucket: 'all' | 'in' | 'out' | 'net') => void;
   setShowMoreSheet: (show: boolean) => void;
   moreActiveCount: number;
@@ -25,15 +26,6 @@ interface ActivityFilterBarProps {
   chipScrollResetToken?: number;
 }
 
-const TYPE_OPTIONS: { label: string; value: TransactionType | 'all' }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Income', value: 'in' },
-  { label: 'Expense', value: 'out' },
-  { label: 'Transfer', value: 'transfer' },
-  { label: 'Loan', value: 'loan' },
-  { label: 'Deposit', value: 'deposit' },
-];
-
 export function ActivityFilterBar({
   accountLabel,
   setShowAccountSheet,
@@ -41,6 +33,7 @@ export function ActivityFilterBar({
   setViewMode,
   typeFilter,
   setTypeFilter,
+  cashflowBucket,
   setCashflowBucket,
   setShowMoreSheet,
   moreActiveCount,
@@ -100,20 +93,47 @@ export function ActivityFilterBar({
           contentContainerStyle={{ paddingLeft: ACTIVITY_LAYOUT.controlChipGap, paddingRight: ACTIVITY_LAYOUT.controlChipGap, paddingBottom: 2 }}
         >
           <View style={styles.chipRow}>
-            {TYPE_OPTIONS.map((option) => (
-              <FilterChip
-                key={option.value}
-                label={option.label}
-                isActive={typeFilter === option.value}
-                onPress={() => {
-                  setTypeFilter(option.value);
-                  setCashflowBucket(
-                    option.value === 'in' || option.value === 'out' ? option.value : 'all',
-                  );
-                }}
-                palette={palette}
-              />
-            ))}
+            {(() => {
+              const typeOptions = [
+                { label: 'All', key: 'all' },
+                { label: 'Income', key: 'in' },
+                { label: 'Expense', key: 'out' },
+                { label: 'Transfer', key: 'transfer' },
+                { label: 'Loan', key: 'loan' },
+                { label: 'Deposit', key: 'deposit' },
+              ] as const;
+
+              return typeOptions.map((option) => {
+                let isActive = false;
+                if (option.key === 'all') {
+                  isActive = typeFilter === 'all' && cashflowBucket === 'all';
+                } else if (option.key === 'in') {
+                  isActive = typeFilter === 'in' && cashflowBucket === 'all';
+                } else if (option.key === 'out') {
+                  isActive = typeFilter === 'out' && cashflowBucket === 'all';
+                } else {
+                  isActive = typeFilter === option.key;
+                }
+
+                return (
+                  <FilterChip
+                    key={option.key}
+                    label={option.label}
+                    isActive={isActive}
+                    onPress={() => {
+                      if (option.key === 'all') {
+                        setTypeFilter('all');
+                        setCashflowBucket('all');
+                      } else {
+                        setTypeFilter(option.key);
+                        setCashflowBucket('all');
+                      }
+                    }}
+                    palette={palette}
+                  />
+                );
+              });
+            })()}
           </View>
         </ScrollView>
         <FilterMoreButton

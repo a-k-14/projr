@@ -93,17 +93,17 @@ function getWidgetPalette(mode: 'light' | 'dark', theme: WidgetBgTheme = 'classi
   } else {
     if (normalizedTheme === 'heroBottom') {
       return {
-        surface: '#1A1F2E',
-        label: '#8B93A3',
+        surface: '#0C1018',
+        label: '#98A0AD',
         balance: '#FFFFFF',
         positiveBar: '#5AA87B',
         negativeBar: '#D46A60',
-        emptyBar: '#313B53',
+        emptyBar: '#222224',
         activityIn: '#5AA87B',
         activityOut: '#D46A60',
         btn: {
-          bg: '#242B3E',
-          iconBg: '#1A1F2E',
+          bg: '#1E2330',
+          iconBg: '#0C1018',
           text: '#FFFFFF',
           incomeIcon: '#5AA87B',
           expenseIcon: '#D46A60',

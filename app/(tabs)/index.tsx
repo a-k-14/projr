@@ -25,7 +25,6 @@ import Animated, {
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { HomeChartMode } from '../../components/HomeDonutChartBlock';
 import { ScreenTitle } from '../../components/settings-ui';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -103,16 +102,6 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
   custom: 'Custom'
 };
 
-const ACCOUNT_TYPE_SORT_ORDER: Record<AccountType, number> = {
-  savings: 0,
-  cash: 1,
-  wallet: 2,
-  investment: 3,
-  credit: 4,
-  other: 5,
-};
-const NW_HERO_PROGRESS_LABEL_GAP = 8;
-
 export default function HomeScreen() {
   return <HomeScreenContent />;
 }
@@ -121,7 +110,6 @@ function HomeScreenContent() {
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
-  const loadCategories = useCategoriesStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const loans = useLoansStore((s) => s.loans);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
@@ -150,24 +138,24 @@ function HomeScreenContent() {
   const indicatorY = useSharedValue(0);
 
   const [period, setPeriod] = useState<HomePeriodType>('today');
-  const [chartMode, setChartMode] = useState<HomeChartMode>('expense');
-  const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
-
-  useEffect(() => {
-    return registerTabReset('index', ({ mode, animated }) => {
-      if (mode === 'full') {
-        pageScrollTopRef.current?.();
-        accountScrollRef.current?.scrollTo({ x: 0, animated });
-      }
-      setPeriod('today');
-    });
-  }, [setPeriod]);
+  const [homeFullResetNonce, setHomeFullResetNonce] = useState(0);
 
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
   const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
+
+  useEffect(() => {
+    return registerTabReset('index', ({ mode, animated }) => {
+      if (mode === 'full') {
+        pageScrollTopRef.current?.();
+        accountScrollRef.current?.scrollTo({ x: 0, animated });
+        setPeriod('today');
+        setHomeFullResetNonce((n) => n + 1);
+      }
+    });
+  }, [setPeriod, setHomeFullResetNonce]);
 
 
 
@@ -187,7 +175,6 @@ function HomeScreenContent() {
   const depositsList = useFixedDepositsStore((s) => s.deposits);
   const depositSummary = useMemo(() => getFixedDepositSummary(depositsList), [depositsList]);
   const assetsValue = useAssetsStore((s) => s.totalValue);
-  const assets = useAssetsStore((s) => s.assets);
   const netWorth = trackedTotalBalance + loanSummary.net + depositSummary.activeInvestedValue + assetsValue;
 
   const accountsLoaded = useAccountsStore((s) => s.isLoaded);
@@ -213,21 +200,6 @@ function HomeScreenContent() {
     const now = new Date();
     loadBudgets(new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString()).catch(() => undefined);
   }, [loadBudgets]);
-
-  const handleChartTransactionPress = useCallback((tx: Transaction) => {
-    if (tx.type === 'deposit' && tx.depositId) {
-      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
-      return;
-    }
-    if (tx.loanId) {
-      const loan = loansById.get(tx.loanId);
-      if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
-        router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });
-        return;
-      }
-    }
-    router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } });
-  }, [loansById]);
 
   const handleCustomRangeDone = useCallback(() => {
     const fromDate = customDraftFrom <= customDraftTo ? customDraftFrom : customDraftTo;
@@ -350,8 +322,6 @@ function HomeScreenContent() {
         {orderedAccounts.map((acc) => {
           const amountLabel = hideAmounts ? '••••' : (showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), ''));
           const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(amountLabel.length, 14) * 3));
-          const typeMeta = ACCOUNT_TYPE_META[acc.type];
-          const typeColor = typeMeta.color;
           return (
             <AccountCarouselCard
               key={acc.id}
@@ -360,7 +330,6 @@ function HomeScreenContent() {
               amountLabel={amountLabel}
               cardWidth={cardWidth}
               hideAmounts={hideAmounts}
-              totalBalance={trackedTotalBalance}
             />
           );
         })}
@@ -427,12 +396,9 @@ function HomeScreenContent() {
         indicatorY={indicatorY}
         period={period}
         onPeriodChange={setPeriod}
-        chartMode={chartMode}
-        onChartModeChange={setChartMode}
-        selectedChartCategoryId={selectedChartCategoryId}
-        onChartCategorySelect={setSelectedChartCategoryId}
         registerScrollTop={(_, fn) => { pageScrollTopRef.current = fn; }}
         isPageReady={true}
+        fullResetNonce={homeFullResetNonce}
         accountsById={accountsById}
         categoriesById={categoriesById}
         loansById={loansById}
@@ -607,7 +573,6 @@ function AccountSummaryCard({
   accountType,
   from,
   to,
-  children,
   heroMetricPeriod,
   onHeroMetricPeriodChange,
 }: {
@@ -638,7 +603,6 @@ function AccountSummaryCard({
   accountType?: AccountType;
   from?: string;
   to?: string;
-  children?: React.ReactNode;
   heroMetricPeriod?: 'today' | 'month';
   onHeroMetricPeriodChange?: (p: 'today' | 'month') => void;
 }) {
@@ -681,10 +645,6 @@ function AccountSummaryCard({
     : isAccountHero
       ? 'rgba(255,255,255,0.15)'
       : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
-  const heroMetricDivider = isLightHeroCard
-    ? palette.divider
-    : heroMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.10)';
-
   const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
   const balanceInt = hideAmounts ? '••••' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
@@ -1527,10 +1487,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   indicatorY,
   period,
   onPeriodChange,
-  chartMode,
-  onChartModeChange,
-  selectedChartCategoryId,
-  onChartCategorySelect,
   registerScrollTop,
   onOpenNetWorth,
   onOpenBalanceVisibility,
@@ -1549,6 +1505,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   contentBottomPadding,
   onScrollBeginDrag,
   scrollEnabled = true,
+  fullResetNonce = 0,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1566,10 +1523,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   indicatorY: SharedValue<number>;
   period: HomePeriodType;
   onPeriodChange: (p: HomePeriodType) => void;
-  chartMode: HomeChartMode;
-  onChartModeChange: (m: HomeChartMode) => void;
-  selectedChartCategoryId: string | null;
-  onChartCategorySelect: (id: string | null) => void;
   registerScrollTop: (id: string, fn: (() => void) | null) => void;
   onOpenNetWorth?: () => void;
   onOpenBalanceVisibility?: () => void;
@@ -1588,6 +1541,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   contentBottomPadding?: number;
   onScrollBeginDrag?: () => void;
   scrollEnabled?: boolean;
+  fullResetNonce?: number;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1600,7 +1554,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [, setChartResetNonce] = useState(0);
   const [cashflowIsCashflow, setCashflowIsCashflow] = useState(false);
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
@@ -1609,8 +1562,15 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     periodTransactions: Transaction[];
     transactions: Transaction[];
   } | null>(null);
+  const lastNWChipValueRef = useRef<number | undefined>(undefined);
 
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
+
+  useEffect(() => {
+    if (fullResetNonce > 0) {
+      setCashflowIsCashflow(false);
+    }
+  }, [fullResetNonce]);
 
   useEffect(() => {
     loadRequestIdRef.current += 1;
@@ -1619,6 +1579,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     setPeriodDataRangeKey(null);
     setTransactions([]);
     todayDataCacheRef.current = null;
+    lastNWChipValueRef.current = undefined;
   }, [accountId]);
 
   const loadRangeData = useCallback(async (rangeFrom: string, rangeTo: string) => {
@@ -1662,13 +1623,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     return () => registerScrollTop(accountId, null);
   }, [accountId, mainScrollRef, pageIndex, registerScrollTop, verticalScrolls]);
 
-  // Reset chart nonce when category selection is cleared (e.g. parent reset)
-  useEffect(() => {
-    if (selectedChartCategoryId === null) {
-      setChartResetNonce((n) => n + 1);
-    }
-  }, [selectedChartCategoryId]);
-
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
     const y = event.contentOffset.y;
@@ -1706,11 +1660,16 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   // offsetting account transaction so they must be added separately.
   const periodAssets = useAssetsStore((s) => s.assets);
   const nwChipValue = useMemo(() => {
+    if (!hasCurrentPeriodData && lastNWChipValueRef.current !== undefined) {
+      return lastNWChipValueRef.current;
+    }
     const assetAdditions = periodAssets
       .filter((a) => a.createdAt >= from && a.createdAt <= to)
       .reduce((sum, a) => sum + a.value, 0);
-    return (incExpSummary.income - incExpSummary.expense) + assetAdditions;
-  }, [periodAssets, from, to, incExpSummary]);
+    const value = (incExpSummary.income - incExpSummary.expense) + assetAdditions;
+    lastNWChipValueRef.current = value;
+    return value;
+  }, [periodAssets, from, to, incExpSummary, hasCurrentPeriodData]);
   const loadPageData = useCallback(async () => {
     await loadRangeData(from, to);
   }, [from, loadRangeData, to]);
@@ -1965,7 +1924,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   );
 });
 
-function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts, totalBalance }: any) {
+function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts }: any) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const typeMeta = ACCOUNT_TYPE_META[acc.type as AccountType];

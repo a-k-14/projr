@@ -19,7 +19,6 @@ import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useLoansStore } from '../stores/useLoansStore';
 import { useAssetsStore } from '../stores/useAssetsStore';
 import { useAppTheme } from '../lib/theme';
-import { SystemBottomGuard } from '../components/ui/safeBottom';
 import { FONT_WEIGHT } from '../lib/design';
 import { HOME_TEXT } from '../lib/layoutTokens';
 import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/settings';
@@ -209,18 +208,6 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="modals/asset-form"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="modals/select-account"
-              options={{ presentation: 'transparentModal', headerShown: false }}
-            />
-            <Stack.Screen
-              name="modals/select-tag"
-              options={{ presentation: 'transparentModal', headerShown: false }}
-            />
-            <Stack.Screen
-              name="modals/select-budget-category"
               options={{ headerShown: false }}
             />
             <Stack.Screen

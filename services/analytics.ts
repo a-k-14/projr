@@ -47,14 +47,18 @@ export async function getActivityPeriodCashflow(
   accountId: string | 'all',
   fromDate: string,
   toDate: string,
-  options: { includeTransfers?: boolean; includeLoans?: boolean } = {}
+  options: { includeTransfers?: boolean; includeLoans?: boolean; includeDeposits?: boolean } = {}
 ): Promise<CashflowSummary> {
   const rows = await getTransactionsInRange(accountId, fromDate, toDate);
   let inTotal = 0, outTotal = 0;
+  const includeTransfers = options.includeTransfers ?? false;
+  const includeLoans = options.includeLoans ?? false;
+  const includeDeposits = options.includeDeposits ?? (includeTransfers || includeLoans);
   for (const row of rows) {
     const impact = getTransactionCashflowImpact(row, {
-      includeTransfers: options.includeTransfers ?? false,
-      includeLoans: options.includeLoans ?? false,
+      includeTransfers,
+      includeLoans,
+      includeDeposits,
     });
     if (impact === 'in') inTotal += row.amount;
     else if (impact === 'out') outTotal += row.amount;
@@ -106,7 +110,7 @@ export async function getDailySpending(
 
   const byDate: Record<string, number> = {};
   for (const row of rows) {
-    if (getTransactionCashflowImpact(row, { includeTransfers: false, includeLoans: false }) !== 'out') continue;
+    if (getTransactionCashflowImpact(row, { includeTransfers: false, includeLoans: false, includeDeposits: false }) !== 'out') continue;
     const dateKey = safeLocalDateKey(row.date);
     if (!dateKey) continue;
     byDate[dateKey] = (byDate[dateKey] ?? 0) + row.amount;
@@ -145,7 +149,7 @@ export async function getBalanceTrend(
   for (const row of rows) {
     const dayKey = safeLocalDateKey(row.date);
     if (!dayKey) continue;
-    const impact = getTransactionCashflowImpact(row, { includeLoans: true, includeTransfers: false });
+    const impact = getTransactionCashflowImpact(row, { includeLoans: true, includeTransfers: false, includeDeposits: true });
     const delta = impact === 'in' ? row.amount : impact === 'out' ? -row.amount : 0;
     if (delta !== 0) {
       deltaByDay.set(dayKey, (deltaByDay.get(dayKey) ?? 0) + delta);
@@ -277,7 +281,7 @@ export async function getIncomeExpenseByBuckets(
     for (const row of rows) {
       const dayKey = safeLocalDateKey(row.date);
       if (!dayKey || dayKey < bucketFrom || dayKey > bucketTo) continue;
-      const impact = getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false });
+      const impact = getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false, includeDeposits: false });
       if (impact === 'in') income += row.amount;
       else if (impact === 'out') expense += row.amount;
     }
@@ -307,7 +311,7 @@ export async function getCategorySpendingByBuckets(
   // Determine top N categories by total spending
   const totalByCat = new Map<string, number>();
   for (const row of rows) {
-    if (getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false }) !== 'out') continue;
+    if (getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false, includeDeposits: false }) !== 'out') continue;
     if (!row.categoryId) continue;
     totalByCat.set(row.categoryId, (totalByCat.get(row.categoryId) ?? 0) + row.amount);
   }
@@ -327,7 +331,7 @@ export async function getCategorySpendingByBuckets(
     for (const row of rows) {
       const dayKey = safeLocalDateKey(row.date);
       if (!dayKey || dayKey < bucketFrom || dayKey > bucketTo) continue;
-      if (getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false }) !== 'out') continue;
+      if (getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false, includeDeposits: false }) !== 'out') continue;
       const catId = row.categoryId ?? '__uncategorized__';
       if (topCatIds.has(catId)) {
         bucketByCat.set(catId, (bucketByCat.get(catId) ?? 0) + row.amount);
@@ -363,7 +367,7 @@ export async function getCategoryBreakdown(
 
   const byCat: Record<string, number> = {};
   for (const row of rows) {
-    if (getTransactionCashflowImpact(row, { includeTransfers: false, includeLoans: false }) !== 'out') continue;
+    if (getTransactionCashflowImpact(row, { includeTransfers: false, includeLoans: false, includeDeposits: false }) !== 'out') continue;
     if (!row.categoryId) continue;
     byCat[row.categoryId] = (byCat[row.categoryId] ?? 0) + row.amount;
   }

@@ -8,7 +8,7 @@ import { ListHeading } from '../ui/ListHeading';
 import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
-import type { Category, Transaction } from '../../types';
+import type { Category } from '../../types';
 import { CategoryIconBadge, Checkbox } from './ActivityUI';
 
 interface ActivityMoreFiltersSheetProps {
@@ -26,8 +26,9 @@ interface ActivityMoreFiltersSheetProps {
   setShowMoreSheet: (show: boolean) => void;
   categories: Category[];
   tags: { id: string; name: string; color: string }[];
-  transactions: Transaction[];
   palette: AppThemePalette;
+  cashflowBucket: 'all' | 'in' | 'out' | 'net';
+  onCashflowBucketChange: (bucket: 'all' | 'in' | 'out' | 'net') => void;
   clearAll: () => void;
 }
 
@@ -46,8 +47,9 @@ export function ActivityMoreFiltersSheet({
   setShowMoreSheet,
   categories,
   tags,
-  transactions,
   palette,
+  cashflowBucket,
+  onCashflowBucketChange,
   clearAll }: ActivityMoreFiltersSheetProps) {
   const topCategories = categories.filter((c) => !c.parentId);
   const childCategoriesByParent = new Map<string, Category[]>();
@@ -86,6 +88,36 @@ export function ActivityMoreFiltersSheet({
       }
     >
       <View style={{ paddingBottom: 12 }}>
+        <ListHeading label="Cashflow" palette={palette} />
+
+        <TouchableOpacity
+          delayPressIn={0}
+          onPress={() => onCashflowBucketChange(cashflowBucket === 'in' ? 'all' : 'in')}
+          style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}
+        >
+          <View style={{ marginRight: 12 }}>
+            <Checkbox selected={cashflowBucket === 'in'} palette={palette} />
+          </View>
+          <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
+            Inflow
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          delayPressIn={0}
+          onPress={() => onCashflowBucketChange(cashflowBucket === 'out' ? 'all' : 'out')}
+          style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}
+        >
+          <View style={{ marginRight: 12 }}>
+            <Checkbox selected={cashflowBucket === 'out'} palette={palette} />
+          </View>
+          <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
+            Outflow
+          </Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 1, backgroundColor: palette.divider }} />
+
         <ListHeading label="Category" palette={palette} />
 
         <View style={{ paddingTop: 2 }}>
@@ -162,13 +194,11 @@ export function ActivityMoreFiltersSheet({
           </Text>
         ) : (
           tags.map((tag) => {
-            const count = transactions.filter((tx) => tx.tags.includes(tag.id)).length;
             const isSelected = selectedTagIds.includes(tag.id);
             return (
               <MoreTagRow
                 key={tag.id}
                 tag={tag}
-                count={count}
                 selected={isSelected}
                 palette={palette}
                 onToggleSelected={() => toggleTagId(tag.id)}
@@ -249,13 +279,12 @@ function MoreCategoryRow({
 
 interface MoreTagRowProps {
   tag: { id: string; name: string; color: string };
-  count: number;
   selected: boolean;
   palette: AppThemePalette;
   onToggleSelected: () => void;
 }
 
-function MoreTagRow({ tag, count, selected, palette, onToggleSelected }: MoreTagRowProps) {
+function MoreTagRow({ tag, selected, palette, onToggleSelected }: MoreTagRowProps) {
   return (
     <View style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}>
       <TouchableOpacity delayPressIn={0} onPress={onToggleSelected} activeOpacity={0.75} style={{ marginRight: 12 }}>

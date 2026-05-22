@@ -1,99 +1,25 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Pressable, TouchableOpacity, View } from 'react-native';
-import Animated, { useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
+import React, { useMemo, useState, useEffect } from 'react';
+import { TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedRef, useAnimatedScrollHandler, type SharedValue } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { AppDonutChart } from '@/components/ui/AppDonutChart';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../lib/account-utils';
 import { formatCurrency, getTransactionCashflowImpact } from '../lib/derived';
 import { FONT_WEIGHT, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
-import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_SURFACE, HOME_TEXT, SCREEN_HEADER, getNetWorthChangeTheme } from '../lib/layoutTokens';
+import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER, getNetWorthChangeTheme } from '../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../lib/settings-shared';
 import { AppThemePalette } from '../lib/theme';
-import { Account, AccountType, Deposit, Asset, Transaction } from '../types';
+import { Account, Asset, Transaction } from '../types';
 import { CARD_PADDING } from '../lib/design';
 import { toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
-import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
 import { useTransactionsStore } from '../stores/useTransactionsStore';
 import { getTransactions } from '../services/transactions';
 import { TrendLineChart } from './insights/TrendLineChart';
 
 
-export const NW_ASSET_LIGHT = '#0D9488';
-export const NW_ASSET_DARK = '#00FAD9';
-export const NW_HERO_PROGRESS_LABEL_GAP = 8;
-
-export const NW_ACCOUNT_COLORS = [
-  '#00A7A5',
-  '#F2B84B',
-  '#4E8EF7',
-  '#EF476F',
-  '#8B5CF6',
-  '#2DCB73',
-  '#FF8A4C',
-  '#38BDF8',
-  '#B565D9',
-  '#7C8A9E',
-] as const;
-
-export const ACCOUNT_TYPE_SORT_ORDER: Record<AccountType, number> = {
-  savings: 0,
-  cash: 1,
-  wallet: 2,
-  investment: 3,
-  credit: 4,
-  other: 5,
-};
-
-const NW_BALANCE_BY_OPTIONS = [
-  { key: 'type', label: 'Type' },
-  { key: 'account', label: 'Account' },
-] as const;
-
-export function NetWorthBalanceByToggle({
-  mode,
-  onChange,
-}: {
-  mode: 'account' | 'type';
-  onChange: (mode: 'account' | 'type') => void;
-}) {
-  return (
-    <SegmentedPillSwitch
-      options={NW_BALANCE_BY_OPTIONS}
-      value={mode}
-      onChange={(key: string) => onChange(key as 'account' | 'type')}
-      backgroundColor="#EEF2F8"
-      pillColor="#FFFFFF"
-      borderColor="#DFE5EF"
-      activeTextColor="#1F2A44"
-      inactiveTextColor="#7C8498"
-      height={32}
-      radius={HOME_RADIUS.button}
-      fontSize={11}
-      itemMinWidth={70}
-      style={{ alignSelf: 'flex-start', minWidth: 144 }}
-    />
-  );
-}
-
-export function NetWorthRingMarker({ color }: { color: string }) {
-  return (
-    <View
-      style={{
-        width: 12,
-        height: 12,
-        borderRadius: HOME_RADIUS.xs,
-        borderWidth: 2.5,
-        borderColor: color,
-        backgroundColor: 'transparent',
-      }}
-    />
-  );
-}
-
-export function HomeNetWorthPage({
+export function NetWorthDetailBlock({
   pageHeight,
   palette,
   currencySymbol,
@@ -101,13 +27,10 @@ export function HomeNetWorthPage({
   loanSummary,
   depositSummary,
   assetsValue = 0,
-  deposits = [],
   assets = [],
   netWorth,
   pageIndex,
   verticalScrolls,
-  indicatorY,
-  isSelected,
   compactTop = false,
   hideTitle = false,
   onOpenAccount,
@@ -120,7 +43,6 @@ export function HomeNetWorthPage({
   loanSummary: { youLent: number; youOwe: number; net: number };
   depositSummary?: { activeMaturityValue: number; activeInvestedValue: number; deposits: Array<{ status: string }> };
   assetsValue?: number;
-  deposits?: Deposit[];
   assets?: Asset[];
   netWorth: number;
   pageIndex: number;
@@ -134,7 +56,6 @@ export function HomeNetWorthPage({
 }) {
   const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
   const [period, setPeriod] = useState<'today' | 'month'>('month');
-  const [selectedBreakdownSlice, setSelectedBreakdownSlice] = useState<'assets' | 'liabilities' | null>(null);
   const [chartInteracting, setChartInteracting] = useState(false);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
@@ -158,7 +79,6 @@ export function HomeNetWorthPage({
   };
 
   const [historyTransactions, setHistoryTransactions] = useState<Transaction[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
 
   // Grouped sections expand/collapse state
   const [assetsAccountsExpanded, setAssetsAccountsExpanded] = useState(false);
@@ -179,11 +99,9 @@ export function HomeNetWorthPage({
         });
         if (active) {
           setHistoryTransactions(txs);
-          setIsLoadingHistory(false);
         }
       } catch (err) {
         console.error("Failed to load net worth history transactions", err);
-        if (active) setIsLoadingHistory(false);
       }
     }
     loadHistory();
@@ -277,48 +195,42 @@ export function HomeNetWorthPage({
     return pts.reverse();
   }, [historyTransactions, assets, netWorth]);
 
-  // SVG Chart path calculation
-  const { lineD, areaD, startY, endY, minVal, valRange } = useMemo(() => {
-    if (points.length === 0) return { lineD: '', areaD: '', startY: 60, endY: 60, minVal: 0, valRange: 1 };
-    const vals = points.map(p => p.val);
-    const minVal = Math.min(...vals);
-    const maxVal = Math.max(...vals);
-    const valRange = maxVal - minVal || 1;
-
-    const pts = points.map((p, idx) => {
-      const x = (idx / 29) * 300;
-      const y = 114 - ((p.val - minVal) / valRange) * 100;
-      return { x, y };
-    });
-
-    const linePath = pts.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-    const areaPath = `${linePath} L 300 120 L 0 120 Z`;
-
-    return {
-      lineD: linePath,
-      areaD: areaPath,
-      startY: pts[0].y,
-      endY: pts[pts.length - 1].y,
-      minVal,
-      valRange,
-    };
-  }, [points]);
-
   // Aggregates & breakdown definitions
-  const positiveAccounts = useMemo(() => accounts.filter((a) => a.balance >= 0), [accounts]);
-  const negativeAccounts = useMemo(() => accounts.filter((a) => a.balance < 0), [accounts]);
+  const positiveAccounts = useMemo(() => {
+    return accounts
+      .filter((a) => a.balance >= 0)
+      .sort((a, b) => {
+        const diff = b.balance - a.balance;
+        if (diff !== 0) return diff;
+        return formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
+          formatAccountDisplayName(b.name, b.accountNumber),
+          'en',
+          { sensitivity: 'base' }
+        );
+      });
+  }, [accounts]);
+
+  const negativeAccounts = useMemo(() => {
+    return accounts
+      .filter((a) => a.balance < 0)
+      .sort((a, b) => {
+        const diff = Math.abs(b.balance) - Math.abs(a.balance);
+        if (diff !== 0) return diff;
+        return formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
+          formatAccountDisplayName(b.name, b.accountNumber),
+          'en',
+          { sensitivity: 'base' }
+        );
+      });
+  }, [accounts]);
 
   const positiveAccountTotal = useMemo(() => positiveAccounts.reduce((sum, account) => sum + account.balance, 0), [positiveAccounts]);
   const negativeAccountTotal = useMemo(() => negativeAccounts.reduce((sum, account) => sum + Math.abs(account.balance), 0), [negativeAccounts]);
-  const netAccountsTotal = useMemo(() => accounts.reduce((sum, account) => sum + account.balance, 0), [accounts]);
-
-  const activeDepositCount = useMemo(() => deposits.filter((d) => d.status === 'active').length, [deposits]);
   const activeDepositValue = depositSummary?.activeInvestedValue ?? 0;
 
   const assetTotal = positiveAccountTotal + loanSummary.youLent + activeDepositValue + assetsValue;
   const liabilityTotal = negativeAccountTotal + loanSummary.youOwe;
 
-  const nwAssetColor = palette.isDark ? NW_ASSET_DARK : NW_ASSET_LIGHT;
   const nwLiabilityColor = palette.negative;
 
   const totalExposure = Math.max(assetTotal + liabilityTotal, 1);
@@ -327,43 +239,6 @@ export function HomeNetWorthPage({
 
   const assetPercent = Math.round(assetShare * 100);
   const liabilityPercent = Math.round(liabilityShare * 100);
-
-  const dominantPosition = liabilityShare > assetShare
-    ? { label: 'Liabilities', percent: liabilityPercent, color: nwLiabilityColor, share: liabilityShare }
-    : { label: 'Assets', percent: assetPercent, color: nwAssetColor, share: assetShare };
-
-  const sortedAccounts = useMemo(() => {
-    return accounts.slice().sort((a, b) => {
-      const balanceDiff = b.balance - a.balance;
-      if (balanceDiff !== 0) return balanceDiff;
-      return formatAccountDisplayName(a.name, a.accountNumber).localeCompare(
-        formatAccountDisplayName(b.name, b.accountNumber),
-        'en',
-        { sensitivity: 'base' },
-      );
-    });
-  }, [accounts]);
-
-  const groupedAccounts = useMemo(() => {
-    const groups = new Map<AccountType, Account[]>();
-    sortedAccounts.forEach((account) => {
-      const next = groups.get(account.type) ?? [];
-      next.push(account);
-      groups.set(account.type, next);
-    });
-    return Array.from(groups.entries())
-      .map(([type, group]) => ({
-        type,
-        accounts: group,
-        balance: group.reduce((sum, account) => sum + account.balance, 0),
-      }))
-      .sort((a, b) => ACCOUNT_TYPE_SORT_ORDER[a.type] - ACCOUNT_TYPE_SORT_ORDER[b.type]);
-  }, [sortedAccounts]);
-
-  const accountColorsById = useMemo(() => new Map(sortedAccounts.map((account, index) => [
-    account.id,
-    NW_ACCOUNT_COLORS[index % NW_ACCOUNT_COLORS.length],
-  ])), [sortedAccounts]);
 
   const verticalScrollHandler = useAnimatedScrollHandler((event) => {
     'worklet';
@@ -546,10 +421,10 @@ export function HomeNetWorthPage({
                     <View style={{
                       borderWidth: 1,
                       borderTopWidth: 0,
-                      borderColor: palette.divider,
+                      borderColor: palette.border,
                       borderBottomLeftRadius: HOME_RADIUS.card,
                       borderBottomRightRadius: HOME_RADIUS.card,
-                      backgroundColor: palette.surface,
+                      backgroundColor: palette.background,
                       overflow: 'hidden',
                     }}>
                       {positiveAccounts.map((account, idx) => {
@@ -566,7 +441,7 @@ export function HomeNetWorthPage({
                               paddingHorizontal: 16,
                               paddingVertical: 12,
                               borderTopWidth: idx === 0 ? 0 : 1,
-                              borderTopColor: palette.divider,
+                              borderTopColor: palette.border,
                             }}
                           >
                             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
@@ -689,10 +564,10 @@ export function HomeNetWorthPage({
                     <View style={{
                       borderWidth: 1,
                       borderTopWidth: 0,
-                      borderColor: palette.divider,
+                      borderColor: palette.border,
                       borderBottomLeftRadius: HOME_RADIUS.card,
                       borderBottomRightRadius: HOME_RADIUS.card,
-                      backgroundColor: palette.surface,
+                      backgroundColor: palette.background,
                       overflow: 'hidden',
                     }}>
                       {negativeAccounts.map((account, idx) => {
@@ -709,7 +584,7 @@ export function HomeNetWorthPage({
                               paddingHorizontal: 16,
                               paddingVertical: 12,
                               borderTopWidth: idx === 0 ? 0 : 1,
-                              borderTopColor: palette.divider,
+                              borderTopColor: palette.border,
                             }}
                           >
                             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>

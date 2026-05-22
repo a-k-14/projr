@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, View, RefreshControl, Modal, Pressable, TouchableOpacity } from 'react-native';
+import { View, RefreshControl, Modal, Pressable, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
@@ -8,7 +8,6 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { getTabReset, registerTabReset } from '../../lib/tabResetRegistry';
 
 import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '../../components/ui/AppIcon';
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -17,7 +16,7 @@ import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 
 import { PeriodSelector } from '../../components/ui/PeriodSelector';
-import { HomeDonutChartBlock, HomeChartMode } from '../../components/HomeDonutChartBlock';
+import { CategoryDonutChartBlock, type CategoryChartMode } from '../../components/CategoryDonutChartBlock';
 import { SummaryCard } from '../../components/SummaryCard';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -69,7 +68,7 @@ export default function InsightsScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
 
   const [period, setPeriod] = useState<HomePeriodType>('week');
-  const [chartMode, setChartMode] = useState<HomeChartMode>('expense');
+  const [chartMode, setChartMode] = useState<CategoryChartMode>('expense');
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
   const [chartResetNonce, setChartResetNonce] = useState(0);
 
@@ -82,7 +81,7 @@ export default function InsightsScreen() {
 
   const [expandedChartState, setExpandedChartState] = useState<{
     transactions: Transaction[];
-    mode: HomeChartMode;
+    mode: CategoryChartMode;
     resetTrigger: number;
   } | null>(null);
 
@@ -159,7 +158,7 @@ export default function InsightsScreen() {
     const buckets = getTimeBuckets(period, dateRange.from, dateRange.to);
     try {
       const [snapshot, txs, trend, incExp, catSpending, dailySpend] = await Promise.all([
-        getCashflowSnapshot('all', dateRange.from, dateRange.to),
+        getCashflowSnapshot('all', dateRange.from, dateRange.to, { includeTransfers: false, includeLoans: false, includeDeposits: false }),
         getTransactions({ fromDate: dateRange.from, toDate: dateRange.to }),
         getBalanceTrend(dateRange.from, dateRange.to),
         getIncomeExpenseByBuckets(buckets, dateRange.from, dateRange.to),
@@ -325,7 +324,7 @@ export default function InsightsScreen() {
             paddingBottom: 12,
           }}
         >
-          <HomeDonutChartBlock
+          <CategoryDonutChartBlock
             transactions={periodTransactions}
             categoriesById={categoriesById}
             sym={showCurrencySymbol ? currencySymbol : ''}
@@ -426,7 +425,7 @@ export default function InsightsScreen() {
         >
           <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 0, backgroundColor: palette.background }}>
             <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, overflow: 'hidden' }}>
-              <HomeDonutChartBlock
+              <CategoryDonutChartBlock
                 transactions={expandedChartState.transactions}
                 categoriesById={categoriesById}
                 sym={showCurrencySymbol ? currencySymbol : ''}
