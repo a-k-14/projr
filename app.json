@@ -24,7 +24,7 @@
       "allowBackup": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#121620"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

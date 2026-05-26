@@ -149,15 +149,29 @@ export function TrendLineChart({
     height: 220,
   } as const;
 
-  // 1. Loading/Skeleton State
+  // 1. Loading/Skeleton State — only the chart line area is a placeholder.
+  // Title, subtitle, and x-axis date labels render as their real values immediately
+  // (they're either props or derivable from the date range, no DB needed).
   if (isLoading) {
+    // Default to the standard 30-day window if caller didn't pass explicit dates.
+    const today = new Date();
+    const fallbackEnd = today.toISOString().slice(0, 10);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 29);
+    const fallbackStart = thirtyDaysAgo.toISOString().slice(0, 10);
+    const axisStart = formatAxisDate(startDate ?? fallbackStart);
+    const axisEnd = formatAxisDate(endDate ?? fallbackEnd);
     return (
       <View style={[CARD_BASE, containerStyle]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, minHeight: 20, paddingHorizontal: 12 }}>
-          <View style={{ gap: 6 }}>
-            <Animated.View style={{ width: 110, height: 12, borderRadius: 6, backgroundColor: palette.isDark ? '#374151' : '#E2E8F0', opacity: fadeAnim }} />
+          <View>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+              {title}
+            </Text>
             {subtitle && (
-              <Animated.View style={{ width: 68, height: 8, borderRadius: 4, backgroundColor: palette.isDark ? '#1F2937' : '#EEF2F8', opacity: fadeAnim }} />
+              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2 }}>
+                {subtitle}
+              </Text>
             )}
           </View>
         </View>
@@ -168,8 +182,8 @@ export function TrendLineChart({
         </View>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 12 }}>
-          <Animated.View style={{ width: 75, height: 9, borderRadius: 4, backgroundColor: palette.isDark ? '#374151' : '#E2E8F0', opacity: fadeAnim }} />
-          <Animated.View style={{ width: 75, height: 9, borderRadius: 4, backgroundColor: palette.isDark ? '#374151' : '#E2E8F0', opacity: fadeAnim }} />
+          <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted }}>{axisStart}</Text>
+          <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted }}>{axisEnd}</Text>
         </View>
       </View>
     );

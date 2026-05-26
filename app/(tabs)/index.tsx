@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Dimensions,
   Modal,
   Pressable,
   RefreshControl,
@@ -545,6 +546,17 @@ function MoreShortcutCard({
 }
 
 
+// Tick chart geometry — computed once at module load from screen width + known padding
+// chain (SCREEN_GUTTER each side + 14dp wallet-hero padding each side). Having these
+// as constants instead of useState+onLayout means the bar renders at the correct
+// width on the very first frame, with no "75% then snap to 100%" flash.
+const TICK_W = 2.3;
+const TICK_GAP = 4;
+const TICK_CONTAINER_W = Math.max(80, Dimensions.get('window').width - 2 * SCREEN_GUTTER - 2 * 14);
+const TICK_TOTAL = Math.floor((TICK_CONTAINER_W + TICK_GAP) / (TICK_W + TICK_GAP));
+const TICK_CONTENT_W = TICK_TOTAL * (TICK_W + TICK_GAP) - TICK_GAP;
+const TICK_REMAINDER = TICK_CONTAINER_W - TICK_CONTENT_W;
+
 function AccountSummaryCard({
   accountName,
   accountTypeLabel,
@@ -663,9 +675,6 @@ function AccountSummaryCard({
   const metricRightAmount = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
   const periodOptions = PERIODS.map((item) => ({ key: item, label: PERIOD_LABELS[item] }));
 
-  // Press-scale animation — must be declared before any conditional return
-  const [tickContainerWidth, setTickContainerWidth] = useState(0);
-
   // Tick data — drives the speedometer sweep animation
   const tickIn = isCashflow ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
   const tickOut = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
@@ -681,7 +690,7 @@ function AccountSummaryCard({
       if (prevTotalTickRef.current === 0) {
         animatedIncomeFraction.value = incomeFraction;
       } else {
-        animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9 });
+        animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9, overshootClamping: true });
       }
     }
     // When totalTick drops to 0, leave the fraction unchanged so both bars collapse
@@ -690,10 +699,6 @@ function AccountSummaryCard({
     prevTotalTickRef.current = totalTick;
   }, [tickIn, tickOut, incomeFraction, totalTick]);
   const incomeTickOverlayStyle = useAnimatedStyle(() => {
-    const TICK_W = 2.3, TICK_GAP = 4;
-    const TICK_TOTAL = tickContainerWidth > 0
-      ? Math.floor((tickContainerWidth + TICK_GAP) / (TICK_W + TICK_GAP))
-      : 40;
     const progress = tickActivityProgress.value;
     const fraction = animatedIncomeFraction.value;
     const greenTicksCount = Math.round(fraction * TICK_TOTAL);
@@ -706,10 +711,6 @@ function AccountSummaryCard({
     };
   });
   const expenseTickOverlayStyle = useAnimatedStyle(() => {
-    const TICK_W = 2.3, TICK_GAP = 4;
-    const TICK_TOTAL = tickContainerWidth > 0
-      ? Math.floor((tickContainerWidth + TICK_GAP) / (TICK_W + TICK_GAP))
-      : 40;
     const progress = tickActivityProgress.value;
     const fraction = animatedIncomeFraction.value;
     const greenTicksCount = Math.round(fraction * TICK_TOTAL);
@@ -718,8 +719,10 @@ function AccountSummaryCard({
     const width = currentRedTicks > 0
       ? currentRedTicks * TICK_W + (currentRedTicks - 1) * TICK_GAP
       : 0;
+    // right + width emit from one worklet → atomic, no JS-thread frame lag
     return {
       width: Math.max(0, width),
+      right: TICK_REMAINDER,
     };
   });
 
@@ -936,12 +939,6 @@ function AccountSummaryCard({
 
         {/* ── Wallet Hero: two-tone card — flat bottom section with tick chart ── */}
         {isWalletHero && (() => {
-          const TICK_W = 2.3, TICK_GAP = 4;
-          const TICK_TOTAL = tickContainerWidth > 0
-            ? Math.floor((tickContainerWidth + TICK_GAP) / (TICK_W + TICK_GAP))
-            : 40;
-          const tickContentWidth = TICK_TOTAL * (TICK_W + TICK_GAP) - TICK_GAP;
-          const tickRemainder = tickContainerWidth > 0 ? (tickContainerWidth - tickContentWidth) : 0;
           const walletCardBg = palette.isDark ? '#1A1F2E' : palette.card;
           return (
             <View style={{ marginHorizontal: -14, marginBottom: -12 }}>
@@ -1002,23 +999,22 @@ function AccountSummaryCard({
                     </Animated.View>
                   )}
                 </View>
-                {/* Tick chart — speedometer sweep: overlays animate width from each edge */}
-                <View
-                  style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 6 }}
-                  onLayout={(e) => setTickContainerWidth(e.nativeEvent.layout.width)}
-                >
+                {/* Tick chart — speedometer sweep: overlays animate width from each edge.
+                    Container width is a module-level constant → grey row paints at full
+                    width on the first frame, no onLayout race. */}
+                <View style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 6, width: TICK_CONTAINER_W }}>
                   {Array.from({ length: TICK_TOTAL }).map((_, i) => (
                     <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
                   ))}
                   <Animated.View style={[{ position: 'absolute', left: 0, top: 0, height: 12, overflow: 'hidden' }, incomeTickOverlayStyle]}>
-                    <View style={{ flexDirection: 'row', gap: TICK_GAP }}>
+                    <View style={{ flexDirection: 'row', gap: TICK_GAP, width: TICK_CONTENT_W }}>
                       {Array.from({ length: TICK_TOTAL }).map((_, i) => (
                         <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: '#0D9488' }} />
                       ))}
                     </View>
                   </Animated.View>
-                  <Animated.View style={[{ position: 'absolute', right: tickRemainder, top: 0, height: 12, overflow: 'hidden' }, expenseTickOverlayStyle]}>
-                    <View style={{ position: 'absolute', right: 0, flexDirection: 'row', gap: TICK_GAP, width: tickContentWidth }}>
+                  <Animated.View style={[{ position: 'absolute', top: 0, height: 12, overflow: 'hidden' }, expenseTickOverlayStyle]}>
+                    <View style={{ position: 'absolute', right: 0, flexDirection: 'row', gap: TICK_GAP, width: TICK_CONTENT_W }}>
                       {Array.from({ length: TICK_TOTAL }).map((_, i) => (
                         <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: '#F87171' }} />
                       ))}

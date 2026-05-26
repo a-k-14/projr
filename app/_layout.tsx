@@ -26,6 +26,11 @@ import { isAutoBackupDue, runAutoBackup } from '../services/backup';
 import { FilledButton } from '../components/ui/AppButton';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
+// Skip the 400ms fade-out animation. On warm-resume (activity recreated, JS alive)
+// this is what makes the splash feel like a "loading screen" rather than a flash —
+// the system splash itself is OS-controlled (~150ms minimum on Android 12+), but
+// the fade animation on top of it is fully under our control.
+SplashScreen.setOptions({ duration: 0 });
 
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SecurityGuard } from '../components/SecurityGuard';
@@ -204,7 +209,7 @@ export default function RootLayout() {
             <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
             <Stack.Screen
               name="modals/add-transaction"
-              options={{ headerShown: false }}
+              options={{ headerShown: false, animation: 'none' }}
             />
             <Stack.Screen
               name="modals/asset-form"
