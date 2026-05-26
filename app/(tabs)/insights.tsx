@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, RefreshControl, Modal, Pressable, TouchableOpacity } from 'react-native';
+import { View, RefreshControl, Modal, Pressable, TouchableOpacity, InteractionManager } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
@@ -21,19 +21,17 @@ import { SummaryCard } from '../../components/SummaryCard';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 
-import { getCashflowSnapshot, getBalanceTrend, getIncomeExpenseByBuckets, getCategorySpendingByBuckets, getDailySpending } from '../../services/analytics';
+import { getCashflowSnapshot, getBalanceTrend, getIncomeExpenseByBuckets } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate } from '../../lib/dateUtils';
 import { getLoanTransactionKind } from '../../lib/derived';
 import { TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING } from '../../lib/layoutTokens';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
-import { getTimeBuckets } from '../../lib/chartUtils';
+import { getTimeBuckets, type ChartGranularity } from '../../lib/chartUtils';
 import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
-import { CategoryStackedChart } from '../../components/insights/CategoryStackedChart';
-import { CashFlowCalendar } from '../../components/insights/CashFlowCalendar';
-import type { IncomeExpenseBucket, CategoryStackBucket } from '../../services/analytics';
+import type { IncomeExpenseBucket } from '../../services/analytics';
 
 type HomePeriodType = 'today' | PeriodType;
 
@@ -90,12 +88,17 @@ export default function InsightsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [chartInteracting, setChartInteracting] = useState(false);
   const [isLoadingTrend, setIsLoadingTrend] = useState(true);
+  const [incomeExpenseGranularity, setIncomeExpenseGranularity] = useState<ChartGranularity>('auto');
+  const [chartPanelCloseToken, setChartPanelCloseToken] = useState(0);
+
+  // Reset granularity override whenever the period changes — but only if it's not already 'auto'.
+  // Returning the previous ref tells React to skip the re-render entirely.
+  useEffect(() => {
+    setIncomeExpenseGranularity((prev) => (prev === 'auto' ? prev : 'auto'));
+  }, [period]);
 
   const [balanceTrend, setBalanceTrend] = useState<{ date: string; balance: number }[]>([]);
   const [incomeExpenseData, setIncomeExpenseData] = useState<IncomeExpenseBucket[]>([]);
-  const [categoryStackData, setCategoryStackData] = useState<CategoryStackBucket[]>([]);
-  const [topCategories, setTopCategories] = useState<{ categoryId: string; name: string }[]>([]);
-  const [dailySpending, setDailySpending] = useState<{ date: string; amount: number }[]>([]);
 
   const mappedTrendPoints = useMemo(() => {
     return balanceTrend.map((t) => ({ date: t.date, val: t.balance }));
@@ -155,24 +158,19 @@ export default function InsightsScreen() {
   const loadData = useCallback(async () => {
     setIsLoadingTrend(true);
     const requestId = ++loadRequestIdRef.current;
-    const buckets = getTimeBuckets(period, dateRange.from, dateRange.to);
+    const buckets = getTimeBuckets(period, dateRange.from, dateRange.to, incomeExpenseGranularity);
     try {
-      const [snapshot, txs, trend, incExp, catSpending, dailySpend] = await Promise.all([
+      const [snapshot, txs, trend, incExp] = await Promise.all([
         getCashflowSnapshot('all', dateRange.from, dateRange.to, { includeTransfers: false, includeLoans: false, includeDeposits: false }),
         getTransactions({ fromDate: dateRange.from, toDate: dateRange.to }),
         getBalanceTrend(dateRange.from, dateRange.to),
         getIncomeExpenseByBuckets(buckets, dateRange.from, dateRange.to),
-        getCategorySpendingByBuckets(buckets, dateRange.from, dateRange.to, 5),
-        getDailySpending('all', dateRange.from, dateRange.to),
       ]);
       if (requestId !== loadRequestIdRef.current) return;
       setCashflow(snapshot.summary);
       setPeriodTransactions(txs);
       setBalanceTrend(trend);
       setIncomeExpenseData(incExp);
-      setCategoryStackData(catSpending.buckets);
-      setTopCategories(catSpending.topCategories);
-      setDailySpending(dailySpend);
     } catch (err) {
       console.error(err);
     } finally {
@@ -180,7 +178,7 @@ export default function InsightsScreen() {
         setIsLoadingTrend(false);
       }
     }
-  }, [dateRange, period]);
+  }, [dateRange, period, incomeExpenseGranularity]);
 
   useEffect(() => {
     loadData();
@@ -203,6 +201,7 @@ export default function InsightsScreen() {
   useEffect(() => {
     return registerTabReset('insights', ({ mode, animated }) => {
       scrollRef.current?.scrollTo({ y: 0, animated });
+      setChartPanelCloseToken((t) => t + 1);                  // collapse any open config panel
       if (mode === 'full') {
         setPeriod('week');
         setSelectedChartCategoryId(null);
@@ -251,12 +250,17 @@ export default function InsightsScreen() {
   const handleCustomRangeDone = useCallback(() => {
     const fromDate = customDraftFrom <= customDraftTo ? customDraftFrom : customDraftTo;
     const toDate = customDraftTo >= customDraftFrom ? customDraftTo : customDraftFrom;
-    setCustomDraftFrom(fromDate);
-    setCustomDraftTo(toDate);
-    setCustomRangeFrom(toLocalDayStartISO(fromDate));
-    setCustomRangeTo(toLocalDayEndISO(toDate));
-    setPeriod('custom');
+    // 1. Close the modal first so its dismiss animation isn't blocked by the chart re-render.
     setCustomRangeOpen(false);
+    // 2. Defer the heavy state updates (period change → chart refetch) until the modal
+    //    animation finishes — keeps the Done tap feeling instant.
+    InteractionManager.runAfterInteractions(() => {
+      setCustomDraftFrom(fromDate);
+      setCustomDraftTo(toDate);
+      setCustomRangeFrom(toLocalDayStartISO(fromDate));
+      setCustomRangeTo(toLocalDayEndISO(toDate));
+      setPeriod('custom');
+    });
   }, [customDraftFrom, customDraftTo]);
 
   return (
@@ -356,15 +360,10 @@ export default function InsightsScreen() {
           onInteractionStateChange={setChartInteracting}
           title="Income vs Expense"
           subtitle={`(${PERIOD_LABELS[period]})`}
-        />
-        <CashFlowCalendar
-          data={dailySpending}
-          fromDate={dateRange.from}
-          toDate={dateRange.to}
-          palette={palette}
-          sym={showCurrencySymbol ? currencySymbol : ''}
-          title="Daily Spending Heatmap"
-          subtitle={`(${PERIOD_LABELS[period]})`}
+          granularity={incomeExpenseGranularity}
+          onGranularityChange={setIncomeExpenseGranularity}
+          panelCloseToken={chartPanelCloseToken}
+          isLoading={isLoadingTrend}
         />
       </ReAnimated.ScrollView>
 

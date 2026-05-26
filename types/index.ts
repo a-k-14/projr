@@ -151,11 +151,6 @@ export interface CashflowSummary {
   net: number;
 }
 
-export interface DailySpending {
-  date: string;
-  amount: number;
-}
-
 export interface DailyCashflow {
   date: string;
   in: number;
