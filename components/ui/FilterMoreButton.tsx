@@ -33,10 +33,10 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
           flexBasis: flex ? 0 : undefined,
           minWidth: flex ? 0 : iconOnly ? 44 : 84,
           width: iconOnly ? 44 : undefined,
-          height: iconOnly ? 30 : 30,
+          height: ACTIVITY_LAYOUT.controlHeight,
           paddingHorizontal: iconOnly ? 0 : 12,
           justifyContent: iconOnly ? 'center' : 'flex-start',
-          borderRadius: ACTIVITY_LAYOUT.chipRadius,
+          borderRadius: ACTIVITY_LAYOUT.controlRadius,
         },
       ]}
     >

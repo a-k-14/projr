@@ -3,9 +3,7 @@
  * Shows loan person, direction, given amount, balance, progress bar, and closed badge.
  */
 import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '../AppIcon';
 import { View } from 'react-native';
-import { AppCard, CardSubtitleRow } from '../AppCard';
 import { formatCurrency } from '../../../lib/derived';
 import { FONT_WEIGHT } from '../../../lib/design';
 import {
@@ -18,6 +16,8 @@ import {
 } from '../../../lib/layoutTokens';
 import type { AppThemePalette } from '../../../lib/theme';
 import type { LoanWithSummary } from '../../../types';
+import { AppCard, CardSubtitleRow } from '../AppCard';
+import { AppIcon } from '../AppIcon';
 
 export function LoanListCard({
   loan,
@@ -82,7 +82,7 @@ export function LoanListCard({
                 <Text
                   appWeight="medium"
                   style={{
-                    fontSize: HOME_TEXT.tiny + 1,
+                    fontSize: HOME_TEXT.tiny - 1,
                     color: isLent ? palette.negative : palette.positive,
                   }}
                 >

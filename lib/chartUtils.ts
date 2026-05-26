@@ -1,4 +1,4 @@
-import { toLocalDayStartISO, toLocalDayEndISO } from './dateUtils';
+import { toLocalDayStartISO, toLocalDayEndISO, toLocalDateKey } from './dateUtils';
 
 export type TimeBucket = { from: string; to: string; label: string; key: string };
 
@@ -25,25 +25,12 @@ function mondayDayIndex(d: Date): number {
 }
 
 export function getTimeBuckets(period: string, fromDate: string, toDate: string): TimeBucket[] {
-  const from = parseDateNoon(fromDate.split('T')[0]);
-  const to = parseDateNoon(toDate.split('T')[0]);
+  const from = parseDateNoon(toLocalDateKey(fromDate));
+  const to = parseDateNoon(toLocalDateKey(toDate));
   const daySpan = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
 
-  // 1 bucket for today or single-day ranges
-  if (period === 'today' || daySpan <= 1) {
-    const key = toDateKey(from);
-    return [
-      {
-        from: toLocalDayStartISO(from),
-        to: toLocalDayEndISO(to),
-        label: DAY_ABBREVS[from.getDay()],
-        key,
-      },
-    ];
-  }
-
-  // Daily buckets for week / ≤14 days
-  if (period === 'week' || daySpan <= 14) {
+  // 1. Force daily buckets for today or week period
+  if (period === 'today' || period === 'week' || (period === 'custom' && daySpan <= 14)) {
     const buckets: TimeBucket[] = [];
     const cur = parseDateNoon(toDateKey(from));
     while (cur <= to) {
@@ -59,10 +46,9 @@ export function getTimeBuckets(period: string, fromDate: string, toDate: string)
     return buckets;
   }
 
-  // Weekly (Monday-aligned) buckets for month / ≤90 days
-  if (period === 'month' || daySpan <= 90) {
+  // 2. Force weekly buckets for month period
+  if (period === 'month' || (period === 'custom' && daySpan <= 90)) {
     const buckets: TimeBucket[] = [];
-    // Start from the Monday on or before `from`
     const weekStart = parseDateNoon(toDateKey(from));
     weekStart.setDate(weekStart.getDate() - mondayDayIndex(weekStart));
     let weekNum = 1;
@@ -71,7 +57,6 @@ export function getTimeBuckets(period: string, fromDate: string, toDate: string)
       const bucketFrom = parseDateNoon(toDateKey(cur));
       const bucketTo = new Date(cur);
       bucketTo.setDate(bucketTo.getDate() + 6);
-      // Clamp to the actual range boundaries
       const effectiveFrom = bucketFrom < from ? from : bucketFrom;
       const effectiveTo = bucketTo > to ? to : bucketTo;
       const key = `W${weekNum}-${toDateKey(bucketFrom)}`;
@@ -87,7 +72,7 @@ export function getTimeBuckets(period: string, fromDate: string, toDate: string)
     return buckets;
   }
 
-  // Monthly buckets for year / >90 days
+  // 3. Force monthly buckets for year period or large custom spans
   const buckets: TimeBucket[] = [];
   const cur = new Date(from.getFullYear(), from.getMonth(), 1, 12, 0, 0);
   while (cur.getFullYear() < to.getFullYear() || cur.getMonth() <= to.getMonth()) {

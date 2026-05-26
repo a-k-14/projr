@@ -47,7 +47,7 @@ export default function BudgetFormModal() {
 
   const [amountStr, setAmountStr] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [startMonth, setStartMonth] = useState(month || new Date().toISOString());
+  const [startMonth, setStartMonth] = useState(month || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
   const [repeat, setRepeat] = useState(true);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
   const [showCategorySheet, setShowCategorySheet] = useState(false);
@@ -64,7 +64,7 @@ export default function BudgetFormModal() {
       setStartMonth(editingBudget.startDate);
       setRepeat(editingBudget.repeat);
     } else {
-      setStartMonth(month || new Date().toISOString());
+      setStartMonth(month || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
       resetDraft();
     }
   }, [editingBudget, month, resetDraft, setDraftCategoryId]);

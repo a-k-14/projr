@@ -16,7 +16,7 @@ import * as notesService from '../services/notes';
 
 function formatDate(iso: string) {
   const d = new Date(iso);
-  return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
+  return `${d.getDate()} ${d.toLocaleDateString('en-IN', { month: 'short' })} ${d.getFullYear()}`;
 }
 
 function NoteCard({

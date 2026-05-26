@@ -2,14 +2,15 @@ import { HeaderMoreButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { ActionStrip } from '../../components/ui/ActionStrip';
-import { getCompactScrollableBottomPadding } from '@/components/ui/safeBottom';
+import { getCompactScrollableBottomPadding, SystemBottomGuard } from '@/components/ui/safeBottom';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
-  View
+  View,
+  InteractionManager
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -72,17 +73,23 @@ export default function BudgetDetailScreen() {
 
   useEffect(() => {
     if (month) {
-      loadBudgets(month).catch(() => undefined);
+      const task = InteractionManager.runAfterInteractions(() => {
+        loadBudgets(month).catch(() => undefined);
+      });
+      return () => task.cancel();
     }
   }, [month, loadBudgets]);
 
   useEffect(() => {
     if (!budget || !month) return;
-    setTxnsLoading(true);
-    getBudgetTransactions(budget.categoryId, month)
-      .then(setTxns)
-      .catch(() => undefined)
-      .finally(() => setTxnsLoading(false));
+    const task = InteractionManager.runAfterInteractions(() => {
+      setTxnsLoading(true);
+      getBudgetTransactions(budget.categoryId, month)
+        .then(setTxns)
+        .catch(() => undefined)
+        .finally(() => setTxnsLoading(false));
+    });
+    return () => task.cancel();
   }, [budget?.categoryId, month]);
 
   if (!budget) {
@@ -251,6 +258,7 @@ export default function BudgetDetailScreen() {
           </View>
         </ScrollView>
       </View>
+      <SystemBottomGuard />
     </View>
   );
 }

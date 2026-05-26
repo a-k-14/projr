@@ -13,7 +13,7 @@ import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../lib/settings-shared';
 import { AppThemePalette } from '../lib/theme';
 import { Account, Asset, Transaction } from '../types';
 import { CARD_PADDING } from '../lib/design';
-import { toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
+import { toLocalDayStartISO, toLocalDayEndISO, toLocalDateKey } from '../lib/dateUtils';
 import { useTransactionsStore } from '../stores/useTransactionsStore';
 import { getTransactions } from '../services/transactions';
 import { TrendLineChart } from './insights/TrendLineChart';
@@ -158,14 +158,14 @@ export function NetWorthDetailBlock({
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      days.push(d.toISOString().slice(0, 10)); // "YYYY-MM-DD"
+      days.push(toLocalDateKey(d.toISOString())); // "YYYY-MM-DD" in local time
     }
 
     const dailyChange = new Map<string, number>();
     days.forEach(k => dailyChange.set(k, 0));
 
     historyTransactions.forEach((tx) => {
-      const key = tx.date.slice(0, 10);
+      const key = toLocalDateKey(tx.date);
       if (dailyChange.has(key)) {
         const impact = getTransactionCashflowImpact(tx, { includeLoans: false, includeDeposits: false });
         if (impact === 'in') {

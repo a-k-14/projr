@@ -4,14 +4,14 @@ import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, TouchableOpacity, View, InteractionManager } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
 import { ActionChip } from '../../components/ui/AppButton';
 import { ActionStrip } from '../../components/ui/ActionStrip';
-import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
+import { getScrollableBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
 import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate } from '../../lib/derived';
@@ -72,8 +72,11 @@ export default function LoanDetailScreen() {
   const loan = loans.find((l) => l.id === id);
 
   useEffect(() => {
-    loadLoans();
-    loadCategories().catch(() => undefined);
+    const task = InteractionManager.runAfterInteractions(() => {
+      loadLoans();
+      loadCategories().catch(() => undefined);
+    });
+    return () => task.cancel();
   }, [loadLoans, loadCategories]);
 
   useEffect(() => {
@@ -96,7 +99,7 @@ export default function LoanDetailScreen() {
     });
   }, [loan, filterNonPrincipal]);
 
-  const grouped = groupTransactionsByDate(displayedTransactions);
+  const grouped = useMemo(() => groupTransactionsByDate(displayedTransactions), [displayedTransactions]);
 
   const groupedByType = useMemo(() => {
     if (!filterNonPrincipal) return [];
@@ -117,9 +120,12 @@ export default function LoanDetailScreen() {
     }
     return result;
   }, [displayedTransactions, filterNonPrincipal]);
-  const originTx = loan?.transactions
-    .filter((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin')
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+  const originTx = useMemo(() => {
+    if (!loan) return undefined;
+    return loan.transactions
+      .filter((tx) => getLoanTransactionKind(tx, loan.direction) === 'origin')
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+  }, [loan]);
   const originTxNote = originTx ? getLoanTransactionUserNote(originTx.note) : '';
   const loanMetrics = [
     { key: 'given', label: isLent ? 'LENT' : 'BORROWED', value: formatCurrency(loan?.givenAmount ?? 0, sym), color: palette.text },
@@ -350,18 +356,22 @@ export default function LoanDetailScreen() {
             </View>
           </View>
 
-        <ScrollView
-          style={{ flex: 1 }}
-          onScrollBeginDrag={closePanel}
-          contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 24) }}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-            {filterNonPrincipal ? (
-              groupedByType.map(({ title, total, items }) => {
-                const groupedByDateForType = groupTransactionsByDate(items);
-                return (
-                  <View key={title} style={{ marginBottom: HOME_SPACE.md }}>
+        {filterNonPrincipal ? (
+          <FlatList
+            data={groupedByType}
+            keyExtractor={(item) => item.title}
+            style={{ flex: 1 }}
+            onScrollBeginDrag={closePanel}
+            contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: getScrollableBottomPadding(insets, 24) }}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={3}
+            maxToRenderPerBatch={3}
+            windowSize={5}
+            removeClippedSubviews
+            renderItem={({ item: { title, total, items } }) => {
+              const groupedByDateForType = groupTransactionsByDate(items);
+              return (
+                <View style={{ marginBottom: HOME_SPACE.md }}>
                     <View
                       style={{
                         flexDirection: 'row',
@@ -436,14 +446,26 @@ export default function LoanDetailScreen() {
                         </View>
                       );
                     })}
-                  </View>
-                );
-              })
-            ) : (
-              grouped.map(({ dateKey, items }) => {
-                const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00.000Z');
-                return (
-                  <View key={dateKey} style={{ marginBottom: HOME_SPACE.sm + 4 }}>
+                </View>
+              );
+            }}
+          />
+        ) : (
+          <FlatList
+            data={grouped}
+            keyExtractor={(item) => item.dateKey}
+            style={{ flex: 1 }}
+            onScrollBeginDrag={closePanel}
+            contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: getScrollableBottomPadding(insets, 24) }}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            windowSize={5}
+            removeClippedSubviews
+            renderItem={({ item: { dateKey, items } }) => {
+              const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00.000Z');
+              return (
+                <View style={{ marginBottom: HOME_SPACE.sm + 4 }}>
                     <View
                       style={{
                         flexDirection: 'row',
@@ -496,12 +518,11 @@ export default function LoanDetailScreen() {
                         />
                       ))}
                     </View>
-                  </View>
-                );
-              })
-            )}
-          </View>
-        </ScrollView>
+                </View>
+              );
+            }}
+          />
+        )}
 
       </View>
       <AppConfirmDialog
@@ -519,6 +540,7 @@ export default function LoanDetailScreen() {
           },
         }}
       />
+      <SystemBottomGuard />
     </View>
   );
 }

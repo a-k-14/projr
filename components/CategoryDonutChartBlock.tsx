@@ -212,8 +212,8 @@ export function CategoryDonutChartBlock({
   const txPalette = listPalette ?? (theme as unknown as AppThemePalette);
   const mode = controlledMode ?? internalMode;
   const switchOptions = useMemo(() => ([
-    { key: 'expense', label: 'Expense' },
     { key: 'income', label: 'Income' },
+    { key: 'expense', label: 'Expense' },
   ] as const), []);
 
   const hierarchy = useMemo(() => buildModeHierarchy(mode, transactions, categoriesById), [mode, transactions, categoriesById]);

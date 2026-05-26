@@ -72,14 +72,18 @@ export default function RootLayout() {
       setInitError(
         error instanceof Error ? error.message : 'Something went wrong while opening the app.'
       );
-    } finally {
-      SplashScreen.hideAsync().catch(() => undefined);
     }
   }, [loadAccounts, loadCategories, loadSettings, loadDeposits, loadLoans, loadAssets]);
 
   useEffect(() => {
     init();
   }, [init]);
+
+  useEffect(() => {
+    if (ready || initError) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [initError, ready]);
 
   useEffect(() => {
     NavigationBar.setButtonStyleAsync(palette.navigationButtonStyle).catch(() => undefined);

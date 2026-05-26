@@ -3,6 +3,7 @@ import { View, Dimensions, Animated } from 'react-native';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
 import { Text } from '../ui/AppText';
 import { formatCurrency } from '../../lib/derived';
+import { toLocalDateKey } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
@@ -125,7 +126,7 @@ export function TrendLineChart({
     const p = points[activePointIndex];
     const d = new Date(p.date + 'T00:00:00');
     if (isNaN(d.getTime())) return '';
-    return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
+    return `${d.getDate()} ${d.toLocaleDateString('en-IN', { month: 'short' })} ${d.getFullYear()}`;
   }, [activePointIndex, points]);
 
   // Format axis dates
@@ -133,7 +134,7 @@ export function TrendLineChart({
     if (!isoStr) return '';
     const d = new Date(isoStr.includes('T') ? isoStr : isoStr + 'T00:00:00');
     if (isNaN(d.getTime())) return '';
-    return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`;
+    return `${d.getDate()} ${d.toLocaleDateString('en-IN', { month: 'short' })}`;
   };
 
   const CARD_BASE = {
@@ -155,10 +156,10 @@ export function TrendLineChart({
   if (isLoading) {
     // Default to the standard 30-day window if caller didn't pass explicit dates.
     const today = new Date();
-    const fallbackEnd = today.toISOString().slice(0, 10);
+    const fallbackEnd = toLocalDateKey(today.toISOString());
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(today.getDate() - 29);
-    const fallbackStart = thirtyDaysAgo.toISOString().slice(0, 10);
+    const fallbackStart = toLocalDateKey(thirtyDaysAgo.toISOString());
     const axisStart = formatAxisDate(startDate ?? fallbackStart);
     const axisEnd = formatAxisDate(endDate ?? fallbackEnd);
     return (

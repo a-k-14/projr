@@ -1,4 +1,3 @@
-import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { router } from 'expo-router';
@@ -6,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
-import { OverviewHeroCard } from '../components/ui/OverviewHeroCard';
+import { GrainHeroCard } from '../components/ui/GrainHeroCard';
 import { DepositListCard } from '../components/ui/cards/DepositListCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { getScrollableBottomPadding } from '../components/ui/safeBottom';
@@ -41,11 +40,25 @@ function DepositsScreenContent() {
     () => deposits.reduce((sum, d) => sum + (d.maturityValue ?? d.principalAmount), 0),
     [deposits],
   );
-  // Expected return: unrealised gains from active deposits only (shown in footer)
+  // Expected return: unrealised gains from active deposits only
   const expectedReturn = useMemo(
     () => activeDeposits.reduce((sum, d) => sum + Math.max(0, (d.maturityValue ?? d.principalAmount) - d.principalAmount), 0),
     [activeDeposits],
   );
+
+  const avgAPY = useMemo(() => {
+    const withRate = activeDeposits.filter((d) => d.interestRate != null && d.interestRate > 0);
+    if (withRate.length === 0) return null;
+    return withRate.reduce((sum, d) => sum + d.interestRate!, 0) / withRate.length;
+  }, [activeDeposits]);
+
+  const nextMaturityLabel = useMemo(() => {
+    const upcoming = activeDeposits
+      .filter((d) => d.maturityDate)
+      .sort((a, b) => new Date(a.maturityDate!).getTime() - new Date(b.maturityDate!).getTime())[0];
+    if (!upcoming?.maturityDate) return undefined;
+    return new Date(upcoming.maturityDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  }, [activeDeposits]);
 
   const pills = [
     { key: 'active' as const, label: 'Active', count: activeDeposits.length },
@@ -80,26 +93,26 @@ function DepositsScreenContent() {
           <>
             {/* Hero Card */}
             <View style={{ marginHorizontal: SCREEN_GUTTER, marginTop: 12, marginBottom: 20 }}>
-              <OverviewHeroCard
-                palette={palette}
+              <GrainHeroCard
+                solidColor={DEPOSIT_VISUAL.tone}
                 icon="vault"
-                iconBg={DEPOSIT_VISUAL.bg}
-                iconColor={DEPOSIT_VISUAL.tone}
-                eyebrow="Deposits"
-                title="Overview"
-                badgeLabel=""
-                badgeBg="transparent"
-                badgeColor="transparent"
+                eyebrow="Deposits · Invested"
+                value={formatCurrency(totalInvested, sym)}
+                sym={sym}
+                badgeLabel={activeDeposits.length > 0 ? `${activeDeposits.length} ACTIVE` : undefined}
+                palette={palette}
                 metrics={[
-                  { key: 'invested', label: 'Invested', value: formatCurrency(totalInvested, sym), valueColor: palette.text },
-                  { key: 'maturity', label: 'Maturity', value: formatCurrency(totalMaturity, sym), valueColor: palette.text },
-                ]}
-                footerLabel=""
-                footerValue=""
-                footerValueColor={palette.text}
-                footerMetrics={[
-                  { key: 'active', label: 'Active', value: String(activeDeposits.length), valueColor: palette.text },
-                  { key: 'return', label: 'Expected Return', value: expectedReturn > 0 ? formatCurrency(expectedReturn, sym) : '—', valueColor: expectedReturn > 0 ? palette.numberPositive : palette.textMuted },
+                  {
+                    label: 'MATURITY',
+                    value: formatCurrency(totalMaturity, sym),
+                    subValue: nextMaturityLabel,
+                  },
+                  {
+                    label: 'RETURNS',
+                    value: expectedReturn > 0 ? `+${formatCurrency(expectedReturn, sym)}` : '—',
+                    subValue: avgAPY != null ? `${avgAPY.toFixed(2)}% APY` : undefined,
+                    valueColor: expectedReturn > 0 ? palette.numberPositive : undefined,
+                  },
                 ]}
               />
             </View>

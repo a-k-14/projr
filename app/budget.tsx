@@ -109,7 +109,7 @@ export default function BudgetScreen() {
         showBack={true}
         onBack={() => router.replace('/')}
         rightAction={
-          <HeaderAddButton palette={palette} onPress={() => router.push('/modals/budget-form')} />
+          <HeaderAddButton palette={palette} onPress={() => router.push({ pathname: '/modals/budget-form', params: { month: selectedMonth } })} />
         }
       />
       <ScrollView

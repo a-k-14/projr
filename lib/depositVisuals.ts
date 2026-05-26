@@ -1,5 +1,7 @@
+import { CATEGORY_COLORS } from './categoryColors';
+
 export const DEPOSIT_VISUAL = {
   icon: 'vault',
-  tone: '#76506A',
-  bg: '#F1E8EF',
+  tone: CATEGORY_COLORS.deposits.surface,
+  bg:   CATEGORY_COLORS.deposits.tile,
 } as const;

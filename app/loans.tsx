@@ -18,16 +18,18 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../components/settings-ui';
 import { BottomSheet } from '../components/ui/BottomSheet';
-import { getTabScreenBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
+import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FilterChip } from '../components/ui/FilterChip';
 import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { ListHeading } from '../components/ui/ListHeading';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
-import { LoanListCard, LoanOverviewCard } from '../components/ui/cards';
+import { LoanListCard } from '../components/ui/cards';
+import { GrainHeroCard } from '../components/ui/GrainHeroCard';
 import { formatCurrency, getLoanSummary } from '../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../lib/design';
+import { CATEGORY_COLORS } from '../lib/categoryColors';
 import {
   ACTIVITY_LAYOUT,
   BUTTON_TOKENS,
@@ -36,6 +38,7 @@ import {
 } from '../lib/layoutTokens';
 import { registerTabReset } from '../lib/tabResetRegistry';
 import { useAppTheme, type AppThemePalette } from '../lib/theme';
+import { toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
 import { formatDateFull } from '../lib/ui-format';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useLoansStore } from '../stores/useLoansStore';
@@ -203,9 +206,9 @@ export default function LoansScreen() {
       mode: 'date',
       onChange: (_, date) => {
         if (!date) return;
-        const nextFrom = startOfDayIso(date);
+        const nextFrom = toLocalDayStartISO(date);
         if (toDate && nextFrom > toDate) {
-          setToDate(endOfDayIso(date));
+          setToDate(toLocalDayEndISO(date));
         }
         setFromDate(nextFrom);
       }
@@ -218,9 +221,9 @@ export default function LoansScreen() {
       mode: 'date',
       onChange: (_, date) => {
         if (!date) return;
-        const nextTo = endOfDayIso(date);
+        const nextTo = toLocalDayEndISO(date);
         if (fromDate && fromDate > nextTo) {
-          setFromDate(startOfDayIso(date));
+          setFromDate(toLocalDayStartISO(date));
         }
         setToDate(nextTo);
       }
@@ -277,20 +280,32 @@ export default function LoansScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />
         }
-        contentContainerStyle={{ paddingBottom: getTabScreenBottomPadding(insets) }}
+        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) }}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
         ListHeaderComponent={
           <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
             <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: 12 }}>
-              <LoanOverviewCard
-                lent={summary.youLent}
-                borrowed={summary.youOwe}
-                net={summary.net}
-                netPositive={netPositive}
+              <GrainHeroCard
+                solidColor={CATEGORY_COLORS.loans.surface}
+                icon="hand-coins"
+                eyebrow="Loans · Lent"
+                value={formatCurrency(summary.youLent, sym)}
                 sym={sym}
+                badgeLabel={filteredLoans.filter(l => l.status === 'open').length > 0 ? `${filteredLoans.filter(l => l.status === 'open').length} OPEN` : undefined}
                 palette={palette}
+                metrics={[
+                  {
+                    label: 'BORROWED',
+                    value: formatCurrency(summary.youOwe, sym),
+                  },
+                  {
+                    label: netPositive ? 'NET LENT' : 'NET OWED',
+                    value: formatCurrency(Math.abs(summary.net), sym),
+                    valueColor: netPositive ? palette.numberPositive : palette.numberNegative,
+                  },
+                ]}
               />
             </View>
 
@@ -359,7 +374,7 @@ export default function LoansScreen() {
         renderItem={renderLoanItem}
       />
       {showAccountSheet ? (
-        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
+        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)}>
           <ChoiceRow
             title="All Accounts"
             selected={selectedAccountId === 'all'}
@@ -391,7 +406,6 @@ export default function LoansScreen() {
           title="More Filters"
           palette={palette}
           onClose={() => setShowMoreSheet(false)}
-          hasNavBar
           footer={
             <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 8, paddingBottom: 3, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
               <TouchableOpacity delayPressIn={0}
@@ -497,6 +511,7 @@ export default function LoansScreen() {
           </View>
         </BottomSheet>
       ) : null}
+      <SystemBottomGuard />
     </ScreenScaffold>
   );
 }
@@ -598,15 +613,4 @@ const styles = StyleSheet.create({
   }
 });
 
-function startOfDayIso(date: Date) {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next.toISOString();
-}
-
-function endOfDayIso(date: Date) {
-  const next = new Date(date);
-  next.setHours(23, 59, 59, 999);
-  return next.toISOString();
-}
 

@@ -1,49 +1,45 @@
-import React from 'react';
-import { View, useWindowDimensions } from 'react-native';
-import { BarChart } from 'react-native-gifted-charts';
+import React, { useEffect, useState } from 'react';
+import { View, useWindowDimensions, Pressable, ScrollView } from 'react-native';
 import { Text } from '../ui/AppText';
 import type { AppThemePalette } from '../../lib/theme';
 import { HOME_RADIUS, SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { CARD_PADDING, HOME_TEXT, FONT_WEIGHT } from '../../lib/design';
-import { formatCompactCurrency } from '../../lib/derived';
+import { formatCurrency } from '../../lib/derived';
+import { toLocalDateKey } from '../../lib/dateUtils';
 
 interface Props {
-  data: { label: string; income: number; expense: number }[];
+  data: { label: string; income: number; expense: number; from?: string; to?: string }[];
   palette: AppThemePalette;
   sym: string;
   period?: string;
+  title: string;
+  subtitle?: string;
+  onInteractionStateChange?: (interacting: boolean) => void;
 }
 
-export function IncomeExpenseChart({ data, palette, sym }: Props): React.ReactElement | null {
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_FULL_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+export function IncomeExpenseChart({
+  data,
+  palette,
+  sym,
+  title,
+  subtitle,
+  period
+}: Props): React.ReactElement | null {
   const { width } = useWindowDimensions();
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+
+  // Clear focus whenever the data or period changes
+  useEffect(() => {
+    setActiveIdx(null);
+  }, [data, period]);
 
   const allZero = data.every((d) => d.income === 0 && d.expense === 0);
 
-  const chartWidth = width - SCREEN_GUTTER * 2 - CARD_PADDING * 2;
-  const groupSpacing = 12;
-
-  const incomeColor = palette.numberPositive;
-  const expenseColor = palette.numberNegative;
-
-  // 2 bars per bucket, income then expense
-  const barWidth = Math.max(8, Math.floor((chartWidth - data.length * (2 + groupSpacing)) / (data.length * 2 + 1)));
-
-  const barData = data.flatMap((bucket, i) => [
-    {
-      value: bucket.income,
-      frontColor: incomeColor,
-      spacing: 2,
-      barWidth,
-      capRadius: 6,
-    },
-    {
-      value: bucket.expense,
-      frontColor: expenseColor,
-      spacing: i < data.length - 1 ? groupSpacing : 0,
-      barWidth,
-      capRadius: 6,
-    },
-  ]);
+  const incomeColor = '#0D9488';
+  const expenseColor = '#F87171';
 
   const totalIncome = data.reduce((s, d) => s + d.income, 0);
   const totalExpense = data.reduce((s, d) => s + d.expense, 0);
@@ -52,9 +48,70 @@ export function IncomeExpenseChart({ data, palette, sym }: Props): React.ReactEl
 
   const maxValue = Math.max(...data.flatMap((d) => [d.income, d.expense]), 1);
 
-  // Compute pixel offset for each group label to align with bar group center
-  const groupWidth = barWidth * 2 + 2 + groupSpacing;
-  const firstGroupCenter = 6 + barWidth; // initialSpacing + half of first bar
+  const activeItem = activeIdx !== null ? data[activeIdx] : null;
+
+  // Resilient timezone-safe parser
+  const parseLocalParts = (isoStr?: string) => {
+    if (!isoStr) return { y: '', m: '', d: '', monthAbbrev: '', monthFull: '' };
+    const dateKey = toLocalDateKey(isoStr);
+    const [y, mStr, dStr] = dateKey.split('-');
+    const mIdx = parseInt(mStr) - 1;
+    return {
+      y,
+      m: mStr,
+      d: parseInt(dStr).toString(),
+      monthAbbrev: MONTH_NAMES[mIdx] ?? '',
+      monthFull: MONTH_FULL_NAMES[mIdx] ?? ''
+    };
+  };
+
+  const formatBucketLabel = (item: typeof data[0]) => {
+    if (!item.from || !item.to) return item.label;
+    const fromParts = parseLocalParts(item.from);
+    const toParts = parseLocalParts(item.to);
+    const sameDay = toLocalDateKey(item.from) === toLocalDateKey(item.to);
+
+    if (period === 'today' || sameDay) {
+      const fullDayName = new Date(item.from).toLocaleDateString('en-IN', { weekday: 'long' });
+      return `${fullDayName} (${fromParts.d} ${fromParts.monthAbbrev} ${fromParts.y})`;
+    }
+    if (period === 'week') {
+      const fullDayName = new Date(item.from).toLocaleDateString('en-IN', { weekday: 'long' });
+      return `${fullDayName} (${fromParts.d} ${fromParts.monthAbbrev} ${fromParts.y})`;
+    }
+    if (item.label.startsWith('W') || period === 'month') {
+      // W1 (dd mmm - dd mmm) -> NO YEAR!
+      return `${item.label} (${fromParts.d} ${fromParts.monthAbbrev} - ${toParts.d} ${toParts.monthAbbrev})`;
+    }
+    if (period === 'year') {
+      // mmm-yyyy
+      return `${fromParts.monthAbbrev}-${fromParts.y}`;
+    }
+    // Custom period range
+    return `${fromParts.d} ${fromParts.monthAbbrev} ${fromParts.y} - ${toParts.d} ${toParts.monthAbbrev} ${toParts.y}`;
+  };
+
+  const formatBottomLabel = (item: typeof data[0]) => {
+    if (!item.from) return item.label;
+    const parts = parseLocalParts(item.from);
+
+    if (period === 'today') {
+      return new Date(item.from).toLocaleDateString('en-IN', { weekday: 'long' });
+    }
+    if (period === 'week') {
+      return new Date(item.from).toLocaleDateString('en-IN', { weekday: 'short' });
+    }
+    if (period === 'month') {
+      return item.label;
+    }
+    if (period === 'year') {
+      return parts.monthAbbrev;
+    }
+    // Custom: show dd mmm
+    return `${parts.d} ${parts.monthAbbrev}`;
+  };
+
+  const isScrollable = data.length > 7;
 
   return (
     <View
@@ -68,12 +125,48 @@ export function IncomeExpenseChart({ data, palette, sym }: Props): React.ReactEl
         overflow: 'hidden',
       }}
     >
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>Income vs Expense</Text>
-        <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: netColor }}>
-          {formatCompactCurrency(net, sym)}
-        </Text>
+      {/* Header Row */}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, minHeight: 75 }}>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+            {title}
+          </Text>
+          {activeItem ? (
+            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2, fontWeight: '500' }}>
+              {formatBucketLabel(activeItem)}
+            </Text>
+          ) : (
+            subtitle && (
+              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2 }}>
+                {subtitle}
+              </Text>
+            )
+          )}
+        </View>
+
+        {activeItem ? (
+          <View style={{ alignItems: 'flex-end', minWidth: 140 }}>
+            <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
+              Income: <Text style={{ color: incomeColor, fontWeight: '600' }}>+{formatCurrency(activeItem.income, sym)}</Text>
+            </Text>
+            <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
+              Expense: <Text style={{ color: expenseColor, fontWeight: '600' }}>-{formatCurrency(activeItem.expense, sym)}</Text>
+            </Text>
+            <View style={{ height: 1, width: 90, alignSelf: 'flex-end', backgroundColor: palette.divider, marginVertical: 3 }} />
+            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted }}>
+              Net: <Text style={{ color: (activeItem.income - activeItem.expense) >= 0 ? palette.numberPositive : palette.numberNegative, fontWeight: '700' }}>{formatCurrency(activeItem.income - activeItem.expense, sym)}</Text>
+            </Text>
+          </View>
+        ) : (
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: netColor }}>
+              {formatCurrency(net, sym)}
+            </Text>
+            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2 }}>
+              Net
+            </Text>
+          </View>
+        )}
       </View>
 
       {allZero ? (
@@ -82,52 +175,182 @@ export function IncomeExpenseChart({ data, palette, sym }: Props): React.ReactEl
         </View>
       ) : (
         <>
-          <View style={{ marginLeft: -4 }}>
-            <BarChart
-              data={barData}
-              barBorderRadius={6}
-              isAnimated
-              animationDuration={700}
-              hideYAxisText
-              yAxisThickness={0}
-              xAxisColor={palette.divider}
-              noOfSections={3}
-              rulesColor={palette.divider + '50'}
-              initialSpacing={6}
-              endSpacing={0}
-              maxValue={maxValue * 1.15}
-              width={chartWidth}
-              height={120}
-              xAxisLabelsHeight={0}
-            />
-          </View>
+          {/* Chart Area */}
+          {isScrollable ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                alignItems: 'flex-end',
+                height: 120,
+                paddingHorizontal: 4,
+                gap: 6,
+              }}
+            >
+              {data.map((bucket, i) => {
+                const isSelected = activeIdx === i;
+                const anySelected = activeIdx !== null;
+                const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
 
-          {/* X-axis labels aligned to each group center */}
-          <View style={{ position: 'relative', height: 14, marginTop: 3, marginLeft: -4 }}>
-            {data.map((bucket, i) => {
-              const center = firstGroupCenter + i * groupWidth + barWidth / 2;
-              const labelW = 24;
-              const left = Math.min(Math.max(center - labelW / 2, 0), chartWidth - labelW);
-              return (
-                <Text
-                  key={bucket.label + i}
-                  style={{
-                    position: 'absolute',
-                    left,
-                    width: labelW,
-                    textAlign: 'center',
-                    fontSize: HOME_TEXT.tiny,
-                    color: palette.textMuted,
-                  }}
-                >
-                  {bucket.label}
-                </Text>
-              );
-            })}
-          </View>
+                const incHeight = Math.max(4, Math.round((bucket.income / maxValue) * 90));
+                const expHeight = Math.max(4, Math.round((bucket.expense / maxValue) * 90));
+
+                return (
+                  <Pressable
+                    key={bucket.label + i}
+                    onPress={() => setActiveIdx(activeIdx === i ? null : i)}
+                    style={{
+                      width: 48,
+                      height: '100%',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                      opacity,
+                    }}
+                  >
+                    {/* Visual selection capsule background */}
+                    {isSelected && (
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: palette.divider,
+                          borderRadius: 8,
+                          opacity: 0.25,
+                        }}
+                      />
+                    )}
+
+                    {/* Grouped Bars Container */}
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
+                      {/* Income Bar */}
+                      <View
+                        style={{
+                          width: 14,
+                          height: incHeight,
+                          backgroundColor: incomeColor,
+                          borderTopLeftRadius: 4,
+                          borderTopRightRadius: 4,
+                        }}
+                      />
+                      {/* Expense Bar */}
+                      <View
+                        style={{
+                          width: 14,
+                          height: expHeight,
+                          backgroundColor: expenseColor,
+                          borderTopLeftRadius: 4,
+                          borderTopRightRadius: 4,
+                        }}
+                      />
+                    </View>
+
+                    {/* Mini-label below each group */}
+                    <Text
+                      style={{
+                        fontSize: HOME_TEXT.tiny,
+                        color: isSelected ? palette.text : palette.textMuted,
+                        fontWeight: isSelected ? '700' : '400',
+                        marginTop: 6,
+                      }}
+                    >
+                      {formatBottomLabel(bucket)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <View
+              style={{
+                height: 120,
+                flexDirection: 'row',
+                alignItems: 'flex-end',
+                justifyContent: 'space-around',
+              }}
+            >
+              {data.map((bucket, i) => {
+                const isSelected = activeIdx === i;
+                const anySelected = activeIdx !== null;
+                const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
+
+                const incHeight = Math.max(4, Math.round((bucket.income / maxValue) * 90));
+                const expHeight = Math.max(4, Math.round((bucket.expense / maxValue) * 90));
+
+                return (
+                  <Pressable
+                    key={bucket.label + i}
+                    onPress={() => setActiveIdx(activeIdx === i ? null : i)}
+                    style={{
+                      flex: 1,
+                      maxWidth: 64,
+                      height: '100%',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                      opacity,
+                    }}
+                  >
+                    {/* Visual selection capsule background */}
+                    {isSelected && (
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          left: 2,
+                          right: 2,
+                          backgroundColor: palette.divider,
+                          borderRadius: 8,
+                          opacity: 0.25,
+                        }}
+                      />
+                    )}
+
+                    {/* Grouped Bars Container */}
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
+                      {/* Income Bar */}
+                      <View
+                        style={{
+                          width: '38%',
+                          height: incHeight,
+                          backgroundColor: incomeColor,
+                          borderTopLeftRadius: 4,
+                          borderTopRightRadius: 4,
+                        }}
+                      />
+                      {/* Expense Bar */}
+                      <View
+                        style={{
+                          width: '38%',
+                          height: expHeight,
+                          backgroundColor: expenseColor,
+                          borderTopLeftRadius: 4,
+                          borderTopRightRadius: 4,
+                        }}
+                      />
+                    </View>
+
+                    {/* Mini-label below each group */}
+                    <Text
+                      style={{
+                        fontSize: HOME_TEXT.tiny,
+                        color: isSelected ? palette.text : palette.textMuted,
+                        fontWeight: isSelected ? '700' : '400',
+                        marginTop: 6,
+                      }}
+                    >
+                      {formatBottomLabel(bucket)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
 
           {/* Legend */}
-          <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: incomeColor }} />
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Income</Text>

@@ -44,7 +44,7 @@ import {
 } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { nowUTC } from '../../lib/dateUtils';
+import { nowUTC, toLocalDayStartISO } from '../../lib/dateUtils';
 import {
   formatCurrency,
   formatSignedCurrency,
@@ -171,7 +171,7 @@ export default function AddTransactionModal() {
   const [categoryId, setCategoryId] = useState('');
   const [payee, setPayee] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [date, setDate] = useState(nowUTC());
+  const [date, setDate] = useState(toLocalDayStartISO(new Date()));
   const [note, setNote] = useState('');
   const [receiptImageUris, setReceiptImageUris] = useState<string[]>([]);
   const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false);
@@ -356,7 +356,7 @@ export default function AddTransactionModal() {
 
     setAmountStr(formatIndianNumberStr(String(Math.round(found.principalAmount))));
     setAccountId(found.accountId);
-    setDate(isClosingDeposit ? nowUTC() : found.startDate);
+    setDate(isClosingDeposit ? toLocalDayStartISO(new Date()) : found.startDate);
     setDepositName(found.name);
     setDepositBank(found.bankName ?? '');
     setDepositTenure(found.tenureMonths != null ? String(found.tenureMonths) : '');
@@ -499,7 +499,7 @@ export default function AddTransactionModal() {
         setPersonName(loan.personName);
         setLoanDirection(loan.direction);
         setAccountId(loan.accountId);
-        setDate(nowUTC());
+        setDate(toLocalDayStartISO(new Date()));
       });
     });
     return () => task.cancel();

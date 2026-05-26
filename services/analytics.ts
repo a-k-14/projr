@@ -157,8 +157,8 @@ export async function getBalanceTrend(
   }
 
   // 4. Build all days in [fromDate..toDate]
-  const fromDateKey = fromDate.split('T')[0];
-  const toDateKey2 = toDate.split('T')[0];
+  const fromDateKey = toLocalDateKey(fromDate);
+  const toDateKey2 = toLocalDateKey(toDate);
   const days: string[] = [];
   const cur = new Date(
     ...([...fromDateKey.split('-').map(Number)] as [number, number, number]).map((v, i) =>
@@ -228,8 +228,8 @@ export async function getAccountBalanceTrend(
   }
 
   // 4. Build all days in [fromDate..toDate]
-  const fromDateKey = fromDate.split('T')[0];
-  const toDateKey2 = toDate.split('T')[0];
+  const fromDateKey = toLocalDateKey(fromDate);
+  const toDateKey2 = toLocalDateKey(toDate);
   const days: string[] = [];
   const cur = new Date(
     ...([...fromDateKey.split('-').map(Number)] as [number, number, number]).map((v, i) =>
@@ -264,7 +264,7 @@ export async function getAccountBalanceTrend(
 }
 
 
-export type IncomeExpenseBucket = { label: string; income: number; expense: number };
+export type IncomeExpenseBucket = { label: string; income: number; expense: number; from: string; to: string };
 
 export async function getIncomeExpenseByBuckets(
   buckets: TimeBucket[],
@@ -274,8 +274,8 @@ export async function getIncomeExpenseByBuckets(
   const rows = await getTransactionsInRange('all', fromDate, toDate);
 
   return buckets.map((bucket) => {
-    const bucketFrom = bucket.from.split('T')[0];
-    const bucketTo = bucket.to.split('T')[0];
+    const bucketFrom = toLocalDateKey(bucket.from);
+    const bucketTo = toLocalDateKey(bucket.to);
     let income = 0;
     let expense = 0;
     for (const row of rows) {
@@ -285,12 +285,12 @@ export async function getIncomeExpenseByBuckets(
       if (impact === 'in') income += row.amount;
       else if (impact === 'out') expense += row.amount;
     }
-    return { label: bucket.label, income, expense };
+    return { label: bucket.label, income, expense, from: bucket.from, to: bucket.to };
   });
 }
 
 export type CategoryTotal = { categoryId: string; name: string; amount: number };
-export type CategoryStackBucket = { label: string; categoryTotals: CategoryTotal[] };
+export type CategoryStackBucket = { label: string; categoryTotals: CategoryTotal[]; from: string; to: string };
 export type CategorySpendingResult = {
   buckets: CategoryStackBucket[];
   topCategories: { categoryId: string; name: string }[];
@@ -323,8 +323,8 @@ export async function getCategorySpendingByBuckets(
   }));
 
   const resultBuckets: CategoryStackBucket[] = buckets.map((bucket) => {
-    const bucketFrom = bucket.from.split('T')[0];
-    const bucketTo = bucket.to.split('T')[0];
+    const bucketFrom = toLocalDateKey(bucket.from);
+    const bucketTo = toLocalDateKey(bucket.to);
     const bucketByCat = new Map<string, number>();
     let othersTotal = 0;
 
@@ -350,7 +350,7 @@ export async function getCategorySpendingByBuckets(
       categoryTotals.push({ categoryId: '__others__', name: 'Others', amount: othersTotal });
     }
 
-    return { label: bucket.label, categoryTotals };
+    return { label: bucket.label, categoryTotals, from: bucket.from, to: bucket.to };
   });
 
   return { buckets: resultBuckets, topCategories };

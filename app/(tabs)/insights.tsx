@@ -348,12 +348,14 @@ export default function InsightsScreen() {
 
         <View style={{ height: 24 }} />
 
-        <IncomeExpenseChart data={incomeExpenseData} palette={palette} sym={showCurrencySymbol ? currencySymbol : ''} period={period} />
-        <CategoryStackedChart
-          data={categoryStackData}
+        <IncomeExpenseChart
+          data={incomeExpenseData}
           palette={palette}
           sym={showCurrencySymbol ? currencySymbol : ''}
-          topCategories={topCategories}
+          period={period}
+          onInteractionStateChange={setChartInteracting}
+          title="Income vs Expense"
+          subtitle={`(${PERIOD_LABELS[period]})`}
         />
         <CashFlowCalendar
           data={dailySpending}
@@ -361,6 +363,8 @@ export default function InsightsScreen() {
           toDate={dateRange.to}
           palette={palette}
           sym={showCurrencySymbol ? currencySymbol : ''}
+          title="Daily Spending Heatmap"
+          subtitle={`(${PERIOD_LABELS[period]})`}
         />
       </ReAnimated.ScrollView>
 
