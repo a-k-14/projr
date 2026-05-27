@@ -9,8 +9,7 @@ import {
   type BottomSheetBackdropProps,
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
-import { Portal } from '@gorhom/portal';
-import { Dimensions, View, StyleSheet } from 'react-native';
+import { BackHandler, Dimensions, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER, FONT_WEIGHT } from '../../lib/design';
@@ -129,6 +128,19 @@ export function BottomSheet({
     if (!isFocused) {
       sheetRef.current?.dismiss();
     }
+  }, [isFocused]);
+
+  // Android hardware back: dismiss the sheet instead of letting it propagate to
+  // navigation (which would pop the underlying screen while the sheet is open).
+  // gorhom v5 doesn't wire this up internally, so we do it the same way the
+  // original hand-rolled BottomSheet did.
+  useEffect(() => {
+    if (!isFocused) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      sheetRef.current?.dismiss();
+      return true;
+    });
+    return () => sub.remove();
   }, [isFocused]);
 
   const sheetFillColor = backgroundColor ?? palette.card;
@@ -262,29 +274,6 @@ export function BottomSheet({
       : innerSafePadding + CONTENT_PADDING_BOTTOM;
 
   return (
-    <>
-      {/*
-        Fixed floor at screen bottom — rendered through the gorhom Portal so it
-        sits OUTSIDE the sheet's animated container and stays put while the user
-        swipes the sheet down to dismiss. This is the original hand-rolled
-        sheet's behaviour: a permanent OS-gesture-bar mask for the duration of
-        the sheet's lifecycle, independent of any drag/dismiss translation.
-      */}
-      {!hasNavBar && floorHeight > 0 ? (
-        <Portal>
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: floorHeight,
-              backgroundColor: sheetFillColor,
-            }}
-          />
-        </Portal>
-      ) : null}
     <BottomSheetModal
       ref={sheetRef}
       index={0}
@@ -336,6 +325,5 @@ export function BottomSheet({
         </BottomSheetView>
       )}
     </BottomSheetModal>
-    </>
   );
 }

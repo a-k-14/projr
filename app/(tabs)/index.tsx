@@ -65,7 +65,6 @@ import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { useSweep } from '../../lib/useSweep';
 import { SweepOverlay } from '../../components/ui/SweepOverlay';
-import { RollingNumber } from '../../components/ui/RollingNumber';
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -1015,22 +1014,18 @@ function AccountSummaryCard({
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <AppIcon name="arrow-down-left" size={15} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
-                        <RollingNumber value={hideAmounts ? '••••' : metricLeftAmount}>
-                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                        <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                             {hideAmounts ? '••••' : leftIsZero ? '—' : (
                               <Text>{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
                             )}
                           </Text>
-                        </RollingNumber>
                       </TouchableOpacity>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <RollingNumber value={hideAmounts ? '••••' : metricRightAmount}>
-                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                        <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                             {hideAmounts ? '••••' : rightIsZero ? '—' : (
                               <Text>{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
                             )}
                           </Text>
-                        </RollingNumber>
                         <AppIcon name="arrow-up-right" size={15} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
                       </TouchableOpacity>
                     </View>
@@ -1112,11 +1107,9 @@ function AccountSummaryCard({
                       {metricLeftLabel}
                     </Text>
                   </View>
-                  <RollingNumber value={hideAmounts ? '••••' : metricLeftAmount}>
-                    <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
                       {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
                     </Text>
-                  </RollingNumber>
                 </TouchableOpacity>
 
                 <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : palette.divider }} />
@@ -1134,11 +1127,9 @@ function AccountSummaryCard({
                     </Text>
                     <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
                   </View>
-                  <RollingNumber value={hideAmounts ? '••••' : metricRightAmount} style={{ alignSelf: 'flex-end' }}>
-                    <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
                       {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
                     </Text>
-                  </RollingNumber>
                 </TouchableOpacity>
               </View>
 
