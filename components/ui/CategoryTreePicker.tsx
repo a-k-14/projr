@@ -2,7 +2,7 @@ import { AppIcon, IconName, isValidIcon } from './AppIcon';
 import { AppChevron } from './AppChevron';
 import { router } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
-import { LayoutAnimation, ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
+import { ScrollView, TextInput, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardSection } from '../settings-ui';
 import { CARD_PADDING, SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
@@ -218,7 +218,7 @@ export function CategoryTreePickerContent({
         palette={palette}
       />
 
-      <ScrollView style={maxListHeight ? { maxHeight: maxListHeight } : undefined} contentContainerStyle={{ paddingBottom: contentBottomPadding }} keyboardShouldPersistTaps="handled">
+      <ScrollView style={maxListHeight ? { maxHeight: maxListHeight } : undefined} contentContainerStyle={{ paddingBottom: contentBottomPadding }} keyboardShouldPersistTaps="always">
         <CategoryTreeList
           sections={sections}
           selectedCategoryId={selectedCategoryId}
@@ -287,7 +287,6 @@ export function CategoryTreeList({
   emptyMessage?: string;
 }) {
   const toggleParent = (id: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     const next = new Set(expandedParentIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
@@ -348,6 +347,7 @@ export function CategoryTreeList({
                         return (
                           <TouchableOpacity delayPressIn={0}
                             key={child.id}
+                            activeOpacity={0.6}
                             onPress={() => onSelect(child.id)}
                             style={{
                               flexDirection: 'row',

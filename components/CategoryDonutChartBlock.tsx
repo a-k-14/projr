@@ -151,7 +151,7 @@ function HomeDonut({
   );
 }
 
-export function CategoryDonutChartBlock({
+function CategoryDonutChartBlockBase({
   transactions,
   categoriesById,
   sym,
@@ -558,3 +558,5 @@ const styles = StyleSheet.create({
   expandedScroll: { flex: 1 },
   expandedScrollContent: { paddingBottom: 20 },
 });
+
+export const CategoryDonutChartBlock = React.memo(CategoryDonutChartBlockBase);

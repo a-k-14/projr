@@ -28,7 +28,7 @@ import { getLoanTransactionKind } from '../../lib/derived';
 import { TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING } from '../../lib/layoutTokens';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
-import { getTimeBuckets, type ChartGranularity } from '../../lib/chartUtils';
+import { getTimeBuckets, getAvailableGranularities, getAutoBucketType, type ChartGranularity } from '../../lib/chartUtils';
 import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import type { IncomeExpenseBucket } from '../../services/analytics';
@@ -97,6 +97,18 @@ export default function InsightsScreen() {
     setIncomeExpenseGranularity((prev) => (prev === 'auto' ? prev : 'auto'));
   }, [period]);
 
+  // Wrappers that flip the loading mask ON in the SAME batch as the state change that triggers
+  // a refetch. Without this, the heavy chart re-render runs first (with no mask), then loadData's
+  // own setIsLoadingTrend(true) fires — by which point the user has already perceived a freeze.
+  const handlePeriodChange = useCallback((next: HomePeriodType) => {
+    setIsLoadingTrend(true);
+    setPeriod(next);
+  }, []);
+  const handleGranularityChange = useCallback((g: ChartGranularity) => {
+    setIsLoadingTrend(true);
+    setIncomeExpenseGranularity(g);
+  }, []);
+
   const [balanceTrend, setBalanceTrend] = useState<{ date: string; balance: number }[]>([]);
   const [incomeExpenseData, setIncomeExpenseData] = useState<IncomeExpenseBucket[]>([]);
 
@@ -116,6 +128,25 @@ export default function InsightsScreen() {
       period === 'custom' ? new Date(customRangeTo).toISOString() : undefined,
     );
   }, [period, settingsYearStart, customRangeFrom, customRangeTo]);
+
+  // Which granularity chips to expose, and what bucket type Auto will produce — both derived from period+span.
+  const { availableGranularities, autoBucketType } = useMemo(() => {
+    const spanDays = Math.round(
+      (new Date(dateRange.to).getTime() - new Date(dateRange.from).getTime()) / 86400000,
+    );
+    return {
+      availableGranularities: getAvailableGranularities(period, spanDays),
+      autoBucketType: getAutoBucketType(period, spanDays),
+    };
+  }, [period, dateRange]);
+
+  // If the active granularity is no longer allowed (e.g. user shrank the custom range so 'day'
+  // no longer applies), snap back to 'auto'.
+  useEffect(() => {
+    setIncomeExpenseGranularity((prev) =>
+      availableGranularities.includes(prev) ? prev : 'auto',
+    );
+  }, [availableGranularities]);
 
   const isDefaultView = period === 'week' && selectedChartCategoryId === null;
 
@@ -181,7 +212,11 @@ export default function InsightsScreen() {
   }, [dateRange, period, incomeExpenseGranularity]);
 
   useEffect(() => {
-    loadData();
+    // Defer one frame so React commits + OS paints the chip highlight + "Updating…" mask
+    // BEFORE the SQLite queries + post-fetch re-render begin. setTimeout(…, 0) is more
+    // predictable on Android than InteractionManager for this case.
+    const id = setTimeout(() => loadData(), 0);
+    return () => clearTimeout(id);
   }, [loadData]);
 
   useEffect(() => {
@@ -255,6 +290,7 @@ export default function InsightsScreen() {
     // 2. Defer the heavy state updates (period change → chart refetch) until the modal
     //    animation finishes — keeps the Done tap feeling instant.
     InteractionManager.runAfterInteractions(() => {
+      setIsLoadingTrend(true);                          // mask appears as chart starts updating
       setCustomDraftFrom(fromDate);
       setCustomDraftTo(toDate);
       setCustomRangeFrom(toLocalDayStartISO(fromDate));
@@ -290,7 +326,7 @@ export default function InsightsScreen() {
             period={period}
             from={dateRange.from}
             to={dateRange.to}
-            onPeriodChange={(next) => setPeriod(next as any)}
+            onPeriodChange={(next) => handlePeriodChange(next as HomePeriodType)}
             onOpenCustomRange={openCustomRange}
             theme={chartTheme}
             options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
@@ -361,7 +397,9 @@ export default function InsightsScreen() {
           title="Income vs Expense"
           subtitle={`(${PERIOD_LABELS[period]})`}
           granularity={incomeExpenseGranularity}
-          onGranularityChange={setIncomeExpenseGranularity}
+          onGranularityChange={handleGranularityChange}
+          availableGranularities={availableGranularities}
+          autoBucketType={autoBucketType}
           panelCloseToken={chartPanelCloseToken}
           isLoading={isLoadingTrend}
         />

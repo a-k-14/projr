@@ -1,33 +1,24 @@
 import { AppIcon } from '@/components/ui/AppIcon';
+import { AnimatedCollapseCard, CollapseHandle } from '@/components/ui/AnimatedCollapseCard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Keyboard, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
+import { Keyboard, Pressable, ScrollView, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { getBottomActionPadding, getScrollableBottomPadding } from '../../components/ui/safeBottom';
-import { SectionCard } from '../../components/ui/transaction-form-primitives';
+import { AmountRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
-import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
-import { HOME_RADIUS, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
+import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import type { Category, TransactionType } from '../../types';
 
-function sanitizeDecimalInput(value: string): string {
-  const isNegative = value.trim().startsWith('-');
-  let cleaned = value.replace(/[^0-9.]/g, '');
-  if (!cleaned) return isNegative ? '-' : '';
-  const parts = cleaned.split('.');
-  if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
-  if (cleaned.length > 1 && cleaned.startsWith('0') && cleaned[1] !== '.') {
-    cleaned = cleaned.substring(1);
-  }
-  return `${isNegative ? '-' : ''}${cleaned}`;
-}
 
 function getCategoryName(categories: Category[], categoryId: string) {
   const category = categories.find((item) => item.id === categoryId);
@@ -47,8 +38,9 @@ export default function SplitTransactionModal() {
   const { showAlert, dialog } = useAppDialog(palette);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
-  const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
+  const cardRefs = useRef(new Map<string, CollapseHandle>());
   const [categorySheetRowId, setCategorySheetRowId] = useState<string | null>(null);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   useEffect(() => {
     if (splitRows.length === 0) {
@@ -67,22 +59,22 @@ export default function SplitTransactionModal() {
   };
 
   const selectCategoryForSheetRow = (categoryId: string) => {
-    if (categorySheetRowId) {
-      updateRow(categorySheetRowId, { categoryId });
-    }
+    if (categorySheetRowId) updateRow(categorySheetRowId, { categoryId });
     setCategorySheetRowId(null);
   };
 
-  const openCategoryManagerFromSheet = () => {
-    setCategorySheetRowId(null);
-    router.push('/settings/categories');
+  const openCategoryPickerForRow = (rowId: string) => {
+    if (Keyboard.isVisible()) {
+      Keyboard.dismiss();
+      setTimeout(() => setCategorySheetRowId(rowId), 100);
+    } else {
+      setCategorySheetRowId(rowId);
+    }
   };
 
   const addRow = () => {
     setSplitRows([...splitRows, { id: `split-${Date.now()}-${splitRows.length}`, categoryId: '', amountStr: '' }]);
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    });
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   };
 
   const removeRow = (id: string) => {
@@ -126,6 +118,18 @@ export default function SplitTransactionModal() {
         </View>
       </SafeAreaView>
 
+      {/* Frozen toolbar — outside ScrollView */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: SCREEN_GUTTER, paddingBottom: 8, marginTop: -10 }}>
+        <Pressable
+          onPress={() => setShowCalculator(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+        >
+          <AppIcon name="calculator" size={20} color={palette.brand} strokeWidth={1.9} />
+        </Pressable>
+        <TextButton label="+ Add Line" onPress={addRow} palette={palette} tone="brand" compact />
+      </View>
+
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 128) }}
@@ -133,98 +137,33 @@ export default function SplitTransactionModal() {
         keyboardShouldPersistTaps="handled"
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 4 }}>
-            <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
-              <TextButton label="Add Line Item" onPress={addRow} palette={palette} tone="brand" compact />
-            </View>
-
-            <SectionCard palette={palette} horizontalInset={0}>
-              {splitRows.map((row, index) => (
-                <View
-                  key={row.id}
-                  style={{
-                    minHeight: 62,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: SCREEN_GUTTER,
-                    borderBottomWidth: index === splitRows.length - 1 ? 0 : 1,
-                    borderBottomColor: palette.divider }}
-                >
-                  <TouchableOpacity delayPressIn={0}
-                    onPress={() => {
-                      if (Keyboard.isVisible()) {
-                        Keyboard.dismiss();
-                        setTimeout(() => setCategorySheetRowId(row.id), 100);
-                      } else {
-                        setCategorySheetRowId(row.id);
-                      }
-                    }}
-                    activeOpacity={0.75}
-                    style={{ flex: 1, minWidth: 0, paddingRight: 8 }}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontSize: HOME_TEXT.rowLabel,
-                        color: row.categoryId ? palette.text : palette.textMuted }}
-                    >
-                      {getCategoryName(categories, row.categoryId)}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <View
-                    style={{
-                      width: 112,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      borderBottomWidth: 1,
-                      borderBottomColor: focusedRowId === row.id ? amountColor : palette.borderSoft ?? palette.border,
-                      paddingBottom: 4 }}
-                  >
-                    <TextInput
-                      autoFocus={index === 0}
-                      value={row.amountStr}
-                      onChangeText={(value) =>
-                        updateRow(row.id, {
-                          amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })
-                      }
-                      placeholder="0"
-                      placeholderTextColor={palette.textSoft}
-                      keyboardType="decimal-pad"
-                      onFocus={() => {
-                        setFocusedRowId(row.id);
-                        requestAnimationFrame(() => {
-                          scrollRef.current?.scrollToEnd({ animated: true });
-                        });
-                      }}
-                      onBlur={() => setFocusedRowId((current) => (current === row.id ? null : current))}
-                      style={{
-                        flex: 1,
-                        fontSize: HOME_TEXT.sectionTitle,
-                        fontWeight: FONT_WEIGHT.medium,
-                        color: row.amountStr ? amountColor : palette.text,
-                        textAlign: 'right',
-                        paddingVertical: 0,
-                        paddingRight: 8 }}
-                    />
-                  </View>
-
-                  <Pressable
-                    onPress={() => removeRow(row.id)}
-                    style={({ pressed }) => ({
-                      width: 34,
-                      height: 34,
-                      marginLeft: 14,
-                      borderRadius: HOME_RADIUS.chip,
-                      backgroundColor: pressed ? palette.surface : palette.background,
-                      alignItems: 'center',
-                      justifyContent: 'center' })}
-                  >
-                    <AppIcon name="trash-2" size={16} color={palette.negative} strokeWidth={1.8} />
-                  </Pressable>
-                </View>
-              ))}
-            </SectionCard>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, gap: 8 }}>
+            {splitRows.map((row, index) => (
+              <AnimatedCollapseCard
+                key={row.id}
+                ref={(handle) => { if (handle) cardRefs.current.set(row.id, handle); else cardRefs.current.delete(row.id); }}
+                onRemoved={() => removeRow(row.id)}
+              >
+                <SectionCard palette={palette} horizontalInset={0}>
+                  <AmountRow
+                    sym=""
+                    amountStr={row.amountStr}
+                    setAmountStr={(value) => updateRow(row.id, { amountStr: value })}
+                    palette={palette}
+                    accentColor={amountColor}
+                    autoFocus={index === 0}
+                    onDelete={() => cardRefs.current.get(row.id)?.collapse()}
+                  />
+                  <PickerRow
+                    label="Category"
+                    value={getCategoryName(categories, row.categoryId)}
+                    placeholder={!row.categoryId}
+                    onPress={() => openCategoryPickerForRow(row.id)}
+                    palette={palette}
+                  />
+                </SectionCard>
+              </AnimatedCollapseCard>
+            ))}
           </View>
         </TouchableWithoutFeedback>
       </ScrollView>
@@ -238,7 +177,8 @@ export default function SplitTransactionModal() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 12,
           paddingBottom: getBottomActionPadding(insets, 4),
-          backgroundColor: palette.background }}
+          backgroundColor: palette.background,
+        }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 }}>
           <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: FONT_WEIGHT.semibold }}>Total</Text>
@@ -246,6 +186,7 @@ export default function SplitTransactionModal() {
         </View>
         <FilledButton label="Done" onPress={handleDone} palette={palette} tone="brand" />
       </View>
+
       {categorySheetRowId ? (
         <CategoryPickerSheet
           categories={categories}
@@ -253,10 +194,20 @@ export default function SplitTransactionModal() {
           selectedCategoryId={splitRows.find((row) => row.id === categorySheetRowId)?.categoryId}
           palette={palette}
           onClose={() => setCategorySheetRowId(null)}
-          onManage={openCategoryManagerFromSheet}
+          onManage={() => { setCategorySheetRowId(null); router.push('/settings/categories'); }}
           onSelect={selectCategoryForSheetRow}
         />
       ) : null}
+
+      <CalculatorSheet
+        visible={showCalculator}
+        value=""
+        palette={palette}
+        brandColor={amountColor}
+        onClose={() => setShowCalculator(false)}
+        onApply={() => setShowCalculator(false)}
+      />
+
       {dialog}
     </View>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, useWindowDimensions, Pressable, ScrollView } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { AppIcon } from '../ui/AppIcon';
@@ -21,6 +21,10 @@ interface Props {
   onInteractionStateChange?: (interacting: boolean) => void;
   granularity?: ChartGranularity;
   onGranularityChange?: (g: ChartGranularity) => void;
+  /** Whitelist of chips to show. Empty array → hide the chip toggle icon entirely. */
+  availableGranularities?: ChartGranularity[];
+  /** The bucket type Auto produces for the current period — used to relabel the 'auto' chip. */
+  autoBucketType?: BucketType;
   /** Increment to force the granularity panel closed (e.g. on screen reset). */
   panelCloseToken?: number;
   /** When true, dims the bars area + shows "Updating…" so the chip change has immediate feedback. */
@@ -47,13 +51,26 @@ export function IncomeExpenseChart({
   period,
   granularity,
   onGranularityChange,
+  availableGranularities,
+  autoBucketType,
   panelCloseToken,
   isLoading,
 }: Props): React.ReactElement | null {
+  // Compute once: which chips to render, and whether the toggle icon should show at all.
+  const visibleGranularities = availableGranularities ?? GRANULARITY_OPTIONS.map((o) => o.key);
+  const chipsToRender = GRANULARITY_OPTIONS.filter((o) => visibleGranularities.includes(o.key));
+  const hideToggleIcon = visibleGranularities.length === 0;
   const { width } = useWindowDimensions();
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [granularityOpen, setGranularityOpen] = useState(false);
   const panelProgress = useSharedValue(0);
+  const barsScrollRef = React.useRef<ScrollView | null>(null);
+
+  // When the data changes (granularity switch, new period, etc.), reset the horizontal scroll
+  // so the user always sees bars from the start instead of a stale scrolled-right empty area.
+  useEffect(() => {
+    barsScrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [data]);
 
   const toggleGranularityPanel = () => {
     const next = !granularityOpen;
@@ -140,36 +157,123 @@ export function IncomeExpenseChart({
 
   // Detect once whether monthly buckets in this data set span >1 calendar year.
   // If yes, every monthly label gets a year suffix to disambiguate (e.g. Dec '25 vs Dec '26).
-  const monthlyBucketsSpanYears = (() => {
+  const monthlyBucketsSpanYears = useMemo(() => {
     const years = new Set<string>();
     for (const item of data) {
       if (item.type === 'month' && item.from) {
-        years.add(parseLocalParts(item.from).y);
+        const [y] = toLocalDateKey(item.from).split('-');
+        years.add(y);
         if (years.size > 1) return true;
       }
     }
     return false;
-  })();
+  }, [data]);
 
-  const formatBottomLabel = (item: typeof data[0]) => {
+  // Stable across renders that don't change data → keeps the bars memo cache valid.
+  const formatBottomLabel = useCallback((item: typeof data[0]) => {
     if (!item.from) return item.label;
-    const parts = parseLocalParts(item.from);
+    const dateKey = toLocalDateKey(item.from);
+    const [y, mStr, dStr] = dateKey.split('-');
+    const mIdx = parseInt(mStr) - 1;
+    const d = parseInt(dStr).toString();
+    const monthAbbrev = MONTH_NAMES[mIdx] ?? '';
     // One rule per bucket type. The bucket already knows what kind it is.
     if (item.type === 'day') {
       const weekday = new Date(item.from).toLocaleDateString('en-IN', { weekday: 'short' });
-      return `${parts.d} ${weekday}`;                                            // "12 Mon"
+      return `${d} ${weekday}`;                                                   // "12 Mon"
     }
     if (item.type === 'week')  return item.label;                                // "W1"
     if (item.type === 'month') {
       return monthlyBucketsSpanYears
-        ? `${parts.monthAbbrev} '${parts.y.slice(-2)}`                           // "Dec '25"
-        : parts.monthAbbrev;                                                      // "May"
+        ? `${monthAbbrev} '${y.slice(-2)}`                                       // "Dec '25"
+        : monthAbbrev;                                                            // "May"
     }
-    if (item.type === 'year')  return parts.y;                                   // "2026"
+    if (item.type === 'year')  return y;                                         // "2026"
     return item.label;                                                            // fallback (shouldn't hit)
-  };
+  }, [monthlyBucketsSpanYears, data]);
 
   const isScrollable = data.length > 7;
+
+  // Memoise the heavy bars JSX. It only depends on data + activeIdx + palette + formatBottomLabel —
+  // NOT on granularity/isLoading/period. So tapping a chip skips re-rendering all the bars,
+  // which is what makes the chip + mask appear instantly.
+  const barsContent = useMemo(() => (
+    isScrollable ? (
+      <ScrollView
+        ref={barsScrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          alignItems: 'flex-end',
+          height: 120,
+          paddingHorizontal: 4,
+          gap: 6,
+        }}
+      >
+        {data.map((bucket, i) => {
+          const isSelected = activeIdx === i;
+          const anySelected = activeIdx !== null;
+          const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
+          const incHeight = bucket.income > 0 ? Math.max(2, Math.round((bucket.income / maxValue) * 90)) : 0;
+          const expHeight = bucket.expense > 0 ? Math.max(2, Math.round((bucket.expense / maxValue) * 90)) : 0;
+          return (
+            <Pressable
+              key={bucket.label + i}
+              onPress={() => setActiveIdx(activeIdx === i ? null : i)}
+              style={{ width: 48, height: '100%', justifyContent: 'flex-end', alignItems: 'center', opacity }}
+            >
+              {isSelected && (
+                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: palette.divider, borderRadius: 8, opacity: 0.25 }} />
+              )}
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
+                {incHeight > 0 && (
+                  <View style={{ width: 14, height: incHeight, backgroundColor: incomeColor, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                )}
+                {expHeight > 0 && (
+                  <View style={{ width: 14, height: expHeight, backgroundColor: expenseColor, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                )}
+              </View>
+              <Text style={{ fontSize: HOME_TEXT.tiny, color: isSelected ? palette.text : palette.textMuted, fontWeight: isSelected ? '700' : '400', marginTop: 6 }}>
+                {formatBottomLabel(bucket)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    ) : (
+      <View style={{ height: 120, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around' }}>
+        {data.map((bucket, i) => {
+          const isSelected = activeIdx === i;
+          const anySelected = activeIdx !== null;
+          const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
+          const incHeight = bucket.income > 0 ? Math.max(2, Math.round((bucket.income / maxValue) * 90)) : 0;
+          const expHeight = bucket.expense > 0 ? Math.max(2, Math.round((bucket.expense / maxValue) * 90)) : 0;
+          return (
+            <Pressable
+              key={bucket.label + i}
+              onPress={() => setActiveIdx(activeIdx === i ? null : i)}
+              style={{ flex: 1, maxWidth: 64, height: '100%', justifyContent: 'flex-end', alignItems: 'center', opacity }}
+            >
+              {isSelected && (
+                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 2, right: 2, backgroundColor: palette.divider, borderRadius: 8, opacity: 0.25 }} />
+              )}
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
+                {incHeight > 0 && (
+                  <View style={{ width: '38%', height: incHeight, backgroundColor: incomeColor, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                )}
+                {expHeight > 0 && (
+                  <View style={{ width: '38%', height: expHeight, backgroundColor: expenseColor, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                )}
+              </View>
+              <Text style={{ fontSize: HOME_TEXT.tiny, color: isSelected ? palette.text : palette.textMuted, fontWeight: isSelected ? '700' : '400', marginTop: 6 }}>
+                {formatBottomLabel(bucket)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    )
+  ), [isScrollable, data, activeIdx, maxValue, palette, incomeColor, expenseColor, formatBottomLabel]);
 
   return (
     <View
@@ -236,178 +340,7 @@ export function IncomeExpenseChart({
           {/* Chart Area — bars wrap dims while data refetches; overlay sibling stays full opacity. */}
           <View style={{ position: 'relative' }}>
           <View style={{ opacity: isLoading ? 0.2 : 1 }} pointerEvents={isLoading ? 'none' : 'auto'}>
-          {isScrollable ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{
-                alignItems: 'flex-end',
-                height: 120,
-                paddingHorizontal: 4,
-                gap: 6,
-              }}
-            >
-              {data.map((bucket, i) => {
-                const isSelected = activeIdx === i;
-                const anySelected = activeIdx !== null;
-                const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
-
-                const incHeight = Math.max(4, Math.round((bucket.income / maxValue) * 90));
-                const expHeight = Math.max(4, Math.round((bucket.expense / maxValue) * 90));
-
-                return (
-                  <Pressable
-                    key={bucket.label + i}
-                    onPress={() => setActiveIdx(activeIdx === i ? null : i)}
-                    style={{
-                      width: 48,
-                      height: '100%',
-                      justifyContent: 'flex-end',
-                      alignItems: 'center',
-                      opacity,
-                    }}
-                  >
-                    {/* Visual selection capsule background */}
-                    {isSelected && (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          backgroundColor: palette.divider,
-                          borderRadius: 8,
-                          opacity: 0.25,
-                        }}
-                      />
-                    )}
-
-                    {/* Grouped Bars Container */}
-                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
-                      {/* Income Bar */}
-                      <View
-                        style={{
-                          width: 14,
-                          height: incHeight,
-                          backgroundColor: incomeColor,
-                          borderTopLeftRadius: 4,
-                          borderTopRightRadius: 4,
-                        }}
-                      />
-                      {/* Expense Bar */}
-                      <View
-                        style={{
-                          width: 14,
-                          height: expHeight,
-                          backgroundColor: expenseColor,
-                          borderTopLeftRadius: 4,
-                          borderTopRightRadius: 4,
-                        }}
-                      />
-                    </View>
-
-                    {/* Mini-label below each group */}
-                    <Text
-                      style={{
-                        fontSize: HOME_TEXT.tiny,
-                        color: isSelected ? palette.text : palette.textMuted,
-                        fontWeight: isSelected ? '700' : '400',
-                        marginTop: 6,
-                      }}
-                    >
-                      {formatBottomLabel(bucket)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          ) : (
-            <View
-              style={{
-                height: 120,
-                flexDirection: 'row',
-                alignItems: 'flex-end',
-                justifyContent: 'space-around',
-              }}
-            >
-              {data.map((bucket, i) => {
-                const isSelected = activeIdx === i;
-                const anySelected = activeIdx !== null;
-                const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
-
-                const incHeight = Math.max(4, Math.round((bucket.income / maxValue) * 90));
-                const expHeight = Math.max(4, Math.round((bucket.expense / maxValue) * 90));
-
-                return (
-                  <Pressable
-                    key={bucket.label + i}
-                    onPress={() => setActiveIdx(activeIdx === i ? null : i)}
-                    style={{
-                      flex: 1,
-                      maxWidth: 64,
-                      height: '100%',
-                      justifyContent: 'flex-end',
-                      alignItems: 'center',
-                      opacity,
-                    }}
-                  >
-                    {/* Visual selection capsule background */}
-                    {isSelected && (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          bottom: 0,
-                          left: 2,
-                          right: 2,
-                          backgroundColor: palette.divider,
-                          borderRadius: 8,
-                          opacity: 0.25,
-                        }}
-                      />
-                    )}
-
-                    {/* Grouped Bars Container */}
-                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
-                      {/* Income Bar */}
-                      <View
-                        style={{
-                          width: '38%',
-                          height: incHeight,
-                          backgroundColor: incomeColor,
-                          borderTopLeftRadius: 4,
-                          borderTopRightRadius: 4,
-                        }}
-                      />
-                      {/* Expense Bar */}
-                      <View
-                        style={{
-                          width: '38%',
-                          height: expHeight,
-                          backgroundColor: expenseColor,
-                          borderTopLeftRadius: 4,
-                          borderTopRightRadius: 4,
-                        }}
-                      />
-                    </View>
-
-                    {/* Mini-label below each group */}
-                    <Text
-                      style={{
-                        fontSize: HOME_TEXT.tiny,
-                        color: isSelected ? palette.text : palette.textMuted,
-                        fontWeight: isSelected ? '700' : '400',
-                        marginTop: 6,
-                      }}
-                    >
-                      {formatBottomLabel(bucket)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+          {barsContent}
           </View>
           {isLoading ? (
             <View
@@ -447,7 +380,7 @@ export function IncomeExpenseChart({
                 <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Expense</Text>
               </View>
             </View>
-            {onGranularityChange ? (
+            {onGranularityChange && !hideToggleIcon ? (
               <Pressable
                 onPress={toggleGranularityPanel}
                 hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
@@ -465,28 +398,37 @@ export function IncomeExpenseChart({
             ) : null}
           </View>
 
-          {/* Granularity panel — chips sit in the card's natural whitespace, no band. */}
-          {onGranularityChange ? (
+          {/* Granularity panel — natural-width chips, right-aligned to mirror the toggle icon above. */}
+          {onGranularityChange && !hideToggleIcon ? (
             <Animated.View style={[{ overflow: 'hidden' }, panelAnimatedStyle]}>
               <View
+                pointerEvents={isLoading ? 'none' : 'auto'}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  justifyContent: 'flex-end',
+                  gap: 8,
                   paddingTop: 14,
                   paddingBottom: 6,
+                  opacity: isLoading ? 0.5 : 1,
                 }}
               >
-                {GRANULARITY_OPTIONS.map((opt) => (
-                  <FilterChip
-                    key={opt.key}
-                    label={opt.label}
-                    isActive={currentGranularity === opt.key}
-                    onPress={() => onGranularityChange(opt.key)}
-                    palette={palette}
-                    style={{ flex: 1, paddingHorizontal: 6 }}
-                  />
-                ))}
+                {chipsToRender.map((opt) => {
+                  // 'auto' chip gets the real bucket-type name (Week, Month, …) so the user
+                  // sees what each chip will actually show instead of an abstract "Auto".
+                  const label = opt.key === 'auto' && autoBucketType
+                    ? autoBucketType[0].toUpperCase() + autoBucketType.slice(1)
+                    : opt.label;
+                  return (
+                    <FilterChip
+                      key={opt.key}
+                      label={label}
+                      isActive={currentGranularity === opt.key}
+                      onPress={() => onGranularityChange(opt.key)}
+                      palette={palette}
+                    />
+                  );
+                })}
               </View>
             </Animated.View>
           ) : null}

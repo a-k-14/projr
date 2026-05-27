@@ -1,8 +1,9 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { ScrollView, View , TouchableOpacity } from 'react-native';
+import { ScrollView, View, TouchableOpacity } from 'react-native';
+import { AnimatedCollapseCard, CollapseHandle } from '../../components/ui/AnimatedCollapseCard';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import {
   ActionButton,
@@ -73,6 +74,7 @@ export default function CategoryFormScreen() {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const formScrollRef = useRef<ScrollView | null>(null);
   const originalSubsRef = useRef<SubDraft[]>([]);
+  const subCardRefs = useRef(new Map<string, CollapseHandle>());
 
   const editingCategory = id ? categories.find((c) => c.id === id) : undefined;
   const isSubcategory = !!editingCategory?.parentId;
@@ -125,7 +127,7 @@ export default function CategoryFormScreen() {
     setSubs((s) => s.map((sub, i) => (i === idx ? { ...sub, name: value } : sub)));
   }
 
-  function deleteSub(idx: number) {
+  function deleteSub(idx: number, cardKey: string) {
     const target = subs[idx];
     if (!target) return;
     const subName = target.name.trim();
@@ -137,7 +139,12 @@ export default function CategoryFormScreen() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: () => {
-        setSubs((current) => current.map((sub, i) => (i === idx ? { ...sub, deleted: true } : sub)));
+        const card = subCardRefs.current.get(cardKey);
+        if (card) {
+          card.collapse();
+        } else {
+          setSubs((current) => current.map((sub, i) => (i === idx ? { ...sub, deleted: true } : sub)));
+        }
       },
     });
   }
@@ -373,30 +380,37 @@ export default function CategoryFormScreen() {
                     No subcategories yet. Tap Add to create one.
                   </Text>
                 )}
-                {visibleSubs.map((sub, renderIdx) => (
-                  <View key={sub.id ?? `new-${sub.originalIdx}`}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <InputField
-                        palette={palette}
-                        value={sub.name}
-                        onChangeText={(v) => updateSubName(sub.originalIdx, v)}
-                        placeholder={`Subcategory ${renderIdx + 1}`}
-                        autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
-                        onFocus={() => setTimeout(() => formScrollRef.current?.scrollToEnd({ animated: true }), 250)}
-                      />
-                    </View>
-                    <IconBtn
-                      onPress={() => deleteSub(sub.originalIdx)}
-                      variant="danger"
-                      palette={palette}
-                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                {visibleSubs.map((sub, renderIdx) => {
+                  const cardKey = sub.id ?? `new-${sub.originalIdx}`;
+                  return (
+                    <AnimatedCollapseCard
+                      key={cardKey}
+                      ref={(handle) => { if (handle) subCardRefs.current.set(cardKey, handle); else subCardRefs.current.delete(cardKey); }}
+                      onRemoved={() => setSubs((current) => current.map((s, i) => (i === sub.originalIdx ? { ...s, deleted: true } : s)))}
                     >
-                      <AppIcon name="trash-2" size={18} color={palette.negative} />
-                    </IconBtn>
-                  </View>
-                ))}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ flex: 1 }}>
+                          <InputField
+                            palette={palette}
+                            value={sub.name}
+                            onChangeText={(v) => updateSubName(sub.originalIdx, v)}
+                            placeholder={`Subcategory ${renderIdx + 1}`}
+                            autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
+                            onFocus={() => setTimeout(() => formScrollRef.current?.scrollToEnd({ animated: true }), 250)}
+                          />
+                        </View>
+                        <IconBtn
+                          onPress={() => deleteSub(sub.originalIdx, cardKey)}
+                          variant="danger"
+                          palette={palette}
+                          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                        >
+                          <AppIcon name="trash-2" size={18} color={palette.negative} />
+                        </IconBtn>
+                      </View>
+                    </AnimatedCollapseCard>
+                  );
+                })}
               </View>
             </View>
           )}

@@ -28,7 +28,7 @@ interface TrendLineChartProps {
   endDate?: string;
 }
 
-export function TrendLineChart({
+function TrendLineChartBase({
   points,
   palette,
   currencySymbol,
@@ -301,3 +301,5 @@ export function TrendLineChart({
     </View>
   );
 }
+
+export const TrendLineChart = React.memo(TrendLineChartBase);

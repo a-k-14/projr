@@ -2,7 +2,8 @@ import { AppChevron } from '@/components/ui/AppChevron';
 import { CalculatorTrigger } from '@/components/ui/CalculatorTrigger';
 import { RefObject, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { TextInput, View , TouchableOpacity } from 'react-native';
+import { TextInput, View , TouchableOpacity, Pressable } from 'react-native';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { formatDate } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
@@ -14,7 +15,7 @@ export const ROW_MIN_HEIGHT = 62;
 export const ROW_COLUMN_GAP = 16;
 export const ROW_TRAILING_WIDTH = 24;
 
-function sanitizeDecimalInput(value: string): string {
+export function sanitizeDecimalInput(value: string): string {
   const isNegative = value.trim().startsWith('-');
   let cleaned = value.replace(/[^0-9.]/g, '');
   if (!cleaned) return isNegative ? '-' : '';
@@ -360,6 +361,7 @@ export function AmountRow({
   palette,
   accentColor,
   onOpenCalculator,
+  onDelete,
   onPressAmount,
   autoFocus = false,
   calculatorButtonVariant = 'large',
@@ -375,6 +377,7 @@ export function AmountRow({
   palette: AppThemePalette;
   accentColor: string;
   onOpenCalculator?: () => void;
+  onDelete?: () => void;
   onPressAmount?: () => void;
   autoFocus?: boolean;
   calculatorButtonVariant?: 'compact' | 'large';
@@ -475,6 +478,44 @@ export function AmountRow({
               onPress={onOpenCalculator}
               size={isLargeButton ? 'large' : 'compact'}
             />
+          </View>
+        ) : null}
+        {onDelete ? (
+          <View
+            style={{
+              marginLeft: isLargeButton ? SCREEN_GUTTER : 0,
+              width: isLargeButton ? ROW_TRAILING_WIDTH + 24 : ROW_TRAILING_WIDTH + 16,
+              height: isLargeButton ? 48 : undefined,
+              minHeight: ROW_MIN_HEIGHT,
+              alignItems: 'center',
+              justifyContent: 'center' }}
+          >
+            <Pressable
+              onPress={onDelete}
+              style={({ pressed }) => ({
+                width: isLargeButton ? 44 : 30,
+                height: isLargeButton ? 44 : 30,
+                borderRadius: isLargeButton ? HOME_RADIUS.button : HOME_RADIUS.chip,
+                backgroundColor: pressed ? palette.surface : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+              })}
+            >
+              <View
+                style={{
+                  width: isLargeButton ? 44 : 30,
+                  height: isLargeButton ? 44 : 30,
+                  borderRadius: isLargeButton ? HOME_RADIUS.button : HOME_RADIUS.chip,
+                  backgroundColor: palette.surface,
+                  borderWidth: 1,
+                  borderColor: palette.divider,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppIcon name="trash-2" size={isLargeButton ? 20 : 16} color={palette.negative} strokeWidth={1.8} />
+              </View>
+            </Pressable>
           </View>
         ) : null}
       </View>

@@ -6,6 +6,37 @@ export type TimeBucket = { from: string; to: string; label: string; key: string;
 /** User-facing granularity override for chart bucketing. `auto` = let getTimeBuckets pick based on period. */
 export type ChartGranularity = 'auto' | 'day' | 'week' | 'month' | 'year';
 
+/**
+ * Per-period whitelist of which granularity chips to show on Income vs Expense.
+ * Explicit table — reads like the UX spec. Empty array = hide the chip toggle entirely (Today).
+ */
+export function getAvailableGranularities(
+  period: string,
+  spanDays: number,
+): ChartGranularity[] {
+  // Hide chips when Auto already gives the same/finer granularity — no useful override.
+  if (period === 'today') return [];
+  if (period === 'week')  return [];               // auto = day
+  if (period === 'month') return ['auto', 'day'];  // auto = week, drill to day
+  if (period === 'year')  return ['auto', 'week']; // auto = month, drill to week
+  // Custom — same logic, by span
+  if (spanDays < 14)  return [];                   // auto = day
+  if (spanDays < 90)  return ['auto', 'day'];      // auto = week, drill to day
+  if (spanDays < 730) return ['auto', 'week'];     // auto = month, drill to week
+  return ['auto', 'year'];                          // auto = month, roll up to year
+}
+
+/** Which bucket type Auto would produce for the given period+span — used to label the 'auto' chip with its real name. */
+export function getAutoBucketType(period: string, spanDays: number): BucketType {
+  if (period === 'today' || period === 'week') return 'day';
+  if (period === 'month') return 'week';
+  if (period === 'year')  return 'month';
+  // custom
+  if (spanDays < 14) return 'day';
+  if (spanDays < 90) return 'week';
+  return 'month';
+}
+
 const DAY_ABBREVS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
 const MONTH_ABBREVS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
