@@ -39,6 +39,10 @@ const GRANULARITY_OPTIONS: { key: ChartGranularity; label: string }[] = [
   { key: 'year',  label: 'Year' },
 ];
 
+// Visual sort order for chips — always Day → Week → Month → Year (Auto's slot is wherever its bucket type lands).
+const BUCKET_SORT: Record<BucketType, number> = { day: 0, week: 1, month: 2, year: 3 };
+const BUCKET_LABEL: Record<BucketType, string> = { day: 'Day', week: 'Week', month: 'Month', year: 'Year' };
+
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTH_FULL_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -56,9 +60,20 @@ export function IncomeExpenseChart({
   panelCloseToken,
   isLoading,
 }: Props): React.ReactElement | null {
-  // Compute once: which chips to render, and whether the toggle icon should show at all.
+  // Compute once: which chips to render (sorted Day → Week → Month → Year), and whether the toggle icon shows.
   const visibleGranularities = availableGranularities ?? GRANULARITY_OPTIONS.map((o) => o.key);
-  const chipsToRender = GRANULARITY_OPTIONS.filter((o) => visibleGranularities.includes(o.key));
+  const chipsToRender = GRANULARITY_OPTIONS
+    .filter((o) => visibleGranularities.includes(o.key))
+    .map((o) => {
+      // The 'auto' chip displays as its actual bucket type for this period (e.g. "Week" for Month period).
+      const effectiveType: BucketType | undefined = o.key === 'auto' ? autoBucketType : o.key as BucketType;
+      return {
+        key: o.key,
+        label: o.key === 'auto' && autoBucketType ? BUCKET_LABEL[autoBucketType] : o.label,
+        sort: effectiveType ? BUCKET_SORT[effectiveType] : 99,
+      };
+    })
+    .sort((a, b) => a.sort - b.sort);
   const hideToggleIcon = visibleGranularities.length === 0;
   const { width } = useWindowDimensions();
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
@@ -406,7 +421,7 @@ export function IncomeExpenseChart({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'flex-end',
+                  justifyContent: 'flex-start',
                   gap: 8,
                   paddingTop: 14,
                   paddingBottom: 6,
