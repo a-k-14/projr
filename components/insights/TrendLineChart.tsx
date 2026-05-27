@@ -3,7 +3,7 @@ import { View, Dimensions, Animated } from 'react-native';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
 import { Text } from '../ui/AppText';
 import { formatCurrency } from '../../lib/derived';
-import { toLocalDateKey } from '../../lib/dateUtils';
+import { toLocalDateKey, APP_LOCALE } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
@@ -126,7 +126,7 @@ function TrendLineChartBase({
     const p = points[activePointIndex];
     const d = new Date(p.date + 'T00:00:00');
     if (isNaN(d.getTime())) return '';
-    return `${d.getDate()} ${d.toLocaleDateString('en-IN', { month: 'short' })} ${d.getFullYear()}`;
+    return `${d.getDate()} ${d.toLocaleDateString(APP_LOCALE, { month: 'short' })} ${d.getFullYear()}`;
   }, [activePointIndex, points]);
 
   // Format axis dates
@@ -134,7 +134,7 @@ function TrendLineChartBase({
     if (!isoStr) return '';
     const d = new Date(isoStr.includes('T') ? isoStr : isoStr + 'T00:00:00');
     if (isNaN(d.getTime())) return '';
-    return `${d.getDate()} ${d.toLocaleDateString('en-IN', { month: 'short' })}`;
+    return `${d.getDate()} ${d.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
   };
 
   const CARD_BASE = {
@@ -291,10 +291,10 @@ function TrendLineChartBase({
 
       {/* Axis dates */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 14 }}>
-        <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '600', color: palette.text }}>
+        <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
           {formatAxisDate(startDate ?? points[0]?.date)} ({formatCurrency(points[0]?.val, currencySymbol)})
         </Text>
-        <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: '600', color: palette.text }}>
+        <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
           {formatAxisDate(endDate ?? points[points.length - 1]?.date)} ({formatCurrency(points[points.length - 1]?.val, currencySymbol)})
         </Text>
       </View>

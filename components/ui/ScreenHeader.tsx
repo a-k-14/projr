@@ -60,8 +60,8 @@ export function HeaderAddButton({
       onPress={onPress}
       style={[styles.headerButton, { backgroundColor: palette.brand }]}
     >
-      <AppIcon name="plus" size={13} color="#FFFFFF" strokeWidth={2} />
-      <Text style={[styles.headerButtonText, styles.addButtonText]}>{label}</Text>
+      <AppIcon name="plus" size={13} color={palette.onBrand} strokeWidth={2} />
+      <Text style={[styles.headerButtonText, { color: palette.onBrand }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -212,8 +212,5 @@ const styles = StyleSheet.create({
     fontSize: HOME_TEXT.metaSmall,
     lineHeight: 16,
     fontWeight: FONT_WEIGHT.semibold,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
   },
 });

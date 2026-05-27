@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { Transaction, CreateTransactionInput, TransactionFilters } from '../types';
 import * as transactionsService from '../services/transactions';
 import { TRANSACTIONS_PAGE_SIZE as PAGE_SIZE } from '../lib/layoutTokens';
+import { getTransactionBalanceDelta } from '../lib/transactionImpact';
+import { useAccountsStore } from './useAccountsStore';
 
 interface TransactionsStore {
   transactions: Transaction[];
@@ -10,6 +12,7 @@ interface TransactionsStore {
   hasMore: boolean;
   isLoadingMore: boolean;
   mutationVersion: number;
+  lastAddedTx: Transaction | null;
   load: (filters?: TransactionFilters) => Promise<void>;
   reset: () => void;
   trimToFirstPage: () => void;
@@ -27,6 +30,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   hasMore: true,
   isLoadingMore: false,
   mutationVersion: 0,
+  lastAddedTx: null,
 
   load: async (filters) => {
     const f = { ...get().filters, ...filters, limit: PAGE_SIZE, offset: 0 };
@@ -87,7 +91,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     set((state) => ({
       transactions: insertTransaction(state.transactions, tx),
       mutationVersion: state.mutationVersion + 1,
+      lastAddedTx: tx,
     }));
+    // Optimistic balance delta — skip transfers (two-leg; net NW neutral, refreshAccounts handles it)
+    if (!tx.transferPairId) {
+      const delta = getTransactionBalanceDelta(tx);
+      useAccountsStore.getState().applyBalanceDelta(tx.accountId, delta);
+    }
     return tx;
   },
 

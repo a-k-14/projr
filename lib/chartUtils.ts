@@ -14,16 +14,16 @@ export function getAvailableGranularities(
   period: string,
   spanDays: number,
 ): ChartGranularity[] {
-  // Hide chips when Auto already gives the same/finer granularity — no useful override.
   if (period === 'today') return [];
-  if (period === 'week')  return [];               // auto = day
-  if (period === 'month') return ['auto', 'day'];  // auto = week, drill to day
-  if (period === 'year')  return ['auto', 'week']; // auto = month, drill to week
-  // Custom — same logic, by span
-  if (spanDays < 14)  return [];                   // auto = day
-  if (spanDays < 90)  return ['auto', 'day'];      // auto = week, drill to day
-  if (spanDays < 730) return ['auto', 'week'];     // auto = month, drill to week
-  return ['auto', 'year'];                          // auto = month, roll up to year
+  // Named periods get Auto + finer override(s) + the period's own bucket (= total-as-one-bar view).
+  if (period === 'week')  return ['auto', 'week'];          // Day(auto) · Week
+  if (period === 'month') return ['auto', 'day', 'month'];  // Day · Week(auto) · Month
+  if (period === 'year')  return ['auto', 'week', 'year'];  // Week · Month(auto) · Year
+  // Custom — chips depend on span (no notion of a "period bucket")
+  if (spanDays < 14)  return [];
+  if (spanDays < 90)  return ['auto', 'day'];
+  if (spanDays < 730) return ['auto', 'week'];
+  return ['auto', 'year'];
 }
 
 /** Which bucket type Auto would produce for the given period+span — used to label the 'auto' chip with its real name. */

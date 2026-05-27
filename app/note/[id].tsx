@@ -17,16 +17,12 @@ import Animated, { useSharedValue, withTiming, useAnimatedStyle } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SystemBottomGuard } from '../../components/ui/safeBottom';
 import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
-import { HOME_SPACE, HOME_RADIUS } from '../../lib/layoutTokens';
+import { HOME_SPACE, HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useNotesStore } from '../../stores/useNotesStore';
 import * as notesService from '../../services/notes';
 import type { NoteItem, NoteWithItems } from '../../types';
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return `${d.getDate()} ${d.toLocaleDateString('en-IN', { month: 'short' })} ${d.getFullYear()}`;
-}
+import { formatDateFull } from '../../lib/ui-format';
 
 export default function NoteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -149,7 +145,7 @@ export default function NoteDetailScreen() {
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       {/* Header on screen bg — shows date */}
       <ScreenHeader
-        title={formatDate(note.updatedAt)}
+        title={formatDateFull(note.updatedAt)}
         titleSize={14}
         titleWeight={FONT_WEIGHT.medium}
         titleColor={palette.text}
@@ -209,7 +205,7 @@ export default function NoteDetailScreen() {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <View style={{
-                  width: 20, height: 20, borderRadius: 10,
+                  width: 20, height: 20, borderRadius: HOME_RADIUS.small,
                   borderWidth: 2,
                   borderColor: palette.brand,
                   backgroundColor: item.checked ? palette.brand : 'transparent',
@@ -240,7 +236,7 @@ export default function NoteDetailScreen() {
                 placeholderTextColor={palette.textMuted}
                 style={{
                   flex: 1,
-                  fontSize: 16,
+                  fontSize: HOME_TEXT.rowLabel,
                   color: item.checked ? palette.textMuted : palette.text,
                   textDecorationLine: item.checked ? 'line-through' : 'none',
                   paddingVertical: 2,
@@ -280,7 +276,7 @@ export default function NoteDetailScreen() {
             }}>
               <AppIcon name="plus" size={11} color="#fff" strokeWidth={2.5} />
             </View>
-            <Text style={{ fontSize: 15, color: palette.brand, fontWeight: FONT_WEIGHT.semibold }}>
+            <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.brand, fontWeight: FONT_WEIGHT.semibold }}>
               Add Item
             </Text>
           </TouchableOpacity>

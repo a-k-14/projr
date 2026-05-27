@@ -6,10 +6,7 @@ import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
 import { FONT_WEIGHT } from '@/lib/design';
 import { HOME_LAYOUT, HOME_RADIUS, HOME_TEXT } from '@/lib/layoutTokens';
 
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+import { formatDateFull } from '../../lib/ui-format';
 
 export function PeriodSelector({
   period,
@@ -55,7 +52,7 @@ export function PeriodSelector({
         <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: theme.text }}></Text>
         <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', flexShrink: 1 }}>
           <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: theme.textMuted ?? theme.muted }}>
-            {formatDate(from)}
+            {formatDateFull(from)}
           </Text>
           {period !== 'today' && (
             <Animated.View 
@@ -64,7 +61,7 @@ export function PeriodSelector({
               style={{ flexDirection: 'row', alignItems: 'center' }}
             >
               <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: theme.textMuted ?? theme.muted }}>
-                {` - ${formatDate(to)}`}
+                {` - ${formatDateFull(to)}`}
               </Text>
             </Animated.View>
           )}

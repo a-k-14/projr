@@ -8,7 +8,7 @@ import type { AppThemePalette } from '../../lib/theme';
 import { HOME_RADIUS, SCREEN_GUTTER } from '../../lib/layoutTokens';
 import { CARD_PADDING, HOME_TEXT, FONT_WEIGHT } from '../../lib/design';
 import { formatCurrency } from '../../lib/derived';
-import { toLocalDateKey } from '../../lib/dateUtils';
+import { toLocalDateKey, APP_LOCALE } from '../../lib/dateUtils';
 import type { ChartGranularity, BucketType } from '../../lib/chartUtils';
 
 interface Props {
@@ -117,8 +117,8 @@ export function IncomeExpenseChart({
 
   const allZero = data.every((d) => d.income === 0 && d.expense === 0);
 
-  const incomeColor = '#0D9488';
-  const expenseColor = '#F87171';
+  const incomeColor = palette.chartIncome;
+  const expenseColor = palette.chartExpense;
 
   const totalIncome = data.reduce((s, d) => s + d.income, 0);
   const totalExpense = data.reduce((s, d) => s + d.expense, 0);
@@ -151,11 +151,11 @@ export function IncomeExpenseChart({
     const sameDay = toLocalDateKey(item.from) === toLocalDateKey(item.to);
 
     if (period === 'today' || sameDay) {
-      const fullDayName = new Date(item.from).toLocaleDateString('en-IN', { weekday: 'long' });
+      const fullDayName = new Date(item.from).toLocaleDateString(APP_LOCALE, { weekday: 'long' });
       return `${fullDayName} (${fromParts.d} ${fromParts.monthAbbrev} ${fromParts.y})`;
     }
     if (period === 'week') {
-      const fullDayName = new Date(item.from).toLocaleDateString('en-IN', { weekday: 'long' });
+      const fullDayName = new Date(item.from).toLocaleDateString(APP_LOCALE, { weekday: 'long' });
       return `${fullDayName} (${fromParts.d} ${fromParts.monthAbbrev} ${fromParts.y})`;
     }
     if (item.label.startsWith('W') || period === 'month') {
@@ -194,7 +194,7 @@ export function IncomeExpenseChart({
     const monthAbbrev = MONTH_NAMES[mIdx] ?? '';
     // One rule per bucket type. The bucket already knows what kind it is.
     if (item.type === 'day') {
-      const weekday = new Date(item.from).toLocaleDateString('en-IN', { weekday: 'short' });
+      const weekday = new Date(item.from).toLocaleDateString(APP_LOCALE, { weekday: 'short' });
       return `${d} ${weekday}`;                                                   // "12 Mon"
     }
     if (item.type === 'week')  return item.label;                                // "W1"
@@ -309,7 +309,7 @@ export function IncomeExpenseChart({
             {title}
           </Text>
           {activeItem ? (
-            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2, fontWeight: '500' }}>
+            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2, fontWeight: FONT_WEIGHT.medium }}>
               {formatBucketLabel(activeItem)}
             </Text>
           ) : (
@@ -324,14 +324,14 @@ export function IncomeExpenseChart({
         {activeItem ? (
           <View style={{ alignItems: 'flex-end', minWidth: 140 }}>
             <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
-              Income: <Text style={{ color: incomeColor, fontWeight: '600' }}>+{formatCurrency(activeItem.income, sym)}</Text>
+              Income: <Text style={{ color: incomeColor, fontWeight: FONT_WEIGHT.semibold }}>+{formatCurrency(activeItem.income, sym)}</Text>
             </Text>
             <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
-              Expense: <Text style={{ color: expenseColor, fontWeight: '600' }}>-{formatCurrency(activeItem.expense, sym)}</Text>
+              Expense: <Text style={{ color: expenseColor, fontWeight: FONT_WEIGHT.semibold }}>-{formatCurrency(activeItem.expense, sym)}</Text>
             </Text>
             <View style={{ height: 1, width: 90, alignSelf: 'flex-end', backgroundColor: palette.divider, marginVertical: 3 }} />
             <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted }}>
-              Net: <Text style={{ color: (activeItem.income - activeItem.expense) >= 0 ? palette.numberPositive : palette.numberNegative, fontWeight: '700' }}>{formatCurrency(activeItem.income - activeItem.expense, sym)}</Text>
+              Net: <Text style={{ color: (activeItem.income - activeItem.expense) >= 0 ? palette.numberPositive : palette.numberNegative, fontWeight: FONT_WEIGHT.bold }}>{formatCurrency(activeItem.income - activeItem.expense, sym)}</Text>
             </Text>
           </View>
         ) : (

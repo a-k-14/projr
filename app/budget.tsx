@@ -19,8 +19,10 @@ import { useBudgetStore } from '../stores/useBudgetStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useUIStore } from '../stores/useUIStore';
 
+import { toLocalMonthStartISO } from '../lib/dateUtils';
+
 function monthStartIso(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0).toISOString();
+  return toLocalMonthStartISO(date.getFullYear(), date.getMonth());
 }
 
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';

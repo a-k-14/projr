@@ -18,6 +18,7 @@ import type { AppThemePalette } from '../../../lib/theme';
 import type { LoanWithSummary } from '../../../types';
 import { AppCard, CardSubtitleRow } from '../AppCard';
 import { AppIcon } from '../AppIcon';
+import { formatDateFull } from '../../../lib/ui-format';
 
 export function LoanListCard({
   loan,
@@ -100,7 +101,7 @@ export function LoanListCard({
         }
         bottomRow={
           <CardSubtitleRow
-            text={`${formatLoanCardDate(loan.date)} • ${accountName ?? 'Unknown account'}`}
+            text={`${formatDateFull(loan.date)} • ${accountName ?? 'Unknown account'}`}
             rightText={`Bal ${formatCurrency(loan.pendingAmount, sym)}`}
             palette={palette}
           />
@@ -141,8 +142,4 @@ export function LoanListCard({
       )}
     </View>
   );
-}
-
-function formatLoanCardDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }

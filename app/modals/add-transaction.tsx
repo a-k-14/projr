@@ -44,7 +44,7 @@ import {
 } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { nowUTC, toLocalDayStartISO } from '../../lib/dateUtils';
+import { nowUTC, toLocalDayStartISO, addMonthsSafe } from '../../lib/dateUtils';
 import {
   formatCurrency,
   formatSignedCurrency,
@@ -686,8 +686,8 @@ export default function AddTransactionModal() {
         let maturityDate: string | null = null;
         if (tenureMonths) {
           const start = new Date(date);
-          start.setMonth(start.getMonth() + tenureMonths);
-          maturityDate = start.toISOString();
+          const end = addMonthsSafe(start, tenureMonths);
+          maturityDate = end.toISOString();
         }
         // Use the maturity value from the editable field (auto-computed or user-overridden).
         let maturityValue: number | null = null;

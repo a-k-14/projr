@@ -4,7 +4,7 @@ import { RefObject, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { TextInput, View , TouchableOpacity, Pressable } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { formatDate } from '../../lib/dateUtils';
+import { formatDate, APP_LOCALE } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { HOME_TEXT , HOME_RADIUS} from '../../lib/layoutTokens';
@@ -294,7 +294,7 @@ export function InteractiveDateTimeRow({
 }) {
   const dt = new Date(date);
   const dateStr = formatDate(date);
-  const timeStr = dt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+  const timeStr = dt.toLocaleTimeString(APP_LOCALE, { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
   const chipBg = palette.isDark ? 'rgba(255,255,255,0.04)' : palette.background;
 
   return (

@@ -1,3 +1,5 @@
+import { APP_LOCALE } from './dateUtils.ts';
+
 export function isEmojiIcon(icon?: string | null): boolean {
   return !!icon && !/^[a-z0-9-]+$/i.test(icon);
 }
@@ -6,18 +8,18 @@ function formatIfValid(
   iso: string,
   options: Intl.DateTimeFormatOptions,
   fallback: string = 'Invalid Date'
-): string {
-  const value = new Date(iso);
-  if (Number.isNaN(value.getTime())) {
-    return fallback;
-  }
-
-  try {
-    return value.toLocaleDateString('en-IN', options);
-  } catch {
-    return fallback;
-  }
-}
+ ): string {
+   const value = new Date(iso);
+   if (Number.isNaN(value.getTime())) {
+     return fallback;
+   }
+ 
+   try {
+     return value.toLocaleDateString(APP_LOCALE, options);
+   } catch {
+     return fallback;
+   }
+ }
 
 export function formatDateFull(iso: string): string {
   return formatIfValid(iso, {

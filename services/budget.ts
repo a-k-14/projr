@@ -3,7 +3,7 @@ import { db } from '../db/client';
 import { budget, transactions } from '../db/schema';
 import type { Budget, BudgetWithSpent, CreateBudgetInput, Transaction } from '../types';
 import { generateId } from '../lib/ids';
-import { todayUTC } from '../lib/dateUtils';
+import { todayUTC, toLocalMonthStartISO } from '../lib/dateUtils';
 import { getCategories } from './categories';
 
 function rowToBudget(row: typeof budget.$inferSelect): Budget {
@@ -27,9 +27,9 @@ function getMonthRange(iso: string) {
   const date = new Date(iso);
   const year = date.getFullYear();
   const month = date.getMonth();
-  const from = new Date(year, month, 1, 0, 0, 0, 0);
-  const to = new Date(year, month + 1, 0, 23, 59, 59, 999);
-  return { from: from.toISOString(), to: to.toISOString() };
+  const from = toLocalMonthStartISO(year, month);
+  const to = new Date(year, month + 1, 0, 23, 59, 59, 999).toISOString();
+  return { from, to };
 }
 
 function isBudgetActiveInMonth(entry: Budget, selectedMonthKey: string) {
@@ -92,7 +92,7 @@ export async function getBudgetMarkedMonthsForYear(year: number): Promise<string
   const marked = new Set<string>();
 
   for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
-    const monthIso = new Date(year, monthIndex, 1, 0, 0, 0, 0).toISOString();
+    const monthIso = toLocalMonthStartISO(year, monthIndex);
     const selectedMonthKey = getMonthKey(monthIso);
     const hasBudget = budgetList.some((b) => {
       const budgetMonthKey = getMonthKey(b.startDate);

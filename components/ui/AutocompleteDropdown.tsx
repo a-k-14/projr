@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { HOME_RADIUS, HOME_SHADOW, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
+import { FONT_WEIGHT } from '../../lib/design';
 
 const ROW_HEIGHT = 50;
 const MIN_BELOW_SPACE = 200;
@@ -166,7 +167,7 @@ export function AutocompleteDropdown({
                     style={{
                       flex: 1,
                       fontSize: HOME_TEXT.body,
-                      fontWeight: '500',
+                      fontWeight: FONT_WEIGHT.medium,
                       color: palette.text,
                     }}
                   >

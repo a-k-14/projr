@@ -3,7 +3,7 @@ import { db } from '../db/client';
 import { deposits } from '../db/schema';
 import type { CloseDepositInput, Deposit, CreateDepositInput, DepositFilters, DepositStatus } from '../types';
 import { generateId } from '../lib/ids';
-import { nowUTC, todayUTC } from '../lib/dateUtils';
+import { nowUTC, todayUTC, addMonthsSafe } from '../lib/dateUtils';
 import { createTransaction, deleteTransaction, getTransactions, updateTransaction } from './transactions';
 import { getCategoryBySystemKey } from './categories';
 
@@ -120,8 +120,8 @@ export async function updateDeposit(
   if (inputsChanged && data.maturityDate === undefined) {
     if (nextTenureMonths) {
       const start = new Date(nextStartDate);
-      start.setMonth(start.getMonth() + nextTenureMonths);
-      computedMaturityDate = start.toISOString();
+      const end = addMonthsSafe(start, nextTenureMonths);
+      computedMaturityDate = end.toISOString();
     } else {
       computedMaturityDate = null;
     }

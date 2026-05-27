@@ -21,6 +21,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import type { BudgetWithSpent, Category } from '../../types';
+import { toLocalMonthStartISO } from '../../lib/dateUtils';
 
 export default function BudgetFormModal() {
   const { budgetId, month } = useLocalSearchParams<{ budgetId?: string; month?: string }>();
@@ -47,7 +48,7 @@ export default function BudgetFormModal() {
 
   const [amountStr, setAmountStr] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [startMonth, setStartMonth] = useState(month || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+  const [startMonth, setStartMonth] = useState(month || toLocalMonthStartISO(new Date().getFullYear(), new Date().getMonth()));
   const [repeat, setRepeat] = useState(true);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
   const [showCategorySheet, setShowCategorySheet] = useState(false);
@@ -64,7 +65,7 @@ export default function BudgetFormModal() {
       setStartMonth(editingBudget.startDate);
       setRepeat(editingBudget.repeat);
     } else {
-      setStartMonth(month || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+      setStartMonth(month || toLocalMonthStartISO(new Date().getFullYear(), new Date().getMonth()));
       resetDraft();
     }
   }, [editingBudget, month, resetDraft, setDraftCategoryId]);

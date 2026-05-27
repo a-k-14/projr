@@ -111,13 +111,20 @@ export function GrainHeroCard({
           {metrics.map((m) => (
             <View
               key={m.label}
-              style={styles.metricContainer}
+              style={[
+                styles.metricContainer,
+                { backgroundColor: palette.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(242, 242, 242, 0.45)' }
+              ]}
             >
-              <Text style={styles.metricLabel}>{m.label}</Text>
+              <Text style={[styles.metricLabel, { color: palette.textMuted }]}>{m.label}</Text>
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                style={[styles.metricValue, m.valueColor ? { color: m.valueColor } : null]}
+                style={[
+                  styles.metricValue,
+                  { color: palette.text },
+                  m.valueColor ? { color: m.valueColor } : null
+                ]}
               >
                 {m.value}
               </Text>
@@ -229,24 +236,21 @@ const styles = StyleSheet.create({
   },
   metricContainer: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: HOME_RADIUS.tab,
     paddingHorizontal: 13,
     paddingVertical: 11,
-    backgroundColor: 'rgba(242, 242, 242, 0.45)',
   },
   metricLabel: {
     fontSize: 10.5,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 0.6,
     textTransform: 'uppercase' as const,
-    color: '#7E8597',
     marginBottom: 3,
   },
   metricValue: {
     fontSize: HOME_TEXT.sectionTitle,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: -0.2,
-    color: '#1F2A44',
   },
   metricSubValue: {
     fontSize: HOME_TEXT.caption,

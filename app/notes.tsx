@@ -13,11 +13,7 @@ import { HOME_RADIUS, HOME_TEXT, HOME_SPACE } from '../lib/layoutTokens';
 import { useAppTheme } from '../lib/theme';
 import { useNotesStore, type NotePreview } from '../stores/useNotesStore';
 import * as notesService from '../services/notes';
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return `${d.getDate()} ${d.toLocaleDateString('en-IN', { month: 'short' })} ${d.getFullYear()}`;
-}
+import { formatDateFull } from '../lib/ui-format';
 
 function NoteCard({
   note,
@@ -52,12 +48,12 @@ function NoteCard({
         <Text
           appWeight="medium"
           numberOfLines={1}
-          style={{ flex: 1, fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}
+          style={{ flex: 1, fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}
         >
           {preview || 'Empty note'}
         </Text>
-        <Text style={{ fontSize: 13, color: palette.textSecondary }}>
-          {formatDate(note.updatedAt)}
+        <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary }}>
+          {formatDateFull(note.updatedAt)}
         </Text>
       </View>
     </TouchableOpacity>
@@ -127,10 +123,10 @@ export default function NotesScreen() {
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 80 }}>
             <AppIcon name="list-todo" size={40} color={palette.textMuted} strokeWidth={1.4} />
-            <Text style={{ color: palette.textMuted, fontSize: 15, marginTop: HOME_SPACE.md }}>
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.sectionTitle, marginTop: HOME_SPACE.md }}>
               No notes yet
             </Text>
-            <Text style={{ color: palette.textMuted, fontSize: 13, marginTop: HOME_SPACE.xs }}>
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.bodySmall, marginTop: HOME_SPACE.xs }}>
               Tap + to add a note
             </Text>
           </View>
@@ -150,7 +146,7 @@ export default function NotesScreen() {
                 color={palette.textSecondary}
                 strokeWidth={2}
               />
-              <Text style={{ fontSize: 13, color: palette.textSecondary, fontWeight: FONT_WEIGHT.semibold }}>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, fontWeight: FONT_WEIGHT.semibold }}>
                 {archivedLoading ? 'Loading…' : `Archived${archivedNotes.length > 0 ? ` (${archivedNotes.length})` : ''}`}
               </Text>
             </TouchableOpacity>

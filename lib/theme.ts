@@ -48,6 +48,11 @@ const HERO_BAR_DARK = '#4A5563';
 const TODAY_DOT_LIGHT = '#1F2A44';
 const TODAY_DOT_DARK = '#D5DAE2';
 
+const CHART_INCOME_LIGHT = '#0D9488';
+const CHART_INCOME_DARK = '#2DD4BF';
+const CHART_EXPENSE_LIGHT = '#F87171';
+const CHART_EXPENSE_DARK = '#FCA5A5';
+
 function hexToRgb(hex: string) {
   const normalized = hex.replace('#', '');
   const value = normalized.length === 3
@@ -127,6 +132,8 @@ export interface AppThemePalette {
   scrimHeavy: string;
   pressedBg: string;
   stripBg: string;
+  chartIncome: string;
+  chartExpense: string;
 }
 
 export function resolveTheme(theme: Theme, systemScheme: ColorSchemeName): AppThemeMode {
@@ -195,6 +202,8 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
       scrimHeavy: SCRIM_HEAVY,
       pressedBg: PRESSED_BG_DARK,
       stripBg: '#070A12',
+      chartIncome: CHART_INCOME_DARK,
+      chartExpense: CHART_EXPENSE_DARK,
     };
   }
 
@@ -251,6 +260,8 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     scrimHeavy: SCRIM_HEAVY,
     pressedBg: PRESSED_BG_LIGHT,
     stripBg: '#E5E8F0',
+    chartIncome: CHART_INCOME_LIGHT,
+    chartExpense: CHART_EXPENSE_LIGHT,
   };
 }
 

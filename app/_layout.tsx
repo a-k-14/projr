@@ -4,13 +4,14 @@ import { AppState, View, ActivityIndicator, Platform } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as QuickActions from 'expo-quick-actions';
+import { useTransactionDraftStore } from '../stores/useTransactionDraftStore';
 import '../widgets/widgetTaskHandler';
 import { updateAllReniWidgets } from '../widgets/widgetTaskHandler';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import '../global.css';
 import { runMigrations } from '../db/migrate';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -122,14 +123,20 @@ export default function RootLayout() {
       { id: 'add-transfer', title: 'Add Transfer', icon: 'shortcut_transfer', params: { type: 'transfer' } },
     ]).catch(() => undefined);
 
+    // Shortcut entry must always open a CLEAN form — wipe any leftover draft state
+    // (e.g. category pre-fill from a still-mounted edit form below in the stack).
+    const openFromShortcut = (type: unknown) => {
+      if (!type) return;
+      useTransactionDraftStore.getState().reset();
+      router.push({ pathname: '/modals/add-transaction', params: { type: String(type), fromWidget: '1' } });
+    };
+
     if (QuickActions.initial) {
-      const { type } = QuickActions.initial.params ?? {};
-      if (type) router.push({ pathname: '/modals/add-transaction', params: { type: String(type) } });
+      openFromShortcut(QuickActions.initial.params?.type);
     }
 
     const sub = QuickActions.addListener((action) => {
-      const { type } = action.params ?? {};
-      if (type) router.push({ pathname: '/modals/add-transaction', params: { type: String(type) } });
+      openFromShortcut(action.params?.type);
     });
     return () => sub.remove();
   }, [ready]);
@@ -191,49 +198,51 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaProvider>
-        <ErrorBoundary>
-        <SecurityGuard>
-          <Stack
-            screenOptions={{
-              contentStyle: {
-                backgroundColor: palette.background } }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
-            <Stack.Screen name="settings" options={{ headerShown: false }} />
-            <Stack.Screen name="deposits" options={{ headerShown: false }} />
-            <Stack.Screen name="loans" options={{ headerShown: false }} />
-            <Stack.Screen name="budget" options={{ headerShown: false }} />
-            <Stack.Screen name="budget/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
-            {__DEV__ && <Stack.Screen name="net-worth-prototype" options={{ headerShown: false }} />}
-            {__DEV__ && <Stack.Screen name="palette-preview" options={{ headerShown: false }} />}
-            <Stack.Screen name="assets" options={{ headerShown: false }} />
-            <Stack.Screen name="net-worth" options={{ headerShown: false }} />
-            <Stack.Screen name="notes" options={{ headerShown: false }} />
-            <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="modals/add-transaction"
-              options={{ headerShown: false, animation: 'none' }}
-            />
-            <Stack.Screen
-              name="modals/asset-form"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="modals/budget-form"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="modals/loan-settlement"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="modals/split-transaction"
-              options={{ headerShown: false }}
-            />
-          </Stack>
-        </SecurityGuard>
-        </ErrorBoundary>
+        <BottomSheetModalProvider>
+          <ErrorBoundary>
+            <SecurityGuard>
+              <Stack
+                screenOptions={{
+                  contentStyle: {
+                    backgroundColor: palette.background } }}
+              >
+                <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
+                <Stack.Screen name="settings" options={{ headerShown: false }} />
+                <Stack.Screen name="deposits" options={{ headerShown: false }} />
+                <Stack.Screen name="loans" options={{ headerShown: false }} />
+                <Stack.Screen name="budget" options={{ headerShown: false }} />
+                <Stack.Screen name="budget/[id]" options={{ headerShown: false }} />
+                <Stack.Screen name="loan/[id]" options={{ headerShown: false }} />
+                {__DEV__ && <Stack.Screen name="net-worth-prototype" options={{ headerShown: false }} />}
+                {__DEV__ && <Stack.Screen name="palette-preview" options={{ headerShown: false }} />}
+                <Stack.Screen name="assets" options={{ headerShown: false }} />
+                <Stack.Screen name="net-worth" options={{ headerShown: false }} />
+                <Stack.Screen name="notes" options={{ headerShown: false }} />
+                <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="modals/add-transaction"
+                  options={{ headerShown: false, animation: 'none' }}
+                />
+                <Stack.Screen
+                  name="modals/asset-form"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="modals/budget-form"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="modals/loan-settlement"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="modals/split-transaction"
+                  options={{ headerShown: false }}
+                />
+              </Stack>
+            </SecurityGuard>
+          </ErrorBoundary>
+        </BottomSheetModalProvider>
         <StatusBar
           style={palette.statusBarStyle}
           backgroundColor="transparent"

@@ -1,9 +1,9 @@
+import React from 'react';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { AnimatedCollapseCard, CollapseHandle } from '@/components/ui/AnimatedCollapseCard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Keyboard, Pressable, ScrollView, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
+import { Animated, Keyboard, Pressable, ScrollView, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
@@ -19,6 +19,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import type { Category, TransactionType } from '../../types';
 
+const CARD_GAP = 8;
 
 function getCategoryName(categories: Category[], categoryId: string) {
   const category = categories.find((item) => item.id === categoryId);
@@ -26,6 +27,40 @@ function getCategoryName(categories: Category[], categoryId: string) {
   return category.parentId
     ? `${categories.find((item) => item.id === category.parentId)?.name ?? 'Category'} › ${category.name}`
     : category.name;
+}
+
+function AnimatedSplitCard({
+  onRemove,
+  children,
+}: {
+  onRemove: () => void;
+  children: (triggerDelete: () => void) => React.ReactNode;
+}) {
+  const opacity = useRef(new Animated.Value(1)).current;
+  const marginBottom = useRef(new Animated.Value(0)).current;
+  const measuredHeight = useRef(0);
+
+  const triggerDelete = () => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: false }),
+      Animated.timing(marginBottom, {
+        toValue: -(measuredHeight.current + CARD_GAP),
+        duration: 220,
+        useNativeDriver: false,
+      }),
+    ]).start(() => onRemove());
+  };
+
+  return (
+    <Animated.View
+      onLayout={(e) => {
+        measuredHeight.current = e.nativeEvent.layout.height;
+      }}
+      style={{ opacity, marginBottom }}
+    >
+      {children(triggerDelete)}
+    </Animated.View>
+  );
 }
 
 export default function SplitTransactionModal() {
@@ -38,7 +73,6 @@ export default function SplitTransactionModal() {
   const { showAlert, dialog } = useAppDialog(palette);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
-  const cardRefs = useRef(new Map<string, CollapseHandle>());
   const [categorySheetRowId, setCategorySheetRowId] = useState<string | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
 
@@ -137,32 +171,33 @@ export default function SplitTransactionModal() {
         keyboardShouldPersistTaps="handled"
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, gap: 8 }}>
+          <View style={{ paddingHorizontal: SCREEN_GUTTER, gap: CARD_GAP }}>
             {splitRows.map((row, index) => (
-              <AnimatedCollapseCard
+              <AnimatedSplitCard
                 key={row.id}
-                ref={(handle) => { if (handle) cardRefs.current.set(row.id, handle); else cardRefs.current.delete(row.id); }}
-                onRemoved={() => removeRow(row.id)}
+                onRemove={() => removeRow(row.id)}
               >
-                <SectionCard palette={palette} horizontalInset={0}>
-                  <AmountRow
-                    sym=""
-                    amountStr={row.amountStr}
-                    setAmountStr={(value) => updateRow(row.id, { amountStr: value })}
-                    palette={palette}
-                    accentColor={amountColor}
-                    autoFocus={index === 0}
-                    onDelete={() => cardRefs.current.get(row.id)?.collapse()}
-                  />
-                  <PickerRow
-                    label="Category"
-                    value={getCategoryName(categories, row.categoryId)}
-                    placeholder={!row.categoryId}
-                    onPress={() => openCategoryPickerForRow(row.id)}
-                    palette={palette}
-                  />
-                </SectionCard>
-              </AnimatedCollapseCard>
+                {(triggerDelete) => (
+                  <SectionCard palette={palette} horizontalInset={0}>
+                    <AmountRow
+                      sym=""
+                      amountStr={row.amountStr}
+                      setAmountStr={(value) => updateRow(row.id, { amountStr: value })}
+                      palette={palette}
+                      accentColor={amountColor}
+                      autoFocus={index === 0}
+                      onDelete={triggerDelete}
+                    />
+                    <PickerRow
+                      label="Category"
+                      value={getCategoryName(categories, row.categoryId)}
+                      placeholder={!row.categoryId}
+                      onPress={() => openCategoryPickerForRow(row.id)}
+                      palette={palette}
+                    />
+                  </SectionCard>
+                )}
+              </AnimatedSplitCard>
             ))}
           </View>
         </TouchableWithoutFeedback>

@@ -211,7 +211,7 @@ export default function AccountDetailScreen() {
                       activeOpacity={0.5}
                       onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
                     >
-                      <Text style={{ fontSize: 15, fontWeight: '600', color: palette.brand }}>+ Add</Text>
+                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>+ Add</Text>
                     </TouchableOpacity>
                     <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
                   </View>

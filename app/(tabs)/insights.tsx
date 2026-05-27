@@ -98,16 +98,19 @@ export default function InsightsScreen() {
   }, [period]);
 
   // Wrappers that flip the loading mask ON in the SAME batch as the state change that triggers
-  // a refetch. Without this, the heavy chart re-render runs first (with no mask), then loadData's
-  // own setIsLoadingTrend(true) fires — by which point the user has already perceived a freeze.
+  // a refetch. Crucially, they NO-OP when the user re-taps the already-active value — otherwise
+  // isLoading would flip true with no follow-up fetch (loadData's useCallback dep wouldn't change),
+  // leaving the mask stuck on "Updating…" forever.
   const handlePeriodChange = useCallback((next: HomePeriodType) => {
+    if (next === period) return;
     setIsLoadingTrend(true);
     setPeriod(next);
-  }, []);
+  }, [period]);
   const handleGranularityChange = useCallback((g: ChartGranularity) => {
+    if (g === incomeExpenseGranularity) return;
     setIsLoadingTrend(true);
     setIncomeExpenseGranularity(g);
-  }, []);
+  }, [incomeExpenseGranularity]);
 
   const [balanceTrend, setBalanceTrend] = useState<{ date: string; balance: number }[]>([]);
   const [incomeExpenseData, setIncomeExpenseData] = useState<IncomeExpenseBucket[]>([]);
@@ -285,19 +288,28 @@ export default function InsightsScreen() {
   const handleCustomRangeDone = useCallback(() => {
     const fromDate = customDraftFrom <= customDraftTo ? customDraftFrom : customDraftTo;
     const toDate = customDraftTo >= customDraftFrom ? customDraftTo : customDraftFrom;
+    const newFromIso = toLocalDayStartISO(fromDate);
+    const newToIso = toLocalDayEndISO(toDate);
     // 1. Close the modal first so its dismiss animation isn't blocked by the chart re-render.
     setCustomRangeOpen(false);
     // 2. Defer the heavy state updates (period change → chart refetch) until the modal
     //    animation finishes — keeps the Done tap feeling instant.
     InteractionManager.runAfterInteractions(() => {
-      setIsLoadingTrend(true);                          // mask appears as chart starts updating
+      // Skip the optimistic loading flag if nothing about the chart query is actually changing —
+      // otherwise isLoading would flip true with no follow-up fetch, leaving the mask stuck.
+      const willTriggerRefetch =
+        period !== 'custom' ||
+        newFromIso !== customRangeFrom ||
+        newToIso !== customRangeTo;
+      if (!willTriggerRefetch) return;
+      setIsLoadingTrend(true);
       setCustomDraftFrom(fromDate);
       setCustomDraftTo(toDate);
-      setCustomRangeFrom(toLocalDayStartISO(fromDate));
-      setCustomRangeTo(toLocalDayEndISO(toDate));
+      setCustomRangeFrom(newFromIso);
+      setCustomRangeTo(newToIso);
       setPeriod('custom');
     });
-  }, [customDraftFrom, customDraftTo]);
+  }, [customDraftFrom, customDraftTo, period, customRangeFrom, customRangeTo]);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>

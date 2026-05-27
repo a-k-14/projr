@@ -2,8 +2,9 @@ import { Text } from '@/components/ui/AppText';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { TouchableOpacity, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
-import { BUTTON_TOKENS, PRIMARY_ACTION , HOME_RADIUS} from '../../lib/layoutTokens';
+import { BUTTON_TOKENS, PRIMARY_ACTION , HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
+import { FONT_WEIGHT } from '../../lib/design';
 
 type FilledTone = 'brand' | 'loan' | 'budget' | 'danger' | 'neutral';
 type TextTone = 'brand' | 'loan' | 'danger' | 'default' | 'muted';
@@ -177,8 +178,8 @@ export function ActionChip({
       <AppIcon name={icon} size={15} color={color} strokeWidth={1.9} />
       <Text
         style={{
-          fontSize: 13,
-          fontWeight: '500',
+          fontSize: HOME_TEXT.bodySmall,
+          fontWeight: FONT_WEIGHT.medium,
           color,
         }}
       >

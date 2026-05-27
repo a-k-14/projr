@@ -7,10 +7,11 @@ import { HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { formatMonthYear } from '../lib/ui-format';
 import { BottomSheet } from './ui/BottomSheet';
+import { toLocalMonthStartISO, APP_LOCALE } from '../lib/dateUtils';
 
 export function shiftBudgetMonth(iso: string, delta: number) {
   const date = new Date(iso);
-  return new Date(date.getFullYear(), date.getMonth() + delta, 1, 0, 0, 0, 0).toISOString();
+  return toLocalMonthStartISO(date.getFullYear(), date.getMonth() + delta);
 }
 
 export function formatBudgetMonthLabel(iso: string) {
@@ -22,7 +23,8 @@ export function buildBudgetMonthOptions(centerIso: string, before = 12, after = 
   for (let offset = before; offset > 0; offset -= 1) {
     months.push(shiftBudgetMonth(centerIso, -offset));
   }
-  months.push(new Date(new Date(centerIso).getFullYear(), new Date(centerIso).getMonth(), 1, 0, 0, 0, 0).toISOString());
+  const centerDate = new Date(centerIso);
+  months.push(toLocalMonthStartISO(centerDate.getFullYear(), centerDate.getMonth()));
   for (let offset = 1; offset <= after; offset += 1) {
     months.push(shiftBudgetMonth(centerIso, offset));
   }
@@ -30,7 +32,7 @@ export function buildBudgetMonthOptions(centerIso: string, before = 12, after = 
 }
 
 function monthStartForYear(year: number, monthIndex: number) {
-  return new Date(year, monthIndex, 1, 0, 0, 0, 0).toISOString();
+  return toLocalMonthStartISO(year, monthIndex);
 }
 
 function buildBudgetYearMonths(year: number) {
@@ -188,7 +190,7 @@ export function BudgetMonthSheet({
               }}
             >
               <Text style={{ fontSize: HOME_TEXT.body, fontWeight: isSelected ? '600' : '500', color: isSelected ? palette.budget : palette.text }}>
-                {new Date(month).toLocaleDateString('en-IN', { month: 'short' })}
+                {new Date(month).toLocaleDateString(APP_LOCALE, { month: 'short' })}
               </Text>
             </TouchableOpacity>
           );

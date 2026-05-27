@@ -7,7 +7,7 @@ import type {
   PeriodType,
   Transaction,
 } from '../types';
-import { toLocalDateKey } from './dateUtils';
+import { toLocalDateKey, APP_LOCALE } from './dateUtils';
 export { getStructuredLoanCashflowImpact, getTransactionCashflowImpact, getTransactionBalanceDelta } from './transactionImpact';
 import { getStructuredLoanCashflowImpact, getTransactionCashflowImpact } from './transactionImpact';
 
@@ -162,7 +162,7 @@ export function formatCurrency(amount: number, symbol: string = '₹'): string {
   const val = typeof amount === 'number' ? amount : 0;
   const abs = Math.abs(val);
   const hasFraction = Math.abs(abs - Math.round(abs)) > 0.000001;
-  const formatted = new Intl.NumberFormat('en-IN', {
+  const formatted = new Intl.NumberFormat(APP_LOCALE, {
     minimumFractionDigits: 0,
     maximumFractionDigits: hasFraction ? 2 : 0,
   }).format(abs);
@@ -203,7 +203,7 @@ export function formatCompactCurrency(amount: number, symbol: string = '₹'): s
   }
   
   const hasFraction = Math.abs(abs - Math.round(abs)) > 0.000001;
-  const formatted = new Intl.NumberFormat('en-IN', {
+  const formatted = new Intl.NumberFormat(APP_LOCALE, {
     minimumFractionDigits: 0,
     maximumFractionDigits: hasFraction ? 2 : 0,
   }).format(abs);
@@ -254,7 +254,7 @@ function startOfYear(date: Date, yearStart: number): Date {
 }
 
 function monthLabel(date: Date): string {
-  return date.toLocaleDateString('en-IN', { month: 'short' });
+  return date.toLocaleDateString(APP_LOCALE, { month: 'short' });
 }
 
 function weekLabel(index: number): string {
@@ -293,7 +293,7 @@ export function buildCashflowChartData(
       const key = toDateKey(date.toISOString());
       const vals = getDayValues(key);
       return {
-        label: date.toLocaleDateString('en-IN', { weekday: 'short' }),
+        label: date.toLocaleDateString(APP_LOCALE, { weekday: 'short' }),
         ...vals,
         net: vals.in - vals.out,
       };
@@ -352,7 +352,7 @@ export function buildCashflowChartData(
       const date = addDays(start, index);
       const vals = getDayValues(toDateKey(date.toISOString()));
       return {
-        label: date.toLocaleDateString('en-IN', { weekday: 'short' }),
+        label: date.toLocaleDateString(APP_LOCALE, { weekday: 'short' }),
         ...vals,
         net: vals.in - vals.out,
       };

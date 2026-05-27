@@ -11,6 +11,7 @@ import { CARD_PADDING, FONT_WEIGHT, HOME_TEXT, RADIUS, SCREEN_GUTTER, SPACING } 
 import { useAppTheme } from '../../lib/theme';
 import { useUIStore } from '../../stores/useUIStore';
 import { exportBackup, importBackup, pickBackupFolder } from '../../services/backup';
+import { APP_LOCALE } from '../../lib/dateUtils';
 
 const FREQUENCY_OPTIONS = [
   { label: 'Daily', days: 1 },
@@ -41,10 +42,10 @@ export default function BackupScreen() {
   const freqLabel = FREQUENCY_OPTIONS.find((o) => o.days === settings.autoBackupFrequencyDays)?.label ?? 'Daily';
   const keepLabel = KEEP_OPTIONS.find((o) => o.count === settings.autoBackupKeepCount)?.label ?? '7 backups';
   const lastManualBackup = settings.lastManualBackupAt
-    ? new Date(settings.lastManualBackupAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+    ? new Date(settings.lastManualBackupAt).toLocaleString(APP_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
     : null;
   const lastAutoBackup = settings.lastAutoBackupAt
-    ? new Date(settings.lastAutoBackupAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+    ? new Date(settings.lastAutoBackupAt).toLocaleString(APP_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
     : 'Never';
   const folderDisplayPath = decodeSafUri(settings.autoBackupFolderUri);
 

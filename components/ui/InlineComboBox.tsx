@@ -16,7 +16,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { SCREEN_GUTTER } from '../../lib/design';
+import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
 import { HOME_TEXT } from '../../lib/layoutTokens';
 import { normalizePerson } from '../../services/persons';
 import type { AppThemePalette } from '../../lib/theme';
@@ -180,7 +180,7 @@ export function InlineComboBox({
   const focusedColor = accentColor ?? palette.tabActive;
 
   const inputBaseStyle = {
-    fontSize: 14.5,
+    fontSize: HOME_TEXT.bodyLarge,
     color: palette.text,
     paddingTop: 0,
     paddingBottom: 2,
@@ -198,7 +198,7 @@ export function InlineComboBox({
             appWeight="medium"
             style={{
               fontSize: HOME_TEXT.body,
-              fontWeight: '500',
+              fontWeight: FONT_WEIGHT.medium,
               color: palette.textSecondary,
               marginBottom: 10,
             }}
@@ -216,7 +216,7 @@ export function InlineComboBox({
             autoFocus={autoFocus}
             multiline
             style={{
-              fontSize: 14.5,
+              fontSize: HOME_TEXT.bodyLarge,
               color: palette.text,
               paddingVertical: 0,
               minHeight: 72,
@@ -238,7 +238,7 @@ export function InlineComboBox({
             appWeight="medium"
             style={{
               fontSize: HOME_TEXT.body,
-              fontWeight: '500',
+              fontWeight: FONT_WEIGHT.medium,
               color: palette.textSecondary,
               width: ROW_LABEL_WIDTH,
               paddingRight: ROW_COLUMN_GAP,
@@ -261,12 +261,12 @@ export function InlineComboBox({
               style={[inputBaseStyle, {
                 flex: 1,
                 paddingLeft: 4,
-                fontWeight: '400',
+                fontWeight: FONT_WEIGHT.regular,
                 lineHeight: 20,
               }]}
             />
             {rightAnnotation ? (
-              <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: '500', color: palette.textSecondary, marginLeft: 6, paddingBottom: 2 }}>
+              <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginLeft: 6, paddingBottom: 2 }}>
                 {rightAnnotation}
               </Text>
             ) : null}
@@ -313,7 +313,7 @@ export function InlineComboBox({
                 }}
               >
                 <AppIcon name="plus-circle" size={16} color={palette.brand} />
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: '500', color: palette.brand }}>
+                <Text style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.medium, color: palette.brand }}>
                   Add "{normalized}"
                 </Text>
               </TouchableOpacity>
@@ -346,7 +346,7 @@ export function InlineComboBox({
                     style={{
                       flex: 1,
                       fontSize: HOME_TEXT.body,
-                      fontWeight: selected ? '500' : '400',
+                      fontWeight: selected ? FONT_WEIGHT.medium : FONT_WEIGHT.regular,
                       color: selected ? palette.tabActive : palette.text,
                     }}
                   >

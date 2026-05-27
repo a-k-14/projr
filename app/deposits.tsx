@@ -17,6 +17,7 @@ import { useAppTheme } from '../lib/theme';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useUIStore } from '../stores/useUIStore';
+import { APP_LOCALE } from '../lib/dateUtils';
 
 function DepositsScreenContent() {
   const insets = useSafeAreaInsets();
@@ -57,7 +58,7 @@ function DepositsScreenContent() {
       .filter((d) => d.maturityDate)
       .sort((a, b) => new Date(a.maturityDate!).getTime() - new Date(b.maturityDate!).getTime())[0];
     if (!upcoming?.maturityDate) return undefined;
-    return new Date(upcoming.maturityDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+    return new Date(upcoming.maturityDate).toLocaleDateString(APP_LOCALE, { month: 'short', year: 'numeric' });
   }, [activeDeposits]);
 
   const pills = [

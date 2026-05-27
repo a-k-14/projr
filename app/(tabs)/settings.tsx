@@ -264,8 +264,8 @@ export default function SettingsScreen() {
                 selected={settings.yearStart === index}
                 palette={palette}
                 onPress={() => {
-                  updateSettings({ yearStart: index }, 'year-start');
                   setPicker(null);
+                  updateSettings({ yearStart: index }, 'year-start');
                 }}
                 noBorder={index === MONTHS.length - 1}
               />
@@ -281,8 +281,8 @@ export default function SettingsScreen() {
                 selected={!settings.defaultAccountId}
                 palette={palette}
                 onPress={() => {
-                  updateSettings({ defaultAccountId: '' }, 'default-account-none');
                   setPicker(null);
+                  updateSettings({ defaultAccountId: '' }, 'default-account-none');
                 }}
               />,
               ...accounts.map((account, index) => (
@@ -293,8 +293,8 @@ export default function SettingsScreen() {
                   selected={settings.defaultAccountId === account.id}
                   palette={palette}
                   onPress={() => {
-                    updateSettings({ defaultAccountId: account.id }, 'default-account');
                     setPicker(null);
+                    updateSettings({ defaultAccountId: account.id }, 'default-account');
                   }}
                   noBorder={index === accounts.length - 1}
                 />
@@ -311,8 +311,8 @@ export default function SettingsScreen() {
                 selected={settings.currency === currency.code}
                 palette={palette}
                 onPress={() => {
-                  updateSettings({ currency: currency.code, currencySymbol: currency.symbol }, 'currency');
                   setPicker(null);
+                  updateSettings({ currency: currency.code, currencySymbol: currency.symbol }, 'currency');
                 }}
                 noBorder={index === CURRENCIES.length - 1}
               />
@@ -328,8 +328,8 @@ export default function SettingsScreen() {
                 selected={settings.theme === theme.key}
                 palette={palette}
                 onPress={() => {
-                  updateSettings({ theme: theme.key }, 'theme');
                   setPicker(null);
+                  updateSettings({ theme: theme.key }, 'theme');
                 }}
                 noBorder={index === THEMES.length - 1}
               />

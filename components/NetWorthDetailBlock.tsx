@@ -17,6 +17,8 @@ import { toLocalDayStartISO, toLocalDayEndISO, toLocalDateKey } from '../lib/dat
 import { useTransactionsStore } from '../stores/useTransactionsStore';
 import { getTransactions } from '../services/transactions';
 import { TrendLineChart } from './insights/TrendLineChart';
+import { ASSET_TONE } from '../lib/assetVisuals';
+import { DEPOSIT_VISUAL } from '../lib/depositVisuals';
 
 
 export function NetWorthDetailBlock({
@@ -354,8 +356,8 @@ export function NetWorthDetailBlock({
         {/* Bottom section: Progress bar & Asset/Liability split */}
         <View style={{ marginTop: 20 }}>
           <View style={{ height: 4, borderRadius: HOME_RADIUS.full, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7ECF3', overflow: 'hidden', flexDirection: 'row' }}>
-            <View style={{ height: '100%', width: `${assetShare * 100}%`, backgroundColor: '#0D9488' }} />
-            <View style={{ height: '100%', width: `${liabilityShare * 100}%`, backgroundColor: '#F87171' }} />
+            <View style={{ height: '100%', width: `${assetShare * 100}%`, backgroundColor: palette.chartIncome }} />
+            <View style={{ height: '100%', width: `${liabilityShare * 100}%`, backgroundColor: palette.chartExpense }} />
           </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 8 }}>
@@ -482,8 +484,8 @@ export function NetWorthDetailBlock({
                   <SectionHeaderCard
                     title="Deposits"
                     icon="vault"
-                    iconColor="#76506A"
-                    iconBg="#76506A12"
+                    iconColor={DEPOSIT_VISUAL.tone}
+                    iconBg={`${DEPOSIT_VISUAL.tone}12`}
                     value={activeDepositValue}
                     isExpanded={false}
                     onToggle={() => router.push('/deposits')}
@@ -519,8 +521,8 @@ export function NetWorthDetailBlock({
                   <SectionHeaderCard
                     title="Assets"
                     icon="gem"
-                    iconColor="#9A7440"
-                    iconBg="#9A744012"
+                    iconColor={ASSET_TONE}
+                    iconBg={`${ASSET_TONE}12`}
                     value={assetsValue}
                     isExpanded={false}
                     onToggle={() => router.push('/assets')}
@@ -686,7 +688,7 @@ export function NetWorthDetailBlock({
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: palette.divider }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: `${palette.positive}12` }}>
+              <View style={{ width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center', backgroundColor: `${palette.positive}12` }}>
                 <AppIcon name="arrow-down-left" size={12} color={palette.positive} strokeWidth={2} />
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Income</Text>
@@ -703,7 +705,7 @@ export function NetWorthDetailBlock({
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: palette.divider }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: `${palette.negative}12` }}>
+              <View style={{ width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center', backgroundColor: `${palette.negative}12` }}>
                 <AppIcon name="arrow-up-right" size={12} color={palette.negative} strokeWidth={2} />
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Expense</Text>
@@ -716,8 +718,8 @@ export function NetWorthDetailBlock({
           {/* Assets Row */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: palette.divider }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#9A744012' }}>
-                <AppIcon name="gem" size={11} color="#9A7440" strokeWidth={2} />
+              <View style={{ width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center', backgroundColor: `${ASSET_TONE}12` }}>
+                <AppIcon name="gem" size={11} color={ASSET_TONE} strokeWidth={2} />
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Assets</Text>
             </View>
@@ -729,7 +731,7 @@ export function NetWorthDetailBlock({
           {/* Net Change Row */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.012)' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: activeVals.netChange >= 0 ? `${palette.positive}12` : `${palette.negative}12` }}>
+              <View style={{ width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center', backgroundColor: activeVals.netChange >= 0 ? `${palette.positive}12` : `${palette.negative}12` }}>
                 <AppIcon name={activeVals.netChange >= 0 ? 'trending-up' : 'trending-down'} size={12} color={activeVals.netChange >= 0 ? palette.positive : palette.negative} strokeWidth={2.2} />
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>Net Change</Text>

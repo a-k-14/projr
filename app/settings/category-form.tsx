@@ -20,7 +20,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
 import { CARD_PADDING, SPACING, TYPE , FONT_WEIGHT} from '../../lib/design';
-import { HOME_LAYOUT , HOME_RADIUS} from '../../lib/layoutTokens';
+import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import {
   CATEGORY_EMOJI_GROUPS,
   CATEGORY_ICONS,
@@ -285,9 +285,9 @@ export default function CategoryFormScreen() {
         <View style={{ gap: SPACING.md }}>
           <SectionLabel label="General Info" palette={palette} />
           {isSystem && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, backgroundColor: `${palette.brand}14`, marginBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: HOME_RADIUS.small, backgroundColor: `${palette.brand}14`, marginBottom: 4 }}>
               <AppIcon name="lock" size={14} color={palette.brand} strokeWidth={2} />
-              <Text style={{ fontSize: 13, color: palette.brand, flex: 1 }}>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, flex: 1 }}>
                 System category — used to track interest income from deposits.
               </Text>
             </View>

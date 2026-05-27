@@ -2,6 +2,7 @@ import React from 'react';
 import type { ColorProp } from 'react-native-android-widget';
 import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 import { formatCurrency } from '../lib/derived';
+import { APP_LOCALE } from '../lib/dateUtils';
 import type { ReniWidgetConfig, WidgetData, WidgetBgTheme } from './widgetTypes';
 
 const c = (s: string): ColorProp => s as ColorProp;
@@ -138,7 +139,7 @@ function tickCount(widgetWidthDp: number) {
 }
 
 function formatWidgetDate() {
-  return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date().toLocaleDateString(APP_LOCALE, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function repeatSvg(color: string): string {

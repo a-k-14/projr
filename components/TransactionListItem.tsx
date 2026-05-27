@@ -8,6 +8,7 @@ import { isEmojiIcon } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
 import { AppCard, CardTitleRow } from './ui/AppCard';
 import type { Transaction } from '../types';
+import { FONT_WEIGHT } from '../lib/design';
 
 interface Props {
   tx: Transaction;
@@ -97,7 +98,7 @@ function TransactionListItemBase({
     }
     title = (
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={{ fontSize: CARD_TEXT.line1, color: palette.listText, fontWeight: '500' }}>
+        <Text style={{ fontSize: CARD_TEXT.line1, color: palette.listText, fontWeight: FONT_WEIGHT.medium }}>
           Loan ›{' '}
         </Text>
         <View
@@ -105,7 +106,7 @@ function TransactionListItemBase({
             backgroundColor: palette.borderSoft,
             paddingHorizontal: 6,
             paddingVertical: 1.5,
-            borderRadius: 10,
+            borderRadius: HOME_RADIUS.small,
             borderWidth: 0.5,
             borderColor: palette.border,
           }}
@@ -114,7 +115,7 @@ function TransactionListItemBase({
             style={{
               fontSize: CARD_TEXT.line1,
               color: palette.listText,
-              fontWeight: '500',
+              fontWeight: FONT_WEIGHT.medium,
             }}
           >
             {typeLabel}

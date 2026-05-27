@@ -2,7 +2,7 @@ import { runMigrations } from '../db/migrate';
 import { getAccounts, getAccountById } from '../services/accounts';
 import { getCashflowSnapshot } from '../services/analytics';
 import { getSettings } from '../services/settings';
-import { toLocalDateKey, toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
+import { toLocalDateKey, toLocalDayStartISO, toLocalDayEndISO, APP_LOCALE } from '../lib/dateUtils';
 import type { ReniWidgetConfig } from './widgetTypes';
 import type { WidgetData } from './widgetTypes';
 import { getLoans } from '../services/loans';
@@ -19,7 +19,7 @@ function monthBounds(): { from: string; to: string; label: string } {
   const lastDay = new Date(year, month + 1, 0);
   const from = toLocalDayStartISO(firstDay);
   const to = toLocalDayEndISO(lastDay);
-  const label = now.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  const label = now.toLocaleDateString(APP_LOCALE, { month: 'short', year: 'numeric' });
   return { from, to, label };
 }
 

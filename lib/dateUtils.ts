@@ -1,18 +1,6 @@
 import type { PeriodType } from '../types';
 
-export function toUTCMidnight(date: Date): string {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-export function todayUTC(): string {
-  return toUTCMidnight(new Date());
-}
-
-export function nowUTC(): string {
-  return new Date().toISOString();
-}
+export const APP_LOCALE = 'en-IN';
 
 export function toLocalDayStartISO(value: Date | string): string {
   const date = typeof value === 'string' ? new Date(value) : new Date(value);
@@ -25,6 +13,18 @@ export function toLocalDayStartISO(value: Date | string): string {
     0,
     0
   ).toISOString();
+}
+
+export function toUTCMidnight(date: Date): string {
+  return toLocalDayStartISO(date);
+}
+
+export function todayUTC(): string {
+  return toUTCMidnight(new Date());
+}
+
+export function nowUTC(): string {
+  return new Date().toISOString();
 }
 
 export function toLocalDayEndISO(value: Date | string): string {
@@ -49,10 +49,14 @@ export function toLocalDateKey(isoDate: string): string {
   return `${y}-${m}-${day}`;
 }
 
+export function toLocalMonthStartISO(year: number, month: number): string {
+  return new Date(year, month, 1, 0, 0, 0, 0).toISOString();
+}
+
 export function formatDate(isoDate: string): string {
   const d = new Date(isoDate);
   const day = d.getDate().toString().padStart(2, '0');
-  const month = d.toLocaleDateString('en-IN', { month: 'short' });
+  const month = d.toLocaleDateString(APP_LOCALE, { month: 'short' });
   const year = d.getFullYear();
   return `${day} ${month} ${year}`;
 }
@@ -60,7 +64,7 @@ export function formatDate(isoDate: string): string {
 export function formatDateTime(isoDate: string): string {
   const d = new Date(isoDate);
   const date = formatDate(isoDate);
-  const time = d.toLocaleTimeString('en-IN', {
+  const time = d.toLocaleTimeString(APP_LOCALE, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -71,7 +75,7 @@ export function formatDateTime(isoDate: string): string {
 export function formatDateTime12(isoDate: string): string {
   const d = new Date(isoDate);
   const date = formatDate(isoDate);
-  const time = d.toLocaleTimeString('en-IN', {
+  const time = d.toLocaleTimeString(APP_LOCALE, {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
@@ -81,7 +85,7 @@ export function formatDateTime12(isoDate: string): string {
 
 export function formatDateShort(isoDate: string): string {
   const d = new Date(isoDate);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(APP_LOCALE, { day: 'numeric', month: 'short' });
 }
 
 export function getRelativeDateLabel(isoDate: string): { date: string; label?: string } {
@@ -98,7 +102,7 @@ export function getRelativeDateLabel(isoDate: string): { date: string; label?: s
   if (days === 1) return { date: formattedDate, label: 'Yesterday' };
   if (days === -1) return { date: formattedDate, label: 'Tomorrow' };
 
-  const weekday = date.toLocaleDateString('en-IN', { weekday: 'short' });
+  const weekday = date.toLocaleDateString(APP_LOCALE, { weekday: 'short' });
   return { date: formattedDate, label: weekday };
 }
 
@@ -233,22 +237,22 @@ export function getPeriodNavLabel(
     return `${formatDateShort(from)} – ${formatDateShort(to)}`;
   }
   if (period === 'month') {
-    return fromDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+    return fromDate.toLocaleDateString(APP_LOCALE, { month: 'short', year: 'numeric' });
   }
   if (period === 'year') {
-    const fromMon = fromDate.toLocaleDateString('en-IN', { month: 'short' });
-    const toMon = toDate.toLocaleDateString('en-IN', { month: 'short' });
+    const fromMon = fromDate.toLocaleDateString(APP_LOCALE, { month: 'short' });
+    const toMon = toDate.toLocaleDateString(APP_LOCALE, { month: 'short' });
     return `${fromMon} ${fromDate.getFullYear()} – ${toMon} ${toDate.getFullYear()}`;
   }
   // custom
   if (from.split('T')[0] === to.split('T')[0]) {
-    return fromDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return fromDate.toLocaleDateString(APP_LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
   }
   return `${formatDateShort(from)} – ${formatDateShort(to)}`;
 }
 
 export function getDayLabel(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('en-IN', { weekday: 'short' });
+  return new Date(isoDate).toLocaleDateString(APP_LOCALE, { weekday: 'short' });
 }
 
 export function isSameDay(a: string, b: string): boolean {
@@ -257,7 +261,29 @@ export function isSameDay(a: string, b: string): boolean {
 
 /** Whole days from today until `targetISO`. Negative when the target is in the past. */
 export function getDaysUntil(targetISO: string): number {
-  const now = Date.now();
-  const target = new Date(targetISO).getTime();
-  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const target = new Date(targetISO);
+  target.setHours(0, 0, 0, 0);
+  
+  const diff = target.getTime() - today.getTime();
+  return Math.round(diff / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Safely adds months to a Date object without overflowing past the target month's end.
+ * e.g., Jan 31 + 1 month = Feb 28 (or Feb 29 on leap years) instead of Mar 3.
+ */
+export function addMonthsSafe(date: Date, months: number): Date {
+  const result = new Date(date);
+  const expectedMonth = (result.getMonth() + months) % 12;
+  const targetMonth = expectedMonth < 0 ? expectedMonth + 12 : expectedMonth;
+  
+  result.setMonth(result.getMonth() + months);
+  
+  if (result.getMonth() !== targetMonth) {
+    result.setDate(0);
+  }
+  return result;
 }

@@ -1,4 +1,5 @@
 import { AppIcon, IconName } from '@/components/ui/AppIcon';
+import * as Haptics from 'expo-haptics';
 import { router, Tabs } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
@@ -117,7 +118,7 @@ function AppTabBar({
                 key="add"
                 delayPressIn={0}
                 activeOpacity={0.88}
-                onPress={() => router.push('/modals/add-transaction')}
+                onPress={() => { Haptics.selectionAsync(); router.push('/modals/add-transaction'); }}
                 style={{
                   width: itemWidth,
                   height: tabHeight,
@@ -170,6 +171,11 @@ function AppTabBar({
             });
 
             if (event.defaultPrevented) return;
+
+            // selectionAsync → HapticFeedbackConstants.KEYBOARD_TAP on Android:
+            // a single crisp tick (not the buzzy Vibrator pulse). Same call
+            // does a light selection click on iOS.
+            Haptics.selectionAsync();
 
             if (focused) {
               getTabReset(route.name)?.({ mode: 'full', animated: true });

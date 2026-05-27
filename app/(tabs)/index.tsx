@@ -43,7 +43,9 @@ import {
   getRelativeDateLabel,
   toLocalDateKey,
   toLocalDayEndISO,
-  toLocalDayStartISO
+  toLocalDayStartISO,
+  toLocalMonthStartISO,
+  APP_LOCALE
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
 import { formatCurrency, getLoanSummary, getLoanTransactionKind, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
@@ -61,6 +63,9 @@ import {
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
+import { useSweep } from '../../lib/useSweep';
+import { SweepOverlay } from '../../components/ui/SweepOverlay';
+import { RollingNumber } from '../../components/ui/RollingNumber';
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -69,6 +74,7 @@ import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type {
   Account,
@@ -199,7 +205,7 @@ function HomeScreenContent() {
 
   useEffect(() => {
     const now = new Date();
-    loadBudgets(new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString()).catch(() => undefined);
+    loadBudgets(toLocalMonthStartISO(now.getFullYear(), now.getMonth())).catch(() => undefined);
   }, [loadBudgets]);
 
   const handleCustomRangeDone = useCallback(() => {
@@ -742,19 +748,7 @@ function AccountSummaryCard({
     overflow: 'hidden',
   }));
 
-  // NW chip sweep animation — fires when netWorth genuinely updates (non-zero → new value)
-  const nwSweepX = useSharedValue(-80);
-  const prevNWRef = React.useRef<number | undefined>(netWorth);
-  React.useEffect(() => {
-    if (netWorth !== undefined && netWorth !== 0 && netWorth !== prevNWRef.current) {
-      prevNWRef.current = netWorth;
-      nwSweepX.value = -80;
-      nwSweepX.value = withTiming(320, { duration: 1100 });
-    }
-  }, [netWorth, nwSweepX]);
-  const nwSweepStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: nwSweepX.value }],
-  }));
+  const nwSweepStyle = useSweep(netWorth ?? 0, { duration: 1100, to: 320 });
 
   const content = (
     <View
@@ -856,17 +850,7 @@ function AccountSummaryCard({
                   <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: nwChangeInk, fontFamily: 'monospace' }}>
                     {nwChangeTone === 'neutral' ? '—' : formatNetWorthStripValue(Math.abs(netWorthChange ?? 0), currencySymbol)}
                   </Text>
-                  <Animated.View
-                    pointerEvents="none"
-                    style={[nwSweepStyle, { position: 'absolute', top: -3, bottom: -3, width: 40, left: 0 }]}
-                  >
-                    <LinearGradient
-                      colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.28)', 'rgba(255,255,255,0)']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{ flex: 1 }}
-                    />
-                  </Animated.View>
+                  <SweepOverlay style={nwSweepStyle} width={40} alpha={0.28} />
                 </View>
                 <AppIcon name="chevron-right" size={12} color='rgba(255,255,255,0.40)' strokeWidth={2} />
               </TouchableOpacity>
@@ -1009,14 +993,14 @@ function AccountSummaryCard({
                   <Animated.View style={[{ position: 'absolute', left: 0, top: 0, height: 12, overflow: 'hidden' }, incomeTickOverlayStyle]}>
                     <View style={{ flexDirection: 'row', gap: TICK_GAP, width: TICK_CONTENT_W }}>
                       {Array.from({ length: TICK_TOTAL }).map((_, i) => (
-                        <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: '#0D9488' }} />
+                        <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.chartIncome }} />
                       ))}
                     </View>
                   </Animated.View>
                   <Animated.View style={[{ position: 'absolute', top: 0, height: 12, overflow: 'hidden' }, expenseTickOverlayStyle]}>
                     <View style={{ position: 'absolute', right: 0, flexDirection: 'row', gap: TICK_GAP, width: TICK_CONTENT_W }}>
                       {Array.from({ length: TICK_TOTAL }).map((_, i) => (
-                        <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: '#F87171' }} />
+                        <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.chartExpense }} />
                       ))}
                     </View>
                   </Animated.View>
@@ -1031,18 +1015,22 @@ function AccountSummaryCard({
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <AppIcon name="arrow-down-left" size={15} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
-                        <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
-                          {hideAmounts ? '••••' : leftIsZero ? '—' : (
-                            <Text>{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
-                          )}
-                        </Text>
+                        <RollingNumber value={hideAmounts ? '••••' : metricLeftAmount}>
+                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                            {hideAmounts ? '••••' : leftIsZero ? '—' : (
+                              <Text>{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
+                            )}
+                          </Text>
+                        </RollingNumber>
                       </TouchableOpacity>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
-                          {hideAmounts ? '••••' : rightIsZero ? '—' : (
-                            <Text>{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
-                          )}
-                        </Text>
+                        <RollingNumber value={hideAmounts ? '••••' : metricRightAmount}>
+                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                            {hideAmounts ? '••••' : rightIsZero ? '—' : (
+                              <Text>{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
+                            )}
+                          </Text>
+                        </RollingNumber>
                         <AppIcon name="arrow-up-right" size={15} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
                       </TouchableOpacity>
                     </View>
@@ -1124,9 +1112,11 @@ function AccountSummaryCard({
                       {metricLeftLabel}
                     </Text>
                   </View>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
-                    {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
-                  </Text>
+                  <RollingNumber value={hideAmounts ? '••••' : metricLeftAmount}>
+                    <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                      {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
+                    </Text>
+                  </RollingNumber>
                 </TouchableOpacity>
 
                 <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : palette.divider }} />
@@ -1144,9 +1134,11 @@ function AccountSummaryCard({
                     </Text>
                     <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
                   </View>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
-                    {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
-                  </Text>
+                  <RollingNumber value={hideAmounts ? '••••' : metricRightAmount} style={{ alignSelf: 'flex-end' }}>
+                    <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                      {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
+                    </Text>
+                  </RollingNumber>
                 </TouchableOpacity>
               </View>
 
@@ -1259,7 +1251,7 @@ function splitTickAmount(amount: number): { int: string; dec: string } {
   const intPart = Math.floor(truncated);
   const cents = Math.round((truncated - intPart) * 100);
   return {
-    int: intPart.toLocaleString('en-IN'),
+    int: intPart.toLocaleString(APP_LOCALE),
     dec: cents > 0 ? '.' + String(cents).padStart(2, '0') : '',
   };
 }
@@ -1562,6 +1554,47 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
 
+  // Optimistic update: apply a newly-added transaction to local period state immediately,
+  // before the background DB re-fetch confirms it. Makes the hero card feel instant.
+  const lastAddedTx = useTransactionsStore((s) => s.lastAddedTx);
+  const processedOptimisticIds = useRef(new Set<string>());
+  useEffect(() => {
+    if (!lastAddedTx || !isScreenFocused) return;
+    if (processedOptimisticIds.current.has(lastAddedTx.id)) return;
+    processedOptimisticIds.current.add(lastAddedTx.id);
+
+    // Only apply to this page's account
+    if (accountId !== 'all' && lastAddedTx.accountId !== accountId) return;
+
+    // Only apply if the tx date falls within the currently displayed period
+    const { from: currentFrom, to: currentTo } = getHomeDateRange(period, settingsYearStart, customRange);
+    if (lastAddedTx.date < currentFrom || lastAddedTx.date > currentTo) return;
+
+    setPeriodTransactions((prev) => {
+      if (prev.some((t) => t.id === lastAddedTx.id)) return prev;
+      return [lastAddedTx, ...prev].sort((a, b) => {
+        const d = new Date(b.date).getTime() - new Date(a.date).getTime();
+        return d !== 0 ? d : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    });
+
+    const impact = getTransactionCashflowImpact(lastAddedTx, { includeTransfers: true, includeLoans: true });
+    if (impact === 'in') {
+      setCashflow((prev) => ({ ...prev, in: prev.in + lastAddedTx.amount, net: prev.net + lastAddedTx.amount }));
+    } else if (impact === 'out') {
+      setCashflow((prev) => ({ ...prev, out: prev.out + lastAddedTx.amount, net: prev.net - lastAddedTx.amount }));
+    }
+
+    setTransactions((prev) => {
+      if (prev.some((t) => t.id === lastAddedTx.id)) return prev;
+      if (accountId !== 'all' && lastAddedTx.accountId !== accountId) return prev;
+      return [lastAddedTx, ...prev].slice(0, 10).sort((a, b) => {
+        const d = new Date(b.date).getTime() - new Date(a.date).getTime();
+        return d !== 0 ? d : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    });
+  }, [lastAddedTx, isScreenFocused, accountId, period, settingsYearStart, customRange]);
+
   useEffect(() => {
     if (fullResetNonce > 0) {
       setCashflowIsCashflow(false);
@@ -1582,7 +1615,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     if (!isPageReady) return;
     const requestId = ++loadRequestIdRef.current;
     const requestRangeKey = `${rangeFrom}:${rangeTo}`;
-    setPeriodDataRangeKey(null);
     const accountFilter = accountId === 'all' ? undefined : accountId;
     const [periodSnapshot, recentTransactions, periodScopedTransactions] = await Promise.all([
       getCashflowSnapshot(accountId, rangeFrom, rangeTo, { includeTransfers: true, includeLoans: true }),

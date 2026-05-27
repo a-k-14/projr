@@ -1,22 +1,23 @@
-import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Animated,
-  BackHandler,
-  Dimensions,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View } from 'react-native';
+import {
+  BottomSheetBackdrop,
+  BottomSheetFooter,
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetView,
+  type BottomSheetBackdropProps,
+  type BottomSheetFooterProps,
+} from '@gorhom/bottom-sheet';
+import { Portal } from '@gorhom/portal';
+import { Dimensions, View, StyleSheet } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SHEET_GUTTER , FONT_WEIGHT} from '../../lib/design';
-import { SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
+import { SHEET_GUTTER, FONT_WEIGHT } from '../../lib/design';
+import { SCREEN_HEADER, HOME_RADIUS } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { getSheetBottomPadding } from './safeBottom';
-const OPEN_ANIMATION_DURATION_MS = 150;
-const CLOSE_ANIMATION_DURATION_MS = 140;
-const BACKDROP_COLOR = 'rgb(0,0,0)';
+
 const BACKDROP_OPACITY = 0.4;
 const HEADER_HANDLE_WIDTH = 42;
 const HEADER_HANDLE_HEIGHT = 5;
@@ -29,23 +30,30 @@ const SHADOW_OPACITY = 0.08;
 const SHADOW_RADIUS = 8;
 const ELEVATION = 20;
 const SHEET_RADIUS = HOME_RADIUS.large;
-const MIN_NAV_FLOOR_HEIGHT = 24;
-const SWIPE_ACTIVATION_THRESHOLD = 8;
-const SWIPE_DISMISS_DISTANCE = 80;
-const SWIPE_DISMISS_VELOCITY = 0.5;
 const HEADER_TITLE_SIZE = SCREEN_HEADER.titleSize;
 const HEADER_SUBTITLE_SIZE = 13;
-const HEADER_TITLE_TRACKING = 0;
 const HEADER_SUBTITLE_MARGIN = 3;
 const SHADOW_COLOR = '#000';
+const MIN_NAV_FLOOR_HEIGHT = 24;
+
+// Tab bar visible height in (tabs)/_layout.tsx (tabHeight=64 + safe-area bottom inset).
+const TAB_BAR_BASE_HEIGHT = 64;
 
 /**
- * BottomSheet — Centralised bottom sheet for any picker/selection UI.
+ * BottomSheet — Centralized app sheet wrapper around @gorhom/bottom-sheet.
  *
- * Behaviour:
- * - Opens at natural content height, capped at 75% of screen.
- * - Swipe DOWN on header → dismisses.
- * - Tap backdrop → dismisses.
+ * Layout rules:
+ * - hasNavBar=true: sheet floats *above* the tab bar (bottomInset = tab-bar height).
+ *   Tab bar stays visible and tappable beneath the sheet.
+ * - hasNavBar=false: sheet extends to the very bottom of the screen, with its
+ *   `backgroundColor` filling the OS gesture-bar region. Scrollable content
+ *   gets `paddingBottom = safeAreaBottom + extra` so the last row clears
+ *   the gesture bar but the sheet *visually* continues behind it.
+ *
+ * Height rules:
+ * - No `fixedHeightRatio` → enableDynamicSizing: sheet grows to fit content,
+ *   capped at `maxDynamicContentSize = maxHeightRatio * screen (default 0.75)`.
+ * - `fixedHeightRatio` set → single snap point at that % of available height.
  */
 export function BottomSheet({
   title,
@@ -60,7 +68,7 @@ export function BottomSheet({
   hasNavBar = false,
   extraBottomPadding = 0,
   scrollEnabled = true,
-  disableModalHeightBoost = false,
+  disableModalHeightBoost: _disableModalHeightBoost = false,
   headerBottom,
   maxHeightRatio,
   fixedHeightRatio,
@@ -86,245 +94,248 @@ export function BottomSheet({
   disableShadow?: boolean;
   backgroundColor?: string;
 }) {
-  const { height: screenHeight } = Dimensions.get('window');
+  const sheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const { height: screenHeight } = Dimensions.get('window');
+  const [footerHeight, setFooterHeight] = useState(0);
+
+  // When the sheet is rendered over a tabs screen, lift the sheet up so it sits
+  // *above* the tab bar (tab bar remains visible & tappable).
+  const bottomInset = hasNavBar ? TAB_BAR_BASE_HEIGHT + insets.bottom : 0;
+
+  // For full-screen sheets (no nav bar), the sheet bottom edge IS the screen bottom.
+  // Inner content needs extra padding so the last row clears the OS gesture area —
+  // the sheet's backgroundColor naturally fills that area behind the gesture bar.
+  const innerSafePadding = hasNavBar
+    ? extraBottomPadding
+    : getSheetBottomPadding(insets, extraBottomPadding + 3);
 
   const maxSheetHeight = screenHeight * (maxHeightRatio ?? 0.75);
-  // When hasNavBar=true the tab bar already covers the OS gesture area, so we
-  // don't need the floor overlay and only need minimal bottom padding.
-  // When hasNavBar=false (full-screen) the floor IS needed, so bottomOffset must
-  // be at least as tall as the floor to prevent it masking the last row.
-  const floorHeight = hasNavBar ? 0 : Math.max(insets.bottom, MIN_NAV_FLOOR_HEIGHT);
-  const bottomOffset = hasNavBar
-    ? extraBottomPadding
-    : Math.max(getSheetBottomPadding(insets, extraBottomPadding + 3), floorHeight);
-  const modalHeightBoost = bottomOffset;
 
-  const translateY = useRef(new Animated.Value(screenHeight)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const sheetHeight = useRef(new Animated.Value(0)).current;
-  const contentHeight = useRef(0);
-  const headerHeight = useRef(0);
-  const footerHeight = useRef(0);
+  const snapPoints = useMemo(() => {
+    if (!fixedHeightRatio) return undefined;
+    const ratio = Math.min(fixedHeightRatio, maxHeightRatio ?? 0.95);
+    return [`${Math.round(ratio * 100)}%`];
+  }, [fixedHeightRatio, maxHeightRatio]);
 
-  const commitHeight = useCallback(() => {
-    let nextHeight = Math.min(headerHeight.current + contentHeight.current + footerHeight.current, maxSheetHeight - bottomOffset);
-    if (fixedHeightRatio) {
-      nextHeight = Math.min(screenHeight * fixedHeightRatio, maxSheetHeight);
-    }
-    if (nextHeight > 0) {
-      sheetHeight.setValue(nextHeight);
-    }
-  }, [fixedHeightRatio, maxSheetHeight, modalHeightBoost, screenHeight, sheetHeight]);
-
+  // Present once on mount.
   useEffect(() => {
-    if (!fixedHeightRatio) return;
-    sheetHeight.setValue(Math.min(screenHeight * fixedHeightRatio, maxSheetHeight));
-  }, [fixedHeightRatio, maxSheetHeight, screenHeight, sheetHeight]);
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, { toValue: BACKDROP_OPACITY, duration: OPEN_ANIMATION_DURATION_MS, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 220, friction: 22 }),
-    ]).start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    sheetRef.current?.present();
   }, []);
 
-  const closeSheet = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(opacity, { toValue: 0, duration: CLOSE_ANIMATION_DURATION_MS, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: screenHeight, duration: CLOSE_ANIMATION_DURATION_MS, useNativeDriver: true }),
-    ]).start(({ finished }) => {
-      if (finished) onClose();
-    });
-  }, [opacity, onClose, screenHeight, translateY]);
-
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      closeSheet();
-      return true;
-    });
-    return () => sub.remove();
-  }, [closeSheet]);
-
+  // Auto-dismiss when the underlying screen loses focus.
   useEffect(() => {
     if (!isFocused) {
-      closeSheet();
+      sheetRef.current?.dismiss();
     }
-  }, [closeSheet, isFocused]);
+  }, [isFocused]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_, gs) =>
-          Math.abs(gs.dy) > SWIPE_ACTIVATION_THRESHOLD && Math.abs(gs.dy) > Math.abs(gs.dx),
-        onPanResponderMove: (_, gs) => {
-          translateY.setValue(gs.dy > 0 ? gs.dy : 0);
-        },
-        onPanResponderRelease: (_, gs) => {
-          if (gs.dy > SWIPE_DISMISS_DISTANCE || gs.vy > SWIPE_DISMISS_VELOCITY) {
-            closeSheet();
-            return;
-          }
+  const sheetFillColor = backgroundColor ?? palette.card;
 
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 100,
-            friction: 14,
-          }).start();
-        },
-      }),
-    [closeSheet, translateY],
+  // Custom backdrop: when hasNavBar=true, the dim overlay is clipped at the tab-bar's
+  // top edge so the tab bar isn't covered by the grey backdrop.
+  const navBarOverlap = TAB_BAR_BASE_HEIGHT + insets.bottom;
+  const floorHeight = Math.max(insets.bottom, MIN_NAV_FLOOR_HEIGHT);
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        style={[
+          props.style,
+          hasNavBar ? { bottom: navBarOverlap } : null,
+        ]}
+        opacity={BACKDROP_OPACITY}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
+    ),
+    [hasNavBar, navBarOverlap],
   );
 
-  return (
-    <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 1000 }}>
-      {/* Backdrop */}
-      <Animated.View
-        style={{
-          ...StyleSheet.absoluteFillObject,
-          backgroundColor: BACKDROP_COLOR,
-          opacity,
-          // Background should cover everything except the very bottom safe area if we want full screen, 
-          // or we can just leave it as absolute fill.
-        }}
-      >
-        <Pressable style={{ flex: 1 }} onPress={closeSheet} />
-      </Animated.View>
-
-      {/* Sheet Container */}
-      <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
-        <Animated.View
-          style={{
-            transform: [{ translateY }],
-            shadowColor: SHADOW_COLOR,
-            shadowOffset: { width: 0, height: SHADOW_OFFSET_Y },
-            shadowOpacity: disableShadow ? 0 : SHADOW_OPACITY,
-            shadowRadius: disableShadow ? 0 : SHADOW_RADIUS,
-            elevation: disableShadow ? 0 : ELEVATION,
-            backgroundColor: backgroundColor ?? palette.card,
-            borderTopLeftRadius: SHEET_RADIUS,
-            borderTopRightRadius: SHEET_RADIUS,
-            paddingBottom: bottomOffset,
-            overflow: 'hidden',
-          }}
-        >
-          <Animated.View
-            style={{
-              height: sheetHeight,
-            }}
-          >
-            <View
-              {...panResponder.panHandlers}
-              onLayout={(event) => {
-                const next = Math.round(event.nativeEvent.layout.height);
-                if (next !== headerHeight.current) {
-                  headerHeight.current = next;
-                  commitHeight();
-                }
-              }}
-            >
-              <View style={{ alignItems: 'center', paddingTop: HEADER_HANDLE_TOP_PADDING, paddingBottom: HEADER_HANDLE_BOTTOM_PADDING }}>
-                <View
-                  style={{
-                    width: HEADER_HANDLE_WIDTH,
-                    height: HEADER_HANDLE_HEIGHT,
-                    borderRadius: HOME_RADIUS.full,
-                    backgroundColor: palette.divider,
-                    opacity: 0.65,
-                  }}
-                />
-              </View>
-              {showHeaderTitle || headerRight ? (
-                <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    {showHeaderTitle ? (
-                      <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text, letterSpacing: HEADER_TITLE_TRACKING }}>
-                        {title}
-                      </Text>
-                    ) : (
-                      <View />
-                    )}
-                    {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
-                  </View>
-                  {showHeaderTitle && subtitle ? (
-                    <Text style={{ fontSize: HEADER_SUBTITLE_SIZE, color: palette.textMuted, marginTop: HEADER_SUBTITLE_MARGIN, fontWeight: FONT_WEIGHT.regular }}>
-                      {subtitle}
-                    </Text>
-                  ) : null}
-                </View>
-              ) : null}
-              {headerBottom}
-            </View>
-
-            {scrollEnabled ? (
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={[
-                  { paddingBottom: CONTENT_PADDING_BOTTOM },
-                  fixedHeightRatio ? { flexGrow: 1 } : null
-                ]}
-                showsVerticalScrollIndicator
-                keyboardShouldPersistTaps="always"
-                onContentSizeChange={(_, h) => {
-                  contentHeight.current = h;
-                  commitHeight();
-                }}
-              >
-                {children}
-              </ScrollView>
-            ) : (
-              <View
-                style={[{ width: '100%' }, fixedHeightRatio ? { flex: 1 } : null]}
-                collapsable={false}
-                onLayout={(event) => {
-                  const next = Math.round(event.nativeEvent.layout.height);
-                  if (next !== contentHeight.current) {
-                    contentHeight.current = next;
-                    commitHeight();
-                  }
-                }}
-              >
-                {children}
-              </View>
-            )}
-            {footer ? (
-              <View
-                onLayout={(event) => {
-                  const next = Math.round(event.nativeEvent.layout.height);
-                  if (next !== footerHeight.current) {
-                    footerHeight.current = next;
-                    commitHeight();
-                  }
-                }}
-              >
-                {footer}
-              </View>
-            ) : null}
-          </Animated.View>
-        </Animated.View>
-      </View>
-
-      {/* Floor — only needed when there's no nav bar below (full-screen sheets).
-          Fills the OS gesture-bar zone so screen content doesn't bleed through
-          during open/close animations. Skipped when hasNavBar=true because the
-          tab bar already covers that zone. */}
-      {!hasNavBar && (
+  const renderHandle = useCallback(
+    () => (
+      <View>
         <View
           style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: Math.max(insets.bottom, MIN_NAV_FLOOR_HEIGHT),
-            backgroundColor: backgroundColor ?? palette.card,
+            alignItems: 'center',
+            paddingTop: HEADER_HANDLE_TOP_PADDING,
+            paddingBottom: HEADER_HANDLE_BOTTOM_PADDING,
           }}
+        >
+          <View
+            style={{
+              width: HEADER_HANDLE_WIDTH,
+              height: HEADER_HANDLE_HEIGHT,
+              borderRadius: HOME_RADIUS.full,
+              backgroundColor: palette.divider,
+              opacity: 0.65,
+            }}
+          />
+        </View>
+        {showHeaderTitle || headerRight ? (
+          <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              {showHeaderTitle ? (
+                <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
+                  {title}
+                </Text>
+              ) : (
+                <View />
+              )}
+              {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
+            </View>
+            {showHeaderTitle && subtitle ? (
+              <Text
+                style={{
+                  fontSize: HEADER_SUBTITLE_SIZE,
+                  color: palette.textMuted,
+                  marginTop: HEADER_SUBTITLE_MARGIN,
+                  fontWeight: FONT_WEIGHT.regular,
+                }}
+              >
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+        {headerBottom}
+      </View>
+    ),
+    [palette, showHeaderTitle, headerRight, horizontalPadding, title, subtitle, headerBottom],
+  );
+
+  // Footer renderer:
+  //   - When the consumer passes a `footer` node, render it with paddingBottom
+  //     for the safe-area gesture region (so the buttons sit above the gesture bar
+  //     but the sheet's background extends behind it).
+  //   - When there's no consumer footer AND no nav bar, synthesize a "safe-area
+  //     floor" — a footer made of nothing but `floorHeight` of sheet bg. This
+  //     guarantees the OS gesture-bar zone has the sheet's background color,
+  //     matching the original hand-rolled BottomSheet's `floor` View behavior.
+  // The same safe-area floor used in the no-footer path is appended *below* the
+  // consumer's footer so the OS gesture-bar zone is always covered by sheet bg,
+  // matching `renderSafeAreaFloor`. (Previously this path used `innerSafePadding`,
+  // which could collapse to ~3px on devices without a gesture inset.)
+  const footerFloorPadding = hasNavBar ? innerSafePadding : floorHeight;
+  const renderFooter = useCallback(
+    (props: BottomSheetFooterProps) => (
+      <BottomSheetFooter {...props} bottomInset={0}>
+        <View
+          onLayout={(event) => {
+            const h = Math.round(event.nativeEvent.layout.height);
+            if (h !== footerHeight) setFooterHeight(h);
+          }}
+          style={{
+            backgroundColor: sheetFillColor,
+            paddingBottom: footerFloorPadding,
+          }}
+        >
+          {footer}
+        </View>
+      </BottomSheetFooter>
+    ),
+    [footer, sheetFillColor, footerFloorPadding, footerHeight],
+  );
+
+  const renderSafeAreaFloor = useCallback(
+    (props: BottomSheetFooterProps) => (
+      <BottomSheetFooter {...props} bottomInset={0}>
+        <View
           pointerEvents="none"
+          style={{ height: floorHeight, backgroundColor: sheetFillColor }}
         />
+      </BottomSheetFooter>
+    ),
+    [floorHeight, sheetFillColor],
+  );
+
+  const showFloorFooter = !footer && !hasNavBar && floorHeight > 0;
+
+  // Content needs to clear the floating footer (real or synthesized) so the last row
+  // isn't hidden behind it.
+  const contentBottomPadding = footer
+    ? footerHeight + CONTENT_PADDING_BOTTOM
+    : showFloorFooter
+      ? floorHeight + CONTENT_PADDING_BOTTOM
+      : innerSafePadding + CONTENT_PADDING_BOTTOM;
+
+  return (
+    <>
+      {/*
+        Fixed floor at screen bottom — rendered through the gorhom Portal so it
+        sits OUTSIDE the sheet's animated container and stays put while the user
+        swipes the sheet down to dismiss. This is the original hand-rolled
+        sheet's behaviour: a permanent OS-gesture-bar mask for the duration of
+        the sheet's lifecycle, independent of any drag/dismiss translation.
+      */}
+      {!hasNavBar && floorHeight > 0 ? (
+        <Portal>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: floorHeight,
+              backgroundColor: sheetFillColor,
+            }}
+          />
+        </Portal>
+      ) : null}
+    <BottomSheetModal
+      ref={sheetRef}
+      index={0}
+      snapPoints={snapPoints}
+      enableDynamicSizing={!fixedHeightRatio}
+      maxDynamicContentSize={maxSheetHeight}
+      bottomInset={bottomInset}
+      enablePanDownToClose
+      enableDismissOnClose
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
+      backdropComponent={renderBackdrop}
+      handleComponent={renderHandle}
+      footerComponent={footer ? renderFooter : showFloorFooter ? renderSafeAreaFloor : undefined}
+      onDismiss={onClose}
+      backgroundStyle={{
+        backgroundColor: sheetFillColor,
+        borderTopLeftRadius: SHEET_RADIUS,
+        borderTopRightRadius: SHEET_RADIUS,
+      }}
+      style={{
+        shadowColor: SHADOW_COLOR,
+        shadowOffset: { width: 0, height: SHADOW_OFFSET_Y },
+        shadowOpacity: disableShadow ? 0 : SHADOW_OPACITY,
+        shadowRadius: disableShadow ? 0 : SHADOW_RADIUS,
+        elevation: disableShadow ? 0 : ELEVATION,
+      }}
+    >
+      {scrollEnabled ? (
+        <BottomSheetScrollView
+          contentContainerStyle={[
+            { paddingBottom: contentBottomPadding },
+            fixedHeightRatio ? { flexGrow: 1 } : null,
+          ]}
+          showsVerticalScrollIndicator
+          keyboardShouldPersistTaps="always"
+        >
+          {children}
+        </BottomSheetScrollView>
+      ) : (
+        <BottomSheetView
+          style={[
+            { paddingBottom: contentBottomPadding },
+            fixedHeightRatio ? { flex: 1 } : null,
+          ]}
+        >
+          {children}
+        </BottomSheetView>
       )}
-    </View>
+    </BottomSheetModal>
+    </>
   );
 }
