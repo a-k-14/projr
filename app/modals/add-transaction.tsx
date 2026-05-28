@@ -661,7 +661,6 @@ export default function AddTransactionModal() {
     if (!isValid) return;
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
-    if (showDatePicker) setShowDatePicker(false);
 
     // Every save path follows the same shape: close the modal immediately, run the
     // mutation in the background, refresh dependent stores after, and surface any
@@ -685,9 +684,16 @@ export default function AddTransactionModal() {
     };
 
     try {
-      if (!isEditing && accountId) {
-        updateSettings({ lastUsedAccountId: accountId }).catch(() => { });
-      }
+      // lastUsedAccountId is persisted below — deferred for the in-app in/out
+      // path so closeScreen lands with zero synchronous store writes.
+      // For non-in/out branches (deposit, loan, transfer, split) we fire eagerly
+      // since they aren't the hot path being micro-optimised.
+      const shouldPersistLastAccount = !isEditing && !!accountId;
+      const persistLastAccountEagerly = () => {
+        if (shouldPersistLastAccount) {
+          updateSettings({ lastUsedAccountId: accountId }).catch(() => {});
+        }
+      };
 
       if (type === 'deposit') {
         if (isClosingDeposit && closeDepositId) {
@@ -698,6 +704,7 @@ export default function AddTransactionModal() {
             date,
             note: note.trim() || undefined,
           };
+          persistLastAccountEagerly();
           closeScreen();
           runInBackground(() => closeDeposit(closeDepositId, payload), { tx: true, widgets: true });
           return;
@@ -742,6 +749,7 @@ export default function AddTransactionModal() {
         const depositWork = isEditingDeposit && editDepositId
           ? () => depositsStore.update(editDepositId, depositPayload)
           : () => depositsStore.add(depositPayload);
+        persistLastAccountEagerly();
         closeScreen();
         runInBackground(depositWork, { tx: true, widgets: true });
         return;
@@ -785,6 +793,7 @@ export default function AddTransactionModal() {
               if (isEditing && editId) await deleteTransaction(editId);
             };
         clearSplitRows();
+        persistLastAccountEagerly();
         closeScreen();
         runInBackground(splitWork, { tx: true, widgets: true });
         return;
@@ -803,6 +812,7 @@ export default function AddTransactionModal() {
           date,
         };
         clearSplitRows();
+        persistLastAccountEagerly();
         closeScreen();
         runInBackground(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
         return;
@@ -820,6 +830,7 @@ export default function AddTransactionModal() {
           date,
         };
         clearSplitRows();
+        persistLastAccountEagerly();
         closeScreen();
         runInBackground(() => updateTransaction(txId, payload), { tx: true, widgets: true });
         return;
@@ -835,6 +846,7 @@ export default function AddTransactionModal() {
           date,
         };
         clearSplitRows();
+        persistLastAccountEagerly();
         closeScreen();
         runInBackground(() => addTransaction(payload), { tx: true, widgets: true });
         return;
@@ -843,6 +855,7 @@ export default function AddTransactionModal() {
         const loanId = routeLoanId;
         const trimmedNote = note.trim();
         clearSplitRows();
+        persistLastAccountEagerly();
         closeScreen();
         runInBackground(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
         return;
@@ -858,6 +871,7 @@ export default function AddTransactionModal() {
           date,
         };
         clearSplitRows();
+        persistLastAccountEagerly();
         closeScreen();
         runInBackground(() => addLoan(payload), { tx: true, widgets: true });
         return;
@@ -873,6 +887,7 @@ export default function AddTransactionModal() {
           payee: payee.trim() || undefined,
         };
         clearSplitRows();
+        persistLastAccountEagerly();
         closeScreen();
         runInBackground(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
         return;
@@ -892,16 +907,17 @@ export default function AddTransactionModal() {
         ? () => updateTransaction(editId, data)
         : () => addTransaction(data);
       const runAfterClose = () => {
+        if (showDatePicker) setShowDatePicker(false);
+        clearSplitRows();
+        persistLastAccountEagerly();
         runMutation()
           .then(() => updateAllReniWidgets().catch(() => undefined))
           .catch((e) => showAlert('Error', String(e)));
       };
       if (fromWidget === '1') {
         runAfterClose();
-        clearSplitRows();
         closeScreen();
       } else {
-        clearSplitRows();
         closeScreen();
         InteractionManager.runAfterInteractions(runAfterClose);
       }
