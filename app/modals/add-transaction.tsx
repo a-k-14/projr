@@ -695,6 +695,19 @@ export default function AddTransactionModal() {
         }
       };
 
+      const closeScreenAndExecute = (
+        runWork: () => void,
+        isSynchronous = false
+      ) => {
+        if (isSynchronous) {
+          runWork();
+          closeScreen();
+        } else {
+          closeScreen();
+          InteractionManager.runAfterInteractions(runWork);
+        }
+      };
+
       if (type === 'deposit') {
         if (isClosingDeposit && closeDepositId) {
           const payload = {
@@ -704,9 +717,10 @@ export default function AddTransactionModal() {
             date,
             note: note.trim() || undefined,
           };
-          persistLastAccountEagerly();
-          closeScreen();
-          runInBackground(() => closeDeposit(closeDepositId, payload), { tx: true, widgets: true });
+          closeScreenAndExecute(() => {
+            persistLastAccountEagerly();
+            runInBackground(() => closeDeposit(closeDepositId, payload), { tx: true, widgets: true });
+          }, false);
           return;
         }
 
@@ -749,9 +763,10 @@ export default function AddTransactionModal() {
         const depositWork = isEditingDeposit && editDepositId
           ? () => depositsStore.update(editDepositId, depositPayload)
           : () => depositsStore.add(depositPayload);
-        persistLastAccountEagerly();
-        closeScreen();
-        runInBackground(depositWork, { tx: true, widgets: true });
+        closeScreenAndExecute(() => {
+          persistLastAccountEagerly();
+          runInBackground(depositWork, { tx: true, widgets: true });
+        }, false);
         return;
       }
 
@@ -792,10 +807,11 @@ export default function AddTransactionModal() {
               // Convert single → split: drop the now-orphaned original row.
               if (isEditing && editId) await deleteTransaction(editId);
             };
-        clearSplitRows();
-        persistLastAccountEagerly();
-        closeScreen();
-        runInBackground(splitWork, { tx: true, widgets: true });
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(splitWork, { tx: true, widgets: true });
+        }, false);
         return;
       }
 
@@ -811,10 +827,11 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         };
-        clearSplitRows();
-        persistLastAccountEagerly();
-        closeScreen();
-        runInBackground(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
+        }, false);
         return;
       }
       if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
@@ -829,10 +846,11 @@ export default function AddTransactionModal() {
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
           date,
         };
-        clearSplitRows();
-        persistLastAccountEagerly();
-        closeScreen();
-        runInBackground(() => updateTransaction(txId, payload), { tx: true, widgets: true });
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(() => updateTransaction(txId, payload), { tx: true, widgets: true });
+        }, false);
         return;
       }
       if (type === 'loan' && routeLoanId && settlement === '1') {
@@ -845,19 +863,21 @@ export default function AddTransactionModal() {
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
           date,
         };
-        clearSplitRows();
-        persistLastAccountEagerly();
-        closeScreen();
-        runInBackground(() => addTransaction(payload), { tx: true, widgets: true });
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(() => addTransaction(payload), { tx: true, widgets: true });
+        }, false);
         return;
       }
       if (type === 'loan' && isLoanAddMore && routeLoanId) {
         const loanId = routeLoanId;
         const trimmedNote = note.trim();
-        clearSplitRows();
-        persistLastAccountEagerly();
-        closeScreen();
-        runInBackground(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
+        }, false);
         return;
       }
       if (type === 'loan') {
@@ -870,10 +890,11 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         };
-        clearSplitRows();
-        persistLastAccountEagerly();
-        closeScreen();
-        runInBackground(() => addLoan(payload), { tx: true, widgets: true });
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(() => addLoan(payload), { tx: true, widgets: true });
+        }, false);
         return;
       }
       if (isEditing && editId && isTransferEdit) {
@@ -886,10 +907,11 @@ export default function AddTransactionModal() {
           note: note.trim(),
           payee: payee.trim() || undefined,
         };
-        clearSplitRows();
-        persistLastAccountEagerly();
-        closeScreen();
-        runInBackground(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
+        }, false);
         return;
       }
       // For in/out add + edit we have two competing constraints:
@@ -914,13 +936,7 @@ export default function AddTransactionModal() {
           .then(() => updateAllReniWidgets().catch(() => undefined))
           .catch((e) => showAlert('Error', String(e)));
       };
-      if (fromWidget === '1') {
-        runAfterClose();
-        closeScreen();
-      } else {
-        closeScreen();
-        InteractionManager.runAfterInteractions(runAfterClose);
-      }
+      closeScreenAndExecute(runAfterClose, fromWidget === '1');
     } catch (e) {
       showAlert('Error', String(e));
       isSubmittingRef.current = false;
@@ -951,19 +967,21 @@ export default function AddTransactionModal() {
             : editId
               ? () => removeTransaction(editId)
               : async () => undefined;
-        setEditingSplitGroupId('');
-        clearSplitRows();
-        closeScreen();
-        (async () => {
-          try {
-            await work();
-            await refreshAccounts();
-            await reloadTransactions();
-            updateAllReniWidgets().catch(() => undefined);
-          } catch (e) {
-            showAlert('Error', String(e));
-          }
-        })();
+        const runAfterDeleteClose = () => {
+          setEditingSplitGroupId('');
+          clearSplitRows();
+          (async () => {
+            try {
+              await work();
+              await refreshAccounts();
+              await reloadTransactions();
+              updateAllReniWidgets().catch(() => undefined);
+            } catch (e) {
+              showAlert('Error', String(e));
+            }
+          })();
+        };
+        closeScreenAndExecute(runAfterDeleteClose, false);
       },
     });
   };

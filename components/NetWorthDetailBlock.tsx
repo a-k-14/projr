@@ -1,24 +1,23 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { Text } from '@/components/ui/AppText';
+import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
+import { router } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedRef, useAnimatedScrollHandler, type SharedValue } from 'react-native-reanimated';
-import { router } from 'expo-router';
-import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '@/components/ui/AppIcon';
-import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../lib/account-utils';
+import { ASSET_TONE } from '../lib/assetVisuals';
+import { toLocalDateKey, toLocalDayEndISO, toLocalDayStartISO } from '../lib/dateUtils';
+import { DEPOSIT_VISUAL } from '../lib/depositVisuals';
 import { formatCurrency, getTransactionCashflowImpact } from '../lib/derived';
-import { FONT_WEIGHT, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
+import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER, SPACING, TYPE } from '../lib/design';
 import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER, getNetWorthChangeTheme } from '../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../lib/settings-shared';
 import { AppThemePalette } from '../lib/theme';
-import { Account, Asset, Transaction } from '../types';
-import { CARD_PADDING } from '../lib/design';
-import { toLocalDayStartISO, toLocalDayEndISO, toLocalDateKey } from '../lib/dateUtils';
-import { useTransactionsStore } from '../stores/useTransactionsStore';
 import { getTransactions } from '../services/transactions';
+import { useTransactionsStore } from '../stores/useTransactionsStore';
+import { Account, Asset, Transaction } from '../types';
 import { TrendLineChart } from './insights/TrendLineChart';
-import { ASSET_TONE } from '../lib/assetVisuals';
-import { DEPOSIT_VISUAL } from '../lib/depositVisuals';
 
 
 export function NetWorthDetailBlock({
@@ -60,6 +59,7 @@ export function NetWorthDetailBlock({
   const [period, setPeriod] = useState<'today' | 'month'>('month');
   const [chartInteracting, setChartInteracting] = useState(false);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const tableYRef = React.useRef(0);
 
   const openBreakdownActivity = (kind: 'in' | 'out') => {
     const fromVal = period === 'today' ? todayStart : monthStart;
@@ -334,23 +334,31 @@ export function NetWorthDetailBlock({
           </View>
 
           {/* Change badge */}
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 3,
-            backgroundColor: nwChangeBg,
-            borderRadius: HOME_RADIUS.full,
-            paddingHorizontal: 7,
-            paddingVertical: 3.5,
-            marginTop: 2,
-          }}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              if (tableYRef.current > 0) {
+                scrollRef.current?.scrollTo({ y: tableYRef.current - 12, animated: true });
+              }
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 3,
+              backgroundColor: nwChangeBg,
+              borderRadius: HOME_RADIUS.full,
+              paddingHorizontal: 7,
+              paddingVertical: 3.5,
+              marginTop: 2,
+            }}
+          >
             {nwChangeTone !== 'neutral' && (
               <AppIcon name={nwChangeTone === 'positive' ? 'trending-up' : 'trending-down'} size={11} color={nwChangeInk} strokeWidth={2.4} />
             )}
             <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.bold, color: nwChangeInk, fontFamily: 'monospace' }}>
               {nwChangeTone === 'neutral' ? '—' : `${activeVals.netChange > 0 ? '+' : ''}${formatCurrency(Math.abs(activeVals.netChange), currencySymbol)}`}
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Bottom section: Progress bar & Asset/Liability split */}
@@ -379,11 +387,12 @@ export function NetWorthDetailBlock({
         title="Net Worth Trend"
         subtitle="(Last 30 Days)"
         onInteractionStateChange={setChartInteracting}
+        containerStyle={{ marginTop: 28 }}
       />
 
       {/* Unified Assets & Liabilities Card */}
       <View style={{
-        marginTop: 20,
+        marginTop: 28,
         borderRadius: HOME_RADIUS.card,
         borderWidth: 1,
         borderColor: palette.divider,
@@ -646,7 +655,12 @@ export function NetWorthDetailBlock({
 
 
       {/* Change Breakdown Table */}
-      <View style={{ marginTop: 20, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, overflow: 'hidden' }}>
+      <View
+        onLayout={(event) => {
+          tableYRef.current = event.nativeEvent.layout.y;
+        }}
+        style={{ marginTop: 28, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.card, overflow: 'hidden' }}
+      >
         <View style={{
           paddingHorizontal: 16,
           paddingVertical: 10,
@@ -691,9 +705,9 @@ export function NetWorthDetailBlock({
               <View style={{ width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center', backgroundColor: `${palette.positive}12` }}>
                 <AppIcon name="arrow-down-left" size={12} color={palette.positive} strokeWidth={2} />
               </View>
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Income</Text>
+              <Text style={{ fontSize: CARD_TEXT.line1, color: palette.text }}>Income</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: activeVals.income === 0 ? palette.textMuted : palette.text }}>
+            <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.regular, color: activeVals.income === 0 ? palette.textMuted : palette.text }}>
               {activeVals.income === 0 ? '—' : `${activeVals.income < 0 ? '-' : '+'}${formatCurrency(Math.abs(activeVals.income), currencySymbol)}`}
             </Text>
           </TouchableOpacity>
@@ -708,9 +722,9 @@ export function NetWorthDetailBlock({
               <View style={{ width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center', backgroundColor: `${palette.negative}12` }}>
                 <AppIcon name="arrow-up-right" size={12} color={palette.negative} strokeWidth={2} />
               </View>
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Expense</Text>
+              <Text style={{ fontSize: CARD_TEXT.line1, color: palette.text }}>Expense</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: activeVals.expense === 0 ? palette.textMuted : palette.text }}>
+            <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.regular, color: activeVals.expense === 0 ? palette.textMuted : palette.text }}>
               {activeVals.expense === 0 ? '—' : `${activeVals.expense < 0 ? '+' : '-'}${formatCurrency(Math.abs(activeVals.expense), currencySymbol)}`}
             </Text>
           </TouchableOpacity>
@@ -721,9 +735,9 @@ export function NetWorthDetailBlock({
               <View style={{ width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center', backgroundColor: `${ASSET_TONE}12` }}>
                 <AppIcon name="gem" size={11} color={ASSET_TONE} strokeWidth={2} />
               </View>
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Assets</Text>
+              <Text style={{ fontSize: CARD_TEXT.line1, color: palette.text }}>Assets</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: activeVals.assetAdditions === 0 ? palette.textMuted : palette.text }}>
+            <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.regular, color: activeVals.assetAdditions === 0 ? palette.textMuted : palette.text }}>
               {activeVals.assetAdditions === 0 ? '—' : `+${formatCurrency(activeVals.assetAdditions, currencySymbol)}`}
             </Text>
           </View>
@@ -744,9 +758,9 @@ export function NetWorthDetailBlock({
                   strokeWidth={2.2}
                 />
               </View>
-              <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>Net Change</Text>
+              <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Net Change</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, fontWeight: FONT_WEIGHT.heavy, color: activeVals.netChange === 0 ? palette.textMuted : activeVals.netChange > 0 ? palette.positive : palette.negative }}>
+            <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.bold, color: activeVals.netChange === 0 ? palette.textMuted : activeVals.netChange > 0 ? palette.positive : palette.negative }}>
               {activeVals.netChange === 0 ? '—' : `${activeVals.netChange > 0 ? '+' : '-'}${formatCurrency(Math.abs(activeVals.netChange), currencySymbol)}`}
             </Text>
           </View>

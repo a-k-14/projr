@@ -462,11 +462,6 @@ function CategoryDonutChartBlockBase({
                   ? '—'
                   : formatCurrency(selectedSliceAmount ?? selectedParentSlice?.amount ?? total, sym)}
               </Text>
-              {selectionNode ? (
-                <Text style={{ fontSize: 10.5, fontWeight: '700', color: selectedSubcategoryNode?.color ?? selectedParentSlice?.color ?? theme.muted, marginTop: 4, fontFamily: 'monospace', textTransform: 'uppercase' }}>
-                  {selectedSubcategoryNode?.color ?? selectedParentSlice?.color}
-                </Text>
-              ) : null}
             </View>
           </>
         )}
