@@ -10,6 +10,7 @@ import {
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
 import { BackHandler, Dimensions, View } from 'react-native';
+import { Easing, ReduceMotion } from 'react-native-reanimated';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER, FONT_WEIGHT } from '../../lib/design';
@@ -18,6 +19,14 @@ import type { AppThemePalette } from '../../lib/theme';
 import { getSheetBottomPadding } from './safeBottom';
 
 const BACKDROP_OPACITY = 0.4;
+
+// Snappier than the default spring (which oscillates for ~350 ms). 200 ms
+// timing with a decelerate curve feels instant but still smooth.
+const SHEET_ANIMATION_CONFIGS = {
+  duration: 200,
+  easing: Easing.out(Easing.cubic),
+  reduceMotion: ReduceMotion.System,
+};
 const HEADER_HANDLE_WIDTH = 42;
 const HEADER_HANDLE_HEIGHT = 5;
 const HEADER_HANDLE_TOP_PADDING = 8;
@@ -278,6 +287,7 @@ export function BottomSheet({
       ref={sheetRef}
       index={0}
       snapPoints={snapPoints}
+      animationConfigs={SHEET_ANIMATION_CONFIGS}
       enableDynamicSizing={!fixedHeightRatio}
       maxDynamicContentSize={maxSheetHeight}
       bottomInset={bottomInset}

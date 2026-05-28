@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { BucketType, ChartGranularity } from '../../lib/chartUtils';
 import { APP_LOCALE, toLocalDateKey } from '../../lib/dateUtils';
@@ -16,7 +16,7 @@ interface Props {
   palette: AppThemePalette;
   sym: string;
   period?: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   onInteractionStateChange?: (interacting: boolean) => void;
   granularity?: ChartGranularity;
@@ -29,6 +29,10 @@ interface Props {
   panelCloseToken?: number;
   /** When true, dims the bars area + shows "Updating…" so the chip change has immediate feedback. */
   isLoading?: boolean;
+  /** Called when the expand icon is tapped. When omitted the icon is hidden. */
+  onExpand?: () => void;
+  /** Called when a bar is tapped. Null means the bar was deselected (same bar tapped again). */
+  onBucketPress?: (bucket: { label: string; income: number; expense: number; from?: string; to?: string; type?: BucketType } | null) => void;
 }
 
 const GRANULARITY_OPTIONS: { key: ChartGranularity; label: string }[] = [
@@ -59,6 +63,8 @@ export function IncomeExpenseChart({
   autoBucketType,
   panelCloseToken,
   isLoading,
+  onExpand,
+  onBucketPress,
 }: Props): React.ReactElement | null {
   // Compute once: which chips to render (sorted Day → Week → Month → Year), and whether the toggle icon shows.
   const visibleGranularities = availableGranularities ?? GRANULARITY_OPTIONS.map((o) => o.key);
@@ -93,10 +99,12 @@ export function IncomeExpenseChart({
     panelProgress.value = withTiming(next ? 1 : 0, { duration: 220 });
   };
 
-  // Force-close the granularity panel when the parent bumps the token (e.g. on tab reset).
+  // Force-close the granularity panel and clear any selected bar when the parent bumps the token
+  // (e.g. on tab reset, or when a bsheet opens/closes over the chart).
   useEffect(() => {
     if (panelCloseToken === undefined) return;
     setGranularityOpen(false);
+    setActiveIdx(null);
     panelProgress.value = withTiming(0, { duration: 220 });
   }, [panelCloseToken, panelProgress]);
 
@@ -117,8 +125,12 @@ export function IncomeExpenseChart({
 
   const allZero = data.every((d) => d.income === 0 && d.expense === 0);
 
-  const incomeColor = palette.chartIncome;
-  const expenseColor = palette.chartExpense;
+  // Same surface tint used for the donut breadcrumb strip and subcat highlight.
+  // '66' = 40 % opacity baked into the hex so child views are unaffected.
+  const surfaceColor = palette.isDark ? '#1F2937' : '#E2E8F0';
+
+  const incomeColor = '#28c3a4'; // Sleek mint green (slightly deeper/greener than teal)
+  const expenseColor = '#fb7478'; // Sleek neon coral-red (slightly lighter/brighter than coral)
 
   const totalIncome = data.reduce((s, d) => s + d.income, 0);
   const totalExpense = data.reduce((s, d) => s + d.expense, 0);
@@ -213,7 +225,7 @@ export function IncomeExpenseChart({
   // NOT on granularity/isLoading/period. So tapping a chip skips re-rendering all the bars,
   // which is what makes the chip + mask appear instantly.
   const barsContent = useMemo(() => {
-    const selectionBg = { position: 'absolute' as const, top: 0, bottom: 0, left: 0, right: 0, backgroundColor: palette.brand, borderRadius: 8, opacity: 0.15 };
+    const selectionBg = { position: 'absolute' as const, top: 0, bottom: 0, left: 0, right: 0, backgroundColor: surfaceColor + '66', borderTopLeftRadius: 8, borderTopRightRadius: 8 };
     return isScrollable ? (
       <ScrollView
         ref={barsScrollRef}
@@ -229,7 +241,7 @@ export function IncomeExpenseChart({
         {data.map((bucket, i) => {
           const isSelected = activeIdx === i;
           const anySelected = activeIdx !== null;
-          const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
+          const opacity = anySelected ? (isSelected ? 1 : 0.65) : 1;
           const incAbs = Math.abs(bucket.income);
           const expAbs = Math.abs(bucket.expense);
           const incOutlined = bucket.income < 0;
@@ -239,7 +251,11 @@ export function IncomeExpenseChart({
           return (
             <Pressable
               key={bucket.label + i}
-              onPress={() => setActiveIdx(activeIdx === i ? null : i)}
+              onPress={() => {
+                const next = activeIdx === i ? null : i;
+                setActiveIdx(next);
+                onBucketPress?.(next !== null ? bucket : null);
+              }}
               style={{ width: 48, height: '100%', alignItems: 'center', opacity }}
             >
               <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -269,7 +285,7 @@ export function IncomeExpenseChart({
                   )}
                 </View>
               </View>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: isSelected ? palette.text : palette.textMuted, fontWeight: isSelected ? '700' : '400', marginTop: 6 }}>
+              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.text, fontWeight: isSelected ? '700' : '600', marginTop: 6 }}>
                 {formatBottomLabel(bucket)}
               </Text>
             </Pressable>
@@ -281,7 +297,7 @@ export function IncomeExpenseChart({
         {data.map((bucket, i) => {
           const isSelected = activeIdx === i;
           const anySelected = activeIdx !== null;
-          const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
+          const opacity = anySelected ? (isSelected ? 1 : 0.65) : 1;
           const incAbs = Math.abs(bucket.income);
           const expAbs = Math.abs(bucket.expense);
           const incOutlined = bucket.income < 0;
@@ -291,11 +307,15 @@ export function IncomeExpenseChart({
           return (
             <Pressable
               key={bucket.label + i}
-              onPress={() => setActiveIdx(activeIdx === i ? null : i)}
+              onPress={() => {
+                const next = activeIdx === i ? null : i;
+                setActiveIdx(next);
+                onBucketPress?.(next !== null ? bucket : null);
+              }}
               style={{ flex: 1, maxWidth: 64, height: '100%', justifyContent: 'flex-end', alignItems: 'center', opacity }}
             >
               {isSelected && (
-                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 2, right: 2, backgroundColor: palette.divider, borderRadius: 8, opacity: 0.25 }} />
+                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 2, right: 2, backgroundColor: surfaceColor + '66', borderRadius: 8 }} />
               )}
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
                 {incHeight > 0 && (
@@ -321,7 +341,7 @@ export function IncomeExpenseChart({
                   }} />
                 )}
               </View>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: isSelected ? palette.text : palette.textMuted, fontWeight: isSelected ? '700' : '400', marginTop: 6 }}>
+              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.text, fontWeight: isSelected ? '700' : '600', marginTop: 6 }}>
                 {formatBottomLabel(bucket)}
               </Text>
             </Pressable>
@@ -343,48 +363,62 @@ export function IncomeExpenseChart({
         overflow: 'hidden',
       }}
     >
-      {/* Header Row */}
+      {/* Header Row — minHeight always reserved so tooltip appearing doesn't shift the chart */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, minHeight: 75 }}>
         <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-            {title}
-          </Text>
+          {title ? (
+            <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+              {title}
+            </Text>
+          ) : null}
           {activeItem ? (
-            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2, fontWeight: FONT_WEIGHT.medium }}>
+            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: title ? 2 : 0, fontWeight: FONT_WEIGHT.medium }}>
               {formatBucketLabel(activeItem)}
             </Text>
           ) : (
             subtitle && (
-              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2 }}>
+              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: title ? 2 : 0 }}>
                 {subtitle}
               </Text>
             )
           )}
         </View>
 
-        {activeItem ? (
-          <View style={{ alignItems: 'flex-end', minWidth: 140 }}>
-            <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
-              Income: <Text style={{ color: incomeColor, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.income < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.income), sym)}</Text>
-            </Text>
-            <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
-              Expense: <Text style={{ color: expenseColor, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.expense < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.expense), sym)}</Text>
-            </Text>
-            <View style={{ height: 1, width: 90, alignSelf: 'flex-end', backgroundColor: palette.divider, marginVertical: 3 }} />
-            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted }}>
-              Net: <Text style={{ color: (activeItem.income - activeItem.expense) >= 0 ? palette.numberPositive : palette.numberNegative, fontWeight: FONT_WEIGHT.bold }}>{formatCurrency(activeItem.income - activeItem.expense, sym)}</Text>
-            </Text>
-          </View>
-        ) : (
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: netColor }}>
-              {formatCurrency(net, sym)}
-            </Text>
-            <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2 }}>
-              Net
-            </Text>
-          </View>
-        )}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+          {activeItem ? (
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
+                Income: <Text style={{ color: incomeColor, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.income < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.income), sym)}</Text>
+              </Text>
+              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
+                Expense: <Text style={{ color: expenseColor, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.expense < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.expense), sym)}</Text>
+              </Text>
+              <View style={{ height: 1, width: 90, alignSelf: 'flex-end', backgroundColor: palette.divider, marginVertical: 3 }} />
+              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted }}>
+                Net: <Text style={{ color: (activeItem.income - activeItem.expense) >= 0 ? palette.numberPositive : palette.numberNegative, fontWeight: FONT_WEIGHT.bold }}>{formatCurrency(activeItem.income - activeItem.expense, sym)}</Text>
+              </Text>
+            </View>
+          ) : (
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: netColor }}>
+                {formatCurrency(net, sym)}
+              </Text>
+              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2 }}>
+                Net
+              </Text>
+            </View>
+          )}
+          {onExpand ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={onExpand}
+              style={{ paddingTop: 2 }}
+            >
+              <AppIcon name="maximize-2" size={15} color={palette.textMuted} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {allZero && !isLoading ? (

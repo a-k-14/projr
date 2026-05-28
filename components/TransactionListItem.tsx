@@ -156,7 +156,6 @@ function TransactionListItemBase({
   const amountColor = useTypeAmountColor
     ? (displayImpact === 'in' ? palette.numberPositive : displayImpact === 'out' ? palette.numberNegative : palette.text)
     : palette.text;
-  const tertiaryLine = [tertiaryText, noteLine].filter((value): value is string => !!value).join(' | ') || undefined;
   const supportIcons = tx.splitGroupId || hasReceipt ? (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
       {tx.splitGroupId ? (
@@ -213,15 +212,46 @@ function TransactionListItemBase({
           {supportIcons ? <View style={{ minWidth: 28 }}>{supportIcons}</View> : null}
         </View>
       }
-      tertiaryRow={tertiaryLine ? (
-        <Text
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}
-        >
-          {tertiaryLine}
-        </Text>
-      ) : null}
+      tertiaryRow={
+        (noteLine || tertiaryText) ? (
+          <View style={{ gap: 6, marginTop: 2 }}>
+            {noteLine ? (
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}
+              >
+                {noteLine}
+              </Text>
+            ) : null}
+            {tertiaryText ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                {tertiaryText.split(' • ').map((tag) => (
+                  <View
+                    key={tag}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.038)',
+                      borderColor: palette.borderSoft,
+                      borderWidth: 0.5,
+                      borderRadius: 6,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2.5,
+                    }}
+                  >
+                    <AppIcon name="tag" size={9.5} color={palette.textSecondary} strokeWidth={2.1} />
+                    <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
+                      {tag}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null
+      }
       style={[
         {
           paddingVertical: paddingY,

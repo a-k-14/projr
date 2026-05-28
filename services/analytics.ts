@@ -2,19 +2,12 @@ import { eq, and, gte, lte } from 'drizzle-orm';
 import { db } from '../db/client';
 import { transactions, accounts as accountsTable } from '../db/schema';
 import { getTransactionCashflowImpact } from '../lib/derived';
-import { toLocalDateKey, toLocalDayEndISO } from '../lib/dateUtils';
+import { toLocalDateKey, toLocalDayEndISO, safeLocalDateKey } from '../lib/dateUtils';
 import type { CashflowSummary, CategoryBreakdown, DailyCashflow } from '../types';
 import { getCategories } from './categories';
 import type { TimeBucket, BucketType } from '../lib/chartUtils';
 
-function safeLocalDateKey(value: string | null | undefined): string {
-  if (!value) return '';
-  try {
-    return toLocalDateKey(value);
-  } catch {
-    return value.split?.('T')?.[0] ?? value;
-  }
-}
+// safeLocalDateKey is now exported from lib/dateUtils — no local copy needed.
 
 async function getTransactionsInRange(
   accountId: string | 'all',

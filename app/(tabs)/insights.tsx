@@ -23,7 +23,8 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 
 import { getCashflowSnapshot, getBalanceTrend, getIncomeExpenseByBuckets } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
-import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate } from '../../lib/dateUtils';
+import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate, toLocalDateKey, safeLocalDateKey } from '../../lib/dateUtils';
+import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
 import { getLoanTransactionKind } from '../../lib/derived';
 import { TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING } from '../../lib/layoutTokens';
@@ -57,6 +58,7 @@ export default function InsightsScreen() {
   const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
   const loadCategories = useCategoriesStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
+  const tags = useCategoriesStore((s) => s.tags);
   const loans = useLoansStore((s) => s.loans);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
   const loadLoans = useLoansStore((s) => s.load);
@@ -82,6 +84,9 @@ export default function InsightsScreen() {
     mode: CategoryChartMode;
     resetTrigger: number;
   } | null>(null);
+  const [expandedSheetTxs, setExpandedSheetTxs] = useState<Transaction[]>([]);
+  const [incExpExpanded, setIncExpExpanded] = useState(false);
+  const [incExpBucketFilter, setIncExpBucketFilter] = useState<{ from: string; to: string } | null>(null);
 
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
@@ -153,11 +158,25 @@ export default function InsightsScreen() {
 
   const isDefaultView = period === 'week' && selectedChartCategoryId === null;
 
+  const incExpVisibleTxs = useMemo(() => {
+    if (!incExpBucketFilter) return periodTransactions;
+    // Use toLocalDateKey on both sides — bucket dates are UTC ISO strings from .toISOString(),
+    // so a bare split('T')[0] gives the UTC date, not the local date (wrong in any non-UTC timezone).
+    const from = toLocalDateKey(incExpBucketFilter.from);
+    const to = toLocalDateKey(incExpBucketFilter.to);
+    return periodTransactions.filter((tx) => {
+      const day = safeLocalDateKey(tx.date);
+      return !!day && day >= from && day <= to;
+    });
+  }, [incExpBucketFilter, periodTransactions]);
+
+
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
 
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
+  const tagNamesById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
 
   const handleTransactionPress = useCallback((tx: Transaction) => {
     if (tx.type === 'deposit' && tx.depositId) {
@@ -240,7 +259,12 @@ export default function InsightsScreen() {
   useEffect(() => {
     return registerTabReset('insights', ({ mode, animated }) => {
       scrollRef.current?.scrollTo({ y: 0, animated });
-      setChartPanelCloseToken((t) => t + 1);                  // collapse any open config panel
+      setChartPanelCloseToken((t) => t + 1);
+      setExpandedChartState(null);
+      setExpandedSheetTxs([]);
+      setIncExpExpanded(false);
+      setIncExpBucketFilter(null);
+      setIncomeExpenseGranularity('auto');
       if (mode === 'full') {
         setPeriod('week');
         setSelectedChartCategoryId(null);
@@ -367,6 +391,23 @@ export default function InsightsScreen() {
 
           <View style={{ height: 24 }} />
 
+        <IncomeExpenseChart
+          data={incomeExpenseData}
+          palette={palette}
+          sym={showCurrencySymbol ? currencySymbol : ''}
+          period={period}
+          onInteractionStateChange={setChartInteracting}
+          title="Income vs Expense"
+          subtitle={`(${PERIOD_LABELS[period]})`}
+          granularity={incomeExpenseGranularity}
+          onGranularityChange={handleGranularityChange}
+          availableGranularities={availableGranularities}
+          autoBucketType={autoBucketType}
+          panelCloseToken={chartPanelCloseToken}
+          isLoading={isLoadingTrend}
+          onExpand={() => setIncExpExpanded(true)}
+        />
+
         <View
           style={{
             backgroundColor: palette.card,
@@ -393,29 +434,11 @@ export default function InsightsScreen() {
             loansById={loansById}
             onTransactionPress={handleTransactionPress}
             onExpand={(mode) => {
+              setExpandedSheetTxs(periodTransactions); // pre-populate so no empty→populated jump
               setExpandedChartState({ transactions: periodTransactions, mode, resetTrigger: Date.now() });
             }}
           />
         </View>
-
-
-        <View style={{ height: 24 }} />
-
-        <IncomeExpenseChart
-          data={incomeExpenseData}
-          palette={palette}
-          sym={showCurrencySymbol ? currencySymbol : ''}
-          period={period}
-          onInteractionStateChange={setChartInteracting}
-          title="Income vs Expense"
-          subtitle={`(${PERIOD_LABELS[period]})`}
-          granularity={incomeExpenseGranularity}
-          onGranularityChange={handleGranularityChange}
-          availableGranularities={availableGranularities}
-          autoBucketType={autoBucketType}
-          panelCloseToken={chartPanelCloseToken}
-          isLoading={isLoadingTrend}
-        />
       </ReAnimated.ScrollView>
 
       <Modal
@@ -472,12 +495,14 @@ export default function InsightsScreen() {
           disableShadow
           onClose={() => {
             setExpandedChartState(null);
+            setExpandedSheetTxs([]);
           }}
-          maxHeightRatio={0.80}
-          fixedHeightRatio={0.80}
+          maxHeightRatio={0.90}
+          fixedHeightRatio={0.90}
           hasNavBar
         >
           <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 0, backgroundColor: palette.background }}>
+            {/* Donut + category list — no internal scroll, no internal transactions */}
             <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, overflow: 'hidden' }}>
               <CategoryDonutChartBlock
                 transactions={expandedChartState.transactions}
@@ -487,11 +512,84 @@ export default function InsightsScreen() {
                 getCategoryFullDisplayName={getCategoryFullDisplayName}
                 theme={chartTheme}
                 expanded
+                disableScroll
+                externalTransactions
+                onSelectedTransactionsChange={setExpandedSheetTxs}
                 initialMode={expandedChartState.mode}
                 resetTrigger={expandedChartState.resetTrigger}
                 accountsById={accountsById}
                 loansById={loansById}
                 onTransactionPress={handleTransactionPress}
+              />
+            </View>
+
+            {/* Transactions — date-grouped, outside the card */}
+            <View style={{ marginTop: 20, paddingBottom: 24 }}>
+              <DateGroupedTransactionList
+                transactions={expandedSheetTxs}
+                palette={palette}
+                sym={showCurrencySymbol ? currencySymbol : ''}
+                categoriesById={categoriesById}
+                accountsById={accountsById}
+                loansById={loansById}
+                tagNamesById={tagNamesById}
+                getCategoryFullDisplayName={getCategoryFullDisplayName}
+                onTransactionPress={handleTransactionPress}
+                emptyText="No transactions"
+              />
+            </View>
+          </View>
+        </BottomSheet>
+      ) : null}
+
+      {incExpExpanded ? (
+        <BottomSheet
+          title="Income vs Expense"
+          palette={palette}
+          backgroundColor={palette.background}
+          disableShadow
+          onClose={() => {
+            setIncExpExpanded(false);
+            setIncExpBucketFilter(null);
+          }}
+          maxHeightRatio={0.90}
+          fixedHeightRatio={0.90}
+          hasNavBar
+        >
+          <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 24 }}>
+            <IncomeExpenseChart
+              data={incomeExpenseData}
+              palette={palette}
+              sym={showCurrencySymbol ? currencySymbol : ''}
+              period={period}
+              subtitle={PERIOD_LABELS[period]}
+              granularity={incomeExpenseGranularity}
+              onGranularityChange={handleGranularityChange}
+              availableGranularities={availableGranularities}
+              autoBucketType={autoBucketType}
+              isLoading={isLoadingTrend}
+              onBucketPress={(bucket) => {
+                // Defer the list filter update to the next frame so the bar highlight
+                // paints first — makes the tap feel instant.
+                requestAnimationFrame(() => {
+                  setIncExpBucketFilter(
+                    bucket?.from && bucket?.to ? { from: bucket.from, to: bucket.to } : null,
+                  );
+                });
+              }}
+            />
+            <View style={{ marginTop: 8 }}>
+              <DateGroupedTransactionList
+                transactions={incExpVisibleTxs}
+                palette={palette}
+                sym={showCurrencySymbol ? currencySymbol : ''}
+                categoriesById={categoriesById}
+                accountsById={accountsById}
+                loansById={loansById}
+                tagNamesById={tagNamesById}
+                getCategoryFullDisplayName={getCategoryFullDisplayName}
+                onTransactionPress={handleTransactionPress}
+                emptyText="No transactions in this period"
               />
             </View>
           </View>

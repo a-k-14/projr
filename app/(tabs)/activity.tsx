@@ -1690,7 +1690,7 @@ export default function ActivityScreen() {
         </>
 
       {showAccountSheet ? (
-        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
+        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar fixedHeightRatio={0.85} scrollEnabled>
           <ChoiceRow
             title="All Accounts"
             selected={selectedAccountId === 'all'}

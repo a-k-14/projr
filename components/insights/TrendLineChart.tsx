@@ -1,12 +1,12 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { View, Dimensions, Animated } from 'react-native';
-import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
-import { Text } from '../ui/AppText';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Dimensions, View } from 'react-native';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
+import { APP_LOCALE, toLocalDateKey } from '../../lib/dateUtils';
 import { formatCurrency } from '../../lib/derived';
-import { toLocalDateKey, APP_LOCALE } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
+import { Text } from '../ui/AppText';
 
 interface TrendPoint {
   date: string;
@@ -70,7 +70,7 @@ function TrendLineChartBase({
     }
   }, [isLoading, fadeAnim]);
 
-  const PAD_X = 8; // viewBox units from SVG edges to line endpoints (active dot r=9, just fits with overflow:visible)
+  const PAD_X = 2; // viewBox units from SVG edges to line endpoints (active dot r=9, just fits with overflow:visible)
   const CHART_H = 110;
   const VB_W = 300; // viewBox width
 
@@ -234,59 +234,59 @@ function TrendLineChartBase({
       </View>
 
       {/* SVG Interactive Chart — 14px side padding, chartWidthRef updated without re-render */}
-      <View style={{ paddingHorizontal: 14 }}>
-      <View
-        onLayout={(evt) => {
-          chartWidthRef.current = evt.nativeEvent.layout.width || chartWidthRef.current;
-        }}
-        onStartShouldSetResponder={() => true}
-        onMoveShouldSetResponder={() => true}
-        onResponderGrant={(evt) => {
-          const { pageX, locationX } = evt.nativeEvent;
-          chartLeftRef.current = pageX - locationX;
-          onInteractionStateChange?.(true);
-          handleTouch(locationX);
-        }}
-        onResponderMove={(evt) => {
-          const { pageX } = evt.nativeEvent;
-          handleTouch(pageX - chartLeftRef.current);
-        }}
-        onResponderRelease={() => {
-          setActivePointIndex(null);
-          onInteractionStateChange?.(false);
-        }}
-        onResponderTerminate={() => {
-          setActivePointIndex(null);
-          onInteractionStateChange?.(false);
-        }}
-        style={{ height: 110 }}
-      >
-        <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} style={{ pointerEvents: 'none', overflow: 'visible' }}>
-          <Defs>
-            <LinearGradient id="reusableChartAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%" stopColor={strokeColor} stopOpacity={0.24} />
-              <Stop offset="100%" stopColor={strokeColor} stopOpacity={0.0} />
-            </LinearGradient>
-          </Defs>
-          <Path d={areaD} fill="url(#reusableChartAreaGrad)" />
-          <Path d={lineD} fill="none" stroke={strokeColor} strokeWidth={2.8} />
-          <Circle cx={pts[0]?.x ?? PAD_X} cy={startY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />
-          <Circle cx={pts[pts.length - 1]?.x ?? VB_W - PAD_X} cy={endY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />
+      <View style={{ paddingHorizontal: 10 }}>
+        <View
+          onLayout={(evt) => {
+            chartWidthRef.current = evt.nativeEvent.layout.width || chartWidthRef.current;
+          }}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderGrant={(evt) => {
+            const { pageX, locationX } = evt.nativeEvent;
+            chartLeftRef.current = pageX - locationX;
+            onInteractionStateChange?.(true);
+            handleTouch(locationX);
+          }}
+          onResponderMove={(evt) => {
+            const { pageX } = evt.nativeEvent;
+            handleTouch(pageX - chartLeftRef.current);
+          }}
+          onResponderRelease={() => {
+            setActivePointIndex(null);
+            onInteractionStateChange?.(false);
+          }}
+          onResponderTerminate={() => {
+            setActivePointIndex(null);
+            onInteractionStateChange?.(false);
+          }}
+          style={{ height: 110 }}
+        >
+          <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} style={{ pointerEvents: 'none', overflow: 'visible' }}>
+            <Defs>
+              <LinearGradient id="reusableChartAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0%" stopColor={strokeColor} stopOpacity={0.24} />
+                <Stop offset="100%" stopColor={strokeColor} stopOpacity={0.0} />
+              </LinearGradient>
+            </Defs>
+            <Path d={areaD} fill="url(#reusableChartAreaGrad)" />
+            <Path d={lineD} fill="none" stroke={strokeColor} strokeWidth={2.8} />
+            <Circle cx={pts[0]?.x ?? PAD_X} cy={startY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />
+            <Circle cx={pts[pts.length - 1]?.x ?? VB_W - PAD_X} cy={endY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />
 
-          {activePointIndex !== null && points[activePointIndex] && pts[activePointIndex] && (
-            (() => {
-              const activePt = pts[activePointIndex];
-              return (
-                <>
-                  <Line x1={activePt.x} y1={activePt.y} x2={activePt.x} y2={104} stroke={strokeColor} strokeWidth={1} strokeDasharray="3 3" opacity={0.7} />
-                  <Circle cx={activePt.x} cy={activePt.y} r={9} fill={strokeColor} opacity={0.25} />
-                  <Circle cx={activePt.x} cy={activePt.y} r={5.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.5} />
-                </>
-              );
-            })()
-          )}
-        </Svg>
-      </View>
+            {activePointIndex !== null && points[activePointIndex] && pts[activePointIndex] && (
+              (() => {
+                const activePt = pts[activePointIndex];
+                return (
+                  <>
+                    <Line x1={activePt.x} y1={activePt.y} x2={activePt.x} y2={104} stroke={strokeColor} strokeWidth={1} strokeDasharray="3 3" opacity={0.7} />
+                    <Circle cx={activePt.x} cy={activePt.y} r={9} fill={strokeColor} opacity={0.25} />
+                    <Circle cx={activePt.x} cy={activePt.y} r={5.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.5} />
+                  </>
+                );
+              })()
+            )}
+          </Svg>
+        </View>
       </View>
 
       {/* Axis dates */}

@@ -4,15 +4,15 @@ import { Text } from '@/components/ui/AppText';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
 import { getCategoryDisplayIcon } from '@/lib/category-utils';
 import { formatCurrency, getTransactionCashflowImpact } from '@/lib/derived';
-import { FONT_WEIGHT } from '../lib/design';
-import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
 import { getPrototypeCategoryColor } from '@/lib/prototypeCategoryColors';
 import type { AppThemePalette } from '@/lib/theme';
 import type { Category, LoanWithSummary, Transaction } from '@/types';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
+import { FONT_WEIGHT } from '../lib/design';
+import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../lib/layoutTokens';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
+import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { AppDonutChart, type DonutSlice } from './ui/AppDonutChart';
 
 export type CategoryChartMode = 'expense' | 'income';
@@ -179,6 +179,9 @@ function CategoryDonutChartBlockBase({
   getCategoryFullDisplayName,
   onCategorySelect,
   onTransactionPress,
+  disableScroll = false,
+  externalTransactions = false,
+  onSelectedTransactionsChange,
 }: {
   transactions: Transaction[];
   categoriesById: Map<string, Category>;
@@ -210,6 +213,12 @@ function CategoryDonutChartBlockBase({
   getCategoryFullDisplayName?: (categoryId: string, separator?: string) => string;
   onCategorySelect?: (categoryId: string | null) => void;
   onTransactionPress?: (tx: Transaction) => void;
+  /** When true, skips the internal ScrollView and renders a flat View — lets the parent (BottomSheet) handle scrolling. */
+  disableScroll?: boolean;
+  /** When true, hides the internal transactions section — parent renders them separately. */
+  externalTransactions?: boolean;
+  /** Called whenever the selected transactions change (useful when externalTransactions is true). */
+  onSelectedTransactionsChange?: (txs: Transaction[]) => void;
 }) {
   const depositsList = useFixedDepositsStore((s) => s.deposits);
   const depositsById = useMemo(() => new Map(depositsList.map((d) => [d.id, d])), [depositsList]);
@@ -252,6 +261,10 @@ function CategoryDonutChartBlockBase({
     [modeTransactions, selectedIds, selectionNode],
   );
   const isEmpty = parentSlices.length === 0;
+
+  useEffect(() => {
+    onSelectedTransactionsChange?.(selectedTransactions);
+  }, [selectedTransactions, onSelectedTransactionsChange]);
   const showEmptySubcategories = isSubcategoryLevel && visibleListSlices.length === 0;
   const selectedSliceAmount = visibleListSlices.find((slice) => slice.id === selectedSliceId)?.amount;
 
@@ -311,7 +324,13 @@ function CategoryDonutChartBlockBase({
             }
             setSelectedSliceId((current) => (current === slice.id ? null : slice.id));
           }}
-          style={styles.categoryRow}
+          style={[
+            styles.categoryRow,
+            isSubcategoryLevel && selectedSliceId === slice.id && styles.categoryRowSelected,
+            // Use the same surface colour as the breadcrumb strip, at ~30% opacity.
+            // Adjust the trailing hex digits to change transparency: '4D'=30%, '33'=20%, '66'=40%.
+            isSubcategoryLevel && selectedSliceId === slice.id && { backgroundColor: theme.surface + '66' },
+          ]}
         >
           {isSubcategoryLevel ? (
             <View style={styles.subcategoryRow}>
@@ -443,6 +462,11 @@ function CategoryDonutChartBlockBase({
                   ? '—'
                   : formatCurrency(selectedSliceAmount ?? selectedParentSlice?.amount ?? total, sym)}
               </Text>
+              {selectionNode ? (
+                <Text style={{ fontSize: 10.5, fontWeight: '700', color: selectedSubcategoryNode?.color ?? selectedParentSlice?.color ?? theme.muted, marginTop: 4, fontFamily: 'monospace', textTransform: 'uppercase' }}>
+                  {selectedSubcategoryNode?.color ?? selectedParentSlice?.color}
+                </Text>
+              ) : null}
             </View>
           </>
         )}
@@ -482,48 +506,89 @@ function CategoryDonutChartBlockBase({
       )}
 
       {expanded ? (
-        <ScrollView
-          ref={listScrollRef}
-          style={styles.expandedScroll}
-          contentContainerStyle={styles.expandedScrollContent}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
-        >
-          {categoryList}
-          {negativeList}
-          <View style={[styles.transactionsSection, { backgroundColor: txPalette.surface, borderColor: txPalette.border }]}>
-            <View style={styles.transactionsHeader}>
-              <Text style={[styles.sectionTitle, { color: txPalette.text }]}>Transactions</Text>
-              <Text style={{ fontSize: HOME_TEXT.caption, color: txPalette.textMuted }}>{selectedTransactions.length}</Text>
-            </View>
-            {selectedTransactions.map((tx, index) => (
-              <TransactionListItem
-                key={tx.id}
-                tx={tx}
-                sym={sym}
-                palette={txPalette}
-                isLast={index === selectedTransactions.length - 1}
-                categoryName={tx.categoryId ? (getCategoryFullDisplayName?.(tx.categoryId, ' › ') ?? categoriesById.get(tx.categoryId)?.name) : undefined}
-                categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
-                accountName={accountsById?.get(tx.accountId)}
-                linkedAccountName={tx.linkedAccountId ? accountsById?.get(tx.linkedAccountId) : undefined}
-                loanPersonName={tx.loanId ? loansById?.get(tx.loanId)?.personName : undefined}
-                loanDirection={tx.loanId ? loansById?.get(tx.loanId)?.direction : undefined}
-                depositName={tx.depositId ? depositsById.get(tx.depositId)?.name : undefined}
-                depositBankName={tx.depositId ? (depositsById.get(tx.depositId)?.bankName ?? undefined) : undefined}
-                tertiaryText={tx.tags.length > 0 ? tx.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined : undefined}
-                showAmountSign={false}
-                paddingY={14}
-                onPress={onTransactionPress ? () => onTransactionPress(tx) : undefined}
-              />
-            ))}
-            {selectedTransactions.length === 0 ? (
-              <Text style={{ color: txPalette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
-                No transactions here
-              </Text>
-            ) : null}
+        disableScroll ? (
+          <View style={[styles.expandedScroll, { paddingBottom: styles.expandedScrollContent.paddingBottom }]}>
+            {categoryList}
+            {negativeList}
+            {!externalTransactions && (
+              <View style={[styles.transactionsSection, { backgroundColor: txPalette.surface, borderColor: txPalette.border }]}>
+                <View style={styles.transactionsHeader}>
+                  <Text style={[styles.sectionTitle, { color: txPalette.text }]}>Transactions</Text>
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: txPalette.textMuted }}>{selectedTransactions.length}</Text>
+                </View>
+                {selectedTransactions.map((tx, index) => (
+                  <TransactionListItem
+                    key={tx.id}
+                    tx={tx}
+                    sym={sym}
+                    palette={txPalette}
+                    isLast={index === selectedTransactions.length - 1}
+                    categoryName={tx.categoryId ? (getCategoryFullDisplayName?.(tx.categoryId, ' › ') ?? categoriesById.get(tx.categoryId)?.name) : undefined}
+                    categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
+                    accountName={accountsById?.get(tx.accountId)}
+                    linkedAccountName={tx.linkedAccountId ? accountsById?.get(tx.linkedAccountId) : undefined}
+                    loanPersonName={tx.loanId ? loansById?.get(tx.loanId)?.personName : undefined}
+                    loanDirection={tx.loanId ? loansById?.get(tx.loanId)?.direction : undefined}
+                    depositName={tx.depositId ? depositsById.get(tx.depositId)?.name : undefined}
+                    depositBankName={tx.depositId ? (depositsById.get(tx.depositId)?.bankName ?? undefined) : undefined}
+                    tertiaryText={tx.tags.length > 0 ? tx.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined : undefined}
+                    showAmountSign={false}
+                    paddingY={14}
+                    onPress={onTransactionPress ? () => onTransactionPress(tx) : undefined}
+                  />
+                ))}
+                {selectedTransactions.length === 0 ? (
+                  <Text style={{ color: txPalette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
+                    No transactions here
+                  </Text>
+                ) : null}
+              </View>
+            )}
           </View>
-        </ScrollView>
+        ) : (
+          <ScrollView
+            ref={listScrollRef}
+            style={styles.expandedScroll}
+            contentContainerStyle={styles.expandedScrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {categoryList}
+            {negativeList}
+            <View style={[styles.transactionsSection, { backgroundColor: txPalette.surface, borderColor: txPalette.border }]}>
+              <View style={styles.transactionsHeader}>
+                <Text style={[styles.sectionTitle, { color: txPalette.text }]}>Transactions</Text>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: txPalette.textMuted }}>{selectedTransactions.length}</Text>
+              </View>
+              {selectedTransactions.map((tx, index) => (
+                <TransactionListItem
+                  key={tx.id}
+                  tx={tx}
+                  sym={sym}
+                  palette={txPalette}
+                  isLast={index === selectedTransactions.length - 1}
+                  categoryName={tx.categoryId ? (getCategoryFullDisplayName?.(tx.categoryId, ' › ') ?? categoriesById.get(tx.categoryId)?.name) : undefined}
+                  categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
+                  accountName={accountsById?.get(tx.accountId)}
+                  linkedAccountName={tx.linkedAccountId ? accountsById?.get(tx.linkedAccountId) : undefined}
+                  loanPersonName={tx.loanId ? loansById?.get(tx.loanId)?.personName : undefined}
+                  loanDirection={tx.loanId ? loansById?.get(tx.loanId)?.direction : undefined}
+                  depositName={tx.depositId ? depositsById.get(tx.depositId)?.name : undefined}
+                  depositBankName={tx.depositId ? (depositsById.get(tx.depositId)?.bankName ?? undefined) : undefined}
+                  tertiaryText={tx.tags.length > 0 ? tx.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined : undefined}
+                  showAmountSign={false}
+                  paddingY={14}
+                  onPress={onTransactionPress ? () => onTransactionPress(tx) : undefined}
+                />
+              ))}
+              {selectedTransactions.length === 0 ? (
+                <Text style={{ color: txPalette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
+                  No transactions here
+                </Text>
+              ) : null}
+            </View>
+          </ScrollView>
+        )
       ) : (
         <ScrollView ref={listScrollRef} style={[styles.listViewport, styles.listViewportCollapsed]} contentContainerStyle={{ paddingBottom: 4 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
           {categoryList}
@@ -575,6 +640,7 @@ const styles = StyleSheet.create({
   listViewportCollapsed: { maxHeight: 244 },
   categoryList: { paddingHorizontal: 20, paddingTop: 10, gap: 8 },
   categoryRow: { gap: 6, paddingVertical: 6 },
+  categoryRowSelected: { borderRadius: 10, paddingVertical: 10, paddingHorizontal: 10, marginHorizontal: -10 },
   rowTopLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   rowTitleWrap: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
   subcategoryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },

@@ -51,7 +51,7 @@ const TODAY_DOT_DARK = '#D5DAE2';
 const CHART_INCOME_LIGHT = '#0D9488';
 const CHART_INCOME_DARK = '#2DD4BF';
 const CHART_EXPENSE_LIGHT = '#F87171';
-const CHART_EXPENSE_DARK = '#FCA5A5';
+const CHART_EXPENSE_DARK = '#FF6B6B';
 
 function hexToRgb(hex: string) {
   const normalized = hex.replace('#', '');

@@ -66,6 +66,7 @@ import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { useSweep } from '../../lib/useSweep';
 import { SweepOverlay } from '../../components/ui/SweepOverlay';
+import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -1123,7 +1124,7 @@ function AccountSummaryCard({
                       {metricLeftLabel}
                     </Text>
                   </View>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
                       {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : `${metricLeftAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricLeftAmount), currencySymbol)}`}
                     </Text>
                 </TouchableOpacity>
@@ -1143,7 +1144,7 @@ function AccountSummaryCard({
                     </Text>
                     <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
                   </View>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
                       {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : `${metricRightAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricRightAmount), currencySymbol)}`}
                     </Text>
                 </TouchableOpacity>
@@ -1842,74 +1843,19 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
               </TouchableOpacity>
             </View>
-            {transactions.length === 0 ? (
-              <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface }}>
-                <Text style={{ color: palette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 20 }}>
-                  No transactions yet
-                </Text>
-              </View>
-            ) : (
-              (() => {
-                const groups: { dateKey: string; items: typeof transactions }[] = [];
-                for (const tx of transactions) {
-                  const key = toLocalDateKey(tx.date);
-                  const last = groups[groups.length - 1];
-                  if (last?.dateKey === key) last.items.push(tx);
-                  else groups.push({ dateKey: key, items: [tx] });
-                }
-                return (
-                  <View style={{ gap: HOME_SPACE.sm + 4 }}>
-                    {groups.map(({ dateKey, items }) => {
-                      const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00');
-                      return (
-                        <View key={dateKey}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.sm, paddingHorizontal: 2 }}>
-                            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{date}</Text>
-                            {label ? (
-                              <>
-                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginHorizontal: 5 }}>•</Text>
-                                <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{label}</Text>
-                              </>
-                            ) : null}
-                          </View>
-                          <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
-                            {items.map((transaction, index) => {
-                              const accountName = accountsById.get(transaction.accountId);
-                              const linkedAccountName = transaction.linkedAccountId ? accountsById.get(transaction.linkedAccountId) : undefined;
-                              const loan = transaction.loanId ? loansById.get(transaction.loanId) : undefined;
-                              const deposit = transaction.depositId ? depositsById.get(transaction.depositId) : undefined;
-                              const tertiaryText = transaction.tags.length > 0
-                                ? transaction.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined
-                                : undefined;
-                              return (
-                                <TransactionListItem
-                                  key={transaction.id}
-                                  tx={transaction}
-                                  sym={currencySymbol}
-                                  palette={palette}
-                                  isLast={index === items.length - 1}
-                                  categoryName={transaction.categoryId ? getCategoryFullDisplayName(transaction.categoryId, ' › ') : undefined}
-                                  categoryIcon={getCategoryDisplayIcon(categoriesById, transaction.categoryId)}
-                                  accountName={accountName}
-                                  linkedAccountName={linkedAccountName}
-                                  loanPersonName={loan?.personName}
-                                  loanDirection={loan?.direction}
-                                  depositName={deposit?.name}
-                                  depositBankName={deposit?.bankName ?? undefined}
-                                  tertiaryText={tertiaryText}
-                                  showAmountSign={false}
-                                  onPress={handleTransactionPress}
-                                />
-                              );
-                            })}
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                );
-              })()
-            )}
+            <DateGroupedTransactionList
+              transactions={transactions}
+              palette={palette}
+              sym={currencySymbol}
+              categoriesById={categoriesById}
+              accountsById={accountsById}
+              loansById={loansById}
+              depositsById={depositsById}
+              tagNamesById={tagNamesById}
+              getCategoryFullDisplayName={getCategoryFullDisplayName}
+              onTransactionPress={handleTransactionPress}
+              emptyText="No transactions yet"
+            />
           </View>
 
 

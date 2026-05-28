@@ -49,6 +49,19 @@ export function toLocalDateKey(isoDate: string): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * Null-safe wrapper around toLocalDateKey with a fallback for malformed dates.
+ * Use this when the date field might be null/undefined (e.g. tx.date from DB rows).
+ */
+export function safeLocalDateKey(value: string | null | undefined): string {
+  if (!value) return '';
+  try {
+    return toLocalDateKey(value);
+  } catch {
+    return value.split?.('T')?.[0] ?? value;
+  }
+}
+
 export function toLocalMonthStartISO(year: number, month: number): string {
   return new Date(year, month, 1, 0, 0, 0, 0).toISOString();
 }
