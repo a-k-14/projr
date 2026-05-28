@@ -1,6 +1,8 @@
 import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import { safePush } from '../lib/safePush';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +23,7 @@ import { APP_LOCALE } from '../lib/dateUtils';
 
 function DepositsScreenContent() {
   const insets = useSafeAreaInsets();
+  const nav = useNavigation();
   const { palette } = useAppTheme();
   const { deposits, totalInvested, refresh } = useFixedDepositsStore();
 
@@ -160,7 +163,7 @@ function DepositsScreenContent() {
                       deposit={deposit}
                       sym={sym}
                       palette={palette}
-                      onPress={() => router.push(`/deposit/${deposit.id}`)}
+                      onPress={() => safePush(nav, `/deposit/${deposit.id}`)}
                     />
                   ))}
                 </View>
@@ -182,7 +185,7 @@ function DepositsScreenContent() {
                       deposit={deposit}
                       sym={sym}
                       palette={palette}
-                      onPress={() => router.push(`/deposit/${deposit.id}`)}
+                      onPress={() => safePush(nav, `/deposit/${deposit.id}`)}
                     />
                   ))}
                 </View>

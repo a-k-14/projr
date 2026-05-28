@@ -14,7 +14,7 @@ import {
   mergeLoanTransactionNote,
   getStructuredLoanCashflowImpact,
 } from '../lib/derived';
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from './transactions';
+import { getTransactions, getTransactionsByLoanIds, createTransaction, updateTransaction, deleteTransaction } from './transactions';
 import { upsertPerson } from './persons';
 
 function rowToLoan(row: typeof loans.$inferSelect): Loan {
@@ -32,8 +32,8 @@ function rowToLoan(row: typeof loans.$inferSelect): Loan {
   };
 }
 
-async function enrichLoan(loan: Loan): Promise<LoanWithSummary> {
-  const loanTransactions = await getTransactions({ loanId: loan.id });
+async function enrichLoan(loan: Loan, prefetchedTxns?: import('../types').Transaction[]): Promise<LoanWithSummary> {
+  const loanTransactions = prefetchedTxns ?? await getTransactions({ loanId: loan.id });
   const originImpact = getLoanOriginImpact(loan.direction);
   const settlementImpact = getLoanSettlementImpact(loan.direction);
 
@@ -81,7 +81,12 @@ export async function getLoans(filters: LoanFilters = {}): Promise<LoanWithSumma
     : await db.select().from(loans).orderBy(desc(loans.date), desc(loans.createdAt));
 
   const loanList = rows.map(rowToLoan);
-  return Promise.all(loanList.map(enrichLoan));
+  if (loanList.length === 0) return [];
+
+  // Single batch query instead of N+1 individual getTransactions() calls
+  const txsByLoanId = await getTransactionsByLoanIds(loanList.map((l) => l.id));
+
+  return Promise.all(loanList.map((loan) => enrichLoan(loan, txsByLoanId.get(loan.id) ?? [])));
 }
 
 export async function getLoanById(id: string): Promise<LoanWithSummary | null> {

@@ -2,7 +2,6 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Defs, FeColorMatrix, FeTurbulence, Filter, Rect } from 'react-native-svg';
 import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
@@ -26,28 +25,6 @@ type Props = {
 };
 
 
-function GrainOverlay() {
-  return (
-    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Defs>
-        <Filter id="grain" x="0%" y="0%" width="100%" height="100%">
-          <FeTurbulence
-            type="fractalNoise"
-            baseFrequency={0.9}
-            numOctaves={2}
-            stitchTiles="stitch"
-          />
-          <FeColorMatrix
-            type="matrix"
-            values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.18 0"
-          />
-        </Filter>
-      </Defs>
-      {/* fill="none" ensures no visible rect if filter is unsupported */}
-      <Rect width="100%" height="100%" filter="url(#grain)" fill="none" />
-    </Svg>
-  );
-}
 
 export function GrainHeroCard({
   solidColor,
@@ -75,8 +52,6 @@ export function GrainHeroCard({
     <View style={styles.shell}>
       {/* ── Top: solid colour + grain ── */}
       <View style={[styles.top, { backgroundColor: solidColor }]}>
-        <GrainOverlay />
-
         {badgeLabel ? (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{badgeLabel}</Text>

@@ -77,11 +77,7 @@ export default function DepositDetailScreen() {
     }
   }, [isLoaded, loadDeposits]);
 
-  useEffect(() => {
-    if (isLoaded && !deposit) {
-      router.back();
-    }
-  }, [isLoaded, deposit]);
+
 
   if (!deposit) {
     return (

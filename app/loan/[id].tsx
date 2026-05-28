@@ -43,6 +43,7 @@ export default function LoanDetailScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
+  const { deleteLoanCascade } = require('../../services/loans');
   const tags = useCategoriesStore((s) => s.tags);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
   const categories = useCategoriesStore((s) => s.categories);
@@ -50,8 +51,10 @@ export default function LoanDetailScreen() {
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [filterNonPrincipal, setFilterNonPrincipal] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [txnsReady, setTxnsReady] = useState(false);
   const panelProgress = useSharedValue(0);
 
   const toggleActions = () => {
@@ -73,17 +76,14 @@ export default function LoanDetailScreen() {
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
-      loadLoans();
+      setTxnsReady(true);
+      // Note: loans + categories are loaded at app startup and refreshed after
+      // mutations. We don't need to re-fetch on every detail mount.
+      if (!loansLoaded) loadLoans();
       loadCategories().catch(() => undefined);
     });
     return () => task.cancel();
-  }, [loadLoans, loadCategories]);
-
-  useEffect(() => {
-    if (loansLoaded && !loan && id) {
-      router.back();
-    }
-  }, [loansLoaded, loan, id]);
+  }, [loadLoans, loadCategories, loansLoaded]);
 
   const account = loan ? accounts.find((a) => a.id === loan.accountId) : undefined;
   const isLent = loan?.direction === 'lent';
@@ -91,13 +91,13 @@ export default function LoanDetailScreen() {
   const progressColor = loan?.status === 'closed' ? palette.textSoft : palette.brand;
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const displayedTransactions = useMemo(() => {
-    if (!loan) return [];
+    if (!loan || !txnsReady) return [];
     if (!filterNonPrincipal) return loan.transactions;
     return loan.transactions.filter((tx) => {
       const type = tx.loanTransactionType || 'principal';
       return type === 'interest' || type === 'others' || type === 'charges' || type === 'adjustment';
     });
-  }, [loan, filterNonPrincipal]);
+  }, [loan, filterNonPrincipal, txnsReady]);
 
   const grouped = useMemo(() => groupTransactionsByDate(displayedTransactions), [displayedTransactions]);
 
@@ -197,6 +197,13 @@ export default function LoanDetailScreen() {
             label="Add More"
             palette={palette}
             onPress={() => { closePanel(); router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } }); }}
+          />
+          <ActionChip
+            icon="trash-2"
+            label="Delete"
+            palette={palette}
+            destructive
+            onPress={() => { closePanel(); setShowDeleteConfirm(true); }}
           />
         </ActionStrip>
 
@@ -537,6 +544,26 @@ export default function LoanDetailScreen() {
           onPress: () => {
             setShowCloseConfirm(false);
             updateLoan(loan.id, { status: 'closed' }).catch(() => undefined);
+          },
+        }}
+      />
+      <AppConfirmDialog
+        visible={showDeleteConfirm}
+        title="Delete Loan"
+        message="Are you sure you want to delete this loan? This will also delete all associated transactions."
+        palette={palette}
+        onCancel={() => setShowDeleteConfirm(false)}
+        confirm={{
+          label: 'Delete',
+          destructive: true,
+          onPress: async () => {
+            setShowDeleteConfirm(false);
+            try {
+              await deleteLoanCascade(loan.id);
+              router.back();
+            } catch (error) {
+              console.error('Failed to delete loan:', error);
+            }
           },
         }}
       />

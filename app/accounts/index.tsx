@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import { safePush } from '../../lib/safePush';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -66,6 +68,7 @@ function accountsHaveSameOrder(left: Account[], right: Account[]) {
 }
 
 export default function AllAccountsScreen() {
+  const nav = useNavigation();
   const { palette } = useAppTheme();
   const accounts = useAccountsStore((s) => s.accounts);
   const setOrder = useAccountsStore((s) => s.setOrder);
@@ -147,7 +150,7 @@ export default function AllAccountsScreen() {
                     ) : (
                       <HeaderIconButton icon="arrow-up-down" palette={palette} onPress={() => setShowSortSheet(true)} />
                     )}
-                    <HeaderAddButton palette={palette} onPress={() => router.push('/settings/account-form')} />
+                    <HeaderAddButton palette={palette} onPress={() => safePush(nav, '/settings/account-form')} />
                   </View>
                 }
               />
@@ -178,7 +181,7 @@ export default function AllAccountsScreen() {
             palette={palette}
             currencySymbol={displaySymbol}
             customMode={sortMode === 'custom' && customDirty}
-            onPress={() => router.push(`/account/${params.item.id}`)}
+            onPress={() => safePush(nav, `/account/${params.item.id}`)}
           />
         )}
       />

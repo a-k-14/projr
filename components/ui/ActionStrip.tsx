@@ -1,5 +1,5 @@
 import Animated from 'react-native-reanimated';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 import { SCREEN_GUTTER } from '../../lib/design';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -14,9 +14,9 @@ export function ActionStrip({
 }) {
   return (
     <Animated.View style={[animatedStyle, styles.strip, { backgroundColor: palette.borderSoft, borderBottomColor: palette.divider }]}>
-      <View style={styles.row}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {children}
-      </View>
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -27,6 +27,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   row: {
+    flexGrow: 1,
+    justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: SCREEN_GUTTER,

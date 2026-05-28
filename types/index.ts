@@ -143,6 +143,7 @@ export interface Settings {
   autoBackupKeepCount: number;
   lastManualBackupAt: string;
   lastAutoBackupError: string;
+  hideAmounts: boolean;
 }
 
 export interface CashflowSummary {

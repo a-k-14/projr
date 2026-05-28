@@ -693,8 +693,8 @@ export function NetWorthDetailBlock({
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Income</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: palette.text }}>
-              +{formatCurrency(activeVals.income, currencySymbol)}
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: activeVals.income === 0 ? palette.textMuted : palette.text }}>
+              {activeVals.income === 0 ? '—' : `+${formatCurrency(activeVals.income, currencySymbol)}`}
             </Text>
           </TouchableOpacity>
 
@@ -710,8 +710,8 @@ export function NetWorthDetailBlock({
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Expense</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: palette.text }}>
-              -{formatCurrency(activeVals.expense, currencySymbol)}
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: activeVals.expense === 0 ? palette.textMuted : palette.text }}>
+              {activeVals.expense === 0 ? '—' : `-${formatCurrency(activeVals.expense, currencySymbol)}`}
             </Text>
           </TouchableOpacity>
 
@@ -723,21 +723,31 @@ export function NetWorthDetailBlock({
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Assets</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: palette.text }}>
-              +{formatCurrency(activeVals.assetAdditions, currencySymbol)}
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: activeVals.assetAdditions === 0 ? palette.textMuted : palette.text }}>
+              {activeVals.assetAdditions === 0 ? '—' : `+${formatCurrency(activeVals.assetAdditions, currencySymbol)}`}
             </Text>
           </View>
 
           {/* Net Change Row */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.012)' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={{ width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center', backgroundColor: activeVals.netChange >= 0 ? `${palette.positive}12` : `${palette.negative}12` }}>
-                <AppIcon name={activeVals.netChange >= 0 ? 'trending-up' : 'trending-down'} size={12} color={activeVals.netChange >= 0 ? palette.positive : palette.negative} strokeWidth={2.2} />
+              <View style={{
+                width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center',
+                backgroundColor: activeVals.netChange === 0
+                  ? nwChangeBg
+                  : activeVals.netChange > 0 ? `${palette.positive}12` : `${palette.negative}12`,
+              }}>
+                <AppIcon
+                  name={activeVals.netChange === 0 ? 'minus' : activeVals.netChange > 0 ? 'trending-up' : 'trending-down'}
+                  size={12}
+                  color={activeVals.netChange === 0 ? palette.textMuted : activeVals.netChange > 0 ? palette.positive : palette.negative}
+                  strokeWidth={2.2}
+                />
               </View>
               <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>Net Change</Text>
             </View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, fontWeight: FONT_WEIGHT.heavy, color: activeVals.netChange >= 0 ? palette.positive : palette.negative }}>
-              {formatCurrency(activeVals.netChange, currencySymbol)}
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, fontWeight: FONT_WEIGHT.heavy, color: activeVals.netChange === 0 ? palette.textMuted : activeVals.netChange > 0 ? palette.positive : palette.negative }}>
+              {activeVals.netChange === 0 ? '—' : `${activeVals.netChange > 0 ? '+' : '-'}${formatCurrency(Math.abs(activeVals.netChange), currencySymbol)}`}
             </Text>
           </View>
         </View>

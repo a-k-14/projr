@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -60,6 +60,7 @@ import {
   HOME_TEXT,
   getNetWorthChangeTheme
 } from '../../lib/layoutTokens';
+import { safePush } from '../../lib/safePush';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
@@ -113,6 +114,7 @@ export default function HomeScreen() {
 }
 
 function HomeScreenContent() {
+  const nav = useNavigation();
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const categories = useCategoriesStore((s) => s.categories);
@@ -127,7 +129,7 @@ function HomeScreenContent() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const homeExcludedAccountIds = useUIStore((s) => s.settings.homeExcludedAccountIds);
   const updateSettings = useUIStore((s) => s.updateSettings);
-  const [hideAmounts, setHideAmounts] = useState(false);
+  const hideAmounts = useUIStore((s) => s.settings.hideAmounts);
   const [showBalanceVisibilitySheet, setShowBalanceVisibilitySheet] = useState(false);
 
   const { palette } = useAppTheme();
@@ -261,10 +263,10 @@ function HomeScreenContent() {
   const activeDepositCount = depositSummary.deposits.filter((d: any) => d.status === 'active').length;
   const depositMeta = activeDepositCount === 0
     ? 'No active deposits'
-    : `${activeDepositCount} Active · ${formatNetWorthStripValue(depositSummary.activeInvestedValue, displaySymbol)}`;
+    : `${activeDepositCount} Active · ${hideAmounts ? '•••' : formatNetWorthStripValue(depositSummary.activeInvestedValue, displaySymbol)}`;
   const loanMeta = loanSummary.youLent === 0 && loanSummary.youOwe === 0
     ? 'No loans'
-    : `${loanSummary.net >= 0 ? 'Net Lent' : 'Net Owed'} · ${formatNetWorthStripValue(Math.abs(loanSummary.net), displaySymbol)}`;
+    : `${loanSummary.net >= 0 ? 'Net Lent' : 'Net Owed'} · ${hideAmounts ? '•••' : formatNetWorthStripValue(Math.abs(loanSummary.net), displaySymbol)}`;
   const budgetMeta = budgets.length === 0
     ? 'Not set'
     : budgetSummary.spentPercent > 100
@@ -313,7 +315,7 @@ function HomeScreenContent() {
   const middleContent = (
     <View style={{ marginTop: 0, marginBottom: 20 }}>
       <TouchableOpacity
-        onPress={() => router.push('/accounts')}
+        onPress={() => safePush(nav, '/accounts')}
         delayPressIn={0}
         activeOpacity={0.72}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 0, paddingVertical: 2 }}
@@ -326,8 +328,9 @@ function HomeScreenContent() {
       </TouchableOpacity>
       <ScrollView ref={accountScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: SCREEN_GUTTER }}>
         {orderedAccounts.map((acc) => {
-          const amountLabel = hideAmounts ? '••••' : (showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), ''));
-          const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(amountLabel.length, 14) * 3));
+          const baseLabel = showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), '');
+          const amountLabel = hideAmounts ? '••••' : baseLabel;
+          const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(baseLabel.length, 14) * 3));
           return (
             <AccountCarouselCard
               key={acc.id}
@@ -336,10 +339,11 @@ function HomeScreenContent() {
               amountLabel={amountLabel}
               cardWidth={cardWidth}
               hideAmounts={hideAmounts}
+              nav={nav}
             />
           );
         })}
-        <AccountCarouselAddCard palette={palette} />
+        <AccountCarouselAddCard palette={palette} nav={nav} />
       </ScrollView>
 
       <View style={{ marginTop: 20, marginBottom: 12 }}>
@@ -348,7 +352,7 @@ function HomeScreenContent() {
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {moreCards.map((feature) => (
-          <MoreShortcutCard key={feature.id} feature={feature} palette={palette} />
+          <MoreShortcutCard key={feature.id} feature={feature} palette={palette} nav={nav} />
         ))}
       </View>
 
@@ -363,7 +367,7 @@ function HomeScreenContent() {
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <TouchableOpacity
-              onPress={() => router.push('/notes' as any)}
+              onPress={() => safePush(nav, '/notes' as any)}
               style={{ padding: 6 }}
               activeOpacity={0.7}
               delayPressIn={0}
@@ -371,7 +375,7 @@ function HomeScreenContent() {
               <AppIcon name="list-todo" size={20} color={palette.textMuted} strokeWidth={1.8} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setHideAmounts((v) => !v)}
+              onPress={() => updateSettings({ hideAmounts: !hideAmounts })}
               style={{ padding: 6 }}
               activeOpacity={0.7}
               delayPressIn={0}
@@ -411,13 +415,13 @@ function HomeScreenContent() {
         getCategoryFullDisplayName={getCategoryFullDisplayName}
         loansLoaded={loansLoaded}
         loadLoans={loadLoans}
-        onOpenNetWorth={() => router.push('/net-worth')}
+        onOpenNetWorth={() => safePush(nav, '/net-worth')}
         onOpenBalanceVisibility={() => setShowBalanceVisibilitySheet(true)}
         homeExcludedCount={homeExcludedAccountIds.length}
         homeTotalCount={accounts.length}
         netWorth={stableNetWorth}
         middleContent={middleContent}
-
+        nav={nav}
         hideAmounts={hideAmounts}
       />
 
@@ -489,6 +493,7 @@ function HomeScreenContent() {
 function MoreShortcutCard({
   feature,
   palette,
+  nav,
 }: {
   feature: {
     label: string;
@@ -499,13 +504,14 @@ function MoreShortcutCard({
     bg?: string;
   };
   palette: AppThemePalette;
+  nav: any;
 }) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <Pressable
-      onPress={() => router.push(feature.route as any)}
+      onPress={() => safePush(nav, feature.route as any)}
       onPressIn={() => { scale.value = withTiming(0.96, { duration: 100 }); }}
       onPressOut={() => { scale.value = withTiming(1, { duration: 150 }); }}
       style={{ width: '48.2%' }}
@@ -592,6 +598,7 @@ function AccountSummaryCard({
   to,
   heroMetricPeriod,
   onHeroMetricPeriodChange,
+  nav,
 }: {
   accountName: string;
   accountTypeLabel: string;
@@ -622,6 +629,7 @@ function AccountSummaryCard({
   to?: string;
   heroMetricPeriod?: 'today' | 'month';
   onHeroMetricPeriodChange?: (p: 'today' | 'month') => void;
+  nav: any;
 }) {
   const isAll = accountName === 'All';
   const isAccountHero = heroMode && !isAll;
@@ -662,12 +670,15 @@ function AccountSummaryCard({
     : isAccountHero
       ? 'rgba(255,255,255,0.15)'
       : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
-  const balanceFormatted = hideAmounts ? null : `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
+  const realBalanceFormatted = `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
+  const realDotIdx = realBalanceFormatted.lastIndexOf('.');
+  const realBalanceInt = realDotIdx >= 0 ? realBalanceFormatted.slice(0, realDotIdx) : realBalanceFormatted;
+  const balanceFormatted = hideAmounts ? null : realBalanceFormatted;
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
   const balanceInt = hideAmounts ? '••••' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
   const balanceDec = hideAmounts ? '' : (dotIdx >= 0 ? balanceFormatted!.slice(dotIdx) : '');
   const balanceColor = heroMode ? heroText : balance < 0 ? palette.numberNegative : palette.text;
-  const heroBalanceDigitCount = balanceInt.replace(currencySymbol, '').replace(/[^0-9]/g, '').length;
+  const heroBalanceDigitCount = realBalanceInt.replace(currencySymbol, '').replace(/[^0-9]/g, '').length;
   const heroBalanceFontSize = heroBalanceDigitCount >= 9 ? 21 : heroBalanceDigitCount >= 7 ? 23 : heroBalanceDigitCount >= 5 ? 25 : 28;
   const heroBalanceLineHeight = heroBalanceFontSize + 16;
   const heroCurrencyFontSize = Math.max(15, heroBalanceFontSize - 8);
@@ -840,7 +851,7 @@ function AccountSummaryCard({
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 5, opacity: onOpenNetWorth && typeof netWorth === 'number' ? 1 : 0 }}
               >
                 <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.88)', fontFamily: 'monospace' }}>
-                  {hideAmounts ? 'NW ••••' : `NW ${formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}`}
+                  {hideAmounts ? 'NW •••' : `NW ${formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}`}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: nwChangeBg, borderRadius: HOME_RADIUS.full, paddingHorizontal: 7, paddingVertical: 3, minWidth: 36, justifyContent: 'center', opacity: netWorthChange !== undefined ? 1 : 0, overflow: 'hidden' }}>
                   {nwChangeTone !== 'neutral' && (
@@ -1176,7 +1187,7 @@ function AccountSummaryCard({
                 Net Worth
               </Text>
               <Text appWeight="medium" numberOfLines={1} style={{ fontSize: heroMode ? 14 : 14, fontWeight: heroMode ? '700' : '900', color: heroText, flexShrink: 1 }}>
-                {hideAmounts ? '••••' : formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
+                {hideAmounts ? '•••' : formatNetWorthStripValue(netWorth ?? 0, currencySymbol)}
               </Text>
               <View style={{ flex: 1 }} />
               {netWorthChange !== undefined && heroMode ? (
@@ -1308,6 +1319,7 @@ function BalanceVisibilitySheet({
   onReset: () => void;
   onClose: () => void;
 }) {
+  const nav = useNavigation();
   const excludedSet = useMemo(() => new Set(excludedAccountIds), [excludedAccountIds]);
   const sortedAccounts = useMemo(
     () => accounts.slice().sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance)),
@@ -1485,6 +1497,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   onScrollBeginDrag,
   scrollEnabled = true,
   fullResetNonce = 0,
+  nav,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1521,6 +1534,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   onScrollBeginDrag?: () => void;
   scrollEnabled?: boolean;
   fullResetNonce?: number;
+  nav: any;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1713,14 +1727,14 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const openPeriodActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
-      router.push({
+      safePush(nav, {
         pathname: '/(tabs)/activity',
         params: {
           source: period === 'today' ? 'home-today' : 'home-period',
           period: period === 'today' ? 'day' : period,
           accountId: accountId === 'all' ? 'all' : accountId,
-          type: 'all',
-          cashflowBucket: kind,
+          cashflowBucket: cashflowIsCashflow ? kind : 'all',
+          type: cashflowIsCashflow ? 'all' : kind,
           cashflowMode: cashflowIsCashflow ? 'total' : 'incomeExpense',
           from,
           to,
@@ -1728,23 +1742,23 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         }
       });
     },
-    [accountId, cashflowIsCashflow, from, period, to],
+    [accountId, cashflowIsCashflow, from, period, to, nav],
   );
 
   const handleTransactionPress = useCallback((tx: Transaction) => {
     if (tx.type === 'deposit' && tx.depositId) {
-      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
+      safePush(nav, { pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
       return;
     }
     if (tx.loanId) {
       const loan = loansById.get(tx.loanId);
       if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
-        router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });
+        safePush(nav, { pathname: '/modals/loan-settlement', params: { editId: tx.id } });
         return;
       }
     }
-    router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } });
-  }, [loansById]);
+    safePush(nav, { pathname: '/modals/add-transaction', params: { editId: tx.id } });
+  }, [loansById, nav]);
 
   return (
     <View style={{ flex: 1, height: pageHeight }}>
@@ -1788,6 +1802,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
             from={from}
             to={to}
+            nav={nav}
           />
           <View
             onLayout={(event) => {
@@ -1811,7 +1826,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
               <TouchableOpacity
                 delayPressIn={0}
-                onPress={() => router.navigate({ pathname: '/(tabs)/activity', params: { source: 'home-view-all', accountId: accountId === 'all' ? 'all' : accountId, ts: String(Date.now()) } })}
+                onPress={() => safePush(nav, { pathname: '/(tabs)/activity', params: { source: 'home-view-all', accountId: accountId === 'all' ? 'all' : accountId, ts: String(Date.now()) } })}
                 activeOpacity={0.7}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
               >
@@ -1892,7 +1907,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
           {__DEV__ && accountId === 'all' && (
             <View style={{ alignItems: 'center', marginTop: 2 }}>
-              <TouchableOpacity delayPressIn={0} onPress={() => router.push('/net-worth-prototype')}>
+              <TouchableOpacity delayPressIn={0} onPress={() => safePush(nav, '/net-worth-prototype')}>
                 <Text
                   appWeight="medium"
                   style={{
@@ -1904,7 +1919,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   Open Net Worth Prototype
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity delayPressIn={0} onPress={() => router.push('/palette-preview')} style={{ marginTop: 10 }}>
+              <TouchableOpacity delayPressIn={0} onPress={() => safePush(nav, '/palette-preview')} style={{ marginTop: 10 }}>
                 <Text
                   appWeight="medium"
                   style={{
@@ -1943,7 +1958,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   );
 });
 
-function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts }: any) {
+function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts, nav }: any) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const typeMeta = ACCOUNT_TYPE_META[acc.type as AccountType];
@@ -1951,7 +1966,7 @@ function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts
 
   return (
     <Pressable
-      onPress={() => router.push(`/account/${acc.id}`)}
+      onPress={() => safePush(nav, `/account/${acc.id}`)}
       onPressIn={() => { scale.value = withTiming(0.96, { duration: 100 }); }}
       onPressOut={() => { scale.value = withTiming(1, { duration: 150 }); }}
     >
@@ -2008,13 +2023,13 @@ function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts
   );
 }
 
-function AccountCarouselAddCard({ palette }: any) {
+function AccountCarouselAddCard({ palette, nav }: any) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <Pressable
-      onPress={() => router.push('/settings/account-form')}
+      onPress={() => safePush(nav, '/settings/account-form')}
       onPressIn={() => { scale.value = withTiming(0.96, { duration: 100 }); }}
       onPressOut={() => { scale.value = withTiming(1, { duration: 150 }); }}
     >

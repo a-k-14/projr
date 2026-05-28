@@ -3,7 +3,8 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useIsFocused } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { safePush } from '../lib/safePush';
 import { router } from 'expo-router';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -180,9 +181,11 @@ export default function LoansScreen() {
     (amountMinStr ? 1 : 0) +
     (amountMaxStr ? 1 : 0);
 
+  const nav = useNavigation();
+
   const openLoanDetail = useCallback((loanId: string) => {
-    router.push(`/loan/${loanId}`);
-  }, []);
+    safePush(nav, `/loan/${loanId}`);
+  }, [nav]);
 
   const renderLoanItem = useCallback(
     ({ item, index }: { item: LoanWithSummary; index: number }) => {

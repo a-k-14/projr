@@ -97,6 +97,12 @@ function assertPositiveAmount(amount: number): void {
   }
 }
 
+function assertNonZeroAmount(amount: number): void {
+  if (!Number.isFinite(amount) || amount === 0) {
+    throw new Error('Transaction amount cannot be zero.');
+  }
+}
+
 function assertAccountId(accountId: string | undefined, label = 'Account'): asserts accountId is string {
   if (!accountId) {
     throw new Error(`${label} is required.`);
@@ -149,6 +155,28 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
   return rows.map(rowToTransaction);
 }
 
+/**
+ * Batch-fetch transactions for multiple loan IDs in a single DB query.
+ * Returns a Map<loanId, Transaction[]> for O(1) lookup when enriching loans.
+ */
+export async function getTransactionsByLoanIds(loanIds: string[]): Promise<Map<string, Transaction[]>> {
+  if (loanIds.length === 0) return new Map();
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(inArray(transactions.loanId, loanIds))
+    .orderBy(desc(transactions.date), desc(transactions.createdAt));
+
+  const map = new Map<string, Transaction[]>();
+  for (const row of rows) {
+    if (!row.loanId) continue;
+    const existing = map.get(row.loanId);
+    if (existing) existing.push(rowToTransaction(row));
+    else map.set(row.loanId, [rowToTransaction(row)]);
+  }
+  return map;
+}
+
 export async function getTransactionById(id: string): Promise<Transaction | null> {
   const rows = await db
     .select()
@@ -171,7 +199,11 @@ async function getLoanTransactionEffectiveType(
 
 export async function createTransaction(data: CreateTransactionInput): Promise<Transaction> {
   const now = nowUTC();
-  assertPositiveAmount(data.amount);
+  if (data.type === 'in' || data.type === 'out') {
+    assertNonZeroAmount(data.amount);
+  } else {
+    assertPositiveAmount(data.amount);
+  }
   assertAccountId(data.accountId);
 
   if (data.type === 'transfer') {
@@ -286,7 +318,14 @@ export async function updateTransaction(
   } else if (data.type !== undefined) {
     updateData.type = data.type;
   }
-  if (data.amount !== undefined) updateData.amount = data.amount;
+  if (data.amount !== undefined) {
+    if (finalType === 'in' || finalType === 'out') {
+      assertNonZeroAmount(data.amount);
+    } else {
+      assertPositiveAmount(data.amount);
+    }
+    updateData.amount = data.amount;
+  }
   if (data.loanTransactionType !== undefined) updateData.loanTransactionType = data.loanTransactionType;
   
   let derivedCategoryId: string | null | undefined = data.categoryId;
@@ -504,6 +543,7 @@ export async function createSplitTransactionGroup(data: SplitGroupInput): Promis
   await db.transaction(async (tx) => {
     await tx.insert(transactions).values(rows);
     const total = items.reduce((sum, item) => sum + item.amount, 0);
+    assertNonZeroAmount(total);
     await applyAccountBalanceDelta(tx, data.accountId, data.type === 'in' ? total : -total);
   });
   return rows.map(rowToTransaction);
@@ -566,6 +606,7 @@ export async function updateSplitTransactionGroup(
     await tx.delete(transactions).where(eq(transactions.splitGroupId, splitGroupId));
     await tx.insert(transactions).values(rows);
     const total = items.reduce((sum, item) => sum + item.amount, 0);
+    assertNonZeroAmount(total);
     await applyAccountBalanceDelta(tx, data.accountId, data.type === 'in' ? total : -total);
   });
   await Promise.all(

@@ -28,6 +28,7 @@ interface ActivityMoreFiltersSheetProps {
   tags: { id: string; name: string; color: string }[];
   palette: AppThemePalette;
   cashflowBucket: 'all' | 'in' | 'out' | 'net';
+  cashflowMode: 'total' | 'incomeExpense';
   onCashflowBucketChange: (bucket: 'all' | 'in' | 'out' | 'net') => void;
   clearAll: () => void;
 }
@@ -49,6 +50,7 @@ export function ActivityMoreFiltersSheet({
   tags,
   palette,
   cashflowBucket,
+  cashflowMode,
   onCashflowBucketChange,
   clearAll }: ActivityMoreFiltersSheetProps) {
   const topCategories = categories.filter((c) => !c.parentId);

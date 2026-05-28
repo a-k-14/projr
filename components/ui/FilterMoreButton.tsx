@@ -3,7 +3,7 @@ import { Text } from '@/components/ui/AppText';
 import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { FONT_WEIGHT } from '../../lib/design';
-import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
 interface FilterMoreButtonProps {
@@ -31,12 +31,10 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
           marginLeft: flex ? 0 : ACTIVITY_LAYOUT.moreButtonGap,
           flex: flex ? 1 : undefined,
           flexBasis: flex ? 0 : undefined,
-          minWidth: flex ? 0 : iconOnly ? 44 : 84,
-          width: iconOnly ? 44 : undefined,
-          height: ACTIVITY_LAYOUT.controlHeight,
-          paddingHorizontal: iconOnly ? 0 : 12,
-          justifyContent: iconOnly ? 'center' : 'flex-start',
-          borderRadius: ACTIVITY_LAYOUT.controlRadius,
+          paddingVertical: 6,
+          paddingHorizontal: 14,
+          justifyContent: 'center',
+          borderRadius: HOME_RADIUS.card,
         },
       ]}
     >
@@ -65,7 +63,7 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
 
 const styles = StyleSheet.create({
   moreChip: {
-    height: 36,
+    height: 32,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
@@ -74,6 +72,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     gap: 6
   },
+
   badge: {
     position: 'absolute',
     top: -5,

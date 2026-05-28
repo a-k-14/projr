@@ -612,7 +612,7 @@ export default function AddTransactionModal() {
         : isLoanAddMore
           ? amount > 0 && accountId && personName.trim().length > 0
           : type === 'loan'
-            ? hasNonZeroAmount && accountId && personName.trim().length > 0
+            ? amount > 0 && accountId && personName.trim().length > 0
             : usableSplitRows.length > 0
               ? splitTotal !== 0 && accountId
               : hasNonZeroAmount && accountId && categoryId;
@@ -829,9 +829,19 @@ export default function AddTransactionModal() {
         });
         shouldReloadTransactions = true;
       } else if (isEditing && editId) {
-        await updateTransaction(editId, data);
+        // Close immediately so navigation animation runs concurrently with the write
+        clearSplitRows();
+        closeScreen();
+        updateTransaction(editId, data).catch(() => { });
+        refreshAccounts().catch(() => { });
+        return;
       } else {
-        await addTransaction(data);
+        // Close immediately so navigation animation runs concurrently with the write
+        clearSplitRows();
+        closeScreen();
+        addTransaction(data).catch(() => { });
+        refreshAccounts().catch(() => { });
+        return;
       }
       clearSplitRows();
       closeScreen();

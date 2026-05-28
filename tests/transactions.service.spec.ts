@@ -108,6 +108,28 @@ describe('transactions database integration', () => {
         expect((rows[0] as any).balance).toBe(800); // 1000 - 200
     });
 
+    it('allows negative amounts for IN and OUT transactions', async () => {
+        const tx = await createTransaction({
+            type: 'out',
+            amount: -50,
+            accountId: 'acc1',
+            date: '2024-01-02T12:00:00.000Z'
+        });
+        expect(tx.amount).toBe(-50);
+        let rows = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc1'").all();
+        // 800 - (-50) = 850
+        expect((rows[0] as any).balance).toBe(850);
+    });
+
+    it('rejects zero amounts for IN and OUT transactions', async () => {
+        await expect(createTransaction({
+            type: 'out',
+            amount: 0,
+            accountId: 'acc1',
+            date: '2024-01-02T12:00:00.000Z'
+        })).rejects.toThrow('Transaction amount cannot be zero.');
+    });
+
     it('creates a TRANSFER transaction and balances cleanly', async () => {
         await createTransaction({
             type: 'transfer',

@@ -1,8 +1,9 @@
 import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { safePush } from '../../lib/safePush';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -148,6 +149,7 @@ export default function ActivityScreen() {
   const loansLoaded = useLoansStore((s) => s.isLoaded);
   const loadLoans = useLoansStore((s) => s.load);
 
+  const nav = useNavigation();
   const storeTransactions = useTransactionsStore((s) => s.transactions);
   const storeTransactionsLoaded = useTransactionsStore((s) => s.isLoaded);
   const storeTransactionsHasMore = useTransactionsStore((s) => s.hasMore);
@@ -893,23 +895,23 @@ export default function ActivityScreen() {
   const handleTransactionPress = useCallback((transaction: Transaction) => {
     // Deposit 'new' transaction → edit deposit form
     if (transaction.type === 'deposit' && transaction.depositId && transaction.depositTransactionType === 'new') {
-      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: transaction.depositId, closeDepositId: '' } });
+      safePush(nav, { pathname: '/modals/add-transaction', params: { editDepositId: transaction.depositId, closeDepositId: '' } });
       return;
     }
     // Deposit close or interest income linked to a deposit → close deposit form
     if (transaction.depositId && (transaction.depositTransactionType === 'closed' || transaction.type === 'in')) {
       const focusField = transaction.type === 'in' ? 'interest' : 'principal';
-      router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: transaction.depositId, editDepositId: '', focusField } });
+      safePush(nav, { pathname: '/modals/add-transaction', params: { closeDepositId: transaction.depositId, editDepositId: '', focusField } });
       return;
     }
     if (transaction.loanId) {
       const loan = loans.find((item) => item.id === transaction.loanId);
       if (loan && getLoanTransactionKind(transaction, loan.direction) === 'settlement') {
-        router.push({ pathname: '/modals/loan-settlement', params: { editId: transaction.id } });
+        safePush(nav, { pathname: '/modals/loan-settlement', params: { editId: transaction.id } });
         return;
       }
     }
-    router.push({ pathname: '/modals/add-transaction', params: { editId: transaction.id } });
+    safePush(nav, { pathname: '/modals/add-transaction', params: { editId: transaction.id } });
   }, [loans]);
 
   const grouped = useMemo<ActivityGroup[]>(() => {
@@ -1276,6 +1278,7 @@ export default function ActivityScreen() {
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
         cashflowBucket={cashflowBucket}
+        cashflowMode={derivedCashflowMode}
         setCashflowBucket={setCashflowBucket}
         setShowMoreSheet={setShowMoreSheet}
         moreActiveCount={moreActiveCount}
@@ -1823,6 +1826,7 @@ export default function ActivityScreen() {
           tags={tags}
           palette={palette}
           cashflowBucket={cashflowBucket}
+          cashflowMode={derivedCashflowMode}
           onCashflowBucketChange={(bucket) => {
             setTypeFilter('all');
             setCashflowBucket(bucket);
