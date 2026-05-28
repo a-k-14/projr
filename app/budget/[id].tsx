@@ -31,6 +31,7 @@ import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { getBudgetTransactions } from '../../services/budget';
 import type { Transaction } from '../../types';
 
@@ -48,6 +49,7 @@ export default function BudgetDetailScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
+  const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
 
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
@@ -78,7 +80,7 @@ export default function BudgetDetailScreen() {
       });
       return () => task.cancel();
     }
-  }, [month, loadBudgets]);
+  }, [month, loadBudgets, mutationVersion]);
 
   useEffect(() => {
     if (!budget || !month) return;
@@ -90,7 +92,7 @@ export default function BudgetDetailScreen() {
         .finally(() => setTxnsLoading(false));
     });
     return () => task.cancel();
-  }, [budget?.categoryId, month]);
+  }, [budget?.categoryId, month, mutationVersion]);
 
   if (!budget) {
     return (
@@ -231,23 +233,18 @@ export default function BudgetDetailScreen() {
                       </View>
                       <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
                         {items.map((tx, i) => (
-                          <TouchableOpacity
+                          <TransactionListItem
                             key={tx.id}
-                            delayPressIn={0}
-                            activeOpacity={0.75}
+                            tx={tx}
+                            sym={sym}
+                            palette={palette}
+                            isLast={i === items.length - 1}
+                            categoryName={getCategoryFullDisplayName(tx.categoryId ?? '', ' › ')}
+                            categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
+                            accountName={accountsById.get(tx.accountId)}
+                            showAmountSign={false}
                             onPress={() => router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } })}
-                          >
-                            <TransactionListItem
-                              tx={tx}
-                              sym={sym}
-                              palette={palette}
-                              isLast={i === items.length - 1}
-                              categoryName={getCategoryFullDisplayName(tx.categoryId ?? '', ' › ')}
-                              categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
-                              accountName={accountsById.get(tx.accountId)}
-                              showAmountSign={false}
-                            />
-                          </TouchableOpacity>
+                          />
                         ))}
                       </View>
                     </View>

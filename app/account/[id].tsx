@@ -1,5 +1,5 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
@@ -42,6 +42,7 @@ export default function AccountDetailScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
   const isFocused = useIsFocused();
+  const nav = useNavigation();
 
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
@@ -235,6 +236,7 @@ export default function AccountDetailScreen() {
       </ActionStrip>
 
       <HomeAccountPage
+        nav={nav}
         pageHeight={1000}
         accountId={account.id}
         accountName={formatAccountDisplayName(account.name, account.accountNumber)}

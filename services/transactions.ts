@@ -55,7 +55,7 @@ function parseTags(tags?: string | null): string[] {
   return [];
 }
 
-function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
+export function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
   return {
     id: row.id,
     type: row.type as Transaction['type'],

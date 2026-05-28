@@ -36,10 +36,18 @@ export default function CategoriesScreen() {
 
   const topLevel = categories.filter((c) => !c.parentId);
   const visibleByTab = useMemo(
-    () => ({
-      in: topLevel.filter((c) => c.type === 'in' || c.type === 'both'),
-      out: topLevel.filter((c) => c.type === 'out' || c.type === 'both')
-    }),
+    () => {
+      const sortFn = (a: any, b: any) => {
+        if (!!a.systemKey !== !!b.systemKey) {
+          return a.systemKey ? 1 : -1;
+        }
+        return a.name.localeCompare(b.name);
+      };
+      return {
+        in: topLevel.filter((c) => c.type === 'in' || c.type === 'both').sort(sortFn),
+        out: topLevel.filter((c) => c.type === 'out' || c.type === 'both').sort(sortFn)
+      };
+    },
     [topLevel],
   );
 

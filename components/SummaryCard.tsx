@@ -54,7 +54,12 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory, isCashflo
 }
 
 function formatSummaryValue(key: 'in' | 'out' | 'net', value: number, sym: string) {
-  return formatCurrency(Math.abs(value), sym);
+  const abs = formatCurrency(Math.abs(value), sym);
+  // Color carries the bucket role + direction. Only the unusual case (negative value
+  // in income/expense) gets a leading '-' to call it out. Net is always unsigned —
+  // the colored value carries the sign.
+  if (key === 'net') return abs;
+  return value < 0 ? `-${abs}` : abs;
 }
 
 const styles = StyleSheet.create({

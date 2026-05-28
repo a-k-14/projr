@@ -119,14 +119,24 @@ function sumForNode(node: HomeNode, transactions: Transaction[]) {
     .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
-function buildSlices(nodes: HomeNode[], transactions: Transaction[], mode: CategoryChartMode): HomeSlice[] {
+function buildSlices(nodes: HomeNode[], transactions: Transaction[], mode: CategoryChartMode, parentColor?: string): HomeSlice[] {
   const palette = mode === 'income' ? INCOME_COLORS : EXPENSE_COLORS;
   const raw = nodes
     .map((node) => ({ ...node, amount: sumForNode(node, transactions) }))
     .filter((node) => node.amount > 0)
     .sort((a, b) => b.amount - a.amount);
   const total = raw.reduce((sum, item) => sum + item.amount, 0) || 1;
-  return raw.map((item, index) => ({ ...item, color: palette[index % palette.length], percent: item.amount / total }));
+  return raw.map((item, index) => ({ ...item, color: parentColor ?? palette[index % palette.length], percent: item.amount / total }));
+}
+
+// Categories whose net sum is below zero — i.e. refunds / corrections / adjustments
+// dominated the bucket. These can't be drawn as donut slices, so they're surfaced
+// as a flat list below the main chart.
+function buildNegativeRows(nodes: HomeNode[], transactions: Transaction[]): { id: string; label: string; icon: string; color: string; amount: number }[] {
+  return nodes
+    .map((node) => ({ ...node, amount: sumForNode(node, transactions) }))
+    .filter((node) => node.amount < 0)
+    .sort((a, b) => a.amount - b.amount); // most-negative first
 }
 
 function HomeDonut({
@@ -218,10 +228,11 @@ function CategoryDonutChartBlockBase({
 
   const hierarchy = useMemo(() => buildModeHierarchy(mode, transactions, categoriesById), [mode, transactions, categoriesById]);
   const parentSlices = useMemo(() => buildSlices(hierarchy, transactions, mode), [hierarchy, transactions, mode]);
+  const negativeRows = useMemo(() => buildNegativeRows(hierarchy, transactions), [hierarchy, transactions]);
   const total = useMemo(() => parentSlices.reduce((sum, s) => sum + s.amount, 0), [parentSlices]);
   const selectedParent = drillParentId ? hierarchy.find((node) => node.id === drillParentId) ?? null : null;
   const selectedParentSlice = drillParentId ? parentSlices.find((s) => s.id === drillParentId) ?? null : null;
-  const visibleListSlices = drillParentId ? buildSlices(selectedParent?.children ?? [], transactions, mode) : parentSlices;
+  const visibleListSlices = drillParentId ? buildSlices(selectedParent?.children ?? [], transactions, mode, selectedParentSlice?.color) : parentSlices;
   const isSubcategoryLevel = !!drillParentId;
   const selectedSubcategoryNode = drillParentId && selectedSliceId
     ? selectedParent?.children?.find((node) => node.id === selectedSliceId) ?? null
@@ -346,6 +357,30 @@ function CategoryDonutChartBlockBase({
     </View>
   );
 
+  // Refunds / Adjustments — shown only when at least one category sums below zero.
+  // These represent net inflows into an expense bucket (or net outflows from an income bucket),
+  // which can't be drawn as a donut slice. Surface them here so the data isn't silently hidden.
+  const negativeList = !isSubcategoryLevel && negativeRows.length > 0 ? (
+    <View style={styles.negativeSection}>
+      <Text style={[styles.negativeSectionTitle, { color: theme.muted }]}>
+        {mode === 'income' ? 'Income adjustments' : 'Refunds & adjustments'}
+      </Text>
+      {negativeRows.map((row) => (
+        <View key={`neg-${row.id}`} style={styles.negativeRow}>
+          <View style={styles.iconBadge}>
+            {renderIcon(row.icon, 20, theme.brand)}
+          </View>
+          <Text numberOfLines={1} style={[styles.splitName, { color: theme.text }]}>{row.label}</Text>
+          <View style={styles.rowAmountWrap}>
+            <Text style={[styles.splitValue, { color: theme.negative }]}>
+              -{formatCurrency(Math.abs(row.amount), sym)}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  ) : null;
+
   return (
     <View style={[expanded ? styles.expandedChartContent : undefined, expanded && styles.expandedChartInner]}>
       <View style={[styles.chartTopRow, expanded && styles.chartTopRowExpanded]}>
@@ -455,6 +490,7 @@ function CategoryDonutChartBlockBase({
           nestedScrollEnabled
         >
           {categoryList}
+          {negativeList}
           <View style={[styles.transactionsSection, { backgroundColor: txPalette.surface, borderColor: txPalette.border }]}>
             <View style={styles.transactionsHeader}>
               <Text style={[styles.sectionTitle, { color: txPalette.text }]}>Transactions</Text>
@@ -491,6 +527,7 @@ function CategoryDonutChartBlockBase({
       ) : (
         <ScrollView ref={listScrollRef} style={[styles.listViewport, styles.listViewportCollapsed]} contentContainerStyle={{ paddingBottom: 4 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
           {categoryList}
+          {negativeList}
         </ScrollView>
       )}
     </View>
@@ -552,6 +589,9 @@ const styles = StyleSheet.create({
   progressFill: { height: 4, borderRadius: HOME_RADIUS.full },
   emptySubcategoryWrap: { marginLeft: 44, marginTop: 2, paddingVertical: 8 },
   emptySubcategoryText: { fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold },
+  negativeSection: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4, gap: 10 },
+  negativeSectionTitle: { fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.bold, letterSpacing: 0.5, textTransform: 'uppercase' },
+  negativeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   transactionsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: HOME_SPACE.sm, paddingHorizontal: 12 },
   sectionTitle: { fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold },
   transactionsSection: { borderRadius: HOME_RADIUS.card, borderWidth: 1, marginHorizontal: 12, marginTop: 18, marginBottom: 24, paddingTop: 16, paddingBottom: 4, overflow: 'hidden' },

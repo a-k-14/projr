@@ -215,12 +215,13 @@ export default function InsightsScreen() {
   }, [dateRange, period, incomeExpenseGranularity]);
 
   useEffect(() => {
+    if (!isFocused) return;
     // Defer one frame so React commits + OS paints the chip highlight + "Updating…" mask
     // BEFORE the SQLite queries + post-fetch re-render begin. setTimeout(…, 0) is more
     // predictable on Android than InteractionManager for this case.
     const id = setTimeout(() => loadData(), 0);
     return () => clearTimeout(id);
-  }, [loadData]);
+  }, [loadData, isFocused]);
 
   useEffect(() => {
     if (!accountsLoaded) loadAccounts().catch(() => undefined);

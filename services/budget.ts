@@ -5,6 +5,7 @@ import type { Budget, BudgetWithSpent, CreateBudgetInput, Transaction } from '..
 import { generateId } from '../lib/ids';
 import { todayUTC, toLocalMonthStartISO } from '../lib/dateUtils';
 import { getCategories } from './categories';
+import { rowToTransaction } from './transactions';
 
 function rowToBudget(row: typeof budget.$inferSelect): Budget {
   return {
@@ -164,7 +165,7 @@ export async function getBudgetTransactions(categoryId: string, monthIso: string
       )
     )
     .orderBy(transactions.date);
-  return rows as unknown as Transaction[];
+  return rows.map(rowToTransaction);
 }
 
 export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
@@ -234,28 +235,7 @@ export async function getBudgetTransactionEntries(
   const entries: Array<{ transaction: Transaction; countedAmount: number }> = [];
 
   rows.forEach((row) => {
-      const tx = {
-        id: row.id,
-        type: row.type as Transaction['type'],
-        amount: row.amount,
-        accountId: row.accountId,
-        splitGroupId: row.splitGroupId ?? undefined,
-        linkedAccountId: row.linkedAccountId ?? undefined,
-        loanId: row.loanId ?? undefined,
-        categoryId: row.categoryId ?? undefined,
-        payee: row.payee ?? undefined,
-        tags: (() => {
-          try {
-            const parsed = JSON.parse(row.tags ?? '[]');
-            return Array.isArray(parsed) ? parsed : [];
-          } catch {
-            return [];
-          }
-        })(),
-        note: row.note ?? undefined,
-        date: row.date,
-        createdAt: row.createdAt,
-      } as Transaction;
+      const tx = rowToTransaction(row);
 
       if (tx.categoryId === categoryId) {
         entries.push({ transaction: tx, countedAmount: tx.amount });

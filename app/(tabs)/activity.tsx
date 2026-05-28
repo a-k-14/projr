@@ -1601,7 +1601,15 @@ export default function ActivityScreen() {
                                   style={{
                                     fontSize: HOME_TEXT.body,
                                     fontWeight: FONT_WEIGHT.semibold,
-                                    color: category.total >= 0 ? palette.numberPositive : palette.numberNegative,
+                                    // Lock color to the bucket role, not the sign of the value.
+                                    // A negative income still belongs to the income bucket (green);
+                                    // a negative expense (refund) still belongs to expense (red).
+                                    // The leading minus on the value carries the direction signal.
+                                    color: category.familyKey === 'in'
+                                      ? palette.numberPositive
+                                      : category.familyKey === 'out'
+                                        ? palette.numberNegative
+                                        : category.total >= 0 ? palette.numberPositive : palette.numberNegative,
                                     marginRight: 2
                                   }}
                                 >
@@ -1653,7 +1661,12 @@ export default function ActivityScreen() {
                                         style={{
                                           fontSize: HOME_TEXT.bodySmall,
                                           fontWeight: FONT_WEIGHT.medium,
-                                          color: sub.total >= 0 ? palette.numberPositive : palette.numberNegative,
+                                          // Sub inherits its parent's bucket role for coloring.
+                                          color: category.familyKey === 'in'
+                                            ? palette.numberPositive
+                                            : category.familyKey === 'out'
+                                              ? palette.numberNegative
+                                              : sub.total >= 0 ? palette.numberPositive : palette.numberNegative,
                                           marginRight: 10
                                         }}
                                       >
@@ -1868,7 +1881,8 @@ export default function ActivityScreen() {
 
 function signedCurrency(value: number, sym: string) {
   const abs = Math.abs(value);
-  return formatCurrency(abs, sym);
+  const formatted = formatCurrency(abs, sym);
+  return value < 0 ? `-${formatted}` : formatted;
 }
 
 function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {

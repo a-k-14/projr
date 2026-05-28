@@ -4,6 +4,7 @@ import * as transactionsService from '../services/transactions';
 import { TRANSACTIONS_PAGE_SIZE as PAGE_SIZE } from '../lib/layoutTokens';
 import { getTransactionBalanceDelta } from '../lib/transactionImpact';
 import { useAccountsStore } from './useAccountsStore';
+import { useLoansStore } from './useLoansStore';
 
 interface TransactionsStore {
   transactions: Transaction[];
@@ -102,20 +103,53 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   },
 
   update: async (id, data) => {
+    // Find old transaction before update to reverse its impact
+    const originalTx = get().transactions.find((t) => t.id === id);
     const updated = await transactionsService.updateTransaction(id, data);
     if (!updated) return;
     set((state) => ({
       transactions: patchTransaction(state.transactions, id, updated),
       mutationVersion: state.mutationVersion + 1,
     }));
+
+    // Optimistic balance delta updates
+    if (originalTx && !originalTx.transferPairId) {
+      const oldDelta = getTransactionBalanceDelta(originalTx);
+      useAccountsStore.getState().applyBalanceDelta(originalTx.accountId, -oldDelta);
+    }
+    if (!updated.transferPairId) {
+      const newDelta = getTransactionBalanceDelta(updated);
+      useAccountsStore.getState().applyBalanceDelta(updated.accountId, newDelta);
+    }
+
+    // Refresh loans store conditionally
+    if (updated.loanId || originalTx?.loanId) {
+      useLoansStore.getState().load().catch(() => {});
+    }
   },
 
   remove: async (id) => {
+    // Find old transaction before deletion to reverse its impact
+    let originalTx = get().transactions.find((t) => t.id === id);
+    if (!originalTx) {
+      originalTx = await transactionsService.getTransactionById(id) || undefined;
+    }
     await transactionsService.deleteTransaction(id);
     set((state) => ({
       transactions: state.transactions.filter((t) => t.id !== id),
       mutationVersion: state.mutationVersion + 1,
     }));
+
+    // Optimistic balance delta reversal
+    if (originalTx && !originalTx.transferPairId) {
+      const oldDelta = getTransactionBalanceDelta(originalTx);
+      useAccountsStore.getState().applyBalanceDelta(originalTx.accountId, -oldDelta);
+    }
+
+    // Refresh loans store conditionally
+    if (originalTx?.loanId) {
+      useLoansStore.getState().load().catch(() => {});
+    }
   },
 
   setFilters: (filters) =>

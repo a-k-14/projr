@@ -1,15 +1,15 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, useWindowDimensions, Pressable, ScrollView } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import type { BucketType, ChartGranularity } from '../../lib/chartUtils';
+import { APP_LOCALE, toLocalDateKey } from '../../lib/dateUtils';
+import { formatCurrency } from '../../lib/derived';
+import { CARD_PADDING, FONT_WEIGHT, HOME_TEXT } from '../../lib/design';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
+import type { AppThemePalette } from '../../lib/theme';
 import { AppIcon } from '../ui/AppIcon';
 import { Text } from '../ui/AppText';
 import { FilterChip } from '../ui/FilterChip';
-import type { AppThemePalette } from '../../lib/theme';
-import { HOME_RADIUS, SCREEN_GUTTER } from '../../lib/layoutTokens';
-import { CARD_PADDING, HOME_TEXT, FONT_WEIGHT } from '../../lib/design';
-import { formatCurrency } from '../../lib/derived';
-import { toLocalDateKey, APP_LOCALE } from '../../lib/dateUtils';
-import type { ChartGranularity, BucketType } from '../../lib/chartUtils';
 
 interface Props {
   data: { label: string; income: number; expense: number; from?: string; to?: string; type?: BucketType }[];
@@ -32,11 +32,11 @@ interface Props {
 }
 
 const GRANULARITY_OPTIONS: { key: ChartGranularity; label: string }[] = [
-  { key: 'auto',  label: 'Auto' },
-  { key: 'day',   label: 'Day' },
-  { key: 'week',  label: 'Week' },
+  { key: 'auto', label: 'Auto' },
+  { key: 'day', label: 'Day' },
+  { key: 'week', label: 'Week' },
   { key: 'month', label: 'Month' },
-  { key: 'year',  label: 'Year' },
+  { key: 'year', label: 'Year' },
 ];
 
 // Visual sort order for chips — always Day → Week → Month → Year (Auto's slot is wherever its bucket type lands).
@@ -125,7 +125,7 @@ export function IncomeExpenseChart({
   const net = totalIncome - totalExpense;
   const netColor = net >= 0 ? palette.numberPositive : palette.numberNegative;
 
-  const maxValue = Math.max(...data.flatMap((d) => [d.income, d.expense]), 1);
+  const maxValue = Math.max(...data.flatMap((d) => [Math.abs(d.income), Math.abs(d.expense)]), 1);
 
   const activeItem = activeIdx !== null ? data[activeIdx] : null;
 
@@ -197,13 +197,13 @@ export function IncomeExpenseChart({
       const weekday = new Date(item.from).toLocaleDateString(APP_LOCALE, { weekday: 'short' });
       return `${d} ${weekday}`;                                                   // "12 Mon"
     }
-    if (item.type === 'week')  return item.label;                                // "W1"
+    if (item.type === 'week') return item.label;                                // "W1"
     if (item.type === 'month') {
       return monthlyBucketsSpanYears
         ? `${monthAbbrev} '${y.slice(-2)}`                                       // "Dec '25"
         : monthAbbrev;                                                            // "May"
     }
-    if (item.type === 'year')  return y;                                         // "2026"
+    if (item.type === 'year') return y;                                         // "2026"
     return item.label;                                                            // fallback (shouldn't hit)
   }, [monthlyBucketsSpanYears, data]);
 
@@ -212,8 +212,9 @@ export function IncomeExpenseChart({
   // Memoise the heavy bars JSX. It only depends on data + activeIdx + palette + formatBottomLabel —
   // NOT on granularity/isLoading/period. So tapping a chip skips re-rendering all the bars,
   // which is what makes the chip + mask appear instantly.
-  const barsContent = useMemo(() => (
-    isScrollable ? (
+  const barsContent = useMemo(() => {
+    const selectionBg = { position: 'absolute' as const, top: 0, bottom: 0, left: 0, right: 0, backgroundColor: palette.brand, borderRadius: 8, opacity: 0.15 };
+    return isScrollable ? (
       <ScrollView
         ref={barsScrollRef}
         horizontal
@@ -229,24 +230,44 @@ export function IncomeExpenseChart({
           const isSelected = activeIdx === i;
           const anySelected = activeIdx !== null;
           const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
-          const incHeight = bucket.income > 0 ? Math.max(2, Math.round((bucket.income / maxValue) * 90)) : 0;
-          const expHeight = bucket.expense > 0 ? Math.max(2, Math.round((bucket.expense / maxValue) * 90)) : 0;
+          const incAbs = Math.abs(bucket.income);
+          const expAbs = Math.abs(bucket.expense);
+          const incOutlined = bucket.income < 0;
+          const expOutlined = bucket.expense < 0;
+          const incHeight = incAbs > 0 ? Math.max(2, Math.round((incAbs / maxValue) * 90)) : 0;
+          const expHeight = expAbs > 0 ? Math.max(2, Math.round((expAbs / maxValue) * 90)) : 0;
           return (
             <Pressable
               key={bucket.label + i}
               onPress={() => setActiveIdx(activeIdx === i ? null : i)}
-              style={{ width: 48, height: '100%', justifyContent: 'flex-end', alignItems: 'center', opacity }}
+              style={{ width: 48, height: '100%', alignItems: 'center', opacity }}
             >
-              {isSelected && (
-                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: palette.divider, borderRadius: 8, opacity: 0.25 }} />
-              )}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
-                {incHeight > 0 && (
-                  <View style={{ width: 14, height: incHeight, backgroundColor: incomeColor, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
-                )}
-                {expHeight > 0 && (
-                  <View style={{ width: 14, height: expHeight, backgroundColor: expenseColor, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
-                )}
+              <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
+                {isSelected && <View style={selectionBg} />}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
+                  {incHeight > 0 && (
+                    <View style={{
+                      width: 14,
+                      height: incHeight,
+                      backgroundColor: incOutlined ? `${incomeColor}13` : incomeColor,
+                      borderColor: incomeColor,
+                      borderWidth: incOutlined ? 1.5 : 0,
+                      borderTopLeftRadius: 4,
+                      borderTopRightRadius: 4,
+                    }} />
+                  )}
+                  {expHeight > 0 && (
+                    <View style={{
+                      width: 14,
+                      height: expHeight,
+                      backgroundColor: expOutlined ? `${expenseColor}13` : expenseColor,
+                      borderColor: expenseColor,
+                      borderWidth: expOutlined ? 1.5 : 0,
+                      borderTopLeftRadius: 4,
+                      borderTopRightRadius: 4,
+                    }} />
+                  )}
+                </View>
               </View>
               <Text style={{ fontSize: HOME_TEXT.tiny, color: isSelected ? palette.text : palette.textMuted, fontWeight: isSelected ? '700' : '400', marginTop: 6 }}>
                 {formatBottomLabel(bucket)}
@@ -261,8 +282,12 @@ export function IncomeExpenseChart({
           const isSelected = activeIdx === i;
           const anySelected = activeIdx !== null;
           const opacity = anySelected ? (isSelected ? 1 : 0.4) : 1;
-          const incHeight = bucket.income > 0 ? Math.max(2, Math.round((bucket.income / maxValue) * 90)) : 0;
-          const expHeight = bucket.expense > 0 ? Math.max(2, Math.round((bucket.expense / maxValue) * 90)) : 0;
+          const incAbs = Math.abs(bucket.income);
+          const expAbs = Math.abs(bucket.expense);
+          const incOutlined = bucket.income < 0;
+          const expOutlined = bucket.expense < 0;
+          const incHeight = incAbs > 0 ? Math.max(2, Math.round((incAbs / maxValue) * 90)) : 0;
+          const expHeight = expAbs > 0 ? Math.max(2, Math.round((expAbs / maxValue) * 90)) : 0;
           return (
             <Pressable
               key={bucket.label + i}
@@ -274,10 +299,26 @@ export function IncomeExpenseChart({
               )}
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
                 {incHeight > 0 && (
-                  <View style={{ width: '38%', height: incHeight, backgroundColor: incomeColor, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                  <View style={{
+                    width: '38%',
+                    height: incHeight,
+                    backgroundColor: incOutlined ? `${incomeColor}13` : incomeColor,
+                    borderColor: incomeColor,
+                    borderWidth: incOutlined ? 1.5 : 0,
+                    borderTopLeftRadius: 4,
+                    borderTopRightRadius: 4,
+                  }} />
                 )}
                 {expHeight > 0 && (
-                  <View style={{ width: '38%', height: expHeight, backgroundColor: expenseColor, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                  <View style={{
+                    width: '38%',
+                    height: expHeight,
+                    backgroundColor: expOutlined ? `${expenseColor}13` : expenseColor,
+                    borderColor: expenseColor,
+                    borderWidth: expOutlined ? 1.5 : 0,
+                    borderTopLeftRadius: 4,
+                    borderTopRightRadius: 4,
+                  }} />
                 )}
               </View>
               <Text style={{ fontSize: HOME_TEXT.tiny, color: isSelected ? palette.text : palette.textMuted, fontWeight: isSelected ? '700' : '400', marginTop: 6 }}>
@@ -287,8 +328,8 @@ export function IncomeExpenseChart({
           );
         })}
       </View>
-    )
-  ), [isScrollable, data, activeIdx, maxValue, palette, incomeColor, expenseColor, formatBottomLabel]);
+    );
+  }, [isScrollable, data, activeIdx, maxValue, palette, incomeColor, expenseColor, formatBottomLabel]);
 
   return (
     <View
@@ -324,10 +365,10 @@ export function IncomeExpenseChart({
         {activeItem ? (
           <View style={{ alignItems: 'flex-end', minWidth: 140 }}>
             <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
-              Income: <Text style={{ color: incomeColor, fontWeight: FONT_WEIGHT.semibold }}>+{formatCurrency(activeItem.income, sym)}</Text>
+              Income: <Text style={{ color: incomeColor, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.income < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.income), sym)}</Text>
             </Text>
             <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
-              Expense: <Text style={{ color: expenseColor, fontWeight: FONT_WEIGHT.semibold }}>-{formatCurrency(activeItem.expense, sym)}</Text>
+              Expense: <Text style={{ color: expenseColor, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.expense < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.expense), sym)}</Text>
             </Text>
             <View style={{ height: 1, width: 90, alignSelf: 'flex-end', backgroundColor: palette.divider, marginVertical: 3 }} />
             <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted }}>
@@ -354,33 +395,33 @@ export function IncomeExpenseChart({
         <>
           {/* Chart Area — bars wrap dims while data refetches; overlay sibling stays full opacity. */}
           <View style={{ position: 'relative' }}>
-          <View style={{ opacity: isLoading ? 0.2 : 1 }} pointerEvents={isLoading ? 'none' : 'auto'}>
-          {barsContent}
-          </View>
-          {isLoading ? (
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: 0, left: 0, right: 0, bottom: 0,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <View style={{ opacity: isLoading ? 0.2 : 1 }} pointerEvents={isLoading ? 'none' : 'auto'}>
+              {barsContent}
+            </View>
+            {isLoading ? (
               <View
+                pointerEvents="none"
                 style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 999,
-                  backgroundColor: palette.brand,
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: '#FFFFFF', letterSpacing: 0.3 }}>
-                  Updating…
-                </Text>
+                <View
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 999,
+                    backgroundColor: palette.brand,
+                  }}
+                >
+                  <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: '#FFFFFF', letterSpacing: 0.3 }}>
+                    Updating…
+                  </Text>
+                </View>
               </View>
-            </View>
-          ) : null}
+            ) : null}
           </View>
 
           {/* Legend + granularity toggle */}

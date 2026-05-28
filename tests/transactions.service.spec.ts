@@ -117,8 +117,8 @@ describe('transactions database integration', () => {
         });
         expect(tx.amount).toBe(-50);
         let rows = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc1'").all();
-        // 800 - (-50) = 850
-        expect((rows[0] as any).balance).toBe(850);
+        // beforeEach reseeds balance to 1000. OUT tx with amount=-50 adds +50 to balance.
+        expect((rows[0] as any).balance).toBe(1050);
     });
 
     it('rejects zero amounts for IN and OUT transactions', async () => {

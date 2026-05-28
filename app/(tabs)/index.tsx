@@ -1021,20 +1021,25 @@ function AccountSummaryCard({
                   const rightSplit = splitTickAmount(metricRightAmount);
                   const leftIsZero = metricLeftAmount === 0;
                   const rightIsZero = metricRightAmount === 0;
+                  // Arrow icon + position already conveys the bucket (income vs expense).
+                  // Only the unusual case (a negative value in that bucket) gets a leading '-'
+                  // to flag that the day's net went the opposite direction.
+                  const leftSign = metricLeftAmount < 0 ? '-' : '';
+                  const rightSign = metricRightAmount < 0 ? '-' : '';
                   return (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <AppIcon name="arrow-down-left" size={15} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
                         <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                             {hideAmounts ? '••••' : leftIsZero ? '—' : (
-                              <Text>{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
+                              <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
                             )}
                           </Text>
                       </TouchableOpacity>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                             {hideAmounts ? '••••' : rightIsZero ? '—' : (
-                              <Text>{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
+                              <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
                             )}
                           </Text>
                         <AppIcon name="arrow-up-right" size={15} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
@@ -1119,7 +1124,7 @@ function AccountSummaryCard({
                     </Text>
                   </View>
                   <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
-                      {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : formatCurrency(metricLeftAmount, currencySymbol)}
+                      {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : `${metricLeftAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricLeftAmount), currencySymbol)}`}
                     </Text>
                 </TouchableOpacity>
 
@@ -1139,7 +1144,7 @@ function AccountSummaryCard({
                     <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
                   </View>
                   <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
-                      {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : formatCurrency(metricRightAmount, currencySymbol)}
+                      {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : `${metricRightAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricRightAmount), currencySymbol)}`}
                     </Text>
                 </TouchableOpacity>
               </View>
@@ -1249,7 +1254,10 @@ function AccountSummaryCard({
 /** Truncate (not round) to 2 decimal places and split into integer + ".XX" strings for two-size rendering.
  *  `dec` is empty string when the fractional part is zero. */
 function splitTickAmount(amount: number): { int: string; dec: string } {
-  const truncated = Math.floor(amount * 100) / 100;
+  // Always operate on the magnitude — sign is applied by the caller so it can
+  // pick its own convention (e.g. expense gets '-' for positive outflow, '+' for refund).
+  const abs = Math.abs(amount);
+  const truncated = Math.floor(abs * 100) / 100;
   const intPart = Math.floor(truncated);
   const cents = Math.round((truncated - intPart) * 100);
   return {

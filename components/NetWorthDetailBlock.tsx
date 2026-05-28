@@ -694,7 +694,7 @@ export function NetWorthDetailBlock({
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Income</Text>
             </View>
             <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: activeVals.income === 0 ? palette.textMuted : palette.text }}>
-              {activeVals.income === 0 ? '—' : `+${formatCurrency(activeVals.income, currencySymbol)}`}
+              {activeVals.income === 0 ? '—' : `${activeVals.income < 0 ? '-' : '+'}${formatCurrency(Math.abs(activeVals.income), currencySymbol)}`}
             </Text>
           </TouchableOpacity>
 
@@ -711,7 +711,7 @@ export function NetWorthDetailBlock({
               <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>Expense</Text>
             </View>
             <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: activeVals.expense === 0 ? palette.textMuted : palette.text }}>
-              {activeVals.expense === 0 ? '—' : `-${formatCurrency(activeVals.expense, currencySymbol)}`}
+              {activeVals.expense === 0 ? '—' : `${activeVals.expense < 0 ? '+' : '-'}${formatCurrency(Math.abs(activeVals.expense), currencySymbol)}`}
             </Text>
           </TouchableOpacity>
 

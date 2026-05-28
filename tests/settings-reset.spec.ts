@@ -280,6 +280,7 @@ describe('local reset', () => {
         autoBackupKeepCount: 7,
         lastManualBackupAt: '',
         lastAutoBackupError: '',
+        hideAmounts: false,
       },
       isLoaded: true,
       loadError: 'previous',
