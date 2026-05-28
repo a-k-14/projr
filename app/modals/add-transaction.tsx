@@ -70,6 +70,7 @@ import { usePersonsStore } from '../../stores/usePersonsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
 import { InlineComboBox } from '../../components/ui/InlineComboBox';
 import { AutocompleteDropdown } from '../../components/ui/AutocompleteDropdown';
 import type {
@@ -519,7 +520,10 @@ export default function AddTransactionModal() {
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedLinkedAccount = accounts.find((account) => account.id === linkedAccountId);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Re-entrancy guard kept in a ref — using state here would trigger a wasted
+  // re-render of the modal in the same React commit as the closeScreen()
+  // navigation, which adds noticeable latency to the tap→transition window.
+  const isSubmittingRef = useRef(false);
 
   const closeScreen = () => {
     if (fromWidget === '1' || !router.canGoBack()) {
@@ -655,9 +659,31 @@ export default function AddTransactionModal() {
 
   const handleSubmit = async () => {
     if (!isValid) return;
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    setShowDatePicker(false);
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    if (showDatePicker) setShowDatePicker(false);
+
+    // Every save path follows the same shape: close the modal immediately, run the
+    // mutation in the background, refresh dependent stores after, and surface any
+    // error via showAlert. This keeps the UI responsive even when the DB write or
+    // a subsequent reload takes a moment.
+    const runInBackground = (
+      work: () => Promise<unknown>,
+      refresh?: { tx?: boolean; widgets?: boolean },
+    ) => {
+      (async () => {
+        try {
+          await work();
+          const tasks: Promise<unknown>[] = [refreshAccounts()];
+          if (refresh?.tx) tasks.push(reloadTransactions());
+          await Promise.all(tasks);
+          if (refresh?.widgets) updateAllReniWidgets().catch(() => undefined);
+        } catch (e) {
+          showAlert('Error', String(e));
+        }
+      })();
+    };
+
     try {
       if (!isEditing && accountId) {
         updateSettings({ lastUsedAccountId: accountId }).catch(() => { });
@@ -665,14 +691,15 @@ export default function AddTransactionModal() {
 
       if (type === 'deposit') {
         if (isClosingDeposit && closeDepositId) {
-          await closeDeposit(closeDepositId, {
+          const payload = {
             principalAmount: closePrincipal,
             interestAmount: closeInterest > 0 ? closeInterest : undefined,
             accountId,
             date,
             note: note.trim() || undefined,
-          });
+          };
           closeScreen();
+          runInBackground(() => closeDeposit(closeDepositId, payload), { tx: true, widgets: true });
           return;
         }
 
@@ -711,12 +738,12 @@ export default function AddTransactionModal() {
           maturityValue,
           note: note.trim() || null,
         };
-        if (isEditingDeposit && editDepositId) {
-          await useFixedDepositsStore.getState().update(editDepositId, depositPayload);
-        } else {
-          await useFixedDepositsStore.getState().add(depositPayload);
-        }
+        const depositsStore = useFixedDepositsStore.getState();
+        const depositWork = isEditingDeposit && editDepositId
+          ? () => depositsStore.update(editDepositId, depositPayload)
+          : () => depositsStore.add(depositPayload);
         closeScreen();
+        runInBackground(depositWork, { tx: true, widgets: true });
         return;
       }
 
@@ -732,49 +759,41 @@ export default function AddTransactionModal() {
         tags: selectedTagIds,
         linkedAccountId: type === 'transfer' ? linkedAccountId : undefined
       };
-      let shouldReloadTransactions = false;
 
       if ((type === 'in' || type === 'out') && usableSplitRows.length > 0) {
         const splitItems = usableSplitRows.map((row) => ({
           categoryId: row.categoryId,
           amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0
         }));
-
-        if (isEditing && editId && editingSplitGroupId) {
-          await updateSplitTransactionGroup(editingSplitGroupId, {
-            type,
-            accountId,
-            payee: payee.trim() || undefined,
-            note: note || undefined,
-            receiptImageUris,
-            tags: selectedTagIds,
-            date,
-            items: splitItems
-          });
-        } else {
-          await createSplitTransactionGroup({
-            type,
-            accountId,
-            payee: payee.trim() || undefined,
-            note: note || undefined,
-            receiptImageUris,
-            tags: selectedTagIds,
-            date,
-            items: splitItems
-          });
-          if (isEditing && editId) {
-            await deleteTransaction(editId);
-          }
-        }
+        const splitPayload = {
+          type,
+          accountId,
+          payee: payee.trim() || undefined,
+          note: note || undefined,
+          receiptImageUris,
+          tags: selectedTagIds,
+          date,
+          items: splitItems,
+        };
+        const splitWork = isEditing && editId && editingSplitGroupId
+          ? async () => {
+              await updateSplitTransactionGroup(editingSplitGroupId, splitPayload);
+            }
+          : async () => {
+              await createSplitTransactionGroup(splitPayload);
+              // Convert single → split: drop the now-orphaned original row.
+              if (isEditing && editId) await deleteTransaction(editId);
+            };
         clearSplitRows();
         closeScreen();
-        // Background refresh after navigation
-        Promise.all([reloadTransactions(), refreshAccounts()]).catch(() => { });
+        runInBackground(splitWork, { tx: true, widgets: true });
         return;
       }
 
       if (type === 'loan' && isEditing && editId && loanEditMode === 'origin' && editingLoanId) {
-        await updateLoanOrigin(editingLoanId, {
+        const loanId = editingLoanId;
+        const txId = editId;
+        const payload = {
           personName,
           direction: loanDirection,
           accountId,
@@ -782,77 +801,113 @@ export default function AddTransactionModal() {
           note: note.trim(),
           tags: selectedTagIds,
           date,
-        }, editId);
-        shouldReloadTransactions = true;
-      } else if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
-        await updateTransaction(editId, {
-          type: 'loan',
+        };
+        clearSplitRows();
+        closeScreen();
+        runInBackground(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
+        return;
+      }
+      if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
+        const txId = editId;
+        const loanId = editingLoanId;
+        const payload = {
+          type: 'loan' as const,
           amount,
           accountId,
-          loanId: editingLoanId,
+          loanId,
           loanTransactionType,
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
-          date
-        });
-      } else if (type === 'loan' && routeLoanId && settlement === '1') {
-        await addTransaction({
-          type: 'loan',
+          date,
+        };
+        clearSplitRows();
+        closeScreen();
+        runInBackground(() => updateTransaction(txId, payload), { tx: true, widgets: true });
+        return;
+      }
+      if (type === 'loan' && routeLoanId && settlement === '1') {
+        const payload = {
+          type: 'loan' as const,
           amount,
           accountId,
           loanId: routeLoanId,
           loanTransactionType,
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
-          date
-        });
-      } else if (type === 'loan' && isLoanAddMore && routeLoanId) {
-        await addLoanPrincipal(routeLoanId, amount, accountId, date, note.trim());
-        shouldReloadTransactions = true;
-      } else if (type === 'loan') {
-        await addLoan({
+          date,
+        };
+        clearSplitRows();
+        closeScreen();
+        runInBackground(() => addTransaction(payload), { tx: true, widgets: true });
+        return;
+      }
+      if (type === 'loan' && isLoanAddMore && routeLoanId) {
+        const loanId = routeLoanId;
+        const trimmedNote = note.trim();
+        clearSplitRows();
+        closeScreen();
+        runInBackground(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
+        return;
+      }
+      if (type === 'loan') {
+        const payload = {
           personName,
           direction: loanDirection,
           accountId,
           givenAmount: amount,
           note: note.trim(),
           tags: selectedTagIds,
-          date
-        });
-        shouldReloadTransactions = true;
-      } else if (isEditing && editId && isTransferEdit) {
-        await updateTransferTransaction(editId, {
+          date,
+        };
+        clearSplitRows();
+        closeScreen();
+        runInBackground(() => addLoan(payload), { tx: true, widgets: true });
+        return;
+      }
+      if (isEditing && editId && isTransferEdit) {
+        const txId = editId;
+        const payload = {
           amount,
           accountId,
           linkedAccountId,
           date,
           note: note.trim(),
-          payee: payee.trim() || undefined
-        });
-        shouldReloadTransactions = true;
-      } else if (isEditing && editId) {
-        // Close immediately so navigation animation runs concurrently with the write
+          payee: payee.trim() || undefined,
+        };
         clearSplitRows();
         closeScreen();
-        updateTransaction(editId, data).catch(() => { });
-        refreshAccounts().catch(() => { });
-        return;
-      } else {
-        // Close immediately so navigation animation runs concurrently with the write
-        clearSplitRows();
-        closeScreen();
-        addTransaction(data).catch(() => { });
-        refreshAccounts().catch(() => { });
+        runInBackground(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
         return;
       }
-      clearSplitRows();
-      closeScreen();
-      // Background refresh after navigation
-      Promise.all([
-        shouldReloadTransactions ? reloadTransactions() : Promise.resolve(),
-        refreshAccounts()
-      ]).catch(() => { });
+      // For in/out add + edit we have two competing constraints:
+      //  - Widget cold launch: home mounts WITH the navigation, so the optimistic
+      //    store patches must land synchronously BEFORE closeScreen — otherwise
+      //    home paints with stale balances.
+      //  - In-app save: home is already mounted and visible. Doing the synchronous
+      //    patches before closeScreen forces React to commit a heavy home re-render
+      //    in the same batch as the modal-unmount/navigation, which adds a few ms
+      //    of perceived lag between tap and transition.
+      // So: widget path stays synchronous; in-app path defers the optimistic
+      // mutation by one frame via InteractionManager so navigation paints first
+      // and the balance ticks in ~16 ms later.
+      const runMutation = isEditing && editId
+        ? () => updateTransaction(editId, data)
+        : () => addTransaction(data);
+      const runAfterClose = () => {
+        runMutation()
+          .then(() => updateAllReniWidgets().catch(() => undefined))
+          .catch((e) => showAlert('Error', String(e)));
+      };
+      if (fromWidget === '1') {
+        runAfterClose();
+        clearSplitRows();
+        closeScreen();
+      } else {
+        clearSplitRows();
+        closeScreen();
+        InteractionManager.runAfterInteractions(runAfterClose);
+      }
     } catch (e) {
       showAlert('Error', String(e));
-      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -868,18 +923,31 @@ export default function AddTransactionModal() {
         : 'This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
-      onConfirm: async () => {
-        if (isLoanOrigin) {
-          await removeLoan(editingLoanId!);
-        } else if (isDepositEdit) {
-          await removeDeposit(editDepositId!);
-        } else if (editId) {
-          await removeTransaction(editId);
-        }
-        await refreshAccounts();
+      onConfirm: () => {
+        // Close first, then run the delete in the background. The optimistic
+        // remove() in useTransactionsStore makes plain in/out deletes instant;
+        // loans/deposits/splits cascade in the store but a redundant DB-truth
+        // refresh follows for safety.
+        const work = isLoanOrigin
+          ? () => removeLoan(editingLoanId!)
+          : isDepositEdit
+            ? () => removeDeposit(editDepositId!)
+            : editId
+              ? () => removeTransaction(editId)
+              : async () => undefined;
         setEditingSplitGroupId('');
         clearSplitRows();
         closeScreen();
+        (async () => {
+          try {
+            await work();
+            await refreshAccounts();
+            await reloadTransactions();
+            updateAllReniWidgets().catch(() => undefined);
+          } catch (e) {
+            showAlert('Error', String(e));
+          }
+        })();
       },
     });
   };

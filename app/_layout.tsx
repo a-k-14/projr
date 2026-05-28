@@ -53,8 +53,12 @@ export default function RootLayout() {
 
     try {
       await runMigrations();
-      await Promise.all([loadAccounts(), loadSettings(), loadCategories(), loadDeposits(), loadLoans(), loadAssets()]);
-
+      // Critical-path loads: home tab needs accounts + settings + categories before
+      // it can paint anything useful. Deposits/loans/assets feed the net-worth chip
+      // and the secondary cards — defer them so the splash hides sooner. Home's
+      // `stableNetWorth` retains last non-zero NW so the chip doesn't flash 0 while
+      // the background loads finish.
+      await Promise.all([loadAccounts(), loadSettings(), loadCategories()]);
 
       // Only seed starter data on a true first run, not after a user-triggered reset.
       if (
@@ -69,6 +73,8 @@ export default function RootLayout() {
       }
 
       setReady(true);
+      // Background loads — kick off after the home tab is visible.
+      Promise.all([loadDeposits(), loadLoans(), loadAssets()]).catch(() => undefined);
     } catch (error) {
       setInitError(
         error instanceof Error ? error.message : 'Something went wrong while opening the app.'

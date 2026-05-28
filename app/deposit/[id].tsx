@@ -22,6 +22,7 @@ import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
 import type { DepositStatus } from '../../types';
 
 const STATUS_LABEL: Record<DepositStatus, string> = {
@@ -94,11 +95,16 @@ export default function DepositDetailScreen() {
   const earnings = getDepositReturnAmount(deposit);
   const progress = getDepositProgress(deposit);
 
-  const handleReopen = () => reopenDeposit(deposit.id);
+  const handleReopen = () => {
+    reopenDeposit(deposit.id).then(() => updateAllReniWidgets().catch(() => undefined));
+  };
 
-  const handleDelete = async () => {
-    await removeDeposit(deposit.id);
+  const handleDelete = () => {
+    const id = deposit.id;
     router.back();
+    removeDeposit(id)
+      .then(() => updateAllReniWidgets().catch(() => undefined))
+      .catch(() => undefined);
   };
   const openEdit = () => router.push({ pathname: '/modals/add-transaction', params: { editDepositId: deposit.id, closeDepositId: '' } });
   const openClose = () => router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: deposit.id, editDepositId: '' } });

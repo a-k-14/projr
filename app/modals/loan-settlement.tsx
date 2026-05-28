@@ -42,6 +42,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
 
 export default function LoanSettlementModal() {
   const { editId, loanId } = useLocalSearchParams<{ editId?: string; loanId?: string }>();
@@ -126,42 +127,51 @@ export default function LoanSettlementModal() {
   const isValid = !!resolvedLoanId && !!accountId && amount !== 0;
   const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'Receipt' : 'Payment'}` : loanDirection === 'lent' ? 'New Receipt' : 'New Payment';
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!isValid) return;
-    try {
-      const payload = {
-        type: 'loan' as const,
-        amount,
-        accountId,
-        loanId: resolvedLoanId,
-        loanTransactionType,
-        note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
-        date
-      };
-      if (isEditing && editId) {
-        await updateTransaction(editId, payload);
-      } else {
-        await addTransaction(payload);
+    const payload = {
+      type: 'loan' as const,
+      amount,
+      accountId,
+      loanId: resolvedLoanId,
+      loanTransactionType,
+      note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
+      date,
+    };
+    const work = isEditing && editId
+      ? () => updateTransaction(editId, payload)
+      : () => addTransaction(payload);
+    router.back();
+    (async () => {
+      try {
+        await work();
+        await Promise.all([refreshAccounts(), loadLoans()]);
+        updateAllReniWidgets().catch(() => undefined);
+      } catch (e) {
+        showAlert('Error', String(e));
       }
-      router.back();
-      // Background refresh after navigation
-      Promise.all([refreshAccounts(), loadLoans()]).catch(() => { });
-    } catch (e) {
-      showAlert('Error', String(e));
-    }
+    })();
   };
 
   const handleDelete = () => {
     if (!editId) return;
+    const id = editId;
     showConfirm({
       title: 'Delete Transaction',
       message: 'This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
-      onConfirm: async () => {
-        await removeTransaction(editId);
+      onConfirm: () => {
         router.back();
-        Promise.all([refreshAccounts(), loadLoans()]).catch(() => { });
+        (async () => {
+          try {
+            await removeTransaction(id);
+            await Promise.all([refreshAccounts(), loadLoans()]);
+            updateAllReniWidgets().catch(() => undefined);
+          } catch (e) {
+            showAlert('Error', String(e));
+          }
+        })();
       },
     });
   };
