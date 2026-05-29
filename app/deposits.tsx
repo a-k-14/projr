@@ -1,11 +1,12 @@
 import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { HeaderResetButton } from '../components/ui/HeaderResetButton';
+import { FilterChip } from '../components/ui/FilterChip';
 import { router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { safePush } from '../lib/safePush';
 import { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { GrainHeroCard } from '../components/ui/GrainHeroCard';
@@ -137,26 +138,16 @@ function DepositsScreenContent() {
             {/* Filter pills — Active / Closed / All */}
             <View style={{ flexDirection: 'row', paddingHorizontal: SCREEN_GUTTER, gap: 8, marginBottom: HOME_SPACE.md }}>
               {pills.map((pill) => {
-                const selected = statusFilter === pill.key;
+                const labelWithCount = `${pill.label}${pill.count > 0 ? ` (${pill.count})` : ''}`;
                 return (
-                  <TouchableOpacity
+                  <FilterChip
                     key={pill.key}
-                    delayPressIn={0}
-                    activeOpacity={0.75}
+                    label={labelWithCount}
+                    isActive={statusFilter === pill.key}
+                    palette={palette}
                     onPress={() => setStatusFilter(pill.key)}
-                    style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 6,
-                      borderRadius: HOME_RADIUS.pill,
-                      borderWidth: 1,
-                      borderColor: selected ? palette.brand : palette.divider,
-                      backgroundColor: selected ? palette.brand : palette.surface,
-                    }}
-                  >
-                    <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: selected ? palette.onBrand : palette.text }}>
-                      {pill.label}{pill.count > 0 ? ` (${pill.count})` : ''}
-                    </Text>
-                  </TouchableOpacity>
+                    style={{ borderRadius: HOME_RADIUS.pill }}
+                  />
                 );
               })}
             </View>

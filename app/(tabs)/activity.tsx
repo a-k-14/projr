@@ -14,7 +14,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -34,7 +33,7 @@ import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { ListHeading } from '../../components/ui/ListHeading';
-import { PillIconButton } from '../../components/ui/PillIconButton';
+import { HeaderSearchBar, HeaderSearchTrigger } from '../../components/ui/HeaderSearchBar';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import { filterTransactions } from '../../lib/transactionFilters';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
@@ -52,7 +51,7 @@ import {
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
-import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS} from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS} from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
@@ -1335,33 +1334,16 @@ export default function ActivityScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
       {isSearchActive ? (
-        <View
+        <HeaderSearchBar
+          visible={isSearchActive}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search transactions…"
+          onClose={() => toggleSearch(false)}
+          palette={palette}
           onLayout={(event: LayoutChangeEvent) => setTopBarHeight(event.nativeEvent.layout.height)}
-          style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}
-        >
-          <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
-            <AppIcon name="search" size={15} color={palette.textMuted} />
-            <TextInput
-              autoFocus
-              placeholder="Search transactions…"
-              placeholderTextColor={palette.textSoft}
-              value={search}
-              onChangeText={setSearch}
-              style={{ flex: 1, fontSize: HOME_TEXT.body, color: palette.text, padding: 0 }}
-              returnKeyType="search"
-            />
-            {search.length > 0 ? (
-              <TouchableOpacity delayPressIn={0} onPress={() => setSearch('')}>
-                <AppIcon name="x-circle" size={16} color={palette.textSoft} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-          <TouchableOpacity delayPressIn={0} onPress={() => toggleSearch(false)}>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.text.compactLabelWeight, color: palette.brand, marginLeft: 12 }}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-        </View>
+          style={{ borderBottomWidth: 1 }}
+        />
       ) : (
         <View
           onLayout={(event: LayoutChangeEvent) => setTopBarHeight(event.nativeEvent.layout.height)}
@@ -1381,8 +1363,7 @@ export default function ActivityScreen() {
 
             <View style={{ flex: 1 }} />
 
-            <PillIconButton
-              icon="search"
+            <HeaderSearchTrigger
               onPress={() => toggleSearch(true)}
               palette={palette}
             />

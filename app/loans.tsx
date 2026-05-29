@@ -1,7 +1,7 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
-import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -26,6 +26,7 @@ import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { GrainHeroCard } from '../components/ui/GrainHeroCard';
 import { HeaderResetButton } from '../components/ui/HeaderResetButton';
+import { HeaderSearchBar, HeaderSearchTrigger } from '../components/ui/HeaderSearchBar';
 import { ListHeading } from '../components/ui/ListHeading';
 import { MoreFiltersAmountRange } from '../components/ui/MoreFiltersAmountRange';
 import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
@@ -244,30 +245,15 @@ export default function LoansScreen() {
   return (
     <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
       {isSearchActive ? (
-        <View style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider, flexDirection: 'row', alignItems: 'center' }]}>
-          <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.divider, flex: 1 }]}>
-            <AppIcon name="search" size={15} color={palette.textMuted} />
-            <TextInput
-              autoFocus
-              placeholder="Search loans…"
-              placeholderTextColor={palette.textSoft}
-              value={search}
-              onChangeText={setSearch}
-              style={{ flex: 1, fontSize: HOME_TEXT.body, color: palette.text, padding: 0 }}
-              returnKeyType="search"
-            />
-            {search.length > 0 ? (
-              <TouchableOpacity delayPressIn={0} onPress={() => setSearch('')}>
-                <AppIcon name="x-circle" size={16} color={palette.textSoft} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-          <TouchableOpacity delayPressIn={0} onPress={() => toggleSearch(false)}>
-            <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: BUTTON_TOKENS.text.compactLabelWeight, color: palette.brand, marginLeft: 12 }}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <HeaderSearchBar
+          visible={isSearchActive}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search loans…"
+          onClose={() => toggleSearch(false)}
+          palette={palette}
+          style={{ borderBottomWidth: 1 }}
+        />
       ) : (
         <ScreenHeader
           title="Loans"
@@ -283,7 +269,7 @@ export default function LoansScreen() {
           }
           rightAction={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <HeaderIconButton icon="search" palette={palette} onPress={() => toggleSearch(true)} />
+              <HeaderSearchTrigger onPress={() => toggleSearch(true)} palette={palette} />
               <HeaderAddButton palette={palette} onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'loan' } })} />
             </View>
           }
