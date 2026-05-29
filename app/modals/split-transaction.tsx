@@ -1,4 +1,5 @@
 import React from 'react';
+import RNAnimated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -70,11 +71,16 @@ export default function SplitTransactionModal() {
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
   const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
   const { palette } = useAppTheme();
-  const { showAlert, dialog } = useAppDialog(palette);
+  const { dialog } = useAppDialog(palette);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
   const [categorySheetRowId, setCategorySheetRowId] = useState<string | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }]
+  }));
 
   useEffect(() => {
     if (splitRows.length === 0) {
@@ -132,7 +138,13 @@ export default function SplitTransactionModal() {
       (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
     );
     if (!valid) {
-      showAlert('Complete All Line Items', 'Choose a category and amount for each split line.');
+      setAttemptedSubmit(true);
+      shakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
       return;
     }
     setSplitRows(filledRows);
@@ -187,6 +199,7 @@ export default function SplitTransactionModal() {
                       accentColor={amountColor}
                       autoFocus={index === 0}
                       onDelete={triggerDelete}
+                      hasError={attemptedSubmit && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) === 0}
                     />
                     <PickerRow
                       label="Category"
@@ -194,6 +207,7 @@ export default function SplitTransactionModal() {
                       placeholder={!row.categoryId}
                       onPress={() => openCategoryPickerForRow(row.id)}
                       palette={palette}
+                      hasError={attemptedSubmit && !row.categoryId}
                     />
                   </SectionCard>
                 )}
@@ -219,7 +233,9 @@ export default function SplitTransactionModal() {
           <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: FONT_WEIGHT.semibold }}>Total</Text>
           <Text style={{ fontSize: HOME_TEXT.rowLabel, color: palette.text, fontWeight: FONT_WEIGHT.bold }}>{formatIndianNumberStr(String(total || 0))}</Text>
         </View>
-        <FilledButton label="Done" onPress={handleDone} palette={palette} tone="brand" />
+        <RNAnimated.View style={[shakeStyle, { width: '100%' }]}>
+          <FilledButton label="Done" onPress={handleDone} palette={palette} tone="brand" />
+        </RNAnimated.View>
       </View>
 
       {categorySheetRowId ? (

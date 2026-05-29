@@ -2,6 +2,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, TextInput, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import {
   ActionButton,
@@ -52,6 +53,12 @@ export default function AccountFormScreen() {
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
 
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }]
+  }));
+
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -77,7 +84,13 @@ export default function AccountFormScreen() {
   async function onSave() {
     const name = draft.name.trim();
     if (!name) {
-      showAlert('Missing Name', 'Please enter an account name.');
+      setAttemptedSubmit(true);
+      shakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
       return;
     }
 
@@ -133,14 +146,16 @@ export default function AccountFormScreen() {
     <>
       <SettingsFormLayout
         palette={palette}
-        bottomActions={
+         bottomActions={
           <FixedBottomActions palette={palette}>
-            <ActionButton
-              label={isEditing ? 'Save Account' : 'Create Account'}
-              variant="primary"
-              palette={palette}
-              onPress={onSave}
-            />
+            <Animated.View style={[shakeStyle, { width: '100%' }]}>
+              <ActionButton
+                label={isEditing ? 'Save Account' : 'Create Account'}
+                variant="primary"
+                palette={palette}
+                onPress={onSave}
+              />
+            </Animated.View>
             {isEditing && (
               <ActionButton
                 label="Delete Account"
@@ -154,7 +169,7 @@ export default function AccountFormScreen() {
       >
         {/* Name */}
         <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Account Name" palette={palette} />
+          <FieldLabel label="Account Name" palette={palette} hasError={attemptedSubmit && !draft.name.trim()} />
           <InputField
             palette={palette}
             value={draft.name}
@@ -164,6 +179,7 @@ export default function AccountFormScreen() {
             returnKeyType="next"
             blurOnSubmit={false}
             onSubmitEditing={() => accountNumberRef.current?.focus()}
+            hasError={attemptedSubmit && !draft.name.trim()}
           />
         </View>
 

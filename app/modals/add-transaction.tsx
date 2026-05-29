@@ -18,7 +18,7 @@ import {
   View
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
@@ -101,6 +101,11 @@ function AccountTypeBadge({ account, palette: _palette }: { account: Account; pa
 
 export default function AddTransactionModal() {
   const insets = useSafeAreaInsets();
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }]
+  }));
   const {
     editId,
     accountId: sourceAccountId,
@@ -215,9 +220,9 @@ export default function AddTransactionModal() {
   const TYPE_CONFIG = {
     in: { label: 'Income', color: palette.uiPositive, onColor: palette.onBrand, borderColor: palette.uiPositive, bg: palette.inBg },
     out: { label: 'Expense', color: palette.uiNegative, onColor: palette.onBrand, borderColor: palette.uiNegative, bg: palette.outBg },
-    transfer: { label: 'Transfer', color: palette.transferText, onColor: palette.onBrand, borderColor: palette.transferText, bg: palette.transferBg },
-    loan: { label: 'Loan', color: palette.loan, onColor: palette.onLoan, borderColor: palette.loan, bg: palette.loanBg },
-    deposit: { label: 'Deposit', color: palette.brand, onColor: palette.onBrand, borderColor: palette.brand, bg: palette.budgetSoft }
+    transfer: { label: 'Transfer', color: palette.brand, onColor: palette.onBrand, borderColor: palette.brand, bg: palette.brandSoft },
+    loan: { label: 'Loan', color: palette.brand, onColor: palette.onBrand, borderColor: palette.brand, bg: palette.brandSoft },
+    deposit: { label: 'Deposit', color: palette.brand, onColor: palette.onBrand, borderColor: palette.brand, bg: palette.brandSoft }
   };
 
   useEffect(() => {
@@ -635,11 +640,11 @@ export default function AddTransactionModal() {
     }
     if (type === 'in') return 'Add Income';
     if (type === 'transfer') return 'Move Money';
-    if (type === 'loan') return 'Add Loan';
-    if (type === 'deposit') return 'Add Deposit';
+    if (type === 'loan') return loanDirection === 'lent' ? 'Lend Money' : 'Borrow Money';
+    if (type === 'deposit') return 'Create Deposit';
     return 'Add Expense';
   })();
-  const actionButtonColor = type === 'loan' || type === 'deposit' ? palette.brand : activeConfig.color;
+  const actionButtonColor = palette.brand;
   const screenTitle = isEditing
     ? type === 'deposit'
       ? 'Edit Deposit'
@@ -663,7 +668,16 @@ export default function AddTransactionModal() {
         : 'New Transaction';
 
   const handleSubmit = async () => {
-    if (!isValid) return;
+    if (!isValid) {
+      setAttemptedSubmit(true);
+      shakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+      return;
+    }
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
 
@@ -1131,6 +1145,7 @@ export default function AddTransactionModal() {
                   onPress={() => {
                     if (lockTypeSelection && t !== type) return;
                     setType(t);
+                    setAttemptedSubmit(false);
                   }}
                   disabled={lockTypeSelection && t !== type}
                   style={{
@@ -1173,6 +1188,7 @@ export default function AddTransactionModal() {
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
+                hasError={attemptedSubmit && !accountId}
               />
               <AmountRow
                 sym={displaySym}
@@ -1191,6 +1207,7 @@ export default function AddTransactionModal() {
                 accentColor={activeConfig.color}
                 autoFocus
                 editable={usableSplitRows.length === 0}
+                hasError={attemptedSubmit && !hasNonZeroAmount}
               />
               <View style={{ paddingRight: SCREEN_GUTTER + 6, marginBottom: -18, alignItems: 'flex-end', zIndex: 1 }}>
                 <TouchableOpacity delayPressIn={0}
@@ -1220,6 +1237,7 @@ export default function AddTransactionModal() {
                       router.push({ pathname: '/modals/split-transaction', params: { type } })
                     )
                   }
+                  hasError={attemptedSubmit && splitTotal === 0}
                 />
               ) : (
                 <PickerRow
@@ -1234,6 +1252,7 @@ export default function AddTransactionModal() {
                   palette={palette}
                   onPress={openCategorySheet}
                   custom
+                  hasError={attemptedSubmit && !categoryId}
                 />
               )}
               <InlineComboBox
@@ -1280,6 +1299,7 @@ export default function AddTransactionModal() {
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('from'))}
+                hasError={attemptedSubmit && !accountId}
               />
               <View style={{ alignItems: 'center', paddingVertical: 2 }}>
                 <TouchableOpacity delayPressIn={0}
@@ -1307,6 +1327,7 @@ export default function AddTransactionModal() {
                 placeholder={!linkedAccountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('to'))}
+                hasError={attemptedSubmit && !linkedAccountId}
               />
               {accountId && linkedAccountId && accountId === linkedAccountId ? (
                 <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 4 }}>
@@ -1323,6 +1344,7 @@ export default function AddTransactionModal() {
                 palette={palette}
                 accentColor={activeConfig.color}
                 autoFocus
+                hasError={attemptedSubmit && !hasNonZeroAmount}
               />
               <InlineComboBox
                 label="Notes"
@@ -1386,8 +1408,8 @@ export default function AddTransactionModal() {
                                 borderRadius: HOME_RADIUS.pill,
                                 alignItems: 'center',
                                 borderWidth: 1.5,
-                                borderColor: active ? activeConfig.borderColor : palette.border,
-                                backgroundColor: active ? activeConfig.bg : palette.surface,
+                                borderColor: active ? palette.brand : palette.border,
+                                backgroundColor: active ? palette.brandSoft : palette.surface,
                                 opacity: lockLoanDirection && !active ? 0.5 : 1
                               }}
                             >
@@ -1395,7 +1417,7 @@ export default function AddTransactionModal() {
                                 style={{
                                   fontSize: HOME_TEXT.bodySmall,
                                   fontWeight: FONT_WEIGHT.bold,
-                                  color: active ? activeConfig.color : palette.textMuted
+                                  color: active ? palette.brand : palette.textMuted
                                 }}
                               >
                                 {d === 'lent' ? 'I lent' : 'I borrowed'}
@@ -1424,6 +1446,7 @@ export default function AddTransactionModal() {
                         palette={palette}
                         accentColor={activeConfig.color}
                         autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
+                        hasError={attemptedSubmit && personName.trim().length === 0}
                       />
                     </>
                   )}
@@ -1437,6 +1460,7 @@ export default function AddTransactionModal() {
                 palette={palette}
                 accentColor={activeConfig.color}
                 autoFocus={type !== 'loan' || loanEditMode === 'settlement'}
+                hasError={attemptedSubmit && !hasNonZeroAmount}
               />
               <PickerRow
                 label="Account"
@@ -1445,6 +1469,7 @@ export default function AddTransactionModal() {
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
+                hasError={attemptedSubmit && !accountId}
               />
               <InlineComboBox
                 label="Notes"
@@ -1474,6 +1499,7 @@ export default function AddTransactionModal() {
                 placeholder={!accountId}
                 palette={palette}
                 onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
+                hasError={attemptedSubmit && !accountId}
               />
               {isClosingDeposit ? (
                 <>
@@ -1486,6 +1512,7 @@ export default function AddTransactionModal() {
                     accentColor={activeConfig.color}
                     keyboardType="decimal-pad"
                     autoFocus={focusField !== 'interest'}
+                    hasError={attemptedSubmit && closePrincipal <= 0}
                   />
                   <InlineComboBox
                     label="Interest"
@@ -1515,6 +1542,7 @@ export default function AddTransactionModal() {
                   palette={palette}
                   accentColor={activeConfig.color}
                   autoFocus
+                  hasError={attemptedSubmit && !hasNonZeroAmount}
                 />
               )}
               {!isClosingDeposit ? (
@@ -1526,6 +1554,7 @@ export default function AddTransactionModal() {
                     suggestions={[]}
                     palette={palette}
                     accentColor={activeConfig.color}
+                    hasError={attemptedSubmit && depositName.trim().length === 0}
                   />
                   <InlineComboBox
                     label="Bank"
@@ -1584,14 +1613,18 @@ export default function AddTransactionModal() {
       </ScrollView>
 
       <FixedBottomActions palette={palette}>
-        <FilledButton
-          label={actionLabel}
-          onPress={handleSubmit}
-          disabled={!isValid}
-          palette={palette}
-          tone={type === 'out' ? 'danger' : 'brand'}
-          style={{ backgroundColor: isValid ? actionButtonColor : palette.textSoft }}
-        />
+        <Animated.View style={[shakeStyle, { width: '100%' }]}>
+          <FilledButton
+            label={actionLabel}
+            onPress={handleSubmit}
+            disabled={false}
+            palette={palette}
+            tone="brand"
+            style={{
+              backgroundColor: actionButtonColor,
+            }}
+          />
+        </Animated.View>
         {isEditing && (
           <TextButton
             label={isEditingDeposit ? 'Delete deposit' : 'Delete transaction'}

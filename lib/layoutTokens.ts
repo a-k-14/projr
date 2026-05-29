@@ -7,6 +7,7 @@ export { CARD_PADDING, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING };
 
 // ─── Transaction-type config (single source of truth) ─────────────────────────
 import { AppThemePalette } from './theme';
+import { CATEGORY_COLORS } from './categoryColors';
 
 export function getTxTypeConfig(palette: AppThemePalette): Record<
   'in' | 'out' | 'transfer' | 'loan' | 'deposit',
@@ -29,23 +30,23 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
     },
     transfer: {
       label: 'Transfer',
-      color: palette.transferText,
-      bg: palette.transferBg,
-      borderColor: palette.transferText,
+      color: palette.brand,
+      bg: palette.brandSoft,
+      borderColor: palette.brand,
       iconName: 'repeat',
     },
     loan: {
       label: 'Loan',
-      color: palette.loan,
-      bg: palette.loanBg,
-      borderColor: palette.loan,
+      color: CATEGORY_COLORS.loans.surface,
+      bg: CATEGORY_COLORS.loans.tile,
+      borderColor: CATEGORY_COLORS.loans.surface,
       iconName: 'hand-coins',
     },
     deposit: {
       label: 'Deposit',
-      color: palette.brand,
-      bg: palette.surface,
-      borderColor: palette.brand,
+      color: CATEGORY_COLORS.deposits.surface,
+      bg: CATEGORY_COLORS.deposits.tile,
+      borderColor: CATEGORY_COLORS.deposits.surface,
       iconName: 'vault',
     },
   };

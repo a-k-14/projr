@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Keyboard, ScrollView, View , TouchableOpacity } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthSheet, formatBudgetMonthLabel } from '../../components/budget-ui';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
@@ -36,6 +37,12 @@ export default function BudgetFormModal() {
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
+
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }]
+  }));
 
   const draftCategoryId = useBudgetDraftStore((s) => s.categoryId);
   const setDraftCategoryId = useBudgetDraftStore((s) => s.setCategoryId);
@@ -90,7 +97,16 @@ export default function BudgetFormModal() {
   };
 
   const handleSave = async () => {
-    if (!isValid) return;
+    if (!isValid) {
+      setAttemptedSubmit(true);
+      shakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+      return;
+    }
     try {
       const payload = {
         categoryId,
@@ -165,6 +181,7 @@ export default function BudgetFormModal() {
             placeholder={!selectedCategory}
             palette={palette}
             onPress={openCategoryPicker}
+            hasError={attemptedSubmit && !categoryId}
           />
           <AmountRow
             sym={sym}
@@ -172,16 +189,19 @@ export default function BudgetFormModal() {
             setAmountStr={setAmountStr}
             onOpenCalculator={handleOpenCalculator}
             palette={palette}
-            accentColor={palette.budget}
+            accentColor={palette.brand}
             autoFocus
             calculatorButtonVariant="large"
+            hasError={attemptedSubmit && Number(parseFormattedNumber(amountStr || '0')) === 0}
           />
           <RepeatRow repeat={repeat} setRepeat={setRepeat} palette={palette} />
         </SectionCard>
       </ScrollView>
 
       <FixedBottomActions palette={palette}>
-        <FilledButton label={editingBudget ? 'Save changes' : 'Add budget'} onPress={handleSave} disabled={!isValid} palette={palette} tone="budget" />
+        <Animated.View style={[shakeStyle, { width: '100%' }]}>
+          <FilledButton label={editingBudget ? 'Save changes' : 'Add budget'} onPress={handleSave} disabled={false} palette={palette} tone="brand" />
+        </Animated.View>
         {editingBudget ? (
           <TextButton label="Delete budget" onPress={handleDelete} palette={palette} tone="danger" />
         ) : null}

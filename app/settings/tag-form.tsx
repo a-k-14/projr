@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import {
   ActionButton,
   ColorGrid,
@@ -37,6 +38,12 @@ export default function TagFormScreen() {
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const router = useRouter();
 
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }]
+  }));
+
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
 
   useEffect(() => {
@@ -55,7 +62,13 @@ export default function TagFormScreen() {
   async function onSave() {
     const name = draft.name.trim();
     if (!name) {
-      showAlert('Missing Name', 'Please enter a tag name.');
+      setAttemptedSubmit(true);
+      shakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
       return;
     }
     if (isEditing && id) {
@@ -91,12 +104,14 @@ export default function TagFormScreen() {
         palette={palette}
         bottomActions={
           <FixedBottomActions palette={palette}>
-            <ActionButton
-              label={isEditing ? 'Save Tag' : 'Create Tag'}
-              variant="primary"
-              palette={palette}
-              onPress={onSave}
-            />
+            <Animated.View style={[shakeStyle, { width: '100%' }]}>
+              <ActionButton
+                label={isEditing ? 'Save Tag' : 'Create Tag'}
+                variant="primary"
+                palette={palette}
+                onPress={onSave}
+              />
+            </Animated.View>
             {isEditing && (
               <ActionButton
                 label="Delete Tag"
@@ -109,13 +124,14 @@ export default function TagFormScreen() {
         }
       >
         <View style={{ marginBottom: 16 }}>
-          <FieldLabel label="Tag Name" palette={palette} />
+          <FieldLabel label="Tag Name" palette={palette} hasError={attemptedSubmit && !draft.name.trim()} />
           <InputField
             palette={palette}
             value={draft.name}
             onChangeText={(v) => setDraft((s) => ({ ...s, name: v }))}
             placeholder="e.g. Travel"
             autoFocus={!isEditing}
+            hasError={attemptedSubmit && !draft.name.trim()}
           />
         </View>
 

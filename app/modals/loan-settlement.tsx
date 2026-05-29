@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
@@ -75,6 +76,12 @@ export default function LoanSettlementModal() {
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const amountInputRef = useRef<TextInput | null>(null);
 
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }]
+  }));
+
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
       if (isEditing && editId) {
@@ -128,7 +135,16 @@ export default function LoanSettlementModal() {
   const title = isEditing ? `Edit ${loanDirection === 'lent' ? 'Receipt' : 'Payment'}` : loanDirection === 'lent' ? 'New Receipt' : 'New Payment';
 
   const handleSave = () => {
-    if (!isValid) return;
+    if (!isValid) {
+      setAttemptedSubmit(true);
+      shakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+      return;
+    }
     const payload = {
       type: 'loan' as const,
       amount,
@@ -240,12 +256,13 @@ export default function LoanSettlementModal() {
               amountStr={amountStr}
               setAmountStr={setAmountStr}
               palette={palette}
-              accentColor={palette.loan}
+              accentColor={palette.brand}
               autoFocus
               onOpenCalculator={() => {
                 Keyboard.dismiss();
                 setShowCalculator(true);
               }}
+              hasError={attemptedSubmit && amount === 0}
             />
             <PickerRow
               label="Account"
@@ -257,6 +274,7 @@ export default function LoanSettlementModal() {
                 Keyboard.dismiss();
                 InteractionManager.runAfterInteractions(() => setShowAccountSheet(true));
               }}
+              hasError={attemptedSubmit && !accountId}
             />
             <NotesSection
               note={note}
@@ -269,13 +287,15 @@ export default function LoanSettlementModal() {
       </ScrollView>
 
       <FixedBottomActions palette={palette}>
-        <FilledButton
-          label={isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add payment'}
-          onPress={handleSave}
-          disabled={!isValid}
-          palette={palette}
-          tone="brand"
-        />
+        <Animated.View style={[shakeStyle, { width: '100%' }]}>
+          <FilledButton
+            label={isEditing ? 'Save changes' : loanDirection === 'lent' ? 'Add receipt' : 'Add payment'}
+            onPress={handleSave}
+            disabled={false}
+            palette={palette}
+            tone="brand"
+          />
+        </Animated.View>
         {isEditing ? (
           <TextButton label="Delete transaction" onPress={handleDelete} palette={palette} tone="danger" />
         ) : null}

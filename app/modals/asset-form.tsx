@@ -38,6 +38,7 @@ export default function AssetFormScreen() {
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [hintIcon, setHintIcon] = useState(false);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   const shakeOffset = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({
@@ -57,7 +58,16 @@ export default function AssetFormScreen() {
   }, [id, assets]);
 
   const handleSave = async () => {
-    if (!name.trim() || Number(parseFormattedNumber(valueStr)) <= 0) return;
+    if (!name.trim() || Number(parseFormattedNumber(valueStr)) <= 0) {
+      setAttemptedSubmit(true);
+      shakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+      return;
+    }
 
     if (!icon && !hintIcon) {
       setHintIcon(true);
@@ -110,7 +120,6 @@ export default function AssetFormScreen() {
     setValueStr(formatIndianNumberStr(cleaned));
   };
 
-  const isFormValid = name.trim().length > 0 && Number(parseFormattedNumber(valueStr)) > 0;
 
   return (
     <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
@@ -175,7 +184,7 @@ export default function AssetFormScreen() {
 
         <View style={{ paddingHorizontal: SCREEN_GUTTER, gap: SPACING.xl }}>
           <View>
-            <Text style={{ marginLeft: 4, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 8 }}>
+            <Text style={{ marginLeft: 4, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && !name.trim() ? palette.negative : palette.textSecondary, marginBottom: 8 }}>
               Asset Name
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -212,6 +221,7 @@ export default function AssetFormScreen() {
                   value={name}
                   onChangeText={setName}
                   placeholder="E.g. Rolex Submariner"
+                  hasError={attemptedSubmit && !name.trim()}
                 />
               </View>
             </View>
@@ -249,7 +259,6 @@ export default function AssetFormScreen() {
             onPress={handleSave}
             palette={palette}
             variant="primary"
-            disabled={!isFormValid}
           />
         </Animated.View>
         {isEditing && (

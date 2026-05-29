@@ -1,7 +1,7 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
-import { forwardRef, ReactNode, RefObject } from 'react';
+import { forwardRef, ReactNode, RefObject, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../lib/design';
@@ -279,13 +279,13 @@ export function PickerChip({
   );
 }
 
-export function FieldLabel({ label, palette }: { label: string; palette: AppThemePalette }) {
+export function FieldLabel({ label, palette, hasError = false }: { label: string; palette: AppThemePalette; hasError?: boolean }) {
   return (
     <Text
       style={{
         fontSize: TYPE.body,
         fontWeight: FONT_WEIGHT.bold,
-        color: palette.textMuted,
+        color: hasError ? palette.negative : palette.textMuted,
         marginBottom: 8
       }}
     >
@@ -333,12 +333,15 @@ export const InputField = forwardRef<TextInput, React.ComponentProps<typeof Text
   palette: AppThemePalette;
   isNumeric?: boolean;
   rightElement?: ReactNode;
+  hasError?: boolean;
 }>(function InputField({
   palette,
   isNumeric,
   rightElement,
+  hasError = false,
   ...props
 }, ref) {
+  const [isFocused, setIsFocused] = useState(false);
   return (
     <View
       style={{
@@ -347,7 +350,9 @@ export const InputField = forwardRef<TextInput, React.ComponentProps<typeof Text
         minHeight: 56,
         borderRadius: RADIUS.md,
         borderWidth: 1,
-        borderColor: palette.border,
+        borderColor: hasError
+          ? palette.negative
+          : (isFocused ? palette.brand : palette.border),
         backgroundColor: palette.surface,
         paddingHorizontal: CARD_PADDING
       }}
@@ -358,14 +363,23 @@ export const InputField = forwardRef<TextInput, React.ComponentProps<typeof Text
         style={[
           {
             flex: 1,
-            color: palette.text,
+            color: hasError ? palette.negative : palette.text,
             fontSize: TYPE.rowLabel,
             paddingVertical: 12
           },
           props.style as any,
         ]}
-        placeholderTextColor={palette.textSoft}
+        placeholderTextColor={hasError ? palette.negative : palette.textSoft}
+        cursorColor={hasError ? palette.negative : palette.brand}
         keyboardType={isNumeric ? (Platform.OS === 'ios' ? 'decimal-pad' : 'numeric') : props.keyboardType}
+        onFocus={(e) => {
+          setIsFocused(true);
+          props.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setIsFocused(false);
+          props.onBlur?.(e);
+        }}
       />
       {rightElement}
     </View>
@@ -380,6 +394,7 @@ export function SelectTrigger({
   placeholder = 'Select...',
   containerStyle,
   leftElement,
+  hasError = false,
 }: {
   label: string;
   valueLabel?: string;
@@ -388,10 +403,11 @@ export function SelectTrigger({
   placeholder?: string;
   containerStyle?: View['props']['style'];
   leftElement?: ReactNode;
+  hasError?: boolean;
 }) {
   return (
     <View style={[{ marginBottom: SPACING.xl }, containerStyle]}>
-      <FieldLabel label={label} palette={palette} />
+      <FieldLabel label={label} palette={palette} hasError={hasError} />
       <TouchableOpacity
         delayPressIn={0}
         activeOpacity={0.7}
@@ -399,7 +415,7 @@ export function SelectTrigger({
           minHeight: 56,
           borderRadius: RADIUS.md,
           borderWidth: 1,
-          borderColor: palette.border,
+          borderColor: hasError ? palette.negative : palette.border,
           backgroundColor: palette.surface,
           paddingHorizontal: 16,
           flexDirection: 'row',
@@ -410,11 +426,11 @@ export function SelectTrigger({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           {leftElement}
-          <Text style={{ color: valueLabel ? palette.text : palette.textSoft, fontSize: TYPE.rowLabel }}>
+          <Text style={{ color: hasError ? palette.negative : (valueLabel ? palette.text : palette.textSoft), fontSize: TYPE.rowLabel }}>
             {valueLabel ?? placeholder}
           </Text>
         </View>
-        <AppChevron direction="down" size={22} tone="secondary" palette={palette} />
+        <AppChevron direction="down" size={22} tone="secondary" palette={palette} color={hasError ? palette.negative : undefined} />
       </TouchableOpacity>
     </View>
   );

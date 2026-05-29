@@ -73,6 +73,7 @@ export default function CategoryFormScreen() {
   const [, setEmojiQuery] = useState('');
   const [showTypePicker, setShowTypePicker] = useState(false);
   const formScrollRef = useRef<ScrollView | null>(null);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const originalSubsRef = useRef<SubDraft[]>([]);
   const subCardRefs = useRef(new Map<string, CollapseHandle>());
 
@@ -82,6 +83,9 @@ export default function CategoryFormScreen() {
 
   const shakeOffset = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeOffset.value }] }));
+
+  const submitShakeOffset = useSharedValue(0);
+  const submitShakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: submitShakeOffset.value }] }));
 
   function triggerSystemShake() {
     shakeOffset.value = withSequence(
@@ -152,7 +156,13 @@ export default function CategoryFormScreen() {
   async function onSave() {
     const trimmed = name.trim();
     if (!trimmed) {
-      showAlert('Missing Name', 'Please enter a category name.');
+      setAttemptedSubmit(true);
+      submitShakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
       return;
     }
 
@@ -264,12 +274,14 @@ export default function CategoryFormScreen() {
         bottomActions={
           <FixedBottomActions palette={palette}>
             {!isSystem && (
-              <ActionButton
-                label={isEditing ? 'Save' : 'Create Category'}
-                variant="primary"
-                palette={palette}
-                onPress={onSave}
-              />
+              <Animated.View style={[submitShakeStyle, { width: '100%' }]}>
+                <ActionButton
+                  label={isEditing ? 'Save' : 'Create Category'}
+                  variant="primary"
+                  palette={palette}
+                  onPress={onSave}
+                />
+              </Animated.View>
             )}
             {isEditing && !isSystem ? (
               <ActionButton
@@ -292,7 +304,7 @@ export default function CategoryFormScreen() {
               </Text>
             </View>
           )}
-          <Animated.View style={[{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.md }, shakeStyle]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.md }}>
             <TouchableOpacity
               delayPressIn={0}
               onPress={() => isSystem ? triggerSystemShake() : runAfterKeyboardDismiss(() => setShowIconPicker(true))}
@@ -325,9 +337,10 @@ export default function CategoryFormScreen() {
                 placeholder="Category name"
                 autoFocus={!isEditing && !isSystem}
                 editable={!isSystem}
+                hasError={attemptedSubmit && !name.trim()}
               />
             </View>
-          </Animated.View>
+          </View>
 
           {!hideTypePicker && (
             <SelectTrigger

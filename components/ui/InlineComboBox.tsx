@@ -53,6 +53,8 @@ interface Props {
   keyboardType?: 'default' | 'numeric' | 'decimal-pad' | 'number-pad';
   /** Short annotation shown to the right of the input (e.g. "% p.a.") */
   rightAnnotation?: string;
+  required?: boolean;
+  hasError?: boolean;
 }
 
 export function InlineComboBox({
@@ -71,6 +73,7 @@ export function InlineComboBox({
   onBlur: onBlurProp,
   keyboardType = 'default',
   rightAnnotation,
+  hasError = false,
 }: Props) {
   const [query, setQuery] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
@@ -86,7 +89,7 @@ export function InlineComboBox({
 
   const displayList = useMemo(() => {
     if (!filterLocally) return suggestions;
-    if (!normalized) return suggestions;
+    if (!normalized) return [];
     return suggestions.filter((s) =>
       s.toLowerCase().includes(normalized.toLowerCase()),
     );
@@ -97,8 +100,11 @@ export function InlineComboBox({
     : false;
   const showAddRow = showAdd && filterLocally && normalized.length > 0 && !exactMatch;
 
-  const rowCount = (showAddRow ? 1 : 0) + displayList.length;
-  const effectiveRows = Math.max(rowCount, isFocused && displayList.length === 0 && !showAddRow ? 0 : rowCount);
+  const shouldShowDropdown = !filterLocally || normalized.length > 0;
+  const rowCount = shouldShowDropdown ? (showAddRow ? 1 : 0) + displayList.length : 0;
+  const effectiveRows = shouldShowDropdown
+    ? Math.max(rowCount, isFocused && displayList.length === 0 && !showAddRow ? 0 : rowCount)
+    : 0;
   const targetH = Math.min(Math.max(effectiveRows, 0), MAX_VISIBLE) * ROW_HEIGHT;
   const targetHRef = useRef(targetH);
   targetHRef.current = targetH;
@@ -185,7 +191,7 @@ export function InlineComboBox({
     paddingTop: 0,
     paddingBottom: 2,
     borderBottomWidth: isFocused ? 1.5 : 1,
-    borderBottomColor: isFocused ? focusedColor : palette.borderSoft,
+    borderBottomColor: hasError ? palette.negative : (isFocused ? focusedColor : palette.borderSoft),
   } as const;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -199,7 +205,7 @@ export function InlineComboBox({
             style={{
               fontSize: HOME_TEXT.body,
               fontWeight: FONT_WEIGHT.medium,
-              color: palette.textSecondary,
+              color: hasError ? palette.negative : palette.textSecondary,
               marginBottom: 10,
             }}
           >
@@ -212,7 +218,7 @@ export function InlineComboBox({
             onBlur={handleBlur}
             placeholder={placeholder ?? 'Add a note…'}
             placeholderTextColor={palette.textSoft}
-            cursorColor={focusedColor}
+            cursorColor={hasError ? palette.negative : focusedColor}
             autoFocus={autoFocus}
             multiline
             style={{
@@ -239,7 +245,7 @@ export function InlineComboBox({
             style={{
               fontSize: HOME_TEXT.body,
               fontWeight: FONT_WEIGHT.medium,
-              color: palette.textSecondary,
+              color: hasError ? palette.negative : palette.textSecondary,
               width: ROW_LABEL_WIDTH,
               paddingRight: ROW_COLUMN_GAP,
             }}
@@ -253,10 +259,10 @@ export function InlineComboBox({
               onFocus={handleFocus}
               onBlur={handleBlur}
               placeholder={placeholder ?? ''}
-              placeholderTextColor={palette.textSoft}
+              placeholderTextColor={hasError ? palette.negative : palette.textSoft}
               autoCapitalize={keyboardType === 'default' ? 'words' : 'none'}
               keyboardType={keyboardType}
-              cursorColor={focusedColor}
+              cursorColor={hasError ? palette.negative : focusedColor}
               autoFocus={autoFocus}
               style={[inputBaseStyle, {
                 flex: 1,

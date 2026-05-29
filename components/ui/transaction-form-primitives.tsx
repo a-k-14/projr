@@ -56,7 +56,8 @@ export function PickerRow({
   onPress,
   palette,
   custom = false,
-  showChevron = true }: {
+  showChevron = true,
+  hasError = false }: {
   label: string;
   value: string | React.ReactNode;
   subtitle?: string;
@@ -65,6 +66,7 @@ export function PickerRow({
   palette: AppThemePalette;
   custom?: boolean;
   showChevron?: boolean;
+  hasError?: boolean;
 }) {
   return (
     <TouchableOpacity
@@ -83,7 +85,7 @@ export function PickerRow({
         style={{
           fontSize: HOME_TEXT.body,
           fontWeight: FONT_WEIGHT.medium,
-          color: palette.textSecondary,
+          color: hasError ? palette.negative : palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
         }}
@@ -201,11 +203,13 @@ export function FieldRow({
   label,
   children,
   palette,
-  noBorder }: {
+  noBorder,
+  hasError = false }: {
   label: string;
   children: React.ReactNode;
   palette: AppThemePalette;
   noBorder?: boolean;
+  hasError?: boolean;
 }) {
   return (
     <View
@@ -215,7 +219,15 @@ export function FieldRow({
         borderBottomWidth: noBorder === false ? 1 : 0,
         borderBottomColor: palette.border }}
     >
-      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 8 }}>
+      <Text
+        appWeight="medium"
+        style={{
+          fontSize: HOME_TEXT.body,
+          fontWeight: FONT_WEIGHT.medium,
+          color: hasError ? palette.negative : palette.textSecondary,
+          marginBottom: 8
+        }}
+      >
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -370,6 +382,7 @@ export function AmountRow({
   returnKeyType,
   onSubmitEditing,
   blurOnSubmit,
+  hasError = false,
 }: {
   sym: string;
   amountStr: string;
@@ -386,6 +399,7 @@ export function AmountRow({
   returnKeyType?: React.ComponentProps<typeof TextInput>['returnKeyType'];
   onSubmitEditing?: React.ComponentProps<typeof TextInput>['onSubmitEditing'];
   blurOnSubmit?: boolean;
+  hasError?: boolean;
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const isLargeButton = calculatorButtonVariant === 'large';
@@ -404,7 +418,7 @@ export function AmountRow({
         style={{
           fontSize: HOME_TEXT.body,
           fontWeight: FONT_WEIGHT.medium,
-          color: palette.textSecondary,
+          color: hasError ? palette.negative : palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
       >
@@ -425,24 +439,28 @@ export function AmountRow({
             onChangeText={(value) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
             keyboardType="decimal-pad"
             placeholder="0"
-            placeholderTextColor={palette.textSoft}
+            placeholderTextColor={hasError ? palette.negative : palette.textSoft}
             editable={editable && !onPressAmount}
             style={{
               flex: 1,
               fontSize: HOME_TEXT.sectionTitle,
               fontWeight: FONT_WEIGHT.medium,
-              color: editable ? accentColor : palette.text,
+              color: editable ? (hasError ? palette.negative : accentColor) : palette.text,
               paddingBottom: 2,
               paddingTop: 0,
               paddingLeft: 4,
               textAlign: 'left',
               lineHeight: 24,
               borderBottomWidth: editable ? (isFocused ? 1.5 : 1) : 1,
-              borderBottomColor: editable ? (isFocused ? accentColor : palette.borderSoft ?? palette.border) : palette.borderSoft ?? palette.border,
+              borderBottomColor: hasError
+                ? palette.negative
+                : editable
+                ? (isFocused ? accentColor : palette.borderSoft ?? palette.border)
+                : palette.borderSoft ?? palette.border,
               opacity: editable ? 1 : 0.92 }}
             onFocus={() => editable && setIsFocused(true)}
             onBlur={() => editable && setIsFocused(false)}
-            cursorColor={editable ? accentColor : palette.text}
+            cursorColor={editable ? (hasError ? palette.negative : accentColor) : palette.text}
             autoFocus={autoFocus && !onPressAmount}
             returnKeyType={returnKeyType}
             onSubmitEditing={onSubmitEditing}
@@ -537,6 +555,7 @@ export function TextInputRow({
   blurOnSubmit,
   onFocus,
   onBlur,
+  hasError = false,
 }: {
   label: string;
   value: string;
@@ -551,8 +570,10 @@ export function TextInputRow({
   blurOnSubmit?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
+  hasError?: boolean;
 }) {
   const [isFocused, setIsFocused] = useState(false);
+  const activeColor = accentColor || palette.brand;
 
   return (
     <View
@@ -568,7 +589,7 @@ export function TextInputRow({
         style={{
           fontSize: HOME_TEXT.body,
           fontWeight: FONT_WEIGHT.medium,
-          color: palette.textSecondary,
+          color: hasError ? palette.negative : palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP }}
       >
@@ -586,8 +607,8 @@ export function TextInputRow({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={palette.textSoft}
-          cursorColor={accentColor || palette.tabActive}
+          placeholderTextColor={hasError ? palette.negative : palette.textSoft}
+          cursorColor={hasError ? palette.negative : activeColor}
           autoFocus={autoFocus}
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
@@ -597,14 +618,18 @@ export function TextInputRow({
             minWidth: 0,
             fontSize: HOME_TEXT.bodyLarge,
             fontWeight: FONT_WEIGHT.regular,
-            color: palette.text,
+            color: hasError ? palette.negative : palette.text,
             paddingBottom: 2,
             paddingTop: 0,
             paddingLeft: 4,
             textAlign: 'left',
             lineHeight: 20,
             borderBottomWidth: isFocused ? 1.5 : 1,
-            borderBottomColor: isFocused ? accentColor || palette.tabActive : palette.borderSoft }}
+            borderBottomColor: hasError
+              ? palette.negative
+              : isFocused
+              ? activeColor
+              : palette.borderSoft }}
           onFocus={() => {
             setIsFocused(true);
             onFocus?.();
