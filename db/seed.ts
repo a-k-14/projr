@@ -206,6 +206,8 @@ export async function seedDatabase(): Promise<void> {
   await tagsService.createTag({ name: 'Personal', color: '#EC4899' });
   await tagsService.createTag({ name: 'Work', color: '#0F766E' });
 
+  // 4. System Categories
+  await categoriesService.ensureSystemCategories();
 }
 
 export async function seedMassiveTransactions(count: number = 1000): Promise<void> {

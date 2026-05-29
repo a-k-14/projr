@@ -5,7 +5,7 @@ import type { CloseDepositInput, Deposit, CreateDepositInput, DepositFilters, De
 import { generateId } from '../lib/ids';
 import { nowUTC, todayUTC, addMonthsSafe } from '../lib/dateUtils';
 import { createTransaction, deleteTransaction, getTransactions, updateTransaction } from './transactions';
-import { getCategoryBySystemKey } from './categories';
+import { ensureSystemCategories } from './categories';
 
 function rowToDeposit(row: typeof deposits.$inferSelect): Deposit {
   return {
@@ -54,6 +54,7 @@ export async function getDepositById(id: string): Promise<Deposit | null> {
  * Mirrors the loan creation pattern.
  */
 export async function createDeposit(data: CreateDepositInput): Promise<Deposit> {
+  await ensureSystemCategories();
   const id = generateId();
   const now = todayUTC();
   const row = {
@@ -205,12 +206,11 @@ export async function closeDeposit(id: string, data: CloseDepositInput = {}): Pr
 
   // Transaction 2: interest income (only if interest > 0)
   if (interestAmount > 0) {
-    const interestCategory = await getCategoryBySystemKey('interest_on_deposit');
     await createTransaction({
       type: 'in',
       amount: interestAmount,
       accountId,
-      categoryId: interestCategory?.id ?? undefined,
+      categoryId: '__sys_interest_on_deposit__',
       depositId: id,
       date,
       note: note ? `${note} (interest)` : `Interest on ${existing.name}`,

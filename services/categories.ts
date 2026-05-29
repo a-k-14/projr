@@ -132,3 +132,122 @@ export function getCategoryDisplayName(category: Category, allCategories: Catego
   }
   return category.name;
 }
+
+export async function ensureSystemCategories(): Promise<void> {
+  const existingAutoIncome = await getCategoryBySystemKey('financial_income');
+  if (!existingAutoIncome) {
+    await db.insert(categories).values({
+      id: '__sys_financial_income__',
+      name: 'Automated',
+      type: 'in',
+      icon: 'circle-arrow-down',
+      color: '#16A34A',
+      systemKey: 'financial_income'
+    });
+  } else {
+    await db.update(categories)
+      .set({ name: 'Automated', type: 'in', icon: 'circle-arrow-down', color: '#16A34A' })
+      .where(eq(categories.id, '__sys_financial_income__'));
+  }
+
+  const existingAutoExpense = await getCategoryBySystemKey('financial_expense');
+  if (!existingAutoExpense) {
+    await db.insert(categories).values({
+      id: '__sys_financial_expense__',
+      name: 'Automated',
+      type: 'out',
+      icon: 'circle-arrow-up',
+      color: '#DC2626',
+      systemKey: 'financial_expense'
+    });
+  } else {
+    await db.update(categories)
+      .set({ name: 'Automated', type: 'out', icon: 'circle-arrow-up', color: '#DC2626' })
+      .where(eq(categories.id, '__sys_financial_expense__'));
+  }
+
+  const interestReceived = await getCategoryBySystemKey('interest_on_deposit');
+  if (!interestReceived) {
+    await db.insert(categories).values({
+      id: '__sys_interest_on_deposit__',
+      name: 'Deposit Interest',
+      parentId: '__sys_financial_income__',
+      type: 'in',
+      icon: 'percent',
+      color: '#16A34A',
+      systemKey: 'interest_on_deposit'
+    });
+  } else {
+    await db.update(categories)
+      .set({ name: 'Deposit Interest', parentId: '__sys_financial_income__', type: 'in', icon: 'percent', color: '#16A34A' })
+      .where(eq(categories.id, '__sys_interest_on_deposit__'));
+  }
+
+  const loanInterestReceived = await getCategoryBySystemKey('loan_interest_received');
+  if (!loanInterestReceived) {
+    await db.insert(categories).values({
+      id: '__sys_loan_interest_received__',
+      name: 'Loan Interest In',
+      parentId: '__sys_financial_income__',
+      type: 'in',
+      icon: 'circle-arrow-down',
+      color: '#16A34A',
+      systemKey: 'loan_interest_received'
+    });
+  } else {
+    await db.update(categories)
+      .set({ name: 'Loan Interest In', parentId: '__sys_financial_income__', type: 'in', icon: 'circle-arrow-down', color: '#16A34A' })
+      .where(eq(categories.id, '__sys_loan_interest_received__'));
+  }
+
+  const loanChargesReceived = await getCategoryBySystemKey('loan_charges_received');
+  if (!loanChargesReceived) {
+    await db.insert(categories).values({
+      id: '__sys_loan_charges_received__',
+      name: 'Loan Charges In',
+      parentId: '__sys_financial_income__',
+      type: 'in',
+      icon: 'circle-arrow-down',
+      color: '#16A34A',
+      systemKey: 'loan_charges_received'
+    });
+  } else {
+    await db.update(categories)
+      .set({ name: 'Loan Charges In', parentId: '__sys_financial_income__', type: 'in', icon: 'circle-arrow-down', color: '#16A34A' })
+      .where(eq(categories.id, '__sys_loan_charges_received__'));
+  }
+
+  const loanInterestPaid = await getCategoryBySystemKey('loan_interest_paid');
+  if (!loanInterestPaid) {
+    await db.insert(categories).values({
+      id: '__sys_loan_interest_paid__',
+      name: 'Loan Interest Out',
+      parentId: '__sys_financial_expense__',
+      type: 'out',
+      icon: 'circle-arrow-up',
+      color: '#DC2626',
+      systemKey: 'loan_interest_paid'
+    });
+  } else {
+    await db.update(categories)
+      .set({ name: 'Loan Interest Out', parentId: '__sys_financial_expense__', type: 'out', icon: 'circle-arrow-up', color: '#DC2626' })
+      .where(eq(categories.id, '__sys_loan_interest_paid__'));
+  }
+
+  const loanChargesPaid = await getCategoryBySystemKey('loan_charges_paid');
+  if (!loanChargesPaid) {
+    await db.insert(categories).values({
+      id: '__sys_loan_charges_paid__',
+      name: 'Loan Charges Out',
+      parentId: '__sys_financial_expense__',
+      type: 'out',
+      icon: 'circle-arrow-up',
+      color: '#DC2626',
+      systemKey: 'loan_charges_paid'
+    });
+  } else {
+    await db.update(categories)
+      .set({ name: 'Loan Charges Out', parentId: '__sys_financial_expense__', type: 'out', icon: 'circle-arrow-up', color: '#DC2626' })
+      .where(eq(categories.id, '__sys_loan_charges_paid__'));
+  }
+}

@@ -15,11 +15,13 @@ import {
   persistReceiptImagesForOwner,
 } from './receiptStorage';
 
+
 async function getLoanCategoryId(loanId: string | null | undefined, loanTransactionType: string | null | undefined): Promise<string | null> {
   if (!loanId || !loanTransactionType || loanTransactionType === 'principal') return null;
   const rows = await db.select({ direction: loans.direction }).from(loans).where(eq(loans.id, loanId));
   const direction = rows[0]?.direction;
   if (!direction) return null;
+  
   if (direction === 'lent') {
     return loanTransactionType === 'interest' ? '__sys_loan_interest_received__' : '__sys_loan_charges_received__';
   } else {

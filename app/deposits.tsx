@@ -1,5 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HeaderResetButton } from '../components/ui/HeaderResetButton';
 import { router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { safePush } from '../lib/safePush';
@@ -25,7 +26,7 @@ function DepositsScreenContent() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const { palette } = useAppTheme();
-  const { deposits, totalInvested, refresh } = useFixedDepositsStore();
+  const { deposits, refresh } = useFixedDepositsStore();
 
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
@@ -38,6 +39,11 @@ function DepositsScreenContent() {
   const closedDeposits = useMemo(() => deposits.filter((d) => d.status === 'closed'), [deposits]);
   const showActive = statusFilter === 'all' || statusFilter === 'active';
   const showClosed = statusFilter === 'all' || statusFilter === 'closed';
+
+  const activeInvested = useMemo(
+    () => activeDeposits.reduce((sum, d) => sum + d.principalAmount, 0),
+    [activeDeposits]
+  );
 
   // Total maturity value across all deposits
   const totalMaturity = useMemo(
@@ -77,6 +83,13 @@ function DepositsScreenContent() {
         palette={palette}
         showBack={true}
         onBack={() => router.replace('/')}
+        titleAddon={
+          <HeaderResetButton
+            visible={statusFilter !== 'all'}
+            onPress={() => setStatusFilter('all')}
+            palette={palette}
+          />
+        }
         rightAction={
           <HeaderAddButton palette={palette} onPress={() => router.push({ pathname: '/modals/add-transaction', params: { type: 'deposit', editDepositId: '', closeDepositId: '' } })} />
         }
@@ -100,8 +113,8 @@ function DepositsScreenContent() {
               <GrainHeroCard
                 solidColor={DEPOSIT_VISUAL.tone}
                 icon="vault"
-                eyebrow="Deposits · Invested"
-                value={formatCurrency(totalInvested, sym)}
+                eyebrow="Invested"
+                value={formatCurrency(activeInvested, sym)}
                 sym={sym}
                 badgeLabel={activeDeposits.length > 0 ? `${activeDeposits.length} ACTIVE` : undefined}
                 palette={palette}
@@ -112,7 +125,7 @@ function DepositsScreenContent() {
                     subValue: nextMaturityLabel,
                   },
                   {
-                    label: 'RETURNS',
+                    label: 'EXPECTED RETURNS',
                     value: expectedReturn > 0 ? `+${formatCurrency(expectedReturn, sym)}` : '—',
                     subValue: avgAPY != null ? `${avgAPY.toFixed(2)}% APY` : undefined,
                     valueColor: expectedReturn > 0 ? palette.numberPositive : undefined,

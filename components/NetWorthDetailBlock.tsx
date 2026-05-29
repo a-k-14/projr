@@ -515,7 +515,7 @@ export function NetWorthDetailBlock({
                     iconBg={`${palette.loan}12`}
                     value={loanSummary.youLent}
                     isExpanded={false}
-                    onToggle={() => router.push('/loans')}
+                    onToggle={() => router.push('/loans?direction=lent&status=open')}
                     palette={palette}
                     currencySymbol={currencySymbol}
                     valueColor={palette.text}
@@ -640,7 +640,7 @@ export function NetWorthDetailBlock({
                     iconBg={`${palette.loan}12`}
                     value={loanSummary.youOwe}
                     isExpanded={false}
-                    onToggle={() => router.push('/loans')}
+                    onToggle={() => router.push('/loans?direction=borrowed&status=open')}
                     palette={palette}
                     currencySymbol={currencySymbol}
                     valueColor={palette.text}

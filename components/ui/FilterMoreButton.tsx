@@ -1,9 +1,9 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
-import { FONT_WEIGHT } from '../../lib/design';
-import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
+import { StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { FONT_WEIGHT, APP_CARD_RADIUS } from '../../lib/design';
+import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
 interface FilterMoreButtonProps {
@@ -12,9 +12,10 @@ interface FilterMoreButtonProps {
   palette: AppThemePalette;
   flex?: boolean;
   iconOnly?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, iconOnly }: FilterMoreButtonProps) {
+export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, iconOnly, style }: FilterMoreButtonProps) {
   const moreActiveBg = palette.brandSoft;
   const moreActiveBorder = palette.brand;
 
@@ -34,8 +35,9 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
           paddingVertical: 6,
           paddingHorizontal: 14,
           justifyContent: 'center',
-          borderRadius: HOME_RADIUS.card,
+          borderRadius: APP_CARD_RADIUS,
         },
+        style,
       ]}
     >
       {iconOnly ? null : (

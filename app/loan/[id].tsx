@@ -43,7 +43,6 @@ export default function LoanDetailScreen() {
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
-  const { deleteLoanCascade } = require('../../services/loans');
   const tags = useCategoriesStore((s) => s.tags);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
   const categories = useCategoriesStore((s) => s.categories);
@@ -559,7 +558,7 @@ export default function LoanDetailScreen() {
           onPress: async () => {
             setShowDeleteConfirm(false);
             try {
-              await deleteLoanCascade(loan.id);
+              useLoansStore.getState().remove(loan.id);
               router.back();
             } catch (error) {
               console.error('Failed to delete loan:', error);

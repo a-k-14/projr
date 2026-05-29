@@ -309,13 +309,13 @@ export async function runMigrations() {
       INSERT OR IGNORE INTO categories (id, name, parent_id, icon, color, type, system_key)
       VALUES ('__sys_interest_on_deposit__', 'Deposit Interest', '__sys_financial_income__', 'percent', '#16A34A', 'in', 'interest_on_deposit')
     `);
-    // Update name/icon for existing rows (INSERT OR IGNORE won't update already-seeded rows)
+    // Update name/icon/parent_id for existing rows (INSERT OR IGNORE won't update already-seeded rows)
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Automated', icon = 'circle-arrow-down'
+      UPDATE categories SET name = 'Automated', icon = 'circle-arrow-down', parent_id = NULL
       WHERE id = '__sys_financial_income__'
     `);
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Deposit Interest', icon = 'percent'
+      UPDATE categories SET name = 'Deposit Interest', icon = 'percent', parent_id = '__sys_financial_income__'
       WHERE id = '__sys_interest_on_deposit__'
     `);
 
@@ -325,7 +325,7 @@ export async function runMigrations() {
       VALUES ('__sys_loan_interest_received__', 'Loan Interest In', '__sys_financial_income__', 'circle-arrow-down', '#16A34A', 'in', 'loan_interest_received')
     `);
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Loan Interest In', icon = 'circle-arrow-down'
+      UPDATE categories SET name = 'Loan Interest In', icon = 'circle-arrow-down', parent_id = '__sys_financial_income__'
       WHERE id = '__sys_loan_interest_received__'
     `);
 
@@ -335,7 +335,7 @@ export async function runMigrations() {
       VALUES ('__sys_loan_charges_received__', 'Loan Charges In', '__sys_financial_income__', 'circle-arrow-down', '#16A34A', 'in', 'loan_charges_received')
     `);
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Loan Charges In', icon = 'circle-arrow-down'
+      UPDATE categories SET name = 'Loan Charges In', icon = 'circle-arrow-down', parent_id = '__sys_financial_income__'
       WHERE id = '__sys_loan_charges_received__'
     `);
 
@@ -345,7 +345,7 @@ export async function runMigrations() {
       VALUES ('__sys_financial_expense__', 'Automated', 'circle-arrow-up', '#DC2626', 'out', 'financial_expense')
     `);
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Automated', icon = 'circle-arrow-up'
+      UPDATE categories SET name = 'Automated', icon = 'circle-arrow-up', parent_id = NULL
       WHERE id = '__sys_financial_expense__'
     `);
 
@@ -355,7 +355,7 @@ export async function runMigrations() {
       VALUES ('__sys_loan_interest_paid__', 'Loan Interest Out', '__sys_financial_expense__', 'circle-arrow-up', '#DC2626', 'out', 'loan_interest_paid')
     `);
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Loan Interest Out', icon = 'circle-arrow-up'
+      UPDATE categories SET name = 'Loan Interest Out', icon = 'circle-arrow-up', parent_id = '__sys_financial_expense__'
       WHERE id = '__sys_loan_interest_paid__'
     `);
 
@@ -365,7 +365,7 @@ export async function runMigrations() {
       VALUES ('__sys_loan_charges_paid__', 'Loan Charges Out', '__sys_financial_expense__', 'circle-arrow-up', '#DC2626', 'out', 'loan_charges_paid')
     `);
     await sqlite.runAsync(`
-      UPDATE categories SET name = 'Loan Charges Out', icon = 'circle-arrow-up'
+      UPDATE categories SET name = 'Loan Charges Out', icon = 'circle-arrow-up', parent_id = '__sys_financial_expense__'
       WHERE id = '__sys_loan_charges_paid__'
     `);
 

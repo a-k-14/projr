@@ -50,7 +50,6 @@ function TransactionListItemBase({
   loanPersonName,
   loanDirection,
   depositName,
-  depositBankName,
   tertiaryText,
   showAmountSign = true,
   useTypeAmountColor = true,
@@ -128,8 +127,16 @@ function TransactionListItemBase({
   if (!tx.transferPairId && (tx.type === 'in' || tx.type === 'out' || isInterestOrCharges)) {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     titleSecondaryText = undefined;
-    subtitle = [accountNameSelected, tx.payee || loanPersonName].filter(Boolean).join(' \u2022 ');
-    noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
+    if (tx.loanId && loanPersonName) {
+      subtitle = [accountNameSelected, loanPersonName].filter(Boolean).join(' \u2022 ');
+      noteLine = hideNote ? undefined : (getLoanTransactionUserNote(tx.note) || undefined);
+    } else if (tx.depositId && depositName) {
+      subtitle = [accountNameSelected, depositName].filter(Boolean).join(' \u2022 ');
+      noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
+    } else {
+      subtitle = [accountNameSelected, tx.payee || loanPersonName].filter(Boolean).join(' \u2022 ');
+      noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
+    }
   }
 
   // Deposit transaction (mirrors loan rendering pattern).
@@ -137,7 +144,7 @@ function TransactionListItemBase({
     const state = tx.depositTransactionType === 'closed' ? 'Closed' : 'New';
     title = `Deposit \u203a ${state}`;
     titleSecondaryText = undefined;
-    subtitle = [depositBankName, depositName].filter(Boolean).join(' \u2022 ');
+    subtitle = [accountNameSelected, depositName].filter(Boolean).join(' \u2022 ');
     noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
   }
 

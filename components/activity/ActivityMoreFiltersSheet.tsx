@@ -1,15 +1,16 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import React from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/AppText';
-import { StyleSheet, View , TouchableOpacity } from 'react-native';
 import { FilledButton } from '../ui/AppButton';
 import { BottomSheet } from '../ui/BottomSheet';
 import { ListHeading } from '../ui/ListHeading';
-import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
+import { CARD_PADDING, FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import type { Category } from '../../types';
 import { CategoryIconBadge, Checkbox } from './ActivityUI';
+import { MoreFiltersAmountRange } from '../ui/MoreFiltersAmountRange';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 
 interface ActivityMoreFiltersSheetProps {
@@ -211,23 +212,14 @@ export function ActivityMoreFiltersSheet({
         <View style={{ height: 1, backgroundColor: palette.divider }} />
 
         <ListHeading label="Amount Range" palette={palette} paddingBottom={12} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
-          <BottomSheetTextInput
-            value={amountMinStr}
-            onChangeText={setAmountMinStr}
-            keyboardType="numeric"
-            placeholder="Min ₹"
-            placeholderTextColor={palette.textMuted}
-            style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
-          />
-          <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.rowLabel }}>—</Text>
-          <BottomSheetTextInput
-            value={amountMaxStr}
-            onChangeText={setAmountMaxStr}
-            keyboardType="numeric"
-            placeholder="Max ₹"
-            placeholderTextColor={palette.textMuted}
-            style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
+        <View style={{ paddingHorizontal: CARD_PADDING }}>
+          <MoreFiltersAmountRange
+            amountMinStr={amountMinStr}
+            setAmountMinStr={setAmountMinStr}
+            amountMaxStr={amountMaxStr}
+            setAmountMaxStr={setAmountMaxStr}
+            palette={palette}
+            TextInputComponent={BottomSheetTextInput as any}
           />
         </View>
       </View>
@@ -309,13 +301,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1 },
   moreSubRow: {
     borderBottomWidth: 1 },
-  amountField: {
-    flex: 1,
-    height: 48,
-    borderWidth: 1.5,
-    borderRadius: HOME_RADIUS.chip,
-    paddingHorizontal: 14,
-    fontSize: HOME_TEXT.body,
-    fontWeight: FONT_WEIGHT.semibold },
   clearAllButton: {
     marginRight: 4 } });

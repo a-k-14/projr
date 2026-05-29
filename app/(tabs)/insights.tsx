@@ -497,8 +497,8 @@ export default function InsightsScreen() {
             setExpandedChartState(null);
             setExpandedSheetTxs([]);
           }}
-          maxHeightRatio={0.90}
-          fixedHeightRatio={0.90}
+          maxHeightRatio={0.80}
+          fixedHeightRatio={0.80}
           hasNavBar
         >
           <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 0, backgroundColor: palette.background }}>
@@ -552,8 +552,8 @@ export default function InsightsScreen() {
             setIncExpExpanded(false);
             setIncExpBucketFilter(null);
           }}
-          maxHeightRatio={0.90}
-          fixedHeightRatio={0.90}
+          maxHeightRatio={0.80}
+          fixedHeightRatio={0.80}
           hasNavBar
         >
           <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 24 }}>

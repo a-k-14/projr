@@ -10,7 +10,6 @@ import {
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
 import { BackHandler, Dimensions, View } from 'react-native';
-import { Easing, ReduceMotion } from 'react-native-reanimated';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER, FONT_WEIGHT } from '../../lib/design';
@@ -19,14 +18,6 @@ import type { AppThemePalette } from '../../lib/theme';
 import { getSheetBottomPadding } from './safeBottom';
 
 const BACKDROP_OPACITY = 0.4;
-
-// Snappier than the default spring (which oscillates for ~350 ms). 200 ms
-// timing with a decelerate curve feels instant but still smooth.
-const SHEET_ANIMATION_CONFIGS = {
-  duration: 200,
-  easing: Easing.out(Easing.cubic),
-  reduceMotion: ReduceMotion.System,
-};
 const HEADER_HANDLE_WIDTH = 42;
 const HEADER_HANDLE_HEIGHT = 5;
 const HEADER_HANDLE_TOP_PADDING = 8;
@@ -177,25 +168,54 @@ export function BottomSheet({
 
   const renderHandle = useCallback(
     () => (
-      <View
-        style={{
-          alignItems: 'center',
-          paddingTop: HEADER_HANDLE_TOP_PADDING,
-          paddingBottom: HEADER_HANDLE_BOTTOM_PADDING,
-        }}
-      >
+      <View>
         <View
           style={{
-            width: HEADER_HANDLE_WIDTH,
-            height: HEADER_HANDLE_HEIGHT,
-            borderRadius: HOME_RADIUS.full,
-            backgroundColor: palette.divider,
-            opacity: 0.65,
+            alignItems: 'center',
+            paddingTop: HEADER_HANDLE_TOP_PADDING,
+            paddingBottom: HEADER_HANDLE_BOTTOM_PADDING,
           }}
-        />
+        >
+          <View
+            style={{
+              width: HEADER_HANDLE_WIDTH,
+              height: HEADER_HANDLE_HEIGHT,
+              borderRadius: HOME_RADIUS.full,
+              backgroundColor: palette.divider,
+              opacity: 0.65,
+            }}
+          />
+        </View>
+        {showHeaderTitle || headerRight ? (
+          <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              {showHeaderTitle ? (
+                <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
+                  {title}
+                </Text>
+              ) : (
+                <View />
+              )}
+              {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
+            </View>
+            {showHeaderTitle && subtitle ? (
+              <Text
+                style={{
+                  fontSize: HEADER_SUBTITLE_SIZE,
+                  color: palette.textMuted,
+                  marginTop: HEADER_SUBTITLE_MARGIN,
+                  fontWeight: FONT_WEIGHT.regular,
+                }}
+              >
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+        {headerBottom}
       </View>
     ),
-    [palette.divider],
+    [palette, showHeaderTitle, headerRight, horizontalPadding, title, subtitle, headerBottom],
   );
 
   // Footer renderer:
@@ -258,7 +278,6 @@ export function BottomSheet({
       ref={sheetRef}
       index={0}
       snapPoints={snapPoints}
-      animationConfigs={SHEET_ANIMATION_CONFIGS}
       enableDynamicSizing={!fixedHeightRatio}
       maxDynamicContentSize={maxSheetHeight}
       bottomInset={bottomInset}
@@ -284,39 +303,6 @@ export function BottomSheet({
         elevation: disableShadow ? 0 : ELEVATION,
       }}
     >
-      {/* Sticky header rendered inside standard children flow to prevent unmounting */}
-      {showHeaderTitle || headerRight || headerBottom ? (
-        <View style={{ backgroundColor: sheetFillColor }}>
-          {showHeaderTitle || headerRight ? (
-            <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                {showHeaderTitle ? (
-                  <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
-                    {title}
-                  </Text>
-                ) : (
-                  <View />
-                )}
-                {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
-              </View>
-              {showHeaderTitle && subtitle ? (
-                <Text
-                  style={{
-                    fontSize: HEADER_SUBTITLE_SIZE,
-                    color: palette.textMuted,
-                    marginTop: HEADER_SUBTITLE_MARGIN,
-                    fontWeight: FONT_WEIGHT.regular,
-                  }}
-                >
-                  {subtitle}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-          {headerBottom}
-        </View>
-      ) : null}
-
       {scrollEnabled ? (
         <BottomSheetScrollView
           contentContainerStyle={[

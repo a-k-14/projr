@@ -1,16 +1,16 @@
-import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '@/components/ui/AppIcon';
-import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppChevron } from '@/components/ui/AppChevron';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { Text } from '@/components/ui/AppText';
+import { HeaderAddButton, HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { safePush } from '../lib/safePush';
-import { router } from 'expo-router';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   LayoutAnimation,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -19,27 +19,30 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../components/settings-ui';
 import { BottomSheet } from '../components/ui/BottomSheet';
-import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
+import { LoanListCard } from '../components/ui/cards';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FilterChip } from '../components/ui/FilterChip';
 import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
-import { ListHeading } from '../components/ui/ListHeading';
-import { ScreenScaffold } from '../components/ui/ScreenScaffold';
-import { LoanListCard } from '../components/ui/cards';
 import { GrainHeroCard } from '../components/ui/GrainHeroCard';
-import { formatCurrency, getLoanSummary } from '../lib/derived';
-import { CARD_PADDING , FONT_WEIGHT} from '../lib/design';
+import { HeaderResetButton } from '../components/ui/HeaderResetButton';
+import { ListHeading } from '../components/ui/ListHeading';
+import { MoreFiltersAmountRange } from '../components/ui/MoreFiltersAmountRange';
+import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
+import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 import { CATEGORY_COLORS } from '../lib/categoryColors';
+import { toLocalDayEndISO, toLocalDayStartISO } from '../lib/dateUtils';
+import { formatCurrency, getLoanSummary } from '../lib/derived';
+import { CARD_PADDING, FONT_WEIGHT } from '../lib/design';
 import {
   ACTIVITY_LAYOUT,
   BUTTON_TOKENS,
   HOME_RADIUS,
   HOME_TEXT,
 } from '../lib/layoutTokens';
+import { safePush } from '../lib/safePush';
 import { registerTabReset } from '../lib/tabResetRegistry';
 import { useAppTheme } from '../lib/theme';
-import { toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
 import { formatDateFull } from '../lib/ui-format';
 import { useAccountsStore } from '../stores/useAccountsStore';
 import { useLoansStore } from '../stores/useLoansStore';
@@ -51,11 +54,6 @@ const STATUS_OPTIONS: { label: string; value: LoanStatus | 'all' }[] = [
   { label: 'Open', value: 'open' },
   { label: 'Closed', value: 'closed' },
 ];
-const DIRECTION_OPTIONS = [
-  { label: 'All', value: 'all' },
-  { label: 'Lent', value: 'lent' },
-  { label: 'Borrowed', value: 'borrowed' },
-] as const;
 const SHOW_EMPTY_STATE_PREVIEW = false;
 
 const MemoizedLoanRow = memo(LoanListCard);
@@ -128,6 +126,16 @@ export default function LoansScreen() {
     pendingListResetRef.current = false;
     setListResetKey((value) => value + 1);
   }, [isFocused]);
+
+  const params = useLocalSearchParams<{ direction?: 'lent' | 'borrowed', status?: string }>();
+  useEffect(() => {
+    if (params.direction && ['lent', 'borrowed'].includes(params.direction)) {
+      setDirectionFilter(params.direction);
+    }
+    if (params.status && ['open', 'closed', 'all'].includes(params.status)) {
+      setStatusFilter(params.status as any);
+    }
+  }, [params.direction, params.status]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -266,6 +274,13 @@ export default function LoansScreen() {
           palette={palette}
           showBack={true}
           onBack={() => router.replace('/')}
+          titleAddon={
+            <HeaderResetButton
+              visible={directionFilter !== 'all' || statusFilter !== 'all' || !!search || !!fromDate || !!toDate || !!amountMinStr || !!amountMaxStr || selectedAccountId !== 'all'}
+              onPress={() => resetLoanView(true)}
+              palette={palette}
+            />
+          }
           rightAction={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <HeaderIconButton icon="search" palette={palette} onPress={() => toggleSearch(true)} />
@@ -293,60 +308,92 @@ export default function LoansScreen() {
               <GrainHeroCard
                 solidColor={CATEGORY_COLORS.loans.surface}
                 icon="hand-coins"
-                eyebrow="Loans · Lent"
-                value={formatCurrency(summary.youLent, sym)}
+                eyebrow={netPositive ? "Net Lent" : "Net Owed"}
+                value={formatCurrency(Math.abs(summary.net), sym)}
                 sym={sym}
                 badgeLabel={filteredLoans.filter(l => l.status === 'open').length > 0 ? `${filteredLoans.filter(l => l.status === 'open').length} OPEN` : undefined}
                 palette={palette}
                 metrics={[
                   {
-                    label: 'BORROWED',
-                    value: formatCurrency(summary.youOwe, sym),
+                    label: 'LENT',
+                    value: formatCurrency(summary.youLent, sym),
                   },
                   {
-                    label: netPositive ? 'NET LENT' : 'NET OWED',
-                    value: formatCurrency(Math.abs(summary.net), sym),
-                    valueColor: netPositive ? palette.numberPositive : palette.numberNegative,
+                    label: 'BORROWED',
+                    value: formatCurrency(summary.youOwe, sym),
                   },
                 ]}
               />
             </View>
 
-            <View
-              style={[
-                styles.row,
-                {
-                  paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-                  marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom,
-                  gap: ACTIVITY_LAYOUT.controlChipGap
-                },
-              ]}
-            >
-              <TouchableOpacity delayPressIn={0}
-                onPress={() => setShowAccountSheet(true)}
-                style={[
-                  styles.accountPicker,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: palette.divider,
-                    flex: 1,
-                    flexBasis: 0,
-                    minWidth: 0
-                  },
-                ]}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingLeft: 0,
+              paddingRight: ACTIVITY_LAYOUT.headerPaddingX,
+              gap: ACTIVITY_LAYOUT.controlChipGap,
+              marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom,
+            }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flex: 1 }}
+                contentContainerStyle={{
+                  alignItems: 'center',
+                  paddingLeft: ACTIVITY_LAYOUT.headerPaddingX,
+                  gap: ACTIVITY_LAYOUT.controlChipGap,
+                }}
               >
-                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text, flex: 1 }}>
-                  {selectedAccountLabel}
-                </Text>
-                <AppChevron direction="down" size={15} tone="secondary" palette={palette} />
-              </TouchableOpacity>
+                <FilterChip
+                  label="All"
+                  isActive={directionFilter === 'all'}
+                  onPress={() => setDirectionFilter('all')}
+                  palette={palette}
+                />
+                <FilterChip
+                  label="Lent"
+                  isActive={directionFilter === 'lent'}
+                  onPress={() => setDirectionFilter(directionFilter === 'lent' ? 'all' : 'lent')}
+                  palette={palette}
+                />
+                <FilterChip
+                  label="Borrowed"
+                  isActive={directionFilter === 'borrowed'}
+                  onPress={() => setDirectionFilter(directionFilter === 'borrowed' ? 'all' : 'borrowed')}
+                  palette={palette}
+                />
+              </ScrollView>
 
-              <FilterMoreButton
-                palette={palette}
-                moreActiveCount={moreActiveCount}
-                onPress={() => setShowMoreSheet(true)}
-                flex
-              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity delayPressIn={0}
+                  onPress={() => setShowAccountSheet(true)}
+                  style={[
+                    styles.accountPicker,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.divider,
+                      width: 122,
+                    },
+                  ]}
+                >
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text, flex: 1 }}>
+                    {selectedAccountLabel}
+                  </Text>
+                  <AppChevron direction="down" size={15} tone="secondary" palette={palette} />
+                </TouchableOpacity>
+
+                <FilterMoreButton
+                  palette={palette}
+                  moreActiveCount={moreActiveCount}
+                  onPress={() => setShowMoreSheet(true)}
+                  iconOnly
+                  style={{
+                    height: undefined,
+                    paddingVertical: 6,
+                    marginLeft: 0,
+                  }}
+                />
+              </View>
             </View>
 
 
@@ -438,19 +485,6 @@ export default function LoansScreen() {
           }
         >
           <View style={{ paddingBottom: 12 }}>
-            <ListHeading label="Direction" palette={palette} />
-            <View style={styles.sheetChipRow}>
-              {DIRECTION_OPTIONS.map((option) => (
-                <FilterChip
-                  key={option.value}
-                  label={option.label}
-                  isActive={directionFilter === option.value}
-                  onPress={() => setDirectionFilter(option.value)}
-                  palette={palette}
-                />
-              ))}
-            </View>
-
             <ListHeading label="Status" palette={palette} />
             <View style={styles.sheetChipRow}>
               {STATUS_OPTIONS.map((option) => (
@@ -468,47 +502,46 @@ export default function LoansScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
               <TouchableOpacity delayPressIn={0}
                 onPress={openFromDatePicker}
-                style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}
+                style={[
+                  styles.dateField,
+                  {
+                    borderColor: fromDate ? palette.brand : palette.divider,
+                    backgroundColor: palette.surface,
+                    justifyContent: 'center',
+                  }
+                ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.heavy, color: palette.textMuted, letterSpacing: 0.6 }}>
-                  FROM
-                </Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: 2 }}>
-                  {fromDate ? formatDateFull(fromDate) : 'Select...'}
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: fromDate ? palette.text : palette.textSoft }}>
+                  {fromDate ? formatDateFull(fromDate) : 'From'}
                 </Text>
               </TouchableOpacity>
               <AppIcon name="arrow-right" size={18} color={palette.textSoft} />
               <TouchableOpacity delayPressIn={0}
                 onPress={openToDatePicker}
-                style={[styles.dateField, { borderColor: palette.divider, backgroundColor: palette.surface }]}
+                style={[
+                  styles.dateField,
+                  {
+                    borderColor: toDate ? palette.brand : palette.divider,
+                    backgroundColor: palette.surface,
+                    justifyContent: 'center',
+                  }
+                ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.heavy, color: palette.textMuted, letterSpacing: 0.6 }}>
-                  TO
-                </Text>
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginTop: 2 }}>
-                  {toDate ? formatDateFull(toDate) : 'Select...'}
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: toDate ? palette.text : palette.textSoft }}>
+                  {toDate ? formatDateFull(toDate) : 'To'}
                 </Text>
               </TouchableOpacity>
             </View>
 
             <ListHeading label="Amount Range" palette={palette} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
-              <TextInput
-                value={amountMinStr}
-                onChangeText={setAmountMinStr}
-                keyboardType="numeric"
-                placeholder="Min ₹"
-                placeholderTextColor={palette.textMuted}
-                style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
-              />
-              <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.rowLabel }}>—</Text>
-              <TextInput
-                value={amountMaxStr}
-                onChangeText={setAmountMaxStr}
-                keyboardType="numeric"
-                placeholder="Max ₹"
-                placeholderTextColor={palette.textMuted}
-                style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
+            <View style={{ paddingHorizontal: CARD_PADDING }}>
+              <MoreFiltersAmountRange
+                amountMinStr={amountMinStr}
+                setAmountMinStr={setAmountMinStr}
+                amountMaxStr={amountMaxStr}
+                setAmountMaxStr={setAmountMaxStr}
+                palette={palette}
+                TextInputComponent={TextInput}
               />
             </View>
           </View>
@@ -559,15 +592,13 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   accountPicker: {
-    minWidth: 0,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 5,
-    height: ACTIVITY_LAYOUT.controlHeight,
-    paddingHorizontal: ACTIVITY_LAYOUT.accountChipHorizontalPadding,
-    borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1,
+    paddingHorizontal: 12,
+    borderRadius: ACTIVITY_LAYOUT.chipRadius,
+    borderWidth: 1.0,
+    gap: 6
   },
   moreChip: {
     flexDirection: 'row',
@@ -593,19 +624,11 @@ const styles = StyleSheet.create({
   },
   dateField: {
     flex: 1,
+    height: 48,
     borderRadius: HOME_RADIUS.chip,
-    borderWidth: 1,
+    borderWidth: 1.5,
     paddingHorizontal: 14,
     paddingVertical: 10
-  },
-  amountField: {
-    flex: 1,
-    borderRadius: HOME_RADIUS.chip,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: HOME_TEXT.body,
-    fontWeight: FONT_WEIGHT.bold
   },
   sheetChipRow: {
     flexDirection: 'row',
