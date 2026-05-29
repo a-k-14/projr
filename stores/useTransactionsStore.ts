@@ -156,6 +156,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       set((state) => ({
         transactions: state.transactions.map((t) => (t.id === syntheticId ? realTx : t)),
         lastAddedTx: realTx,
+        mutationVersion: state.mutationVersion + 1,
       }));
       return realTx;
     } catch (error) {
@@ -233,6 +234,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       if (updated) {
         set((state) => ({
           transactions: patchTransaction(state.transactions, id, updated),
+          mutationVersion: state.mutationVersion + 1,
         }));
       }
     } catch (error) {
@@ -290,6 +292,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
     try {
       await transactionsService.deleteTransaction(id);
+      set((state) => ({
+        mutationVersion: state.mutationVersion + 1,
+      }));
     } catch (error) {
       // Revert: put the row back and re-apply its delta.
       set((state) => ({

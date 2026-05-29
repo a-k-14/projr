@@ -1506,6 +1506,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   onScrollBeginDrag,
   scrollEnabled = true,
   fullResetNonce = 0,
+  dataNonce = 0,
   nav,
 }: {
   pageHeight: number;
@@ -1543,6 +1544,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   onScrollBeginDrag?: () => void;
   scrollEnabled?: boolean;
   fullResetNonce?: number;
+  dataNonce?: number;
   nav: any;
 }) {
   const { palette } = useAppTheme();
@@ -1714,7 +1716,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   }, [periodAssets, from, to, incExpSummary, hasCurrentPeriodData]);
   const loadPageData = useCallback(async () => {
     await loadRangeData(from, to);
-  }, [from, loadRangeData, to]);
+  }, [from, loadRangeData, to, dataNonce]);
 
   useEffect(() => {
     if (!isPageReady || !isScreenFocused) return;

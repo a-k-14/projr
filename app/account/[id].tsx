@@ -265,6 +265,7 @@ export default function AccountDetailScreen() {
         onScrollBeginDrag={closePanel}
         middleContent={middleContent}
         scrollEnabled={!chartInteracting}
+        dataNonce={mutationVersion}
       />
 
       <Modal
