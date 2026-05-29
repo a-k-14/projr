@@ -533,6 +533,19 @@ export default function AddTransactionModal() {
     }
   };
 
+  const closeScreenAndExecute = (
+    runWork: () => void,
+    isSynchronous = false
+  ) => {
+    if (isSynchronous) {
+      runWork();
+      closeScreen();
+    } else {
+      closeScreen();
+      InteractionManager.runAfterInteractions(runWork);
+    }
+  };
+
   // Listen for incoming deep links while the modal is already mounted
   useEffect(() => {
     const handleUrl = (event: { url: string }) => {
@@ -695,18 +708,7 @@ export default function AddTransactionModal() {
         }
       };
 
-      const closeScreenAndExecute = (
-        runWork: () => void,
-        isSynchronous = false
-      ) => {
-        if (isSynchronous) {
-          runWork();
-          closeScreen();
-        } else {
-          closeScreen();
-          InteractionManager.runAfterInteractions(runWork);
-        }
-      };
+
 
       if (type === 'deposit') {
         if (isClosingDeposit && closeDepositId) {

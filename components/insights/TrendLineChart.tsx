@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Dimensions, View } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { APP_LOCALE, toLocalDateKey } from '../../lib/dateUtils';
-import { formatCurrency } from '../../lib/derived';
+import { formatCurrency, formatSignedCurrency } from '../../lib/derived';
 import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
@@ -224,7 +224,7 @@ function TrendLineChartBase({
         {activePointIndex !== null && points[activePointIndex] && (
           <View style={{ position: 'absolute', right: 12, top: -2, alignItems: 'flex-end' }}>
             <Text style={{ fontSize: HOME_TEXT.caption + 0.5, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
-              {formatCurrency(points[activePointIndex].val, currencySymbol)}
+              {formatSignedCurrency(points[activePointIndex].val, currencySymbol, { zeroPlaceholder: null })}
             </Text>
             <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 1 }}>
               {formattedTooltipDate}
@@ -292,10 +292,10 @@ function TrendLineChartBase({
       {/* Axis dates */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 14 }}>
         <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-          {formatAxisDate(startDate ?? points[0]?.date)} ({formatCurrency(points[0]?.val, currencySymbol)})
+          {formatAxisDate(startDate ?? points[0]?.date)} ({formatSignedCurrency(points[0]?.val, currencySymbol, { zeroPlaceholder: null })})
         </Text>
         <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-          {formatAxisDate(endDate ?? points[points.length - 1]?.date)} ({formatCurrency(points[points.length - 1]?.val, currencySymbol)})
+          {formatAxisDate(endDate ?? points[points.length - 1]?.date)} ({formatSignedCurrency(points[points.length - 1]?.val, currencySymbol, { zeroPlaceholder: null })})
         </Text>
       </View>
     </View>
