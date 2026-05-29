@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db, sqlite } from '../db/client';
 import { notes, noteItems } from '../db/schema';
 import { generateId } from '../lib/ids';

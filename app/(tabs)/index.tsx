@@ -2,7 +2,6 @@ import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -27,7 +26,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenTitle } from '../../components/settings-ui';
-import { TransactionListItem } from '../../components/TransactionListItem';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { AppSwitch } from '../../components/ui/AppSwitch';
@@ -36,12 +34,9 @@ import { getCompactScrollableBottomPadding } from '../../components/ui/safeBotto
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
-import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   formatDate,
   getDateRange,
-  getRelativeDateLabel,
-  toLocalDateKey,
   toLocalDayEndISO,
   toLocalDayStartISO,
   toLocalMonthStartISO,
@@ -228,11 +223,11 @@ function HomeScreenContent() {
     } else {
       next.add(accountId);
     }
-    updateSettings({ homeExcludedAccountIds: Array.from(next) }, 'home-balance-visibility').catch(() => undefined);
+    updateSettings({ homeExcludedAccountIds: Array.from(next) }).catch(() => undefined);
   }, [homeExcludedAccountIds, updateSettings]);
 
   const resetHomeAccountInclusion = useCallback(() => {
-    updateSettings({ homeExcludedAccountIds: [] }, 'home-balance-visibility-reset').catch(() => undefined);
+    updateSettings({ homeExcludedAccountIds: [] }).catch(() => undefined);
   }, [updateSettings]);
 
   const openDatePicker = useCallback(
@@ -599,7 +594,7 @@ function AccountSummaryCard({
   to,
   heroMetricPeriod,
   onHeroMetricPeriodChange,
-  nav,
+  nav: _nav,
 }: {
   accountName: string;
   accountTypeLabel: string;
@@ -1328,7 +1323,6 @@ function BalanceVisibilitySheet({
   onReset: () => void;
   onClose: () => void;
 }) {
-  const nav = useNavigation();
   const excludedSet = useMemo(() => new Set(excludedAccountIds), [excludedAccountIds]);
   const sortedAccounts = useMemo(
     () => accounts.slice().sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance)),

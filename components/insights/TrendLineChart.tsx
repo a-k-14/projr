@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Dimensions, View } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { APP_LOCALE, toLocalDateKey } from '../../lib/dateUtils';
-import { formatCurrency, formatSignedCurrency } from '../../lib/derived';
+import { formatSignedCurrency } from '../../lib/derived';
 import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
@@ -85,7 +85,7 @@ function TrendLineChartBase({
   };
 
   // SVG Chart path calculation — viewBox coordinate space (0–300 x, 0–110 y)
-  const { lineD, areaD, startY, endY, minVal, valRange, pts } = useMemo(() => {
+  const { lineD, areaD, startY, endY, pts } = useMemo(() => {
     const total = points.length;
     if (total === 0) {
       return { lineD: '', areaD: '', startY: CHART_H / 2, endY: CHART_H / 2, minVal: 0, valRange: 1, pts: [] };

@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { safePush } from '../../lib/safePush';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -1278,7 +1278,6 @@ export default function ActivityScreen() {
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
         cashflowBucket={cashflowBucket}
-        cashflowMode={derivedCashflowMode}
         setCashflowBucket={setCashflowBucket}
         setShowMoreSheet={setShowMoreSheet}
         moreActiveCount={moreActiveCount}
@@ -1839,7 +1838,6 @@ export default function ActivityScreen() {
           tags={tags}
           palette={palette}
           cashflowBucket={cashflowBucket}
-          cashflowMode={derivedCashflowMode}
           onCashflowBucketChange={(bucket) => {
             setTypeFilter('all');
             setCashflowBucket(bucket);

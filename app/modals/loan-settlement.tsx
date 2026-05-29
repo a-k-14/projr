@@ -30,8 +30,8 @@ import {
 } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { nowUTC, toLocalDayStartISO } from '../../lib/dateUtils';
-import { formatCurrency, formatSignedCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
+import { toLocalDayStartISO } from '../../lib/dateUtils';
+import { formatSignedCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';

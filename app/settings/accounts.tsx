@@ -47,7 +47,7 @@ export default function AccountsScreen() {
       palette={palette}
       useScrollView={false}
       bottomAction={
-        <FixedBottomActions palette={palette} useBudgetSpacing>
+        <FixedBottomActions palette={palette}>
           <TouchableOpacity
             delayPressIn={0}
             onPress={() => router.push('/settings/account-form')}

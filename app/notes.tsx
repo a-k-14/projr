@@ -63,7 +63,7 @@ function NoteCard({
 export default function NotesScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
-  const { notes, isLoaded, load, create } = useNotesStore();
+  const { notes, load, create } = useNotesStore();
   const [archivedNotes, setArchivedNotes] = useState<NotePreview[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [archivedLoading, setArchivedLoading] = useState(false);

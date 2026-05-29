@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/AppText';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, ScrollView, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CardSection,
   FixedBottomActions,

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  Appearance,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,13 +18,13 @@ import { fetchWidgetData } from './widgetDataService';
 import type { Account } from '../types';
 import type { BalanceDisplay, ReniWidgetConfig } from './widgetTypes';
 import { DEFAULT_WIDGET_CONFIG } from './widgetTypes';
-import { getThemePalette, useAppTheme } from '../lib/theme';
+import { useAppTheme } from '../lib/theme';
 import { useUIStore } from '../stores/useUIStore';
 import { FixedBottomActions } from '../components/settings-ui';
 import { FilledButton } from '../components/ui/AppButton';
 import { getScrollableBottomPadding } from '../components/ui/safeBottom';
-import { SPACING, TYPE, FONT_WEIGHT } from '../lib/design';
-import { SCREEN_HEADER, SCREEN_GUTTER } from '../lib/layoutTokens';
+import { TYPE } from '../lib/design';
+import { SCREEN_HEADER } from '../lib/layoutTokens';
 import { AppIcon } from '../components/ui/AppIcon';
 import { StatusBar } from 'expo-status-bar';
 
@@ -286,7 +285,7 @@ function ReniWidgetConfigScreenContent({
   const setBalanceDisplay = (val: BalanceDisplay) =>
     setConfig((c) => ({ ...c, balanceDisplay: val }));
 
-  const selectedAccount = accounts.find((a) => a.id === config.accountId);
+
 
   if (loading) {
     return (

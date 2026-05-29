@@ -11,7 +11,7 @@ interface UIStore {
   load: () => Promise<void>;
   reset: () => void;
   beginPrivacyGrace: (durationMs: number) => void;
-  updateSettings: (data: Partial<Settings>, metricContext?: string) => Promise<void>;
+  updateSettings: (data: Partial<Settings>) => Promise<void>;
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
@@ -39,7 +39,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
     set({ privacyGraceUntil: Date.now() + durationMs });
   },
 
-  updateSettings: async (data, metricContext) => {
+  updateSettings: async (data) => {
     const previousSettings = get().settings;
     const nextEntries = Object.entries(data) as [keyof Settings, Settings[keyof Settings]][];
     const hasChanges = nextEntries.some(([key, value]) => previousSettings[key] !== value);

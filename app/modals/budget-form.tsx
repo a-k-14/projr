@@ -180,7 +180,7 @@ export default function BudgetFormModal() {
         </SectionCard>
       </ScrollView>
 
-      <FixedBottomActions palette={palette} useBudgetSpacing>
+      <FixedBottomActions palette={palette}>
         <FilledButton label={editingBudget ? 'Save changes' : 'Add budget'} onPress={handleSave} disabled={!isValid} palette={palette} tone="budget" />
         {editingBudget ? (
           <TextButton label="Delete budget" onPress={handleDelete} palette={palette} tone="danger" />

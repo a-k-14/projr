@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AppState,
   Image,
   InteractionManager,
   Keyboard,
@@ -15,7 +14,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -39,12 +37,11 @@ import {
   PickerRow,
   ROW_LABEL_WIDTH,
   ROW_MIN_HEIGHT,
-  SectionCard,
-  TextInputRow
+  SectionCard
 } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { nowUTC, toLocalDayStartISO, addMonthsSafe } from '../../lib/dateUtils';
+import { toLocalDayStartISO, addMonthsSafe } from '../../lib/dateUtils';
 import {
   formatCurrency,
   formatSignedCurrency,
@@ -72,7 +69,6 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
 import { InlineComboBox } from '../../components/ui/InlineComboBox';
-import { AutocompleteDropdown } from '../../components/ui/AutocompleteDropdown';
 import type {
   Account,
   Category,
@@ -81,7 +77,7 @@ import type {
   TransactionType
 } from '../../types';
 
-function AccountTypeBadge({ account, palette }: { account: Account; palette: AppThemePalette }) {
+function AccountTypeBadge({ account, palette: _palette }: { account: Account; palette: AppThemePalette }) {
   const typeMeta = ACCOUNT_TYPE_META[account.type];
 
   return (
@@ -162,7 +158,6 @@ export default function AddTransactionModal() {
   const [depositTenure, setDepositTenure] = useState('');
   const [depositInterest, setDepositInterest] = useState('');
   const [depositMaturityStr, setDepositMaturityStr] = useState('');
-  const [depositMaturityDate, setDepositMaturityDate] = useState<string | undefined>(undefined);
   // Close-deposit split fields
   const [closePrincipalStr, setClosePrincipalStr] = useState('');
   const [closeInterestStr, setCloseInterestStr] = useState('');
@@ -187,9 +182,7 @@ export default function AddTransactionModal() {
   const [editingLoanId, setEditingLoanId] = useState('');
   const [editingSplitGroupId, setEditingSplitGroupId] = useState('');
   const [isTransferEdit, setIsTransferEdit] = useState(false);
-  const [showAccountSheet, setShowAccountSheet] = useState(false);
-  const [showFromAccountSheet, setShowFromAccountSheet] = useState(false);
-  const [showToAccountSheet, setShowToAccountSheet] = useState(false);
+  const [accountSheetMode, setAccountSheetMode] = useState<'none' | 'account' | 'from' | 'to'>('none');
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -1180,7 +1173,7 @@ export default function AddTransactionModal() {
                 subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!accountId}
                 palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
+                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
               />
               <AmountRow
                 sym={displaySym}
@@ -1287,7 +1280,7 @@ export default function AddTransactionModal() {
                 subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!accountId}
                 palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setShowFromAccountSheet(true))}
+                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('from'))}
               />
               <View style={{ alignItems: 'center', paddingVertical: 2 }}>
                 <TouchableOpacity delayPressIn={0}
@@ -1314,7 +1307,7 @@ export default function AddTransactionModal() {
                 subtitle={selectedLinkedAccount ? formatSignedCurrency(selectedLinkedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!linkedAccountId}
                 palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setShowToAccountSheet(true))}
+                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('to'))}
               />
               {accountId && linkedAccountId && accountId === linkedAccountId ? (
                 <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 4 }}>
@@ -1452,7 +1445,7 @@ export default function AddTransactionModal() {
                 subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!accountId}
                 palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
+                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
               />
               <InlineComboBox
                 label="Notes"
@@ -1481,7 +1474,7 @@ export default function AddTransactionModal() {
                 subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
                 placeholder={!accountId}
                 palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setShowAccountSheet(true))}
+                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
               />
               {isClosingDeposit ? (
                 <>
@@ -1634,13 +1627,19 @@ export default function AddTransactionModal() {
         </BottomSheet>
       ) : null}
 
-      {showAccountSheet ? (
+      {accountSheetMode !== 'none' ? (
         <BottomSheet
-          title="Select Account"
+          title={
+            accountSheetMode === 'account'
+              ? "Select Account"
+              : accountSheetMode === 'from'
+                ? "Transfer From"
+                : "Transfer To"
+          }
           palette={palette}
-          onClose={() => setShowAccountSheet(false)}
+          onClose={() => setAccountSheetMode('none')}
           headerRight={
-            <TouchableOpacity delayPressIn={0} onPress={() => { setShowAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
+            <TouchableOpacity delayPressIn={0} onPress={() => { setAccountSheetMode('none'); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
             </TouchableOpacity>
           }
@@ -1649,87 +1648,22 @@ export default function AddTransactionModal() {
             <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
           ) : (
             accounts.map((account, index) => {
+              const isSelected = accountSheetMode === 'to' ? linkedAccountId === account.id : accountId === account.id;
               return (
                 <ChoiceRow
                   key={account.id}
                   title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
                   subtitle={`${getAccountTypeLabel(account.type)} · ${formatSignedCurrency(account.balance, displaySym, { zeroPlaceholder: '0' })}`}
-                  selected={accountId === account.id}
+                  selected={isSelected}
                   palette={palette}
                   leftElement={<AccountTypeBadge account={account} palette={palette} />}
                   onPress={() => {
-                    setAccountId(account.id);
-                    setShowAccountSheet(false);
-                  }}
-                  noBorder={index === accounts.length - 1}
-                />
-              );
-            })
-          )}
-        </BottomSheet>
-      ) : null}
-
-      {showFromAccountSheet ? (
-        <BottomSheet
-          title="Transfer From"
-          palette={palette}
-          onClose={() => setShowFromAccountSheet(false)}
-          headerRight={
-            <TouchableOpacity delayPressIn={0} onPress={() => { setShowFromAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
-            </TouchableOpacity>
-          }
-        >
-          {accounts.length === 0 ? (
-            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
-          ) : (
-            accounts.map((account, index) => {
-              return (
-                <ChoiceRow
-                  key={account.id}
-                  title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatSignedCurrency(account.balance, displaySym, { zeroPlaceholder: '0' })}`}
-                  selected={accountId === account.id}
-                  palette={palette}
-                  leftElement={<AccountTypeBadge account={account} palette={palette} />}
-                  onPress={() => {
-                    setAccountId(account.id);
-                    setShowFromAccountSheet(false);
-                  }}
-                  noBorder={index === accounts.length - 1}
-                />
-              );
-            })
-          )}
-        </BottomSheet>
-      ) : null}
-
-      {showToAccountSheet ? (
-        <BottomSheet
-          title="Transfer To"
-          palette={palette}
-          onClose={() => setShowToAccountSheet(false)}
-          headerRight={
-            <TouchableOpacity delayPressIn={0} onPress={() => { setShowToAccountSheet(false); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
-            </TouchableOpacity>
-          }
-        >
-          {accounts.length === 0 ? (
-            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
-          ) : (
-            accounts.map((account, index) => {
-              return (
-                <ChoiceRow
-                  key={account.id}
-                  title={formatAccountDisplayName(account?.name ?? '', account?.accountNumber)}
-                  subtitle={`${getAccountTypeLabel(account.type)} · ${formatSignedCurrency(account.balance, displaySym, { zeroPlaceholder: '0' })}`}
-                  selected={linkedAccountId === account.id}
-                  palette={palette}
-                  leftElement={<AccountTypeBadge account={account} palette={palette} />}
-                  onPress={() => {
-                    setLinkedAccountId(account.id);
-                    setShowToAccountSheet(false);
+                    if (accountSheetMode === 'to') {
+                      setLinkedAccountId(account.id);
+                    } else {
+                      setAccountId(account.id);
+                    }
+                    setAccountSheetMode('none');
                   }}
                   noBorder={index === accounts.length - 1}
                 />

@@ -6,7 +6,7 @@ import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, TouchableOpacity, View, InteractionManager } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
 import { ActionChip } from '../../components/ui/AppButton';

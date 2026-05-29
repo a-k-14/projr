@@ -7,6 +7,7 @@ import type { AppThemePalette } from '../../lib/theme';
 import type { Category, TransactionType } from '../../types';
 import { BottomSheet } from './BottomSheet';
 import { buildCategoryPickerSections, CategorySearchBox, CategoryTreeList } from './CategoryTreePicker';
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 
 export function CategoryPickerSheet({
   title = 'Select Category',
@@ -71,6 +72,7 @@ export function CategoryPickerSheet({
           onSearchChange={setSearch}
           placeholder="Search"
           palette={palette}
+          TextInputComponent={BottomSheetTextInput}
         />
       }
       headerRight={

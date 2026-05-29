@@ -1,5 +1,5 @@
 import Animated from 'react-native-reanimated';
-import { StyleSheet, View, ScrollView } from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
 import { SCREEN_GUTTER } from '../../lib/design';
 import type { AppThemePalette } from '../../lib/theme';
 

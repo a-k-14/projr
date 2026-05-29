@@ -177,54 +177,25 @@ export function BottomSheet({
 
   const renderHandle = useCallback(
     () => (
-      <View>
+      <View
+        style={{
+          alignItems: 'center',
+          paddingTop: HEADER_HANDLE_TOP_PADDING,
+          paddingBottom: HEADER_HANDLE_BOTTOM_PADDING,
+        }}
+      >
         <View
           style={{
-            alignItems: 'center',
-            paddingTop: HEADER_HANDLE_TOP_PADDING,
-            paddingBottom: HEADER_HANDLE_BOTTOM_PADDING,
+            width: HEADER_HANDLE_WIDTH,
+            height: HEADER_HANDLE_HEIGHT,
+            borderRadius: HOME_RADIUS.full,
+            backgroundColor: palette.divider,
+            opacity: 0.65,
           }}
-        >
-          <View
-            style={{
-              width: HEADER_HANDLE_WIDTH,
-              height: HEADER_HANDLE_HEIGHT,
-              borderRadius: HOME_RADIUS.full,
-              backgroundColor: palette.divider,
-              opacity: 0.65,
-            }}
-          />
-        </View>
-        {showHeaderTitle || headerRight ? (
-          <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              {showHeaderTitle ? (
-                <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
-                  {title}
-                </Text>
-              ) : (
-                <View />
-              )}
-              {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
-            </View>
-            {showHeaderTitle && subtitle ? (
-              <Text
-                style={{
-                  fontSize: HEADER_SUBTITLE_SIZE,
-                  color: palette.textMuted,
-                  marginTop: HEADER_SUBTITLE_MARGIN,
-                  fontWeight: FONT_WEIGHT.regular,
-                }}
-              >
-                {subtitle}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
-        {headerBottom}
+        />
       </View>
     ),
-    [palette, showHeaderTitle, headerRight, horizontalPadding, title, subtitle, headerBottom],
+    [palette.divider],
   );
 
   // Footer renderer:
@@ -313,6 +284,39 @@ export function BottomSheet({
         elevation: disableShadow ? 0 : ELEVATION,
       }}
     >
+      {/* Sticky header rendered inside standard children flow to prevent unmounting */}
+      {showHeaderTitle || headerRight || headerBottom ? (
+        <View style={{ backgroundColor: sheetFillColor }}>
+          {showHeaderTitle || headerRight ? (
+            <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                {showHeaderTitle ? (
+                  <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
+                    {title}
+                  </Text>
+                ) : (
+                  <View />
+                )}
+                {headerRight ? <View style={{ marginLeft: 12 }}>{headerRight}</View> : null}
+              </View>
+              {showHeaderTitle && subtitle ? (
+                <Text
+                  style={{
+                    fontSize: HEADER_SUBTITLE_SIZE,
+                    color: palette.textMuted,
+                    marginTop: HEADER_SUBTITLE_MARGIN,
+                    fontWeight: FONT_WEIGHT.regular,
+                  }}
+                >
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+          {headerBottom}
+        </View>
+      ) : null}
+
       {scrollEnabled ? (
         <BottomSheetScrollView
           contentContainerStyle={[

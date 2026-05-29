@@ -30,8 +30,6 @@ export function LoanOverviewCard({
       icon="hand-coins"
       iconBg={palette.loanBg}
       iconColor={palette.loan}
-      eyebrow="Loans Overview"
-      title="Current Position"
       badgeLabel=""
       badgeBg={isZero ? palette.background : palette.loanSoft}
       badgeColor={isZero ? palette.textSecondary : palette.loan}

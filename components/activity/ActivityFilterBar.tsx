@@ -18,7 +18,6 @@ interface ActivityFilterBarProps {
   typeFilter: TransactionType | 'all';
   setTypeFilter: (type: TransactionType | 'all') => void;
   cashflowBucket: 'all' | 'in' | 'out' | 'net';
-  cashflowMode: 'total' | 'incomeExpense';
   setCashflowBucket: (bucket: 'all' | 'in' | 'out' | 'net') => void;
   setShowMoreSheet: (show: boolean) => void;
   moreActiveCount: number;
@@ -35,7 +34,6 @@ export function ActivityFilterBar({
   typeFilter,
   setTypeFilter,
   cashflowBucket,
-  cashflowMode,
   setCashflowBucket,
   setShowMoreSheet,
   moreActiveCount,

@@ -28,10 +28,7 @@ interface Props {
   showAmountSign?: boolean;
   useTypeAmountColor?: boolean;
   hideNote?: boolean;
-  paddingX?: number;
   paddingY?: number;
-  /** Icon box size — defaults to the shared compact list icon size */
-  iconSize?: number;
   /** Optional: navigate to edit screen when tapped */
   onPress?: (tx: Transaction) => void;
   /** Optional: custom container style */
@@ -58,9 +55,7 @@ function TransactionListItemBase({
   showAmountSign = true,
   useTypeAmountColor = true,
   hideNote = false,
-  paddingX = HOME_LAYOUT.listRowPaddingX,
   paddingY = HOME_LAYOUT.listRowPaddingY + 2,
-  iconSize = HOME_LAYOUT.listIconSize,
   onPress,
   style,
   isCard = false }: Props) {
@@ -301,9 +296,7 @@ function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.showAmountSign !== next.showAmountSign) return false;
   if (prev.useTypeAmountColor !== next.useTypeAmountColor) return false;
   if (prev.hideNote !== next.hideNote) return false;
-  if (prev.paddingX !== next.paddingX) return false;
   if (prev.paddingY !== next.paddingY) return false;
-  if (prev.iconSize !== next.iconSize) return false;
   if (prev.onPress !== next.onPress) return false;
   if (prev.isCard !== next.isCard) return false;
   if (!isStyleEqual(prev.style, next.style)) return false;

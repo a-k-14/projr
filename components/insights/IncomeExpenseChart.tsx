@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { BucketType, ChartGranularity } from '../../lib/chartUtils';
 import { APP_LOCALE, toLocalDateKey } from '../../lib/dateUtils';
@@ -81,7 +81,6 @@ export function IncomeExpenseChart({
     })
     .sort((a, b) => a.sort - b.sort);
   const hideToggleIcon = visibleGranularities.length === 0;
-  const { width } = useWindowDimensions();
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [granularityOpen, setGranularityOpen] = useState(false);
   const panelProgress = useSharedValue(0);

@@ -133,7 +133,9 @@ export function CategoryTreePicker({
   onBack,
   onSelect,
   palette,
-  emptyMessage = 'No categories found' }: {
+  emptyMessage = 'No categories found',
+  TextInputComponent,
+}: {
   title: string;
   search: string;
   onSearchChange: (value: string) => void;
@@ -146,6 +148,7 @@ export function CategoryTreePicker({
   onSelect: (id: string) => void;
   palette: AppThemePalette;
   emptyMessage?: string;
+  TextInputComponent?: any;
 }) {
   const insets = useSafeAreaInsets();
 
@@ -177,6 +180,7 @@ export function CategoryTreePicker({
         palette={palette}
         emptyMessage={emptyMessage}
         contentBottomPadding={getCompactScrollableBottomPadding(insets)}
+        TextInputComponent={TextInputComponent}
       />
     </View>
   );
@@ -195,6 +199,7 @@ export function CategoryTreePickerContent({
   emptyMessage,
   maxListHeight,
   contentBottomPadding = 24,
+  TextInputComponent,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
@@ -208,6 +213,7 @@ export function CategoryTreePickerContent({
   emptyMessage?: string;
   maxListHeight?: number;
   contentBottomPadding?: number;
+  TextInputComponent?: any;
 }) {
   return (
     <View style={{ flex: 1 }}>
@@ -216,6 +222,7 @@ export function CategoryTreePickerContent({
         onSearchChange={onSearchChange}
         placeholder={searchPlaceholder}
         palette={palette}
+        TextInputComponent={TextInputComponent}
       />
 
       <ScrollView style={maxListHeight ? { maxHeight: maxListHeight } : undefined} contentContainerStyle={{ paddingBottom: contentBottomPadding }} keyboardShouldPersistTaps="always">
@@ -238,12 +245,15 @@ export function CategorySearchBox({
   onSearchChange,
   placeholder,
   palette,
+  TextInputComponent,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
   placeholder: string;
   palette: AppThemePalette;
+  TextInputComponent?: any;
 }) {
+  const Input = TextInputComponent || TextInput;
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 12 }}>
       <View
@@ -257,7 +267,7 @@ export function CategorySearchBox({
           borderColor: palette.divider }}
       >
         <AppIcon name="search" size={16} color={palette.textMuted} />
-        <TextInput
+        <Input
           value={search}
           onChangeText={onSearchChange}
           placeholder={placeholder}

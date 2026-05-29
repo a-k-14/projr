@@ -38,7 +38,7 @@ import {
   HOME_TEXT,
 } from '../lib/layoutTokens';
 import { registerTabReset } from '../lib/tabResetRegistry';
-import { useAppTheme, type AppThemePalette } from '../lib/theme';
+import { useAppTheme } from '../lib/theme';
 import { toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
 import { formatDateFull } from '../lib/ui-format';
 import { useAccountsStore } from '../stores/useAccountsStore';
@@ -188,7 +188,7 @@ export default function LoansScreen() {
   }, [nav]);
 
   const renderLoanItem = useCallback(
-    ({ item, index }: { item: LoanWithSummary; index: number }) => {
+    ({ item, index: _index }: { item: LoanWithSummary; index: number }) => {
       const accountName = accountsById.get(item.accountId);
       return (
         <MemoizedLoanRow

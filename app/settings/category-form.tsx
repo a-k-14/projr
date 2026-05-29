@@ -1,6 +1,6 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { ScrollView, View, TouchableOpacity } from 'react-native';
 import { AnimatedCollapseCard, CollapseHandle } from '../../components/ui/AnimatedCollapseCard';
@@ -401,7 +401,6 @@ export default function CategoryFormScreen() {
                         </View>
                         <IconBtn
                           onPress={() => deleteSub(sub.originalIdx, cardKey)}
-                          variant="danger"
                           palette={palette}
                           hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                         >

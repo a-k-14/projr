@@ -8,10 +8,9 @@ import { BudgetMonthField, BudgetMonthSheet, formatBudgetMonthLabel, shiftBudget
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { BudgetListCard, BudgetOverviewCard } from '../components/ui/cards';
-import { getScrollableBottomPadding, SystemBottomGuard } from '../components/ui/safeBottom';
-import { formatCurrency } from '../lib/derived';
+import { getScrollableBottomPadding } from '../components/ui/safeBottom';
 import { SCREEN_GUTTER } from '../lib/design';
-import { ACTIVITY_LAYOUT, HOME_SPACE } from '../lib/layoutTokens';
+import { ACTIVITY_LAYOUT } from '../lib/layoutTokens';
 import { getCategoryDisplayIcon } from '../lib/category-utils';
 import { registerTabReset } from '../lib/tabResetRegistry';
 import { useAppTheme } from '../lib/theme';
@@ -122,7 +121,6 @@ export default function BudgetScreen() {
         <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop, paddingHorizontal: SCREEN_GUTTER, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }}>
           <BudgetOverviewCard
             palette={palette}
-            monthLabel={formatBudgetMonthLabel(selectedMonth)}
             totalBudgeted={totalBudgeted}
             totalSpent={totalSpent}
             totalRemaining={totalRemaining}

@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Animated, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
+import { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SystemBottomGuard } from '../../components/ui/safeBottom';
 import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';

@@ -8,7 +8,6 @@ import type { AppThemePalette } from '../../../lib/theme';
 
 export function BudgetOverviewCard({
   palette,
-  monthLabel,
   totalBudgeted,
   totalSpent,
   totalRemaining,
@@ -16,7 +15,6 @@ export function BudgetOverviewCard({
   sym,
 }: {
   palette: AppThemePalette;
-  monthLabel: string;
   totalBudgeted: number;
   totalSpent: number;
   totalRemaining: number;
@@ -36,8 +34,6 @@ export function BudgetOverviewCard({
       icon="pie-chart"
       iconBg="#F0EFFA"
       iconColor="#5A56A3"
-      eyebrow="Budget overview"
-      title={monthLabel}
       badgeLabel={budgetStatusLabel(totalBudgeted, overBudgetCount)}
       badgeBg={totalBudgeted <= 0 ? palette.background : overBudgetCount > 0 ? palette.outBg : palette.inBg}
       badgeColor={totalBudgeted <= 0 ? palette.textSecondary : overBudgetCount > 0 ? palette.negative : palette.positive}

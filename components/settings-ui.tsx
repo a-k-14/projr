@@ -299,12 +299,10 @@ export function FieldLabel({ label, palette }: { label: string; palette: AppThem
 export function IconBtn({
   onPress,
   children,
-  variant = 'default',
   palette,
   hitSlop }: {
     onPress: () => void;
     children: ReactNode;
-    variant?: 'default' | 'danger';
     palette: AppThemePalette;
     hitSlop?: { top: number; bottom: number; left: number; right: number };
   }) {
@@ -554,11 +552,9 @@ export function ActionButton({
 
 export function FixedBottomActions({
   children,
-  palette,
-  useBudgetSpacing = false }: {
+  palette }: {
     children: ReactNode;
     palette: AppThemePalette;
-    useBudgetSpacing?: boolean;
   }) {
   return (
     <BottomActionBar palette={palette}>

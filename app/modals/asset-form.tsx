@@ -14,17 +14,11 @@ import { useAssetsStore } from '@/stores/useAssetsStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useAppDialog } from '@/components/ui/useAppDialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { formatCurrency, formatIndianNumberStr, parseFormattedNumber } from '@/lib/derived';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER } from '@/lib/layoutTokens';
+import { formatIndianNumberStr, parseFormattedNumber } from '@/lib/derived';
+import { HOME_RADIUS, HOME_TEXT, SCREEN_HEADER } from '@/lib/layoutTokens';
 import { SPACING, FONT_WEIGHT, SCREEN_GUTTER } from '@/lib/design';
 import { CATEGORY_ICONS } from '@/lib/settings-shared';
 import { isEmojiIcon } from '@/lib/ui-format';
-import {
-  ROW_COLUMN_GAP,
-  ROW_LABEL_WIDTH,
-  ROW_MIN_HEIGHT,
-  SectionCard,
-} from '@/components/ui/transaction-form-primitives';
 
 export default function AssetFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();

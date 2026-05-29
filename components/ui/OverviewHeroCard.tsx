@@ -2,7 +2,7 @@ import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
+import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -18,8 +18,6 @@ export function OverviewHeroCard({
   icon,
   iconBg,
   iconColor,
-  eyebrow,
-  title,
   badgeLabel,
   badgeBg,
   badgeColor,
@@ -41,8 +39,6 @@ export function OverviewHeroCard({
   icon?: string;
   iconBg?: string;
   iconColor?: string;
-  eyebrow: string;
-  title: string;
   badgeLabel: string;
   badgeBg: string;
   badgeColor: string;

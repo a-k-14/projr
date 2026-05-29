@@ -1,6 +1,5 @@
 import { HeaderMoreButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
-import { AppIcon } from '@/components/ui/AppIcon';
 import { ActionStrip } from '../../components/ui/ActionStrip';
 import { getCompactScrollableBottomPadding, SystemBottomGuard } from '@/components/ui/safeBottom';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
@@ -8,12 +7,11 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
-  TouchableOpacity,
   View,
   InteractionManager
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { ActionChip } from '../../components/ui/AppButton';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';

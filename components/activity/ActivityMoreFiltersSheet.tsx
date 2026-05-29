@@ -1,7 +1,7 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
-import { StyleSheet, TextInput, View , TouchableOpacity } from 'react-native';
+import { StyleSheet, View , TouchableOpacity } from 'react-native';
 import { FilledButton } from '../ui/AppButton';
 import { BottomSheet } from '../ui/BottomSheet';
 import { ListHeading } from '../ui/ListHeading';
@@ -10,6 +10,7 @@ import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import type { Category } from '../../types';
 import { CategoryIconBadge, Checkbox } from './ActivityUI';
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 
 interface ActivityMoreFiltersSheetProps {
   selectedCategoryIds: string[];
@@ -28,7 +29,6 @@ interface ActivityMoreFiltersSheetProps {
   tags: { id: string; name: string; color: string }[];
   palette: AppThemePalette;
   cashflowBucket: 'all' | 'in' | 'out' | 'net';
-  cashflowMode: 'total' | 'incomeExpense';
   onCashflowBucketChange: (bucket: 'all' | 'in' | 'out' | 'net') => void;
   clearAll: () => void;
 }
@@ -50,7 +50,6 @@ export function ActivityMoreFiltersSheet({
   tags,
   palette,
   cashflowBucket,
-  cashflowMode,
   onCashflowBucketChange,
   clearAll }: ActivityMoreFiltersSheetProps) {
   const topCategories = categories.filter((c) => !c.parentId);
@@ -213,7 +212,7 @@ export function ActivityMoreFiltersSheet({
 
         <ListHeading label="Amount Range" palette={palette} paddingBottom={12} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
-          <TextInput
+          <BottomSheetTextInput
             value={amountMinStr}
             onChangeText={setAmountMinStr}
             keyboardType="numeric"
@@ -222,7 +221,7 @@ export function ActivityMoreFiltersSheet({
             style={[styles.amountField, { borderColor: palette.divider, backgroundColor: palette.background, color: palette.text }]}
           />
           <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.rowLabel }}>—</Text>
-          <TextInput
+          <BottomSheetTextInput
             value={amountMaxStr}
             onChangeText={setAmountMaxStr}
             keyboardType="numeric"

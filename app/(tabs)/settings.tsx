@@ -1,6 +1,5 @@
 import { AppIcon, IconName } from '../../components/ui/AppIcon';
 import * as LocalAuthentication from 'expo-local-authentication';
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, ScrollView, TouchableWithoutFeedback, View } from 'react-native';
@@ -265,7 +264,7 @@ export default function SettingsScreen() {
                 palette={palette}
                 onPress={() => {
                   setPicker(null);
-                  updateSettings({ yearStart: index }, 'year-start');
+                  updateSettings({ yearStart: index });
                 }}
                 noBorder={index === MONTHS.length - 1}
               />
@@ -282,7 +281,7 @@ export default function SettingsScreen() {
                 palette={palette}
                 onPress={() => {
                   setPicker(null);
-                  updateSettings({ defaultAccountId: '' }, 'default-account-none');
+                  updateSettings({ defaultAccountId: '' });
                 }}
               />,
               ...accounts.map((account, index) => (
@@ -294,7 +293,7 @@ export default function SettingsScreen() {
                   palette={palette}
                   onPress={() => {
                     setPicker(null);
-                    updateSettings({ defaultAccountId: account.id }, 'default-account');
+                    updateSettings({ defaultAccountId: account.id });
                   }}
                   noBorder={index === accounts.length - 1}
                 />
@@ -312,7 +311,7 @@ export default function SettingsScreen() {
                 palette={palette}
                 onPress={() => {
                   setPicker(null);
-                  updateSettings({ currency: currency.code, currencySymbol: currency.symbol }, 'currency');
+                  updateSettings({ currency: currency.code, currencySymbol: currency.symbol });
                 }}
                 noBorder={index === CURRENCIES.length - 1}
               />
@@ -329,7 +328,7 @@ export default function SettingsScreen() {
                 palette={palette}
                 onPress={() => {
                   setPicker(null);
-                  updateSettings({ theme: theme.key }, 'theme');
+                  updateSettings({ theme: theme.key });
                 }}
                 noBorder={index === THEMES.length - 1}
               />

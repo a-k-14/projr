@@ -128,9 +128,7 @@ type BtnIconType = 'income' | 'expense' | 'transfer';
 
 const fmtFull = (n: number, sym: string) => formatCurrency(n, sym);
 
-function spacedUpper(text: string) {
-  return text.toUpperCase().split('').join(' ');
-}
+
 
 function tickCount(widgetWidthDp: number) {
   const stableWidth = Math.round(widgetWidthDp / 80) * 80;
