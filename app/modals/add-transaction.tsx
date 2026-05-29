@@ -76,7 +76,6 @@ import type {
   Tag,
   TransactionType
 } from '../../types';
-
 function AccountTypeBadge({ account, palette: _palette }: { account: Account; palette: AppThemePalette }) {
   const typeMeta = ACCOUNT_TYPE_META[account.type];
 

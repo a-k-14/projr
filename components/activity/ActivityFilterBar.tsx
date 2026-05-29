@@ -1,13 +1,11 @@
-import { AppChevron } from '@/components/ui/AppChevron';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { Text } from '@/components/ui/AppText';
 import React, { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { FONT_WEIGHT } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import { TransactionType } from '../../types';
 import { FilterChip } from '../ui/FilterChip';
+import { AccountPickerButton } from '../ui/AccountPickerButton';
 import { FilterMoreButton } from '../ui/FilterMoreButton';
 
 interface ActivityFilterBarProps {
@@ -61,22 +59,12 @@ export function ActivityFilterBar({
           {periodNavigation}
         </View>
 
-        <TouchableOpacity delayPressIn={0}
+        <AccountPickerButton
+          label={accountLabel}
           onPress={() => setShowAccountSheet(true)}
-          style={[
-            styles.accountPicker,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.divider,
-              width: ACTIVITY_LAYOUT.accountPickerWidth,
-            },
-          ]}
-        >
-          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text, flex: 1 }}>
-            {accountLabel}
-          </Text>
-          <AppChevron direction="down" size={15} tone="secondary" palette={palette} />
-        </TouchableOpacity>
+          palette={palette}
+          width={ACTIVITY_LAYOUT.accountPickerWidth}
+        />
       </View>
 
       <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }]}>
@@ -190,14 +178,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center'
-  },
-  accountPicker: {
-    height: ACTIVITY_LAYOUT.controlHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: ACTIVITY_LAYOUT.accountChipHorizontalPadding,
-    borderRadius: ACTIVITY_LAYOUT.controlRadius,
-    borderWidth: 1,
   },
   chipRow: {
     flexDirection: 'row',

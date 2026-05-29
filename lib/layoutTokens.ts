@@ -213,6 +213,13 @@ export const PROGRESS_LAYOUT = {
   radius: 2,
 } as const;
 
+export const BOTTOM_SHEET_TOKENS = {
+  defaultMaxHeight: 0.75,
+  insightsMaxHeight: 0.92,
+  filterWithNavBarMaxHeight: 0.65,
+  filterNoNavBarMaxHeight: 0.75,
+} as const;
+
 export const getFabBottomOffset = (insetsBottom: number) =>
   insetsBottom + HOME_LAYOUT.fabBottomOffset;
 

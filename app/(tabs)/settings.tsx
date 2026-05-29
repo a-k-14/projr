@@ -71,8 +71,8 @@ export default function SettingsScreen() {
   const displaySymbol = showCurrencySymbol ? currencySymbol : '';
 
   const handleBiometricToggle = async (value: boolean) => {
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
     if (value) {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
       if (!hasHardware) {
         showAlert('Not Supported', 'Your device does not support biometric authentication.');
         return;
@@ -81,6 +81,22 @@ export default function SettingsScreen() {
       if (!isEnrolled) {
         showAlert('Not Enrolled', 'No biometrics are enrolled on this device. Please set up a screen lock or biometrics in your device settings.');
         return;
+      }
+    } else {
+      if (hasHardware) {
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        if (isEnrolled) {
+          const authResult = await LocalAuthentication.authenticateAsync({
+            promptMessage: 'Disable Biometric Lock',
+            promptSubtitle: 'Authenticate with your biometrics or device passcode to disable security lock',
+            fallbackLabel: 'Use Passcode',
+            disableDeviceFallback: false,
+          });
+          if (!authResult.success) {
+            showAlert('Authentication Failed', 'Security lock remains enabled.');
+            return;
+          }
+        }
       }
     }
     updateSettings({ biometricLock: value });

@@ -51,7 +51,7 @@ import {
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS} from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS, BOTTOM_SHEET_TOKENS} from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
@@ -99,7 +99,6 @@ type CategoryDrilldown = {
   compactLabel?: boolean;
 };
 type HierarchyFamily = 'in' | 'out' | 'loan' | 'deposit' | 'transfer';
-
 function AccountTypeBadge({ account, palette }: { account?: Account; palette: ReturnType<typeof useAppTheme>['palette'] }) {
   const typeMeta = account ? ACCOUNT_TYPE_META[account.type] : undefined;
   const icon = typeMeta?.icon ?? 'wallet';
@@ -1670,7 +1669,7 @@ export default function ActivityScreen() {
         </>
 
       {showAccountSheet ? (
-        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar>
+        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}>
           <ChoiceRow
             title="All Accounts"
             selected={selectedAccountId === 'all'}
@@ -1708,6 +1707,7 @@ export default function ActivityScreen() {
           palette={palette}
           onClose={() => setShowPeriodSheet(false)}
           hasNavBar
+          maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}
         >
           <ChoiceRow
             title="All Time"

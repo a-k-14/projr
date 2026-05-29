@@ -107,13 +107,23 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
       if (!hasHardware || !isEnrolled) {
         showConfirm({
           title: 'Biometrics Unavailable',
-          message: 'Your device biometric enrollment has changed or is unavailable. To protect your data, the app remains locked.\n\nDo you want to disable the app lock?',
+          message: 'Your device biometric enrollment has changed or is unavailable. To protect your data, the app remains locked.\n\nDo you want to authenticate with your device passcode to disable the lock?',
           cancelLabel: 'Keep Locked',
-          confirmLabel: 'Disable Lock',
+          confirmLabel: 'Authenticate',
           destructive: true,
-          onConfirm: () => {
-            useUIStore.getState().updateSettings({ biometricLock: false });
-            setLocked(false);
+          onConfirm: async () => {
+            const authResult = await LocalAuthentication.authenticateAsync({
+              promptMessage: 'Disable App Lock',
+              promptSubtitle: 'Authenticate with your device passcode to disable biometric lock',
+              fallbackLabel: 'Use Passcode',
+              disableDeviceFallback: false,
+            });
+            if (authResult.success) {
+              useUIStore.getState().updateSettings({ biometricLock: false });
+              setLocked(false);
+            } else {
+              showAlert('Authentication Failed', 'Could not authenticate. The app remains locked.');
+            }
           },
         });
         return;

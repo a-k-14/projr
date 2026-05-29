@@ -1,4 +1,3 @@
-import { AppChevron } from '@/components/ui/AppChevron';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { HeaderAddButton, ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -22,7 +21,9 @@ import { BottomSheet } from '../components/ui/BottomSheet';
 import { LoanListCard } from '../components/ui/cards';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FilterChip } from '../components/ui/FilterChip';
+import { AccountPickerButton } from '../components/ui/AccountPickerButton';
 import { FilterMoreButton } from '../components/ui/FilterMoreButton';
+import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../lib/settings-shared';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { GrainHeroCard } from '../components/ui/GrainHeroCard';
 import { HeaderResetButton } from '../components/ui/HeaderResetButton';
@@ -40,6 +41,7 @@ import {
   BUTTON_TOKENS,
   HOME_RADIUS,
   HOME_TEXT,
+  BOTTOM_SHEET_TOKENS,
 } from '../lib/layoutTokens';
 import { safePush } from '../lib/safePush';
 import { registerTabReset } from '../lib/tabResetRegistry';
@@ -184,7 +186,6 @@ export default function LoansScreen() {
   const selectedAccountLabel =
     selectedAccountId === 'all' ? 'All Accounts' : (accountsById.get(selectedAccountId) ?? 'All Accounts');
   const moreActiveCount =
-    (directionFilter !== 'all' ? 1 : 0) +
     (statusFilter !== 'all' ? 1 : 0) +
     (fromDate || toDate ? 1 : 0) +
     (amountMinStr ? 1 : 0) +
@@ -339,45 +340,32 @@ export default function LoansScreen() {
                 <FilterChip
                   label="Lent"
                   isActive={directionFilter === 'lent'}
-                  onPress={() => setDirectionFilter(directionFilter === 'lent' ? 'all' : 'lent')}
+                  onPress={() => setDirectionFilter('lent')}
                   palette={palette}
                 />
                 <FilterChip
                   label="Borrowed"
                   isActive={directionFilter === 'borrowed'}
-                  onPress={() => setDirectionFilter(directionFilter === 'borrowed' ? 'all' : 'borrowed')}
+                  onPress={() => setDirectionFilter('borrowed')}
                   palette={palette}
                 />
               </ScrollView>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <TouchableOpacity delayPressIn={0}
+                <AccountPickerButton
+                  label={selectedAccountLabel}
                   onPress={() => setShowAccountSheet(true)}
-                  style={[
-                    styles.accountPicker,
-                    {
-                      backgroundColor: palette.surface,
-                      borderColor: palette.divider,
-                      width: 122,
-                    },
-                  ]}
-                >
-                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text, flex: 1 }}>
-                    {selectedAccountLabel}
-                  </Text>
-                  <AppChevron direction="down" size={15} tone="secondary" palette={palette} />
-                </TouchableOpacity>
+                  palette={palette}
+                  compact
+                  width={122}
+                />
 
                 <FilterMoreButton
                   palette={palette}
                   moreActiveCount={moreActiveCount}
                   onPress={() => setShowMoreSheet(true)}
                   iconOnly
-                  style={{
-                    height: undefined,
-                    paddingVertical: 6,
-                    marginLeft: 0,
-                  }}
+                  marginLeft={0}
                 />
               </View>
             </View>
@@ -410,11 +398,27 @@ export default function LoansScreen() {
         renderItem={renderLoanItem}
       />
       {showAccountSheet ? (
-        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)}>
+        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} maxHeightRatio={BOTTOM_SHEET_TOKENS.filterNoNavBarMaxHeight}>
           <ChoiceRow
             title="All Accounts"
             selected={selectedAccountId === 'all'}
             palette={palette}
+            leftElement={
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: HOME_RADIUS.chip,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: `${palette.brand}18`,
+                  borderWidth: 1,
+                  borderColor: `${palette.brand}30`,
+                }}
+              >
+                <AppIcon name="wallet" size={19} color={palette.brand} strokeWidth={1.6} />
+              </View>
+            }
             onPress={() => {
               loadLoans({ accountId: undefined, status: filters.status });
               setShowAccountSheet(false);
@@ -425,8 +429,29 @@ export default function LoansScreen() {
             <ChoiceRow
               key={account.id}
               title={account.name}
+              subtitle={getAccountTypeLabel(account.type)}
               selected={selectedAccountId === account.id}
               palette={palette}
+              leftElement={(() => {
+                const typeMeta = ACCOUNT_TYPE_META[account.type];
+                const color = typeMeta.color;
+                return (
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: HOME_RADIUS.chip,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: `${color}18`,
+                      borderWidth: 1,
+                      borderColor: `${color}30`,
+                    }}
+                  >
+                    <AppIcon name={typeMeta.icon as any} size={19} color={color} strokeWidth={1.6} />
+                  </View>
+                );
+              })()}
               onPress={() => {
                 loadLoans({ accountId: account.id, status: filters.status });
                 setShowAccountSheet(false);
@@ -442,6 +467,7 @@ export default function LoansScreen() {
           title="More Filters"
           palette={palette}
           onClose={() => setShowMoreSheet(false)}
+          maxHeightRatio={BOTTOM_SHEET_TOKENS.filterNoNavBarMaxHeight}
           footer={
             <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 8, paddingBottom: 3, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
               <TouchableOpacity delayPressIn={0}
@@ -576,15 +602,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center'
-  },
-  accountPicker: {
-    paddingVertical: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    borderRadius: ACTIVITY_LAYOUT.chipRadius,
-    borderWidth: 1.0,
-    gap: 6
   },
   moreChip: {
     flexDirection: 'row',

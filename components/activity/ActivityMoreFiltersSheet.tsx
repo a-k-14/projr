@@ -6,7 +6,7 @@ import { FilledButton } from '../ui/AppButton';
 import { BottomSheet } from '../ui/BottomSheet';
 import { ListHeading } from '../ui/ListHeading';
 import { CARD_PADDING, FONT_WEIGHT } from '../../lib/design';
-import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
+import { HOME_RADIUS, HOME_TEXT, BOTTOM_SHEET_TOKENS } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import type { Category } from '../../types';
 import { CategoryIconBadge, Checkbox } from './ActivityUI';
@@ -68,6 +68,7 @@ export function ActivityMoreFiltersSheet({
       palette={palette}
       onClose={() => setShowMoreSheet(false)}
       hasNavBar
+      maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}
       footer={
         <View style={{ padding: 16 }}>
           <FilledButton

@@ -13,11 +13,14 @@ interface FilterMoreButtonProps {
   flex?: boolean;
   iconOnly?: boolean;
   style?: StyleProp<ViewStyle>;
+  marginLeft?: number;
 }
 
-export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, iconOnly, style }: FilterMoreButtonProps) {
+export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, iconOnly, style, marginLeft }: FilterMoreButtonProps) {
   const moreActiveBg = palette.brandSoft;
   const moreActiveBorder = palette.brand;
+
+  const defaultMarginLeft = flex ? 0 : ACTIVITY_LAYOUT.moreButtonGap;
 
   return (
     <TouchableOpacity
@@ -29,7 +32,7 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
         {
           backgroundColor: moreActiveCount > 0 ? moreActiveBg : palette.surface,
           borderColor: moreActiveCount > 0 ? moreActiveBorder : palette.divider,
-          marginLeft: flex ? 0 : ACTIVITY_LAYOUT.moreButtonGap,
+          marginLeft: marginLeft !== undefined ? marginLeft : defaultMarginLeft,
           flex: flex ? 1 : undefined,
           flexBasis: flex ? 0 : undefined,
           paddingVertical: 6,

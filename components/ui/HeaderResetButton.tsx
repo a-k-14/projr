@@ -106,7 +106,12 @@ export function HeaderResetButton({
         style,
       ]}
     >
-      <TouchableOpacity delayPressIn={0} activeOpacity={0.5} onPress={onPress}>
+      <TouchableOpacity
+        delayPressIn={0}
+        activeOpacity={0.5}
+        onPress={onPress}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      >
         <AppIcon name="rotate-ccw" size={size} color={palette.brand} strokeWidth={2.4} />
       </TouchableOpacity>
     </Animated.View>

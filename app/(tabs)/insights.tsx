@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, RefreshControl, Modal, Pressable, TouchableOpacity, InteractionManager } from 'react-native';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useIsFocused } from '@react-navigation/native';
-import ReAnimated from 'react-native-reanimated';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useIsFocused } from '@react-navigation/native';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { InteractionManager, Modal, Pressable, RefreshControl, TouchableOpacity, View } from 'react-native';
+import ReAnimated from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getTabReset, registerTabReset } from '../../lib/tabResetRegistry';
 
 import { Text } from '@/components/ui/AppText';
@@ -15,24 +15,24 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
 
-import { PeriodSelector } from '../../components/ui/PeriodSelector';
 import { CategoryDonutChartBlock, type CategoryChartMode } from '../../components/CategoryDonutChartBlock';
 import { SummaryCard } from '../../components/SummaryCard';
-import { BottomSheet } from '../../components/ui/BottomSheet';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { PeriodSelector } from '../../components/ui/PeriodSelector';
 
-import { getCashflowSnapshot, getBalanceTrend, getIncomeExpenseByBuckets } from '../../services/analytics';
-import { getTransactions } from '../../services/transactions';
-import { toLocalDayStartISO, toLocalDayEndISO, getDateRange, formatDate, toLocalDateKey, safeLocalDateKey } from '../../lib/dateUtils';
 import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
-import { getLoanTransactionKind } from '../../lib/derived';
-import { TYPE , FONT_WEIGHT} from '../../lib/design';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING } from '../../lib/layoutTokens';
-import type { CashflowSummary, PeriodType, Transaction } from '../../types';
-import { getTimeBuckets, getAvailableGranularities, getAutoBucketType, type ChartGranularity } from '../../lib/chartUtils';
 import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
+import { getAutoBucketType, getAvailableGranularities, getTimeBuckets, type ChartGranularity } from '../../lib/chartUtils';
+import { formatDate, getDateRange, safeLocalDateKey, toLocalDateKey, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
+import { getLoanTransactionKind } from '../../lib/derived';
+import { FONT_WEIGHT, TYPE } from '../../lib/design';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING, BOTTOM_SHEET_TOKENS } from '../../lib/layoutTokens';
 import type { IncomeExpenseBucket } from '../../services/analytics';
+import { getBalanceTrend, getCashflowSnapshot, getIncomeExpenseByBuckets } from '../../services/analytics';
+import { getTransactions } from '../../services/transactions';
+import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 
 type HomePeriodType = 'today' | PeriodType;
 
@@ -62,7 +62,7 @@ export default function InsightsScreen() {
   const loans = useLoansStore((s) => s.loans);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
   const loadLoans = useLoansStore((s) => s.load);
-  
+
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
@@ -359,37 +359,37 @@ export default function InsightsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         scrollEnabled={!chartInteracting}
       >
-          <PeriodSelector
-            period={period}
-            from={dateRange.from}
-            to={dateRange.to}
-            onPeriodChange={(next) => handlePeriodChange(next as HomePeriodType)}
-            onOpenCustomRange={openCustomRange}
-            theme={chartTheme}
-            options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
-          />
+        <PeriodSelector
+          period={period}
+          from={dateRange.from}
+          to={dateRange.to}
+          onPeriodChange={(next) => handlePeriodChange(next as HomePeriodType)}
+          onOpenCustomRange={openCustomRange}
+          theme={chartTheme}
+          options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
+        />
 
-          <SummaryCard
-            cashflow={cashflow}
-            sym={showCurrencySymbol ? currencySymbol : ''}
-            palette={palette}
-          />
+        <SummaryCard
+          cashflow={cashflow}
+          sym={showCurrencySymbol ? currencySymbol : ''}
+          palette={palette}
+        />
 
-          <TrendLineChart
-            points={mappedTrendPoints}
-            palette={palette}
-            currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-            title="All Accounts Balance Trend"
-            subtitle={`(${PERIOD_LABELS[period]})`}
-            lineColor={palette.brand}
-            onInteractionStateChange={setChartInteracting}
-            isLoading={isLoadingTrend}
-            containerStyle={{ marginTop: 8 }}
-            startDate={dateRange.from}
-            endDate={dateRange.to}
-          />
+        <TrendLineChart
+          points={mappedTrendPoints}
+          palette={palette}
+          currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+          title="All Accounts Balance Trend"
+          subtitle={`(${PERIOD_LABELS[period]})`}
+          lineColor={palette.brand}
+          onInteractionStateChange={setChartInteracting}
+          isLoading={isLoadingTrend}
+          containerStyle={{ marginTop: 8 }}
+          startDate={dateRange.from}
+          endDate={dateRange.to}
+        />
 
-          <View style={{ height: 24 }} />
+        <View style={{ height: 24 }} />
 
         <IncomeExpenseChart
           data={incomeExpenseData}
@@ -497,8 +497,8 @@ export default function InsightsScreen() {
             setExpandedChartState(null);
             setExpandedSheetTxs([]);
           }}
-          maxHeightRatio={0.80}
-          fixedHeightRatio={0.80}
+          maxHeightRatio={BOTTOM_SHEET_TOKENS.insightsMaxHeight}
+          fixedHeightRatio={BOTTOM_SHEET_TOKENS.insightsMaxHeight}
           hasNavBar
         >
           <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 0, backgroundColor: palette.background }}>
@@ -552,8 +552,8 @@ export default function InsightsScreen() {
             setIncExpExpanded(false);
             setIncExpBucketFilter(null);
           }}
-          maxHeightRatio={0.80}
-          fixedHeightRatio={0.80}
+          maxHeightRatio={BOTTOM_SHEET_TOKENS.insightsMaxHeight}
+          fixedHeightRatio={BOTTOM_SHEET_TOKENS.insightsMaxHeight}
           hasNavBar
         >
           <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 24 }}>

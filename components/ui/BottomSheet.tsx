@@ -13,7 +13,7 @@ import { BackHandler, Dimensions, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER, FONT_WEIGHT } from '../../lib/design';
-import { SCREEN_HEADER, HOME_RADIUS } from '../../lib/layoutTokens';
+import { SCREEN_HEADER, HOME_RADIUS, BOTTOM_SHEET_TOKENS } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { getSheetBottomPadding } from './safeBottom';
 
@@ -110,7 +110,7 @@ export function BottomSheet({
     ? extraBottomPadding
     : getSheetBottomPadding(insets, extraBottomPadding + 3);
 
-  const maxSheetHeight = screenHeight * (maxHeightRatio ?? 0.75);
+  const maxSheetHeight = screenHeight * (maxHeightRatio ?? BOTTOM_SHEET_TOKENS.defaultMaxHeight);
 
   const snapPoints = useMemo(() => {
     if (!fixedHeightRatio) return undefined;
@@ -212,10 +212,9 @@ export function BottomSheet({
             ) : null}
           </View>
         ) : null}
-        {headerBottom}
       </View>
     ),
-    [palette, showHeaderTitle, headerRight, horizontalPadding, title, subtitle, headerBottom],
+    [palette, showHeaderTitle, headerRight, horizontalPadding, title, subtitle],
   );
 
   // Footer renderer:
@@ -303,6 +302,7 @@ export function BottomSheet({
         elevation: disableShadow ? 0 : ELEVATION,
       }}
     >
+      {headerBottom}
       {scrollEnabled ? (
         <BottomSheetScrollView
           contentContainerStyle={[
