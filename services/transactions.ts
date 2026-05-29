@@ -123,10 +123,16 @@ function assertValidTransferAccounts(
 }
 
 export async function getTransactions(filters: TransactionFilters = {}): Promise<Transaction[]> {
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: any[] = [];
 
   if (filters.accountId) conditions.push(eq(transactions.accountId, filters.accountId));
-  if (filters.type) conditions.push(eq(transactions.type, filters.type));
+  if (filters.type) {
+    if (Array.isArray(filters.type)) {
+      conditions.push(inArray(transactions.type, filters.type));
+    } else {
+      conditions.push(eq(transactions.type, filters.type));
+    }
+  }
   if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
   if (filters.loanId) conditions.push(eq(transactions.loanId, filters.loanId));
   if (filters.depositId) conditions.push(eq(transactions.depositId, filters.depositId));

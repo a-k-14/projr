@@ -144,6 +144,7 @@ export interface Settings {
   lastManualBackupAt: string;
   lastAutoBackupError: string;
   hideAmounts: boolean;
+  lastRestoreAt: string;
 }
 
 export interface CashflowSummary {
@@ -167,7 +168,7 @@ export interface CategoryBreakdown {
 
 export interface TransactionFilters {
   accountId?: string;
-  type?: TransactionType;
+  type?: TransactionType | TransactionType[];
   categoryId?: string;
   tagId?: string;
   fromDate?: string;

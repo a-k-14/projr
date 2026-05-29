@@ -5,6 +5,7 @@ import type { AppThemePalette } from '../../lib/theme';
 
 export function ListHeading({
   label,
+  subtitle,
   palette,
   paddingHorizontal = CARD_PADDING,
   paddingTop = 16,
@@ -12,6 +13,7 @@ export function ListHeading({
   marginBottom = 0,
 }: {
   label: string;
+  subtitle?: string;
   palette: AppThemePalette;
   paddingHorizontal?: number;
   paddingTop?: number;
@@ -20,20 +22,38 @@ export function ListHeading({
 }) {
   return (
     <Text
-      appWeight="medium"
       style={{
-        fontSize: HOME_TEXT.tiny,
-        fontWeight: FONT_WEIGHT.heavy,
-        letterSpacing: 0.8,
-        textTransform: 'uppercase',
-        color: palette.textMuted,
         paddingHorizontal,
         paddingTop,
         paddingBottom,
         marginBottom,
       }}
     >
-      {label}
+      <Text
+        appWeight="medium"
+        style={{
+          fontSize: HOME_TEXT.tiny,
+          fontWeight: FONT_WEIGHT.heavy,
+          letterSpacing: 0.8,
+          textTransform: 'uppercase',
+          color: palette.textMuted,
+        }}
+      >
+        {label}
+      </Text>
+      {subtitle ? (
+        <Text
+          style={{
+            fontSize: HOME_TEXT.metaTiny,
+            fontWeight: FONT_WEIGHT.regular,
+            letterSpacing: 0.2,
+            textTransform: 'none',
+            color: palette.textSecondary,
+          }}
+        >
+          {` — ${subtitle}`}
+        </Text>
+      ) : null}
     </Text>
   );
 }

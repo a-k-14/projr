@@ -52,14 +52,6 @@ export function getTransactionCashflowImpact(tx: {
     return tx.depositTransactionType === 'closed' ? 'in' : 'out';
   }
   if (tx.type === 'loan') {
-    // Check structured categories first
-    if (tx.categoryId === '__sys_loan_interest_received__' || tx.categoryId === '__sys_loan_charges_received__') {
-      return 'in';
-    }
-    if (tx.categoryId === '__sys_loan_interest_paid__' || tx.categoryId === '__sys_loan_charges_paid__') {
-      return 'out';
-    }
-
     const isPrincipal = !tx.loanTransactionType || (tx.loanTransactionType !== 'interest' && tx.loanTransactionType !== 'others' && tx.loanTransactionType !== 'charges' && tx.loanTransactionType !== 'adjustment');
     if (isPrincipal && options?.includeLoans === false) {
       return 'neutral';

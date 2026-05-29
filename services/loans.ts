@@ -3,7 +3,7 @@ import { db } from '../db/client';
 import { loans } from '../db/schema';
 import type { Loan, LoanWithSummary, CreateLoanInput, LoanFilters } from '../types';
 import { generateId } from '../lib/ids';
-import { todayUTC } from '../lib/dateUtils';
+import { nowUTC } from '../lib/dateUtils';
 import {
   getLoanOriginImpact,
   getLoanOriginLabel,
@@ -100,7 +100,7 @@ export async function createLoan(data: CreateLoanInput): Promise<Loan> {
   await ensureSystemCategories();
   await upsertPerson(data.personName);
   const id = generateId();
-  const now = todayUTC();
+  const now = nowUTC();
   const row = {
     id,
     personName: data.personName,

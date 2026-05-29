@@ -280,8 +280,8 @@ export function InlineComboBox({
           {
             overflow: 'hidden',
             backgroundColor: palette.background,
-            borderTopWidth: 1,
-            borderBottomWidth: 1,
+            borderTopWidth: rowCount > 0 ? 1 : 0,
+            borderBottomWidth: rowCount > 0 ? 1 : 0,
             borderColor: palette.divider,
           },
           animStyle,

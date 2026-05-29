@@ -36,8 +36,27 @@ function DepositsScreenContent() {
   const hasDeposits = deposits.length > 0;
 
   const [statusFilter, setStatusFilter] = useState<'active' | 'closed' | 'all'>('active');
-  const activeDeposits = useMemo(() => deposits.filter((d) => d.status === 'active'), [deposits]);
-  const closedDeposits = useMemo(() => deposits.filter((d) => d.status === 'closed'), [deposits]);
+  const activeDeposits = useMemo(() => {
+    return deposits
+      .filter((d) => d.status === 'active')
+      .sort((a, b) => {
+        const timeA = new Date(a.startDate).getTime();
+        const timeB = new Date(b.startDate).getTime();
+        if (timeA !== timeB) return timeB - timeA;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+  }, [deposits]);
+
+  const closedDeposits = useMemo(() => {
+    return deposits
+      .filter((d) => d.status === 'closed')
+      .sort((a, b) => {
+        const timeA = new Date(a.startDate).getTime();
+        const timeB = new Date(b.startDate).getTime();
+        if (timeA !== timeB) return timeB - timeA;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+  }, [deposits]);
   const showActive = statusFilter === 'all' || statusFilter === 'active';
   const showClosed = statusFilter === 'all' || statusFilter === 'closed';
 

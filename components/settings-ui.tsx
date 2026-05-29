@@ -83,6 +83,7 @@ export function CardSection({
 
 export function SettingsRow({
   icon,
+  iconColor,
   label,
   value,
   palette,
@@ -93,6 +94,7 @@ export function SettingsRow({
   labelStyle,
   leftElement }: {
     icon?: string;
+    iconColor?: string;
     label: string;
     subtitle?: string;
     labelStyle?: any;
@@ -108,7 +110,7 @@ export function SettingsRow({
       {leftElement ? (
         leftElement
       ) : icon ? (
-        <AppIcon name={icon as any} size={18} color={palette.text} />
+        <AppIcon name={icon as any} size={18} color={iconColor ?? palette.text} />
       ) : null}
       <View style={{ flex: 1, marginLeft: leftElement || icon ? 14 : 0 }}>
         <Text

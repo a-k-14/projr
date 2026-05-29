@@ -98,10 +98,10 @@ test('loan interest/charges can be included in cashflow even when includeLoans i
     'neutral',
   );
 
-  // Interest/others/charges/adjustment is not neutral if there's a recognized note prefix
+  // Interest/others/charges/adjustment is stored as standard 'in' or 'out' in production
   assert.equal(
     getTransactionCashflowImpact(
-      { type: 'loan', note: 'Payment to Ravi', loanTransactionType: 'interest' },
+      { type: 'out', note: 'Payment to Ravi', loanTransactionType: 'interest' },
       { includeLoans: false },
     ),
     'out',
@@ -109,7 +109,7 @@ test('loan interest/charges can be included in cashflow even when includeLoans i
 
   assert.equal(
     getTransactionCashflowImpact(
-      { type: 'loan', note: 'Receipt from Ravi', loanTransactionType: 'charges' },
+      { type: 'in', note: 'Receipt from Ravi', loanTransactionType: 'charges' },
       { includeLoans: false },
     ),
     'in',
@@ -117,7 +117,7 @@ test('loan interest/charges can be included in cashflow even when includeLoans i
 
   assert.equal(
     getTransactionCashflowImpact(
-      { type: 'loan', note: 'Payment to Ravi', loanTransactionType: 'adjustment' },
+      { type: 'out', note: 'Payment to Ravi', loanTransactionType: 'adjustment' },
       { includeLoans: false },
     ),
     'out',
@@ -125,7 +125,7 @@ test('loan interest/charges can be included in cashflow even when includeLoans i
 
   assert.equal(
     getTransactionCashflowImpact(
-      { type: 'loan', note: 'Payment to Ravi', loanTransactionType: 'others' },
+      { type: 'out', note: 'Payment to Ravi', loanTransactionType: 'others' },
       { includeLoans: false },
     ),
     'out',

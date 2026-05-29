@@ -64,7 +64,7 @@ export function CategoryPickerSheet({
       palette={palette}
       onClose={onClose}
       scrollEnabled={true}
-      fixedHeightRatio={0.85}
+      fixedHeightRatio={0.80}
       horizontalPadding={SCREEN_GUTTER}
       headerBottom={
         <CategorySearchBox

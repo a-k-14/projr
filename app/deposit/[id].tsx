@@ -22,6 +22,7 @@ import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
 import type { DepositStatus } from '../../types';
 
@@ -44,6 +45,10 @@ export default function DepositDetailScreen() {
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
+
+  const transactions = useTransactionsStore((s) => s.transactions);
+  const isTransactionsLoaded = useTransactionsStore((s) => s.isLoaded);
+  const loadTransactions = useTransactionsStore((s) => s.load);
 
   const deposit = useMemo(() => deposits.find((d) => d.id === id), [deposits, id]);
   const sourceAccount = useMemo(
@@ -77,6 +82,16 @@ export default function DepositDetailScreen() {
       loadDeposits().catch(() => undefined);
     }
   }, [isLoaded, loadDeposits]);
+
+  useEffect(() => {
+    if (!isTransactionsLoaded) {
+      loadTransactions().catch(() => undefined);
+    }
+  }, [isTransactionsLoaded, loadTransactions]);
+
+  const closedTransaction = useMemo(() => {
+    return transactions.find((t) => t.depositId === id && t.depositTransactionType === 'closed');
+  }, [transactions, id]);
 
 
 
@@ -209,7 +224,10 @@ export default function DepositDetailScreen() {
           <DetailRow palette={palette} label="Interest Rate" value={deposit.interestRate != null ? `${deposit.interestRate}% p.a.` : '—'} />
           <DetailRow palette={palette} label="Maturity Date" value={deposit.maturityDate ? formatDate(deposit.maturityDate) : '—'} />
           <DetailRow palette={palette} label="Bank" value={deposit.bankName ?? '—'} />
-          <DetailRow palette={palette} label="Notes" value={deposit.note ?? '—'} multiline last />
+          <DetailRow palette={palette} label="Notes" value={deposit.note ?? '—'} multiline last={deposit.status !== 'closed'} />
+          {deposit.status === 'closed' && (
+            <DetailRow palette={palette} label="Closed Date" value={closedTransaction ? formatDate(closedTransaction.date) : '—'} last />
+          )}
         </View>
       </ScrollView>
 

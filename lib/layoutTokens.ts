@@ -217,7 +217,7 @@ export const BOTTOM_SHEET_TOKENS = {
   defaultMaxHeight: 0.75,
   insightsMaxHeight: 0.92,
   filterWithNavBarMaxHeight: 0.65,
-  filterNoNavBarMaxHeight: 0.75,
+  filterNoNavBarMaxHeight: 0.65,
 } as const;
 
 export const getFabBottomOffset = (insetsBottom: number) =>

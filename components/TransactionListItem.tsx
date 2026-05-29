@@ -9,6 +9,7 @@ import type { AppThemePalette } from '../lib/theme';
 import { AppCard, CardTitleRow } from './ui/AppCard';
 import type { Transaction } from '../types';
 import { FONT_WEIGHT } from '../lib/design';
+import { useCategoriesStore } from '../stores/useCategoriesStore';
 
 interface Props {
   tx: Transaction;
@@ -37,6 +38,24 @@ interface Props {
   isCard?: boolean;
 }
 
+function hexToRGBA(hex: string, alpha: number): string {
+  if (!hex) return 'transparent';
+  if (hex.startsWith('rgba') || hex.startsWith('rgb')) {
+    return hex;
+  }
+  let cleanHex = hex.replace('#', '');
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex.split('').map(char => char + char).join('');
+  }
+  if (cleanHex.length === 6) {
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return hex;
+}
+
 function TransactionListItemBase({
   tx,
   sym,
@@ -58,10 +77,14 @@ function TransactionListItemBase({
   onPress,
   style,
   isCard = false }: Props) {
+  const tags = useCategoriesStore((state) => state.tags);
+  const txTags = (tx.tags || [])
+    .map((id) => tags.find((t) => t.id === id))
+    .filter((t): t is typeof tags[number] => !!t);
+
   const effectiveType = tx.transferPairId ? 'transfer' : tx.type;
   const accountNameSelected = accountName;
-  const isInterestOrCharges = !!tx.loanId && (tx.loanTransactionType === 'interest' || tx.loanTransactionType === 'others' || tx.loanTransactionType === 'charges');
-  const inOutCategoryIcon = !tx.transferPairId && (tx.type === 'in' || tx.type === 'out' || isInterestOrCharges) && categoryIcon ? categoryIcon : null;
+  const inOutCategoryIcon = !tx.transferPairId && (tx.type === 'in' || tx.type === 'out') && categoryIcon ? categoryIcon : null;
 
   const typeConfigs = getTxTypeConfig(palette);
   const cfg = typeConfigs[effectiveType] ?? typeConfigs.out;
@@ -80,7 +103,7 @@ function TransactionListItemBase({
     const from = tx.type === 'out' ? accountNameSelected : linkedAccountName;
     const to = tx.type === 'out' ? linkedAccountName : accountNameSelected;
     subtitle = `${from} \u2192 ${to}`;
-  } else if (tx.type === 'loan' && loanPersonName && !isInterestOrCharges) {
+  } else if (tx.type === 'loan' && loanPersonName && (!tx.loanTransactionType || tx.loanTransactionType === 'principal')) {
     const rawType = tx.loanTransactionType || 'principal';
     let typeLabel = 'Principal';
     if (rawType === 'principal') {
@@ -124,7 +147,7 @@ function TransactionListItemBase({
 
   const shouldAllowCategoryWrap = !!categoryName?.includes(' › ') || (typeof title === 'string' && title.includes(' › '));
 
-  if (!tx.transferPairId && (tx.type === 'in' || tx.type === 'out' || isInterestOrCharges)) {
+  if (!tx.transferPairId && (tx.type === 'in' || tx.type === 'out')) {
     title = categoryName || (tx.type === 'in' ? 'Income' : 'Expense');
     titleSecondaryText = undefined;
     if (tx.loanId && loanPersonName) {
@@ -215,7 +238,7 @@ function TransactionListItemBase({
         </View>
       }
       tertiaryRow={
-        (noteLine || tertiaryText) ? (
+        (noteLine || txTags.length > 0 || tertiaryText) ? (
           <View style={{ gap: 6, marginTop: 2 }}>
             {noteLine ? (
               <Text
@@ -226,7 +249,31 @@ function TransactionListItemBase({
                 {noteLine}
               </Text>
             ) : null}
-            {tertiaryText ? (
+            {txTags.length > 0 ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                {txTags.map((tag) => (
+                  <View
+                    key={tag.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      backgroundColor: hexToRGBA(tag.color, palette.isDark ? 0.07 : 0.04),
+                      borderColor: hexToRGBA(tag.color, palette.isDark ? 0.15 : 0.09),
+                      borderWidth: 0.5,
+                      borderRadius: 6,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2.5,
+                    }}
+                  >
+                    <AppIcon name="tag" size={9.5} color={tag.color} strokeWidth={2.1} />
+                    <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
+                      {tag.name}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : tertiaryText ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
                 {tertiaryText.split(' • ').map((tag) => (
                   <View

@@ -62,13 +62,14 @@ export async function pickBackupFolder(): Promise<string | null> {
   return result.directoryUri;
 }
 
-export async function exportBackup(): Promise<void> {
+export async function exportBackup(): Promise<boolean> {
   const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-  if (!permissions.granted) return;
+  if (!permissions.granted) return false;
 
   prepareDbForBackup();
   const base64 = await readDbAsBase64();
   await writeToSAF(permissions.directoryUri, backupFileName(), base64);
+  return true;
 }
 
 export async function runAutoBackup(folderUri: string, keepCount: number): Promise<void> {
@@ -86,13 +87,13 @@ export function isAutoBackupDue(settings: Pick<Settings, 'autoBackupEnabled' | '
   return Date.now() - last >= dueAfterMs;
 }
 
-export async function importBackup(): Promise<void> {
+export async function importBackup(): Promise<boolean> {
   const result = await DocumentPicker.getDocumentAsync({
     type: ['application/octet-stream', '*/*'],
     copyToCacheDirectory: true,
   });
 
-  if (result.canceled || !result.assets?.[0]) return;
+  if (result.canceled || !result.assets?.[0]) return false;
 
   const picked = result.assets[0];
   if (!picked.name.endsWith('.db') && !picked.uri) {
@@ -105,4 +106,5 @@ export async function importBackup(): Promise<void> {
   }
 
   await FileSystem.copyAsync({ from: picked.uri, to: DB_PATH });
+  return true;
 }

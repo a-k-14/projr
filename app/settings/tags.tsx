@@ -47,6 +47,7 @@ export default function TagsScreen() {
           <SettingsRow
             key={tag.id}
             icon="tag"
+            iconColor={tag.color}
             label={tag.name}
             palette={palette}
             labelStyle={{ fontSize: TYPE.rowLabel, fontWeight: FONT_WEIGHT.regular }}

@@ -282,7 +282,7 @@ export default function LoanSettlementModal() {
       </FixedBottomActions>
 
       {showAccountSheet ? (
-        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)}>
+        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} fixedHeightRatio={0.80}>
           {accounts.map((account, index) => (
             <ChoiceRow
               key={account.id}

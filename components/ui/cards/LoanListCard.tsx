@@ -72,19 +72,19 @@ export function LoanListCard({
               </Text>
               <View
                 style={{
-                  backgroundColor: isLent ? palette.outBg : palette.inBg,
+                  backgroundColor: isLent ? palette.inBg : palette.outBg,
                   paddingHorizontal: 8,
                   paddingVertical: 2,
                   borderRadius: HOME_RADIUS.card,
                   borderWidth: 0.5,
-                  borderColor: isLent ? palette.negative : palette.positive,
+                  borderColor: isLent ? palette.positive : palette.negative,
                 }}
               >
                 <Text
                   appWeight="medium"
                   style={{
                     fontSize: HOME_TEXT.tiny - 1,
-                    color: isLent ? palette.negative : palette.positive,
+                    color: isLent ? palette.positive : palette.negative,
                   }}
                 >
                   {directionLabel}

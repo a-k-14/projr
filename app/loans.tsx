@@ -11,13 +11,13 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../components/settings-ui';
 import { BottomSheet } from '../components/ui/BottomSheet';
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { LoanListCard } from '../components/ui/cards';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FilterChip } from '../components/ui/FilterChip';
@@ -88,6 +88,23 @@ export default function LoansScreen() {
   const [toDate, setToDate] = useState<string | undefined>();
   const [amountMinStr, setAmountMinStr] = useState('');
   const [amountMaxStr, setAmountMaxStr] = useState('');
+
+  const [pendingStatusFilter, setPendingStatusFilter] = useState<LoanStatus | 'all'>('all');
+  const [pendingFromDate, setPendingFromDate] = useState<string | undefined>();
+  const [pendingToDate, setPendingToDate] = useState<string | undefined>();
+  const [pendingAmountMinStr, setPendingAmountMinStr] = useState('');
+  const [pendingAmountMaxStr, setPendingAmountMaxStr] = useState('');
+
+  useEffect(() => {
+    if (showMoreSheet) {
+      setPendingStatusFilter(statusFilter);
+      setPendingFromDate(fromDate);
+      setPendingToDate(toDate);
+      setPendingAmountMinStr(amountMinStr);
+      setPendingAmountMaxStr(amountMaxStr);
+    }
+  }, [showMoreSheet, statusFilter, fromDate, toDate, amountMinStr, amountMaxStr]);
+
   const insets = useSafeAreaInsets();
 
   const flatListRef = useRef<FlatList>(null);
@@ -160,7 +177,7 @@ export default function LoansScreen() {
       const accountName = accountsById.get(loan.accountId) ?? '';
       const directionLabel = loan.direction === 'lent' ? 'lent' : 'borrowed';
       const loanDate = new Date(loan.date).getTime();
-      const loanAmount = loan.pendingAmount;
+      const loanAmount = loan.givenAmount;
 
       if (directionFilter !== 'all' && loan.direction !== directionFilter) return false;
       if (statusFilter !== 'all' && loan.status !== statusFilter) return false;
@@ -177,6 +194,11 @@ export default function LoansScreen() {
         loan.status.toLowerCase().includes(query) ||
         loan.note?.toLowerCase().includes(query)
       );
+    }).sort((a, b) => {
+      const timeA = new Date(a.date).getTime();
+      const timeB = new Date(b.date).getTime();
+      if (timeA !== timeB) return timeB - timeA;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [accountsById, amountMaxStr, amountMinStr, directionFilter, fromDate, loans, search, statusFilter, toDate]);
 
@@ -213,32 +235,34 @@ export default function LoansScreen() {
     [accountsById, openLoanDetail, palette, sym],
   );
 
-  const openFromDatePicker = () => {
+
+
+  const openPendingFromDatePicker = () => {
     DateTimePickerAndroid.open({
-      value: fromDate ? new Date(fromDate) : new Date(),
+      value: pendingFromDate ? new Date(pendingFromDate) : new Date(),
       mode: 'date',
       onChange: (_, date) => {
         if (!date) return;
         const nextFrom = toLocalDayStartISO(date);
-        if (toDate && nextFrom > toDate) {
-          setToDate(toLocalDayEndISO(date));
+        if (pendingToDate && nextFrom > pendingToDate) {
+          setPendingToDate(toLocalDayEndISO(date));
         }
-        setFromDate(nextFrom);
+        setPendingFromDate(nextFrom);
       }
     });
   };
 
-  const openToDatePicker = () => {
+  const openPendingToDatePicker = () => {
     DateTimePickerAndroid.open({
-      value: toDate ? new Date(toDate) : new Date(),
+      value: pendingToDate ? new Date(pendingToDate) : new Date(),
       mode: 'date',
       onChange: (_, date) => {
         if (!date) return;
         const nextTo = toLocalDayEndISO(date);
-        if (fromDate && fromDate > nextTo) {
-          setFromDate(toLocalDayStartISO(date));
+        if (pendingFromDate && pendingFromDate > nextTo) {
+          setPendingFromDate(toLocalDayStartISO(date));
         }
-        setToDate(nextTo);
+        setPendingToDate(nextTo);
       }
     });
   };
@@ -471,7 +495,14 @@ export default function LoansScreen() {
           footer={
             <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 8, paddingBottom: 3, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface }}>
               <TouchableOpacity delayPressIn={0}
-                onPress={() => setShowMoreSheet(false)}
+                onPress={() => {
+                  setStatusFilter(pendingStatusFilter);
+                  setFromDate(pendingFromDate);
+                  setToDate(pendingToDate);
+                  setAmountMinStr(pendingAmountMinStr);
+                  setAmountMaxStr(pendingAmountMaxStr);
+                  setShowMoreSheet(false);
+                }}
                 style={{ backgroundColor: palette.brand, borderRadius: HOME_RADIUS.button, paddingVertical: 16, alignItems: 'center' }}
                 activeOpacity={0.85}
               >
@@ -482,12 +513,11 @@ export default function LoansScreen() {
           headerRight={
             <TouchableOpacity delayPressIn={0}
               onPress={() => {
-                setDirectionFilter('all');
-                setStatusFilter('all');
-                setFromDate(undefined);
-                setToDate(undefined);
-                setAmountMinStr('');
-                setAmountMaxStr('');
+                setPendingStatusFilter('all');
+                setPendingFromDate(undefined);
+                setPendingToDate(undefined);
+                setPendingAmountMinStr('');
+                setPendingAmountMaxStr('');
               }}
               hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
               style={styles.clearAllButton}
@@ -503,8 +533,8 @@ export default function LoansScreen() {
                 <FilterChip
                   key={option.value}
                   label={option.label}
-                  isActive={statusFilter === option.value}
-                  onPress={() => setStatusFilter(option.value)}
+                  isActive={pendingStatusFilter === option.value}
+                  onPress={() => setPendingStatusFilter(option.value)}
                   palette={palette}
                 />
               ))}
@@ -513,47 +543,47 @@ export default function LoansScreen() {
             <ListHeading label="Date Range" palette={palette} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: CARD_PADDING }}>
               <TouchableOpacity delayPressIn={0}
-                onPress={openFromDatePicker}
+                onPress={openPendingFromDatePicker}
                 style={[
                   styles.dateField,
                   {
-                    borderColor: fromDate ? palette.brand : palette.divider,
+                    borderColor: pendingFromDate ? palette.brand : palette.divider,
                     backgroundColor: palette.surface,
                     justifyContent: 'center',
                   }
                 ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: fromDate ? palette.text : palette.textSoft }}>
-                  {fromDate ? formatDateFull(fromDate) : 'From'}
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: pendingFromDate ? palette.text : palette.textSoft }}>
+                  {pendingFromDate ? formatDateFull(pendingFromDate) : 'From'}
                 </Text>
               </TouchableOpacity>
               <AppIcon name="arrow-right" size={18} color={palette.textSoft} />
               <TouchableOpacity delayPressIn={0}
-                onPress={openToDatePicker}
+                onPress={openPendingToDatePicker}
                 style={[
                   styles.dateField,
                   {
-                    borderColor: toDate ? palette.brand : palette.divider,
+                    borderColor: pendingToDate ? palette.brand : palette.divider,
                     backgroundColor: palette.surface,
                     justifyContent: 'center',
                   }
                 ]}
               >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: toDate ? palette.text : palette.textSoft }}>
-                  {toDate ? formatDateFull(toDate) : 'To'}
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: pendingToDate ? palette.text : palette.textSoft }}>
+                  {pendingToDate ? formatDateFull(pendingToDate) : 'To'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <ListHeading label="Amount Range" palette={palette} />
+            <ListHeading label="Amount Range" subtitle="Filter by principal amount" palette={palette} />
             <View style={{ paddingHorizontal: CARD_PADDING }}>
               <MoreFiltersAmountRange
-                amountMinStr={amountMinStr}
-                setAmountMinStr={setAmountMinStr}
-                amountMaxStr={amountMaxStr}
-                setAmountMaxStr={setAmountMaxStr}
+                amountMinStr={pendingAmountMinStr}
+                setAmountMinStr={setPendingAmountMinStr}
+                amountMaxStr={pendingAmountMaxStr}
+                setAmountMaxStr={setPendingAmountMaxStr}
                 palette={palette}
-                TextInputComponent={TextInput}
+                TextInputComponent={BottomSheetTextInput as any}
               />
             </View>
           </View>

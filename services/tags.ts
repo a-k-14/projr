@@ -18,7 +18,23 @@ export async function getTagById(id: string): Promise<Tag | null> {
   return rows[0] ? rowToTag(rows[0]) : null;
 }
 
+function normalizeTagName(name: string): string {
+  return name.replace(/\s+/g, '').toLowerCase();
+}
+
+async function assertNoDuplicateTagName(name: string, excludeId?: string): Promise<void> {
+  const normalized = normalizeTagName(name);
+  const allTags = await getTags();
+  const hasDuplicate = allTags.some(
+    (t) => (excludeId ? t.id !== excludeId : true) && normalizeTagName(t.name) === normalized
+  );
+  if (hasDuplicate) {
+    throw new Error('A tag with this name already exists.');
+  }
+}
+
 export async function createTag(data: Omit<Tag, 'id'>): Promise<Tag> {
+  await assertNoDuplicateTagName(data.name);
   const id = generateId();
   await db.insert(tags).values({ id, ...data });
   return { id, ...data };
@@ -27,6 +43,9 @@ export async function createTag(data: Omit<Tag, 'id'>): Promise<Tag> {
 export async function updateTag(id: string, data: Partial<Tag>): Promise<Tag> {
   const existing = await getTagById(id);
   if (!existing) throw new Error('Tag not found.');
+  if (data.name !== undefined) {
+    await assertNoDuplicateTagName(data.name, id);
+  }
   await db.update(tags).set(data).where(eq(tags.id, id));
   return (await getTagById(id))!;
 }

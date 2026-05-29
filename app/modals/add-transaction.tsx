@@ -1637,6 +1637,7 @@ export default function AddTransactionModal() {
           }
           palette={palette}
           onClose={() => setAccountSheetMode('none')}
+          fixedHeightRatio={0.80}
           headerRight={
             <TouchableOpacity delayPressIn={0} onPress={() => { setAccountSheetMode('none'); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
@@ -1690,6 +1691,7 @@ export default function AddTransactionModal() {
           subtitle="Select one or more"
           palette={palette}
           onClose={() => setShowTagSheet(false)}
+          maxHeightRatio={0.80}
           footer={
             <View
               style={{
@@ -1726,7 +1728,7 @@ export default function AddTransactionModal() {
                   title={tag.name}
                   selected={selectedTagIds.includes(tag.id)}
                   palette={palette}
-                  leftElement={<View style={{ width: 12, height: 12, borderRadius: HOME_RADIUS.xs, backgroundColor: tag.color }} />}
+                  leftElement={<AppIcon name="tag" size={18} color={tag.color} strokeWidth={2} />}
                   onPress={() => toggleTag(tag.id)}
                   noBorder={index === tags.length - 1}
                 />

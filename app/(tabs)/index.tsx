@@ -25,6 +25,7 @@ import Animated, {
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
 import { ScreenTitle } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppIcon } from '../../components/ui/AppIcon';
@@ -32,15 +33,16 @@ import { AppSwitch } from '../../components/ui/AppSwitch';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { getCompactScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
+import { SweepOverlay } from '../../components/ui/SweepOverlay';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import {
+  APP_LOCALE,
   formatDate,
   getDateRange,
   toLocalDayEndISO,
   toLocalDayStartISO,
-  toLocalMonthStartISO,
-  APP_LOCALE
+  toLocalMonthStartISO
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
 import { formatCurrency, getLoanSummary, getLoanTransactionKind, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
@@ -60,8 +62,6 @@ import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-share
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { useSweep } from '../../lib/useSweep';
-import { SweepOverlay } from '../../components/ui/SweepOverlay';
-import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -1027,17 +1027,17 @@ function AccountSummaryCard({
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <AppIcon name="arrow-down-left" size={15} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
                         <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
-                            {hideAmounts ? '••••' : leftIsZero ? '—' : (
-                              <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
-                            )}
-                          </Text>
+                          {hideAmounts ? '••••' : leftIsZero ? '—' : (
+                            <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
+                          )}
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
-                            {hideAmounts ? '••••' : rightIsZero ? '—' : (
-                              <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
-                            )}
-                          </Text>
+                          {hideAmounts ? '••••' : rightIsZero ? '—' : (
+                            <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
+                          )}
+                        </Text>
                         <AppIcon name="arrow-up-right" size={15} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
                       </TouchableOpacity>
                     </View>
@@ -1120,8 +1120,8 @@ function AccountSummaryCard({
                     </Text>
                   </View>
                   <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
-                      {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : `${metricLeftAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricLeftAmount), currencySymbol)}`}
-                    </Text>
+                    {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : `${metricLeftAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricLeftAmount), currencySymbol)}`}
+                  </Text>
                 </TouchableOpacity>
 
                 <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : palette.divider }} />
@@ -1140,8 +1140,8 @@ function AccountSummaryCard({
                     <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
                   </View>
                   <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
-                      {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : `${metricRightAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricRightAmount), currencySymbol)}`}
-                    </Text>
+                    {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : `${metricRightAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricRightAmount), currencySymbol)}`}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -1588,11 +1588,20 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       });
     });
 
-    const impact = getTransactionCashflowImpact(lastAddedTx, { includeTransfers: true, includeLoans: true });
-    if (impact === 'in') {
-      setCashflow((prev) => ({ ...prev, in: prev.in + lastAddedTx.amount, net: prev.net + lastAddedTx.amount }));
-    } else if (impact === 'out') {
-      setCashflow((prev) => ({ ...prev, out: prev.out + lastAddedTx.amount, net: prev.net - lastAddedTx.amount }));
+    if (accountId === 'all' && lastAddedTx.transferPairId) {
+      // In all-accounts mode, a transfer has both an outflow and an inflow leg, netting out to zero impact on net
+      setCashflow((prev) => ({
+        ...prev,
+        in: prev.in + lastAddedTx.amount,
+        out: prev.out + lastAddedTx.amount,
+      }));
+    } else {
+      const impact = getTransactionCashflowImpact(lastAddedTx, { includeTransfers: true, includeLoans: true });
+      if (impact === 'in') {
+        setCashflow((prev) => ({ ...prev, in: prev.in + lastAddedTx.amount, net: prev.net + lastAddedTx.amount }));
+      } else if (impact === 'out') {
+        setCashflow((prev) => ({ ...prev, out: prev.out + lastAddedTx.amount, net: prev.net - lastAddedTx.amount }));
+      }
     }
 
     setTransactions((prev) => {
@@ -1985,21 +1994,29 @@ function AccountCarouselAddCard({ palette, nav }: any) {
     >
       <Animated.View
         style={[animStyle, {
-          width: 90,
-          minHeight: 116,
+          width: 120,
+          height: 98,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: palette.isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)',
+          backgroundColor: 'transparent',
           borderRadius: HOME_RADIUS.card,
           borderWidth: 1,
           borderStyle: 'dashed',
-          borderColor: palette.borderSoft,
+          borderColor: `${palette.brand}50`,
         }]}
       >
-        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-          <AppIcon name="plus" size={16} color={palette.textMuted} strokeWidth={2.5} />
+        <View style={{
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: '#FFFFFF',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 8,
+        }}>
+          <AppIcon name="plus" size={16} color={palette.brand} strokeWidth={2.5} />
         </View>
-        <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>Add</Text>
+        <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Add</Text>
       </Animated.View>
     </Pressable>
   );

@@ -3,7 +3,7 @@ import { db } from '../db/client';
 import { deposits } from '../db/schema';
 import type { CloseDepositInput, Deposit, CreateDepositInput, DepositFilters, DepositStatus } from '../types';
 import { generateId } from '../lib/ids';
-import { nowUTC, todayUTC, addMonthsSafe } from '../lib/dateUtils';
+import { nowUTC, addMonthsSafe } from '../lib/dateUtils';
 import { createTransaction, deleteTransaction, getTransactions, updateTransaction } from './transactions';
 import { ensureSystemCategories } from './categories';
 
@@ -56,7 +56,7 @@ export async function getDepositById(id: string): Promise<Deposit | null> {
 export async function createDeposit(data: CreateDepositInput): Promise<Deposit> {
   await ensureSystemCategories();
   const id = generateId();
-  const now = todayUTC();
+  const now = nowUTC();
   const row = {
     id,
     name: data.name,

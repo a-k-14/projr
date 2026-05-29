@@ -26,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lastManualBackupAt: '',
   lastAutoBackupError: '',
   hideAmounts: false,
+  lastRestoreAt: '',
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -57,6 +58,7 @@ export async function getSettings(): Promise<Settings> {
     lastManualBackupAt: map['lastManualBackupAt'] ?? '',
     lastAutoBackupError: map['lastAutoBackupError'] ?? '',
     hideAmounts: map['hideAmounts'] === 'true' || (map['hideAmounts'] === undefined && DEFAULT_SETTINGS.hideAmounts),
+    lastRestoreAt: map['lastRestoreAt'] ?? '',
   };
 }
 

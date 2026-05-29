@@ -65,7 +65,7 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
-import type { Account, CashflowSummary, Category, Transaction, TransactionFilters, TransactionType } from '../../types';
+import type { Account, CashflowSummary, Transaction, TransactionFilters, TransactionType } from '../../types';
 
 type ActivityPeriod = 'all' | 'day' | 'week' | 'month' | 'year' | 'custom';
 type ActivityGroup = {
@@ -448,13 +448,11 @@ export default function ActivityScreen() {
       try {
         const currentOffset = isInitial ? 0 : offsetRef.current;
         const effectiveTypeFilter =
-          cashflowBucket !== 'all' && (typeFilter === 'in' || typeFilter === 'out')
+          typeFilter === 'transfer'
             ? undefined
-            : typeFilter === 'transfer'
+            : typeFilter === 'all'
               ? undefined
-              : typeFilter === 'all'
-                ? undefined
-                : typeFilter;
+              : typeFilter;
         const filters: TransactionFilters = {
           accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
           type: effectiveTypeFilter,
@@ -735,9 +733,9 @@ export default function ActivityScreen() {
     });
   };
 
-  const applyPeriodDirectly = (p: ActivityPeriod) => {
+  const applyPeriodDirectly = (p: ActivityPeriod, offset: number = 0) => {
     setPeriod(p);
-    setPeriodOffset(0);
+    setPeriodOffset(offset);
     setCustomFrom(undefined);
     setCustomTo(undefined);
     setShowPeriodSheet(false);
@@ -841,54 +839,11 @@ export default function ActivityScreen() {
     (isCashflowFilterActiveInMore ? 1 : 0);
 
 
-  const childCategoriesByParent = useMemo(() => {
-    const map = new Map<string, Category[]>();
-    categories.forEach((category) => {
-      if (!category.parentId) return;
-      const next = map.get(category.parentId) ?? [];
-      next.push(category);
-      map.set(category.parentId, next);
-    });
-    map.forEach((items, key) => {
-      map.set(
-        key,
-        items.slice().sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' })),
-      );
-    });
-    return map;
-  }, [categories]);
-
-  const toggleCategoryId = (id: string) => {
-    const category = categoriesById.get(id);
-    setSelectedCategoryIds((prev) => {
-      const exists = prev.includes(id);
-      if (!category?.parentId) {
-        return exists ? prev.filter((value) => value !== id) : [...prev, id];
-      }
-      const withoutParent = prev.filter((value) => value !== category.parentId);
-      return exists ? withoutParent.filter((value) => value !== id) : [...withoutParent, id];
-    });
-  };
-
-  const toggleCategoryFamily = (categoryId: string) => {
-    const childIds = (childCategoriesByParent.get(categoryId) ?? []).map((child) => child.id);
-    const familyIds = [categoryId, ...childIds];
-    const hasAnySelected = familyIds.some((id) => selectedCategoryIds.includes(id));
-    setSelectedCategoryIds((prev) => {
-      if (hasAnySelected) {
-        return prev.filter((id) => !familyIds.includes(id));
-      }
-      return Array.from(new Set([...prev, ...familyIds]));
-    });
-  };
-
   const toggleCategoryExpansion = (id: string) => {
     setExpandedCategoryIds((prev) => (prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]));
   };
 
-  const toggleTagId = (id: string) => {
-    setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]));
-  };
+
 
   const handleTransactionPress = useCallback((transaction: Transaction) => {
     // Deposit 'new' transaction → edit deposit form
@@ -1718,9 +1673,20 @@ export default function ActivityScreen() {
           <ChoiceRow
             title="Today"
             subtitle={formatDateFull(new Date().toISOString())}
-            selected={pendingPeriod === 'day'}
+            selected={pendingPeriod === 'day' && periodOffset === 0}
             palette={palette}
-            onPress={() => applyPeriodDirectly('day')}
+            onPress={() => applyPeriodDirectly('day', 0)}
+          />
+          <ChoiceRow
+            title="Yesterday"
+            subtitle={(() => {
+              const d = new Date();
+              d.setDate(d.getDate() - 1);
+              return formatDateFull(d.toISOString());
+            })()}
+            selected={pendingPeriod === 'day' && periodOffset === -1}
+            palette={palette}
+            onPress={() => applyPeriodDirectly('day', -1)}
           />
           <ChoiceRow
             title="This Week"
@@ -1804,35 +1770,23 @@ export default function ActivityScreen() {
       {showMoreSheet ? (
         <ActivityMoreFiltersSheet
           selectedCategoryIds={selectedCategoryIds}
-          toggleCategoryId={toggleCategoryId}
-          toggleCategoryFamily={toggleCategoryFamily}
-          expandedCategoryIds={expandedCategoryIds}
-          toggleCategoryExpansion={toggleCategoryExpansion}
           selectedTagIds={selectedTagIds}
-          toggleTagId={toggleTagId}
           amountMinStr={amountMinStr}
-          setAmountMinStr={setAmountMinStr}
           amountMaxStr={amountMaxStr}
-          setAmountMaxStr={setAmountMaxStr}
-          setShowMoreSheet={setShowMoreSheet}
           categories={categories}
           tags={tags}
           palette={palette}
           cashflowBucket={cashflowBucket}
-          onCashflowBucketChange={(bucket) => {
+          onApply={({ selectedCategoryIds: nextCats, selectedTagIds: nextTags, amountMinStr: nextMin, amountMaxStr: nextMax, cashflowBucket: nextBucket }) => {
+            setSelectedCategoryIds(nextCats);
+            setSelectedTagIds(nextTags);
+            setAmountMinStr(nextMin);
+            setAmountMaxStr(nextMax);
             setTypeFilter('all');
-            setCashflowBucket(bucket);
+            setCashflowBucket(nextBucket);
+            setShowMoreSheet(false);
           }}
-          clearAll={() => {
-            setSelectedCategoryIds([]);
-            setSelectedTagIds([]);
-            setAmountMinStr('');
-            setAmountMaxStr('');
-            setExpandedCategoryIds([]);
-            setGroupByMode('date');
-            setCategoryDrilldown(null);
-            setCashflowBucket('all');
-          }}
+          onClose={() => setShowMoreSheet(false)}
         />
       ) : null}
 

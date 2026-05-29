@@ -44,6 +44,9 @@ export default function BackupScreen() {
   const lastManualBackup = settings.lastManualBackupAt
     ? new Date(settings.lastManualBackupAt).toLocaleString(APP_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
     : null;
+  const lastRestore = settings.lastRestoreAt
+    ? new Date(settings.lastRestoreAt).toLocaleString(APP_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
+    : null;
   const lastAutoBackup = settings.lastAutoBackupAt
     ? new Date(settings.lastAutoBackupAt).toLocaleString(APP_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
     : 'Never';
@@ -54,8 +57,10 @@ export default function BackupScreen() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportBackup();
-      updateSettings({ lastManualBackupAt: new Date().toISOString() }).catch(() => undefined);
+      const success = await exportBackup();
+      if (success) {
+        updateSettings({ lastManualBackupAt: new Date().toISOString() }).catch(() => undefined);
+      }
     } catch (e: any) {
       Alert.alert('Export Failed', e?.message ?? 'Could not export backup.');
     } finally {
@@ -75,12 +80,15 @@ export default function BackupScreen() {
           onPress: async () => {
             setImporting(true);
             try {
-              await importBackup();
-              Alert.alert(
-                'Restore Complete',
-                'Backup file copied. Please close and reopen the app to load the restored data.',
-                [{ text: 'OK', onPress: () => router.back() }]
-              );
+              const success = await importBackup();
+              if (success) {
+                updateSettings({ lastRestoreAt: new Date().toISOString() }).catch(() => undefined);
+                Alert.alert(
+                  'Restore Complete',
+                  'Backup file copied. Please close and reopen the app to load the restored data.',
+                  [{ text: 'OK', onPress: () => router.back() }]
+                );
+              }
             } catch (e: any) {
               Alert.alert('Restore Failed', e?.message ?? 'Could not restore backup.');
             } finally {
@@ -136,6 +144,8 @@ export default function BackupScreen() {
           <ActionCard
             icon="download"
             title="Restore Backup"
+            description="Replace current data with a .db backup file"
+            stat={lastRestore ? `Last restore: ${lastRestore}` : undefined}
             warn="Restoring replaces all current data."
             palette={palette}
             loading={importing}

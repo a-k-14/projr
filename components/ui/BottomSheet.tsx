@@ -9,7 +9,7 @@ import {
   type BottomSheetBackdropProps,
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
-import { BackHandler, Dimensions, View } from 'react-native';
+import { BackHandler, Dimensions, Keyboard, Platform, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_GUTTER, FONT_WEIGHT } from '../../lib/design';
@@ -73,6 +73,7 @@ export function BottomSheet({
   fixedHeightRatio,
   disableShadow = false,
   backgroundColor,
+  keyboardBehavior = 'interactive',
 }: {
   title: string;
   subtitle?: string;
@@ -92,16 +93,34 @@ export function BottomSheet({
   fixedHeightRatio?: number;
   disableShadow?: boolean;
   backgroundColor?: string;
+  keyboardBehavior?: 'interactive' | 'extend' | 'fillParent';
 }) {
   const sheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { height: screenHeight } = Dimensions.get('window');
   const [footerHeight, setFooterHeight] = useState(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const tabHeight = TAB_BAR_BASE_HEIGHT + insets.bottom;
   // When the sheet is rendered over a tabs screen, lift the sheet up so it sits
   // *above* the tab bar (tab bar remains visible & tappable).
-  const bottomInset = hasNavBar ? TAB_BAR_BASE_HEIGHT + insets.bottom : 0;
+  const bottomInset = hasNavBar ? tabHeight : 0;
 
   // For full-screen sheets (no nav bar), the sheet bottom edge IS the screen bottom.
   // Inner content needs extra padding so the last row clears the OS gesture area —
@@ -110,7 +129,7 @@ export function BottomSheet({
     ? extraBottomPadding
     : getSheetBottomPadding(insets, extraBottomPadding + 3);
 
-  const maxSheetHeight = screenHeight * (maxHeightRatio ?? BOTTOM_SHEET_TOKENS.defaultMaxHeight);
+  const maxSheetHeight = screenHeight * (maxHeightRatio ?? BOTTOM_SHEET_TOKENS.defaultMaxHeight) + (hasNavBar ? 0 : tabHeight);
 
   const snapPoints = useMemo(() => {
     if (!fixedHeightRatio) return undefined;
@@ -264,13 +283,14 @@ export function BottomSheet({
 
   const showFloorFooter = !footer && !hasNavBar && floorHeight > 0;
 
+  const appliedKeyboardHeight = keyboardHeight;
   // Content needs to clear the floating footer (real or synthesized) so the last row
   // isn't hidden behind it.
-  const contentBottomPadding = footer
+  const contentBottomPadding = (footer
     ? footerHeight + CONTENT_PADDING_BOTTOM
     : showFloorFooter
       ? floorHeight + CONTENT_PADDING_BOTTOM
-      : innerSafePadding + CONTENT_PADDING_BOTTOM;
+      : innerSafePadding + CONTENT_PADDING_BOTTOM) + appliedKeyboardHeight;
 
   return (
     <BottomSheetModal
@@ -282,7 +302,7 @@ export function BottomSheet({
       bottomInset={bottomInset}
       enablePanDownToClose
       enableDismissOnClose
-      keyboardBehavior="interactive"
+      keyboardBehavior={keyboardBehavior}
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
       backdropComponent={renderBackdrop}

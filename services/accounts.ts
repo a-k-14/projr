@@ -31,7 +31,23 @@ export async function getAccountById(id: string): Promise<Account | null> {
   return rows[0] ? rowToAccount(rows[0]) : null;
 }
 
+function normalizeAccountName(name: string): string {
+  return name.replace(/\s+/g, '').toLowerCase();
+}
+
+async function assertNoDuplicateAccountName(name: string, excludeId?: string): Promise<void> {
+  const normalized = normalizeAccountName(name);
+  const allAccounts = await getAccounts();
+  const hasDuplicate = allAccounts.some(
+    (a) => (excludeId ? a.id !== excludeId : true) && normalizeAccountName(a.name) === normalized
+  );
+  if (hasDuplicate) {
+    throw new Error('An account with this name already exists.');
+  }
+}
+
 export async function createAccount(data: CreateAccountInput): Promise<Account> {
+  await assertNoDuplicateAccountName(data.name);
   const id = generateId();
   const now = todayUTC();
   const [maxRow] = await db.select({ maxSortOrder: sql<number | null>`max(${accounts.sortOrder})` }).from(accounts);
@@ -57,6 +73,10 @@ export async function updateAccount(id: string, data: Partial<Account>): Promise
     const rows = await tx.select().from(accounts).where(eq(accounts.id, id));
     const existing = rows[0];
     if (!existing) throw new Error('Account not found');
+
+    if (data.name !== undefined) {
+      await assertNoDuplicateAccountName(data.name, id);
+    }
 
     const updateData: Partial<typeof accounts.$inferInsert> = { ...(data as Partial<typeof accounts.$inferInsert>) };
 
