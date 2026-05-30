@@ -137,7 +137,6 @@ export default function BackupScreen() {
           <ActionCard
             icon="upload"
             title="Export Backup"
-            description="Save a copy of your data as a .db file"
             stat={lastManualBackup ? `Last export: ${lastManualBackup}` : undefined}
             palette={palette}
             loading={exporting}
@@ -147,7 +146,6 @@ export default function BackupScreen() {
           <ActionCard
             icon="download"
             title="Restore Backup"
-            description="Replace current data with a .db backup file"
             stat={lastRestore ? `Last restore: ${lastRestore}` : undefined}
             warn="Restoring replaces all current data."
             palette={palette}

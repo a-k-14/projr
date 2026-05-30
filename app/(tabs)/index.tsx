@@ -24,6 +24,7 @@ import Animated, {
   withTiming,
   type SharedValue
 } from 'react-native-reanimated';
+import { AnimatedText } from '../../components/ui/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
 import { ScreenTitle } from '../../components/settings-ui';
@@ -594,6 +595,7 @@ function AccountSummaryCard({
   to,
   heroMetricPeriod,
   onHeroMetricPeriodChange,
+  tweenTrigger = 0,
   nav: _nav,
 }: {
   accountName: string;
@@ -625,6 +627,7 @@ function AccountSummaryCard({
   to?: string;
   heroMetricPeriod?: 'today' | 'month';
   onHeroMetricPeriodChange?: (p: 'today' | 'month') => void;
+  tweenTrigger?: number;
   nav: any;
 }) {
   const isAll = accountName === 'All';
@@ -685,6 +688,50 @@ function AccountSummaryCard({
   const metricRightLabel = isCashflow ? 'Outflow' : 'Expense';
   const metricLeftAmount = isCashflow ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
   const metricRightAmount = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
+
+  // ── Hero metric spring: each number that actually changes springs up ────
+  // Runs ALONGSIDE the silent-optimistic value update — value still snaps,
+  // motion just acknowledges "this one updated." Triggered when (a) a tx
+  // event bumped `tweenTrigger` recently AND (b) THIS side's amount
+  // actually changed. So adding an income animates only Income; adding an
+  // expense animates only Expense. UI toggles (Cashflow on/off, period
+  // swap) don't bump the trigger and stay silent.
+  const leftSpring = useSharedValue(0);
+  const rightSpring = useSharedValue(0);
+  const lastTweenTriggerRef = useRef(tweenTrigger);
+  const lastTriggerStampRef = useRef(0);
+  const lastLeftAmountRef = useRef(metricLeftAmount);
+  const lastRightAmountRef = useRef(metricRightAmount);
+  useEffect(() => {
+    if (tweenTrigger !== lastTweenTriggerRef.current) {
+      lastTweenTriggerRef.current = tweenTrigger;
+      lastTriggerStampRef.current = performance.now();
+    }
+    // "Fresh trigger" window — amounts often arrive a render or two after
+    // the trigger bumps (parent optimistic patch lives in its own effect).
+    const triggerFresh = performance.now() - lastTriggerStampRef.current < 500;
+    const leftChanged = metricLeftAmount !== lastLeftAmountRef.current;
+    const rightChanged = metricRightAmount !== lastRightAmountRef.current;
+
+    const springUp = (sv: typeof leftSpring) => {
+      sv.value = -4;
+      sv.value = withSpring(0, { damping: 12, stiffness: 220, mass: 0.6 });
+    };
+
+    if (triggerFresh && leftChanged && metricLeftAmount !== 0) springUp(leftSpring);
+    if (triggerFresh && rightChanged && metricRightAmount !== 0) springUp(rightSpring);
+
+    lastLeftAmountRef.current = metricLeftAmount;
+    lastRightAmountRef.current = metricRightAmount;
+  }, [tweenTrigger, metricLeftAmount, metricRightAmount, leftSpring, rightSpring]);
+
+  const leftSpringStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: leftSpring.value }],
+  }));
+  const rightSpringStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: rightSpring.value }],
+  }));
+
   const periodOptions = PERIODS.map((item) => ({ key: item, label: PERIOD_LABELS[item] }));
 
   // Tick data — drives the speedometer sweep animation
@@ -1119,9 +1166,22 @@ function AccountSummaryCard({
                       {metricLeftLabel}
                     </Text>
                   </View>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: metricLeftAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                  <AnimatedText
+                    appWeight="medium"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={[
+                      {
+                        fontSize: HOME_TEXT.sectionTitle,
+                        fontWeight: FONT_WEIGHT.semibold,
+                        letterSpacing: -0.2,
+                        color: metricLeftAmount === 0 ? palette.textMuted : palette.text,
+                      },
+                      leftSpringStyle,
+                    ]}
+                  >
                     {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : `${metricLeftAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricLeftAmount), currencySymbol)}`}
-                  </Text>
+                  </AnimatedText>
                 </TouchableOpacity>
 
                 <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : palette.divider }} />
@@ -1139,9 +1199,22 @@ function AccountSummaryCard({
                     </Text>
                     <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
                   </View>
-                  <Text appWeight="medium" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: metricRightAmount === 0 ? palette.textMuted : palette.text, letterSpacing: -0.2 }}>
+                  <AnimatedText
+                    appWeight="medium"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={[
+                      {
+                        fontSize: HOME_TEXT.sectionTitle,
+                        fontWeight: FONT_WEIGHT.semibold,
+                        letterSpacing: -0.2,
+                        color: metricRightAmount === 0 ? palette.textMuted : palette.text,
+                      },
+                      rightSpringStyle,
+                    ]}
+                  >
                     {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : `${metricRightAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricRightAmount), currencySymbol)}`}
-                  </Text>
+                  </AnimatedText>
                 </TouchableOpacity>
               </View>
 
@@ -1567,6 +1640,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   // Optimistic update: apply a newly-added transaction to local period state immediately,
   // before the background DB re-fetch confirms it. Makes the hero card feel instant.
   const lastAddedTx = useTransactionsStore((s) => s.lastAddedTx);
+  // Bumps on every tx mutation — drives the Home hero income/expense dip cue.
+  const txMutationVersion = useTransactionsStore((s) => s.mutationVersion);
   const processedOptimisticIds = useRef(new Set<string>());
   useEffect(() => {
     if (!lastAddedTx || !isScreenFocused) return;
@@ -1813,6 +1888,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             heroMode
             heroMetricPeriod={period === 'month' ? 'month' : 'today'}
             onHeroMetricPeriodChange={onPeriodChange}
+            tweenTrigger={txMutationVersion}
             accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
             from={from}
             to={to}
