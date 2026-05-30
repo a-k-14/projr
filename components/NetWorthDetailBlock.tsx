@@ -294,11 +294,7 @@ export function NetWorthDetailBlock({
           backgroundColor: palette.card,
           padding: CARD_PADDING,
           overflow: 'hidden',
-          elevation: 6,
-          shadowColor: palette.isDark ? '#000000' : '#94A3B8',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: palette.isDark ? 0.45 : 0.13,
-          shadowRadius: 10,
+          ...palette.states.cardShadow,
           marginTop: compactTop ? 4 : 0,
         }}
       >
@@ -363,7 +359,7 @@ export function NetWorthDetailBlock({
 
         {/* Bottom section: Progress bar & Asset/Liability split */}
         <View style={{ marginTop: 20 }}>
-          <View style={{ height: 4, borderRadius: HOME_RADIUS.full, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E7ECF3', overflow: 'hidden', flexDirection: 'row' }}>
+          <View style={{ height: 4, borderRadius: HOME_RADIUS.full, backgroundColor: palette.states.progressBarTrackBg, overflow: 'hidden', flexDirection: 'row' }}>
             <View style={{ height: '100%', width: `${assetShare * 100}%`, backgroundColor: palette.chartIncome }} />
             <View style={{ height: '100%', width: `${liabilityShare * 100}%`, backgroundColor: palette.chartExpense }} />
           </View>
@@ -682,9 +678,9 @@ export function NetWorthDetailBlock({
             ]}
             value={period}
             onChange={(key) => setPeriod(key as 'today' | 'month')}
-            backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
-            pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
-            borderColor={palette.isDark ? 'transparent' : '#DFE5EF'}
+            backgroundColor={palette.states.segmentedBg}
+            pillColor={palette.states.segmentedPill}
+            borderColor={palette.states.segmentedBorder}
             activeTextColor={palette.text}
             inactiveTextColor={palette.textMuted}
             height={32}
@@ -743,7 +739,7 @@ export function NetWorthDetailBlock({
           </View>
 
           {/* Net Change Row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.012)' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: palette.states.rowSubtleBg }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <View style={{
                 width: 20, height: 20, borderRadius: HOME_RADIUS.small, alignItems: 'center', justifyContent: 'center',

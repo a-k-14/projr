@@ -263,7 +263,7 @@ function AccountCard({
         backgroundColor: palette.surface,
         borderRadius: HOME_RADIUS.card,
         borderWidth: 1,
-        borderColor: palette.isDark ? 'rgba(255,255,255,0.10)' : '#E2E7F0',
+        borderColor: palette.lines.cardBorder,
         paddingHorizontal: 16,
         paddingVertical: 15,
         flexDirection: 'row',

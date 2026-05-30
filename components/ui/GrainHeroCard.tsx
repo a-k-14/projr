@@ -49,7 +49,7 @@ export function GrainHeroCard({
   }
 
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, palette.states.cardSoftShadow]}>
       {/* ── Top: solid colour + grain ── */}
       <View style={[styles.top, { backgroundColor: solidColor }]}>
         {badgeLabel ? (
@@ -88,7 +88,7 @@ export function GrainHeroCard({
               key={m.label}
               style={[
                 styles.metricContainer,
-                { backgroundColor: palette.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(242, 242, 242, 0.45)' }
+                { backgroundColor: palette.states.grainMetricBg }
               ]}
             >
               <Text style={[styles.metricLabel, { color: palette.textMuted }]}>{m.label}</Text>
@@ -120,11 +120,6 @@ const styles = StyleSheet.create({
   shell: {
     borderRadius: HOME_RADIUS.card,
     overflow: 'hidden',
-    elevation: 6,
-    shadowColor: '#94A3B8',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.13,
-    shadowRadius: 10,
   },
   // Matches account hero: paddingHorizontal 14, paddingTop 14, paddingBottom 12
   top: {

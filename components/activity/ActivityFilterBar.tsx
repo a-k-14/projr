@@ -145,7 +145,7 @@ function ActivityViewModeToggle({
   onChange: (mode: 'date' | 'category') => void;
 }) {
   return (
-    <View style={[styles.viewModeToggle, { borderColor: palette.divider, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : '#F0F3F9' }]}>
+    <View style={[styles.viewModeToggle, { borderColor: palette.divider, backgroundColor: palette.states.activitySegmentedBg }]}>
       {([
         { key: 'date', icon: 'list' },
         { key: 'category', icon: 'layout-grid' },

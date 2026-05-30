@@ -196,10 +196,10 @@ export default function InsightsScreen() {
   const chartTheme = useMemo(() => ({
     brand: palette.brand,
     card: palette.card,
-    surface: palette.isDark ? '#1F2937' : '#E2E8F0', // Higher contrast grey background
-    inputBg: palette.isDark ? '#111827' : '#FFFFFF', // Clean dark theme input background, standard white in light theme
-    progressTrack: palette.isDark ? '#374151' : '#DDE4F0',
-    border: palette.isDark ? '#374151' : '#CBD5E1', // Enhanced border contrast
+    surface: palette.layers.chartWell, // Higher contrast grey background
+    inputBg: palette.layers.insightsInputBg, // Clean dark theme input background, standard white in light theme
+    progressTrack: palette.states.progressTrack,
+    border: palette.lines.chartBorder, // Enhanced border contrast
     text: palette.text,
     muted: '#7C8498',
     textMuted: palette.textMuted,

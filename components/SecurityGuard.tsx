@@ -233,7 +233,7 @@ export function SecurityGuard({ children }: { children: React.ReactNode }) {
     };
   }, [cancelNativeAuth, clearAuthWatchdog]);
 
-  const securityOverlayBg = palette.isDark ? '#050505' : palette.background;
+  const securityOverlayBg = palette.states.securityOverlay;
 
   return (
     <View style={{ flex: 1 }}>

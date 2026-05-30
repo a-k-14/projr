@@ -16,7 +16,11 @@ export const ROW_COLUMN_GAP = 16;
 export const ROW_TRAILING_WIDTH = 24;
 
 export function sanitizeDecimalInput(value: string): string {
-  const isNegative = value.trim().startsWith('-');
+  const trimVal = value.trim();
+  const minusCount = (trimVal.match(/-/g) || []).length;
+  // If it has exactly 1 minus, it is negative. If it has 2 minus, they toggle/cancel out to positive.
+  const isNegative = minusCount === 1;
+
   let cleaned = value.replace(/[^0-9.]/g, '');
   if (!cleaned) return isNegative ? '-' : '';
   const parts = cleaned.split('.');
@@ -307,7 +311,7 @@ export function InteractiveDateTimeRow({
   const dt = new Date(date);
   const dateStr = formatDate(date);
   const timeStr = dt.toLocaleTimeString(APP_LOCALE, { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
-  const chipBg = palette.isDark ? 'rgba(255,255,255,0.04)' : palette.background;
+  const chipBg = palette.states.interactiveChipBg;
 
   return (
     <View

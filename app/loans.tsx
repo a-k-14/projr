@@ -284,7 +284,7 @@ export default function LoansScreen() {
           title="Loans"
           palette={palette}
           showBack={true}
-          onBack={() => router.replace('/')}
+          onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           titleAddon={
             <HeaderResetButton
               visible={directionFilter !== 'all' || statusFilter !== 'all' || !!search || !!fromDate || !!toDate || !!amountMinStr || !!amountMaxStr || selectedAccountId !== 'all'}

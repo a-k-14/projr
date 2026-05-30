@@ -62,11 +62,7 @@ export default function AssetsScreen() {
             borderColor: palette.divider,
             backgroundColor: palette.card,
             padding: 20,
-            elevation: 6,
-            shadowColor: '#94A3B8',
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.13,
-            shadowRadius: 10,
+            ...palette.states.cardSoftShadow,
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>

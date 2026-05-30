@@ -169,10 +169,10 @@ export function ActionChip({
         borderWidth: 1,
         borderColor: destructive
           ? `${palette.uiNegative}60`
-          : (palette.isDark ? '#2E3547' : '#C0CADB'),
+          : palette.lines.borderStrong,
         backgroundColor: destructive
           ? 'transparent'
-          : (palette.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'),
+          : palette.states.hoverBg,
       }}
     >
       <AppIcon name={icon} size={15} color={color} strokeWidth={1.9} />

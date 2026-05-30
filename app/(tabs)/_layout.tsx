@@ -67,7 +67,7 @@ function AppTabBar({
   return (
     <View style={{ width: '100%', position: 'relative', overflow: 'visible' }}>
       <LinearGradient
-        colors={['transparent', palette.isDark ? 'rgba(0,0,0,0.22)' : 'rgba(148,163,184,0.15)']}
+        colors={palette.gradients.tabShadow}
         style={{
           position: 'absolute',
           top: -12,
@@ -84,11 +84,7 @@ function AppTabBar({
           paddingBottom: insetsBottom,
           backgroundColor: palette.background,
           borderTopWidth: 0,
-          elevation: 12,
-          shadowColor: palette.isDark ? '#000000' : '#94A3B8',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: palette.isDark ? 0.22 : 0.15,
-          shadowRadius: 12,
+          ...palette.states.tabShadow,
         }}
       >
       <View style={{ height: tabHeight, flexDirection: 'row', position: 'relative' }}>
@@ -140,14 +136,14 @@ function AppTabBar({
                       borderRadius: HOME_RADIUS.button,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: palette.isDark ? palette.surfaceRaised : palette.text,
+                      backgroundColor: palette.states.tabFabBg,
                       elevation: 0,
                     }}
                   >
                     <AppIcon
                       name="plus"
                       size={22}
-                      color={palette.isDark ? palette.listText : palette.surface}
+                      color={palette.states.tabFabIcon}
                       strokeWidth={1.8}
                     />
                   </View>

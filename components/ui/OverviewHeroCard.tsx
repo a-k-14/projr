@@ -65,7 +65,7 @@ export function OverviewHeroCard({
   const clampedPercent = progressPercent !== undefined ? Math.min(Math.max(progressPercent, 0), 100) : 0;
 
   return (
-    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.divider }]}>
+    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.divider }, palette.states.cardSoftShadow]}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', position: 'relative' }}>
         {icon ? (
           <View style={[styles.iconContainer, { backgroundColor: iconBg }]}>
@@ -192,11 +192,6 @@ const styles = {
     paddingTop: 16,
     paddingBottom: 10,
     borderWidth: 1,
-    elevation: 6,
-    shadowColor: '#94A3B8',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.13,
-    shadowRadius: 10,
   },
   iconContainer: {
     width: 42,

@@ -6,7 +6,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import type { AppThemePalette } from '../../lib/theme';
+import { AppThemePalette, getElevation } from '../../lib/theme';
 
 interface AppSwitchProps {
   value: boolean;
@@ -45,7 +45,7 @@ export function AppSwitch({
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const trackColor = activeTrackColor ?? palette.brand;
-  const offColor = inactiveTrackColor ?? (palette.isDark ? 'rgba(255,255,255,0.12)' : palette.divider);
+  const offColor = inactiveTrackColor ?? palette.states.switchTrackOff;
 
   const animatedTrack = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(progress.value, [0, 1], [offColor, trackColor]),
@@ -82,12 +82,8 @@ export function AppSwitch({
               width: thumbSize,
               height: thumbSize,
               borderRadius: thumbSize / 2,
-              backgroundColor: '#FFFFFF',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.18,
-              shadowRadius: 2,
-              elevation: 2,
+              backgroundColor: palette.states.switchThumb,
+              ...getElevation(palette, 'sm'),
             },
             animatedThumb,
           ]}

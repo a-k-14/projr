@@ -126,7 +126,7 @@ export function IncomeExpenseChart({
 
   // Same surface tint used for the donut breadcrumb strip and subcat highlight.
   // '66' = 40 % opacity baked into the hex so child views are unaffected.
-  const surfaceColor = palette.isDark ? '#1F2937' : '#E2E8F0';
+  const surfaceColor = palette.layers.chartWell;
 
   const incomeColor = '#28c3a4'; // Sleek mint green (slightly deeper/greener than teal)
   const expenseColor = '#fb7478'; // Sleek neon coral-red (slightly lighter/brighter than coral)

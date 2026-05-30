@@ -17,6 +17,7 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CalculatorTrigger } from '../../components/ui/CalculatorTrigger';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
+import { sanitizeDecimalInput } from '../../components/ui/transaction-form-primitives';
 import { SPACING } from '../../lib/design';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { ACCOUNT_ICONS, ACCOUNT_TYPES, ACCOUNT_TYPE_META, ENTITY_COLORS } from '../../lib/settings-shared';
@@ -237,20 +238,7 @@ export default function AccountFormScreen() {
                 ref={openingBalanceRef}
                 palette={palette}
                 value={draft.balance}
-                onChangeText={(v) => {
-                  const isNegative = v.trim().startsWith('-');
-                  let clean = v.replace(/[^0-9.]/g, '');
-                  if (!clean) {
-                    setDraft((s) => ({ ...s, balance: isNegative ? '-' : '' }));
-                    return;
-                  }
-                  const parts = clean.split('.');
-                  if (parts.length > 2) clean = parts[0] + '.' + parts.slice(1).join('');
-                  if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
-                    clean = clean.substring(1);
-                  }
-                  setDraft((s) => ({ ...s, balance: formatIndianNumberStr(`${isNegative ? '-' : ''}${clean}`) }));
-                }}
+                onChangeText={(v) => setDraft((s) => ({ ...s, balance: formatIndianNumberStr(sanitizeDecimalInput(v)) }))}
                 placeholder="0.00"
                 keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
                 returnKeyType="done"

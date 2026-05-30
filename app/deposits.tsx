@@ -102,7 +102,7 @@ function DepositsScreenContent() {
         title="Deposits"
         palette={palette}
         showBack={true}
-        onBack={() => router.replace('/')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         titleAddon={
           <HeaderResetButton
             visible={statusFilter !== 'all'}
