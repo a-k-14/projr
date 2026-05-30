@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { ActionChip } from '../../components/ui/AppButton';
+import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import { getRelativeDateLabel, toLocalDateKey } from '../../lib/dateUtils';
@@ -38,6 +39,8 @@ export default function BudgetDetailScreen() {
   const insets = useSafeAreaInsets();
   const budgets = useBudgetStore((s) => s.budgets);
   const loadBudgets = useBudgetStore((s) => s.load);
+  const budgetsLoaded = useBudgetStore((s) => s.isLoaded);
+  const removeBudget = useBudgetStore((s) => s.remove);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const categories = useCategoriesStore((s) => s.categories);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -52,6 +55,7 @@ export default function BudgetDetailScreen() {
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const panelProgress = useSharedValue(0);
 
   const toggleActions = () => {
@@ -70,6 +74,15 @@ export default function BudgetDetailScreen() {
   }));
 
   const budget = budgets.find((b) => b.id === id);
+
+  // Auto-pop when the budget vanishes from the store while we're sitting on
+  // its detail screen — happens after delete (from this screen or the edit
+  // form). Without this, the screen sticks on its ActivityIndicator branch.
+  useEffect(() => {
+    if (budgetsLoaded && !budget && router.canGoBack()) {
+      router.back();
+    }
+  }, [budgetsLoaded, budget]);
 
   useEffect(() => {
     if (month) {
@@ -145,6 +158,13 @@ export default function BudgetDetailScreen() {
               closePanel();
               router.push({ pathname: '/modals/budget-form', params: { budgetId: budget.id } });
             }}
+          />
+          <ActionChip
+            icon="trash-2"
+            label="Delete"
+            palette={palette}
+            destructive
+            onPress={() => { closePanel(); setShowDeleteConfirm(true); }}
           />
         </ActionStrip>
 
@@ -254,6 +274,21 @@ export default function BudgetDetailScreen() {
         </ScrollView>
       </View>
       <SystemBottomGuard />
+      <AppConfirmDialog
+        visible={showDeleteConfirm}
+        title="Delete Budget"
+        message="This budget will be removed for its covered month(s)."
+        palette={palette}
+        onCancel={() => setShowDeleteConfirm(false)}
+        confirm={{
+          label: 'Delete',
+          destructive: true,
+          onPress: () => {
+            setShowDeleteConfirm(false);
+            removeBudget(budget.id, month).catch(() => undefined);
+          },
+        }}
+      />
     </View>
   );
 }

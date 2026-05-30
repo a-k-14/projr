@@ -5,7 +5,6 @@ import type { CloseDepositInput, Deposit, CreateDepositInput, DepositFilters, De
 import { generateId } from '../lib/ids';
 import { nowUTC, addMonthsSafe } from '../lib/dateUtils';
 import { createTransaction, deleteTransaction, getTransactions, updateTransaction } from './transactions';
-import { ensureSystemCategories } from './categories';
 
 function rowToDeposit(row: typeof deposits.$inferSelect): Deposit {
   return {
@@ -54,7 +53,6 @@ export async function getDepositById(id: string): Promise<Deposit | null> {
  * Mirrors the loan creation pattern.
  */
 export async function createDeposit(data: CreateDepositInput): Promise<Deposit> {
-  await ensureSystemCategories();
   const id = generateId();
   const now = nowUTC();
   const row = {

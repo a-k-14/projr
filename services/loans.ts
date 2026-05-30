@@ -16,7 +16,6 @@ import {
 } from '../lib/derived';
 import { getTransactions, getTransactionsByLoanIds, createTransaction, updateTransaction, deleteTransaction } from './transactions';
 import { upsertPerson } from './persons';
-import { ensureSystemCategories } from './categories';
 
 function rowToLoan(row: typeof loans.$inferSelect): Loan {
   return {
@@ -97,7 +96,6 @@ export async function getLoanById(id: string): Promise<LoanWithSummary | null> {
 }
 
 export async function createLoan(data: CreateLoanInput): Promise<Loan> {
-  await ensureSystemCategories();
   await upsertPerson(data.personName);
   const id = generateId();
   const now = nowUTC();

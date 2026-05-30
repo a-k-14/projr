@@ -902,11 +902,20 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         };
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          runInBackground(() => addLoan(payload), { tx: true, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        // Await the loan store update so the loans screen already shows the new
+        // card + updated hero on return (matching the budget/asset flows).
+        // Account balances and widgets aren't visible on the loans screen, so
+        // refresh those in the background.
+        try {
+          await addLoan(payload);
+        } catch (e) {
+          showAlert('Error', String(e));
+        }
+        refreshAccounts().catch(() => undefined);
+        updateAllReniWidgets().catch(() => undefined);
+        closeScreen(false);
         return;
       }
       if (isEditing && editId && isTransferEdit) {

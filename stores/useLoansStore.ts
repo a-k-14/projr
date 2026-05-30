@@ -3,6 +3,7 @@ import type { LoanWithSummary, CreateLoanInput, LoanFilters } from '../types';
 import * as loansService from '../services/loans';
 import { usePersonsStore } from './usePersonsStore';
 import { useTransactionsStore } from './useTransactionsStore';
+import { useGlobalNotice } from './useGlobalNotice';
 
 interface LoansStore {
   loans: LoanWithSummary[];
@@ -51,7 +52,10 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
   add: async (data) => {
     await loansService.createLoan(data);
     await get().load(get().filters);
-    await useTransactionsStore.getState().load();
+    // Loan list + hero are now up to date; reload the (invisible-from-here)
+    // transaction list and persons cache in the background so callers can
+    // navigate back to the loans screen without waiting on them.
+    useTransactionsStore.getState().load().catch(() => undefined);
     usePersonsStore.getState().load().catch(() => undefined);
   },
 
@@ -75,9 +79,20 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
   },
 
   remove: async (id) => {
-    await loansService.deleteLoanCascade(id);
-    await get().load(get().filters);
-    await useTransactionsStore.getState().load();
+    // Optimistic: drop the loan from the in-memory list immediately so the card
+    // disappears and the hero (derived from `loans`) updates in the same paint
+    // as the navigation back to the loans screen. The cascade delete + tx-store
+    // reconcile run in the background; on failure we restore and surface a notice.
+    const snapshot = get().loans;
+    set({ loans: snapshot.filter((l) => l.id !== id) });
+    try {
+      await loansService.deleteLoanCascade(id);
+      useTransactionsStore.getState().load().catch(() => undefined);
+    } catch (error) {
+      set({ loans: snapshot });
+      useGlobalNotice.getState().show('Error in deleting the loan. Please try again.');
+      throw error;
+    }
   },
 
   setFilters: (filters) =>

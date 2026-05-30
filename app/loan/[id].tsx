@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, TouchableOpacity, View, InteractionManager } from 'react-native';
+import { ActivityIndicator, FlatList, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { TransactionListItem } from '../../components/TransactionListItem';
@@ -53,7 +53,6 @@ export default function LoanDetailScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [filterNonPrincipal, setFilterNonPrincipal] = useState(false);
   const [showActions, setShowActions] = useState(false);
-  const [txnsReady, setTxnsReady] = useState(false);
   const panelProgress = useSharedValue(0);
 
   const toggleActions = () => {
@@ -74,14 +73,12 @@ export default function LoanDetailScreen() {
   const loan = loans.find((l) => l.id === id);
 
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      setTxnsReady(true);
-      // Note: loans + categories are loaded at app startup and refreshed after
-      // mutations. We don't need to re-fetch on every detail mount.
-      if (!loansLoaded) loadLoans();
-      loadCategories().catch(() => undefined);
-    });
-    return () => task.cancel();
+    // Loans + categories are loaded at app startup and refreshed after mutations;
+    // these are cheap no-ops in the common case. Run synchronously so the
+    // transaction list renders on the first paint of this screen instead of
+    // waiting for the navigation transition to settle.
+    if (!loansLoaded) loadLoans();
+    loadCategories().catch(() => undefined);
   }, [loadLoans, loadCategories, loansLoaded]);
 
   const account = loan ? accounts.find((a) => a.id === loan.accountId) : undefined;
@@ -90,13 +87,13 @@ export default function LoanDetailScreen() {
   const progressColor = loan?.status === 'closed' ? palette.textSoft : palette.brand;
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const displayedTransactions = useMemo(() => {
-    if (!loan || !txnsReady) return [];
+    if (!loan) return [];
     if (!filterNonPrincipal) return loan.transactions;
     return loan.transactions.filter((tx) => {
       const type = tx.loanTransactionType || 'principal';
       return type === 'interest' || type === 'others' || type === 'charges' || type === 'adjustment';
     });
-  }, [loan, filterNonPrincipal, txnsReady]);
+  }, [loan, filterNonPrincipal]);
 
   const grouped = useMemo(() => groupTransactionsByDate(displayedTransactions), [displayedTransactions]);
 

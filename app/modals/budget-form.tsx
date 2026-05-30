@@ -176,8 +176,7 @@ export default function BudgetFormModal() {
           />
           <PickerRow
             label="Category"
-            value={getCategoryDisplayParts(categories, categoryId).name}
-            subtitle={getCategoryDisplayParts(categories, categoryId).parentName}
+            value={getCategoryDisplayParts(categories, categoryId).fullName}
             placeholder={!selectedCategory}
             palette={palette}
             onPress={openCategoryPicker}
@@ -251,14 +250,12 @@ export default function BudgetFormModal() {
 function getCategoryDisplayParts(
   categories: Category[],
   categoryId: string,
-): { name: string; parentName?: string } {
+): { fullName: string } {
   const category = categories.find((item) => item.id === categoryId);
-  if (!category) return { name: 'Select Category' };
-  if (!category.parentId) return { name: category.name };
-  return {
-    name: category.name,
-    parentName: categories.find((item) => item.id === category.parentId)?.name ?? 'Category',
-  };
+  if (!category) return { fullName: 'Select Category' };
+  if (!category.parentId) return { fullName: category.name };
+  const parentName = categories.find((item) => item.id === category.parentId)?.name ?? 'Category';
+  return { fullName: `${parentName} › ${category.name}` };
 }
 
 function RepeatRow({
