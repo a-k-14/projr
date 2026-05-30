@@ -82,7 +82,6 @@ export default function CategoryFormScreen() {
   const isSystem = !!editingCategory?.systemKey;
 
   const shakeOffset = useSharedValue(0);
-  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeOffset.value }] }));
 
   const submitShakeOffset = useSharedValue(0);
   const submitShakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: submitShakeOffset.value }] }));

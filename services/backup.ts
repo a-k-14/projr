@@ -106,5 +106,10 @@ export async function importBackup(): Promise<boolean> {
   }
 
   await FileSystem.copyAsync({ from: picked.uri, to: DB_PATH });
+  // Remove stale WAL/SHM sidecars left by the previous database. Without this,
+  // SQLite can replay the old write-ahead frames over the freshly restored file
+  // on next open, corrupting the restored data.
+  await FileSystem.deleteAsync(`${DB_PATH}-wal`, { idempotent: true }).catch(() => undefined);
+  await FileSystem.deleteAsync(`${DB_PATH}-shm`, { idempotent: true }).catch(() => undefined);
   return true;
 }

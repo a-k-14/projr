@@ -35,6 +35,7 @@ SplashScreen.setOptions({ duration: 0 });
 
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SecurityGuard } from '../components/SecurityGuard';
+import { GlobalNotice } from '../components/ui/GlobalNotice';
 
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
@@ -248,6 +249,7 @@ export default function RootLayout() {
               </Stack>
             </SecurityGuard>
           </ErrorBoundary>
+          <GlobalNotice />
         </BottomSheetModalProvider>
         <StatusBar
           style={palette.statusBarStyle}

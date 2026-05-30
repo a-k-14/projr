@@ -15,7 +15,8 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
+  BackHandler
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
@@ -522,8 +523,11 @@ export default function AddTransactionModal() {
   // navigation, which adds noticeable latency to the tap→transition window.
   const isSubmittingRef = useRef(false);
 
-  const closeScreen = () => {
-    if (fromWidget === '1' || !router.canGoBack()) {
+  const closeScreen = (isCancel: boolean | object = true) => {
+    const isCancelBoolean = isCancel === true || typeof isCancel === 'object' || isCancel === undefined;
+    if (fromWidget === '1' && !isCancelBoolean) {
+      BackHandler.exitApp();
+    } else if (!router.canGoBack()) {
       router.replace('/');
     } else {
       router.back();
@@ -536,9 +540,9 @@ export default function AddTransactionModal() {
   ) => {
     if (isSynchronous) {
       runWork();
-      closeScreen();
+      closeScreen(false);
     } else {
-      closeScreen();
+      closeScreen(false);
       InteractionManager.runAfterInteractions(runWork);
     }
   };
@@ -922,21 +926,36 @@ export default function AddTransactionModal() {
         }, false);
         return;
       }
-      // For in/out add + edit we have two competing constraints:
-      //  - Widget cold launch: home mounts WITH the navigation, so the optimistic
-      //    store patches must land synchronously BEFORE closeScreen — otherwise
-      //    home paints with stale balances.
-      //  - In-app save: home is already mounted and visible. Doing the synchronous
-      //    patches before closeScreen forces React to commit a heavy home re-render
-      //    in the same batch as the modal-unmount/navigation, which adds a few ms
-      //    of perceived lag between tap and transition.
-      // So: widget path stays synchronous; in-app path defers the optimistic
-      // mutation by one frame via InteractionManager so navigation paints first
-      // and the balance ticks in ~16 ms later.
+      // For in/out add + edit, the store's optimistic patch runs SYNCHRONOUSLY
+      // (balance delta + transaction insert) before its first await. We apply it
+      // BEFORE navigating so the screen underneath the modal (home/account/activity/
+      // etc.) re-renders with correct values while still occluded — when the modal
+      // slides away it's already up to date, with no visible "tick". The DB write
+      // and reni widget refresh continue in the background.
       const runMutation = isEditing && editId
         ? () => updateTransaction(editId, data)
         : () => addTransaction(data);
-      const runAfterClose = () => {
+
+      if (fromWidget === '1') {
+        if (showDatePicker) setShowDatePicker(false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        try {
+          await runMutation();
+          try {
+            await updateAllReniWidgets();
+          } catch (widgetErr) {
+            console.warn('Failed to update widgets:', widgetErr);
+          }
+          BackHandler.exitApp();
+        } catch (e) {
+          showAlert('Error', String(e));
+          isSubmittingRef.current = false;
+        }
+        return;
+      }
+
+      const applyMutationOptimistically = () => {
         if (showDatePicker) setShowDatePicker(false);
         clearSplitRows();
         persistLastAccountEagerly();
@@ -944,7 +963,7 @@ export default function AddTransactionModal() {
           .then(() => updateAllReniWidgets().catch(() => undefined))
           .catch((e) => showAlert('Error', String(e)));
       };
-      closeScreenAndExecute(runAfterClose, fromWidget === '1');
+      closeScreenAndExecute(applyMutationOptimistically, true);
     } catch (e) {
       showAlert('Error', String(e));
       isSubmittingRef.current = false;

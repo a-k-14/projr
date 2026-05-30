@@ -1,8 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, ScrollView, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppSwitch } from '../../components/ui/AppSwitch';
 import { ChoiceRow } from '../../components/settings-ui';
@@ -82,11 +81,15 @@ export default function BackupScreen() {
             try {
               const success = await importBackup();
               if (success) {
-                updateSettings({ lastRestoreAt: new Date().toISOString() }).catch(() => undefined);
+                // Do NOT write to the DB here — the open connection still points at
+                // the pre-restore database, so any write could checkpoint stale data
+                // over the file we just restored. Close the app immediately so it
+                // reopens with a fresh connection on the restored file.
                 Alert.alert(
                   'Restore Complete',
-                  'Backup file copied. Please close and reopen the app to load the restored data.',
-                  [{ text: 'OK', onPress: () => router.back() }]
+                  'Your backup has been restored. The app will now close — reopen it to load your restored data.',
+                  [{ text: 'Close App', onPress: () => BackHandler.exitApp() }],
+                  { cancelable: false }
                 );
               }
             } catch (e: any) {

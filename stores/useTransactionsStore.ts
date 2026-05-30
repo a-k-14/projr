@@ -5,6 +5,10 @@ import { TRANSACTIONS_PAGE_SIZE as PAGE_SIZE } from '../lib/layoutTokens';
 import { getTransactionBalanceDelta } from '../lib/transactionImpact';
 import { useAccountsStore } from './useAccountsStore';
 import { useLoansStore } from './useLoansStore';
+import { useGlobalNotice } from './useGlobalNotice';
+
+const SAVE_FAILED_MESSAGE = 'Error in saving the last transaction. Please try again.';
+const DELETE_FAILED_MESSAGE = 'Error in deleting the last transaction. Please try again.';
 import { generateId } from '../lib/ids';
 import { nowUTC } from '../lib/dateUtils';
 
@@ -16,6 +20,7 @@ interface TransactionsStore {
   isLoadingMore: boolean;
   mutationVersion: number;
   lastAddedTx: Transaction | null;
+  pendingWrites: number;
   load: (filters?: TransactionFilters) => Promise<void>;
   reset: () => void;
   trimToFirstPage: () => void;
@@ -34,8 +39,22 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   isLoadingMore: false,
   mutationVersion: 0,
   lastAddedTx: null,
+  pendingWrites: 0,
 
   load: async (filters) => {
+    // Wait for any in-flight writes to commit first
+    if (get().pendingWrites > 0) {
+      await new Promise<void>((resolve) => {
+        let attempts = 0;
+        const check = () => {
+          attempts++;
+          if (get().pendingWrites === 0 || attempts > 50) return resolve();
+          setTimeout(check, 40);
+        };
+        check();
+      });
+    }
+
     const f = { ...get().filters, ...filters, limit: PAGE_SIZE, offset: 0 };
     const txs = await transactionsService.getTransactions(f);
     set({ transactions: txs, filters: f, isLoaded: true, hasMore: txs.length === PAGE_SIZE, isLoadingMore: false });
@@ -48,6 +67,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       isLoaded: false,
       hasMore: true,
       isLoadingMore: false,
+      pendingWrites: 0,
     });
   },
 
@@ -88,26 +108,28 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   },
 
   add: async (data) => {
-    // Pre-await optimistic patch: applied SYNCHRONOUSLY so callers that fire-and-forget
-    // this (e.g. the add-transaction modal) can navigate immediately and have stores
-    // already reflect the new transaction by the time the next screen paints. The DB
-    // write happens in the background; on success we swap the synthetic id for the
-    // real one, on failure we revert state and rethrow.
-    //
-    // Loans/deposits skip optimistic patching — their service layer does async category
-    // derivation and cross-store side effects (loans/deposits stores) that are tricky
-    // to mirror exactly. Those flows already use a cheap mounted-screen rerender.
-    const canOptimistic =
-      data.type === 'in' || data.type === 'out' || data.type === 'transfer';
-    if (!canOptimistic) {
-      const tx = await transactionsService.createTransaction(data);
-      set((state) => ({
-        transactions: insertTransaction(state.transactions, tx),
-        mutationVersion: state.mutationVersion + 1,
-        lastAddedTx: tx,
-      }));
-      return tx;
-    }
+    set((state) => ({ pendingWrites: state.pendingWrites + 1 }));
+    try {
+      // Pre-await optimistic patch: applied SYNCHRONOUSLY so callers that fire-and-forget
+      // this (e.g. the add-transaction modal) can navigate immediately and have stores
+      // already reflect the new transaction by the time the next screen paints. The DB
+      // write happens in the background; on success we swap the synthetic id for the
+      // real one, on failure we revert state and rethrow.
+      //
+      // Loans/deposits skip optimistic patching — their service layer does async category
+      // derivation and cross-store side effects (loans/deposits stores) that are tricky
+      // to mirror exactly. Those flows already use a cheap mounted-screen rerender.
+      const canOptimistic =
+        data.type === 'in' || data.type === 'out' || data.type === 'transfer';
+      if (!canOptimistic) {
+        const tx = await transactionsService.createTransaction(data);
+        set((state) => ({
+          transactions: insertTransaction(state.transactions, tx),
+          mutationVersion: state.mutationVersion + 1,
+          lastAddedTx: tx,
+        }));
+        return tx;
+      }
 
     const syntheticId = generateId();
     const transferPairId = data.type === 'transfer' ? generateId() : undefined;
@@ -165,12 +187,18 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         mutationVersion: state.mutationVersion + 1,
       }));
       applyAccountDeltas(-1);
+      useGlobalNotice.getState().show(SAVE_FAILED_MESSAGE);
       throw error;
+    }
+    } finally {
+      set((state) => ({ pendingWrites: Math.max(0, state.pendingWrites - 1) }));
     }
   },
 
   update: async (id, data) => {
-    const originalTx = get().transactions.find((t) => t.id === id);
+    set((state) => ({ pendingWrites: state.pendingWrites + 1 }));
+    try {
+      const originalTx = get().transactions.find((t) => t.id === id);
     // Pre-await optimistic patch for plain in/out edits. Skip transfers (two-leg
     // accounting handled by updateTransferTransaction) and anything loan/deposit-linked
     // (cross-store side effects).
@@ -245,12 +273,18 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       }));
       accounts.applyBalanceDelta(optimistic.accountId, -newDelta);
       accounts.applyBalanceDelta(originalTx!.accountId, oldDelta);
+      useGlobalNotice.getState().show(SAVE_FAILED_MESSAGE);
       throw error;
+    }
+    } finally {
+      set((state) => ({ pendingWrites: Math.max(0, state.pendingWrites - 1) }));
     }
   },
 
   remove: async (id) => {
-    let originalTx = get().transactions.find((t) => t.id === id);
+    set((state) => ({ pendingWrites: state.pendingWrites + 1 }));
+    try {
+      let originalTx = get().transactions.find((t) => t.id === id);
     if (!originalTx) {
       originalTx = await transactionsService.getTransactionById(id) || undefined;
     }
@@ -302,7 +336,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         mutationVersion: state.mutationVersion + 1,
       }));
       accounts.applyBalanceDelta(snapshot.accountId, oldDelta);
+      useGlobalNotice.getState().show(DELETE_FAILED_MESSAGE);
       throw error;
+    }
+    } finally {
+      set((state) => ({ pendingWrites: Math.max(0, state.pendingWrites - 1) }));
     }
   },
 
