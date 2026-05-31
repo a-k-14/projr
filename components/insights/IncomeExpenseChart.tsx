@@ -1,5 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Pressable, TouchableOpacity, View } from 'react-native';
+// Gesture-handler ScrollView (not RN's) so the horizontal bar strip still scrolls
+// when the chart is nested inside a @gorhom/bottom-sheet (expanded mode) — RNGH
+// bottom sheets don't release horizontal pans to a plain RN ScrollView. Works in
+// the inline (non-sheet) context too.
+import { ScrollView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { BucketType, ChartGranularity } from '../../lib/chartUtils';
 import { APP_LOCALE, toLocalDateKey } from '../../lib/dateUtils';
@@ -218,137 +223,116 @@ export function IncomeExpenseChart({
     return item.label;                                                            // fallback (shouldn't hit)
   }, [monthlyBucketsSpanYears, data]);
 
-  const isScrollable = data.length > 7;
+  const isScrollable = data.length > 6;
 
   // Memoise the heavy bars JSX. It only depends on data + activeIdx + palette + formatBottomLabel —
   // NOT on granularity/isLoading/period. So tapping a chip skips re-rendering all the bars,
   // which is what makes the chip + mask appear instantly.
   const barsContent = useMemo(() => {
-    const selectionBg = { position: 'absolute' as const, top: 0, bottom: 0, left: 0, right: 0, backgroundColor: surfaceColor + '66', borderTopLeftRadius: 8, borderTopRightRadius: 8 };
+    const renderBucket = (bucket: typeof data[0], i: number) => {
+      const isSelected = activeIdx === i;
+      const anySelected = activeIdx !== null;
+      const opacity = anySelected ? (isSelected ? 1 : 0.65) : 1;
+      const incAbs = Math.abs(bucket.income);
+      const expAbs = Math.abs(bucket.expense);
+      const incOutlined = bucket.income < 0;
+      const expOutlined = bucket.expense < 0;
+      const incHeight = incAbs > 0 ? Math.max(2, Math.round((incAbs / maxValue) * 90)) : 0;
+      const expHeight = expAbs > 0 ? Math.max(2, Math.round((expAbs / maxValue) * 90)) : 0;
+
+      // Adjust these constants to customize bar thickness and spacing:
+      // - BUCKET_W: The total width of each day/week/month column
+      // - BAR_W: The width/thickness of each individual bar (Income / Expense)
+      // - BAR_GAP: The space between the income and expense bars
+      const BUCKET_W = 48;
+      const BAR_W = 16;
+      const BAR_GAP = 2;
+
+      return (
+        <Pressable
+          key={bucket.label + i}
+          onPress={() => {
+            const next = activeIdx === i ? null : i;
+            setActiveIdx(next);
+            onBucketPress?.(next !== null ? bucket : null);
+          }}
+          style={{ width: BUCKET_W, height: '100%', alignItems: 'center', opacity, paddingBottom: 6 }}
+        >
+          {isSelected && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: surfaceColor + '66',
+                borderRadius: 8,
+              }}
+            />
+          )}
+          <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: BAR_GAP, zIndex: 1 }}>
+              {incHeight > 0 && (
+                <View style={{
+                  width: BAR_W,
+                  height: incHeight,
+                  backgroundColor: incOutlined ? `${incomeColor}13` : incomeColor,
+                  borderColor: incomeColor,
+                  borderWidth: incOutlined ? 1.5 : 0,
+                  borderTopLeftRadius: 4,
+                  borderTopRightRadius: 4,
+                }} />
+              )}
+              {expHeight > 0 && (
+                <View style={{
+                  width: BAR_W,
+                  height: expHeight,
+                  backgroundColor: expOutlined ? `${expenseColor}13` : expenseColor,
+                  borderColor: expenseColor,
+                  borderWidth: expOutlined ? 1.5 : 0,
+                  borderTopLeftRadius: 4,
+                  borderTopRightRadius: 4,
+                }} />
+              )}
+            </View>
+          </View>
+          <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.text, fontWeight: isSelected ? '700' : '600', marginTop: 6, zIndex: 1 }}>
+            {formatBottomLabel(bucket)}
+          </Text>
+        </Pressable>
+      );
+    };
+
     return isScrollable ? (
       <ScrollView
         ref={barsScrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
+        directionalLockEnabled
         contentContainerStyle={{
           alignItems: 'flex-end',
           height: 120,
-          paddingHorizontal: 4,
-          gap: 6,
+          paddingHorizontal: 8,
+          gap: 8,
         }}
       >
-        {data.map((bucket, i) => {
-          const isSelected = activeIdx === i;
-          const anySelected = activeIdx !== null;
-          const opacity = anySelected ? (isSelected ? 1 : 0.65) : 1;
-          const incAbs = Math.abs(bucket.income);
-          const expAbs = Math.abs(bucket.expense);
-          const incOutlined = bucket.income < 0;
-          const expOutlined = bucket.expense < 0;
-          const incHeight = incAbs > 0 ? Math.max(2, Math.round((incAbs / maxValue) * 90)) : 0;
-          const expHeight = expAbs > 0 ? Math.max(2, Math.round((expAbs / maxValue) * 90)) : 0;
-          return (
-            <Pressable
-              key={bucket.label + i}
-              onPress={() => {
-                const next = activeIdx === i ? null : i;
-                setActiveIdx(next);
-                onBucketPress?.(next !== null ? bucket : null);
-              }}
-              style={{ width: 48, height: '100%', alignItems: 'center', opacity }}
-            >
-              <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
-                {isSelected && <View style={selectionBg} />}
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
-                  {incHeight > 0 && (
-                    <View style={{
-                      width: 14,
-                      height: incHeight,
-                      backgroundColor: incOutlined ? `${incomeColor}13` : incomeColor,
-                      borderColor: incomeColor,
-                      borderWidth: incOutlined ? 1.5 : 0,
-                      borderTopLeftRadius: 4,
-                      borderTopRightRadius: 4,
-                    }} />
-                  )}
-                  {expHeight > 0 && (
-                    <View style={{
-                      width: 14,
-                      height: expHeight,
-                      backgroundColor: expOutlined ? `${expenseColor}13` : expenseColor,
-                      borderColor: expenseColor,
-                      borderWidth: expOutlined ? 1.5 : 0,
-                      borderTopLeftRadius: 4,
-                      borderTopRightRadius: 4,
-                    }} />
-                  )}
-                </View>
-              </View>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.text, fontWeight: isSelected ? '700' : '600', marginTop: 6 }}>
-                {formatBottomLabel(bucket)}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {data.map(renderBucket)}
       </ScrollView>
     ) : (
-      <View style={{ height: 120, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around' }}>
-        {data.map((bucket, i) => {
-          const isSelected = activeIdx === i;
-          const anySelected = activeIdx !== null;
-          const opacity = anySelected ? (isSelected ? 1 : 0.65) : 1;
-          const incAbs = Math.abs(bucket.income);
-          const expAbs = Math.abs(bucket.expense);
-          const incOutlined = bucket.income < 0;
-          const expOutlined = bucket.expense < 0;
-          const incHeight = incAbs > 0 ? Math.max(2, Math.round((incAbs / maxValue) * 90)) : 0;
-          const expHeight = expAbs > 0 ? Math.max(2, Math.round((expAbs / maxValue) * 90)) : 0;
-          return (
-            <Pressable
-              key={bucket.label + i}
-              onPress={() => {
-                const next = activeIdx === i ? null : i;
-                setActiveIdx(next);
-                onBucketPress?.(next !== null ? bucket : null);
-              }}
-              style={{ flex: 1, maxWidth: 64, height: '100%', justifyContent: 'flex-end', alignItems: 'center', opacity }}
-            >
-              {isSelected && (
-                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 2, right: 2, backgroundColor: surfaceColor + '66', borderRadius: 8 }} />
-              )}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, zIndex: 1 }}>
-                {incHeight > 0 && (
-                  <View style={{
-                    width: '38%',
-                    height: incHeight,
-                    backgroundColor: incOutlined ? `${incomeColor}13` : incomeColor,
-                    borderColor: incomeColor,
-                    borderWidth: incOutlined ? 1.5 : 0,
-                    borderTopLeftRadius: 4,
-                    borderTopRightRadius: 4,
-                  }} />
-                )}
-                {expHeight > 0 && (
-                  <View style={{
-                    width: '38%',
-                    height: expHeight,
-                    backgroundColor: expOutlined ? `${expenseColor}13` : expenseColor,
-                    borderColor: expenseColor,
-                    borderWidth: expOutlined ? 1.5 : 0,
-                    borderTopLeftRadius: 4,
-                    borderTopRightRadius: 4,
-                  }} />
-                )}
-              </View>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.text, fontWeight: isSelected ? '700' : '600', marginTop: 6 }}>
-                {formatBottomLabel(bucket)}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View
+        style={{
+          height: 120,
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          gap: 8,
+        }}
+      >
+        {data.map(renderBucket)}
       </View>
     );
-  }, [isScrollable, data, activeIdx, maxValue, palette, incomeColor, expenseColor, formatBottomLabel]);
+  }, [isScrollable, data, activeIdx, maxValue, palette, incomeColor, expenseColor, formatBottomLabel, surfaceColor, onBucketPress]);
 
   return (
     <View
@@ -383,14 +367,14 @@ export function IncomeExpenseChart({
           )}
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           {activeItem ? (
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
-                Income: <Text style={{ color: incomeColor, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.income < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.income), sym)}</Text>
+              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginBottom: 2 }}>
+                Income: <Text style={{ color: palette.numberPositive, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.income < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.income), sym)}</Text>
               </Text>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 2 }}>
-                Expense: <Text style={{ color: expenseColor, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.expense < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.expense), sym)}</Text>
+              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginBottom: 2 }}>
+                Expense: <Text style={{ color: palette.numberNegative, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.expense < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.expense), sym)}</Text>
               </Text>
               <View style={{ height: 1, width: 90, alignSelf: 'flex-end', backgroundColor: palette.divider, marginVertical: 3 }} />
               <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted }}>

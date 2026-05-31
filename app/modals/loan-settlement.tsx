@@ -347,9 +347,9 @@ export default function LoanSettlementModal() {
         visible={showCalculator}
         value={amountStr.replace(/,/g, '')}
         palette={palette}
-        brandColor={palette.loan}
-        brandSoft={palette.loanSoft}
-        brandOnColor={palette.onLoan}
+        brandColor={palette.brand}
+        brandSoft={palette.brandSoft}
+        brandOnColor={palette.onBrand}
         onClose={() => setShowCalculator(false)}
         onApply={(finalValue) => {
           setShowCalculator(false);

@@ -21,7 +21,8 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { PeriodSelector } from '../../components/ui/PeriodSelector';
 
-import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
+import { DateGroupedTransactionSheetList } from '../../components/DateGroupedTransactionSheetList';
+import { SheetScrollTopButton } from '../../components/ui/SheetScrollTopButton';
 import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import { getAutoBucketType, getAvailableGranularities, getTimeBuckets, type ChartGranularity } from '../../lib/chartUtils';
@@ -87,6 +88,40 @@ export default function InsightsScreen() {
   const [expandedSheetTxs, setExpandedSheetTxs] = useState<Transaction[]>([]);
   const [incExpExpanded, setIncExpExpanded] = useState(false);
   const [incExpBucketFilter, setIncExpBucketFilter] = useState<{ from: string; to: string } | null>(null);
+
+  // Scroll-to-top affordance for the expanded sheets. One ref/state serves whichever
+  // sheet is open (only one mounts at a time).
+  const sheetListRef = useRef<any>(null);
+  const [showSheetScrollTop, setShowSheetScrollTop] = useState(false);
+  const lastShowSheetTopRef = useRef(false);
+  const isScrollingToTopRef = useRef(false);
+
+  const handleSheetScroll = useCallback((offsetY: number) => {
+    if (isScrollingToTopRef.current) {
+      if (offsetY <= 0) {
+        isScrollingToTopRef.current = false;
+      }
+      return;
+    }
+    const next = offsetY > 240;
+    if (next !== lastShowSheetTopRef.current) {
+      lastShowSheetTopRef.current = next;
+      setShowSheetScrollTop(next);
+    }
+  }, []);
+
+  const scrollSheetToTop = useCallback(() => {
+    isScrollingToTopRef.current = true;
+    sheetListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    lastShowSheetTopRef.current = false;
+    setShowSheetScrollTop(false);
+  }, []);
+
+  const resetSheetScrollTop = useCallback(() => {
+    isScrollingToTopRef.current = false;
+    lastShowSheetTopRef.current = false;
+    setShowSheetScrollTop(false);
+  }, []);
 
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
@@ -496,49 +531,51 @@ export default function InsightsScreen() {
           onClose={() => {
             setExpandedChartState(null);
             setExpandedSheetTxs([]);
+            resetSheetScrollTop();
           }}
           maxHeightRatio={BOTTOM_SHEET_TOKENS.insightsMaxHeight}
           fixedHeightRatio={BOTTOM_SHEET_TOKENS.insightsMaxHeight}
           hasNavBar
+          bareContent
+          titleRight={<SheetScrollTopButton visible={showSheetScrollTop} onPress={scrollSheetToTop} palette={palette} />}
         >
-          <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 0, backgroundColor: palette.background }}>
-            {/* Donut + category list — no internal scroll, no internal transactions */}
-            <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, overflow: 'hidden' }}>
-              <CategoryDonutChartBlock
-                transactions={expandedChartState.transactions}
-                categoriesById={categoriesById}
-                sym={showCurrencySymbol ? currencySymbol : ''}
-                listPalette={palette}
-                getCategoryFullDisplayName={getCategoryFullDisplayName}
-                theme={chartTheme}
-                expanded
-                disableScroll
-                externalTransactions
-                onSelectedTransactionsChange={setExpandedSheetTxs}
-                initialMode={expandedChartState.mode}
-                resetTrigger={expandedChartState.resetTrigger}
-                accountsById={accountsById}
-                loansById={loansById}
-                onTransactionPress={handleTransactionPress}
-              />
-            </View>
-
-            {/* Transactions — date-grouped, outside the card */}
-            <View style={{ marginTop: 20, paddingBottom: 24 }}>
-              <DateGroupedTransactionList
-                transactions={expandedSheetTxs}
-                palette={palette}
-                sym={showCurrencySymbol ? currencySymbol : ''}
-                categoriesById={categoriesById}
-                accountsById={accountsById}
-                loansById={loansById}
-                tagNamesById={tagNamesById}
-                getCategoryFullDisplayName={getCategoryFullDisplayName}
-                onTransactionPress={handleTransactionPress}
-                emptyText="No transactions"
-              />
-            </View>
-          </View>
+          <DateGroupedTransactionSheetList
+            transactions={expandedSheetTxs}
+            palette={palette}
+            sym={showCurrencySymbol ? currencySymbol : ''}
+            categoriesById={categoriesById}
+            accountsById={accountsById}
+            loansById={loansById}
+            tagNamesById={tagNamesById}
+            getCategoryFullDisplayName={getCategoryFullDisplayName}
+            onTransactionPress={handleTransactionPress}
+            emptyText="No transactions"
+            contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 24 }}
+            listRef={sheetListRef}
+            onScrollSettle={handleSheetScroll}
+            ListHeaderComponent={
+              // Donut + category list — no internal scroll, no internal transactions
+              <View style={{ backgroundColor: palette.card, borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.divider, overflow: 'hidden' }}>
+                <CategoryDonutChartBlock
+                  transactions={expandedChartState.transactions}
+                  categoriesById={categoriesById}
+                  sym={showCurrencySymbol ? currencySymbol : ''}
+                  listPalette={palette}
+                  getCategoryFullDisplayName={getCategoryFullDisplayName}
+                  theme={chartTheme}
+                  expanded
+                  disableScroll
+                  externalTransactions
+                  onSelectedTransactionsChange={setExpandedSheetTxs}
+                  initialMode={expandedChartState.mode}
+                  resetTrigger={expandedChartState.resetTrigger}
+                  accountsById={accountsById}
+                  loansById={loansById}
+                  onTransactionPress={handleTransactionPress}
+                />
+              </View>
+            }
+          />
         </BottomSheet>
       ) : null}
 
@@ -551,48 +588,52 @@ export default function InsightsScreen() {
           onClose={() => {
             setIncExpExpanded(false);
             setIncExpBucketFilter(null);
+            resetSheetScrollTop();
           }}
           maxHeightRatio={BOTTOM_SHEET_TOKENS.insightsMaxHeight}
           fixedHeightRatio={BOTTOM_SHEET_TOKENS.insightsMaxHeight}
           hasNavBar
+          bareContent
+          titleRight={<SheetScrollTopButton visible={showSheetScrollTop} onPress={scrollSheetToTop} palette={palette} />}
         >
-          <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 24 }}>
-            <IncomeExpenseChart
-              data={incomeExpenseData}
-              palette={palette}
-              sym={showCurrencySymbol ? currencySymbol : ''}
-              period={period}
-              subtitle={PERIOD_LABELS[period]}
-              granularity={incomeExpenseGranularity}
-              onGranularityChange={handleGranularityChange}
-              availableGranularities={availableGranularities}
-              autoBucketType={autoBucketType}
-              isLoading={isLoadingTrend}
-              onBucketPress={(bucket) => {
-                // Defer the list filter update to the next frame so the bar highlight
-                // paints first — makes the tap feel instant.
-                requestAnimationFrame(() => {
-                  setIncExpBucketFilter(
-                    bucket?.from && bucket?.to ? { from: bucket.from, to: bucket.to } : null,
-                  );
-                });
-              }}
-            />
-            <View style={{ marginTop: 8 }}>
-              <DateGroupedTransactionList
-                transactions={incExpVisibleTxs}
+          <DateGroupedTransactionSheetList
+            transactions={incExpVisibleTxs}
+            palette={palette}
+            sym={showCurrencySymbol ? currencySymbol : ''}
+            categoriesById={categoriesById}
+            accountsById={accountsById}
+            loansById={loansById}
+            tagNamesById={tagNamesById}
+            getCategoryFullDisplayName={getCategoryFullDisplayName}
+            onTransactionPress={handleTransactionPress}
+            emptyText="No transactions in this period"
+            contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 24 }}
+            listRef={sheetListRef}
+            onScrollSettle={handleSheetScroll}
+            ListHeaderComponent={
+              <IncomeExpenseChart
+                data={incomeExpenseData}
                 palette={palette}
                 sym={showCurrencySymbol ? currencySymbol : ''}
-                categoriesById={categoriesById}
-                accountsById={accountsById}
-                loansById={loansById}
-                tagNamesById={tagNamesById}
-                getCategoryFullDisplayName={getCategoryFullDisplayName}
-                onTransactionPress={handleTransactionPress}
-                emptyText="No transactions in this period"
+                period={period}
+                subtitle={PERIOD_LABELS[period]}
+                granularity={incomeExpenseGranularity}
+                onGranularityChange={handleGranularityChange}
+                availableGranularities={availableGranularities}
+                autoBucketType={autoBucketType}
+                isLoading={isLoadingTrend}
+                onBucketPress={(bucket) => {
+                  // Defer the list filter update to the next frame so the bar highlight
+                  // paints first — makes the tap feel instant.
+                  requestAnimationFrame(() => {
+                    setIncExpBucketFilter(
+                      bucket?.from && bucket?.to ? { from: bucket.from, to: bucket.to } : null,
+                    );
+                  });
+                }}
               />
-            </View>
-          </View>
+            }
+          />
         </BottomSheet>
       ) : null}
     </View>

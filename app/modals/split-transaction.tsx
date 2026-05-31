@@ -16,6 +16,7 @@ import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
 import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
+import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import type { Category, TransactionType } from '../../types';
@@ -167,7 +168,7 @@ export default function SplitTransactionModal() {
       {/* Frozen toolbar — outside ScrollView */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: SCREEN_GUTTER, paddingBottom: 8, marginTop: -10 }}>
         <Pressable
-          onPress={() => setShowCalculator(true)}
+          onPress={() => runAfterKeyboardDismiss(() => setShowCalculator(true))}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
         >
@@ -254,7 +255,9 @@ export default function SplitTransactionModal() {
         visible={showCalculator}
         value=""
         palette={palette}
-        brandColor={amountColor}
+        brandColor={palette.brand}
+        brandSoft={palette.brandSoft}
+        brandOnColor={palette.onBrand}
         onClose={() => setShowCalculator(false)}
         onApply={() => setShowCalculator(false)}
       />

@@ -216,9 +216,9 @@ export default function BudgetFormModal() {
         visible={showCalculator}
         value={amountStr.replace(/,/g, '')}
         palette={palette}
-        brandColor={palette.budget}
-        brandSoft={palette.budgetSoft}
-        brandOnColor={palette.onBudget}
+        brandColor={palette.brand}
+        brandSoft={palette.brandSoft}
+        brandOnColor={palette.onBrand}
         onClose={() => setShowCalculator(false)}
         onApply={(finalValue: string) => {
           setShowCalculator(false);

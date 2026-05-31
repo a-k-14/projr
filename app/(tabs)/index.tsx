@@ -566,6 +566,73 @@ const TICK_TOTAL = Math.floor((TICK_CONTAINER_W + TICK_GAP) / (TICK_W + TICK_GAP
 const TICK_CONTENT_W = TICK_TOTAL * (TICK_W + TICK_GAP) - TICK_GAP;
 const TICK_REMAINDER = TICK_CONTAINER_W - TICK_CONTENT_W;
 
+// ── Metric spring: each number that actually changed springs up ──────────────
+// Runs ALONGSIDE the silent-optimistic value update — the value still snaps,
+// the motion just acknowledges "this one updated." A tx mutation bumps
+// `tweenTrigger`, which ARMS the animation; the side whose amount then changes
+// springs — whether that change lands in the same frame (optimistic add) or a
+// beat later after a DB reload (delete/edit). The arm survives that gap (up to
+// ~1.2s) so every kind of update animates consistently, then disarms once a
+// change is acknowledged (or the window lapses) so an unrelated period/cashflow
+// toggle — which never bumps the trigger — can't borrow a stale arm. Shared by
+// the home hero strip and every per-account hero card so both read identically.
+const METRIC_ARM_WINDOW_MS = 1200;
+
+function useMetricSprings(tweenTrigger: number, leftAmount: number, rightAmount: number) {
+  const leftSpring = useSharedValue(0);
+  const rightSpring = useSharedValue(0);
+  const lastTweenTriggerRef = useRef(tweenTrigger);
+  // 0 = disarmed; otherwise the timestamp the trigger last bumped.
+  const armedStampRef = useRef(0);
+  const lastLeftAmountRef = useRef(leftAmount);
+  const lastRightAmountRef = useRef(rightAmount);
+
+  useEffect(() => {
+    if (tweenTrigger !== lastTweenTriggerRef.current) {
+      lastTweenTriggerRef.current = tweenTrigger;
+      armedStampRef.current = performance.now();
+    }
+
+    const leftChanged = leftAmount !== lastLeftAmountRef.current;
+    const rightChanged = rightAmount !== lastRightAmountRef.current;
+    lastLeftAmountRef.current = leftAmount;
+    lastRightAmountRef.current = rightAmount;
+
+    if (armedStampRef.current === 0) return;
+    if (performance.now() - armedStampRef.current > METRIC_ARM_WINDOW_MS) {
+      armedStampRef.current = 0;
+      return;
+    }
+
+    const springUp = (sv: typeof leftSpring) => {
+      sv.value = -4;
+      sv.value = withSpring(0, { damping: 12, stiffness: 220, mass: 0.6 });
+    };
+
+    if (leftChanged) springUp(leftSpring);
+    if (rightChanged) springUp(rightSpring);
+    if (leftChanged || rightChanged) armedStampRef.current = 0; // consumed
+  }, [tweenTrigger, leftAmount, rightAmount, leftSpring, rightSpring]);
+
+  const leftSpringStyle = useAnimatedStyle(() => ({ transform: [{ translateY: leftSpring.value }] }));
+  const rightSpringStyle = useAnimatedStyle(() => ({ transform: [{ translateY: rightSpring.value }] }));
+
+  return { leftSpringStyle, rightSpringStyle };
+}
+
+// Wraps a metric number so it slides up when its value changes. Feed it a spring
+// style from useMetricSprings; keeps the slide identical across hero + account cards.
+function AnimatedMetricValue({
+  style,
+  children,
+}: {
+  // Animated style from useMetricSprings (translateY worklet).
+  style: ReturnType<typeof useMetricSprings>['leftSpringStyle'];
+  children: React.ReactNode;
+}) {
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
 function AccountSummaryCard({
   accountName,
   accountTypeLabel,
@@ -690,48 +757,34 @@ function AccountSummaryCard({
   const metricLeftAmount = isCashflow ? (cashflowSummary?.in ?? 0) : (incomeExpense?.income ?? 0);
   const metricRightAmount = isCashflow ? (cashflowSummary?.out ?? 0) : (incomeExpense?.expense ?? 0);
 
-  // ── Hero metric spring: each number that actually changes springs up ────
-  // Runs ALONGSIDE the silent-optimistic value update — value still snaps,
-  // motion just acknowledges "this one updated." Triggered when (a) a tx
-  // event bumped `tweenTrigger` recently AND (b) THIS side's amount
-  // actually changed. So adding an income animates only Income; adding an
-  // expense animates only Expense. UI toggles (Cashflow on/off, period
-  // swap) don't bump the trigger and stay silent.
-  const leftSpring = useSharedValue(0);
-  const rightSpring = useSharedValue(0);
-  const lastTweenTriggerRef = useRef(tweenTrigger);
-  const lastTriggerStampRef = useRef(0);
-  const lastLeftAmountRef = useRef(metricLeftAmount);
-  const lastRightAmountRef = useRef(metricRightAmount);
-  useEffect(() => {
-    if (tweenTrigger !== lastTweenTriggerRef.current) {
-      lastTweenTriggerRef.current = tweenTrigger;
-      lastTriggerStampRef.current = performance.now();
+  // Slide-up acknowledgement for whichever metric just changed — shared by the
+  // home hero strip and the per-account hero card. See useMetricSprings.
+  const { leftSpringStyle, rightSpringStyle } = useMetricSprings(
+    tweenTrigger,
+    metricLeftAmount,
+    metricRightAmount,
+  );
+
+  // Home-hero metric value with de-emphasised decimals — mirrors the big balance
+  // and the per-account card so cents read smaller/muted instead of full size.
+  const renderHeroMetricValue = (amount: number): React.ReactNode => {
+    if (hideAmounts) return '••••';
+    if (amount === 0) return '—';
+    const sign = amount < 0 ? '-' : '';
+    const formatted = formatCurrency(Math.abs(amount), currencySymbol);
+    const dotIdx = formatted.lastIndexOf('.');
+    if (dotIdx >= 0 && dotIdx > formatted.length - 4) {
+      return (
+        <Text>
+          {sign}{formatted.slice(0, dotIdx)}
+          <Text style={{ fontSize: 11, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
+            {formatted.slice(dotIdx)}
+          </Text>
+        </Text>
+      );
     }
-    // "Fresh trigger" window — amounts often arrive a render or two after
-    // the trigger bumps (parent optimistic patch lives in its own effect).
-    const triggerFresh = performance.now() - lastTriggerStampRef.current < 500;
-    const leftChanged = metricLeftAmount !== lastLeftAmountRef.current;
-    const rightChanged = metricRightAmount !== lastRightAmountRef.current;
-
-    const springUp = (sv: typeof leftSpring) => {
-      sv.value = -4;
-      sv.value = withSpring(0, { damping: 12, stiffness: 220, mass: 0.6 });
-    };
-
-    if (triggerFresh && leftChanged && metricLeftAmount !== 0) springUp(leftSpring);
-    if (triggerFresh && rightChanged && metricRightAmount !== 0) springUp(rightSpring);
-
-    lastLeftAmountRef.current = metricLeftAmount;
-    lastRightAmountRef.current = metricRightAmount;
-  }, [tweenTrigger, metricLeftAmount, metricRightAmount, leftSpring, rightSpring]);
-
-  const leftSpringStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: leftSpring.value }],
-  }));
-  const rightSpringStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: rightSpring.value }],
-  }));
+    return `${sign}${formatted}`;
+  };
 
   const periodOptions = PERIODS.map((item) => ({ key: item, label: PERIOD_LABELS[item] }));
 
@@ -1074,18 +1127,22 @@ function AccountSummaryCard({
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <AppIcon name="arrow-down-left" size={15} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
-                        <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
-                          {hideAmounts ? '••••' : leftIsZero ? '—' : (
-                            <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
-                          )}
-                        </Text>
+                        <AnimatedMetricValue style={leftSpringStyle}>
+                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                            {hideAmounts ? '••••' : leftIsZero ? '—' : (
+                              <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
+                            )}
+                          </Text>
+                        </AnimatedMetricValue>
                       </TouchableOpacity>
                       <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
-                          {hideAmounts ? '••••' : rightIsZero ? '—' : (
-                            <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
-                          )}
-                        </Text>
+                        <AnimatedMetricValue style={rightSpringStyle}>
+                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                            {hideAmounts ? '••••' : rightIsZero ? '—' : (
+                              <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
+                            )}
+                          </Text>
+                        </AnimatedMetricValue>
                         <AppIcon name="arrow-up-right" size={15} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
                       </TouchableOpacity>
                     </View>
@@ -1181,7 +1238,7 @@ function AccountSummaryCard({
                       leftSpringStyle,
                     ]}
                   >
-                    {hideAmounts ? '••••' : metricLeftAmount === 0 ? '—' : `${metricLeftAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricLeftAmount), currencySymbol)}`}
+                    {renderHeroMetricValue(metricLeftAmount)}
                   </AnimatedText>
                 </TouchableOpacity>
 
@@ -1214,7 +1271,7 @@ function AccountSummaryCard({
                       rightSpringStyle,
                     ]}
                   >
-                    {hideAmounts ? '••••' : metricRightAmount === 0 ? '—' : `${metricRightAmount < 0 ? '-' : ''}${formatCurrency(Math.abs(metricRightAmount), currencySymbol)}`}
+                    {renderHeroMetricValue(metricRightAmount)}
                   </AnimatedText>
                 </TouchableOpacity>
               </View>
@@ -1641,9 +1698,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   // Optimistic update: apply a newly-added transaction to local period state immediately,
   // before the background DB re-fetch confirms it. Makes the hero card feel instant.
   const lastAddedTx = useTransactionsStore((s) => s.lastAddedTx);
+  const lastRemovedTx = useTransactionsStore((s) => s.lastRemovedTx);
   // Bumps on every tx mutation — drives the Home hero income/expense dip cue.
   const txMutationVersion = useTransactionsStore((s) => s.mutationVersion);
   const processedOptimisticIds = useRef(new Set<string>());
+  const processedRemovedIds = useRef(new Set<string>());
   useEffect(() => {
     if (!lastAddedTx || !isScreenFocused) return;
     if (processedOptimisticIds.current.has(lastAddedTx.id)) return;
@@ -1689,6 +1748,32 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       });
     });
   }, [lastAddedTx, isScreenFocused, accountId, period, settingsYearStart, customRange]);
+
+  // Optimistic delete — mirror of the add path above. Removing a plain in/out
+  // row is the cleanest optimistic case (we know exactly which row goes), so drop
+  // it from local period/recent state and back out its cashflow impact instantly
+  // instead of waiting for the post-delete reload.
+  useEffect(() => {
+    if (!lastRemovedTx || !isScreenFocused) return;
+    if (processedRemovedIds.current.has(lastRemovedTx.id)) return;
+    processedRemovedIds.current.add(lastRemovedTx.id);
+
+    if (accountId !== 'all' && lastRemovedTx.accountId !== accountId) return;
+
+    const { from: currentFrom, to: currentTo } = getHomeDateRange(period, settingsYearStart, customRange);
+    if (lastRemovedTx.date < currentFrom || lastRemovedTx.date > currentTo) return;
+
+    setPeriodTransactions((prev) => prev.filter((t) => t.id !== lastRemovedTx.id));
+
+    const impact = getTransactionCashflowImpact(lastRemovedTx, { includeTransfers: true, includeLoans: true });
+    if (impact === 'in') {
+      setCashflow((prev) => ({ ...prev, in: prev.in - lastRemovedTx.amount, net: prev.net - lastRemovedTx.amount }));
+    } else if (impact === 'out') {
+      setCashflow((prev) => ({ ...prev, out: prev.out - lastRemovedTx.amount, net: prev.net + lastRemovedTx.amount }));
+    }
+
+    setTransactions((prev) => prev.filter((t) => t.id !== lastRemovedTx.id));
+  }, [lastRemovedTx, isScreenFocused, accountId, period, settingsYearStart, customRange]);
 
   useEffect(() => {
     if (fullResetNonce > 0) {

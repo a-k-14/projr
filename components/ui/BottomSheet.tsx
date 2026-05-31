@@ -58,6 +58,7 @@ export function BottomSheet({
   title,
   subtitle,
   headerRight,
+  titleRight,
   showHeaderTitle = true,
   footer,
   palette,
@@ -67,6 +68,7 @@ export function BottomSheet({
   hasNavBar = false,
   extraBottomPadding = 0,
   scrollEnabled = true,
+  bareContent = false,
   disableModalHeightBoost: _disableModalHeightBoost = false,
   headerBottom,
   maxHeightRatio,
@@ -78,6 +80,7 @@ export function BottomSheet({
   title: string;
   subtitle?: string;
   headerRight?: ReactNode;
+  titleRight?: ReactNode;
   showHeaderTitle?: boolean;
   footer?: ReactNode;
   palette: AppThemePalette;
@@ -87,6 +90,10 @@ export function BottomSheet({
   hasNavBar?: boolean;
   extraBottomPadding?: number;
   scrollEnabled?: boolean;
+  /** Render `children` as the sheet's direct content with no scroll/view wrapper.
+   *  Use when the child is itself the sheet's scroller (e.g. a BottomSheetFlatList),
+   *  which @gorhom requires as a direct descendant to receive scroll gestures. */
+  bareContent?: boolean;
   disableModalHeightBoost?: boolean;
   headerBottom?: ReactNode;
   maxHeightRatio?: number;
@@ -209,9 +216,12 @@ export function BottomSheet({
           <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: HEADER_TITLE_PADDING_BOTTOM }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               {showHeaderTitle ? (
-                <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
-                  {title}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: HEADER_TITLE_SIZE, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
+                    {title}
+                  </Text>
+                  {titleRight ? <View style={{ marginLeft: 10 }}>{titleRight}</View> : null}
+                </View>
               ) : (
                 <View />
               )}
@@ -233,7 +243,7 @@ export function BottomSheet({
         ) : null}
       </View>
     ),
-    [palette, showHeaderTitle, headerRight, horizontalPadding, title, subtitle],
+    [palette, showHeaderTitle, headerRight, titleRight, horizontalPadding, title, subtitle],
   );
 
   // Footer renderer:
@@ -323,7 +333,9 @@ export function BottomSheet({
       }}
     >
       {headerBottom}
-      {scrollEnabled ? (
+      {bareContent ? (
+        children
+      ) : scrollEnabled ? (
         <BottomSheetScrollView
           contentContainerStyle={[
             { paddingBottom: contentBottomPadding },

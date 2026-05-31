@@ -20,11 +20,13 @@ interface TransactionsStore {
   isLoadingMore: boolean;
   mutationVersion: number;
   lastAddedTx: Transaction | null;
+  lastRemovedTx: Transaction | null;
   pendingWrites: number;
   load: (filters?: TransactionFilters) => Promise<void>;
   reset: () => void;
   trimToFirstPage: () => void;
   loadMore: () => Promise<void>;
+  markMutated: () => void;
   add: (data: CreateTransactionInput) => Promise<Transaction>;
   update: (id: string, data: Partial<CreateTransactionInput>) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -39,6 +41,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   isLoadingMore: false,
   mutationVersion: 0,
   lastAddedTx: null,
+  lastRemovedTx: null,
   pendingWrites: 0,
 
   load: async (filters) => {
@@ -84,6 +87,12 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       };
     });
   },
+
+  // Bump the mutation version without touching the list. Used by out-of-store
+  // writes (splits, transfer edits, deposits/loans) after they've reloaded from
+  // the DB, so screens keyed on mutationVersion (account detail trend + recent
+  // list, home hero) re-fetch their derived data.
+  markMutated: () => set((state) => ({ mutationVersion: state.mutationVersion + 1 })),
 
   loadMore: async () => {
     const { filters, hasMore, isLoadingMore } = get();
@@ -319,6 +328,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     set((state) => ({
       transactions: state.transactions.filter((t) => t.id !== id),
       mutationVersion: state.mutationVersion + 1,
+      // Mirror of lastAddedTx — lets mounted screens drop this row from their
+      // local period/recent state instantly instead of waiting for a reload.
+      // Only set on the plain in/out optimistic path; cascades (split/transfer/
+      // loan/deposit) leave it untouched and fall back to the post-write reload.
+      lastRemovedTx: snapshot,
     }));
     const oldDelta = getTransactionBalanceDelta(snapshot);
     const accounts = useAccountsStore.getState();

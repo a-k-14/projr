@@ -59,7 +59,7 @@ import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-share
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { getLoanById } from '../../services/loans';
-import { createSplitTransactionGroup, deleteTransaction, getRecentNotes, getRecentPayees, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
+import { createSplitTransactionGroup, createTransaction, deleteTransaction, getRecentNotes, getRecentPayees, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
@@ -128,6 +128,7 @@ export default function AddTransactionModal() {
   const updateTransaction = useTransactionsStore((s) => s.update);
   const removeTransaction = useTransactionsStore((s) => s.remove);
   const reloadTransactions = useTransactionsStore((s) => s.load);
+  const markTxMutated = useTransactionsStore((s) => s.markMutated);
   const addLoan = useLoansStore((s) => s.add);
   const addLoanPrincipal = useLoansStore((s) => s.addPrincipal);
   const updateLoanOrigin = useLoansStore((s) => s.updateOrigin);
@@ -199,6 +200,10 @@ export default function AddTransactionModal() {
   const [showCalculator, setShowCalculator] = useState(false);
   const splitIdSeed = useRef(0);
   const hadSplitRows = useRef(false);
+  // The split group this edit was opened on (if any). Survives clearing the
+  // split rows so a split → single conversion can delete the whole original
+  // group instead of orphaning its sibling rows.
+  const originalSplitGroupIdRef = useRef('');
   const previousType = useRef<TransactionType | 'deposit'>((initialType as TransactionType | 'deposit') || 'out');
   const isHydratingEditRef = useRef(false);
   const isDepositHydratedRef = useRef(false);
@@ -416,6 +421,7 @@ export default function AddTransactionModal() {
             const first = group[0];
             const total = group.reduce((sum, item) => sum + item.amount, 0);
             setEditingSplitGroupId(tx.splitGroupId);
+            originalSplitGroupIdRef.current = tx.splitGroupId;
             setType(first.type);
             setAmountStr(formatIndianNumberStr(String(total)));
             setAccountId(first.accountId);
@@ -699,6 +705,11 @@ export default function AddTransactionModal() {
           const tasks: Promise<unknown>[] = [refreshAccounts()];
           if (refresh?.tx) tasks.push(reloadTransactions());
           await Promise.all(tasks);
+          // These background paths (splits, transfer edits, deposits, loans) write
+          // straight to the service layer, bypassing the store's own mutationVersion
+          // bump. Bump it now — after the DB-truth reload — so screens keyed on it
+          // (account detail, home hero) refresh too.
+          if (refresh?.tx) markTxMutated();
           if (refresh?.widgets) updateAllReniWidgets().catch(() => undefined);
         } catch (e) {
           showAlert('Error', String(e));
@@ -823,6 +834,30 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(splitWork, { tx: true, widgets: true });
+        }, false);
+        return;
+      }
+
+      // Split → single conversion: the edit opened on a split group but the user
+      // removed every split row. updateTransaction would only touch the tapped
+      // row, leaving its siblings (and their split icons) behind — so instead drop
+      // the whole original group (deleteTransaction cascades by splitGroupId) and
+      // write one clean single row.
+      if (
+        (type === 'in' || type === 'out') &&
+        isEditing &&
+        editId &&
+        originalSplitGroupIdRef.current &&
+        usableSplitRows.length === 0
+      ) {
+        const oldGroupMemberId = editId;
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(async () => {
+            await deleteTransaction(oldGroupMemberId);
+            await createTransaction({ ...data, splitGroupId: undefined });
+          }, { tx: true, widgets: true });
         }, false);
         return;
       }
@@ -1814,9 +1849,9 @@ export default function AddTransactionModal() {
         visible={showCalculator}
         value={amountStr.replace(/,/g, '')}
         palette={palette}
-        brandColor={activeConfig.color}
-        brandSoft={activeConfig.bg}
-        brandOnColor={activeConfig.onColor}
+        brandColor={palette.brand}
+        brandSoft={palette.brandSoft}
+        brandOnColor={palette.onBrand}
         onClose={() => {
           setShowCalculator(false);
         }}
