@@ -70,10 +70,12 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
         height: 'match_parent',
         flexDirection: isVertical ? 'column' : 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        // Distribute the shortcuts evenly so the gaps/padding scale with how many
+        // are shown (1, 2 or 3) instead of clustering in the middle with dead space.
+        justifyContent: 'space-evenly',
         backgroundColor: c(p.surface),
-        borderRadius: 22,
-        flexGap: 10,
+        borderRadius: 28,
+        padding: 10,
         flexGapColor: GAP,
       }}
     >

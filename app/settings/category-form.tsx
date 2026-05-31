@@ -165,6 +165,23 @@ export default function CategoryFormScreen() {
       return;
     }
 
+    // A top-level category must have at least one subcategory. This guarantees every
+    // selectable category resolves to a parent + subcategory (so transactions always
+    // carry both), and prevents blank-subcategory rows in analysis/exports.
+    if (!isSubcategory) {
+      const hasValidSub = subs.some((sub) => !sub.deleted && sub.name.trim().length > 0);
+      if (!hasValidSub) {
+        setAttemptedSubmit(true);
+        submitShakeOffset.value = withSequence(
+          withTiming(10, { duration: 50 }),
+          withTiming(-10, { duration: 50 }),
+          withTiming(10, { duration: 50 }),
+          withTiming(0, { duration: 50 })
+        );
+        return;
+      }
+    }
+
     let parentCategoryId = id;
     const color = editingCategory?.color ?? ENTITY_COLORS[0];
 
@@ -384,12 +401,14 @@ export default function CategoryFormScreen() {
                   <Text
                     style={{
                       fontSize: TYPE.rowValue,
-                      color: palette.textSecondary,
+                      color: attemptedSubmit ? palette.negative : palette.textSecondary,
                       paddingHorizontal: CARD_PADDING,
                       paddingVertical: 12,
                       fontStyle: 'italic' }}
                   >
-                    No subcategories yet. Tap Add to create one.
+                    {attemptedSubmit
+                      ? 'Add at least one subcategory before saving.'
+                      : 'No subcategories yet. Tap Add to create one.'}
                   </Text>
                 )}
                 {visibleSubs.map((sub, renderIdx) => {

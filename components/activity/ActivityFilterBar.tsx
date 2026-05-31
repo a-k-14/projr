@@ -87,8 +87,8 @@ export function ActivityFilterBar({
                 { label: 'Income', key: 'in' },
                 { label: 'Expense', key: 'out' },
                 { label: 'Transfer', key: 'transfer' },
-                { label: 'Loan', key: 'loan' },
                 { label: 'Deposit', key: 'deposit' },
+                { label: 'Loan', key: 'loan' },
               ] as const;
 
               return typeOptions.map((option) => {

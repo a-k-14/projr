@@ -3,7 +3,32 @@ import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
+import { ACCOUNT_TYPE_META } from '../../lib/settings-shared';
 import { type AppThemePalette } from '../../lib/theme';
+import type { Account } from '../../types';
+
+/** Account type avatar used in the account filter sheets (Activity + Export). */
+export function AccountTypeBadge({ account, palette }: { account?: Account; palette: AppThemePalette }) {
+  const typeMeta = account ? ACCOUNT_TYPE_META[account.type] : undefined;
+  const icon = typeMeta?.icon ?? 'wallet';
+  const color = typeMeta?.color ?? palette.brand;
+  return (
+    <View
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: HOME_RADIUS.chip,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: `${color}18`,
+        borderWidth: 1,
+        borderColor: `${color}30`,
+      }}
+    >
+      <AppIcon name={icon as any} size={19} color={color} strokeWidth={1.6} />
+    </View>
+  );
+}
 
 /**
  * Common Category Icon Badge used across the Activity screens and filter sheets.

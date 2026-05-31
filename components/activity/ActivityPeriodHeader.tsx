@@ -14,6 +14,9 @@ interface ActivityPeriodHeaderProps {
   canGoNext: boolean;
   setShowPeriodSheet: (show: boolean) => void;
   palette: AppThemePalette;
+  /** Widen the prev/next arrow hit targets — used on the Export screen where there's
+   *  extra horizontal room compared to the Activity filter bar. */
+  largeArrows?: boolean;
 }
 
 export function ActivityPeriodHeader({
@@ -23,8 +26,18 @@ export function ActivityPeriodHeader({
   goNext,
   canGoNext,
   setShowPeriodSheet,
-  palette }: ActivityPeriodHeaderProps) {
+  palette,
+  largeArrows = false,
+}: ActivityPeriodHeaderProps) {
   const isDisabled = period === 'custom' || period === 'all';
+  const arrowStyle = largeArrows ? styles.periodArrowLarge : styles.periodArrow;
+  const arrowHitSlop = largeArrows
+    ? { top: 18, bottom: 18, left: 18, right: 18 }
+    : { top: 12, bottom: 12, left: 12, right: 12 };
+  // In the wide variant, sit the chevrons close to the bar's outer edges instead of
+  // centering them inside the (wider) hit columns.
+  const prevArrowAlign = largeArrows ? { alignItems: 'flex-start' as const, paddingLeft: 14 } : null;
+  const nextArrowAlign = largeArrows ? { alignItems: 'flex-end' as const, paddingRight: 14 } : null;
   return (
     <View
       style={[
@@ -38,8 +51,8 @@ export function ActivityPeriodHeader({
     >
       <TouchableOpacity delayPressIn={0}
         onPress={isDisabled ? undefined : goPrev}
-        style={[styles.periodArrow, { borderRightColor: palette.divider }]}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={[arrowStyle, prevArrowAlign, { borderRightColor: palette.divider }]}
+        hitSlop={arrowHitSlop}
       >
         <AppChevron
           direction="left"
@@ -69,8 +82,8 @@ export function ActivityPeriodHeader({
 
       <TouchableOpacity delayPressIn={0}
         onPress={canGoNext ? goNext : undefined}
-        style={[styles.periodArrow, { borderLeftColor: palette.divider }]}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={[arrowStyle, nextArrowAlign, { borderLeftColor: palette.divider }]}
+        hitSlop={arrowHitSlop}
       >
         <AppChevron
           direction="right"
@@ -95,6 +108,12 @@ const styles = StyleSheet.create({
   },
   periodArrow: {
     width: ACTIVITY_LAYOUT.periodArrowWidth,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  periodArrowLarge: {
+    width: ACTIVITY_LAYOUT.periodArrowWidth + 24,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center'

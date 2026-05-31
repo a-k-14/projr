@@ -22,6 +22,7 @@ import { ActivityFilterBar } from '../../components/activity/ActivityFilterBar';
 import { ActivityMoreFiltersSheet } from '../../components/activity/ActivityMoreFiltersSheet';
 import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
+import { AccountFilterSheet } from '../../components/activity/AccountFilterSheet';
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
@@ -52,7 +53,6 @@ import {
 } from '../../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS, BOTTOM_SHEET_TOKENS} from '../../lib/layoutTokens';
-import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { formatDateFull } from '../../lib/ui-format';
@@ -65,7 +65,7 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
-import type { Account, CashflowSummary, Transaction, TransactionFilters, TransactionType } from '../../types';
+import type { CashflowSummary, Transaction, TransactionFilters, TransactionType } from '../../types';
 
 type ActivityPeriod = 'all' | 'day' | 'week' | 'month' | 'year' | 'custom';
 type ActivityGroup = {
@@ -99,29 +99,6 @@ type CategoryDrilldown = {
   compactLabel?: boolean;
 };
 type HierarchyFamily = 'in' | 'out' | 'loan' | 'deposit' | 'transfer';
-function AccountTypeBadge({ account, palette }: { account?: Account; palette: ReturnType<typeof useAppTheme>['palette'] }) {
-  const typeMeta = account ? ACCOUNT_TYPE_META[account.type] : undefined;
-  const icon = typeMeta?.icon ?? 'wallet';
-  const color = typeMeta?.color ?? palette.brand;
-
-  return (
-    <View
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: HOME_RADIUS.chip,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: `${color}18`,
-        borderWidth: 1,
-        borderColor: `${color}30`,
-      }}
-    >
-      <AppIcon name={icon as any} size={19} color={color} strokeWidth={1.6} />
-    </View>
-  );
-}
-
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
   const routeParams = useLocalSearchParams<{
@@ -388,8 +365,9 @@ export default function ActivityScreen() {
         typeFilter,
         cashflowBucket,
         derivedCashflowMode,
+        groupByMode,
       ].join('|'),
-    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, selectedAccountId, typeFilter],
+    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, selectedAccountId, typeFilter],
   );
 
   const canGoNext = period !== 'all' && period !== 'custom' && periodOffset < 0;
@@ -417,6 +395,12 @@ export default function ActivityScreen() {
 
   const isFullyDefault = isDefaultView && groupByMode === 'date';
 
+  // The store fast-path serves the paginated All-Time *list*. The grouped (category)
+  // view is an aggregate over the whole set, so it must NEVER read the paginated store —
+  // it loads the full filtered set instead (see `loadAll` in loadData). This is what keeps
+  // the grouped category cards matching the individual transactions.
+  const useStoreFastPath = isDefaultView && groupByMode === 'date';
+
   const setHasActiveFilters = useActivityFiltersStore((s) => s.setHasActiveFilters);
   useEffect(() => {
     setHasActiveFilters(!isFullyDefault);
@@ -427,7 +411,7 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     if (!isFocused) return;
-    if (isDefaultView) {
+    if (useStoreFastPath) {
       if (!storeTransactionsLoaded) {
         setIsTransitioning(true);
       } else {
@@ -438,7 +422,7 @@ export default function ActivityScreen() {
     if (!source || isInitialParamSyncComplete) {
       setIsTransitioning(true);
     }
-  }, [isDefaultView, isFocused, isInitialParamSyncComplete, source, storeTransactionsLoaded]);
+  }, [useStoreFastPath, isFocused, isInitialParamSyncComplete, source, storeTransactionsLoaded]);
 
   const loadData = useMemo(
     () => async (isInitial: boolean) => {
@@ -453,13 +437,21 @@ export default function ActivityScreen() {
             : typeFilter === 'all'
               ? undefined
               : typeFilter;
+        // For a bounded period (day/week/month/year/custom) the result set is naturally
+        // finite, so we load the WHOLE range in one shot (no pagination). That keeps the
+        // visible list, per-date nets, and grouped/category totals all derived from the
+        // complete set — so they reconcile exactly with the summary strip. Only the
+        // unbounded "All Time" view stays paginated.
+        // Load the whole set (no pagination) for a bounded period OR whenever the grouped
+        // category view is showing — both need the complete set so totals reconcile.
+        const loadAll = !!(dateRange?.from && dateRange?.to) || groupByMode === 'category';
         const filters: TransactionFilters = {
           accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
           type: effectiveTypeFilter,
           fromDate: dateRange?.from,
           toDate: dateRange?.to,
-          limit: TRANSACTIONS_PAGE_SIZE,
-          offset: currentOffset
+          limit: loadAll ? undefined : TRANSACTIONS_PAGE_SIZE,
+          offset: loadAll ? 0 : currentOffset
         };
         // Fetch paginated rows and (on initial load) server-side totals in parallel.
         const totalsPromise = isInitial && dateRange?.from && dateRange?.to
@@ -478,7 +470,7 @@ export default function ActivityScreen() {
         if (isInitial) {
           setTransactions(results);
           offsetRef.current = results.length;
-          setHasMore(results.length === TRANSACTIONS_PAGE_SIZE);
+          setHasMore(loadAll ? false : results.length === TRANSACTIONS_PAGE_SIZE);
           setServerCashflow(totals);
         } else {
           setTransactions((prev) => {
@@ -495,12 +487,12 @@ export default function ActivityScreen() {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, period, periodOffset, remoteQuerySignature, selectedAccountId, typeFilter],
+    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, remoteQuerySignature, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
     if (isFocused) {
-      if (isDefaultView) {
+      if (useStoreFastPath) {
         if (!storeTransactionsLoaded) {
           if (!hasContent) setIsTransitioning(true);
           loadStoreTransactions().catch(() => undefined);
@@ -522,21 +514,21 @@ export default function ActivityScreen() {
         }
       }
     }
-  }, [hasContent, isDefaultView, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, remoteQuerySignature, source, storeMutationVersion, storeTransactionsLoaded]);
+  }, [hasContent, useStoreFastPath, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, remoteQuerySignature, source, storeMutationVersion, storeTransactionsLoaded]);
 
   // In default view, the FlashList reads `storeTransactions` directly via
   // `activeTransactions` below — we no longer mirror it into local `transactions`
   // state. We still mirror hasMore and the transition flag (cheap booleans),
   // and keep offsetRef in sync so `onLoadMore` in custom-view fallback works.
   useEffect(() => {
-    if (!isDefaultView) return;
+    if (!useStoreFastPath) return;
     setHasMore(storeTransactionsHasMore);
     offsetRef.current = storeTransactions.length;
     if (storeTransactionsLoaded) {
       setIsTransitioning(false);
       lastLoadedRemoteQueryRef.current = remoteQuerySignature;
     }
-  }, [isDefaultView, remoteQuerySignature, storeTransactions.length, storeTransactionsHasMore, storeTransactionsLoaded]);
+  }, [useStoreFastPath, remoteQuerySignature, storeTransactions.length, storeTransactionsHasMore, storeTransactionsLoaded]);
 
   useEffect(() => {
     if (!loansLoaded) loadLoans().catch(() => undefined);
@@ -630,7 +622,7 @@ export default function ActivityScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      if (isDefaultView) {
+      if (useStoreFastPath) {
         await loadStoreTransactions();
       } else {
         await loadData(true);
@@ -643,8 +635,10 @@ export default function ActivityScreen() {
   // Stable ref mirrors for hasMore + isDefaultView to avoid stale closures inside useCallback.
   const hasMoreRef = useRef(hasMore);
   hasMoreRef.current = hasMore;
-  const isDefaultViewRef = useRef(isDefaultView);
-  isDefaultViewRef.current = isDefaultView;
+  // Mirrors the store-pagination path (date list, All-Time). Category view loads in full,
+  // so it must NOT take the store loadMore branch.
+  const isDefaultViewRef = useRef(useStoreFastPath);
+  isDefaultViewRef.current = useStoreFastPath;
   // Ref mirror so onLoadMore stays stable and doesn't recreate maybePrefetchMore on every
   // loading-state tick (which was the root cause of "Maximum update depth exceeded").
   const storeLoadingMoreRef = useRef(storeTransactionsIsLoadingMore);
@@ -762,7 +756,7 @@ export default function ActivityScreen() {
 
   // In default view, read from the store directly — avoids a double-render
   // every time the store's transactions array updates.
-  const sourceTransactions = isDefaultView ? storeTransactions : transactions;
+  const sourceTransactions = useStoreFastPath ? storeTransactions : transactions;
 
   // Deposit lookup mirrors `loansById` — used to pass deposit name/bank
   // through to TransactionListItem for type='deposit' rows.
@@ -937,11 +931,12 @@ export default function ActivityScreen() {
     };
 
     const getFamilyOrder = (familyKey: HierarchyFamily) => {
+      // Match the add-form chips / more cards order: Income, Expense, Transfers, Deposits, Loans.
       if (familyKey === 'in') return 0;
       if (familyKey === 'out') return 1;
-      if (familyKey === 'loan') return 2;
+      if (familyKey === 'transfer') return 2;
       if (familyKey === 'deposit') return 3;
-      return 4;
+      return 4; // loan
     };
 
     filteredTransactions.forEach((tx) => {
@@ -1050,9 +1045,9 @@ export default function ActivityScreen() {
       ([
         { key: 'in', label: 'Income' },
         { key: 'out', label: 'Expenses' },
-        { key: 'loan', label: 'Loans' },
-        { key: 'deposit', label: 'Deposits' },
         { key: 'transfer', label: 'Transfers' },
+        { key: 'deposit', label: 'Deposits' },
+        { key: 'loan', label: 'Loans' },
       ] as const)
         .map((section) => ({
           ...section,
@@ -1411,7 +1406,7 @@ export default function ActivityScreen() {
                     <View key={section.key}>
                       {(() => {
                         const expandableParentKeys = section.items
-                          .filter((category) => category.familyKey !== 'loan' && category.familyKey !== 'transfer')
+                          .filter((category) => category.familyKey !== 'loan' && category.familyKey !== 'transfer' && category.familyKey !== 'deposit')
                           .map((category) => category.parentKey);
                         const allExpanded =
                           expandableParentKeys.length > 0 &&
@@ -1471,7 +1466,7 @@ export default function ActivityScreen() {
                       <CardSection palette={palette}>
                         {section.items.map((category, categoryIndex) => {
                           const isExpanded = expandedCategoryIds.includes(category.parentKey);
-                          const isDirectNavigation = category.familyKey === 'loan' || category.familyKey === 'transfer';
+                          const isDirectNavigation = category.familyKey === 'loan' || category.familyKey === 'transfer' || category.familyKey === 'deposit';
                           const isLastCategory = categoryIndex === section.items.length - 1;
                           const syntheticCfg = category.parentSyntheticType ? (txTypeConfig as any)[category.parentSyntheticType] : undefined;
                           return (
@@ -1495,6 +1490,17 @@ export default function ActivityScreen() {
                                       parentLabel: 'Transfers',
                                       subKey: 'type:transfer',
                                       subLabel: 'Transfers',
+                                      compactLabel: true
+                                    });
+                                    return;
+                                  }
+
+                                  if (category.familyKey === 'deposit') {
+                                    setCategoryDrilldown({
+                                      parentKey: category.parentKey,
+                                      parentLabel: 'Deposits',
+                                      subKey: 'type:deposit',
+                                      subLabel: 'Deposits',
                                       compactLabel: true
                                     });
                                     return;
@@ -1547,7 +1553,7 @@ export default function ActivityScreen() {
                                     marginRight: 2
                                   }}
                                 >
-                                  {signedCurrency(category.total, sym)}
+                                  {familyAwareCurrency(category.familyKey, category.total, sym)}
                                 </Text>
                                 {isDirectNavigation ? (
                                   <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
@@ -1604,7 +1610,7 @@ export default function ActivityScreen() {
                                           marginRight: 10
                                         }}
                                       >
-                                        {signedCurrency(sub.total, sym)}
+                                        {familyAwareCurrency(category.familyKey, sub.total, sym)}
                                       </Text>
                                       <AppChevron direction="right" size={16} tone="secondary" palette={palette} />
                                     </TouchableOpacity>
@@ -1624,36 +1630,17 @@ export default function ActivityScreen() {
         </>
 
       {showAccountSheet ? (
-        <BottomSheet title="Select Account" palette={palette} onClose={() => setShowAccountSheet(false)} hasNavBar maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}>
-          <ChoiceRow
-            title="All Accounts"
-            selected={selectedAccountId === 'all'}
-            palette={palette}
-            leftElement={<AccountTypeBadge palette={palette} />}
-            onPress={() => {
-              setSelectedAccountId('all');
-              setShowAccountSheet(false);
-              queueScrollToTop(false);
-            }}
-            noBorder={accounts.length === 0}
-          />
-          {accounts.map((account, index) => (
-            <ChoiceRow
-              key={account.id}
-              title={account.name}
-              subtitle={getAccountTypeLabel(account.type)}
-              selected={selectedAccountId === account.id}
-              palette={palette}
-              leftElement={<AccountTypeBadge account={account} palette={palette} />}
-              onPress={() => {
-                setSelectedAccountId(account.id);
-                setShowAccountSheet(false);
-                queueScrollToTop(false);
-              }}
-              noBorder={index === accounts.length - 1}
-            />
-          ))}
-        </BottomSheet>
+        <AccountFilterSheet
+          accounts={accounts}
+          selectedAccountId={selectedAccountId}
+          onSelect={(id) => {
+            setSelectedAccountId(id);
+            setShowAccountSheet(false);
+            queueScrollToTop(false);
+          }}
+          onClose={() => setShowAccountSheet(false)}
+          palette={palette}
+        />
       ) : null}
 
       {showPeriodSheet ? (
@@ -1816,6 +1803,21 @@ function signedCurrency(value: number, sym: string) {
   const abs = Math.abs(value);
   const formatted = formatCurrency(abs, sym);
   return value < 0 ? `-${formatted}` : formatted;
+}
+
+// Mirrors the list/card convention (getAmountPrefix with showAmountSign=false):
+// income/expense bucket totals show their magnitude in the family color, with a sign
+// ONLY when the net runs against the family (a refund/reversal flips it). Neutral
+// families (loan/deposit/transfer) keep their signed net, since direction varies and
+// the sign is meaningful there.
+function familyAwareCurrency(familyKey: HierarchyFamily, total: number, sym: string) {
+  if (familyKey === 'in' || familyKey === 'out') {
+    // Natural value in the family's own direction: income is +net, expense is the outflow (-net).
+    const naturalValue = familyKey === 'out' ? -total : total;
+    const prefix = naturalValue < 0 ? '-' : '';
+    return `${prefix}${formatCurrency(Math.abs(total), sym)}`;
+  }
+  return signedCurrency(total, sym);
 }
 
 function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {

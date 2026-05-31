@@ -205,7 +205,17 @@ async function getLoanTransactionEffectiveType(
   return direction === 'lent' ? 'in' : 'out';
 }
 
+/** Trim free-text input; treat blank-after-trim as "no value" (null). Prevents
+ *  near-duplicate notes/payees (e.g. "Coffee" vs "Coffee ") from diverging in the
+ *  data, the search index, the suggestion list, and the CSV export. */
+function normalizeText(value?: string | null): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 export async function createTransaction(data: CreateTransactionInput): Promise<Transaction> {
+  data = { ...data, note: normalizeText(data.note) ?? undefined, payee: normalizeText(data.payee) ?? undefined };
   const now = nowUTC();
   if (data.type === 'in' || data.type === 'out') {
     assertNonZeroAmount(data.amount);
@@ -344,9 +354,9 @@ export async function updateTransaction(
   }
   if (derivedCategoryId !== undefined) updateData.categoryId = derivedCategoryId;
   
-  if (data.payee !== undefined) updateData.payee = data.payee;
+  if (data.payee !== undefined) updateData.payee = normalizeText(data.payee);
   if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);
-  if (data.note !== undefined) updateData.note = data.note;
+  if (data.note !== undefined) updateData.note = normalizeText(data.note);
   if (data.receiptImageUris !== undefined) {
     const receiptImageUris = await persistReceiptImagesForOwner(id, data.receiptImageUris);
     updateData.receiptImageUris = JSON.stringify(receiptImageUris);
@@ -735,16 +745,19 @@ export async function getRecentPayees(search?: string, limit = 10): Promise<stri
 }
 
 export async function getRecentNotes(search?: string, limit = 10): Promise<string[]> {
-  const conditions = [sql`${transactions.note} IS NOT NULL`, sql`${transactions.note} != ''`];
+  // Group/return by the TRIMMED note so "Coffee" and "Coffee " collapse into one
+  // suggestion (defensive — createTransaction also trims on save).
+  const trimmedNote = sql<string>`trim(${transactions.note})`;
+  const conditions = [sql`${transactions.note} IS NOT NULL`, sql`trim(${transactions.note}) != ''`];
   if (search) {
-    conditions.push(like(transactions.note, `%${search}%`));
+    conditions.push(like(transactions.note, `%${search.trim()}%`));
   }
 
   const rows = await db
-    .select({ note: transactions.note })
+    .select({ note: trimmedNote })
     .from(transactions)
     .where(and(...conditions))
-    .groupBy(transactions.note)
+    .groupBy(trimmedNote)
     .orderBy(sql`MAX(${transactions.date}) DESC`)
     .limit(limit);
 

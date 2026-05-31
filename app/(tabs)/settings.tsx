@@ -233,6 +233,12 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/settings/backup')}
               />
               <SettingsRow
+                icon="file-text"
+                label="Export Data"
+                palette={palette}
+                onPress={() => router.push('/settings/export')}
+              />
+              <SettingsRow
                 leftElement={<AppIcon name="refresh-cw" size={18} color={palette.uiNegative} />}
                 label="Reset App"
                 labelStyle={{ color: palette.uiNegative }}
