@@ -314,7 +314,7 @@ export function IncomeExpenseChart({
           alignItems: 'flex-end',
           height: 120,
           paddingHorizontal: 8,
-          gap: 8,
+          gap: 4,
         }}
       >
         {data.map(renderBucket)}
