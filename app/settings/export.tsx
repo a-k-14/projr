@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/AppText';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { FilledButton } from '../../components/ui/AppButton';
 import { FixedBottomActions, SettingsScreenLayout } from '../../components/settings-ui';
@@ -38,9 +38,33 @@ export default function ExportScreen() {
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [confirmAllPending, setConfirmAllPending] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{ rowCount: number } | null>(null);
 
   const shakeOffset = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeOffset.value }] }));
+
+  // Check-mark badge that appears over the mascot when an export completes.
+  // Scales in (spring), holds, then fades + scales out as we clear successInfo.
+  const successScale = useSharedValue(0);
+  const successOpacity = useSharedValue(0);
+  const successStyle = useAnimatedStyle(() => ({ opacity: successOpacity.value, transform: [{ scale: successScale.value }] }));
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (successInfo) {
+      successScale.value = withSpring(1, { damping: 11, stiffness: 240, mass: 0.5 });
+      successOpacity.value = withTiming(1, { duration: 180, easing: Easing.out(Easing.quad) });
+      // Auto-clear after a short hold so the screen returns to its normal state.
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = setTimeout(() => setSuccessInfo(null), 3000);
+    } else {
+      successOpacity.value = withTiming(0, { duration: 220, easing: Easing.in(Easing.quad) });
+      successScale.value = withDelay(120, withTiming(0, { duration: 0 }));
+    }
+    return () => {
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+    };
+  }, [successInfo, successScale, successOpacity]);
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
@@ -111,7 +135,7 @@ export default function ExportScreen() {
       const fileName = `transactions_${slug}_${ddMmmYyyy(new Date())}.csv`;
       const result = await exportTransactionsCsv(filters, fileName);
       if (result.status === 'success') {
-        Alert.alert('Export Complete', `${result.rowCount} transaction${result.rowCount === 1 ? '' : 's'} exported to CSV.`);
+        setSuccessInfo({ rowCount: result.rowCount });
       } else if (result.status === 'empty') {
         Alert.alert('Nothing to Export', 'No transactions match the selected period and account.');
       }
@@ -152,12 +176,43 @@ export default function ExportScreen() {
         }
       >
         <View style={{ alignItems: 'center', paddingTop: SPACING.xl, paddingBottom: SPACING.lg }}>
-          <FinanceEmptyMascot palette={palette} variant="activity" mood="bright" />
-          <Text style={{ marginTop: SPACING.md, fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: palette.text, textAlign: 'center' }}>
-            Take your data with you
+          <View>
+            <FinanceEmptyMascot palette={palette} variant="activity" mood="bright" />
+            {/* Check-mark badge overlaid on the mascot when an export completes. */}
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                {
+                  position: 'absolute',
+                  right: -6,
+                  bottom: -2,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: palette.positive,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 3,
+                  borderColor: palette.background,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.15,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowRadius: 6,
+                  elevation: 4,
+                },
+                successStyle,
+              ]}
+            >
+              <AppIcon name="check" size={26} color={palette.onBrand} strokeWidth={3.2} />
+            </Animated.View>
+          </View>
+          <Text style={{ marginTop: SPACING.md, fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: successInfo ? palette.positive : palette.text, textAlign: 'center' }}>
+            {successInfo ? 'Export Complete' : 'Take your data with you'}
           </Text>
           <Text style={{ marginTop: 6, fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, textAlign: 'center', paddingHorizontal: SCREEN_GUTTER, lineHeight: 19 }}>
-            Export your transactions as a CSV file you can open in any spreadsheet.
+            {successInfo
+              ? `${successInfo.rowCount} transaction${successInfo.rowCount === 1 ? '' : 's'} exported to CSV.`
+              : 'Export your transactions as a CSV file you can open in any spreadsheet.'}
           </Text>
         </View>
         <View style={{ paddingHorizontal: SCREEN_GUTTER, gap: SPACING.md, marginTop: SPACING.md }}>
@@ -222,6 +277,7 @@ export default function ExportScreen() {
           palette={palette}
         />
       ) : null}
+
     </>
   );
 }

@@ -31,7 +31,6 @@ import {
 } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { toLocalDayStartISO } from '../../lib/dateUtils';
 import { formatSignedCurrency, formatIndianNumberStr, getLoanSettlementLabel, getLoanTransactionUserNote, mergeLoanTransactionNote, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
@@ -66,7 +65,7 @@ export default function LoanSettlementModal() {
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
-  const [date, setDate] = useState(toLocalDayStartISO(new Date()));
+  const [date, setDate] = useState(new Date().toISOString());
   const [note, setNote] = useState('');
   const [loanTransactionType, setLoanTransactionType] = useState<'principal' | 'interest' | 'others'>('principal');
   const [showTypeSheet, setShowTypeSheet] = useState(false);
@@ -114,7 +113,7 @@ export default function LoanSettlementModal() {
           setPersonName(loan.personName);
           setLoanDirection(loan.direction);
           setAccountId(loan.accountId);
-          setDate(toLocalDayStartISO(new Date()));
+          setDate(new Date().toISOString());
         });
       }
     });

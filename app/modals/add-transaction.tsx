@@ -172,7 +172,7 @@ export default function AddTransactionModal() {
   const [categoryId, setCategoryId] = useState('');
   const [payee, setPayee] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [date, setDate] = useState(toLocalDayStartISO(new Date()));
+  const [date, setDate] = useState(new Date().toISOString());
   const [note, setNote] = useState('');
   const [receiptImageUris, setReceiptImageUris] = useState<string[]>([]);
   const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false);
@@ -498,7 +498,7 @@ export default function AddTransactionModal() {
         setPersonName(loan.personName);
         setLoanDirection(loan.direction);
         setAccountId(loan.accountId);
-        setDate(toLocalDayStartISO(new Date()));
+        setDate(new Date().toISOString());
       });
     });
     return () => task.cancel();

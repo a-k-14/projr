@@ -325,7 +325,8 @@ function HomeScreenContent() {
       </TouchableOpacity>
       <ScrollView ref={accountScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: SCREEN_GUTTER }}>
         {orderedAccounts.map((acc) => {
-          const baseLabel = showCurrencySymbol ? formatCurrency(Math.abs(acc.balance), currencySymbol) : formatCurrency(Math.abs(acc.balance), '');
+          const sign = acc.balance < 0 ? '-' : '';
+          const baseLabel = showCurrencySymbol ? `${sign}${formatCurrency(Math.abs(acc.balance), currencySymbol)}` : `${sign}${formatCurrency(Math.abs(acc.balance), '')}`;
           const amountLabel = hideAmounts ? '••••' : baseLabel;
           const cardWidth = Math.min(206, Math.max(172, 142 + Math.min(baseLabel.length, 14) * 3));
           return (
@@ -2015,7 +2016,7 @@ function AccountCarouselCard({ acc, palette, amountLabel, cardWidth, hideAmounts
           overflow: 'hidden',
         }]}
       >
-        <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 96, justifyContent: 'space-between' }}>
+        <View style={{ paddingHorizontal: 14, paddingVertical: 14, minHeight: 102, justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View
               style={{
@@ -2071,7 +2072,7 @@ function AccountCarouselAddCard({ palette, nav }: any) {
       <Animated.View
         style={[animStyle, {
           width: 120,
-          height: 98,
+          height: 104,
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: 'transparent',

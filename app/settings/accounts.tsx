@@ -186,7 +186,7 @@ function SettingsAccountCard({
             textAlign: 'right',
           }}
         >
-          {formatDisplayCurrency(item.initialBalance, displaySymbol)}
+          {item.initialBalance < 0 ? '-' : ''}{formatDisplayCurrency(Math.abs(item.initialBalance), displaySymbol)}
         </Text>
         <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
       </TouchableOpacity>

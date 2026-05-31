@@ -64,7 +64,7 @@ export default function AccountFormScreen() {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const accountNumberRef = useRef<TextInput>(null);
-  const openingBalanceRef = useRef<TextInput>(null);
+  const initialBalanceRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (id) {
@@ -196,7 +196,7 @@ export default function AccountFormScreen() {
             keyboardType="numeric"
             returnKeyType="next"
             blurOnSubmit={false}
-            onSubmitEditing={() => openingBalanceRef.current?.focus()}
+            onSubmitEditing={() => initialBalanceRef.current?.focus()}
           />
         </View>
 
@@ -231,11 +231,11 @@ export default function AccountFormScreen() {
 
         {/* Balance */}
         <View style={{ marginBottom: SPACING.lg }}>
-          <FieldLabel label="Opening Balance" palette={palette} />
+          <FieldLabel label="Initial Balance" palette={palette} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <InputField
-                ref={openingBalanceRef}
+                ref={initialBalanceRef}
                 palette={palette}
                 value={draft.balance}
                 onChangeText={(v) => setDraft((s) => ({ ...s, balance: formatIndianNumberStr(sanitizeDecimalInput(v)) }))}
