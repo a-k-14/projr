@@ -243,8 +243,15 @@ export async function getIncomeExpenseByBuckets(
   buckets: TimeBucket[],
   fromDate: string,
   toDate: string,
+  accountId: string | 'all' = 'all',
+  includeOpts: { includeTransfers?: boolean; includeLoans?: boolean; includeDeposits?: boolean } = {},
 ): Promise<IncomeExpenseBucket[]> {
-  const rows = await getTransactionsInRange('all', fromDate, toDate);
+  const rows = await getTransactionsInRange(accountId, fromDate, toDate);
+  const opts = {
+    includeLoans: includeOpts.includeLoans ?? false,
+    includeTransfers: includeOpts.includeTransfers ?? false,
+    includeDeposits: includeOpts.includeDeposits ?? false,
+  };
 
   return buckets.map((bucket) => {
     const bucketFrom = toLocalDateKey(bucket.from);
@@ -254,7 +261,7 @@ export async function getIncomeExpenseByBuckets(
     for (const row of rows) {
       const dayKey = safeLocalDateKey(row.date);
       if (!dayKey || dayKey < bucketFrom || dayKey > bucketTo) continue;
-      const impact = getTransactionCashflowImpact(row, { includeLoans: false, includeTransfers: false, includeDeposits: false });
+      const impact = getTransactionCashflowImpact(row, opts);
       if (impact === 'in') income += row.amount;
       else if (impact === 'out') expense += row.amount;
     }

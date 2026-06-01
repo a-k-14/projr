@@ -991,6 +991,9 @@ export default function AddTransactionModal() {
           } catch (widgetErr) {
             console.warn('Failed to update widgets:', widgetErr);
           }
+          // Pop the modal off the stack BEFORE exiting so the restored
+          // navigation state on next launch doesn't drop us back on this form.
+          if (router.canGoBack()) router.back();
           BackHandler.exitApp();
         } catch (e) {
           showAlert('Error', String(e));

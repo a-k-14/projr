@@ -70,7 +70,7 @@ function TrendLineChartBase({
     }
   }, [isLoading, fadeAnim]);
 
-  const PAD_X = 2; // viewBox units from SVG edges to line endpoints (active dot r=9, just fits with overflow:visible)
+  const PAD_X = 4; // viewBox units from SVG edges to line endpoints (active dot r=9, just fits with overflow:visible)
   const CHART_H = 110;
   const VB_W = 300; // viewBox width
 

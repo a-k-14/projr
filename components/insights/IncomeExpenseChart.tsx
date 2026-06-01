@@ -38,6 +38,8 @@ interface Props {
   onExpand?: () => void;
   /** Called when a bar is tapped. Null means the bar was deselected (same bar tapped again). */
   onBucketPress?: (bucket: { label: string; income: number; expense: number; from?: string; to?: string; type?: BucketType } | null) => void;
+  /** When true, relabels Income/Expense to Inflow/Outflow (cashflow mode). */
+  isCashflowMode?: boolean;
 }
 
 const GRANULARITY_OPTIONS: { key: ChartGranularity; label: string }[] = [
@@ -70,7 +72,10 @@ export function IncomeExpenseChart({
   isLoading,
   onExpand,
   onBucketPress,
+  isCashflowMode,
 }: Props): React.ReactElement | null {
+  const inLabel = isCashflowMode ? 'Inflow' : 'Income';
+  const outLabel = isCashflowMode ? 'Outflow' : 'Expense';
   // Compute once: which chips to render (sorted Day → Week → Month → Year), and whether the toggle icon shows.
   const visibleGranularities = availableGranularities ?? GRANULARITY_OPTIONS.map((o) => o.key);
   const chipsToRender = GRANULARITY_OPTIONS
@@ -371,10 +376,10 @@ export function IncomeExpenseChart({
           {activeItem ? (
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginBottom: 2 }}>
-                Income: <Text style={{ color: palette.numberPositive, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.income < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.income), sym)}</Text>
+                {inLabel}: <Text style={{ color: palette.numberPositive, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.income < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.income), sym)}</Text>
               </Text>
               <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginBottom: 2 }}>
-                Expense: <Text style={{ color: palette.numberNegative, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.expense < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.expense), sym)}</Text>
+                {outLabel}: <Text style={{ color: palette.numberNegative, fontWeight: FONT_WEIGHT.semibold }}>{activeItem.expense < 0 ? '-' : ''}{formatCurrency(Math.abs(activeItem.expense), sym)}</Text>
               </Text>
               <View style={{ height: 1, width: 90, alignSelf: 'flex-end', backgroundColor: palette.divider, marginVertical: 3 }} />
               <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted }}>
@@ -446,11 +451,11 @@ export function IncomeExpenseChart({
             <View style={{ flexDirection: 'row', gap: 16, flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: incomeColor }} />
-                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Income</Text>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>{inLabel}</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: expenseColor }} />
-                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>Expense</Text>
+                <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>{outLabel}</Text>
               </View>
             </View>
             {onGranularityChange && !hideToggleIcon ? (

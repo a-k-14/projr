@@ -19,6 +19,8 @@ import { CategoryDonutChartBlock, type CategoryChartMode } from '../../component
 import { SummaryCard } from '../../components/SummaryCard';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { FilterMoreButton } from '../../components/ui/FilterMoreButton';
+import { InsightsFiltersSheet, type RangePresetKey } from '../../components/insights/InsightsFiltersSheet';
 import { PeriodSelector } from '../../components/ui/PeriodSelector';
 
 import { DateGroupedTransactionSheetList } from '../../components/DateGroupedTransactionSheetList';
@@ -31,7 +33,7 @@ import { getLoanTransactionKind } from '../../lib/derived';
 import { FONT_WEIGHT, TYPE } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING, BOTTOM_SHEET_TOKENS } from '../../lib/layoutTokens';
 import type { IncomeExpenseBucket } from '../../services/analytics';
-import { getBalanceTrend, getCashflowSnapshot, getIncomeExpenseByBuckets } from '../../services/analytics';
+import { getAccountBalanceTrend, getBalanceTrend, getCashflowSnapshot, getIncomeExpenseByBuckets } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 
@@ -45,6 +47,41 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
   year: 'Year',
   custom: 'Custom'
 };
+
+// Rolling/anchored range presets exposed in the filters sheet. These complement
+// (not duplicate) the inline period switcher. Each preset's range is recomputed
+// every time the screen comes into focus, so windows roll forward across midnight.
+const RANGE_PRESETS: { key: RangePresetKey; label: string }[] = [
+  { key: 'last7', label: 'Last 7D' },
+  { key: 'last30', label: 'Last 30D' },
+  { key: 'last90', label: 'Last 90D' },
+  { key: 'ytd', label: 'YTD' },
+  { key: 'prevMonth', label: 'Last month' },
+  { key: 'prevYear', label: 'Last year' },
+];
+
+function computePresetRange(key: RangePresetKey): { from: string; to: string } {
+  const now = new Date();
+  if (key === 'last7' || key === 'last30' || key === 'last90') {
+    const days = key === 'last7' ? 7 : key === 'last30' ? 30 : 90;
+    const start = new Date();
+    start.setDate(start.getDate() - (days - 1));
+    return { from: toLocalDayStartISO(start), to: toLocalDayEndISO(now) };
+  }
+  if (key === 'ytd') {
+    const start = new Date(now.getFullYear(), 0, 1);
+    return { from: toLocalDayStartISO(start), to: toLocalDayEndISO(now) };
+  }
+  if (key === 'prevMonth') {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { from: toLocalDayStartISO(start), to: toLocalDayEndISO(end) };
+  }
+  // prevYear
+  const start = new Date(now.getFullYear() - 1, 0, 1);
+  const end = new Date(now.getFullYear() - 1, 11, 31);
+  return { from: toLocalDayStartISO(start), to: toLocalDayEndISO(end) };
+}
 
 export default function InsightsScreen() {
   const insets = useSafeAreaInsets();
@@ -68,14 +105,21 @@ export default function InsightsScreen() {
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
 
-  const [period, setPeriod] = useState<HomePeriodType>('week');
+  // Default insights view: a rolling 7-day window so the screen is never empty on a
+  // fresh week/month. Implemented as `period: 'custom'` with the range recomputed on
+  // every mount so the dates stay current as the calendar rolls forward.
+  const [period, setPeriod] = useState<HomePeriodType>('custom');
   const [chartMode, setChartMode] = useState<CategoryChartMode>('expense');
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
   const [chartResetNonce, setChartResetNonce] = useState(0);
 
   const loadRequestIdRef = useRef(0);
-  const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
-  const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
+  const [customRangeFrom, setCustomRangeFrom] = useState(() => computePresetRange('last7').from);
+  const [customRangeTo, setCustomRangeTo] = useState(() => computePresetRange('last7').to);
+  // The active preset drives both the rolling-on-focus behavior and the inline
+  // switcher's left label. `null` means the user picked a real custom range or a
+  // different period chip — in that case nothing rolls automatically.
+  const [activePreset, setActivePreset] = useState<RangePresetKey | null>('last7');
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
@@ -123,6 +167,11 @@ export default function InsightsScreen() {
     setShowSheetScrollTop(false);
   }, []);
 
+  // Filters surfaced through InsightsFiltersSheet.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
+  const [cashflowMode, setCashflowMode] = useState<'incomeExpense' | 'total'>('incomeExpense');
+
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
   const [refreshing, setRefreshing] = useState(false);
@@ -143,6 +192,8 @@ export default function InsightsScreen() {
   // leaving the mask stuck on "Updating…" forever.
   const handlePeriodChange = useCallback((next: HomePeriodType) => {
     if (next === period) return;
+    // Any explicit period change exits the active preset.
+    setActivePreset(null);
     setIsLoadingTrend(true);
     setPeriod(next);
   }, [period]);
@@ -191,7 +242,20 @@ export default function InsightsScreen() {
     );
   }, [availableGranularities]);
 
-  const isDefaultView = period === 'week' && selectedChartCategoryId === null;
+  const isDefaultView =
+    activePreset === 'last7' &&
+    period === 'custom' &&
+    selectedChartCategoryId === null &&
+    selectedAccountId === 'all' &&
+    cashflowMode === 'incomeExpense';
+
+  const filtersActiveCount =
+    (selectedAccountId !== 'all' ? 1 : 0) + (cashflowMode === 'total' ? 1 : 0);
+
+  const activePresetLabel = useMemo(
+    () => (activePreset ? RANGE_PRESETS.find((p) => p.key === activePreset)?.label : undefined),
+    [activePreset],
+  );
 
   const incExpVisibleTxs = useMemo(() => {
     if (!incExpBucketFilter) return periodTransactions;
@@ -247,12 +311,15 @@ export default function InsightsScreen() {
     setIsLoadingTrend(true);
     const requestId = ++loadRequestIdRef.current;
     const buckets = getTimeBuckets(period, dateRange.from, dateRange.to, incomeExpenseGranularity);
+    const isTotal = cashflowMode === 'total';
     try {
       const [snapshot, txs, trend, incExp] = await Promise.all([
-        getCashflowSnapshot('all', dateRange.from, dateRange.to, { includeTransfers: false, includeLoans: false, includeDeposits: false }),
-        getTransactions({ fromDate: dateRange.from, toDate: dateRange.to }),
-        getBalanceTrend(dateRange.from, dateRange.to),
-        getIncomeExpenseByBuckets(buckets, dateRange.from, dateRange.to),
+        getCashflowSnapshot(selectedAccountId, dateRange.from, dateRange.to, { includeTransfers: isTotal, includeLoans: isTotal, includeDeposits: isTotal }),
+        getTransactions({ fromDate: dateRange.from, toDate: dateRange.to, accountId: selectedAccountId === 'all' ? undefined : selectedAccountId }),
+        selectedAccountId === 'all'
+          ? getBalanceTrend(dateRange.from, dateRange.to)
+          : getAccountBalanceTrend(selectedAccountId, dateRange.from, dateRange.to),
+        getIncomeExpenseByBuckets(buckets, dateRange.from, dateRange.to, selectedAccountId, { includeTransfers: isTotal, includeLoans: isTotal, includeDeposits: isTotal }),
       ]);
       if (requestId !== loadRequestIdRef.current) return;
       setCashflow(snapshot.summary);
@@ -266,7 +333,19 @@ export default function InsightsScreen() {
         setIsLoadingTrend(false);
       }
     }
-  }, [dateRange, period, incomeExpenseGranularity]);
+  }, [dateRange, period, incomeExpenseGranularity, selectedAccountId, cashflowMode]);
+
+  // Roll the active preset's window forward each time the screen comes into focus,
+  // so the dates stay current — even after the app has been backgrounded across
+  // midnight or the year boundary (relevant for YTD).
+  useEffect(() => {
+    if (!isFocused || !activePreset) return;
+    const { from: nextFrom, to: nextTo } = computePresetRange(activePreset);
+    if (nextFrom !== customRangeFrom || nextTo !== customRangeTo) {
+      setCustomRangeFrom(nextFrom);
+      setCustomRangeTo(nextTo);
+    }
+  }, [isFocused, activePreset, customRangeFrom, customRangeTo]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -301,8 +380,15 @@ export default function InsightsScreen() {
       setIncExpBucketFilter(null);
       setIncomeExpenseGranularity('auto');
       if (mode === 'full') {
-        setPeriod('week');
+        // Restore the Last 7D default: re-arm the preset and seed today's range.
+        const seed = computePresetRange('last7');
+        setCustomRangeFrom(seed.from);
+        setCustomRangeTo(seed.to);
+        setActivePreset('last7');
+        setPeriod('custom');
         setSelectedChartCategoryId(null);
+        setSelectedAccountId('all');
+        setCashflowMode('incomeExpense');
       }
     });
   }, []);
@@ -362,6 +448,8 @@ export default function InsightsScreen() {
         newFromIso !== customRangeFrom ||
         newToIso !== customRangeTo;
       if (!willTriggerRefetch) return;
+      // User-picked custom range — clear the active preset so it doesn't override on focus.
+      setActivePreset(null);
       setIsLoadingTrend(true);
       setCustomDraftFrom(fromDate);
       setCustomDraftTo(toDate);
@@ -384,6 +472,14 @@ export default function InsightsScreen() {
           style={{ marginLeft: 10 }}
           isFocused={isFocused}
         />
+        <View style={{ flex: 1 }} />
+        <FilterMoreButton
+          onPress={() => setFiltersOpen(true)}
+          moreActiveCount={filtersActiveCount}
+          palette={palette}
+          iconOnly
+          marginLeft={0}
+        />
       </View>
 
       <ReAnimated.ScrollView
@@ -402,19 +498,21 @@ export default function InsightsScreen() {
           onOpenCustomRange={openCustomRange}
           theme={chartTheme}
           options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
+          leftLabel={activePresetLabel && period === 'custom' ? activePresetLabel : undefined}
         />
 
         <SummaryCard
           cashflow={cashflow}
           sym={showCurrencySymbol ? currencySymbol : ''}
           palette={palette}
+          isCashflowMode={cashflowMode === 'total'}
         />
 
         <TrendLineChart
           points={mappedTrendPoints}
           palette={palette}
           currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-          title="All Accounts Balance Trend"
+          title={selectedAccountId === 'all' ? 'All Accounts Balance Trend' : `${accounts.find((a) => a.id === selectedAccountId)?.name ?? 'Account'} Balance Trend`}
           subtitle={`(${PERIOD_LABELS[period]})`}
           lineColor={palette.brand}
           onInteractionStateChange={setChartInteracting}
@@ -441,6 +539,7 @@ export default function InsightsScreen() {
           panelCloseToken={chartPanelCloseToken}
           isLoading={isLoadingTrend}
           onExpand={() => setIncExpExpanded(true)}
+          isCashflowMode={cashflowMode === 'total'}
         />
 
         <View
@@ -472,6 +571,7 @@ export default function InsightsScreen() {
               setExpandedSheetTxs(periodTransactions); // pre-populate so no empty→populated jump
               setExpandedChartState({ transactions: periodTransactions, mode, resetTrigger: Date.now() });
             }}
+            isCashflowMode={cashflowMode === 'total'}
           />
         </View>
       </ReAnimated.ScrollView>
@@ -572,11 +672,38 @@ export default function InsightsScreen() {
                   accountsById={accountsById}
                   loansById={loansById}
                   onTransactionPress={handleTransactionPress}
+                  isCashflowMode={cashflowMode === 'total'}
                 />
               </View>
             }
           />
         </BottomSheet>
+      ) : null}
+
+      {filtersOpen ? (
+        <InsightsFiltersSheet
+          palette={palette}
+          onClose={() => setFiltersOpen(false)}
+          cashflowMode={cashflowMode}
+          onCashflowModeChange={setCashflowMode}
+          rangePresets={RANGE_PRESETS}
+          selectedRangeKey={activePreset}
+          onSelectRange={(key) => {
+            const { from, to } = computePresetRange(key);
+            setIsLoadingTrend(true);
+            setCustomRangeFrom(from);
+            setCustomRangeTo(to);
+            setActivePreset(key);
+            setPeriod('custom');
+            setFiltersOpen(false);
+          }}
+          accounts={accounts}
+          selectedAccountId={selectedAccountId}
+          onSelectAccount={(id) => {
+            setSelectedAccountId(id);
+            setFiltersOpen(false);
+          }}
+        />
       ) : null}
 
       {incExpExpanded ? (
@@ -631,6 +758,7 @@ export default function InsightsScreen() {
                     );
                   });
                 }}
+                isCashflowMode={cashflowMode === 'total'}
               />
             }
           />

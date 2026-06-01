@@ -55,12 +55,18 @@ function buildModeHierarchy(
   mode: CategoryChartMode,
   transactions: Transaction[],
   categoriesById: Map<string, Category>,
+  isCashflowMode: boolean,
 ): HomeNode[] {
   const targetImpact = mode === 'income' ? 'in' : 'out';
   const parentMap = new Map<string, HomeNode & { childMap: Map<string, HomeNode> }>();
+  const includeOpts = {
+    includeTransfers: isCashflowMode,
+    includeLoans: isCashflowMode,
+    includeDeposits: isCashflowMode,
+  };
 
   transactions.forEach((tx) => {
-    const impact = getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false, includeDeposits: false });
+    const impact = getTransactionCashflowImpact(tx, includeOpts);
     if (impact !== targetImpact) return;
 
     const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
@@ -182,6 +188,7 @@ function CategoryDonutChartBlockBase({
   disableScroll = false,
   externalTransactions = false,
   onSelectedTransactionsChange,
+  isCashflowMode = false,
 }: {
   transactions: Transaction[];
   categoriesById: Map<string, Category>;
@@ -219,6 +226,8 @@ function CategoryDonutChartBlockBase({
   externalTransactions?: boolean;
   /** Called whenever the selected transactions change (useful when externalTransactions is true). */
   onSelectedTransactionsChange?: (txs: Transaction[]) => void;
+  /** When true, relabels Income/Expense to Inflow/Outflow and includes transfers/loans/deposits in totals. */
+  isCashflowMode?: boolean;
 }) {
   const depositsList = useFixedDepositsStore((s) => s.deposits);
   const depositsById = useMemo(() => new Map(depositsList.map((d) => [d.id, d])), [depositsList]);
@@ -231,11 +240,11 @@ function CategoryDonutChartBlockBase({
   const txPalette = listPalette ?? (theme as unknown as AppThemePalette);
   const mode = controlledMode ?? internalMode;
   const switchOptions = useMemo(() => ([
-    { key: 'income', label: 'Income' },
-    { key: 'expense', label: 'Expense' },
-  ] as const), []);
+    { key: 'income', label: isCashflowMode ? 'Inflow' : 'Income' },
+    { key: 'expense', label: isCashflowMode ? 'Outflow' : 'Expense' },
+  ] as const), [isCashflowMode]);
 
-  const hierarchy = useMemo(() => buildModeHierarchy(mode, transactions, categoriesById), [mode, transactions, categoriesById]);
+  const hierarchy = useMemo(() => buildModeHierarchy(mode, transactions, categoriesById, isCashflowMode), [mode, transactions, categoriesById, isCashflowMode]);
   const parentSlices = useMemo(() => buildSlices(hierarchy, transactions, mode), [hierarchy, transactions, mode]);
   const negativeRows = useMemo(() => buildNegativeRows(hierarchy, transactions), [hierarchy, transactions]);
   const total = useMemo(() => parentSlices.reduce((sum, s) => sum + s.amount, 0), [parentSlices]);
@@ -249,8 +258,8 @@ function CategoryDonutChartBlockBase({
   const selectionNode = selectedSubcategoryNode ?? selectedParent ?? null;
   const selectedIds = useMemo(() => (selectionNode ? new Set(collectIds(selectionNode)) : null), [selectionNode]);
   const modeTransactions = useMemo(
-    () => transactions.filter((tx) => getTransactionCashflowImpact(tx, { includeTransfers: false, includeLoans: false, includeDeposits: false }) === (mode === 'income' ? 'in' : 'out')),
-    [mode, transactions],
+    () => transactions.filter((tx) => getTransactionCashflowImpact(tx, { includeTransfers: isCashflowMode, includeLoans: isCashflowMode, includeDeposits: isCashflowMode }) === (mode === 'income' ? 'in' : 'out')),
+    [mode, transactions, isCashflowMode],
   );
   const selectedTransactions = useMemo(
     () => modeTransactions.filter((tx) => {
@@ -382,7 +391,7 @@ function CategoryDonutChartBlockBase({
   const negativeList = !isSubcategoryLevel && negativeRows.length > 0 ? (
     <View style={styles.negativeSection}>
       <Text style={[styles.negativeSectionTitle, { color: theme.muted }]}>
-        {mode === 'income' ? 'Income adjustments' : 'Refunds & adjustments'}
+        {mode === 'income' ? (isCashflowMode ? 'Inflow adjustments' : 'Income adjustments') : 'Refunds & adjustments'}
       </Text>
       {negativeRows.map((row) => (
         <View key={`neg-${row.id}`} style={styles.negativeRow}>
