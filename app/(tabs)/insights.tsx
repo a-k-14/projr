@@ -56,8 +56,8 @@ const RANGE_PRESETS: { key: RangePresetKey; label: string }[] = [
   { key: 'last30', label: 'Last 30D' },
   { key: 'last90', label: 'Last 90D' },
   { key: 'ytd', label: 'YTD' },
-  { key: 'prevMonth', label: 'Last month' },
-  { key: 'prevYear', label: 'Last year' },
+  { key: 'prevMonth', label: 'Last Month' },
+  { key: 'prevYear', label: 'Last Year' },
 ];
 
 function computePresetRange(key: RangePresetKey): { from: string; to: string } {
@@ -530,7 +530,7 @@ export default function InsightsScreen() {
           sym={showCurrencySymbol ? currencySymbol : ''}
           period={period}
           onInteractionStateChange={setChartInteracting}
-          title="Income vs Expense"
+          title={cashflowMode === 'total' ? 'Inflow vs Outflow' : 'Income vs Expense'}
           subtitle={`(${PERIOD_LABELS[period]})`}
           granularity={incomeExpenseGranularity}
           onGranularityChange={handleGranularityChange}
@@ -689,13 +689,18 @@ export default function InsightsScreen() {
           rangePresets={RANGE_PRESETS}
           selectedRangeKey={activePreset}
           onSelectRange={(key) => {
-            const { from, to } = computePresetRange(key);
-            setIsLoadingTrend(true);
-            setCustomRangeFrom(from);
-            setCustomRangeTo(to);
-            setActivePreset(key);
-            setPeriod('custom');
+            // Close the sheet first; defer the heavy data reload to the next frame
+            // so the close animation isn't blocked by the load (esp. for "Last Year",
+            // which pulls a full year of transactions + a 365-point trend).
             setFiltersOpen(false);
+            const { from, to } = computePresetRange(key);
+            requestAnimationFrame(() => {
+              setIsLoadingTrend(true);
+              setCustomRangeFrom(from);
+              setCustomRangeTo(to);
+              setActivePreset(key);
+              setPeriod('custom');
+            });
           }}
           accounts={accounts}
           selectedAccountId={selectedAccountId}

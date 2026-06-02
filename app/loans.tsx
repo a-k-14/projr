@@ -83,7 +83,7 @@ export default function LoansScreen() {
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [directionFilter, setDirectionFilter] = useState<'all' | 'lent' | 'borrowed'>('all');
-  const [statusFilter, setStatusFilter] = useState<LoanStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<LoanStatus | 'all'>('open');
   const [fromDate, setFromDate] = useState<string | undefined>();
   const [toDate, setToDate] = useState<string | undefined>();
   const [amountMinStr, setAmountMinStr] = useState('');

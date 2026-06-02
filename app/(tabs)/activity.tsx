@@ -1076,21 +1076,29 @@ export default function ActivityScreen() {
     [dateRows],
   );
 
+  // The sticky label should reflect the section whose *transactions* are currently
+  // under the overlay — not the next section's header just because it crossed into
+  // the viewport. Pick the lowest-index visible transaction; fall back to the lowest
+  // visible item only if no transactions are visible at all.
+  const pickStickyIndex = (
+    viewableItems: Array<{ item: ActivityDateRow; index: number | null; isViewable: boolean }>,
+  ): number | null => {
+    const sorted = viewableItems
+      .filter((item) => item.isViewable && item.index != null)
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+    const firstTx = sorted.find((item) => item.item.type === 'transaction');
+    return (firstTx ?? sorted[0])?.index ?? null;
+  };
+
   const handleDateRowsViewableChanged = useRef(
     ({ viewableItems }: { viewableItems: Array<{ item: ActivityDateRow; index: number | null; isViewable: boolean }> }) => {
-      const firstVisible = viewableItems
-        .filter((item) => item.isViewable && item.index != null)
-        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))[0];
-      updateStickyDateFromIndex(firstVisible?.index ?? null);
+      updateStickyDateFromIndex(pickStickyIndex(viewableItems));
     },
   );
 
   useEffect(() => {
     handleDateRowsViewableChanged.current = ({ viewableItems }) => {
-      const firstVisible = viewableItems
-        .filter((item) => item.isViewable && item.index != null)
-        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))[0];
-      updateStickyDateFromIndex(firstVisible?.index ?? null);
+      updateStickyDateFromIndex(pickStickyIndex(viewableItems));
     };
   }, [updateStickyDateFromIndex]);
 

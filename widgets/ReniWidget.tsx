@@ -126,7 +126,10 @@ const GAP = c('#00000000');
 
 type BtnIconType = 'income' | 'expense' | 'transfer';
 
-const fmtFull = (n: number, sym: string) => formatCurrency(n, sym);
+// Signed display so a net-negative day (e.g. refund > spend) reads as "-200"
+// instead of an absolute "200" that masks the direction.
+const fmtFull = (n: number, sym: string) =>
+  (n < 0 ? '-' : '') + formatCurrency(Math.abs(n), sym);
 
 
 
@@ -153,9 +156,14 @@ function arrowUpRightSvg(color: string): string {
 }
 
 function TickChart({ data, count, p }: { data: WidgetData; count: number; p: Palette }) {
-  const total = data.todayIncome + data.todayExpense;
-  const incomeFraction = total > 0 ? data.todayIncome / total : 0.5;
-  const incomeTicks = total > 0 ? Math.round(incomeFraction * count) : 0;
+  // Clamp each side at zero: a negative income/expense means refunds dominated and
+  // there's no net flow in that direction to colour. Matches the in-app account card,
+  // which leaves the ticks empty in that case.
+  const inAmt = Math.max(0, data.todayIncome);
+  const outAmt = Math.max(0, data.todayExpense);
+  const total = inAmt + outAmt;
+  const incomeTicks = total > 0 ? Math.round((inAmt / total) * count) : 0;
+  const expenseTicks = total > 0 ? count - incomeTicks : 0;
 
   return (
     <FlexWidget
@@ -173,7 +181,11 @@ function TickChart({ data, count, p }: { data: WidgetData; count: number; p: Pal
       }}
     >
       {Array.from({ length: count }, (_, i) => {
-        const bg = total === 0 ? p.emptyBar : i < incomeTicks ? p.positiveBar : p.negativeBar;
+        const bg = i < incomeTicks
+          ? p.positiveBar
+          : i < incomeTicks + expenseTicks
+            ? p.negativeBar
+            : p.emptyBar;
         return (
           <FlexWidget
             key={i}

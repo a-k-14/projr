@@ -108,9 +108,11 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
     | { width: 'match_parent' }
     | { height: 'match_parent' };
 
-  // Tight outer padding + small gap so 3 vertical pills fit without growing the widget.
-  const outerPad = isVertical && actions.length >= 3 ? 6 : 8;
-  const gap = isVertical && actions.length >= 3 ? 5 : 6;
+  // Outer padding gives the pills breathing room inside the widget so they don't
+  // look glued to the edges. Tighten hard when 3 vertical pills must fit so the
+  // bottom one (Transfer) doesn't get clipped.
+  const outerPad = isVertical && actions.length >= 3 ? 6 : 12;
+  const gap = isVertical && actions.length >= 3 ? 4 : 8;
 
   return (
     <FlexWidget
@@ -121,7 +123,7 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: c(p.surface),
-        borderRadius: 24,
+        borderRadius: 28,
         padding: outerPad,
         flexGap: gap,
         flexGapColor: GAP,
@@ -144,22 +146,24 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'flex-start',
-                paddingLeft: 8,
-                paddingRight: 8,
+                paddingLeft: 6,
+                paddingRight: 10,
+                paddingTop: 5,
+                paddingBottom: 5,
               }}
             >
               <FlexWidget
                 style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 9,
+                  width: 34,
+                  height: 34,
+                  borderRadius: 11,
                   backgroundColor: c(p.iconBg),
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginRight: 7,
+                  marginRight: 8,
                 }}
               >
-                <SvgWidget svg={meta.svg} style={{ width: 16, height: 16 }} />
+                <SvgWidget svg={meta.svg} style={{ width: 18, height: 18 }} />
               </FlexWidget>
               <TextWidget
                 text={meta.label}
@@ -172,8 +176,9 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
           );
         }
 
-        // Icon-only pill — inner chip mirrors the labelled variant so the icon
-        // size and padding stay consistent across configurations.
+        // Icon-only pill — render the SVG directly on the pill background. No nested
+        // icon chip: with no label there's nothing to visually distinguish from, and
+        // the extra layer just made the icon look boxed-in.
         return (
           <FlexWidget
             key={act}
@@ -188,18 +193,7 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
               justifyContent: 'center',
             }}
           >
-            <FlexWidget
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 9,
-                backgroundColor: c(p.iconBg),
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <SvgWidget svg={meta.svg} style={{ width: 16, height: 16 }} />
-            </FlexWidget>
+            <SvgWidget svg={meta.svg} style={{ width: 20, height: 20 }} />
           </FlexWidget>
         );
       })}

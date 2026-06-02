@@ -31,6 +31,66 @@ type HomeSlice = HomeNode & {
 };
 
 const UNCATEGORIZED_ICON = ':o';
+
+// Synthetic bucket ids for cashflow mode — keep loan / transfer / deposit principal
+// moves out of "Uncategorized" and label them the way the CSV export does.
+const CF_LOAN = '__cf_loan__';
+const CF_TRANSFER = '__cf_transfer__';
+const CF_DEPOSIT = '__cf_deposit__';
+
+type CashflowBucket = {
+  parentId: string;
+  parentLabel: string;
+  parentIcon: string;
+  childId?: string;
+  childLabel?: string;
+  childIcon?: string;
+};
+
+function getCashflowBucket(
+  tx: Transaction,
+  loansById: Map<string, LoanWithSummary> | undefined,
+): CashflowBucket | null {
+  if (tx.transferPairId) {
+    const isIn = tx.type === 'in';
+    return {
+      parentId: CF_TRANSFER,
+      parentLabel: 'Transfer',
+      parentIcon: 'repeat',
+      childId: `${CF_TRANSFER}:${isIn ? 'in' : 'out'}`,
+      childLabel: isIn ? 'In' : 'Out',
+      childIcon: 'repeat',
+    };
+  }
+  if (tx.type === 'deposit') {
+    const closed = tx.depositTransactionType === 'closed';
+    return {
+      parentId: CF_DEPOSIT,
+      parentLabel: 'Deposit',
+      parentIcon: 'vault',
+      childId: `${CF_DEPOSIT}:${closed ? 'closed' : 'new'}`,
+      childLabel: closed ? 'Closed' : 'New',
+      childIcon: 'vault',
+    };
+  }
+  // Only principal loan moves — interest/charges carry a real categoryId and stay as Income/Expense.
+  if (tx.type === 'loan' && !tx.categoryId) {
+    const loan = tx.loanId ? loansById?.get(tx.loanId) : undefined;
+    const impact = getTransactionCashflowImpact(tx, { includeTransfers: true, includeLoans: true });
+    let sub = 'Principal';
+    if (loan?.direction === 'lent') sub = impact === 'out' ? 'Lent' : 'Recovered';
+    else if (loan?.direction === 'borrowed') sub = impact === 'in' ? 'Borrowed' : 'Repaid';
+    return {
+      parentId: CF_LOAN,
+      parentLabel: 'Loan',
+      parentIcon: 'hand-coins',
+      childId: `${CF_LOAN}:${sub.toLowerCase()}`,
+      childLabel: sub,
+      childIcon: 'hand-coins',
+    };
+  }
+  return null;
+}
 const EXPENSE_COLORS = [
   '#FF6B6B', '#4F8CFF', '#F4A62A', '#A855F7', '#15B8A6', '#334BFF', '#FF4FD8',
   '#00A7F5', '#26C281', '#FB7185', '#8B5CF6', '#F97316', '#FF8A65', '#FF5C8A',
@@ -56,6 +116,7 @@ function buildModeHierarchy(
   transactions: Transaction[],
   categoriesById: Map<string, Category>,
   isCashflowMode: boolean,
+  loansById: Map<string, LoanWithSummary> | undefined,
 ): HomeNode[] {
   const targetImpact = mode === 'income' ? 'in' : 'out';
   const parentMap = new Map<string, HomeNode & { childMap: Map<string, HomeNode> }>();
@@ -69,15 +130,45 @@ function buildModeHierarchy(
     const impact = getTransactionCashflowImpact(tx, includeOpts);
     if (impact !== targetImpact) return;
 
-    const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
-    const parent = category?.parentId ? categoriesById.get(category.parentId) : undefined;
-    const parentId = parent?.id ?? category?.id ?? 'uncategorized';
-    const parentLabel = parent?.name ?? category?.name ?? 'Uncategorized';
-    const parentIcon = parent?.icon ?? category?.icon ?? UNCATEGORIZED_ICON;
+    // In cashflow mode, route loan / transfer / deposit principal moves into synthetic buckets
+    // matching the CSV export labels — instead of dumping them all into "Uncategorized".
+    const synthetic = isCashflowMode ? getCashflowBucket(tx, loansById) : null;
+
+    let parentId: string;
+    let parentLabel: string;
+    let parentIcon: string;
+    let parentColorSeed: string | undefined;
+    let childId: string | undefined;
+    let childLabel: string | undefined;
+    let childIcon: string | undefined;
+
+    if (synthetic) {
+      parentId = synthetic.parentId;
+      parentLabel = synthetic.parentLabel;
+      parentIcon = synthetic.parentIcon;
+      childId = synthetic.childId;
+      childLabel = synthetic.childLabel;
+      childIcon = synthetic.childIcon;
+    } else {
+      const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
+      const parent = category?.parentId ? categoriesById.get(category.parentId) : undefined;
+      parentId = parent?.id ?? category?.id ?? 'uncategorized';
+      parentLabel = parent?.name ?? category?.name ?? 'Uncategorized';
+      parentIcon = parent?.icon ?? category?.icon ?? UNCATEGORIZED_ICON;
+      parentColorSeed = parent?.color ?? category?.color;
+      if (category?.parentId && category.id !== parentId) {
+        childId = category.id;
+        childLabel = category.name;
+        // Sub-cats always inherit the parent's icon — the donut groups by parent,
+        // so every slice in a group reads as the same family at a glance.
+        childIcon = parentIcon;
+      }
+    }
+
     const parentColor = getPrototypeCategoryColor(
       `${parentId}:${parentLabel}`,
       mode === 'income' ? 'income' : 'expense',
-      parent?.color ?? category?.color,
+      parentColorSeed,
     );
 
     if (!parentMap.has(parentId)) {
@@ -93,15 +184,14 @@ function buildModeHierarchy(
 
     const parentNode = parentMap.get(parentId)!;
 
-    if (category?.parentId && category.id !== parentId && !parentNode.childMap.has(category.id)) {
-      parentNode.childMap.set(category.id, {
-        id: category.id,
-        label: category.name,
-        icon: category.icon || parent?.icon || UNCATEGORIZED_ICON,
+    if (childId && childLabel && !parentNode.childMap.has(childId)) {
+      parentNode.childMap.set(childId, {
+        id: childId,
+        label: childLabel,
+        icon: childIcon || parentIcon,
         color: getPrototypeCategoryColor(
-          `${category.id}:${category.name}`,
+          `${childId}:${childLabel}`,
           mode === 'income' ? 'income' : 'expense',
-          category.color,
         ),
       });
     }
@@ -115,20 +205,56 @@ function buildModeHierarchy(
     .sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' }));
 }
 
-function sumForNode(node: HomeNode, transactions: Transaction[]) {
+function txMatchesNode(
+  tx: Transaction,
+  node: HomeNode,
+  isCashflowMode: boolean,
+  loansById: Map<string, LoanWithSummary> | undefined,
+  targetImpact: 'in' | 'out',
+): boolean {
   const ids = new Set(collectIds(node));
+  if (isCashflowMode) {
+    const b = getCashflowBucket(tx, loansById);
+    if (b) {
+      // Synthetic buckets are direction-paired — only the impact-matching side counts.
+      const impact = getTransactionCashflowImpact(tx, { includeTransfers: true, includeLoans: true, includeDeposits: true });
+      if (impact !== targetImpact) return false;
+      return ids.has(b.childId ?? b.parentId);
+    }
+    // Non-synthetic tx in cashflow mode — must not leak into a synthetic node.
+    if (node.id === CF_LOAN || node.id === CF_TRANSFER || node.id === CF_DEPOSIT) return false;
+  }
+  if (node.id === 'uncategorized') {
+    if (isCashflowMode && getCashflowBucket(tx, loansById)) return false;
+    return !tx.categoryId;
+  }
+  return tx.categoryId ? ids.has(tx.categoryId) : false;
+}
+
+function sumForNode(
+  node: HomeNode,
+  transactions: Transaction[],
+  isCashflowMode: boolean,
+  loansById: Map<string, LoanWithSummary> | undefined,
+  targetImpact: 'in' | 'out',
+) {
   return transactions
-    .filter((tx) => {
-      if (node.id === 'uncategorized') return !tx.categoryId;
-      return tx.categoryId ? ids.has(tx.categoryId) : false;
-    })
+    .filter((tx) => txMatchesNode(tx, node, isCashflowMode, loansById, targetImpact))
     .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
-function buildSlices(nodes: HomeNode[], transactions: Transaction[], mode: CategoryChartMode, parentColor?: string): HomeSlice[] {
+function buildSlices(
+  nodes: HomeNode[],
+  transactions: Transaction[],
+  mode: CategoryChartMode,
+  isCashflowMode: boolean,
+  loansById: Map<string, LoanWithSummary> | undefined,
+  parentColor?: string,
+): HomeSlice[] {
   const palette = mode === 'income' ? INCOME_COLORS : EXPENSE_COLORS;
+  const targetImpact: 'in' | 'out' = mode === 'income' ? 'in' : 'out';
   const raw = nodes
-    .map((node) => ({ ...node, amount: sumForNode(node, transactions) }))
+    .map((node) => ({ ...node, amount: sumForNode(node, transactions, isCashflowMode, loansById, targetImpact) }))
     .filter((node) => node.amount > 0)
     .sort((a, b) => b.amount - a.amount);
   const total = raw.reduce((sum, item) => sum + item.amount, 0) || 1;
@@ -138,9 +264,15 @@ function buildSlices(nodes: HomeNode[], transactions: Transaction[], mode: Categ
 // Categories whose net sum is below zero — i.e. refunds / corrections / adjustments
 // dominated the bucket. These can't be drawn as donut slices, so they're surfaced
 // as a flat list below the main chart.
-function buildNegativeRows(nodes: HomeNode[], transactions: Transaction[]): { id: string; label: string; icon: string; color: string; amount: number }[] {
+function buildNegativeRows(
+  nodes: HomeNode[],
+  transactions: Transaction[],
+  isCashflowMode: boolean,
+  loansById: Map<string, LoanWithSummary> | undefined,
+  targetImpact: 'in' | 'out',
+): { id: string; label: string; icon: string; color: string; amount: number }[] {
   return nodes
-    .map((node) => ({ ...node, amount: sumForNode(node, transactions) }))
+    .map((node) => ({ ...node, amount: sumForNode(node, transactions, isCashflowMode, loansById, targetImpact) }))
     .filter((node) => node.amount < 0)
     .sort((a, b) => a.amount - b.amount); // most-negative first
 }
@@ -244,13 +376,14 @@ function CategoryDonutChartBlockBase({
     { key: 'expense', label: isCashflowMode ? 'Outflow' : 'Expense' },
   ] as const), [isCashflowMode]);
 
-  const hierarchy = useMemo(() => buildModeHierarchy(mode, transactions, categoriesById, isCashflowMode), [mode, transactions, categoriesById, isCashflowMode]);
-  const parentSlices = useMemo(() => buildSlices(hierarchy, transactions, mode), [hierarchy, transactions, mode]);
-  const negativeRows = useMemo(() => buildNegativeRows(hierarchy, transactions), [hierarchy, transactions]);
+  const targetImpact: 'in' | 'out' = mode === 'income' ? 'in' : 'out';
+  const hierarchy = useMemo(() => buildModeHierarchy(mode, transactions, categoriesById, isCashflowMode, loansById), [mode, transactions, categoriesById, isCashflowMode, loansById]);
+  const parentSlices = useMemo(() => buildSlices(hierarchy, transactions, mode, isCashflowMode, loansById), [hierarchy, transactions, mode, isCashflowMode, loansById]);
+  const negativeRows = useMemo(() => buildNegativeRows(hierarchy, transactions, isCashflowMode, loansById, targetImpact), [hierarchy, transactions, isCashflowMode, loansById, targetImpact]);
   const total = useMemo(() => parentSlices.reduce((sum, s) => sum + s.amount, 0), [parentSlices]);
   const selectedParent = drillParentId ? hierarchy.find((node) => node.id === drillParentId) ?? null : null;
   const selectedParentSlice = drillParentId ? parentSlices.find((s) => s.id === drillParentId) ?? null : null;
-  const visibleListSlices = drillParentId ? buildSlices(selectedParent?.children ?? [], transactions, mode, selectedParentSlice?.color) : parentSlices;
+  const visibleListSlices = drillParentId ? buildSlices(selectedParent?.children ?? [], transactions, mode, isCashflowMode, loansById, selectedParentSlice?.color) : parentSlices;
   const isSubcategoryLevel = !!drillParentId;
   const selectedSubcategoryNode = drillParentId && selectedSliceId
     ? selectedParent?.children?.find((node) => node.id === selectedSliceId) ?? null
@@ -263,11 +396,19 @@ function CategoryDonutChartBlockBase({
   );
   const selectedTransactions = useMemo(
     () => modeTransactions.filter((tx) => {
-      if (!selectedIds) return true;
-      if (selectionNode?.id === 'uncategorized') return !tx.categoryId;
+      if (!selectionNode || !selectedIds) return true;
+      if (isCashflowMode) {
+        const b = getCashflowBucket(tx, loansById);
+        if (b) return selectedIds.has(b.childId ?? b.parentId);
+        if (selectionNode.id === CF_LOAN || selectionNode.id === CF_TRANSFER || selectionNode.id === CF_DEPOSIT) return false;
+      }
+      if (selectionNode.id === 'uncategorized') {
+        if (isCashflowMode && getCashflowBucket(tx, loansById)) return false;
+        return !tx.categoryId;
+      }
       return tx.categoryId ? selectedIds.has(tx.categoryId) : false;
     }),
-    [modeTransactions, selectedIds, selectionNode],
+    [modeTransactions, selectedIds, selectionNode, isCashflowMode, loansById],
   );
   const isEmpty = parentSlices.length === 0;
 

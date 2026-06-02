@@ -1077,12 +1077,12 @@ function AccountSummaryCard({
                   </TouchableOpacity>
                   {from && to && (
                     <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, justifyContent: 'flex-end' }}>
-                      <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                      <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.2 }}>
                         {formatDate(from)}
                       </Text>
                       {period !== 'today' && (
                         <Animated.View entering={FadeInRight.duration(200)} exiting={FadeOutRight.duration(200)}>
-                          <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                          <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.2 }}>
                             {` – ${formatDate(to)}`}
                           </Text>
                         </Animated.View>

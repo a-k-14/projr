@@ -107,7 +107,10 @@ function buildWeeklyBuckets(from: Date, to: Date): TimeBucket[] {
 function buildMonthlyBuckets(from: Date, to: Date): TimeBucket[] {
   const buckets: TimeBucket[] = [];
   const cur = new Date(from.getFullYear(), from.getMonth(), 1, 12, 0, 0);
-  while (cur.getFullYear() < to.getFullYear() || cur.getMonth() <= to.getMonth()) {
+  while (
+    cur.getFullYear() < to.getFullYear() ||
+    (cur.getFullYear() === to.getFullYear() && cur.getMonth() <= to.getMonth())
+  ) {
     const monthStart = new Date(cur.getFullYear(), cur.getMonth(), 1, 12, 0, 0);
     const monthEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0, 12, 0, 0);
     const effectiveFrom = monthStart < from ? from : monthStart;
