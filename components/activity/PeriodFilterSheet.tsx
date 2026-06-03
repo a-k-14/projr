@@ -8,11 +8,11 @@ import { ListHeading } from '../ui/ListHeading';
 import { AppIcon } from '../ui/AppIcon';
 import { CARD_PADDING, FONT_WEIGHT } from '../../lib/design';
 import { BOTTOM_SHEET_TOKENS, HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
-import { getNavigableDateRange, getPeriodNavLabel, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
+import { getLast30DaysRange, getNavigableDateRange, getPeriodNavLabel, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { formatDateFull } from '../../lib/ui-format';
 import { type AppThemePalette } from '../../lib/theme';
 
-export type FilterPeriod = 'all' | 'day' | 'week' | 'month' | 'year' | 'custom';
+export type FilterPeriod = 'all' | 'last30' | 'day' | 'week' | 'month' | 'year' | 'custom';
 
 function rangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {
   const range = getNavigableDateRange(period, offset, yearStart);
@@ -81,7 +81,6 @@ export function PeriodFilterSheet({
 
   return (
     <BottomSheet title="Period" palette={palette} onClose={onClose} hasNavBar maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}>
-      <ChoiceRow title="All Time" selected={period === 'all'} palette={palette} onPress={() => onSelectPeriod('all', 0)} />
       <ChoiceRow
         title="Today"
         subtitle={formatDateFull(new Date().toISOString())}
@@ -111,12 +110,23 @@ export function PeriodFilterSheet({
         onPress={() => onSelectPeriod('month', 0)}
       />
       <ChoiceRow
+        title="Last 30 Days"
+        subtitle={(() => {
+          const r = getLast30DaysRange();
+          return getPeriodNavLabel('custom', r.from, r.to);
+        })()}
+        selected={period === 'last30'}
+        palette={palette}
+        onPress={() => onSelectPeriod('last30', 0)}
+      />
+      <ChoiceRow
         title="This Year"
         subtitle={rangeLabel('year', yearStart, 0)}
         selected={period === 'year'}
         palette={palette}
         onPress={() => onSelectPeriod('year', 0)}
       />
+      <ChoiceRow title="All Time" selected={period === 'all'} palette={palette} onPress={() => onSelectPeriod('all', 0)} />
       <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 10, paddingBottom: 16, borderTopWidth: 1, borderTopColor: palette.divider }}>
         <ListHeading label="Custom Range" palette={palette} paddingHorizontal={0} paddingTop={0} paddingBottom={10} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>

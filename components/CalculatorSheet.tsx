@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { View, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { BottomSheet } from './ui/BottomSheet';
+import { Text } from '@/components/ui/AppText';
+import React, { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { getCalculatorDisplayMetrics } from '../lib/calculatorDisplay';
 import {
   appendCalculatorToken,
@@ -10,9 +9,10 @@ import {
   getCalculatorPreviewResult,
   prettifyCalculatorValue,
 } from '../lib/calculatorMath';
-import { SCREEN_GUTTER, FONT_WEIGHT } from '../lib/design';
+import { FONT_WEIGHT, SCREEN_GUTTER } from '../lib/design';
+import { BUTTON_TOKENS, HOME_RADIUS, PRIMARY_ACTION } from '../lib/layoutTokens';
 import { AppThemePalette } from '../lib/theme';
-import { BUTTON_TOKENS, PRIMARY_ACTION, HOME_RADIUS } from '../lib/layoutTokens';
+import { BottomSheet } from './ui/BottomSheet';
 
 interface CalculatorSheetProps {
   visible: boolean;
@@ -42,19 +42,12 @@ export function CalculatorSheet({
   onApply,
 }: CalculatorSheetProps) {
   const [display, setDisplay] = useState(prettifyCalculatorValue(value) || '0');
-  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (visible) {
       setDisplay(prettifyCalculatorValue(value) || '0');
     }
   }, [value, visible]);
-
-  useEffect(() => {
-    if (visible) {
-      scrollRef.current?.scrollToEnd({ animated: false });
-    }
-  }, [display, visible]);
 
   if (!visible) return null;
 
@@ -85,13 +78,14 @@ export function CalculatorSheet({
     setDisplay(prettifyCalculatorValue(evaluate()));
   };
 
-  const displayMetrics = getCalculatorDisplayMetrics(display);
   const previewResult = getCalculatorPreviewResult(display);
 
   const isPureNumber = !/[+−×÷%]/.test(display);
   const formattedDisplay = isPureNumber
     ? display
     : display.replace(/([+−×÷])/g, ' $1 ').replace(/\s+/g, ' ').trim();
+
+  const displayMetrics = getCalculatorDisplayMetrics(formattedDisplay);
 
   return (
     <BottomSheet
@@ -102,15 +96,15 @@ export function CalculatorSheet({
     >
       <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 20 }}>
         <View style={{ marginBottom: 16 }}>
-          <ScrollView
-            ref={scrollRef}
-            scrollEnabled
-            showsVerticalScrollIndicator={false}
-            style={{ height: 80 }}
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'flex-end' }}
-            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          <View
+            style={{
+              height: 80,
+              justifyContent: 'flex-end',
+              alignItems: 'flex-end',
+            }}
           >
             <Text
+              numberOfLines={2}
               style={{
                 fontSize: displayMetrics.fontSize,
                 lineHeight: displayMetrics.lineHeight,
@@ -118,11 +112,12 @@ export function CalculatorSheet({
                 color: palette.text,
                 letterSpacing: 0,
                 textAlign: 'right',
+                width: '100%',
               }}
             >
               {formattedDisplay}
             </Text>
-          </ScrollView>
+          </View>
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -232,9 +227,11 @@ function CalcButton({
     ? 'transparent'
     : palette.states.calcBorder;
 
-  const pressOverlay = primary || isOperator
-    ? 'rgba(255,255,255,0.14)'
-    : palette.states.calcPressOverlay;
+  const pressOverlay = primary
+    ? (palette.isDark ? 'rgba(0, 0, 0, 0.16)' : 'rgba(255, 255, 255, 0.24)')
+    : isOperator
+      ? (palette.isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)')
+      : palette.states.calcPressOverlay;
 
   return (
     <Pressable

@@ -32,6 +32,7 @@ import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
+import { OutlinedButton } from '../../components/ui/AppButton';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { ListHeading } from '../../components/ui/ListHeading';
 import { HeaderSearchBar, HeaderSearchTrigger } from '../../components/ui/HeaderSearchBar';
@@ -39,6 +40,7 @@ import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '
 import { filterTransactions } from '../../lib/transactionFilters';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
+  getLast30DaysRange,
   getNavigableDateRange,
   getPeriodNavLabel,
   getRelativeDateLabel,
@@ -67,7 +69,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
 import type { CashflowSummary, Transaction, TransactionFilters, TransactionType } from '../../types';
 
-type ActivityPeriod = 'all' | 'day' | 'week' | 'month' | 'year' | 'custom';
+type ActivityPeriod = 'all' | 'last30' | 'day' | 'week' | 'month' | 'year' | 'custom';
 type ActivityGroup = {
   groupKey: string;
   title: string;
@@ -143,7 +145,7 @@ export default function ActivityScreen() {
   const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
 
-  const [period, setPeriod] = useState<ActivityPeriod>('all');
+  const [period, setPeriod] = useState<ActivityPeriod>('month');
   const [periodOffset, setPeriodOffset] = useState(0);
   const [customFrom, setCustomFrom] = useState<string | undefined>();
   const [customTo, setCustomTo] = useState<string | undefined>();
@@ -176,7 +178,7 @@ export default function ActivityScreen() {
   const [stickyDateLabel, setStickyDateLabel] = useState<{ key: string; title: string; subtitle?: string } | null>(null);
   const [showStickyDateLabel, setShowStickyDateLabel] = useState(false);
 
-  const [pendingPeriod, setPendingPeriod] = useState<ActivityPeriod>('all');
+  const [pendingPeriod, setPendingPeriod] = useState<ActivityPeriod>('month');
   const [pendingCustomFrom, setPendingCustomFrom] = useState<string | undefined>();
   const [pendingCustomTo, setPendingCustomTo] = useState<string | undefined>();
 
@@ -222,7 +224,7 @@ export default function ActivityScreen() {
   }, [queueScrollToTop]);
 
   const resetAllFilters = useCallback((animated: boolean) => {
-    setPeriod('all');
+    setPeriod('month');
     setPeriodOffset(0);
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -337,6 +339,7 @@ export default function ActivityScreen() {
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
+    if (period === 'last30') return getLast30DaysRange();
     if (period === 'custom') return customFrom && customTo ? { from: customFrom, to: customTo } : null;
     return getNavigableDateRange(period, periodOffset, yearStart);
   }, [customFrom, customTo, period, periodOffset, yearStart]);
@@ -370,9 +373,10 @@ export default function ActivityScreen() {
     [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, selectedAccountId, typeFilter],
   );
 
-  const canGoNext = period !== 'all' && period !== 'custom' && periodOffset < 0;
+  const canGoNext = period !== 'all' && period !== 'last30' && period !== 'custom' && periodOffset < 0;
   const periodLabel = useMemo(() => {
     if (period === 'all' || !dateRange) return 'All Time';
+    if (period === 'last30') return 'Last 30 Days';
     return getPeriodNavLabel(period, dateRange.from, dateRange.to);
   }, [dateRange, period]);
   const selectedAccount =
@@ -383,7 +387,8 @@ export default function ActivityScreen() {
   // A view is default ONLY if we haven't come from a specific source, OR we have finished syncing params
   const isDefaultView =
     (!source || isInitialParamSyncComplete) &&
-    period === 'all' &&
+    period === 'month' &&
+    periodOffset === 0 &&
     selectedAccountId === 'all' &&
     typeFilter === 'all' &&
     cashflowBucket === 'all' &&
@@ -500,7 +505,13 @@ export default function ActivityScreen() {
       } else {
         // Only load data if we aren't waiting for an initial param sync
         if (!source || isInitialParamSyncComplete) {
-          const queryUnchanged = hasContent && lastLoadedRemoteQueryRef.current === remoteQuerySignature;
+          // We're on the custom (non-fast-path) read here, so only the local
+          // `transactions` set counts as "loaded". If we just transitioned out of
+          // the store fast-path (e.g. user added a category/tag/amount filter),
+          // `storeTransactions` is populated but `transactions` is still empty —
+          // `hasContent` would falsely report ready and skip the load, leaving
+          // the filter to run over an empty array and show "No transactions".
+          const queryUnchanged = transactions.length > 0 && lastLoadedRemoteQueryRef.current === remoteQuerySignature;
           const noNewMutations = lastSeenMutationVersionRef.current === storeMutationVersion;
           if (queryUnchanged && noNewMutations) {
             setIsTransitioning(false);
@@ -530,6 +541,25 @@ export default function ActivityScreen() {
     }
   }, [useStoreFastPath, remoteQuerySignature, storeTransactions.length, storeTransactionsHasMore, storeTransactionsLoaded]);
 
+  // Fast-path serves a paginated 50-row window of the bounded period (last 30 days
+  // by default), so the in-memory list is too narrow to compute correct totals for
+  // the summary strip. Run the SQL-side aggregate in parallel — same source loadData
+  // uses on the non-fast-path branch.
+  useEffect(() => {
+    if (!useStoreFastPath || !dateRange?.from || !dateRange?.to) return;
+    let cancelled = false;
+    const includeTotal = derivedCashflowMode === 'total';
+    getActivityPeriodCashflow(
+      selectedAccountId,
+      dateRange.from,
+      dateRange.to,
+      { includeTransfers: includeTotal, includeLoans: includeTotal, includeDeposits: includeTotal },
+    )
+      .then((totals) => { if (!cancelled) setServerCashflow(totals); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [useStoreFastPath, dateRange?.from, dateRange?.to, derivedCashflowMode, selectedAccountId, storeMutationVersion]);
+
   useEffect(() => {
     if (!loansLoaded) loadLoans().catch(() => undefined);
   }, [loansLoaded, loadLoans]);
@@ -557,7 +587,7 @@ export default function ActivityScreen() {
       return;
     }
 
-    setPeriod('all');
+    setPeriod('month');
     setPeriodOffset(0);
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -582,7 +612,12 @@ export default function ActivityScreen() {
       return;
     }
 
-    if (periodParam === 'day' || periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
+    // periodParam comes from deep-link callers. The pre-reset above already
+    // landed us on the 'month' default; only override here for explicit values.
+    if (periodParam === 'all' || periodParam === 'last30') {
+      setPeriod(periodParam);
+      setPeriodOffset(0);
+    } else if (periodParam === 'day' || periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
       setPeriod(periodParam);
       setPeriodOffset(0);
     } else if (periodParam === 'custom') {
@@ -684,7 +719,7 @@ export default function ActivityScreen() {
   );
 
   const goPrev = () => {
-    if (period !== 'all' && period !== 'custom') {
+    if (period !== 'all' && period !== 'last30' && period !== 'custom') {
       setPeriodOffset((value) => value - 1);
       queueScrollToTop(false);
     }
@@ -1363,6 +1398,15 @@ export default function ActivityScreen() {
                       title="No transactions found"
                       subtitle="Add transactions or widen your filters to see activity here."
                       illustration={<FinanceEmptyMascot palette={palette} variant="activity" />}
+                      footer={
+                        period === 'month' && periodOffset === 0 ? (
+                          <OutlinedButton
+                            label="Show Last 30 Days"
+                            onPress={() => { setPeriod('last30'); setPeriodOffset(0); }}
+                            palette={palette}
+                          />
+                        ) : null
+                      }
                     />
                   </View>
                 ) : null
@@ -1660,12 +1704,6 @@ export default function ActivityScreen() {
           maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}
         >
           <ChoiceRow
-            title="All Time"
-            selected={pendingPeriod === 'all'}
-            palette={palette}
-            onPress={() => applyPeriodDirectly('all')}
-          />
-          <ChoiceRow
             title="Today"
             subtitle={formatDateFull(new Date().toISOString())}
             selected={pendingPeriod === 'day' && periodOffset === 0}
@@ -1698,11 +1736,27 @@ export default function ActivityScreen() {
             onPress={() => applyPeriodDirectly('month')}
           />
           <ChoiceRow
+            title="Last 30 Days"
+            subtitle={(() => {
+              const r = getLast30DaysRange();
+              return getPeriodNavLabel('custom', r.from, r.to);
+            })()}
+            selected={pendingPeriod === 'last30'}
+            palette={palette}
+            onPress={() => applyPeriodDirectly('last30')}
+          />
+          <ChoiceRow
             title="This Year"
             subtitle={formatRangeLabel('year', yearStart, 0)}
             selected={pendingPeriod === 'year'}
             palette={palette}
             onPress={() => applyPeriodDirectly('year')}
+          />
+          <ChoiceRow
+            title="All Time"
+            selected={pendingPeriod === 'all'}
+            palette={palette}
+            onPress={() => applyPeriodDirectly('all')}
           />
           <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 10, paddingBottom: 16, borderTopWidth: 1, borderTopColor: palette.divider }}>
             <ListHeading label="Custom Range" palette={palette} paddingHorizontal={0} paddingTop={0} paddingBottom={10} />

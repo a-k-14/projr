@@ -10,7 +10,7 @@ import { useGlobalNotice } from './useGlobalNotice';
 const SAVE_FAILED_MESSAGE = 'Error in saving the last transaction. Please try again.';
 const DELETE_FAILED_MESSAGE = 'Error in deleting the last transaction. Please try again.';
 import { generateId } from '../lib/ids';
-import { nowUTC } from '../lib/dateUtils';
+import { getCurrentMonthToDateRange, nowUTC } from '../lib/dateUtils';
 
 interface TransactionsStore {
   transactions: Transaction[];
@@ -33,9 +33,14 @@ interface TransactionsStore {
   setFilters: (filters: TransactionFilters) => void;
 }
 
+function currentMonthFilter(): Pick<TransactionFilters, 'fromDate' | 'toDate'> {
+  const { from, to } = getCurrentMonthToDateRange();
+  return { fromDate: from, toDate: to };
+}
+
 export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   transactions: [],
-  filters: { limit: PAGE_SIZE, offset: 0 },
+  filters: { ...currentMonthFilter(), limit: PAGE_SIZE, offset: 0 },
   isLoaded: false,
   hasMore: true,
   isLoadingMore: false,
@@ -58,7 +63,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       });
     }
 
-    const f = { ...get().filters, ...filters, limit: PAGE_SIZE, offset: 0 };
+    // Recompute the month cutoff on every load so the cache drifts across midnight
+    // (and across month rollovers) without an explicit guard. Spread order: prev
+    // filters → fresh dates (override stale) → caller overrides last.
+    const f = { ...get().filters, ...currentMonthFilter(), ...filters, limit: PAGE_SIZE, offset: 0 };
     const txs = await transactionsService.getTransactions(f);
     set({ transactions: txs, filters: f, isLoaded: true, hasMore: txs.length === PAGE_SIZE, isLoadingMore: false });
   },
@@ -66,7 +74,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   reset: () => {
     set({
       transactions: [],
-      filters: { limit: PAGE_SIZE, offset: 0 },
+      filters: { ...currentMonthFilter(), limit: PAGE_SIZE, offset: 0 },
       isLoaded: false,
       hasMore: true,
       isLoadingMore: false,

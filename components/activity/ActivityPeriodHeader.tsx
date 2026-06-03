@@ -29,7 +29,7 @@ export function ActivityPeriodHeader({
   palette,
   largeArrows = false,
 }: ActivityPeriodHeaderProps) {
-  const isDisabled = period === 'custom' || period === 'all';
+  const isDisabled = period === 'custom' || period === 'all' || period === 'last30';
   const arrowStyle = largeArrows ? styles.periodArrowLarge : styles.periodArrow;
   const arrowHitSlop = largeArrows
     ? { top: 18, bottom: 18, left: 18, right: 18 }

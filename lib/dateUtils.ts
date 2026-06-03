@@ -168,6 +168,34 @@ export function getDateRange(
 }
 
 /**
+ * Rolling 30-day window ending today (inclusive). Anchored to "now" so callers
+ * can rely on this to drift naturally across midnight without manual rollover.
+ */
+export function getLast30DaysRange(): { from: string; to: string } {
+  const now = new Date();
+  const from = new Date(now);
+  from.setDate(from.getDate() - 29);
+  return {
+    from: toLocalDayStartISO(from),
+    to: toLocalDayEndISO(now),
+  };
+}
+
+/**
+ * Calendar month-to-date — first day of the current month through end of today.
+ * Used by the transactions store's bootstrap cache so the Activity tab's "This
+ * Month" default renders from in-memory data on first open.
+ */
+export function getCurrentMonthToDateRange(): { from: string; to: string } {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+  return {
+    from: toLocalDayStartISO(from),
+    to: toLocalDayEndISO(now),
+  };
+}
+
+/**
  * Compute the {from, to} date range for a navigable period + offset.
  * offset 0 = current period, -1 = previous, etc.
  */

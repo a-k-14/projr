@@ -9,6 +9,7 @@ export function EmptyStateCard({
   title,
   subtitle,
   illustration,
+  footer,
   backgroundColor,
   horizontalPadding = 24,
   verticalPadding = 20,
@@ -17,6 +18,7 @@ export function EmptyStateCard({
   title: string;
   subtitle?: string;
   illustration?: ReactNode;
+  footer?: ReactNode;
   backgroundColor?: string;
   horizontalPadding?: number;
   verticalPadding?: number;
@@ -55,6 +57,7 @@ export function EmptyStateCard({
           {subtitle}
         </Text>
       ) : null}
+      {footer ? <View style={{ marginTop: HOME_SPACE.md }}>{footer}</View> : null}
     </View>
   );
 }

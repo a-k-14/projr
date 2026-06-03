@@ -11,7 +11,7 @@ import { PeriodFilterSheet, type FilterPeriod } from '../../components/activity/
 import { AccountPickerButton } from '../../components/ui/AccountPickerButton';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { FONT_WEIGHT, HOME_TEXT, SCREEN_GUTTER, SPACING } from '../../lib/design';
-import { getNavigableDateRange, getPeriodNavLabel } from '../../lib/dateUtils';
+import { getLast30DaysRange, getNavigableDateRange, getPeriodNavLabel } from '../../lib/dateUtils';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -68,6 +68,7 @@ export default function ExportScreen() {
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
+    if (period === 'last30') return getLast30DaysRange();
     if (period === 'custom') return customFrom && customTo ? { from: customFrom, to: customTo } : null;
     return getNavigableDateRange(period, periodOffset, yearStart);
   }, [period, periodOffset, customFrom, customTo, yearStart]);
@@ -75,6 +76,7 @@ export default function ExportScreen() {
   // Label shown on the period control (absolute, e.g. "March 2026").
   const periodLabel = useMemo(() => {
     if (period === 'all' || !dateRange) return 'All Time';
+    if (period === 'last30') return 'Last 30 Days';
     return getPeriodNavLabel(period, dateRange.from, dateRange.to);
   }, [period, dateRange]);
 
@@ -108,7 +110,7 @@ export default function ExportScreen() {
 
   const account = accountId === 'all' ? null : accounts.find((a) => a.id === accountId);
   const accountLabel = account ? account.name : 'All Accounts';
-  const canGoNext = period !== 'all' && period !== 'custom' && periodOffset < 0;
+  const canGoNext = period !== 'all' && period !== 'last30' && period !== 'custom' && periodOffset < 0;
   const isFullExport = period === 'all' && accountId === 'all';
   const resetConfirm = () => setConfirmAllPending(false);
 
@@ -220,7 +222,7 @@ export default function ExportScreen() {
             <ActivityPeriodHeader
               period={period}
               periodLabel={periodLabel}
-              goPrev={() => { if (period !== 'all' && period !== 'custom') { resetConfirm(); setPeriodOffset((v) => v - 1); } }}
+              goPrev={() => { if (period !== 'all' && period !== 'last30' && period !== 'custom') { resetConfirm(); setPeriodOffset((v) => v - 1); } }}
               goNext={() => { if (canGoNext) { resetConfirm(); setPeriodOffset((v) => v + 1); } }}
               canGoNext={canGoNext}
               setShowPeriodSheet={() => { resetConfirm(); setShowPeriodSheet(true); }}

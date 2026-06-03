@@ -28,12 +28,13 @@ export const CATEGORY_TREE_ROW = {
   parentMinHeight: 62,
   childMinHeight: 52,
   rowGap: 12,
-  childIndent: CARD_PADDING + 40,
+  childIndent: CARD_PADDING + 52,
   parentFontSize: HOME_TEXT.sectionTitle,
   childFontSize: HOME_TEXT.body,
   parentFontWeight: '500',
   childFontWeight: '400',
 } as const;
+
 
 export function buildCategoryPickerSections<T extends PickerCategory & { parentId?: string | null; type?: string }>({
   categories,

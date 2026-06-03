@@ -19,6 +19,7 @@ import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useLoansStore } from '../stores/useLoansStore';
 import { useAssetsStore } from '../stores/useAssetsStore';
+import { useTransactionsStore } from '../stores/useTransactionsStore';
 import { useAppTheme } from '../lib/theme';
 import { FONT_WEIGHT } from '../lib/design';
 import { HOME_TEXT } from '../lib/layoutTokens';
@@ -44,6 +45,7 @@ export default function RootLayout() {
   const loadDeposits = useFixedDepositsStore((s) => s.load);
   const loadLoans = useLoansStore((s) => s.load);
   const loadAssets = useAssetsStore((s) => s.load);
+  const loadTransactions = useTransactionsStore((s) => s.load);
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const { palette } = useAppTheme();
@@ -74,14 +76,16 @@ export default function RootLayout() {
       }
 
       setReady(true);
-      // Background loads — kick off after the home tab is visible.
-      Promise.all([loadDeposits(), loadLoans(), loadAssets()]).catch(() => undefined);
+      // Background loads — kick off after the home tab is visible. Pre-warming
+      // the transactions store here means the Activity tab's default (last 30
+      // days) renders from in-memory cache on first open, no DB roundtrip.
+      Promise.all([loadDeposits(), loadLoans(), loadAssets(), loadTransactions()]).catch(() => undefined);
     } catch (error) {
       setInitError(
         error instanceof Error ? error.message : 'Something went wrong while opening the app.'
       );
     }
-  }, [loadAccounts, loadCategories, loadSettings, loadDeposits, loadLoans, loadAssets]);
+  }, [loadAccounts, loadCategories, loadSettings, loadDeposits, loadLoans, loadAssets, loadTransactions]);
 
   useEffect(() => {
     init();

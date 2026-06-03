@@ -108,11 +108,19 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
     | { width: 'match_parent' }
     | { height: 'match_parent' };
 
-  // Outer padding gives the pills breathing room inside the widget so they don't
-  // look glued to the edges. Tighten hard when 3 vertical pills must fit so the
-  // bottom one (Transfer) doesn't get clipped.
-  const outerPad = isVertical && actions.length >= 3 ? 6 : 12;
-  const gap = isVertical && actions.length >= 3 ? 4 : 8;
+  // The Android widget host doesn't always flex-distribute child heights cleanly,
+  // so we keep per-pill *content* compact (smaller icon-bg, smaller font) when
+  // three pills must stack vertically. That way even if pills end up content-sized
+  // rather than evenly split, the third pill (Transfer) still fits without clipping.
+  const tightVertical = isVertical && actions.length >= 3;
+  const outerPad = tightVertical ? 8 : 12;
+  const gap = tightVertical ? 5 : 8;
+  const iconBgSize = tightVertical ? 26 : 32;
+  const iconBgRadius = tightVertical ? 9 : 11;
+  const iconSvgSize = tightVertical ? 14 : 18;
+  const labelFontSize = tightVertical ? 12 : 13;
+  const labelPillPadY = tightVertical ? 3 : 5;
+  const iconOnlySvgSize = tightVertical ? 18 : 22;
 
   return (
     <FlexWidget
@@ -123,7 +131,7 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: c(p.surface),
-        borderRadius: 28,
+        borderRadius: 32,
         padding: outerPad,
         flexGap: gap,
         flexGapColor: GAP,
@@ -148,26 +156,26 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
                 justifyContent: 'flex-start',
                 paddingLeft: 6,
                 paddingRight: 10,
-                paddingTop: 5,
-                paddingBottom: 5,
+                paddingTop: labelPillPadY,
+                paddingBottom: labelPillPadY,
               }}
             >
               <FlexWidget
                 style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 11,
+                  width: iconBgSize,
+                  height: iconBgSize,
+                  borderRadius: iconBgRadius,
                   backgroundColor: c(p.iconBg),
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 8,
                 }}
               >
-                <SvgWidget svg={meta.svg} style={{ width: 18, height: 18 }} />
+                <SvgWidget svg={meta.svg} style={{ width: iconSvgSize, height: iconSvgSize }} />
               </FlexWidget>
               <TextWidget
                 text={meta.label}
-                style={{ fontSize: 13, fontWeight: '600', color: c(p.text) }}
+                style={{ fontSize: labelFontSize, fontWeight: '600', color: c(p.text) }}
                 maxLines={1}
                 truncate="END"
                 allowFontScaling={false}
@@ -193,7 +201,7 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
               justifyContent: 'center',
             }}
           >
-            <SvgWidget svg={meta.svg} style={{ width: 20, height: 20 }} />
+            <SvgWidget svg={meta.svg} style={{ width: iconOnlySvgSize, height: iconOnlySvgSize }} />
           </FlexWidget>
         );
       })}

@@ -8,6 +8,7 @@ import { FONT_WEIGHT } from '../../lib/design';
 
 type FilledTone = 'brand' | 'loan' | 'budget' | 'danger' | 'neutral';
 type TextTone = 'brand' | 'loan' | 'danger' | 'default' | 'muted';
+type OutlinedTone = 'brand' | 'default' | 'muted';
 
 function getFilledColors(palette: AppThemePalette, tone: FilledTone, disabled?: boolean) {
   if (disabled) {
@@ -26,6 +27,19 @@ function getFilledColors(palette: AppThemePalette, tone: FilledTone, disabled?: 
     case 'brand':
     default:
       return { backgroundColor: palette.brand, textColor: palette.onBrand };
+  }
+}
+
+function getOutlinedColors(palette: AppThemePalette, tone: OutlinedTone, disabled?: boolean) {
+  if (disabled) return { borderColor: palette.borderSoft, textColor: palette.textSoft };
+  switch (tone) {
+    case 'muted':
+      return { borderColor: palette.lines.borderStrong, textColor: palette.textSecondary };
+    case 'default':
+      return { borderColor: palette.lines.borderStrong, textColor: palette.text };
+    case 'brand':
+    default:
+      return { borderColor: palette.brand, textColor: palette.brand };
   }
 }
 
@@ -95,6 +109,49 @@ export function FilledButton({
           {label}
         </Text>
       </View>
+    </TouchableOpacity>
+  );
+}
+
+export function OutlinedButton({
+  label,
+  onPress,
+  palette,
+  disabled,
+  tone = 'brand',
+  style,
+}: BaseButtonProps & { tone?: OutlinedTone }) {
+  const colors = getOutlinedColors(palette, tone, disabled);
+  return (
+    <TouchableOpacity
+      delayPressIn={0}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.75}
+      style={[
+        {
+          height: 36,
+          paddingHorizontal: 16,
+          borderRadius: HOME_RADIUS.pill,
+          borderWidth: 1,
+          borderColor: colors.borderColor,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'transparent',
+        },
+        style,
+      ]}
+    >
+      <Text
+        appWeight="medium"
+        style={{
+          fontSize: HOME_TEXT.bodySmall,
+          fontWeight: FONT_WEIGHT.semibold,
+          color: colors.textColor,
+        }}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }

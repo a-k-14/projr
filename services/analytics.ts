@@ -154,13 +154,18 @@ export async function getBalanceTrend(
     }
   }
 
-  // 6. Walk backwards from end to start
+  // 6. Walk backwards from end to start. After the loop `bal` equals the balance at
+  // the START of days[0] (before any of that day's txs). We overwrite result[0] with
+  // that so `result[last] - result[0]` covers the FULL [fromDate..toDate] period —
+  // matching the cashflow summary's net for the same range. Without this, the first
+  // day's deltas get baked into result[0] and the chart's "end − start" undercounts.
   const result: { date: string; balance: number }[] = new Array(days.length);
   let bal = endBalance;
   for (let i = days.length - 1; i >= 0; i--) {
     result[i] = { date: days[i], balance: bal };
     bal -= deltaByDay.get(days[i]) ?? 0;
   }
+  if (days.length > 0) result[0] = { date: days[0], balance: bal };
 
   return result;
 }
@@ -225,13 +230,15 @@ export async function getAccountBalanceTrend(
     }
   }
 
-  // 6. Walk backwards from end to start
+  // 6. Walk backwards. Same fix as getBalanceTrend: result[0] is set to the balance
+  // at the START of days[0] so `last − first` equals the full period's delta.
   const result: { date: string; balance: number }[] = new Array(days.length);
   let bal = endBalance;
   for (let i = days.length - 1; i >= 0; i--) {
     result[i] = { date: days[i], balance: bal };
     bal -= deltaByDay.get(days[i]) ?? 0;
   }
+  if (days.length > 0) result[0] = { date: days[0], balance: bal };
 
   return result;
 }
