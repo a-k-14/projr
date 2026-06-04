@@ -16,6 +16,7 @@ export function PeriodSelector({
   theme,
   options,
   leftLabel,
+  rightLabel,
 }: {
   period: string;
   from: string;
@@ -24,8 +25,10 @@ export function PeriodSelector({
   onOpenCustomRange: () => void;
   theme: { surface: string; border: string; text: string; textMuted?: string; muted: string; inputBg?: string };
   options: { key: string; label: string }[];
-  /** Optional caption shown before the date range (e.g. "Last 7D · "). */
+  /** Optional caption shown on the left side (rarely used now). */
   leftLabel?: string;
+  /** When provided, replaces the default `dd mmm yyyy - dd mmm yyyy` on the right side. */
+  rightLabel?: string;
 }) {
   return (
     <View style={{ marginBottom: 14 }}>
@@ -65,19 +68,27 @@ export function PeriodSelector({
           ) : null}
         </View>
         <Animated.View layout={LinearTransition.springify().damping(30).stiffness(200).mass(0.8)} style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', flexShrink: 1 }}>
-          <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: theme.textMuted ?? theme.muted }}>
-            {formatDateFull(from)}
-          </Text>
-          {period !== 'today' && (
-            <Animated.View
-              entering={FadeInRight.duration(200)}
-              exiting={FadeOutRight.duration(200)}
-              style={{ flexDirection: 'row', alignItems: 'center' }}
-            >
+          {rightLabel ? (
+            <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: theme.textMuted ?? theme.muted }}>
+              {rightLabel}
+            </Text>
+          ) : (
+            <>
               <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: theme.textMuted ?? theme.muted }}>
-                {` - ${formatDateFull(to)}`}
+                {formatDateFull(from)}
               </Text>
-            </Animated.View>
+              {period !== 'today' && (
+                <Animated.View
+                  entering={FadeInRight.duration(200)}
+                  exiting={FadeOutRight.duration(200)}
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                >
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.caption, color: theme.textMuted ?? theme.muted }}>
+                    {` - ${formatDateFull(to)}`}
+                  </Text>
+                </Animated.View>
+              )}
+            </>
           )}
         </Animated.View>
       </View>

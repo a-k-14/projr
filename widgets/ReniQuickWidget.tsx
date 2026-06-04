@@ -108,10 +108,10 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
     | { width: 'match_parent' }
     | { height: 'match_parent' };
 
-  // The Android widget host doesn't always flex-distribute child heights cleanly,
-  // so we keep per-pill *content* compact (smaller icon-bg, smaller font) when
-  // three pills must stack vertically. That way even if pills end up content-sized
-  // rather than evenly split, the third pill (Transfer) still fits without clipping.
+  // The Android widget host's flex implementation doesn't reliably split a column
+  // evenly across children — the last child (Transfer) often gets clipped at the
+  // bottom edge. We work around it by computing an explicit `pillSize` in dp from
+  // the known widget dimensions and pinning each pill's main-axis size to it.
   const tightVertical = isVertical && actions.length >= 3;
   const outerPad = tightVertical ? 8 : 12;
   const gap = tightVertical ? 5 : 8;
@@ -121,6 +121,10 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
   const labelFontSize = tightVertical ? 12 : 13;
   const labelPillPadY = tightVertical ? 3 : 5;
   const iconOnlySvgSize = tightVertical ? 18 : 22;
+  // Available main-axis space after outer padding and inter-pill gaps. Subtract a
+  // 1dp safety margin so rounding never pushes the last pill past the container.
+  const available = Math.max(0, mainDimension - outerPad * 2 - gap * (actions.length - 1) - 1);
+  const pillSize = Math.floor(available / actions.length);
 
   return (
     <FlexWidget
@@ -140,6 +144,9 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
       {actions.map((act) => {
         const meta = actionMeta(act, p);
 
+        // Pin the pill's main-axis size explicitly (see comment near `pillSize`).
+        const mainAxisSize = isVertical ? { height: pillSize } : { width: pillSize };
+
         if (showLabels) {
           return (
             <FlexWidget
@@ -147,7 +154,7 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
               clickAction="OPEN_URI"
               clickActionData={{ uri: meta.uri }}
               style={{
-                flex: 1,
+                ...mainAxisSize,
                 ...crossFill,
                 backgroundColor: c(p.btnBg),
                 borderRadius: 16,
@@ -193,7 +200,7 @@ function ReniQuickWidgetLayout({ p, width, height }: QuickWidgetLayoutProps) {
             clickAction="OPEN_URI"
             clickActionData={{ uri: meta.uri }}
             style={{
-              flex: 1,
+              ...mainAxisSize,
               ...crossFill,
               borderRadius: 16,
               backgroundColor: c(p.btnBg),

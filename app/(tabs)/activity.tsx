@@ -360,6 +360,10 @@ export default function ActivityScreen() {
   const remoteQuerySignature = useMemo(
     () =>
       [
+        // `searchActive` is part of the sig so toggling search forces a reload —
+        // we drop the period/account/type constraints in that mode and pull the
+        // full set, so the previous query's result wouldn't satisfy this one.
+        search.trim() ? 'search' : 'normal',
         period,
         periodOffset,
         dateRange?.from ?? '',
@@ -370,7 +374,7 @@ export default function ActivityScreen() {
         derivedCashflowMode,
         groupByMode,
       ].join('|'),
-    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, selectedAccountId, typeFilter],
+    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, search, selectedAccountId, typeFilter],
   );
 
   const canGoNext = period !== 'all' && period !== 'last30' && period !== 'custom' && periodOffset < 0;
@@ -449,12 +453,16 @@ export default function ActivityScreen() {
         // unbounded "All Time" view stays paginated.
         // Load the whole set (no pagination) for a bounded period OR whenever the grouped
         // category view is showing — both need the complete set so totals reconcile.
-        const loadAll = !!(dateRange?.from && dateRange?.to) || groupByMode === 'category';
+        // When the user is searching, drop period/account/type constraints so search
+        // results are drawn from the FULL transaction set — search is meant to ignore
+        // every other filter (the client-side `filterTransactions` does the same).
+        const searchActive = !!search.trim();
+        const loadAll = searchActive || !!(dateRange?.from && dateRange?.to) || groupByMode === 'category';
         const filters: TransactionFilters = {
-          accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
-          type: effectiveTypeFilter,
-          fromDate: dateRange?.from,
-          toDate: dateRange?.to,
+          accountId: searchActive ? undefined : (selectedAccountId === 'all' ? undefined : selectedAccountId),
+          type: searchActive ? undefined : effectiveTypeFilter,
+          fromDate: searchActive ? undefined : dateRange?.from,
+          toDate: searchActive ? undefined : dateRange?.to,
           limit: loadAll ? undefined : TRANSACTIONS_PAGE_SIZE,
           offset: loadAll ? 0 : currentOffset
         };
@@ -492,7 +500,7 @@ export default function ActivityScreen() {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, remoteQuerySignature, selectedAccountId, typeFilter],
+    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, remoteQuerySignature, search, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {

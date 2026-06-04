@@ -60,7 +60,7 @@ const RANGE_PRESETS: { key: RangePresetKey; label: string }[] = [
   { key: 'prevYear', label: 'Last Year' },
 ];
 
-function computePresetRange(key: RangePresetKey): { from: string; to: string } {
+function computePresetRange(key: RangePresetKey, yearStart: number = 0): { from: string; to: string } {
   const now = new Date();
   if (key === 'last7' || key === 'last30' || key === 'last90') {
     const days = key === 'last7' ? 7 : key === 'last30' ? 30 : 90;
@@ -68,8 +68,12 @@ function computePresetRange(key: RangePresetKey): { from: string; to: string } {
     start.setDate(start.getDate() - (days - 1));
     return { from: toLocalDayStartISO(start), to: toLocalDayEndISO(now) };
   }
+  // For YTD / Last Year, "year" follows the user's financial-year setting (yearStart is
+  // the 0-indexed start month). Current FY started either this calendar year or the
+  // previous one, depending on whether we've crossed the start month yet.
+  const fyAnchorYear = now.getMonth() >= yearStart ? now.getFullYear() : now.getFullYear() - 1;
   if (key === 'ytd') {
-    const start = new Date(now.getFullYear(), 0, 1);
+    const start = new Date(fyAnchorYear, yearStart, 1);
     return { from: toLocalDayStartISO(start), to: toLocalDayEndISO(now) };
   }
   if (key === 'prevMonth') {
@@ -77,9 +81,9 @@ function computePresetRange(key: RangePresetKey): { from: string; to: string } {
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
     return { from: toLocalDayStartISO(start), to: toLocalDayEndISO(end) };
   }
-  // prevYear
-  const start = new Date(now.getFullYear() - 1, 0, 1);
-  const end = new Date(now.getFullYear() - 1, 11, 31);
+  // prevYear — the full FY that ended just before the current FY started.
+  const start = new Date(fyAnchorYear - 1, yearStart, 1);
+  const end = new Date(fyAnchorYear, yearStart, 0); // day 0 of next month = last day of prev month
   return { from: toLocalDayStartISO(start), to: toLocalDayEndISO(end) };
 }
 
@@ -108,6 +112,8 @@ export default function InsightsScreen() {
   // Default insights view: a rolling 7-day window so the screen is never empty on a
   // fresh week/month. Implemented as `period: 'custom'` with the range recomputed on
   // every mount so the dates stay current as the calendar rolls forward.
+  // Default to a rolling 7-day window so the screen is never empty on a fresh
+  // calendar month (which would happen with a strict `month` default).
   const [period, setPeriod] = useState<HomePeriodType>('custom');
   const [chartMode, setChartMode] = useState<CategoryChartMode>('expense');
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
@@ -252,10 +258,33 @@ export default function InsightsScreen() {
   const filtersActiveCount =
     (selectedAccountId !== 'all' ? 1 : 0) + (cashflowMode === 'total' ? 1 : 0);
 
-  const activePresetLabel = useMemo(
-    () => (activePreset ? RANGE_PRESETS.find((p) => p.key === activePreset)?.label : undefined),
-    [activePreset],
-  );
+  // Rich preset caption shown next to the period switcher when a preset window is
+  // active. Format varies by preset so the dates carry meaning per kind:
+  //   Last 7D/30D/90D (1 Jun 2026 - 7 Jun 2026)
+  //   YTD             (1 Apr 2026 - 4 Jun 2026)
+  //   Last Month      (May 26)
+  //   Last Year       (Apr 25 - Mar 26)
+  const activePresetLabel = useMemo(() => {
+    if (!activePreset) return undefined;
+    const preset = RANGE_PRESETS.find((p) => p.key === activePreset);
+    if (!preset) return undefined;
+    const fmtDayMonth = (iso: string) =>
+      new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    const fmtMonthShortYY = (iso: string) =>
+      new Date(iso).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+    const from = dateRange.from;
+    const to = dateRange.to;
+    let detail: string;
+    if (activePreset === 'prevMonth') {
+      detail = fmtMonthShortYY(from);
+    } else if (activePreset === 'prevYear') {
+      detail = `${fmtMonthShortYY(from)} - ${fmtMonthShortYY(to)}`;
+    } else {
+      // last7 / last30 / last90 / ytd — dd mmm on both ends (year dropped; window is implied).
+      detail = `${fmtDayMonth(from)} - ${fmtDayMonth(to)}`;
+    }
+    return `${preset.label} (${detail})`;
+  }, [activePreset, dateRange.from, dateRange.to]);
 
   const incExpVisibleTxs = useMemo(() => {
     if (!incExpBucketFilter) return periodTransactions;
@@ -340,12 +369,12 @@ export default function InsightsScreen() {
   // midnight or the year boundary (relevant for YTD).
   useEffect(() => {
     if (!isFocused || !activePreset) return;
-    const { from: nextFrom, to: nextTo } = computePresetRange(activePreset);
+    const { from: nextFrom, to: nextTo } = computePresetRange(activePreset, settingsYearStart);
     if (nextFrom !== customRangeFrom || nextTo !== customRangeTo) {
       setCustomRangeFrom(nextFrom);
       setCustomRangeTo(nextTo);
     }
-  }, [isFocused, activePreset, customRangeFrom, customRangeTo]);
+  }, [isFocused, activePreset, customRangeFrom, customRangeTo, settingsYearStart]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -498,7 +527,9 @@ export default function InsightsScreen() {
           onOpenCustomRange={openCustomRange}
           theme={chartTheme}
           options={PERIODS.map((value) => ({ key: value, label: PERIOD_LABELS[value] }))}
-          leftLabel={activePresetLabel && period === 'custom' ? activePresetLabel : undefined}
+          // When a preset is active, replace the right-side date range with the
+          // self-contained rich caption ("Last 7D (1 Jun 2026 - 7 Jun 2026)" etc).
+          rightLabel={activePresetLabel && period === 'custom' ? activePresetLabel : undefined}
         />
 
         <SummaryCard
@@ -693,7 +724,7 @@ export default function InsightsScreen() {
             // so the close animation isn't blocked by the load (esp. for "Last Year",
             // which pulls a full year of transactions + a 365-point trend).
             setFiltersOpen(false);
-            const { from, to } = computePresetRange(key);
+            const { from, to } = computePresetRange(key, settingsYearStart);
             requestAnimationFrame(() => {
               setIsLoadingTrend(true);
               setCustomRangeFrom(from);

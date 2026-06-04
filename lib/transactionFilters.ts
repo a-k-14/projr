@@ -51,6 +51,36 @@ export function filterTransactions(
       .forEach((child) => selectedCategoryAndDescendants.add(child.id));
   });
 
+  // When the user is searching, treat search as a top-level lookup that ignores
+  // every other filter (period/account/type/amount/category/tag/cashflow). The
+  // caller is responsible for passing the FULL transaction set in that case.
+  // The search predicate also matches the numeric amount as text so "200" finds
+  // a ₹200 transaction even if its note/payee don't mention the amount.
+  if (query) {
+    const numericQuery = Number(query.replace(/[^0-9.]/g, ''));
+    const queryIsNumeric = Number.isFinite(numericQuery) && /[0-9]/.test(query);
+    return transactions.filter((tx) => {
+      const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
+      const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
+      const searchable = [
+        tx.note,
+        tx.payee,
+        tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined,
+        accountsById.get(tx.accountId),
+        linkedAccountName,
+        loan?.personName,
+        tx.tags.map((tagId) => tagNamesById.get(tagId)).filter(Boolean).join(' • '),
+        String(tx.amount),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      if (searchable.includes(query)) return true;
+      if (queryIsNumeric && tx.amount === numericQuery) return true;
+      return false;
+    });
+  }
+
   return transactions.filter((tx) => {
     // 1. Account Filter
     if (accountId !== 'all' && tx.accountId !== accountId) {
@@ -99,26 +129,6 @@ export function filterTransactions(
     if (selectedTagIds.length > 0) {
       const hasTag = tx.tags.some((tagId) => selectedTagSet.has(tagId));
       if (!hasTag) return false;
-    }
-
-    // 8. Search Query Filter
-    if (query) {
-      const loan = tx.loanId ? loansById.get(tx.loanId) : undefined;
-      const linkedAccountName = tx.linkedAccountId ? accountsById.get(tx.linkedAccountId) : undefined;
-      const searchable = [
-        tx.note,
-        tx.payee,
-        tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined,
-        accountsById.get(tx.accountId),
-        linkedAccountName,
-        loan?.personName,
-        tx.tags.map((tagId) => tagNamesById.get(tagId)).filter(Boolean).join(' • '),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      if (!searchable.includes(query)) return false;
     }
 
     return true;
