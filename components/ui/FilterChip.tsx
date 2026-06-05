@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text } from '@/components/ui/AppText';
-import { StyleSheet, ViewStyle , TouchableOpacity } from 'react-native';
+import { StyleSheet, ViewStyle } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { FONT_WEIGHT } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
 import { AppThemePalette } from '../../lib/theme';
@@ -20,10 +21,8 @@ export function FilterChip({
   onPress,
   style }: FilterChipProps) {
   return (
-    <TouchableOpacity
+    <PressableScale
       onPress={onPress}
-      activeOpacity={0.75}
-      delayPressIn={0}
       hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
       style={[
         styles.chip,
@@ -41,7 +40,7 @@ export function FilterChip({
       >
         {label}
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

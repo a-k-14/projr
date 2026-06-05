@@ -4,7 +4,8 @@
  */
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '../AppIcon';
-import { TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableScale } from '../PressableScale';
 import { getDepositProgress } from '../../../lib/depositDisplay';
 import { DEPOSIT_VISUAL } from '../../../lib/depositVisuals';
 import { formatCurrency } from '../../../lib/derived';
@@ -30,9 +31,7 @@ export function DepositListCard({
   const statusLabel = isClosed ? 'Closed' : deposit.maturityDate ? progress.label : '-';
 
   return (
-    <TouchableOpacity
-      delayPressIn={0}
-      activeOpacity={0.82}
+    <PressableScale
       onPress={onPress}
       style={{
         paddingHorizontal: HOME_SPACE.lg,
@@ -101,7 +100,7 @@ export function DepositListCard({
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

@@ -167,6 +167,17 @@ export async function getBalanceTrend(
   }
   if (days.length > 0) result[0] = { date: days[0], balance: bal };
 
+  // Single-day range (e.g. "Today"): emit start-of-day and end-of-day balance so the
+  // trend renders a line (flat if there was no activity) instead of an empty
+  // "not enough data" card. After the walk above, `bal` is the start-of-day balance
+  // and `endBalance` is the end-of-day (current) balance.
+  if (days.length === 1) {
+    return [
+      { date: days[0], balance: bal },
+      { date: days[0], balance: endBalance },
+    ];
+  }
+
   return result;
 }
 
@@ -239,6 +250,17 @@ export async function getAccountBalanceTrend(
     bal -= deltaByDay.get(days[i]) ?? 0;
   }
   if (days.length > 0) result[0] = { date: days[0], balance: bal };
+
+  // Single-day range (e.g. "Today"): emit start-of-day and end-of-day balance so the
+  // trend renders a line (flat if there was no activity) instead of an empty
+  // "not enough data" card. After the walk above, `bal` is the start-of-day balance
+  // and `endBalance` is the end-of-day (current) balance.
+  if (days.length === 1) {
+    return [
+      { date: days[0], balance: bal },
+      { date: days[0], balance: endBalance },
+    ];
+  }
 
   return result;
 }

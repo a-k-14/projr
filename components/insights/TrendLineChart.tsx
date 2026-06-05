@@ -73,6 +73,13 @@ function TrendLineChartBase({
   const PAD_X = 4; // viewBox units from SVG edges to line endpoints (active dot r=9, just fits with overflow:visible)
   const CHART_H = 110;
   const VB_W = 300; // viewBox width
+  // Vertical band the line occupies inside the viewBox. Breathing room top/bottom.
+  // Used both for non-flat point mapping (val → y) and as the centerline for the
+  // flat-line case below.
+  const PLOT_MIN_Y = 20;
+  const PLOT_MAX_Y = 88;
+  const PLOT_HEIGHT = PLOT_MAX_Y - PLOT_MIN_Y; // 68
+  const PLOT_MID_Y = (PLOT_MIN_Y + PLOT_MAX_Y) / 2; // 54
 
   const handleTouch = (locationX: number) => {
     if (points.length < 2) return;
@@ -94,13 +101,16 @@ function TrendLineChartBase({
     const minVal = Math.min(...vals);
     const maxVal = Math.max(...vals);
     const valRange = maxVal - minVal || 1;
+    // When every value is identical (e.g. a "Today" line with no activity), there's no
+    // range to map against — center the flat line vertically instead of pinning it to
+    // the bottom of the band.
+    const isFlat = maxVal === minVal;
 
     const startX = PAD_X;
     const endX = VB_W - PAD_X;
     const pts = points.map((p, idx) => {
       const x = total > 1 ? startX + (idx / (total - 1)) * (endX - startX) : VB_W / 2;
-      // y range [20, 88] in 110 viewBox units — breathing room top & bottom
-      const y = 88 - ((p.val - minVal) / valRange) * 68;
+      const y = isFlat ? PLOT_MID_Y : PLOT_MAX_Y - ((p.val - minVal) / valRange) * PLOT_HEIGHT;
       return { x, y };
     });
 

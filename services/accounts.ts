@@ -3,7 +3,7 @@ import { db } from '../db/client';
 import { accounts, loans, transactions } from '../db/schema';
 import type { Account, CreateAccountInput } from '../types';
 import { generateId } from '../lib/ids';
-import { todayUTC } from '../lib/dateUtils';
+import { nowUTC } from '../lib/dateUtils';
 
 function rowToAccount(row: typeof accounts.$inferSelect): Account {
   return {
@@ -49,7 +49,7 @@ async function assertNoDuplicateAccountName(name: string, excludeId?: string): P
 export async function createAccount(data: CreateAccountInput): Promise<Account> {
   await assertNoDuplicateAccountName(data.name);
   const id = generateId();
-  const now = todayUTC();
+  const now = nowUTC();
   const [maxRow] = await db.select({ maxSortOrder: sql<number | null>`max(${accounts.sortOrder})` }).from(accounts);
   const row = {
     id,

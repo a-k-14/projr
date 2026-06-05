@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
+import { PressableScale } from './PressableScale';
 
 // ─── AppCard Components ───────────────────────────────────────────────────────
 
@@ -80,9 +81,9 @@ export function AppCard({
 
   if (onPress) {
     return (
-      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPress} style={cardStyle}>
+      <PressableScale onPress={onPress} style={cardStyle}>
         {cardContent}
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
 

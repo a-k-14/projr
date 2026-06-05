@@ -30,6 +30,14 @@ export function CategoryPickerSheet({
 }) {
   const [search, setSearch] = useState('');
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
+  // Defer the (relatively heavy) category tree render by one frame so the sheet's
+  // open animation starts unblocked — rendering the whole tree + icon badges
+  // synchronously on mount collides with `present()` and causes a visible stutter.
+  const [contentReady, setContentReady] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setContentReady(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
   const selectedCategory = useMemo(
     () => categories.find((category) => category.id === selectedCategoryId),
     [categories, selectedCategoryId],
@@ -81,14 +89,16 @@ export function CategoryPickerSheet({
         </TouchableOpacity>
       }
     >
-      <CategoryTreeList
-        sections={sections}
-        selectedCategoryId={selectedCategoryId}
-        expandedParentIds={expandedParentIds}
-        setExpandedParentIds={setExpandedParentIds}
-        onSelect={onSelect}
-        palette={palette}
-      />
+      {contentReady ? (
+        <CategoryTreeList
+          sections={sections}
+          selectedCategoryId={selectedCategoryId}
+          expandedParentIds={expandedParentIds}
+          setExpandedParentIds={setExpandedParentIds}
+          onSelect={onSelect}
+          palette={palette}
+        />
+      ) : null}
     </BottomSheet>
   );
 }

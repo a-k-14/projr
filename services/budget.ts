@@ -3,7 +3,7 @@ import { db } from '../db/client';
 import { budget, transactions } from '../db/schema';
 import type { Budget, BudgetWithSpent, CreateBudgetInput, Transaction } from '../types';
 import { generateId } from '../lib/ids';
-import { todayUTC, toLocalMonthStartISO } from '../lib/dateUtils';
+import { todayUTC, toLocalMonthStartISO, nowUTC } from '../lib/dateUtils';
 import { getCategories } from './categories';
 import { rowToTransaction } from './transactions';
 
@@ -177,7 +177,7 @@ export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
     repeat: data.repeat,
   });
   const id = generateId();
-  const now = todayUTC();
+  const now = nowUTC();
   const row = { id, ...data, repeat: data.repeat ? 1 : 0, createdAt: now };
   await db.insert(budget).values(row);
   return rowToBudget(row);

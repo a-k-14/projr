@@ -477,6 +477,14 @@ export async function getTransactionsBySplitGroup(splitGroupId: string): Promise
   return rows.map(rowToTransaction);
 }
 
+export async function getTransactionsByTransferPairId(transferPairId: string): Promise<Transaction[]> {
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.transferPairId, transferPairId));
+  return rows.map(rowToTransaction);
+}
+
 type SplitGroupItemInput = {
   categoryId: string;
   amount: number;

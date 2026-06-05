@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { LoanWithSummary, CreateLoanInput, LoanFilters } from '../types';
+import type { LoanWithSummary, CreateLoanInput, CreateTransactionInput, LoanFilters } from '../types';
 import * as loansService from '../services/loans';
 import { usePersonsStore } from './usePersonsStore';
 import { useTransactionsStore } from './useTransactionsStore';
@@ -15,6 +15,7 @@ interface LoansStore {
   addPrincipal: (loanId: string, amount: number, accountId: string, date: string, note?: string) => Promise<void>;
   update: (id: string, data: Partial<LoanWithSummary>) => Promise<void>;
   updateOrigin: (id: string, data: Partial<CreateLoanInput>, originTransactionId?: string) => Promise<void>;
+  updateSettlement: (txId: string, data: Partial<CreateTransactionInput>) => Promise<void>;
   remove: (id: string) => Promise<void>;
   setFilters: (filters: LoanFilters) => void;
   getById: (id: string) => LoanWithSummary | undefined;
@@ -76,6 +77,15 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
     await get().load(get().filters);
     await useTransactionsStore.getState().load();
     if (data.personName) usePersonsStore.getState().load().catch(() => undefined);
+  },
+
+  // Entity-owned edit of a settlement transaction (mirrors updateOrigin): apply the
+  // tx change, then recompute the loan summary + refresh the activity list. This is
+  // why store.update() no longer special-cases loan txs.
+  updateSettlement: async (txId, data) => {
+    await loansService.updateLoanSettlement(txId, data);
+    await get().load(get().filters);
+    await useTransactionsStore.getState().load();
   },
 
   remove: async (id) => {

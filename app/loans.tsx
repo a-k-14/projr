@@ -89,7 +89,7 @@ export default function LoansScreen() {
   const [amountMinStr, setAmountMinStr] = useState('');
   const [amountMaxStr, setAmountMaxStr] = useState('');
 
-  const [pendingStatusFilter, setPendingStatusFilter] = useState<LoanStatus | 'all'>('all');
+  const [pendingStatusFilter, setPendingStatusFilter] = useState<LoanStatus | 'all'>('open');
   const [pendingFromDate, setPendingFromDate] = useState<string | undefined>();
   const [pendingToDate, setPendingToDate] = useState<string | undefined>();
   const [pendingAmountMinStr, setPendingAmountMinStr] = useState('');
@@ -121,7 +121,8 @@ export default function LoansScreen() {
     setShowAccountSheet(false);
     setShowMoreSheet(false);
     setDirectionFilter('all');
-    setStatusFilter('all');
+    // 'open' is the default loans view, so a reset restores it (not 'all').
+    setStatusFilter('open');
     setFromDate(undefined);
     setToDate(undefined);
     setAmountMinStr('');
@@ -287,7 +288,7 @@ export default function LoansScreen() {
           onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           titleAddon={
             <HeaderResetButton
-              visible={directionFilter !== 'all' || statusFilter !== 'all' || !!search || !!fromDate || !!toDate || !!amountMinStr || !!amountMaxStr || selectedAccountId !== 'all'}
+              visible={directionFilter !== 'all' || statusFilter !== 'open' || !!search || !!fromDate || !!toDate || !!amountMinStr || !!amountMaxStr || selectedAccountId !== 'all'}
               onPress={() => resetLoanView(true)}
               palette={palette}
             />
@@ -513,7 +514,7 @@ export default function LoansScreen() {
           headerRight={
             <TouchableOpacity delayPressIn={0}
               onPress={() => {
-                setPendingStatusFilter('all');
+                setPendingStatusFilter('open');
                 setPendingFromDate(undefined);
                 setPendingToDate(undefined);
                 setPendingAmountMinStr('');

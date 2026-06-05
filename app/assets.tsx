@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { router } from 'expo-router';
-import { ScrollView, View, TouchableOpacity } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
@@ -17,6 +17,7 @@ import { useUIStore } from '../stores/useUIStore';
 import { formatCurrency } from '../lib/derived';
 import { isEmojiIcon } from '../lib/ui-format';
 import { AppIcon } from '../components/ui/AppIcon';
+import { PressableScale } from '../components/ui/PressableScale';
 import React, { useEffect } from 'react';
 
 export default function AssetsScreen() {
@@ -131,10 +132,9 @@ export default function AssetsScreen() {
         ) : (
           <View style={{ gap: 12 }}>
             {assets.map((asset) => (
-              <TouchableOpacity
+              <PressableScale
                 key={asset.id}
                 onPress={() => router.push({ pathname: '/modals/asset-form', params: { id: asset.id } })}
-                activeOpacity={0.7}
                 style={{
                   backgroundColor: palette.card,
                   borderRadius: HOME_RADIUS.card,
@@ -173,7 +173,7 @@ export default function AssetsScreen() {
                 <Text style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
                   {formatCurrency(asset.value, displaySymbol)}
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             ))}
           </View>
         )}

@@ -105,8 +105,8 @@ function DepositsScreenContent() {
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         titleAddon={
           <HeaderResetButton
-            visible={statusFilter !== 'all'}
-            onPress={() => setStatusFilter('all')}
+            visible={statusFilter !== 'active'}
+            onPress={() => setStatusFilter('active')}
             palette={palette}
           />
         }

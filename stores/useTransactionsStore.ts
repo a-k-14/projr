@@ -5,6 +5,7 @@ import { TRANSACTIONS_PAGE_SIZE as PAGE_SIZE } from '../lib/layoutTokens';
 import { getTransactionBalanceDelta } from '../lib/transactionImpact';
 import { useAccountsStore } from './useAccountsStore';
 import { useLoansStore } from './useLoansStore';
+import { useFixedDepositsStore } from './useFixedDepositsStore';
 import { useGlobalNotice } from './useGlobalNotice';
 
 const SAVE_FAILED_MESSAGE = 'Error in saving the last transaction. Please try again.';
@@ -148,8 +149,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         return tx;
       }
 
+    const isTransfer = data.type === 'transfer' && !!data.linkedAccountId;
     const syntheticId = generateId();
-    const transferPairId = data.type === 'transfer' ? generateId() : undefined;
+    const syntheticInId = isTransfer ? generateId() : undefined;
+    const transferPairId = isTransfer ? generateId() : undefined;
+    const createdAt = nowUTC();
     const synthetic: Transaction = {
       id: syntheticId,
       // Transfers are surfaced as the 'out' leg in the activity list (same as the service).
@@ -169,14 +173,30 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       receiptImageUris: data.receiptImageUris ?? [],
       date: data.date,
       transferPairId,
-      createdAt: nowUTC(),
+      createdAt,
     };
+    // A transfer persists as TWO rows — the 'out' leg above and the 'in' leg on the
+    // destination account. The activity list renders both, so insert both synthetically;
+    // otherwise the 'in' leg wouldn't appear until the next full reload.
+    const syntheticIn: Transaction | undefined = isTransfer
+      ? {
+          ...synthetic,
+          id: syntheticInId!,
+          type: 'in',
+          accountId: data.linkedAccountId!,
+          linkedAccountId: data.accountId,
+        }
+      : undefined;
 
-    set((state) => ({
-      transactions: insertTransaction(state.transactions, synthetic),
-      mutationVersion: state.mutationVersion + 1,
-      lastAddedTx: synthetic,
-    }));
+    set((state) => {
+      let next = insertTransaction(state.transactions, synthetic);
+      if (syntheticIn) next = insertTransaction(next, syntheticIn);
+      return {
+        transactions: next,
+        mutationVersion: state.mutationVersion + 1,
+        lastAddedTx: synthetic,
+      };
+    });
     const applyAccountDeltas = (sign: 1 | -1) => {
       const accounts = useAccountsStore.getState();
       if (data.type === 'transfer' && data.linkedAccountId) {
@@ -190,8 +210,31 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
     try {
       const realTx = await transactionsService.createTransaction(data);
-      // Reconcile: swap the synthetic row for the persisted one (real id, persisted
-      // receipt URIs, server-derived categoryId etc.).
+      // Reconcile: swap the synthetic row(s) for the persisted one(s) — real ids,
+      // persisted receipt URIs, server-derived categoryId etc. Transfers need both
+      // legs reconciled to their real ids so a later edit/delete (which looks the row
+      // up by id in the DB) resolves correctly.
+      if (isTransfer && realTx.transferPairId) {
+        let realOut = realTx;
+        let realIn: Transaction | undefined;
+        try {
+          const pair = await transactionsService.getTransactionsByTransferPairId(realTx.transferPairId);
+          realOut = pair.find((t) => t.type === 'out') ?? realTx;
+          realIn = pair.find((t) => t.type === 'in');
+        } catch {
+          // The transfer DID persist — a failed pair lookup must not masquerade as a
+          // save failure. Reconcile what we have; the in-leg's synthetic id self-corrects
+          // on the next reload.
+        }
+        set((state) => ({
+          transactions: state.transactions.map((t) =>
+            t.id === syntheticId ? realOut : t.id === syntheticInId ? (realIn ?? t) : t,
+          ),
+          lastAddedTx: realOut,
+          mutationVersion: state.mutationVersion + 1,
+        }));
+        return realOut;
+      }
       set((state) => ({
         transactions: state.transactions.map((t) => (t.id === syntheticId ? realTx : t)),
         lastAddedTx: realTx,
@@ -200,7 +243,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       return realTx;
     } catch (error) {
       set((state) => ({
-        transactions: state.transactions.filter((t) => t.id !== syntheticId),
+        transactions: state.transactions.filter((t) => t.id !== syntheticId && t.id !== syntheticInId),
         mutationVersion: state.mutationVersion + 1,
       }));
       applyAccountDeltas(-1);
@@ -243,9 +286,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         const newDelta = getTransactionBalanceDelta(updated);
         useAccountsStore.getState().applyBalanceDelta(updated.accountId, newDelta);
       }
-      if (updated.loanId || originalTx?.loanId) {
-        useLoansStore.getState().load().catch(() => {});
-      }
+      // Note: loan/deposit transaction edits do NOT come through here — they're
+      // entity-owned (loansStore.updateSettlement / updateOrigin, depositsStore.update),
+      // which apply the tx change and recompute their own summary. store.update() only
+      // ever sees plain in/out edits, so there are no entity-store reloads to do.
       return;
     }
 
@@ -302,65 +346,83 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     set((state) => ({ pendingWrites: state.pendingWrites + 1 }));
     try {
       let originalTx = get().transactions.find((t) => t.id === id);
-    if (!originalTx) {
-      originalTx = await transactionsService.getTransactionById(id) || undefined;
-    }
-    // Pre-await optimistic patch for plain in/out deletes. Skip the complex paths
-    // (transfer pairs, split groups, loan/deposit cascades) where the service does
-    // multi-row cleanup we can't safely mirror sync.
-    const canOptimistic =
-      !!originalTx &&
-      !originalTx.transferPairId &&
-      !originalTx.splitGroupId &&
-      !originalTx.loanId &&
-      !originalTx.depositId &&
-      (originalTx.type === 'in' || originalTx.type === 'out');
-
-    if (!canOptimistic) {
-      await transactionsService.deleteTransaction(id);
-      set((state) => ({
-        transactions: state.transactions.filter((t) => t.id !== id),
-        mutationVersion: state.mutationVersion + 1,
-      }));
-      if (originalTx && !originalTx.transferPairId) {
-        const oldDelta = getTransactionBalanceDelta(originalTx);
-        useAccountsStore.getState().applyBalanceDelta(originalTx.accountId, -oldDelta);
+      if (!originalTx) {
+        originalTx = await transactionsService.getTransactionById(id) || undefined;
       }
-      if (originalTx?.loanId) {
-        useLoansStore.getState().load().catch(() => {});
+
+      // Gather every row the DB delete will cascade-remove so the store can drop them
+      // all optimistically — a transfer deletes both legs (shared transferPairId) and a
+      // split deletes the whole group (shared splitGroupId). Without this the sibling
+      // rows linger in the list until a full reload. Plain in/out/loan/deposit deletes
+      // resolve to just the tapped row.
+      const current = get().transactions;
+      let affected: Transaction[];
+      if (originalTx?.transferPairId) {
+        const pairId = originalTx.transferPairId;
+        const group = current.filter((t) => t.transferPairId === pairId);
+        affected = group.length > 0 ? group : [originalTx];
+      } else if (originalTx?.splitGroupId) {
+        const groupId = originalTx.splitGroupId;
+        const group = current.filter((t) => t.splitGroupId === groupId);
+        affected = group.length > 0 ? group : [originalTx];
+      } else if (originalTx) {
+        affected = [originalTx];
+      } else {
+        affected = current.filter((t) => t.id === id);
       }
-      return;
-    }
+      const affectedIds = new Set(affected.map((t) => t.id));
 
-    const snapshot = originalTx!;
-    set((state) => ({
-      transactions: state.transactions.filter((t) => t.id !== id),
-      mutationVersion: state.mutationVersion + 1,
-      // Mirror of lastAddedTx — lets mounted screens drop this row from their
-      // local period/recent state instantly instead of waiting for a reload.
-      // Only set on the plain in/out optimistic path; cascades (split/transfer/
-      // loan/deposit) leave it untouched and fall back to the post-write reload.
-      lastRemovedTx: snapshot,
-    }));
-    const oldDelta = getTransactionBalanceDelta(snapshot);
-    const accounts = useAccountsStore.getState();
-    accounts.applyBalanceDelta(snapshot.accountId, -oldDelta);
+      // Only a plain single in/out delete feeds lastRemovedTx (the home screen's
+      // instant per-row patch). Cascades clear it so mounted screens fall back to
+      // their own mutationVersion-keyed refresh.
+      const plainSingle =
+        affected.length === 1 &&
+        !affected[0].transferPairId &&
+        !affected[0].splitGroupId &&
+        !affected[0].loanId &&
+        !affected[0].depositId &&
+        (affected[0].type === 'in' || affected[0].type === 'out')
+          ? affected[0]
+          : null;
 
-    try {
-      await transactionsService.deleteTransaction(id);
+      // Optimistic removal — synchronous so the list updates instantly.
       set((state) => ({
+        transactions: state.transactions.filter((t) => !affectedIds.has(t.id)),
         mutationVersion: state.mutationVersion + 1,
+        lastRemovedTx: plainSingle,
       }));
-    } catch (error) {
-      // Revert: put the row back and re-apply its delta.
-      set((state) => ({
-        transactions: insertTransaction(state.transactions, snapshot),
-        mutationVersion: state.mutationVersion + 1,
-      }));
-      accounts.applyBalanceDelta(snapshot.accountId, oldDelta);
-      useGlobalNotice.getState().show(DELETE_FAILED_MESSAGE);
-      throw error;
-    }
+      const accounts = useAccountsStore.getState();
+      for (const row of affected) {
+        const delta = rowBalanceDelta(row);
+        if (delta) accounts.applyBalanceDelta(row.accountId, -delta);
+      }
+
+      try {
+        await transactionsService.deleteTransaction(id);
+        set((state) => ({ mutationVersion: state.mutationVersion + 1 }));
+        if (originalTx?.loanId) {
+          useLoansStore.getState().load().catch(() => {});
+        }
+        // Deposit-linked deletes cascade in the service (deleting a 'new' tx drops the
+        // parent deposit row; deleting a 'closed' tx flips status back to 'active').
+        // Without this reload the deposits store is stale after either.
+        if (originalTx?.depositId) {
+          useFixedDepositsStore.getState().load().catch(() => {});
+        }
+      } catch (error) {
+        // Revert: restore every removed row and re-apply its balance delta.
+        set((state) => {
+          let next = state.transactions;
+          for (const row of affected) next = insertTransaction(next, row);
+          return { transactions: next, mutationVersion: state.mutationVersion + 1 };
+        });
+        for (const row of affected) {
+          const delta = rowBalanceDelta(row);
+          if (delta) accounts.applyBalanceDelta(row.accountId, delta);
+        }
+        useGlobalNotice.getState().show(DELETE_FAILED_MESSAGE);
+        throw error;
+      }
     } finally {
       set((state) => ({ pendingWrites: Math.max(0, state.pendingWrites - 1) }));
     }
@@ -369,6 +431,17 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   setFilters: (filters) =>
     set((state) => ({ filters: { ...state.filters, ...filters } })),
 }));
+
+// Balance impact of a persisted row, mirroring services/transactions delete logic.
+// Transfer legs are stored as concrete in/out rows and DO move account balances, even
+// though getTransactionBalanceDelta reports them as neutral (cashflow-wise) — so handle
+// them explicitly here.
+function rowBalanceDelta(row: Transaction): number {
+  if (row.transferPairId) {
+    return row.type === 'in' ? row.amount : row.type === 'out' ? -row.amount : 0;
+  }
+  return getTransactionBalanceDelta(row);
+}
 
 function insertTransaction(items: Transaction[], tx: Transaction): Transaction[] {
   // Maintain (date desc, createdAt desc) ordering — same comparator as service queries.

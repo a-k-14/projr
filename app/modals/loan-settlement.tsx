@@ -48,11 +48,11 @@ export default function LoanSettlementModal() {
   const { editId, loanId } = useLocalSearchParams<{ editId?: string; loanId?: string }>();
   const isEditing = !!editId;
   const addTransaction = useTransactionsStore((s) => s.add);
-  const updateTransaction = useTransactionsStore((s) => s.update);
   const removeTransaction = useTransactionsStore((s) => s.remove);
   const accounts = useAccountsStore((s) => s.accounts);
   const refreshAccounts = useAccountsStore((s) => s.refresh);
   const loadLoans = useLoansStore((s) => s.load);
+  const updateLoanSettlement = useLoansStore((s) => s.updateSettlement);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const displaySym = showCurrencySymbol ? currencySymbol : '';
@@ -154,7 +154,7 @@ export default function LoanSettlementModal() {
       date,
     };
     const work = isEditing && editId
-      ? () => updateTransaction(editId, payload)
+      ? () => updateLoanSettlement(editId, payload)
       : () => addTransaction(payload);
     router.back();
     (async () => {

@@ -1,7 +1,7 @@
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/client';
 import { loans } from '../db/schema';
-import type { Loan, LoanWithSummary, CreateLoanInput, LoanFilters } from '../types';
+import type { Loan, LoanWithSummary, CreateLoanInput, CreateTransactionInput, LoanFilters } from '../types';
 import { generateId } from '../lib/ids';
 import { nowUTC } from '../lib/dateUtils';
 import {
@@ -262,6 +262,21 @@ export async function recordLoanPayment(
     note: label,
     date,
   });
+}
+
+/**
+ * Edit an existing loan settlement transaction. A settlement is a plain loan-type
+ * transaction (it changes no loan-entity fields), so this is a thin wrapper over
+ * updateTransaction — but routing it through the loans domain keeps every loan-tx
+ * mutation entity-owned (callers reload the loans store afterward), consistent with
+ * updateLoanOrigin and avoiding the fragile "edit the tx, then remember to nudge the
+ * loans store" pattern.
+ */
+export async function updateLoanSettlement(
+  txId: string,
+  data: Partial<CreateTransactionInput>,
+): Promise<void> {
+  await updateTransaction(txId, data);
 }
 
 export async function deleteLoanCascade(loanId: string): Promise<void> {

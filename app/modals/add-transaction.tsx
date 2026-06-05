@@ -132,6 +132,7 @@ export default function AddTransactionModal() {
   const addLoan = useLoansStore((s) => s.add);
   const addLoanPrincipal = useLoansStore((s) => s.addPrincipal);
   const updateLoanOrigin = useLoansStore((s) => s.updateOrigin);
+  const updateLoanSettlement = useLoansStore((s) => s.updateSettlement);
   const removeLoan = useLoansStore((s) => s.remove);
   const deposits = useFixedDepositsStore((s) => s.deposits);
   const isDepositsLoaded = useFixedDepositsStore((s) => s.isLoaded);
@@ -360,7 +361,7 @@ export default function AddTransactionModal() {
 
     setAmountStr(formatIndianNumberStr(String(Math.round(found.principalAmount))));
     setAccountId(found.accountId);
-    setDate(isClosingDeposit ? toLocalDayStartISO(new Date()) : found.startDate);
+    if (!isClosingDeposit) setDate(found.startDate);
     setDepositName(found.name);
     setDepositBank(found.bankName ?? '');
     setDepositTenure(found.tenureMonths != null ? String(found.tenureMonths) : '');
@@ -896,7 +897,7 @@ export default function AddTransactionModal() {
         closeScreenAndExecute(() => {
           clearSplitRows();
           persistLastAccountEagerly();
-          runInBackground(() => updateTransaction(txId, payload), { tx: true, widgets: true });
+          runInBackground(() => updateLoanSettlement(txId, payload), { tx: true, widgets: true });
         }, false);
         return;
       }
