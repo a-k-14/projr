@@ -1,7 +1,7 @@
 import { ColorSchemeName } from 'react-native';
 import type { Theme } from '../types';
-import { CATEGORY_COLORS } from './categoryColors';
 import { ASSET_BG, ASSET_TONE } from './assetVisuals';
+import { CATEGORY_COLORS } from './categoryColors';
 
 export type AppThemeMode = 'light' | 'dark';
 
@@ -570,7 +570,7 @@ export function getThemePalette(mode: AppThemeMode): AppThemePalette {
     rowSubtleBg: 'rgba(0,0,0,0.012)',
     calcBorder: 'rgba(0, 0, 0, 0.13)',
     calcPressOverlay: 'rgba(0, 0, 0, 0.07)',
-    grainMetricBg: 'rgba(242, 242, 242, 0.45)',
+    grainMetricBg: '#f1f3f8',
   };
 
   const brandFamily = {
@@ -801,7 +801,7 @@ function getCachedPalette(mode: AppThemeMode): AppThemePalette {
   return built;
 }
 
-import { useColorScheme, Appearance } from 'react-native';
+import { Appearance, useColorScheme } from 'react-native';
 import { useUIStore } from '../stores/useUIStore';
 
 export function useAppTheme(): { mode: AppThemeMode; palette: AppThemePalette } {

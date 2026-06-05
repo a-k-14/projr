@@ -21,7 +21,6 @@ import { useAppTheme } from '../lib/theme';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { useUIStore } from '../stores/useUIStore';
-import { APP_LOCALE } from '../lib/dateUtils';
 
 function DepositsScreenContent() {
   const insets = useSafeAreaInsets();
@@ -76,19 +75,7 @@ function DepositsScreenContent() {
     [activeDeposits],
   );
 
-  const avgAPY = useMemo(() => {
-    const withRate = activeDeposits.filter((d) => d.interestRate != null && d.interestRate > 0);
-    if (withRate.length === 0) return null;
-    return withRate.reduce((sum, d) => sum + d.interestRate!, 0) / withRate.length;
-  }, [activeDeposits]);
 
-  const nextMaturityLabel = useMemo(() => {
-    const upcoming = activeDeposits
-      .filter((d) => d.maturityDate)
-      .sort((a, b) => new Date(a.maturityDate!).getTime() - new Date(b.maturityDate!).getTime())[0];
-    if (!upcoming?.maturityDate) return undefined;
-    return new Date(upcoming.maturityDate).toLocaleDateString(APP_LOCALE, { month: 'short', year: 'numeric' });
-  }, [activeDeposits]);
 
   const pills = [
     { key: 'active' as const, label: 'Active', count: activeDeposits.length },
@@ -142,12 +129,10 @@ function DepositsScreenContent() {
                   {
                     label: 'MATURITY',
                     value: formatCurrency(totalMaturity, sym),
-                    subValue: nextMaturityLabel,
                   },
                   {
                     label: 'EXPECTED RETURNS',
                     value: expectedReturn > 0 ? `+${formatCurrency(expectedReturn, sym)}` : '—',
-                    subValue: avgAPY != null ? `${avgAPY.toFixed(2)}% APY` : undefined,
                     valueColor: expectedReturn > 0 ? palette.numberPositive : undefined,
                   },
                 ]}

@@ -42,7 +42,7 @@ import {
 } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { toLocalDayStartISO, addMonthsSafe } from '../../lib/dateUtils';
+import { addMonthsSafe } from '../../lib/dateUtils';
 import {
   formatCurrency,
   formatSignedCurrency,
