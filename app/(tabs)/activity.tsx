@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { safePush } from '../../lib/safePush';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -114,7 +114,11 @@ export default function ActivityScreen() {
     to?: string;
     ts?: string;
     categoryId?: string;
+    returnTo?: string;
   }>();
+  const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
+  const returnTo = typeof routeParams.returnTo === 'string' ? routeParams.returnTo : undefined;
+  const isSourceDrivenActivity = !!source && source !== 'activity-tab';
   const accounts = useAccountsStore((s) => s.accounts);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const yearStart = useUIStore((s) => s.settings.yearStart);
@@ -328,14 +332,34 @@ export default function ActivityScreen() {
   const lastLoadedRemoteQueryRef = useRef<string | null>(null);
   const lastSeenMutationVersionRef = useRef(0);
 
-  useEffect(() => {
-    if (!isFocused || groupByMode !== 'category' || !categoryDrilldown) return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      setCategoryDrilldown(null);
+  const handleSourceBack = useCallback(() => {
+    resetAllFilters(false);
+    if (returnTo) {
+      router.replace(returnTo as any);
       return true;
+    }
+    if (router.canGoBack()) {
+      router.back();
+      return true;
+    }
+    router.replace('/' as any);
+    return true;
+  }, [resetAllFilters, returnTo]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (groupByMode === 'category' && categoryDrilldown) {
+        setCategoryDrilldown(null);
+        return true;
+      }
+      if (isSourceDrivenActivity) {
+        return handleSourceBack();
+      }
+      return false;
     });
     return () => sub.remove();
-  }, [categoryDrilldown, groupByMode, isFocused]);
+  }, [categoryDrilldown, groupByMode, handleSourceBack, isFocused, isSourceDrivenActivity]);
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
@@ -386,8 +410,6 @@ export default function ActivityScreen() {
   const selectedAccount =
     selectedAccountId === 'all' ? null : accounts.find((account) => account.id === selectedAccountId);
   const accountLabel = selectedAccount ? selectedAccount.name : 'All Accounts';
-  const source = typeof routeParams.source === 'string' ? routeParams.source : undefined;
-
   // A view is default ONLY if we haven't come from a specific source, OR we have finished syncing params
   const isDefaultView =
     (!source || isInitialParamSyncComplete) &&
@@ -851,9 +873,25 @@ export default function ActivityScreen() {
     [categoryDrilldown, filteredTransactions],
   );
   const includeTotalCashflow = derivedCashflowMode === 'total';
+  const includeTransfersForCurrentView =
+    includeTotalCashflow || (selectedAccountId !== 'all' && categoryDrilldown?.subKey === 'type:transfer');
+  const includeLoansForCurrentView = includeTotalCashflow || categoryDrilldown?.subKey === 'type:loan';
+  const includeDepositsForCurrentView = includeTotalCashflow || categoryDrilldown?.subKey === 'type:deposit';
   const displayedCashflow = useMemo(
-    () => getActivityDisplayedCashflow(filteredTransactions, categoryDrilldown, includeTotalCashflow, includeTotalCashflow, includeTotalCashflow),
-    [categoryDrilldown, filteredTransactions, includeTotalCashflow],
+    () => getActivityDisplayedCashflow(
+      filteredTransactions,
+      categoryDrilldown,
+      includeTransfersForCurrentView,
+      includeLoansForCurrentView,
+      includeDepositsForCurrentView,
+    ),
+    [
+      categoryDrilldown,
+      filteredTransactions,
+      includeDepositsForCurrentView,
+      includeLoansForCurrentView,
+      includeTransfersForCurrentView,
+    ],
   );
 
   // SummaryCard totals: use server-side aggregate (accurate for all pages) when available.
@@ -920,11 +958,23 @@ export default function ActivityScreen() {
         groupKey: group.dateKey,
         title: date,
         subtitle: label || undefined,
-        net: getCashflowFromList(items, includeTotalCashflow, includeTotalCashflow, includeTotalCashflow).net,
+        net: getCashflowFromList(
+          items,
+          includeTransfersForCurrentView,
+          includeLoansForCurrentView,
+          includeDepositsForCurrentView,
+        ).net,
         items,
       };
     });
-  }, [categoryDrilldown, drilldownTransactions, filteredTransactions, includeTotalCashflow]);
+  }, [
+    categoryDrilldown,
+    drilldownTransactions,
+    filteredTransactions,
+    includeDepositsForCurrentView,
+    includeLoansForCurrentView,
+    includeTransfersForCurrentView,
+  ]);
   const dateRows = useMemo<ActivityDateRow[]>(() => {
     return grouped.flatMap((group, groupIndex) => {
       const rows: ActivityDateRow[] = [
@@ -1049,39 +1099,43 @@ export default function ActivityScreen() {
     });
 
     return Array.from(parentMap.values())
-      .map((entry) => ({
-        parentKey: entry.parentKey,
-        parentLabel: entry.parentLabel,
-        parentIcon: entry.parentIcon,
-        parentSyntheticType: entry.parentSyntheticType,
-        total: getCashflowFromList(
-          entry.transactions,
-          includeTotalCashflow,
-          entry.familyKey === 'loan' ? true : includeTotalCashflow,
-          includeTotalCashflow
-        ).net,
-        transactions: entry.transactions,
-        subcategories: Array.from(entry.subMap.values())
-          .map((sub) => ({
-            subKey: sub.subKey,
-            subLabel: sub.subLabel,
-            total: getCashflowFromList(
-              sub.transactions,
-              includeTotalCashflow,
-              entry.familyKey === 'loan' ? true : includeTotalCashflow,
-              includeTotalCashflow
-            ).net,
-            transactions: sub.transactions
-          }))
-          .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
-        familyOrder: entry.familyOrder,
-        familyKey: entry.familyKey
-      }))
+      .map((entry) => {
+        const includeTransfersForEntry =
+          includeTotalCashflow || (entry.familyKey === 'transfer' && selectedAccountId !== 'all');
+        return {
+          parentKey: entry.parentKey,
+          parentLabel: entry.parentLabel,
+          parentIcon: entry.parentIcon,
+          parentSyntheticType: entry.parentSyntheticType,
+          total: getCashflowFromList(
+            entry.transactions,
+            includeTransfersForEntry,
+            entry.familyKey === 'loan' ? true : includeTotalCashflow,
+            includeTotalCashflow
+          ).net,
+          transactions: entry.transactions,
+          subcategories: Array.from(entry.subMap.values())
+            .map((sub) => ({
+              subKey: sub.subKey,
+              subLabel: sub.subLabel,
+              total: getCashflowFromList(
+                sub.transactions,
+                includeTransfersForEntry,
+                entry.familyKey === 'loan' ? true : includeTotalCashflow,
+                includeTotalCashflow
+              ).net,
+              transactions: sub.transactions
+            }))
+            .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
+          familyOrder: entry.familyOrder,
+          familyKey: entry.familyKey
+        };
+      })
       .sort((a, b) => {
         if (a.familyOrder !== b.familyOrder) return a.familyOrder - b.familyOrder;
         return a.parentLabel.localeCompare(b.parentLabel, 'en', { sensitivity: 'base' });
       });
-  }, [categoriesById, filteredTransactions, includeTotalCashflow]);
+  }, [categoriesById, filteredTransactions, includeTotalCashflow, selectedAccountId]);
 
   const hierarchySections = useMemo(
     () =>
@@ -1214,7 +1268,6 @@ export default function ActivityScreen() {
 
       return (
         <TransactionListItem
-          key={tx.id}
           tx={tx}
           sym={sym}
           palette={palette}

@@ -1909,6 +1909,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           source: period === 'today' ? 'home-today' : 'home-period',
           period: period === 'today' ? 'day' : period,
           accountId: accountId === 'all' ? 'all' : accountId,
+          returnTo: accountId === 'all' ? '/' : `/account/${accountId}`,
           cashflowBucket: cashflowIsCashflow ? kind : 'all',
           type: cashflowIsCashflow ? 'all' : kind,
           cashflowMode: cashflowIsCashflow ? 'total' : 'incomeExpense',
@@ -2003,7 +2004,15 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
               <TouchableOpacity
                 delayPressIn={0}
-                onPress={() => safePush(nav, { pathname: '/(tabs)/activity', params: { source: 'home-view-all', accountId: accountId === 'all' ? 'all' : accountId, ts: String(Date.now()) } })}
+                onPress={() => safePush(nav, {
+                  pathname: '/(tabs)/activity',
+                  params: {
+                    source: 'home-view-all',
+                    accountId: accountId === 'all' ? 'all' : accountId,
+                    returnTo: accountId === 'all' ? '/' : `/account/${accountId}`,
+                    ts: String(Date.now()),
+                  },
+                })}
                 activeOpacity={0.7}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
               >

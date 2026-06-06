@@ -379,12 +379,16 @@ function CategoryDonutChartBlockBase({
   const targetImpact: 'in' | 'out' = mode === 'income' ? 'in' : 'out';
   const hierarchy = useMemo(() => buildModeHierarchy(mode, transactions, categoriesById, isCashflowMode, loansById), [mode, transactions, categoriesById, isCashflowMode, loansById]);
   const parentSlices = useMemo(() => buildSlices(hierarchy, transactions, mode, isCashflowMode, loansById), [hierarchy, transactions, mode, isCashflowMode, loansById]);
-  const negativeRows = useMemo(() => buildNegativeRows(hierarchy, transactions, isCashflowMode, loansById, targetImpact), [hierarchy, transactions, isCashflowMode, loansById, targetImpact]);
   const total = useMemo(() => parentSlices.reduce((sum, s) => sum + s.amount, 0), [parentSlices]);
   const selectedParent = drillParentId ? hierarchy.find((node) => node.id === drillParentId) ?? null : null;
   const selectedParentSlice = drillParentId ? parentSlices.find((s) => s.id === drillParentId) ?? null : null;
-  const visibleListSlices = drillParentId ? buildSlices(selectedParent?.children ?? [], transactions, mode, isCashflowMode, loansById, selectedParentSlice?.color) : parentSlices;
   const isSubcategoryLevel = !!drillParentId;
+  const visibleHierarchyNodes = isSubcategoryLevel ? selectedParent?.children ?? [] : hierarchy;
+  const visibleListSlices = drillParentId ? buildSlices(visibleHierarchyNodes, transactions, mode, isCashflowMode, loansById, selectedParentSlice?.color) : parentSlices;
+  const visibleNegativeRows = useMemo(
+    () => buildNegativeRows(visibleHierarchyNodes, transactions, isCashflowMode, loansById, targetImpact),
+    [visibleHierarchyNodes, transactions, isCashflowMode, loansById, targetImpact],
+  );
   const selectedSubcategoryNode = drillParentId && selectedSliceId
     ? selectedParent?.children?.find((node) => node.id === selectedSliceId) ?? null
     : null;
@@ -415,8 +419,19 @@ function CategoryDonutChartBlockBase({
   useEffect(() => {
     onSelectedTransactionsChange?.(selectedTransactions);
   }, [selectedTransactions, onSelectedTransactionsChange]);
-  const showEmptySubcategories = isSubcategoryLevel && visibleListSlices.length === 0;
+  const showEmptySubcategories = isSubcategoryLevel && visibleListSlices.length === 0 && visibleNegativeRows.length === 0;
   const selectedSliceAmount = visibleListSlices.find((slice) => slice.id === selectedSliceId)?.amount;
+  const selectedParentAmount = useMemo(
+    () => selectedParent ? sumForNode(selectedParent, transactions, isCashflowMode, loansById, targetImpact) : undefined,
+    [selectedParent, transactions, isCashflowMode, loansById, targetImpact],
+  );
+  const selectedSubcategoryAmount = useMemo(
+    () => selectedSubcategoryNode ? sumForNode(selectedSubcategoryNode, transactions, isCashflowMode, loansById, targetImpact) : undefined,
+    [selectedSubcategoryNode, transactions, isCashflowMode, loansById, targetImpact],
+  );
+  const selectedDisplayAmount = selectedSubcategoryAmount ?? selectedSliceAmount ?? selectedParentSlice?.amount ?? selectedParentAmount ?? total;
+  const formatChartAmount = (amount: number) =>
+    amount < 0 ? `-${formatCurrency(Math.abs(amount), sym)}` : formatCurrency(amount, sym);
 
 
   useEffect(() => {
@@ -459,6 +474,15 @@ function CategoryDonutChartBlockBase({
     }
     setDrillParentId(id);
     setSelectedSliceId(null);
+  };
+
+  const handleNegativeRowPress = (id: string) => {
+    if (!isSubcategoryLevel) {
+      setDrillParentId(id);
+      setSelectedSliceId(null);
+      return;
+    }
+    setSelectedSliceId((current) => (current === id ? null : id));
   };
 
   const categoryList = (
@@ -529,24 +553,37 @@ function CategoryDonutChartBlockBase({
   // Refunds / Adjustments — shown only when at least one category sums below zero.
   // These represent net inflows into an expense bucket (or net outflows from an income bucket),
   // which can't be drawn as a donut slice. Surface them here so the data isn't silently hidden.
-  const negativeList = !isSubcategoryLevel && negativeRows.length > 0 ? (
+  const negativeList = visibleNegativeRows.length > 0 ? (
     <View style={styles.negativeSection}>
       <Text style={[styles.negativeSectionTitle, { color: theme.muted }]}>
         {mode === 'income' ? (isCashflowMode ? 'Inflow adjustments' : 'Income adjustments') : 'Refunds & adjustments'}
       </Text>
-      {negativeRows.map((row) => (
-        <View key={`neg-${row.id}`} style={styles.negativeRow}>
-          <View style={styles.iconBadge}>
-            {renderIcon(row.icon, 20, theme.brand)}
-          </View>
-          <Text numberOfLines={1} style={[styles.splitName, { color: theme.text }]}>{row.label}</Text>
-          <View style={styles.rowAmountWrap}>
-            <Text style={[styles.splitValue, { color: theme.negative }]}>
-              -{formatCurrency(Math.abs(row.amount), sym)}
-            </Text>
-          </View>
-        </View>
-      ))}
+      {visibleNegativeRows.map((row) => {
+        const isSelectedNegativeRow = isSubcategoryLevel && selectedSliceId === row.id;
+        return (
+          <TouchableOpacity
+            key={`neg-${row.id}`}
+            activeOpacity={0.78}
+            onPress={() => handleNegativeRowPress(row.id)}
+            style={[
+              styles.negativeRow,
+              isSelectedNegativeRow && styles.categoryRowSelected,
+              isSelectedNegativeRow && { backgroundColor: theme.surface + '66' },
+            ]}
+          >
+            <View style={styles.iconBadge}>
+              {renderIcon(row.icon, 20, theme.brand)}
+            </View>
+            <Text numberOfLines={1} style={[styles.splitName, { color: theme.text }]}>{row.label}</Text>
+            <View style={styles.rowAmountWrap}>
+              <Text style={[styles.splitValue, { color: theme.negative }]}>
+                -{formatCurrency(Math.abs(row.amount), sym)}
+              </Text>
+            </View>
+            <AppIcon name={isSelectedNegativeRow ? 'check' : 'chevron-right'} size={15} color={theme.muted} strokeWidth={2} />
+          </TouchableOpacity>
+        );
+      })}
     </View>
   ) : null;
 
@@ -601,16 +638,16 @@ function CategoryDonutChartBlockBase({
             <View pointerEvents="none" style={styles.centerLabel}>
               {selectionNode ? (
                 <View style={styles.centerIconWrap}>
-                  {renderIcon(selectedSubcategoryNode?.icon ?? selectedParentSlice?.icon, 24, theme.brand)}
+                  {renderIcon(selectedSubcategoryNode?.icon ?? selectedParentSlice?.icon ?? selectedParent?.icon, 24, theme.brand)}
                 </View>
               ) : null}
               <Text numberOfLines={2} style={[styles.centerName, { color: theme.text }]}>
-                {selectedSubcategoryNode?.label ?? selectedParentSlice?.label ?? 'All'}
+                {selectedSubcategoryNode?.label ?? selectedParentSlice?.label ?? selectedParent?.label ?? 'All'}
               </Text>
               <Text style={[styles.centerAmount, { color: theme.text }]}>
-                {(selectedSliceAmount ?? selectedParentSlice?.amount ?? total) === 0
+                {selectedDisplayAmount === 0
                   ? '—'
-                  : formatCurrency(selectedSliceAmount ?? selectedParentSlice?.amount ?? total, sym)}
+                  : formatChartAmount(selectedDisplayAmount)}
               </Text>
             </View>
           </>
@@ -636,14 +673,14 @@ function CategoryDonutChartBlockBase({
             {drillParentId ? (
               <>
                 <Text style={[styles.breadcrumbSep, { color: theme.muted }]}>/</Text>
-                <Text style={[styles.breadcrumbCurrent, { color: theme.text }]}>{selectedParentSlice?.label}</Text>
+                <Text style={[styles.breadcrumbCurrent, { color: theme.text }]}>{selectedParentSlice?.label ?? selectedParent?.label}</Text>
               </>
             ) : null}
           </View>
           <View style={[styles.breadcrumbMeta, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
             <Text style={[styles.breadcrumbMetaText, { color: theme.text }]}>
               {drillParentId
-                ? `${formatCurrency(selectedParentSlice?.amount ?? 0, sym)} · ${Math.round((selectedParentSlice?.percent ?? 0) * 100)}%`
+                ? `${formatChartAmount(selectedParentSlice?.amount ?? selectedParentAmount ?? 0)}${selectedParentSlice ? ` · ${Math.round((selectedParentSlice.percent ?? 0) * 100)}%` : ''}`
                 : `${formatCurrency(total, sym)} · 100%`}
             </Text>
           </View>

@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: SCREEN_GUTTER,
