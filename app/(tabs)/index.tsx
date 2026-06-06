@@ -32,6 +32,7 @@ import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { AppSwitch } from '../../components/ui/AppSwitch';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { PressableScale } from '../../components/ui/PressableScale';
 import { getCompactScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { SweepOverlay } from '../../components/ui/SweepOverlay';
@@ -935,11 +936,39 @@ function AccountSummaryCard({
         ) : heroMode ? (
           /* Home hero: dark gradient top, label + NW chip + big balance */
           <View style={{ marginBottom: 8 }}>
-            {/* Row 1: label (left) + NW tappable (right) */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-              <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                {homeExcludedCount > 0 ? `${homeTotalCount - homeExcludedCount} of ${homeTotalCount} Accounts` : 'All Accounts'}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              {/* Tappable column: label + big balance — opens BalanceVisibilitySheet */}
+              <PressableScale
+                onPress={onOpenBalanceVisibility}
+                disabled={!onOpenBalanceVisibility}
+                style={{ flex: 1, alignSelf: 'stretch' }}
+              >
+                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaTiny, fontWeight: FONT_WEIGHT.semibold, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 3 }}>
+                  {homeExcludedCount > 0 ? `${homeTotalCount - homeExcludedCount} of ${homeTotalCount} Accounts` : 'All Accounts'}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                  {currencySymbol ? (
+                    <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.65)', marginRight: 4 }}>
+                      {currencySymbol}
+                    </Text>
+                  ) : null}
+                  <Text
+                    appWeight="medium"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF', letterSpacing: -0.5, flexShrink: 1 }}
+                  >
+                    {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
+                  </Text>
+                  {balanceDec ? (
+                    <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.65)', letterSpacing: -0.2 }}>
+                      {balanceDec}
+                    </Text>
+                  ) : null}
+                </View>
+              </PressableScale>
+
+              {/* NW chip — independent tap target */}
               <TouchableOpacity
                 delayPressIn={0}
                 activeOpacity={onOpenNetWorth && typeof netWorth === 'number' ? 0.75 : 1}
@@ -962,34 +991,6 @@ function AccountSummaryCard({
                 <AppIcon name="chevron-right" size={12} color='rgba(255,255,255,0.40)' strokeWidth={2} />
               </TouchableOpacity>
             </View>
-
-            {/* Row 2: big balance number */}
-            <TouchableOpacity
-              delayPressIn={0}
-              activeOpacity={onOpenBalanceVisibility ? 0.78 : 1}
-              disabled={!onOpenBalanceVisibility}
-              onPress={onOpenBalanceVisibility}
-              style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'baseline' }}
-            >
-              {currencySymbol ? (
-                <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.65)', marginRight: 4 }}>
-                  {currencySymbol}
-                </Text>
-              ) : null}
-              <Text
-                appWeight="medium"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                style={{ fontSize: heroBalanceFontSize, lineHeight: heroBalanceLineHeight, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF', letterSpacing: -0.5, flexShrink: 1 }}
-              >
-                {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
-              </Text>
-              {balanceDec ? (
-                <Text appWeight="medium" style={{ fontSize: heroDecimalFontSize, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.65)', letterSpacing: -0.2 }}>
-                  {balanceDec}
-                </Text>
-              ) : null}
-            </TouchableOpacity>
           </View>
         ) : (
           <>

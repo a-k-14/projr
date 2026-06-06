@@ -6,19 +6,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { getCompactScrollableBottomPadding } from '../components/ui/safeBottom';
-import { ASSET_BG, ASSET_TONE } from '../lib/assetVisuals';
+import { ASSET_HERO_SURFACE } from '../lib/assetVisuals';
 import { SCREEN_GUTTER , FONT_WEIGHT } from '../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../lib/layoutTokens';
 import { useAppTheme } from '../lib/theme';
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 import { HeaderAddButton } from '../components/ui/ScreenHeader';
+import { GrainHeroCard } from '../components/ui/GrainHeroCard';
 import { useAssetsStore } from '../stores/useAssetsStore';
 import { useUIStore } from '../stores/useUIStore';
 import { formatCurrency } from '../lib/derived';
 import { isEmojiIcon } from '../lib/ui-format';
 import { AppIcon } from '../components/ui/AppIcon';
 import { PressableScale } from '../components/ui/PressableScale';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 
 export default function AssetsScreen() {
   const insets = useSafeAreaInsets();
@@ -31,6 +32,11 @@ export default function AssetsScreen() {
   useEffect(() => {
     if (!isLoaded) load();
   }, [isLoaded, load]);
+
+  const highestAsset = useMemo(() => {
+    if (assets.length === 0) return undefined;
+    return assets.reduce((max, a) => (a.value > max.value ? a : max), assets[0]);
+  }, [assets]);
 
   return (
     <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
@@ -54,72 +60,26 @@ export default function AssetsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={{
-            marginTop: 12,
-            marginBottom: 20,
-            borderRadius: HOME_RADIUS.card,
-            borderWidth: 1,
-            borderColor: palette.divider,
-            backgroundColor: palette.card,
-            padding: 20,
-            ...palette.states.cardSoftShadow,
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View style={{
-              width: 42,
-              height: 42,
-              borderRadius: HOME_RADIUS.chip,
-              backgroundColor: ASSET_BG,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <AppIcon name="gem" size={20} color={ASSET_TONE} strokeWidth={1.9} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, marginBottom: 4 }}>
-                Total Asset Value
-              </Text>
-              {(() => {
-                const val = formatCurrency(totalValue, displaySymbol);
-                const dotIdx = val.lastIndexOf('.');
-                const hasDot = dotIdx !== -1;
-                const intPart = hasDot ? val.slice(0, dotIdx) : val;
-                const decPart = hasDot ? val.slice(dotIdx) : '';
-                
-                let symbol = '';
-                let mainVal = intPart;
-                const isNegative = intPart.startsWith('-');
-                const temp = isNegative ? intPart.slice(1) : intPart;
-                if (temp.length > 0 && !/[\d]/.test(temp[0])) {
-                  const numericIdx = temp.search(/[\d]/);
-                  if (numericIdx !== -1) {
-                    symbol = temp.slice(0, numericIdx).trim();
-                    mainVal = (isNegative ? '-' : '') + temp.slice(numericIdx);
-                  }
-                }
+        <View style={{ marginTop: 4, marginBottom: 20 }}>
+          <GrainHeroCard
+            solidColor={ASSET_HERO_SURFACE}
+            icon="gem"
+            eyebrow="Total Asset Value"
+            value={formatCurrency(totalValue, displaySymbol)}
+            sym={displaySymbol}
+            palette={palette}
+            metrics={[
+              {
+                label: 'ITEMS',
+                value: `${assets.length}`,
+              },
+              {
+                label: 'HIGHEST',
+                value: highestAsset ? formatCurrency(highestAsset.value, displaySymbol) : '—',
+              },
 
-                return (
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                    {symbol ? (
-                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginRight: 3 }}>
-                        {symbol}
-                      </Text>
-                    ) : null}
-                    <Text adjustsFontSizeToFit numberOfLines={1} style={{ fontSize: HOME_TEXT.heroCardValue, fontWeight: FONT_WEIGHT.medium, color: palette.text, letterSpacing: -0.5 }}>
-                      {mainVal}
-                    </Text>
-                    {decPart ? (
-                      <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, letterSpacing: -0.2 }}>
-                        {decPart}
-                      </Text>
-                    ) : null}
-                  </View>
-                );
-              })()}
-            </View>
-          </View>
+            ]}
+          />
         </View>
 
         {assets.length === 0 ? (

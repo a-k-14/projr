@@ -116,14 +116,14 @@ function DepositsScreenContent() {
         {hasDeposits ? (
           <>
             {/* Hero Card */}
-            <View style={{ marginHorizontal: SCREEN_GUTTER, marginTop: 12, marginBottom: 20 }}>
+            <View style={{ marginHorizontal: SCREEN_GUTTER, marginTop: 4, marginBottom: 20 }}>
               <GrainHeroCard
                 solidColor={DEPOSIT_VISUAL.tone}
                 icon="vault"
                 eyebrow="Invested"
                 value={formatCurrency(activeInvested, sym)}
                 sym={sym}
-                badgeLabel={activeDeposits.length > 0 ? `${activeDeposits.length} ACTIVE` : undefined}
+                badgeLabel={activeDeposits.length > 0 ? `${activeDeposits.length} Active` : undefined}
                 palette={palette}
                 metrics={[
                   {
@@ -131,7 +131,7 @@ function DepositsScreenContent() {
                     value: formatCurrency(totalMaturity, sym),
                   },
                   {
-                    label: 'EXPECTED RETURNS',
+                    label: 'EST. RETURNS',
                     value: expectedReturn > 0 ? `+${formatCurrency(expectedReturn, sym)}` : '—',
                     valueColor: expectedReturn > 0 ? palette.numberPositive : undefined,
                   },
@@ -164,7 +164,7 @@ function DepositsScreenContent() {
                     Active
                   </Text>
                 )}
-                <View style={{ gap: HOME_SPACE.lg }}>
+                <View style={{ gap: HOME_SPACE.md }}>
                   {activeDeposits.map((deposit) => (
                     <DepositListCard
                       key={deposit.id}
@@ -186,7 +186,7 @@ function DepositsScreenContent() {
                     Closed
                   </Text>
                 )}
-                <View style={{ gap: HOME_SPACE.lg }}>
+                <View style={{ gap: HOME_SPACE.md }}>
                   {closedDeposits.map((deposit) => (
                     <DepositListCard
                       key={deposit.id}

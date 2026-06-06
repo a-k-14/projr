@@ -9,6 +9,7 @@ import {
 } from '../../components/settings-ui';
 import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
+import { PressableScale } from '../../components/ui/PressableScale';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, TYPE, FONT_WEIGHT } from '../../lib/design';
@@ -71,7 +72,7 @@ export default function AccountsScreen() {
       <FlatList
         data={sortedAccounts}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingTop: 12, paddingBottom: getScrollableBottomPadding(insets) + 30 }}
+        contentContainerStyle={{ paddingTop: 12, paddingBottom: getScrollableBottomPadding(insets) + 88 }}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={
@@ -126,10 +127,8 @@ function SettingsAccountCard({
 
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-      <TouchableOpacity
-        delayPressIn={0}
+      <PressableScale
         onPress={onPress}
-        activeOpacity={0.68}
         style={{
           minHeight: 78,
           paddingHorizontal: CARD_PADDING,
@@ -189,7 +188,7 @@ function SettingsAccountCard({
           {item.initialBalance < 0 ? '-' : ''}{formatDisplayCurrency(Math.abs(item.initialBalance), displaySymbol)}
         </Text>
         <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
-      </TouchableOpacity>
+      </PressableScale>
     </View>
   );
 }

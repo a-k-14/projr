@@ -34,8 +34,8 @@ export function DepositListCard({
     <PressableScale
       onPress={onPress}
       style={{
-        paddingHorizontal: HOME_SPACE.lg,
-        paddingVertical: 18,
+        paddingHorizontal: HOME_SPACE.md + 2,
+        paddingVertical: 16,
         borderRadius: HOME_RADIUS.card,
         borderWidth: 1,
         borderColor: isClosed ? palette.divider : palette.borderSoft,

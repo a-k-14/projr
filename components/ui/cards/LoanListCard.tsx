@@ -4,7 +4,7 @@
  */
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
-import { formatCurrency } from '../../../lib/derived';
+import { formatCurrency, getLoanActionLabel } from '../../../lib/derived';
 import { FONT_WEIGHT } from '../../../lib/design';
 import {
   ACTIVITY_LAYOUT,
@@ -111,11 +111,9 @@ export function LoanListCard({
             <View style={{ height: PROGRESS.cardHeight, backgroundColor: palette.divider, borderRadius: PROGRESS.radius, overflow: 'hidden' }}>
               <View style={{ height: PROGRESS.cardHeight, width: `${loan.repaidPercent}%`, backgroundColor: progressColor, borderRadius: PROGRESS.radius }} />
             </View>
-            {loan.repaidPercent > 0 && (
-              <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
-                {loan.repaidPercent}% Repaid
-              </Text>
-            )}
+            <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
+              {loan.repaidPercent}% {getLoanActionLabel(loan.direction, 'settlement')}
+            </Text>
           </View>
         }
       />

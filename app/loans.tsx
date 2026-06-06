@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChoiceRow } from '../components/settings-ui';
 import { BottomSheet } from '../components/ui/BottomSheet';
@@ -26,6 +27,7 @@ import { FilterMoreButton } from '../components/ui/FilterMoreButton';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../lib/settings-shared';
 import { FinanceEmptyMascot } from '../components/ui/FinanceEmptyMascot';
 import { GrainHeroCard } from '../components/ui/GrainHeroCard';
+
 import { HeaderResetButton } from '../components/ui/HeaderResetButton';
 import { HeaderSearchBar, HeaderSearchTrigger } from '../components/ui/HeaderSearchBar';
 import { ListHeading } from '../components/ui/ListHeading';
@@ -221,7 +223,7 @@ export default function LoansScreen() {
   }, [nav]);
 
   const renderLoanItem = useCallback(
-    ({ item, index: _index }: { item: LoanWithSummary; index: number }) => {
+    ({ item }: { item: LoanWithSummary }) => {
       const accountName = accountsById.get(item.accountId);
       return (
         <MemoizedLoanRow
@@ -316,14 +318,14 @@ export default function LoansScreen() {
         windowSize={5}
         ListHeaderComponent={
           <View style={{ paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
-            <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: 12 }}>
+            <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: 20 }}>
               <GrainHeroCard
                 solidColor={CATEGORY_COLORS.loans.surface}
                 icon="hand-coins"
                 eyebrow={netPositive ? "Net Lent" : "Net Owed"}
                 value={formatCurrency(Math.abs(summary.net), sym)}
                 sym={sym}
-                badgeLabel={filteredLoans.filter(l => l.status === 'open').length > 0 ? `${filteredLoans.filter(l => l.status === 'open').length} OPEN` : undefined}
+                badgeLabel={filteredLoans.filter(l => l.status === 'open').length > 0 ? `${filteredLoans.filter(l => l.status === 'open').length} Open` : undefined}
                 palette={palette}
                 metrics={[
                   {

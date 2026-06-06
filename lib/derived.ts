@@ -27,6 +27,14 @@ export function getLoanSettlementLabel(direction: Loan['direction'], personName:
   return direction === 'lent' ? `Receipt from ${personName}` : `Payment to ${personName}`;
 }
 
+export function getLoanActionLabel(direction: Loan['direction'], role: 'origin' | 'settlement'): string {
+  if (direction === 'lent') {
+    return role === 'origin' ? 'Lent' : 'Recovered';
+  } else {
+    return role === 'origin' ? 'Borrowed' : 'Repaid';
+  }
+}
+
 export function mergeLoanTransactionNote(label: string, note?: string | null) {
   const trimmed = note?.trim();
   return trimmed ? `${label} · ${trimmed}` : label;

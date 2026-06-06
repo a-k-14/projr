@@ -64,7 +64,7 @@ export function GrainHeroCard({
           </View>
 
           <View style={styles.identityCol}>
-            <Text numberOfLines={1} style={styles.eyebrow}>{eyebrow}</Text>
+            <Text style={styles.eyebrow}>{eyebrow}</Text>
             <View style={styles.valueRow}>
               {symbol ? (
                 <Text style={styles.currencyGlyph}>{symbol}</Text>
@@ -91,7 +91,7 @@ export function GrainHeroCard({
                 { backgroundColor: palette.states.grainMetricBg }
               ]}
             >
-              <Text style={[styles.metricLabel, { color: palette.textMuted }]}>{m.label}</Text>
+              <Text numberOfLines={1} style={[styles.metricLabel, { color: palette.textMuted }]}>{m.label}</Text>
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   top: {
     paddingHorizontal: 14,
     paddingTop: 14,
-    paddingBottom: 14,
+    paddingBottom: 12,
   },
   badge: {
     position: 'absolute',

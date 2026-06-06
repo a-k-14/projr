@@ -92,14 +92,14 @@ export function BudgetOverviewCard({
               numberOfLines={1}
               style={{ fontSize: 28, fontWeight: FONT_WEIGHT.medium, color: onHero, letterSpacing: -0.5, marginTop: 4 }}
             >
-              {hasBudgetSet ? formatCurrency(Math.abs(totalRemaining), sym) : 'Not set'}
+              {hasBudgetSet ? formatCurrency(Math.abs(totalRemaining), sym) : 'Not Set'}
             </Text>
           </View>
 
           <View style={styles.secondaryRow}>
-            <SecondaryStat label="Budgeted" value={hasBudgetSet ? formatCurrency(totalBudgeted, sym) : 'Not set'} labelColor={onHeroFaint} valueColor={onHeroSoft} />
+            <SecondaryStat label="Budgeted" value={hasBudgetSet ? formatCurrency(totalBudgeted, sym) : '—'} labelColor={onHeroFaint} valueColor={onHeroSoft} />
             <View style={styles.secondaryDivider} />
-            <SecondaryStat label="Spent" value={formatCurrency(totalSpent, sym)} labelColor={onHeroFaint} valueColor={onHeroSoft} />
+            <SecondaryStat label="Spent" value={hasBudgetSet ? formatCurrency(totalSpent, sym) : '—'} labelColor={onHeroFaint} valueColor={onHeroSoft} />
           </View>
         </View>
 

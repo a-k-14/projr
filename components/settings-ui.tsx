@@ -9,6 +9,7 @@ import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT, SCREEN_HEADER} from '../lib/layou
 import type { AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { FilledButton, TextButton } from './ui/AppButton';
+import { PressableScale } from './ui/PressableScale';
 import { BottomActionBar } from './ui/ScreenScaffold';
 import { getScrollableBottomPadding } from './ui/safeBottom';
 
@@ -163,9 +164,9 @@ export function SettingsRow({
 
   if (onPress) {
     return (
-      <TouchableOpacity delayPressIn={0} onPress={onPress} style={style}>
+      <PressableScale onPress={onPress} style={style}>
         {content}
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
   return <View style={style}>{content}</View>;

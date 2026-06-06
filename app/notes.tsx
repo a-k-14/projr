@@ -1,5 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { ScreenHeader, HeaderAddButton } from '@/components/ui/ScreenHeader';
 import { ScreenScaffold } from '@/components/ui/ScreenScaffold';
 import { router } from 'expo-router';
@@ -29,10 +30,8 @@ function NoteCard({
   const preview = note.firstItem || note.title || '';
 
   return (
-    <TouchableOpacity
+    <PressableScale
       onPress={onPress}
-      delayPressIn={0}
-      activeOpacity={0.72}
       style={{
         backgroundColor: palette.card,
         borderRadius: HOME_RADIUS.card,
@@ -56,7 +55,7 @@ function NoteCard({
           {formatDateFull(note.updatedAt)}
         </Text>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

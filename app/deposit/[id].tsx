@@ -2,10 +2,11 @@ import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { HeaderMoreButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
 import { ActionChip } from '../../components/ui/AppButton';
 import { ActionStrip } from '../../components/ui/ActionStrip';
 import { AppConfirmDialog } from '../../components/ui/AppConfirmDialog';
@@ -20,11 +21,12 @@ import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
-import type { DepositStatus } from '../../types';
+import type { DepositStatus, Transaction } from '../../types';
 
 const STATUS_LABEL: Record<DepositStatus, string> = {
   active: 'Active',
@@ -49,11 +51,24 @@ export default function DepositDetailScreen() {
   const transactions = useTransactionsStore((s) => s.transactions);
   const isTransactionsLoaded = useTransactionsStore((s) => s.isLoaded);
   const loadTransactions = useTransactionsStore((s) => s.load);
+  const categories = useCategoriesStore((s) => s.categories);
+  const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
+  const loadCategories = useCategoriesStore((s) => s.load);
+  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const deposit = useMemo(() => deposits.find((d) => d.id === id), [deposits, id]);
   const sourceAccount = useMemo(
     () => (deposit ? accounts.find((a) => a.id === deposit.accountId) : undefined),
     [accounts, deposit],
+  );
+  const accountsById = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a.name])),
+    [accounts],
+  );
+  const depositsById = useMemo(
+    () => deposit ? new Map([[deposit.id, { name: deposit.name, bankName: deposit.bankName }]]) : new Map(),
+    [deposit],
   );
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -89,9 +104,42 @@ export default function DepositDetailScreen() {
     }
   }, [isTransactionsLoaded, loadTransactions]);
 
-  const closedTransaction = useMemo(() => {
-    return transactions.find((t) => t.depositId === id && t.depositTransactionType === 'closed');
+  useEffect(() => {
+    if (!categoriesLoaded) {
+      loadCategories().catch(() => undefined);
+    }
+  }, [categoriesLoaded, loadCategories]);
+
+  const depositTransactions = useMemo<Transaction[]>(() => {
+    return transactions
+      .filter((t) => t.depositId === id)
+      .slice()
+      .sort((a, b) => {
+        const timeA = new Date(a.date).getTime();
+        const timeB = new Date(b.date).getTime();
+        if (timeA !== timeB) return timeB - timeA;
+        // Within same date: closed (principal) before interest income — matches Activity tab
+        const aOrder = a.depositTransactionType === 'closed' ? 0 : 1;
+        const bOrder = b.depositTransactionType === 'closed' ? 0 : 1;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
   }, [transactions, id]);
+
+  const handleTransactionPress = useCallback((tx: Transaction) => {
+    // Deposit 'new' transaction → edit deposit form
+    if (tx.type === 'deposit' && tx.depositId && tx.depositTransactionType === 'new') {
+      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
+      return;
+    }
+    // Deposit close or interest income linked to a deposit → close deposit form
+    if (tx.depositId && (tx.depositTransactionType === 'closed' || tx.type === 'in')) {
+      const focusField = tx.type === 'in' ? 'interest' : 'principal';
+      router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: tx.depositId, editDepositId: '', focusField } });
+      return;
+    }
+    router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } });
+  }, []);
 
 
 
@@ -202,33 +250,49 @@ export default function DepositDetailScreen() {
         </View>
       </View>
 
-      {/* Scrollable detail rows */}
+      {/* Scrollable: Details + Activity (date-grouped) */}
       <ScrollView
         onScrollBeginDrag={closePanel}
         contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) + 16 }}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={{
-            marginHorizontal: SCREEN_GUTTER,
-            borderRadius: HOME_RADIUS.card,
-            borderWidth: 1,
-            borderColor: palette.borderSoft,
-            backgroundColor: palette.surface,
-            overflow: 'hidden',
-          }}
-        >
-          <DetailRow palette={palette} label="Source" value={sourceAccount?.name ?? '—'} />
-          <DetailRow palette={palette} label="Start Date" value={formatDate(deposit.startDate)} />
-          <DetailRow palette={palette} label="Tenure" value={deposit.tenureMonths != null ? `${deposit.tenureMonths} months` : '—'} />
-          <DetailRow palette={palette} label="Interest Rate" value={deposit.interestRate != null ? `${deposit.interestRate}% p.a.` : '—'} />
-          <DetailRow palette={palette} label="Maturity Date" value={deposit.maturityDate ? formatDate(deposit.maturityDate) : '—'} />
-          <DetailRow palette={palette} label="Bank" value={deposit.bankName ?? '—'} />
-          <DetailRow palette={palette} label="Notes" value={deposit.note ?? '—'} multiline last={deposit.status !== 'closed'} />
-          {deposit.status === 'closed' && (
-            <DetailRow palette={palette} label="Closed Date" value={closedTransaction ? formatDate(closedTransaction.date) : '—'} last />
-          )}
+        <View style={{ marginHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.lg }}>
+          <SectionHeader label="Details" palette={palette} />
+          <View
+            style={{
+              borderRadius: HOME_RADIUS.card,
+              borderWidth: 1,
+              borderColor: palette.borderSoft,
+              backgroundColor: palette.surface,
+              overflow: 'hidden',
+            }}
+          >
+            <DetailRow palette={palette} label="Source" value={sourceAccount?.name ?? '—'} />
+            <DetailRow palette={palette} label="Start Date" value={formatDate(deposit.startDate)} />
+            <DetailRow palette={palette} label="Tenure" value={deposit.tenureMonths != null ? `${deposit.tenureMonths} months` : '—'} />
+            <DetailRow palette={palette} label="Interest Rate" value={deposit.interestRate != null ? `${deposit.interestRate}% p.a.` : '—'} />
+            <DetailRow palette={palette} label="Maturity Date" value={deposit.maturityDate ? formatDate(deposit.maturityDate) : '—'} />
+            <DetailRow palette={palette} label="Bank" value={deposit.bankName ?? '—'} />
+            <DetailRow palette={palette} label="Notes" value={deposit.note ?? '—'} multiline last />
+          </View>
         </View>
+
+        {depositTransactions.length > 0 && (
+          <View style={{ marginHorizontal: SCREEN_GUTTER }}>
+            <SectionHeader label="Activity" palette={palette} />
+            <DateGroupedTransactionList
+              transactions={depositTransactions}
+              palette={palette}
+              sym={sym}
+              categoriesById={categoriesById}
+              accountsById={accountsById}
+              depositsById={depositsById}
+              getCategoryFullDisplayName={getCategoryFullDisplayName}
+              onTransactionPress={handleTransactionPress}
+              emptyText="No activity"
+            />
+          </View>
+        )}
       </ScrollView>
 
       <AppConfirmDialog
@@ -287,6 +351,25 @@ function DepositProgressBar({ progress, label, urgent, palette }: {
         {label}
       </Text>
     </View>
+  );
+}
+
+function SectionHeader({ label, palette }: { label: string; palette: AppThemePalette }) {
+  return (
+    <Text
+      appWeight="medium"
+      style={{
+        fontSize: HOME_TEXT.caption,
+        fontWeight: FONT_WEIGHT.bold,
+        color: palette.textSecondary,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
+        marginBottom: HOME_SPACE.sm,
+        marginLeft: 4,
+      }}
+    >
+      {label}
+    </Text>
   );
 }
 

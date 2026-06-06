@@ -11,6 +11,7 @@ import {
   SettingsScreenLayout
 } from '../../components/settings-ui';
 import { CATEGORY_TREE_ROW, CategoryIconBadge } from '../../components/ui/CategoryTreePicker';
+import { PressableScale } from '../../components/ui/PressableScale';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { CARD_PADDING, TYPE , FONT_WEIGHT} from '../../lib/design';
 import { HOME_LAYOUT , HOME_RADIUS} from '../../lib/layoutTokens';
@@ -95,9 +96,8 @@ export default function CategoriesScreen() {
 
             return (
               <View key={cat.id}>
-                <TouchableOpacity delayPressIn={0}
+                <PressableScale
                   onPress={() => toggleExpand(cat.id)}
-                  activeOpacity={0.6}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -140,7 +140,7 @@ export default function CategoriesScreen() {
                     </TouchableOpacity>
                   )}
                   <AppChevron direction={isOpen ? 'up' : 'down'} size={18} tone="secondary" palette={palette} />
-                </TouchableOpacity>
+                </PressableScale>
 
                 {isOpen && (
                   <View

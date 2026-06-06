@@ -204,8 +204,8 @@ export function CardSubtitleRow({
 const styles = StyleSheet.create({
   card: {
     borderRadius: HOME_RADIUS.card,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   row: {
     flexDirection: 'row',

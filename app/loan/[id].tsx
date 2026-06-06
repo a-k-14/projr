@@ -14,7 +14,7 @@ import { ActionStrip } from '../../components/ui/ActionStrip';
 import { getScrollableBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { formatDate, getRelativeDateLabel } from '../../lib/dateUtils';
-import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate } from '../../lib/derived';
+import { formatCurrency, getLoanTransactionKind, getLoanTransactionUserNote, groupTransactionsByDate, getLoanActionLabel } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
@@ -275,7 +275,7 @@ export default function LoanDetailScreen() {
               <View style={{ paddingTop: HOME_SPACE.sm, paddingBottom: HOME_SPACE.xs }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: HOME_SPACE.sm }}>
                   <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
-                    {isLent ? 'Received' : 'Repaid'} · {formatCurrency(loan.settledAmount, sym)}
+                    {getLoanActionLabel(loan.direction, 'settlement')} · {formatCurrency(loan.settledAmount, sym)}
                   </Text>
                   <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted }}>{loan.repaidPercent}%</Text>
                 </View>
@@ -370,7 +370,7 @@ export default function LoanDetailScreen() {
             initialNumToRender={3}
             maxToRenderPerBatch={3}
             windowSize={5}
-            removeClippedSubviews
+
             renderItem={({ item: { title, total, items } }) => {
               const groupedByDateForType = groupTransactionsByDate(items);
               return (
@@ -464,7 +464,7 @@ export default function LoanDetailScreen() {
             initialNumToRender={4}
             maxToRenderPerBatch={4}
             windowSize={5}
-            removeClippedSubviews
+
             renderItem={({ item: { dateKey, items } }) => {
               const { date, label } = getRelativeDateLabel(dateKey + 'T00:00:00.000Z');
               return (
