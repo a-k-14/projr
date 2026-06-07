@@ -1,53 +1,55 @@
-{
-  "expo": {
-    "name": "Reni",
-    "slug": "reni",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "financetracker",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+const IS_DEV = process.env.APP_VARIANT !== 'production';
+
+module.exports = {
+  expo: {
+    name: IS_DEV ? "Reni Dev" : "Reni",
+    slug: "reni",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/images/icon.png",
+    scheme: "financetracker",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: true,
+    splash: {
+      image: "./assets/images/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.reni.app",
-      "buildNumber": "1"
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: IS_DEV ? "com.reni.app.dev" : "com.reni.app",
+      buildNumber: "1"
     },
-    "android": {
-      "package": "com.reni.app",
-      "versionCode": 3,
-      "allowBackup": false,
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#121620"
+    android: {
+      package: IS_DEV ? "com.reni.app.dev" : "com.reni.app",
+      versionCode: 3,
+      allowBackup: false,
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/adaptive-icon.png",
+        backgroundColor: "#121620"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "permissions": [
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      permissions: [
         "android.permission.CAMERA",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ],
-      "blockedPermissions": [
+      blockedPermissions: [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
-    "androidNavigationBar": {
-      "enforceContrast": false
+    androidNavigationBar: {
+      enforceContrast: false
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+    web: {
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/favicon.png"
     },
-    "plugins": [
+    plugins: [
       "expo-router",
       "expo-sqlite",
       "expo-secure-store",
@@ -120,15 +122,15 @@
       ],
       "expo-web-browser"
     ],
-    "experiments": {
+    experiments: {
       "typedRoutes": true
     },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "a0050d6c-9827-4992-a224-25db80c7fe03"
+    extra: {
+      router: {},
+      eas: {
+        projectId: "a0050d6c-9827-4992-a224-25db80c7fe03"
       }
     },
-    "owner": "akshay3106"
+    owner: "akshay3106"
   }
-}
+};
