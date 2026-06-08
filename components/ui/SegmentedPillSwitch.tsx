@@ -1,6 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, LayoutChangeEvent, StyleProp, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { AppIcon } from './AppIcon';
 
 const SWITCH_INSET = 2;
 
@@ -27,7 +28,7 @@ export function SegmentedPillSwitch({
   itemMinWidth = 68,
   animated = true,
 }: {
-  options: ReadonlyArray<{ key: string; label: string }>;
+  options: ReadonlyArray<{ key: string; label: string; icon?: string }>;
   value: string;
   onChange: (key: string) => void;
   backgroundColor: string;
@@ -161,21 +162,29 @@ export function SegmentedPillSwitch({
               zIndex: 1,
             }}
           >
-            <Text
-              numberOfLines={1}
-              appWeight="medium"
-              style={{
-                fontSize,
-                fontWeight: selected ? '600' : '500',
-                textAlign: 'center',
-                textAlignVertical: 'center',
-                includeFontPadding: false,
-                color: selected ? activeTextColor : inactiveTextColor,
-                zIndex: 2,
-              }}
-            >
-              {option.label}
-            </Text>
+            {option.icon ? (
+              <AppIcon
+                name={option.icon}
+                size={fontSize + 6}
+                color={selected ? activeTextColor : inactiveTextColor}
+              />
+            ) : (
+              <Text
+                numberOfLines={1}
+                appWeight="medium"
+                style={{
+                  fontSize,
+                  fontWeight: selected ? '600' : '500',
+                  textAlign: 'center',
+                  textAlignVertical: 'center',
+                  includeFontPadding: false,
+                  color: selected ? activeTextColor : inactiveTextColor,
+                  zIndex: 2,
+                }}
+              >
+                {option.label}
+              </Text>
+            )}
           </TouchableOpacity>
         );
       })}

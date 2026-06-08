@@ -26,6 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { AnimatedText } from '../../components/ui/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AccountDetailsV2Hero } from '../../components/account/AccountDetailsV2Hero';
 import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
 import { ScreenTitle } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -1634,6 +1635,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   fullResetNonce = 0,
   dataNonce = 0,
   nav,
+  useExperimentalHero = false,
+  experimentalActiveTrendPoint = null,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1672,6 +1675,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   fullResetNonce?: number;
   dataNonce?: number;
   nav: any;
+  /** Experimental V2 hero layout — see components/account/AccountDetailsV2Hero.tsx.
+   *  Toggled from app/account/[id].tsx for one account name only; default false. */
+  useExperimentalHero?: boolean;
+  /** Active point during a chart drag, used by V2 hero to render tooltip in gradient. */
+  experimentalActiveTrendPoint?: { date: string; val: number } | null;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1951,37 +1959,66 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SURFACE.heroTop, paddingBottom: HOME_SURFACE.heroBottom }}>
-          <AccountSummaryCard
-            accountName={accountId === 'all' ? 'All' : accountName}
-            accountTypeLabel={accountTypeLabel}
-            balance={totalBalance}
-            currencySymbol={currencySymbol}
-            palette={palette}
-            onOpenNetWorth={accountId === 'all' ? onOpenNetWorth : undefined}
-            onOpenBalanceVisibility={accountId === 'all' ? onOpenBalanceVisibility : undefined}
-            homeExcludedCount={accountId === 'all' ? homeExcludedCount : undefined}
-            homeTotalCount={accountId === 'all' ? homeTotalCount : undefined}
-            netWorth={accountId === 'all' ? netWorth : undefined}
-            netWorthChange={accountId === 'all' ? nwChipValue : undefined}
-            incomeExpense={incExpSummary}
-            cashflowSummary={displayedCashflow}
-            period={accountId === 'all' ? undefined : period}
-            onPeriodChange={accountId === 'all' ? undefined : onPeriodChange}
-            onOpenCustomRange={accountId === 'all' ? undefined : () => onOpenCustomRange(accountId)}
-            isCashflowView={cashflowIsCashflow}
-            onToggleCashflowView={setCashflowIsCashflow}
-            onPressMetricIn={() => openPeriodActivity('in')}
-            onPressMetricOut={() => openPeriodActivity('out')}
-            hideAmounts={hideAmounts}
-            heroMode
-            heroMetricPeriod={period === 'month' ? 'month' : 'today'}
-            onHeroMetricPeriodChange={onPeriodChange}
-            tweenTrigger={txMutationVersion}
-            accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
-            from={from}
-            to={to}
-            nav={nav}
-          />
+          {useExperimentalHero && accountId !== 'all' ? (
+            <AccountDetailsV2Hero
+              accountName={accountName}
+              accountTypeLabel={accountTypeLabel}
+              balance={totalBalance}
+              currencySymbol={currencySymbol}
+              palette={palette}
+              incomeExpense={incExpSummary}
+              cashflowSummary={displayedCashflow}
+              period={period}
+              onPeriodChange={onPeriodChange}
+              onOpenCustomRange={() => onOpenCustomRange(accountId)}
+              isCashflowView={cashflowIsCashflow}
+              onToggleCashflowView={setCashflowIsCashflow}
+              onPressMetricIn={() => openPeriodActivity('in')}
+              onPressMetricOut={() => openPeriodActivity('out')}
+              hideAmounts={hideAmounts}
+              accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
+              from={from}
+              to={to}
+              tweenTrigger={txMutationVersion}
+              trendChart={middleContent}
+              activeTrendPoint={experimentalActiveTrendPoint}
+              accountId={accountId}
+              onTransactionPress={handleTransactionPress}
+              initialTransactions={displayedPeriodTransactions}
+            />
+          ) : (
+            <AccountSummaryCard
+              accountName={accountId === 'all' ? 'All' : accountName}
+              accountTypeLabel={accountTypeLabel}
+              balance={totalBalance}
+              currencySymbol={currencySymbol}
+              palette={palette}
+              onOpenNetWorth={accountId === 'all' ? onOpenNetWorth : undefined}
+              onOpenBalanceVisibility={accountId === 'all' ? onOpenBalanceVisibility : undefined}
+              homeExcludedCount={accountId === 'all' ? homeExcludedCount : undefined}
+              homeTotalCount={accountId === 'all' ? homeTotalCount : undefined}
+              netWorth={accountId === 'all' ? netWorth : undefined}
+              netWorthChange={accountId === 'all' ? nwChipValue : undefined}
+              incomeExpense={incExpSummary}
+              cashflowSummary={displayedCashflow}
+              period={accountId === 'all' ? undefined : period}
+              onPeriodChange={accountId === 'all' ? undefined : onPeriodChange}
+              onOpenCustomRange={accountId === 'all' ? undefined : () => onOpenCustomRange(accountId)}
+              isCashflowView={cashflowIsCashflow}
+              onToggleCashflowView={setCashflowIsCashflow}
+              onPressMetricIn={() => openPeriodActivity('in')}
+              onPressMetricOut={() => openPeriodActivity('out')}
+              hideAmounts={hideAmounts}
+              heroMode
+              heroMetricPeriod={period === 'month' ? 'month' : 'today'}
+              onHeroMetricPeriodChange={onPeriodChange}
+              tweenTrigger={txMutationVersion}
+              accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
+              from={from}
+              to={to}
+              nav={nav}
+            />
+          )}
           <View
             onLayout={(event) => {
               const newY = event.nativeEvent.layout.y;
@@ -1996,44 +2033,48 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
 
 
-          {middleContent}
+          {/* In V2 layout, the trend chart is embedded inside the V2 hero card above
+              — so don't render `middleContent` here too (it would appear twice). */}
+          {useExperimentalHero && accountId !== 'all' ? null : middleContent}
 
           {/* ── Recent transactions — date-grouped ── */}
-          <View style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : 34 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
-              <TouchableOpacity
-                delayPressIn={0}
-                onPress={() => safePush(nav, {
-                  pathname: '/(tabs)/activity',
-                  params: {
-                    source: 'home-view-all',
-                    accountId: accountId === 'all' ? 'all' : accountId,
-                    returnTo: accountId === 'all' ? '/' : `/account/${accountId}`,
-                    ts: String(Date.now()),
-                  },
-                })}
-                activeOpacity={0.7}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
-              >
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: BUTTON_TOKENS.text.labelWeight }}>All</Text>
-                <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
-              </TouchableOpacity>
+          {useExperimentalHero && accountId !== 'all' ? null : (
+            <View style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : 34 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
+                <TouchableOpacity
+                  delayPressIn={0}
+                  onPress={() => safePush(nav, {
+                    pathname: '/(tabs)/activity',
+                    params: {
+                      source: 'home-view-all',
+                      accountId: accountId === 'all' ? 'all' : accountId,
+                      returnTo: accountId === 'all' ? '/' : `/account/${accountId}`,
+                      ts: String(Date.now()),
+                    },
+                  })}
+                  activeOpacity={0.7}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
+                >
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: BUTTON_TOKENS.text.labelWeight }}>All</Text>
+                  <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
+                </TouchableOpacity>
+              </View>
+              <DateGroupedTransactionList
+                transactions={transactions}
+                palette={palette}
+                sym={currencySymbol}
+                categoriesById={categoriesById}
+                accountsById={accountsById}
+                loansById={loansById}
+                depositsById={depositsById}
+                tagNamesById={tagNamesById}
+                getCategoryFullDisplayName={getCategoryFullDisplayName}
+                onTransactionPress={handleTransactionPress}
+                emptyText="No transactions yet"
+              />
             </View>
-            <DateGroupedTransactionList
-              transactions={transactions}
-              palette={palette}
-              sym={currencySymbol}
-              categoriesById={categoriesById}
-              accountsById={accountsById}
-              loansById={loansById}
-              depositsById={depositsById}
-              tagNamesById={tagNamesById}
-              getCategoryFullDisplayName={getCategoryFullDisplayName}
-              onTransactionPress={handleTransactionPress}
-              emptyText="No transactions yet"
-            />
-          </View>
+          )}
 
 
           {__DEV__ && accountId === 'all' && (

@@ -135,7 +135,7 @@ export function ActivityFilterBar({
   );
 }
 
-function ActivityViewModeToggle({
+export function ActivityViewModeToggle({
   mode,
   palette,
   onChange,
@@ -144,8 +144,14 @@ function ActivityViewModeToggle({
   palette: AppThemePalette;
   onChange: (mode: 'date' | 'category') => void;
 }) {
+  const containerBg = palette.isDark ? 'rgba(255,255,255,0.08)' : '#E8ECF4';
+  const containerBorder = palette.isDark ? 'transparent' : '#DFE5EF';
+  const selectedBg = palette.isDark ? '#1A1F2E' : 'rgba(255,255,255,0.60)';
+  const activeColor = palette.text;
+  const inactiveColor = palette.textMuted;
+
   return (
-    <View style={[styles.viewModeToggle, { borderColor: palette.divider, backgroundColor: palette.states.activitySegmentedBg }]}>
+    <View style={[styles.viewModeToggle, { borderColor: containerBorder, backgroundColor: containerBg }]}>
       {([
         { key: 'date', icon: 'list' },
         { key: 'category', icon: 'layout-grid' },
@@ -159,13 +165,13 @@ function ActivityViewModeToggle({
             onPress={() => onChange(item.key)}
             style={[
               styles.viewModeButton,
-              { backgroundColor: selected ? palette.surface : 'transparent' },
+              { backgroundColor: selected ? selectedBg : 'transparent' },
             ]}
           >
             <AppIcon
               name={item.icon}
               size={18}
-              color={selected ? palette.brand : palette.iconTint}
+              color={selected ? activeColor : inactiveColor}
             />
           </TouchableOpacity>
         );

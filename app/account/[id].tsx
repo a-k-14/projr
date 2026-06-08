@@ -3,37 +3,41 @@ import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
-import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
-import { useUIStore } from '../../stores/useUIStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 import { Text } from '@/components/ui/AppText';
 import { HomeAccountPage } from '../(tabs)/index';
-import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
-import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import { ActionStrip } from '../../components/ui/ActionStrip';
+import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppButton';
 import { HeaderMoreButton, ScreenHeader } from '../../components/ui/ScreenHeader';
+import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
-import { ActionChip } from '../../components/ui/AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
-import { getAccountTypeLabel, ACCOUNT_TYPE_META } from '../../lib/settings-shared';
-import type { PeriodType } from '../../types';
+import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { getAccountBalanceTrend } from '../../services/analytics';
-import { TrendLineChart } from '../../components/insights/TrendLineChart';
+import type { PeriodType } from '../../types';
 
 // Persists across screen mounts — stack screens remount fresh on every navigation
 // unlike tabs which stay mounted. Cache gives instant display on revisit; mutationVersion
 // bump triggers a silent background refresh without showing the skeleton again.
 const trendCache = new Map<string, { date: string; val: number }[]>();
+
+// Experimental V2 layout preview — set to the account name you want to A/B test.
+// Empty string = V2 disabled everywhere (default behavior unchanged).
+// Example: set to 'Jupiter' to preview the V2 hero on the Jupiter account only.
+const V2_ACCOUNT_NAME = 'Cargo';
 
 type AccountPeriodType = 'today' | PeriodType;
 
@@ -64,6 +68,9 @@ export default function AccountDetailScreen() {
   );
   const [isLoadingTrend, setIsLoadingTrend] = useState(!trendCache.has(id ?? ''));
   const [chartInteracting, setChartInteracting] = useState(false);
+  // Active point during a chart drag — only used when the V2 hero is active so it
+  // can render the tooltip in the gradient top-right instead of inside the chart.
+  const [activeTrendPoint, setActiveTrendPoint] = useState<{ date: string; val: number } | null>(null);
   const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
 
   useEffect(() => {
@@ -179,16 +186,24 @@ export default function AccountDetailScreen() {
 
   const lineColor = ACCOUNT_TYPE_META[account.type]?.color ?? palette.brand;
 
+  // Case-insensitive trim match so the toggle is robust to whitespace and
+  // capitalisation drift on the account name (e.g. "cash" vs "Cash ").
+  const v2NameNorm = V2_ACCOUNT_NAME.trim().toLowerCase();
+  const isV2Active = !!v2NameNorm && (account?.name ?? '').trim().toLowerCase() === v2NameNorm;
   const middleContent = (
     <TrendLineChart
       points={trendPoints}
       palette={palette}
       currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-      title="Balance Trend"
+      title="Balance"
       subtitle="(Last 30 Days)"
+      inlineTitle
       lineColor={lineColor}
       onInteractionStateChange={setChartInteracting}
       isLoading={isLoadingTrend}
+      embedded={isV2Active}
+      suppressTooltip={isV2Active}
+      onActivePointChange={isV2Active ? setActiveTrendPoint : undefined}
     />
   );
 
@@ -204,7 +219,7 @@ export default function AccountDetailScreen() {
                 title="Account Details"
                 onBack={() => router.back()}
                 palette={palette}
-                titleSize={SCREEN_HEADER.detailTitleSize}
+                titleSize={SCREEN_HEADER.detailTitleSize - 2}
                 rightAction={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                     <TouchableOpacity
@@ -224,15 +239,15 @@ export default function AccountDetailScreen() {
       />
 
       <ActionStrip palette={palette} animatedStyle={actionsAnimatedStyle}>
-          <ActionChip
-            icon="edit"
-            label="Edit Account"
-            palette={palette}
-            onPress={() => {
-              closePanel();
-              router.push({ pathname: '/settings/account-form', params: { id: account.id } });
-            }}
-          />
+        <ActionChip
+          icon="edit"
+          label="Edit Account"
+          palette={palette}
+          onPress={() => {
+            closePanel();
+            router.push({ pathname: '/settings/account-form', params: { id: account.id } });
+          }}
+        />
       </ActionStrip>
 
       <HomeAccountPage
@@ -266,6 +281,8 @@ export default function AccountDetailScreen() {
         middleContent={middleContent}
         scrollEnabled={!chartInteracting}
         dataNonce={mutationVersion}
+        useExperimentalHero={isV2Active}
+        experimentalActiveTrendPoint={activeTrendPoint}
       />
 
       <Modal

@@ -1737,7 +1737,7 @@ export default function AddTransactionModal() {
           }
           palette={palette}
           onClose={() => setAccountSheetMode('none')}
-          fixedHeightRatio={0.80}
+          maxHeightRatio={0.80}
           headerRight={
             <TouchableOpacity delayPressIn={0} onPress={() => { setAccountSheetMode('none'); router.push('/settings/accounts'); }} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
               <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Manage</Text>
