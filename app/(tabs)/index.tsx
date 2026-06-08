@@ -24,40 +24,48 @@ import Animated, {
   withTiming,
   type SharedValue
 } from 'react-native-reanimated';
-import { AnimatedText } from '../../components/ui/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DateGroupedTransactionList } from '../../components/DateGroupedTransactionList';
-import { ScreenTitle } from '../../components/settings-ui';
+import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
+import { CategoryIconBadge } from '../../components/activity/ActivityUI';
+import { DateGroupedTransactionList, EmptyTransactions } from '../../components/DateGroupedTransactionList';
+import { CardSection, ScreenTitle } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { AppSwitch } from '../../components/ui/AppSwitch';
+import { AnimatedText } from '../../components/ui/AppText';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { getCompactScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { SegmentedPillSwitch } from '../../components/ui/SegmentedPillSwitch';
 import { SweepOverlay } from '../../components/ui/SweepOverlay';
 import { formatAccountDisplayName } from '../../lib/account-utils';
+import { getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import {
   APP_LOCALE,
   formatDate,
   getDateRange,
+  getNavigableDateRange,
+  getPeriodNavLabel,
   toLocalDayEndISO,
   toLocalDayStartISO,
   toLocalMonthStartISO
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
-import { formatCurrency, getLoanSummary, getLoanTransactionKind, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
+import { formatCurrency, getCashflowFromList, getLoanSummary, getLoanTransactionKind, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
 import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
   BUTTON_TOKENS,
   HELP_TEXTS,
+  HOME_LAYOUT,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_SURFACE,
   HOME_TEXT,
-  getNetWorthChangeTheme
+  getNetWorthChangeTheme,
+  getTxTypeConfig
 } from '../../lib/layoutTokens';
 import { safePush } from '../../lib/safePush';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
@@ -96,7 +104,25 @@ function getGreeting() {
   return 'Good Evening';
 }
 
+// ── Helpers for category-grouped view in account screen ──────────────────
+function signedCurrency(value: number, sym: string) {
+  const abs = Math.abs(value);
+  const formatted = formatCurrency(abs, sym);
+  return value < 0 ? `-${formatted}` : formatted;
+}
+function familyAwareCurrency(familyKey: HierarchyFamily, total: number, sym: string) {
+  if (familyKey === 'in' || familyKey === 'out') {
+    const naturalValue = familyKey === 'out' ? -total : total;
+    const prefix = naturalValue < 0 ? '-' : '';
+    return `${prefix}${formatCurrency(Math.abs(total), sym)}`;
+  }
+  return signedCurrency(total, sym);
+}
+
 type HomePeriodType = 'today' | PeriodType;
+type HierarchyFamily = 'in' | 'out' | 'loan' | 'deposit' | 'transfer';
+type CategoryDrilldown = { parentKey: string; parentLabel: string; subKey: string; subLabel: string; compactLabel?: boolean };
+type AccountViewMode = 'date' | 'category';
 
 const PERIODS: HomePeriodType[] = ['today', 'week', 'month', 'year', 'custom'];
 const PERIOD_LABELS: Record<HomePeriodType, string> = {
@@ -106,6 +132,23 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
   year: 'Year',
   custom: 'Custom'
 };
+
+/** Compact list/category toggle — same as the one in ActivityFilterBar */
+function AccountViewModeToggle({ mode, palette, onChange }: { mode: AccountViewMode; palette: AppThemePalette; onChange: (m: AccountViewMode) => void }) {
+  return (
+    <View style={{ flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: palette.divider, backgroundColor: palette.states.activitySegmentedBg, overflow: 'hidden' }}>
+      {([{ key: 'date' as const, icon: 'list' }, { key: 'category' as const, icon: 'layout-grid' }]).map((item) => {
+        const selected = mode === item.key;
+        return (
+          <TouchableOpacity key={item.key} delayPressIn={0} activeOpacity={0.8} onPress={() => onChange(item.key)}
+            style={{ width: 42, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? palette.surface : 'transparent' }}>
+            <AppIcon name={item.icon} size={18} color={selected ? palette.brand : palette.iconTint} />
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   return <HomeScreenContent />;
@@ -1417,7 +1460,12 @@ function getHomeDateRange(
   period: HomePeriodType,
   settingsYearStart: number,
   customRange?: { from: Date; to: Date },
+  periodOffset: number = 0,
 ) {
+  if (periodOffset !== 0 && period !== 'custom') {
+    const navPeriod = period === 'today' ? 'day' : period as 'week' | 'month' | 'year';
+    return getNavigableDateRange(navPeriod, periodOffset, settingsYearStart);
+  }
   if (period === 'today') {
     const now = new Date();
     return {
@@ -1634,6 +1682,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   fullResetNonce = 0,
   dataNonce = 0,
   nav,
+  onInlineFilterChange,
+  resetInlineFilterToken = 0,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1672,6 +1722,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   fullResetNonce?: number;
   dataNonce?: number;
   nav: any;
+  onInlineFilterChange?: (filter: 'in' | 'out' | null) => void;
+  resetInlineFilterToken?: number;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1685,6 +1737,25 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [cashflowIsCashflow, setCashflowIsCashflow] = useState(false);
+  const [periodOffset, setPeriodOffset] = useState(0);
+  // Inline filter: tap inc/exp on hero → filter Activity list to those tx; reset clears it
+  const [inlineFilter, setInlineFilter] = useState<'in' | 'out' | null>(null);
+  useEffect(() => {
+    if (resetInlineFilterToken > 0) {
+      setInlineFilter(null);
+      setPeriodOffset(0);
+      setActivityViewMode('date');
+      setCategoryDrilldown(null);
+      setExpandedCategoryIds([]);
+      onPeriodChange('today');
+      mainScrollRef.current?.scrollTo({ y: 0, animated: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetInlineFilterToken]);
+  // Activity view mode (list vs category grouped) — only used for individual account pages
+  const [activityViewMode, setActivityViewMode] = useState<AccountViewMode>('date');
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
+  const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
   const todayDataCacheRef = useRef<{
@@ -1693,6 +1764,10 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     transactions: Transaction[];
   } | null>(null);
   const lastNWChipValueRef = useRef<number | undefined>(undefined);
+  // Y of the Activity section inside the inner padding View. We add the outer
+  // hero block's height to it before scrolling.
+  const activitySectionY = useRef(0);
+  const lowerBlockOffsetY = useRef(0);
 
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
 
@@ -1845,8 +1920,19 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     period,
     settingsYearStart,
     customRange,
+    periodOffset,
   );
   const currentRangeKey = `${from}:${to}`;
+  // Period label for the Activity section header: "Today", "Jun 2026", "1 Jun – 7 Jun", etc.
+  const activityPeriodLabel = useMemo(() => {
+    if (period === 'today') {
+      // If the user navigated away from today via arrows, show the actual date
+      if (periodOffset !== 0) return getPeriodNavLabel('day', from, to);
+      return 'Today';
+    }
+    const navPeriod = period === 'week' ? 'week' : period === 'month' ? 'month' : period === 'year' ? 'year' : 'custom';
+    return getPeriodNavLabel(navPeriod, from, to);
+  }, [period, periodOffset, from, to]);
   const hasCurrentPeriodData = periodDataRangeKey === currentRangeKey;
   // Keep last known values while a new period loads — avoids flash-to-zero on period change
   const displayedCashflow = cashflow;
@@ -1863,6 +1949,112 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     });
     return { income, expense };
   }, [displayedPeriodTransactions]);
+
+  // ── Category hierarchy for grouped view ──────────────────────────────────
+  const categoryHierarchy = useMemo(() => {
+    if (activityViewMode !== 'category' || accountId === 'all') return [];
+    const parentMap = new Map<string, {
+      parentKey: string; parentLabel: string; parentIcon?: string;
+      parentSyntheticType?: HierarchyFamily; familyOrder: number; familyKey: HierarchyFamily;
+      transactions: Transaction[];
+      subMap: Map<string, { subKey: string; subLabel: string; transactions: Transaction[] }>;
+    }>();
+
+    const getFamilyKey = (tx: Transaction): HierarchyFamily => {
+      if (tx.transferPairId) return 'transfer';
+      if (tx.type === 'out') return 'out';
+      if (tx.type === 'in') return 'in';
+      if (tx.type === 'loan') return 'loan';
+      if (tx.type === 'deposit') return 'deposit';
+      return 'transfer';
+    };
+    const getFamilyOrder = (fk: HierarchyFamily) =>
+      fk === 'in' ? 0 : fk === 'out' ? 1 : fk === 'transfer' ? 2 : fk === 'deposit' ? 3 : 4;
+
+    const sourceTx = inlineFilter
+      ? displayedPeriodTransactions.filter((tx) => !tx.transferPairId && tx.type === inlineFilter)
+      : displayedPeriodTransactions;
+    sourceTx.forEach((tx) => {
+      const category = tx.categoryId ? categoriesById.get(tx.categoryId) : undefined;
+      const parent = category?.parentId ? categoriesById.get(category.parentId) : undefined;
+      const familyKey = getFamilyKey(tx);
+      const parentKey = parent ? parent.id : category ? category.id : tx.transferPairId ? 'type:transfer' : `type:${tx.type}`;
+      const parentLabel = parent ? parent.name : category ? category.name : tx.transferPairId ? 'Transfer' : tx.type === 'transfer' ? 'Transfer' : tx.type === 'loan' ? 'Loan' : tx.type === 'deposit' ? 'Deposit' : 'Uncategorized';
+      const parentIcon = parent ? parent.icon : category ? category.icon : undefined;
+      const subKey = category?.id ?? (tx.transferPairId ? 'type:transfer' : `type:${tx.type}`);
+      const subLabel = category ? category.name : tx.transferPairId ? 'Transfer' : tx.type === 'transfer' ? 'Transfer' : tx.type === 'loan' ? 'Loan' : tx.type === 'deposit' ? 'Deposit' : 'Uncategorized';
+
+      if (!parentMap.has(parentKey)) {
+        parentMap.set(parentKey, {
+          parentKey, parentLabel, parentIcon,
+          parentSyntheticType: parent || category ? undefined : familyKey,
+          familyOrder: getFamilyOrder(familyKey), familyKey,
+          transactions: [], subMap: new Map()
+        });
+      }
+      const entry = parentMap.get(parentKey)!;
+      entry.transactions.push(tx);
+      if (!entry.subMap.has(subKey)) entry.subMap.set(subKey, { subKey, subLabel, transactions: [] });
+      entry.subMap.get(subKey)!.transactions.push(tx);
+    });
+
+    return Array.from(parentMap.values())
+      .map((entry) => ({
+        parentKey: entry.parentKey, parentLabel: entry.parentLabel, parentIcon: entry.parentIcon,
+        parentSyntheticType: entry.parentSyntheticType,
+        total: getCashflowFromList(entry.transactions, true, true, true).net,
+        transactions: entry.transactions,
+        subcategories: Array.from(entry.subMap.values())
+          .map((sub) => ({
+            subKey: sub.subKey, subLabel: sub.subLabel,
+            total: getCashflowFromList(sub.transactions, true, true, true).net,
+            transactions: sub.transactions,
+          }))
+          .sort((a, b) => a.subLabel.localeCompare(b.subLabel, 'en', { sensitivity: 'base' })),
+        familyOrder: entry.familyOrder, familyKey: entry.familyKey,
+      }))
+      .sort((a, b) => a.familyOrder !== b.familyOrder ? a.familyOrder - b.familyOrder : a.parentLabel.localeCompare(b.parentLabel, 'en', { sensitivity: 'base' }));
+  }, [activityViewMode, accountId, displayedPeriodTransactions, categoriesById, inlineFilter]);
+
+  const hierarchySections = useMemo(
+    () =>
+      ([
+        { key: 'in', label: 'Income' }, { key: 'out', label: 'Expenses' },
+        { key: 'transfer', label: 'Transfers' }, { key: 'deposit', label: 'Deposits' },
+        { key: 'loan', label: 'Loans' },
+      ] as const)
+        .map((s) => ({ ...s, items: categoryHierarchy.filter((c) => c.familyKey === s.key) }))
+        .filter((s) => s.items.length > 0),
+    [categoryHierarchy],
+  );
+
+  const drilldownTransactions = useMemo(
+    () => categoryDrilldown ? getActivityDrilldownTransactions(displayedPeriodTransactions, categoryDrilldown) : displayedPeriodTransactions,
+    [categoryDrilldown, displayedPeriodTransactions],
+  );
+
+  const inlineFilteredTransactions = useMemo(() => {
+    if (!inlineFilter) return displayedPeriodTransactions;
+    return displayedPeriodTransactions.filter((tx) => {
+      if (tx.transferPairId) return false;
+      if (inlineFilter === 'in') return tx.type === 'in';
+      if (inlineFilter === 'out') return tx.type === 'out';
+      return true;
+    });
+  }, [inlineFilter, displayedPeriodTransactions]);
+
+  const toggleCategoryExpansion = useCallback((id: string) => {
+    setExpandedCategoryIds((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]);
+  }, []);
+
+  const toggleSectionExpansion = useCallback((parentKeys: string[]) => {
+    setExpandedCategoryIds((prev) => {
+      const allExpanded = parentKeys.every((k) => prev.includes(k));
+      return allExpanded ? prev.filter((k) => !parentKeys.includes(k)) : [...new Set([...prev, ...parentKeys])];
+    });
+  }, []);
+
+  const txTypeConfig = useMemo(() => getTxTypeConfig(palette), [palette]);
 
   // NW chip delta: income - expenses + assets added in this period
   // Excludes loans, transfers, deposits (all NW-neutral). Asset additions have no
@@ -1903,13 +2095,27 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const openPeriodActivity = useCallback(
     (kind: 'in' | 'out' | 'net') => {
+      if (accountId !== 'all') {
+        // Individual account: filter the Activity list inline and scroll to it.
+        const filter = kind === 'in' || kind === 'out' ? kind : null;
+        setInlineFilter(filter);
+        setActivityViewMode('date');
+        setCategoryDrilldown(null);
+        onInlineFilterChange?.(filter);
+        const targetY = lowerBlockOffsetY.current + activitySectionY.current - 10;
+        if (targetY > 0) {
+          mainScrollRef.current?.scrollTo({ y: targetY, animated: true });
+        }
+        return;
+      }
+      // Home "All" hero: navigate to filtered activity screen as before
       safePush(nav, {
         pathname: '/(tabs)/activity',
         params: {
           source: period === 'today' ? 'home-today' : 'home-period',
           period: period === 'today' ? 'day' : period,
-          accountId: accountId === 'all' ? 'all' : accountId,
-          returnTo: accountId === 'all' ? '/' : `/account/${accountId}`,
+          accountId: 'all',
+          returnTo: '/',
           cashflowBucket: cashflowIsCashflow ? kind : 'all',
           type: cashflowIsCashflow ? 'all' : kind,
           cashflowMode: cashflowIsCashflow ? 'total' : 'incomeExpense',
@@ -1919,7 +2125,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         }
       });
     },
-    [accountId, cashflowIsCashflow, from, period, to, nav],
+    [accountId, cashflowIsCashflow, from, period, to, nav, onInlineFilterChange],
   );
 
   const handleTransactionPress = useCallback((tx: Transaction) => {
@@ -1966,7 +2172,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             incomeExpense={incExpSummary}
             cashflowSummary={displayedCashflow}
             period={accountId === 'all' ? undefined : period}
-            onPeriodChange={accountId === 'all' ? undefined : onPeriodChange}
+            onPeriodChange={accountId === 'all' ? undefined : (p: HomePeriodType) => { setPeriodOffset(0); onPeriodChange(p); }}
             onOpenCustomRange={accountId === 'all' ? undefined : () => onOpenCustomRange(accountId)}
             isCashflowView={cashflowIsCashflow}
             onToggleCashflowView={setCashflowIsCashflow}
@@ -1989,50 +2195,192 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 indicatorY.value = newY;
               }
             }}
-            style={{ height: accountId === 'all' ? 34 : 20 }}
+            style={{ height: accountId === 'all' ? 34 : 8 }}
           />
         </View>
 
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}>
+        <View
+          onLayout={(e) => { lowerBlockOffsetY.current = e.nativeEvent.layout.y; }}
+          style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 0 }}
+        >
 
 
           {middleContent}
 
-          {/* ── Recent transactions — date-grouped ── */}
-          <View style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : 34 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Recent</Text>
-              <TouchableOpacity
-                delayPressIn={0}
-                onPress={() => safePush(nav, {
-                  pathname: '/(tabs)/activity',
-                  params: {
-                    source: 'home-view-all',
-                    accountId: accountId === 'all' ? 'all' : accountId,
-                    returnTo: accountId === 'all' ? '/' : `/account/${accountId}`,
-                    ts: String(Date.now()),
-                  },
-                })}
-                activeOpacity={0.7}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingLeft: 4 }}
-              >
-                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: BUTTON_TOKENS.text.labelWeight }}>All</Text>
-                <AppIcon name="chevron-right" size={13} color={palette.brand} strokeWidth={2} />
-              </TouchableOpacity>
+          {/* ── Activity — list or category-grouped ── */}
+          <View
+            onLayout={(e) => { activitySectionY.current = e.nativeEvent.layout.y; }}
+            style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : 28 }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: accountId === 'all' ? 8 : 16 }}>
+              {categoryDrilldown ? (
+                <TouchableOpacity delayPressIn={0} onPress={() => setCategoryDrilldown(null)} activeOpacity={0.75}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <AppIcon name="arrow-left" size={18} color={palette.text} strokeWidth={1.8} />
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                    {categoryDrilldown.compactLabel ? categoryDrilldown.parentLabel : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
+                  </Text>
+                </TouchableOpacity>
+              ) : accountId === 'all' ? (
+                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.medium, color: palette.text, flex: 1, marginRight: 8 }}>
+                  {inlineFilter === 'in' ? 'Income' : inlineFilter === 'out' ? 'Expenses' : 'Activity'}
+                </Text>
+              ) : (
+                <View style={{ flex: 1, marginRight: 8, flexDirection: 'row', alignItems: 'center' }}>
+                  <ActivityPeriodHeader
+                    period={period === 'today' ? 'day' : period}
+                    periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
+                    goPrev={() => setPeriodOffset((o) => o - 1)}
+                    goNext={() => setPeriodOffset((o) => o + 1)}
+                    canGoNext={periodOffset < 0}
+                    setShowPeriodSheet={() => mainScrollRef.current?.scrollTo({ y: 0, animated: true })}
+                    palette={palette}
+                    height={36}
+                  />
+                </View>
+              )}
+              {accountId !== 'all' && !categoryDrilldown && (
+                <AccountViewModeToggle
+                  mode={activityViewMode}
+                  palette={palette}
+                  onChange={(mode) => {
+                    setActivityViewMode(mode);
+                    setExpandedCategoryIds([]);
+                    if (mode === 'date') setCategoryDrilldown(null);
+                  }}
+                />
+              )}
             </View>
-            <DateGroupedTransactionList
-              transactions={transactions}
-              palette={palette}
-              sym={currencySymbol}
-              categoriesById={categoriesById}
-              accountsById={accountsById}
-              loansById={loansById}
-              depositsById={depositsById}
-              tagNamesById={tagNamesById}
-              getCategoryFullDisplayName={getCategoryFullDisplayName}
-              onTransactionPress={handleTransactionPress}
-              emptyText="No transactions yet"
-            />
+
+            {/* Date-grouped list view (default, or drilldown from category) */}
+            {(activityViewMode === 'date' || categoryDrilldown) && (
+              <DateGroupedTransactionList
+                transactions={categoryDrilldown ? drilldownTransactions : inlineFilter ? inlineFilteredTransactions : (accountId === 'all' ? transactions : displayedPeriodTransactions)}
+                palette={palette}
+                sym={currencySymbol}
+                categoriesById={categoriesById}
+                accountsById={accountsById}
+                loansById={loansById}
+                depositsById={depositsById}
+                tagNamesById={tagNamesById}
+                getCategoryFullDisplayName={getCategoryFullDisplayName}
+                onTransactionPress={handleTransactionPress}
+                emptyText="No Transactions Yet"
+              />
+            )}
+
+            {/* Category-grouped view (only for individual accounts, not drilldown) */}
+            {activityViewMode === 'category' && !categoryDrilldown && accountId !== 'all' && (
+              <View style={{ marginHorizontal: -SCREEN_GUTTER }}>
+                {hierarchySections.map((section, sectionIndex) => (
+                  <View key={section.key}>
+                    {(() => {
+                      const expandableParentKeys = section.items
+                        .filter((c) => c.familyKey !== 'loan' && c.familyKey !== 'transfer' && c.familyKey !== 'deposit')
+                        .map((c) => c.parentKey);
+                      const allExpanded = expandableParentKeys.length > 0 && expandableParentKeys.every((k) => expandedCategoryIds.includes(k));
+                      const headerStyle = { flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: CARD_PADDING, paddingTop: sectionIndex === 0 ? 0 : 6, paddingBottom: 7 };
+                      const headerContent = (
+                        <>
+                          <Text appWeight="medium" style={{ flex: 1, fontSize: HOME_TEXT.tiny + 1, fontWeight: FONT_WEIGHT.heavy, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: palette.text }}>
+                            {section.label}
+                          </Text>
+                          {expandableParentKeys.length > 0 && (
+                            <AppIcon name={allExpanded ? 'chevrons-up' : 'chevrons-down'} size={15} color={palette.text} strokeWidth={1.8} />
+                          )}
+                        </>
+                      );
+                      return expandableParentKeys.length > 0 ? (
+                        <TouchableOpacity delayPressIn={0} onPress={() => toggleSectionExpansion(expandableParentKeys)} activeOpacity={0.72} style={headerStyle}>
+                          {headerContent}
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={headerStyle}>{headerContent}</View>
+                      );
+                    })()}
+                    <CardSection palette={palette}>
+                      {section.items.map((category, categoryIndex) => {
+                        const isExpanded = expandedCategoryIds.includes(category.parentKey);
+                        const isDirectNavigation = category.familyKey === 'loan' || category.familyKey === 'transfer' || category.familyKey === 'deposit';
+                        const isLastCategory = categoryIndex === section.items.length - 1;
+                        const syntheticCfg = category.parentSyntheticType ? (txTypeConfig as any)[category.parentSyntheticType] : undefined;
+                        return (
+                          <View key={category.parentKey}>
+                            <TouchableOpacity delayPressIn={0}
+                              onPress={() => {
+                                if (category.familyKey === 'loan') { setCategoryDrilldown({ parentKey: category.parentKey, parentLabel: 'Loans', subKey: 'type:loan', subLabel: 'Loans', compactLabel: true }); return; }
+                                if (category.familyKey === 'transfer') { setCategoryDrilldown({ parentKey: category.parentKey, parentLabel: 'Transfers', subKey: 'type:transfer', subLabel: 'Transfers', compactLabel: true }); return; }
+                                if (category.familyKey === 'deposit') { setCategoryDrilldown({ parentKey: category.parentKey, parentLabel: 'Deposits', subKey: 'type:deposit', subLabel: 'Deposits', compactLabel: true }); return; }
+                                toggleCategoryExpansion(category.parentKey);
+                              }}
+                              activeOpacity={0.75}
+                              style={{
+                                flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
+                                paddingHorizontal: CARD_PADDING, minHeight: 70, backgroundColor: palette.card,
+                                borderBottomWidth: isLastCategory && (!isExpanded || isDirectNavigation) ? 0 : 1,
+                                borderBottomColor: palette.divider, gap: 12,
+                              }}
+                            >
+                              <CategoryIconBadge
+                                icon={category.parentSyntheticType === 'loan' ? 'credit-card' : syntheticCfg?.iconName || category.parentIcon}
+                                palette={palette} iconColor={palette.brand}
+                                size={HOME_LAYOUT.listIconSize} iconSize={HOME_LAYOUT.listIconInnerSize}
+                                strokeWidth={HOME_LAYOUT.listIconStrokeWidth} noBackground
+                              />
+                              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.text, flex: 1 }} numberOfLines={1}>
+                                {category.parentLabel}
+                              </Text>
+                              <Text style={{
+                                fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.semibold, marginRight: 2,
+                                color: category.familyKey === 'in' ? palette.numberPositive : category.familyKey === 'out' ? palette.numberNegative : category.total >= 0 ? palette.numberPositive : palette.numberNegative,
+                              }}>
+                                {familyAwareCurrency(category.familyKey, category.total, currencySymbol)}
+                              </Text>
+                              {isDirectNavigation ? (
+                                <AppChevron direction="right" size={18} tone="secondary" palette={palette} />
+                              ) : (
+                                <AppChevron direction={isExpanded ? 'up' : 'down'} size={18} tone="secondary" palette={palette} />
+                              )}
+                            </TouchableOpacity>
+                            {isExpanded && !isDirectNavigation && (
+                              <View style={{ backgroundColor: palette.surface, borderBottomWidth: isLastCategory ? 0 : 1, borderBottomColor: palette.divider }}>
+                                {category.subcategories.map((sub) => (
+                                  <TouchableOpacity delayPressIn={0} key={sub.subKey}
+                                    onPress={() => setCategoryDrilldown({ parentKey: category.parentKey, parentLabel: category.parentLabel, subKey: sub.subKey, subLabel: sub.subLabel })}
+                                    activeOpacity={0.75}
+                                    style={{
+                                      flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
+                                      paddingLeft: CARD_PADDING + 52, paddingRight: CARD_PADDING,
+                                      minHeight: 52, borderTopWidth: 1, borderTopColor: palette.divider, backgroundColor: palette.surface,
+                                    }}
+                                  >
+                                    <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
+                                      {sub.subLabel}
+                                    </Text>
+                                    <Text style={{
+                                      fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, marginRight: 10,
+                                      color: category.familyKey === 'in' ? palette.numberPositive : category.familyKey === 'out' ? palette.numberNegative : sub.total >= 0 ? palette.numberPositive : palette.numberNegative,
+                                    }}>
+                                      {familyAwareCurrency(category.familyKey, sub.total, currencySymbol)}
+                                    </Text>
+                                    <AppChevron direction="right" size={16} tone="secondary" palette={palette} />
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </CardSection>
+                  </View>
+                ))}
+                {hierarchySections.length === 0 && (
+                  <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
+                    <EmptyTransactions palette={palette} emptyText="No Transactions Yet" />
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
 

@@ -244,7 +244,9 @@ export default function ActivityScreen() {
     setGroupByMode('date');
     setCategoryDrilldown(null);
     setIsSearchActive(false);
-    setServerCashflow(null);
+    // Don't null serverCashflow — the existing aggregate stays valid for the
+    // default month view we just reset to. Nulling causes a flash of
+    // local-derived (paginated) totals before the new aggregate arrives.
     resetActivityScrollState(animated);
   }, [resetActivityScrollState]);
 
@@ -1372,7 +1374,7 @@ export default function ActivityScreen() {
               gap: 8
             }}
           >
-            <AppChevron direction="left" size={16} tone="secondary" palette={palette} />
+            <AppIcon name="arrow-left" size={18} color={palette.text} strokeWidth={1.8} />
               <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
                 {categoryDrilldown.compactLabel
                   ? categoryDrilldown.parentLabel

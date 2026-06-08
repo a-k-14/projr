@@ -18,6 +18,7 @@ import { HomeAccountPage } from '../(tabs)/index';
 import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { ActionStrip } from '../../components/ui/ActionStrip';
+import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { HeaderMoreButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
@@ -65,6 +66,8 @@ export default function AccountDetailScreen() {
   const [isLoadingTrend, setIsLoadingTrend] = useState(!trendCache.has(id ?? ''));
   const [chartInteracting, setChartInteracting] = useState(false);
   const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
+  const [inlineFilter, setInlineFilter] = useState<'in' | 'out' | null>(null);
+  const [resetInlineFilterToken, setResetInlineFilterToken] = useState(0);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -205,6 +208,15 @@ export default function AccountDetailScreen() {
                 onBack={() => router.back()}
                 palette={palette}
                 titleSize={SCREEN_HEADER.detailTitleSize}
+                titleAddon={
+                  <HeaderResetButton
+                    visible={!!inlineFilter}
+                    onPress={() => { setInlineFilter(null); setResetInlineFilterToken((t) => t + 1); }}
+                    palette={palette}
+                    isFocused={isFocused}
+                    style={{ marginLeft: 8 }}
+                  />
+                }
                 rightAction={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                     <TouchableOpacity
@@ -266,6 +278,8 @@ export default function AccountDetailScreen() {
         middleContent={middleContent}
         scrollEnabled={!chartInteracting}
         dataNonce={mutationVersion}
+        onInlineFilterChange={setInlineFilter}
+        resetInlineFilterToken={resetInlineFilterToken}
       />
 
       <Modal

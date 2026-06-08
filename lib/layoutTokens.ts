@@ -170,7 +170,7 @@ export const SCREEN_HEADER = {
   iconTitleGap: HOME_SPACE.md,
   paddingX: 14,
   /** Large title used by push-navigation detail screens (budget, account, etc.) */
-  detailTitleSize: 25,
+  detailTitleSize: 23,
 } as const;
 
 export const ACTIVITY_LAYOUT = {
