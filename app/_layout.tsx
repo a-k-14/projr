@@ -25,6 +25,7 @@ import { FONT_WEIGHT } from '../lib/design';
 import { HOME_TEXT } from '../lib/layoutTokens';
 import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/settings';
 import { isAutoBackupDue, runAutoBackup } from '../services/backup';
+import { pruneAuditLogs } from '../services/audit';
 import { FilledButton } from '../components/ui/AppButton';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -79,7 +80,7 @@ export default function RootLayout() {
       // Background loads — kick off after the home tab is visible. Pre-warming
       // the transactions store here means the Activity tab's default (last 30
       // days) renders from in-memory cache on first open, no DB roundtrip.
-      Promise.all([loadDeposits(), loadLoans(), loadAssets(), loadTransactions()]).catch(() => undefined);
+      Promise.all([loadDeposits(), loadLoans(), loadAssets(), loadTransactions(), pruneAuditLogs(30)]).catch(() => undefined);
     } catch (error) {
       setInitError(
         error instanceof Error ? error.message : 'Something went wrong while opening the app.'
@@ -232,7 +233,7 @@ export default function RootLayout() {
                 <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="modals/add-transaction"
-                  options={{ headerShown: false, animation: 'none' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="modals/asset-form"

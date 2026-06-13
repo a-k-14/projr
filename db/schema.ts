@@ -69,6 +69,7 @@ export const budget = sqliteTable('budget', {
   categoryId: text('category_id')
     .notNull()
     .references(() => categories.id),
+  subCategoryIds: text('sub_category_ids'),
   amount: real('amount').notNull(),
   period: text('period').notNull(), // 'month' | 'year'
   startDate: text('start_date').notNull(),
@@ -129,3 +130,14 @@ export const noteItems = sqliteTable('note_items', {
   checked: integer('checked').notNull().default(0),
   sortOrder: integer('sort_order').notNull().default(0),
 });
+
+export const auditLogs = sqliteTable('audit_logs', {
+  id: text('id').primaryKey(),
+  action: text('action').notNull(),         // 'create' | 'update' | 'delete'
+  tableName: text('table_name').notNull(),   // e.g. 'transactions'
+  recordId: text('record_id').notNull(),
+  payloadBefore: text('payload_before'),     // Optional JSON snapshot of record before mutation
+  payloadAfter: text('payload_after'),       // Optional JSON snapshot of record after mutation
+  timestamp: text('timestamp').notNull(),     // ISO UTC datetime string
+});
+

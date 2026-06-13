@@ -211,6 +211,25 @@ export async function runMigrations() {
     console.warn('Migration patch (notes.archived) error:', err);
   }
 
+  // Audit logs table
+  try {
+    await sqlite.execAsync(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id TEXT PRIMARY KEY,
+        action TEXT NOT NULL,
+        table_name TEXT NOT NULL,
+        record_id TEXT NOT NULL,
+        payload_before TEXT,
+        payload_after TEXT,
+        timestamp TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_record ON audit_logs(record_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
+    `);
+  } catch (err) {
+    console.warn('Migration patch (audit_logs) error:', err);
+  }
+
   // Migrate any stored Ionicons icon names to Feather equivalents
   try {
     const iconMap: Record<string, string> = {
@@ -382,6 +401,16 @@ export async function runMigrations() {
     `);
   } catch (err) {
     console.warn('Migration patch (system categories) error:', err);
+  }
+
+  // Add sub_category_ids column to budget table if missing
+  try {
+    const budgetCols = await sqlite.getAllAsync<{ name: string }>('PRAGMA table_info(budget);');
+    if (budgetCols.length > 0 && !budgetCols.some((c) => c.name === 'sub_category_ids')) {
+      await sqlite.execAsync('ALTER TABLE budget ADD COLUMN sub_category_ids TEXT;');
+    }
+  } catch (err) {
+    console.warn('Migration patch (budget.sub_category_ids) error:', err);
   }
 }
 

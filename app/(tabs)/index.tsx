@@ -53,7 +53,7 @@ import {
   toLocalMonthStartISO
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
-import { formatCurrency, getCashflowFromList, getLoanSummary, getLoanTransactionKind, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
+import { formatCurrency, getCashflowFromList, getLoanSummary, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
 import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
@@ -72,6 +72,7 @@ import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-share
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { useSweep } from '../../lib/useSweep';
+import { useTransactionPress } from '../../lib/useTransactionPress';
 import { getCashflowSnapshot } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -171,6 +172,7 @@ function HomeScreenContent() {
   const homeExcludedAccountIds = useUIStore((s) => s.settings.homeExcludedAccountIds);
   const updateSettings = useUIStore((s) => s.updateSettings);
   const hideAmounts = useUIStore((s) => s.settings.hideAmounts);
+  const txMutationVersion = useTransactionsStore((s) => s.mutationVersion);
   const [showBalanceVisibilitySheet, setShowBalanceVisibilitySheet] = useState(false);
 
   const { palette } = useAppTheme();
@@ -451,6 +453,7 @@ function HomeScreenContent() {
         registerScrollTop={(_, fn) => { pageScrollTopRef.current = fn; }}
         isPageReady={true}
         fullResetNonce={homeFullResetNonce}
+        dataNonce={txMutationVersion}
         accountsById={accountsById}
         categoriesById={categoriesById}
         loansById={loansById}
@@ -2128,20 +2131,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     [accountId, cashflowIsCashflow, from, period, to, nav, onInlineFilterChange],
   );
 
-  const handleTransactionPress = useCallback((tx: Transaction) => {
-    if (tx.type === 'deposit' && tx.depositId) {
-      safePush(nav, { pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
-      return;
-    }
-    if (tx.loanId) {
-      const loan = loansById.get(tx.loanId);
-      if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
-        safePush(nav, { pathname: '/modals/loan-settlement', params: { editId: tx.id } });
-        return;
-      }
-    }
-    safePush(nav, { pathname: '/modals/add-transaction', params: { editId: tx.id } });
-  }, [loansById, nav]);
+  const handleTransactionPress = useTransactionPress();
 
   return (
     <View style={{ flex: 1, height: pageHeight }}>
@@ -2514,7 +2504,7 @@ function AccountCarouselAddCard({ palette, nav }: any) {
     >
       <Animated.View
         style={[animStyle, {
-          width: 120,
+          width: 86,
           height: 104,
           justifyContent: 'center',
           alignItems: 'center',
@@ -2525,18 +2515,7 @@ function AccountCarouselAddCard({ palette, nav }: any) {
           borderColor: `${palette.brand}50`,
         }]}
       >
-        <View style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          backgroundColor: '#FFFFFF',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 8,
-        }}>
-          <AppIcon name="plus" size={16} color={palette.brand} strokeWidth={2.5} />
-        </View>
-        <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>Add</Text>
+        <AppIcon name="plus" size={20} color={palette.brand} strokeWidth={2.5} />
       </Animated.View>
     </Pressable>
   );

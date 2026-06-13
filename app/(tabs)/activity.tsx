@@ -1,9 +1,8 @@
 import { Text } from '@/components/ui/AppText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { safePush } from '../../lib/safePush';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,6 +25,7 @@ import { AccountFilterSheet } from '../../components/activity/AccountFilterSheet
 import { CardSection, ChoiceRow } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
+import { useTransactionPress } from '../../lib/useTransactionPress';
 import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
@@ -50,7 +50,6 @@ import {
 import {
   formatCurrency,
   getCashflowFromList,
-  getLoanTransactionKind,
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
@@ -129,8 +128,6 @@ export default function ActivityScreen() {
   const loans = useLoansStore((s) => s.loans);
   const loansLoaded = useLoansStore((s) => s.isLoaded);
   const loadLoans = useLoansStore((s) => s.load);
-
-  const nav = useNavigation();
   const storeTransactions = useTransactionsStore((s) => s.transactions);
   const storeTransactionsLoaded = useTransactionsStore((s) => s.isLoaded);
   const storeTransactionsHasMore = useTransactionsStore((s) => s.hasMore);
@@ -530,9 +527,13 @@ export default function ActivityScreen() {
   useEffect(() => {
     if (isFocused) {
       if (useStoreFastPath) {
-        if (!storeTransactionsLoaded) {
+        const noNewMutations = lastSeenMutationVersionRef.current === storeMutationVersion;
+        if (!storeTransactionsLoaded || !noNewMutations) {
+          lastSeenMutationVersionRef.current = storeMutationVersion;
           if (!hasContent) setIsTransitioning(true);
-          loadStoreTransactions().catch(() => undefined);
+          loadStoreTransactions().catch(() => undefined).finally(() => {
+            setIsTransitioning(false);
+          });
         }
       } else {
         // Only load data if we aren't waiting for an initial param sync
@@ -922,27 +923,7 @@ export default function ActivityScreen() {
 
 
 
-  const handleTransactionPress = useCallback((transaction: Transaction) => {
-    // Deposit 'new' transaction → edit deposit form
-    if (transaction.type === 'deposit' && transaction.depositId && transaction.depositTransactionType === 'new') {
-      safePush(nav, { pathname: '/modals/add-transaction', params: { editDepositId: transaction.depositId, closeDepositId: '' } });
-      return;
-    }
-    // Deposit close or interest income linked to a deposit → close deposit form
-    if (transaction.depositId && (transaction.depositTransactionType === 'closed' || transaction.type === 'in')) {
-      const focusField = transaction.type === 'in' ? 'interest' : 'principal';
-      safePush(nav, { pathname: '/modals/add-transaction', params: { closeDepositId: transaction.depositId, editDepositId: '', focusField } });
-      return;
-    }
-    if (transaction.loanId) {
-      const loan = loans.find((item) => item.id === transaction.loanId);
-      if (loan && getLoanTransactionKind(transaction, loan.direction) === 'settlement') {
-        safePush(nav, { pathname: '/modals/loan-settlement', params: { editId: transaction.id } });
-        return;
-      }
-    }
-    safePush(nav, { pathname: '/modals/add-transaction', params: { editId: transaction.id } });
-  }, [loans]);
+  const handleTransactionPress = useTransactionPress();
 
   const grouped = useMemo<ActivityGroup[]>(() => {
     return groupTransactionsByDate(categoryDrilldown ? drilldownTransactions : filteredTransactions).map((group) => {

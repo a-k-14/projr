@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { HeaderMoreButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -17,6 +17,7 @@ import { formatDate } from '../../lib/dateUtils';
 import { getDepositProgress, getDepositReturnAmount } from '../../lib/depositDisplay';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
 import { formatCurrency } from '../../lib/derived';
+import { useTransactionPress } from '../../lib/useTransactionPress';
 import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
@@ -126,20 +127,7 @@ export default function DepositDetailScreen() {
       });
   }, [transactions, id]);
 
-  const handleTransactionPress = useCallback((tx: Transaction) => {
-    // Deposit 'new' transaction → edit deposit form
-    if (tx.type === 'deposit' && tx.depositId && tx.depositTransactionType === 'new') {
-      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
-      return;
-    }
-    // Deposit close or interest income linked to a deposit → close deposit form
-    if (tx.depositId && (tx.depositTransactionType === 'closed' || tx.type === 'in')) {
-      const focusField = tx.type === 'in' ? 'interest' : 'principal';
-      router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: tx.depositId, editDepositId: '', focusField } });
-      return;
-    }
-    router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } });
-  }, []);
+  const handleTransactionPress = useTransactionPress();
 
 
 

@@ -73,6 +73,7 @@ export default function SettingsLayout() {
       <Stack.Screen name="reset" options={{ title: 'Reset App' }} />
       <Stack.Screen name="backup" options={{ title: 'Backup & Restore' }} />
       <Stack.Screen name="export" options={{ title: 'Export Data' }} />
+      <Stack.Screen name="audit" options={{ title: 'Activity Log' }} />
     </Stack>
   );
 }

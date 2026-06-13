@@ -16,7 +16,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  BackHandler
+  BackHandler,
+  TextInput
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
@@ -31,18 +32,16 @@ import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { DateTimePickerPopup } from '../../components/ui/DateTimePickerPopup';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import {
-  AmountRow,
   DisplayRow,
   FieldRow,
-  InteractiveDateTimeRow,
   PickerRow,
-  ROW_LABEL_WIDTH,
-  ROW_MIN_HEIGHT,
-  SectionCard
+  SectionCard,
+  sanitizeDecimalInput
 } from '../../components/ui/transaction-form-primitives';
+import { isEmojiIcon } from '../../lib/ui-format';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { addMonthsSafe } from '../../lib/dateUtils';
+import { APP_LOCALE, formatDate, addMonthsSafe } from '../../lib/dateUtils';
 import {
   formatCurrency,
   formatSignedCurrency,
@@ -54,10 +53,11 @@ import {
   parseFormattedNumber
 } from '../../lib/derived';
 import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
-import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER , HOME_RADIUS} from '../../lib/layoutTokens';
+const FORM_GUTTER = 16;
+import { BUTTON_TOKENS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER , HOME_RADIUS, HOME_LAYOUT} from '../../lib/layoutTokens';
+import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
-import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { getLoanById } from '../../services/loans';
 import { createSplitTransactionGroup, createTransaction, deleteTransaction, getRecentNotes, getRecentPayees, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -70,11 +70,12 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
 import { InlineComboBox } from '../../components/ui/InlineComboBox';
+import { TagBadge } from '../../components/ui/TagBadge';
+
 import type {
   Account,
   Category,
   CreateTransactionInput,
-  Tag,
   TransactionType
 } from '../../types';
 function AccountTypeBadge({ account, palette: _palette }: { account: Account; palette: AppThemePalette }) {
@@ -95,6 +96,18 @@ function AccountTypeBadge({ account, palette: _palette }: { account: Account; pa
     >
       <AppIcon name={typeMeta.icon as any} size={19} color={typeMeta.color} strokeWidth={1.6} />
     </View>
+  );
+}
+
+
+function CardDivider({ palette }: { palette: AppThemePalette }) {
+  return (
+    <View
+      style={{
+        height: 1,
+        backgroundColor: palette.divider,
+      }}
+    />
   );
 }
 
@@ -156,9 +169,21 @@ export default function AddTransactionModal() {
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
   const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
   const clearSplitRows = useTransactionDraftStore((s) => s.clearSplitRows);
-  const [type, setType] = useState<TransactionType | 'deposit'>(
-    isEditingDeposit || isClosingDeposit ? 'deposit' : ((initialType as TransactionType | 'deposit') || 'out'),
-  );
+  const [type, setType] = useState<TransactionType | 'deposit'>(() => {
+    if (isEditingDeposit || isClosingDeposit || editDepositId || closeDepositId) {
+      return 'deposit';
+    }
+    if (routeLoanId) {
+      return 'loan';
+    }
+    if (editId) {
+      const tx = useTransactionsStore.getState().transactions.find((t) => t.id === editId);
+      if (tx) {
+        return tx.type === 'loan' ? 'loan' : (tx.transferPairId ? 'transfer' : tx.type);
+      }
+    }
+    return (initialType as TransactionType | 'deposit') || 'out';
+  });
   // Deposit-only fields (used when type === 'deposit')
   const [depositName, setDepositName] = useState('');
   const [depositBank, setDepositBank] = useState('');
@@ -186,9 +211,21 @@ export default function AddTransactionModal() {
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loanEditMode, setLoanEditMode] = useState<'new' | 'origin' | 'settlement'>('new');
-  const [editingLoanId, setEditingLoanId] = useState('');
+  const [editingLoanId, setEditingLoanId] = useState(() => {
+    if (editId) {
+      const tx = useTransactionsStore.getState().transactions.find((t) => t.id === editId);
+      return tx?.loanId || '';
+    }
+    return '';
+  });
   const [editingSplitGroupId, setEditingSplitGroupId] = useState('');
-  const [isTransferEdit, setIsTransferEdit] = useState(false);
+  const [isTransferEdit, setIsTransferEdit] = useState(() => {
+    if (editId) {
+      const tx = useTransactionsStore.getState().transactions.find((t) => t.id === editId);
+      return !!tx?.transferPairId;
+    }
+    return false;
+  });
   const [accountSheetMode, setAccountSheetMode] = useState<'none' | 'account' | 'from' | 'to'>('none');
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
@@ -198,6 +235,8 @@ export default function AddTransactionModal() {
   const [showTypeSheet, setShowTypeSheet] = useState(false);
   const [payeeSuggestions, setPayeeSuggestions] = useState<string[]>([]);
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
+  const [isPayeeFocused, setIsPayeeFocused] = useState(false);
+  const [isPersonFocused, setIsPersonFocused] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const splitIdSeed = useRef(0);
   const hadSplitRows = useRef(false);
@@ -209,7 +248,20 @@ export default function AddTransactionModal() {
   const isHydratingEditRef = useRef(false);
   const isDepositHydratedRef = useRef(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const typeScrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const normalizedPersonQuery = personName.trim().toLowerCase();
+  const filteredPersonSuggestions = useMemo(() => {
+    if (!normalizedPersonQuery) return [];
+    return persons.filter((p) => p.toLowerCase().includes(normalizedPersonQuery));
+  }, [persons, normalizedPersonQuery]);
+
+  const exactPersonMatch = useMemo(() => {
+    if (!normalizedPersonQuery) return false;
+    return persons.some((p) => p.toLowerCase() === normalizedPersonQuery);
+  }, [persons, normalizedPersonQuery]);
 
 
   useEffect(() => {
@@ -223,6 +275,18 @@ export default function AddTransactionModal() {
     });
     return () => { showSub.remove(); hideSub.remove(); };
   }, []);
+
+  useEffect(() => {
+    if (type === 'deposit' || type === 'loan') {
+      setTimeout(() => {
+        typeScrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 120);
+    } else if (type === 'in' || type === 'out') {
+      setTimeout(() => {
+        typeScrollViewRef.current?.scrollTo({ x: 0, animated: true });
+      }, 120);
+    }
+  }, [type]);
 
   const TYPE_CONFIG = {
     in: { label: 'Income', color: palette.uiPositive, onColor: palette.onBrand, borderColor: palette.uiPositive, bg: palette.inBg },
@@ -320,7 +384,7 @@ export default function AddTransactionModal() {
 
   useEffect(() => {
     const term = note.trim();
-    if (!term || term.length < 2) {
+    if (!term || term.length < 1) {
       setNoteSuggestions([]);
       return;
     }
@@ -515,15 +579,18 @@ export default function AddTransactionModal() {
   const closePrincipal = parseFloat(parseFormattedNumber(closePrincipalStr)) || 0;
   const closeInterest = parseFloat(parseFormattedNumber(closeInterestStr)) || 0;
   const activeConfig = TYPE_CONFIG[type];
+  const amountInputColor = palette.brand;
   const lockTypeSelection = isEditingDeposit || isClosingDeposit || (isEditing && (isTransferEdit || (type === 'loan' && !!editingLoanId)));
+  const dt = new Date(date);
+  const dayName = dt.toLocaleDateString(APP_LOCALE, { weekday: 'short' });
+  const dateFormatted = `${dayName}, ${formatDate(date)}`;
+  const timeFormatted = dt.toLocaleTimeString(APP_LOCALE, { hour: 'numeric', minute: '2-digit', hour12: true });
   const lockLoanDirection = isLoanAddMore || (isEditing && type === 'loan' && !!editingLoanId);
   const displaySym = showCurrencySymbol ? sym : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
   const usableSplitRows = splitRows.filter(
     (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
   );
-  const selectedAccount = accounts.find((account) => account.id === accountId);
-  const selectedLinkedAccount = accounts.find((account) => account.id === linkedAccountId);
 
   // Re-entrancy guard kept in a ref — using state here would trigger a wasted
   // re-render of the modal in the same React commit as the closeScreen()
@@ -531,6 +598,7 @@ export default function AddTransactionModal() {
   const isSubmittingRef = useRef(false);
 
   const closeScreen = (isCancel: boolean | object = true) => {
+    setIsClosing(true);
     const isCancelBoolean = isCancel === true || typeof isCancel === 'object' || isCancel === undefined;
     if (fromWidget === '1' && !isCancelBoolean) {
       BackHandler.exitApp();
@@ -642,6 +710,29 @@ export default function AddTransactionModal() {
               ? splitTotal !== 0 && accountId
               : hasNonZeroAmount && accountId && categoryId;
 
+  const getValidationErrorMessage = () => {
+    const amountVal = isClosingDeposit ? closePrincipal : amount;
+    if (amountVal <= 0 || (usableSplitRows.length > 0 && splitTotal === 0)) {
+      return 'Please enter an amount';
+    }
+    if (!accountId) {
+      return 'Please select an account';
+    }
+    if (type === 'transfer' && !linkedAccountId) {
+      return 'Please select a destination account';
+    }
+    if ((type === 'in' || type === 'out') && usableSplitRows.length === 0 && !categoryId) {
+      return 'Please select a category';
+    }
+    if (type === 'loan' && personName.trim().length === 0) {
+      return 'Please enter a person name';
+    }
+    if (type === 'deposit' && !isClosingDeposit && depositName.trim().length === 0) {
+      return 'Please enter a deposit name';
+    }
+    return null;
+  };
+
   const actionLabel = (() => {
     if (isEditing) return 'Save Changes';
     if (isClosingDeposit) return 'Close Deposit';
@@ -658,18 +749,12 @@ export default function AddTransactionModal() {
   const actionButtonColor = palette.brand;
   const screenTitle = isEditing
     ? type === 'deposit'
-      ? 'Edit Deposit'
-      : type === 'in'
-        ? 'Edit Income'
-        : type === 'out'
-          ? 'Edit Expense'
-          : type === 'transfer'
-            ? 'Edit Transfer'
-            : loanEditMode === 'settlement'
-              ? loanDirection === 'lent'
-                ? 'Edit Receipt'
-                : 'Edit Payment'
-              : 'Edit Loan'
+      ? 'Deposit Details'
+      : type === 'transfer'
+        ? 'Transfer Details'
+        : type === 'loan'
+          ? 'Loan Details'
+          : 'Transaction Details'
     : isClosingDeposit
       ? 'Close Deposit'
     : isLoanAddMore
@@ -679,6 +764,7 @@ export default function AddTransactionModal() {
         : 'New Transaction';
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
     if (!isValid) {
       setAttemptedSubmit(true);
       shakeOffset.value = withSequence(
@@ -744,7 +830,7 @@ export default function AddTransactionModal() {
           closeScreenAndExecute(() => {
             persistLastAccountEagerly();
             runInBackground(() => closeDeposit(closeDepositId, payload), { tx: true, widgets: true });
-          }, false);
+          }, true);
           return;
         }
 
@@ -790,7 +876,7 @@ export default function AddTransactionModal() {
         closeScreenAndExecute(() => {
           persistLastAccountEagerly();
           runInBackground(depositWork, { tx: true, widgets: true });
-        }, false);
+        }, true);
         return;
       }
 
@@ -835,7 +921,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(splitWork, { tx: true, widgets: true });
-        }, false);
+        }, true);
         return;
       }
 
@@ -859,7 +945,7 @@ export default function AddTransactionModal() {
             await deleteTransaction(oldGroupMemberId);
             await createTransaction({ ...data, splitGroupId: undefined });
           }, { tx: true, widgets: true });
-        }, false);
+        }, true);
         return;
       }
 
@@ -879,7 +965,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
-        }, false);
+        }, true);
         return;
       }
       if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
@@ -898,7 +984,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => updateLoanSettlement(txId, payload), { tx: true, widgets: true });
-        }, false);
+        }, true);
         return;
       }
       if (type === 'loan' && routeLoanId && settlement === '1') {
@@ -915,7 +1001,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => addTransaction(payload), { tx: true, widgets: true });
-        }, false);
+        }, true);
         return;
       }
       if (type === 'loan' && isLoanAddMore && routeLoanId) {
@@ -925,7 +1011,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
-        }, false);
+        }, true);
         return;
       }
       if (type === 'loan') {
@@ -938,20 +1024,11 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         };
-        clearSplitRows();
-        persistLastAccountEagerly();
-        // Await the loan store update so the loans screen already shows the new
-        // card + updated hero on return (matching the budget/asset flows).
-        // Account balances and widgets aren't visible on the loans screen, so
-        // refresh those in the background.
-        try {
-          await addLoan(payload);
-        } catch (e) {
-          showAlert('Error', String(e));
-        }
-        refreshAccounts().catch(() => undefined);
-        updateAllReniWidgets().catch(() => undefined);
-        closeScreen(false);
+        closeScreenAndExecute(() => {
+          clearSplitRows();
+          persistLastAccountEagerly();
+          runInBackground(() => addLoan(payload), { tx: true, widgets: true });
+        }, true);
         return;
       }
       if (isEditing && editId && isTransferEdit) {
@@ -968,7 +1045,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
-        }, false);
+        }, true);
         return;
       }
       // For in/out add + edit, the store's optimistic patch runs SYNCHRONOUSLY
@@ -1056,7 +1133,7 @@ export default function AddTransactionModal() {
             }
           })();
         };
-        closeScreenAndExecute(runAfterDeleteClose, false);
+        closeScreenAndExecute(runAfterDeleteClose, true);
       },
     });
   };
@@ -1167,6 +1244,10 @@ export default function AddTransactionModal() {
     setShowDatePicker(true);
   };
 
+  if (isClosing) {
+    return <View style={{ flex: 1, backgroundColor: palette.background }} />;
+  }
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: palette.background }}
@@ -1178,7 +1259,7 @@ export default function AddTransactionModal() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: SCREEN_GUTTER,
+            paddingHorizontal: FORM_GUTTER,
             paddingTop: 8,
             paddingBottom: 12
           }}
@@ -1201,9 +1282,10 @@ export default function AddTransactionModal() {
         <Pressable onPress={Keyboard.dismiss} style={{ paddingBottom: 20 }}>
           <View style={{ paddingTop: 2, paddingBottom: 12 }}>
             <ScrollView
+              ref={typeScrollViewRef}
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: SCREEN_GUTTER, gap: 8 }}
+              contentContainerStyle={{ paddingHorizontal: FORM_GUTTER, gap: 8 }}
               keyboardShouldPersistTaps="handled"
             >
               {(Object.keys(TYPE_CONFIG) as Array<TransactionType | 'deposit'>).map((t) => (
@@ -1240,97 +1322,260 @@ export default function AddTransactionModal() {
             </ScrollView>
           </View>
 
+          {type !== 'deposit' || !isClosingDeposit ? (
+            <View style={{ paddingHorizontal: FORM_GUTTER, paddingTop: 10, paddingBottom: 10, alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center', position: 'relative' }}>
+                <TextInput
+                  value={amountStr}
+                  onChangeText={(value: string) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
+                  keyboardType="decimal-pad"
+                  placeholder="0"
+                  placeholderTextColor={palette.textSoft}
+                  cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                  style={{
+                    fontSize: 36,
+                    fontWeight: '500',
+                    color: amountInputColor,
+                    letterSpacing: -0.5,
+                    textAlign: 'center',
+                    minWidth: 100,
+                    paddingTop: 0,
+                    paddingBottom: 2,
+                    lineHeight: 38,
+                  }}
+                  autoFocus={!isEditing}
+                />
+              </View>
+            </View>
+          ) : null}
+
+          {/* Centered Date & Time Clickable Text and Calculator */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: FORM_GUTTER,
+            position: 'relative',
+            marginTop: 2,
+            marginBottom: 0,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, justifyContent: 'center' }}>
+              <TouchableOpacity onPress={openDate} style={{ justifyContent: 'center', height: '100%' }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.textSecondary }}>
+                  {dateFormatted}
+                </Text>
+              </TouchableOpacity>
+              <View style={{ justifyContent: 'center', height: '100%' }}>
+                <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted }}>|</Text>
+              </View>
+              <TouchableOpacity onPress={openTime} style={{ justifyContent: 'center', height: '100%' }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.textSecondary }}>
+                  {timeFormatted}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {type !== 'deposit' || !isClosingDeposit ? (
+              <TouchableOpacity
+                onPress={handleOpenCalculator}
+                activeOpacity={0.7}
+                style={{
+                  position: 'absolute',
+                  right: FORM_GUTTER,
+                  top: '50%',
+                  marginTop: -22,
+                  width: 44,
+                  height: 44,
+                  borderRadius: HOME_RADIUS.button,
+                  backgroundColor: 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppIcon name="calculator" size={22} color={palette.textSecondary} strokeWidth={1.9} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
           {type === 'in' || type === 'out' ? (
-            <SectionCard palette={palette}>
-              <InteractiveDateTimeRow
-                date={date}
-                onOpenDate={openDate}
-                onOpenTime={openTime}
-                palette={palette}
-              />
-              <PickerRow
-                label="Account"
-                value={getAccountName(accounts, accountId)}
-                subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
-                placeholder={!accountId}
-                palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
-                hasError={attemptedSubmit && !accountId}
-              />
-              <AmountRow
-                sym={displaySym}
-                amountStr={amountStr}
-                setAmountStr={setAmountStr}
-                onOpenCalculator={usableSplitRows.length === 0 ? handleOpenCalculator : undefined}
-                onPressAmount={
-                  usableSplitRows.length > 0
-                    ? () =>
+            <SectionCard palette={palette} horizontalInset={SCREEN_GUTTER}>
+              {/* Field 1: Account */}
+              <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                <TouchableOpacity
+                  onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    minHeight: 40,
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && !accountId ? palette.negative : palette.textSecondary, width: 80 }}>
+                    Account
+                  </Text>
+                  {accountId && accounts.find(a => a.id === accountId) ? (() => {
+                    const acc = accounts.find(a => a.id === accountId)!;
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <AccountTypeBadge account={acc} palette={palette} />
+                        <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                          <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: FONT_WEIGHT.medium }} numberOfLines={1}>
+                            {formatAccountDisplayName(acc.name, acc.accountNumber)}
+                          </Text>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, fontWeight: FONT_WEIGHT.regular, marginTop: 2 }}>
+                            {formatSignedCurrency(acc.balance, displaySym)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })() : (
+                    <Text style={{ fontSize: HOME_TEXT.body, color: attemptedSubmit && !accountId ? palette.negative : palette.textMuted, flex: 1 }}>
+                      Select Account
+                    </Text>
+                  )}
+                  <AppChevron direction="right" size={16} tone="secondary" color={attemptedSubmit && !accountId ? palette.negative : undefined} palette={palette} />
+                </TouchableOpacity>
+              </View>
+
+              <CardDivider palette={palette} />
+
+              {/* Field 2: Category & Split */}
+              <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && !categoryId && usableSplitRows.length === 0 ? palette.negative : palette.textSecondary }}>
+                    Category
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
                       runAfterKeyboardDismiss(() =>
                         router.push({ pathname: '/modals/split-transaction', params: { type } })
                       )
-                    : undefined
-                }
-                palette={palette}
-                accentColor={activeConfig.color}
-                autoFocus
-                editable={usableSplitRows.length === 0}
-                hasError={attemptedSubmit && !hasNonZeroAmount}
-              />
-              <View style={{ paddingRight: SCREEN_GUTTER + 6, marginBottom: -18, alignItems: 'flex-end', zIndex: 1 }}>
-                <TouchableOpacity delayPressIn={0}
-                  onPress={() =>
-                    runAfterKeyboardDismiss(() =>
-                      router.push({ pathname: '/modals/split-transaction', params: { type } })
-                    )
-                  }
-                  hitSlop={{ top: 12, bottom: 12, left: 20, right: 10 }}
-                  style={{ minHeight: 28, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}
-                  activeOpacity={0.75}
-                >
-                  <AppIcon name="layers" size={14} color={palette.brand} />
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: palette.brand }}>
-                    Split
-                  </Text>
-                </TouchableOpacity>
+                    }
+                    hitSlop={{ top: 12, bottom: 12, left: 20, right: 10 }}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                    activeOpacity={0.75}
+                  >
+                    <AppIcon name="layers" size={14} color={palette.brand} />
+                    <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.medium, color: palette.brand }}>
+                      Split
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {usableSplitRows.length > 0 ? (
+                  <TouchableOpacity
+                    onPress={() =>
+                      runAfterKeyboardDismiss(() =>
+                        router.push({ pathname: '/modals/split-transaction', params: { type } })
+                      )
+                    }
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 8,
+                      minHeight: 40,
+                      gap: 8
+                    }}
+                  >
+                    <AppIcon name="layers" size={16} color={palette.textSecondary} />
+                    <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: FONT_WEIGHT.medium, flex: 1 }}>
+                      Split ({usableSplitRows.length} items)
+                    </Text>
+                    <AppChevron direction="right" size={16} tone="secondary" palette={palette} />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={openCategorySheet}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 8,
+                      minHeight: 40,
+                      gap: 8
+                    }}
+                  >
+                    {categoryId && getCategoryDisplayParts(categories, categoryId).fullName !== 'Select Category' ? (
+                      <>
+                        {isEmojiIcon(getCategoryDisplayParts(categories, categoryId).icon) ? (
+                          <Text style={{ fontSize: HOME_LAYOUT.listIconInnerSize }}>{getCategoryDisplayParts(categories, categoryId).icon}</Text>
+                        ) : (
+                          <AppIcon name={getCategoryDisplayParts(categories, categoryId).icon as any} size={HOME_LAYOUT.listIconInnerSize} color={palette.brand} />
+                        )}
+                        <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: FONT_WEIGHT.medium, flex: 1 }} numberOfLines={1}>
+                          {getCategoryDisplayParts(categories, categoryId).fullName}
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={{ fontSize: HOME_TEXT.body, color: attemptedSubmit && !categoryId ? palette.negative : palette.textMuted, flex: 1 }}>
+                          Select Category
+                        </Text>
+                      </>
+                    )}
+                    <AppChevron direction="right" size={16} tone="secondary" color={attemptedSubmit && !categoryId ? palette.negative : undefined} palette={palette} />
+                  </TouchableOpacity>
+                )}
               </View>
-              {usableSplitRows.length > 0 ? (
-                <PickerRow
-                  label="Category"
-                  value="Split"
-                  subtitle="Edit line items"
-                  palette={palette}
-                  onPress={() =>
-                    runAfterKeyboardDismiss(() =>
-                      router.push({ pathname: '/modals/split-transaction', params: { type } })
-                    )
-                  }
-                  hasError={attemptedSubmit && splitTotal === 0}
+
+              <CardDivider palette={palette} />
+
+              {/* Field 3: Payee autocomplete suggestions (only on typing and active focus) */}
+              <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 6 }}>
+                  Payee
+                </Text>
+                <TextInput
+                  value={payee}
+                  onChangeText={(text: string) => setPayee(text)}
+                  placeholder=""
+                  placeholderTextColor={palette.textSoft}
+                  cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                  onFocus={() => setIsPayeeFocused(true)}
+                  onBlur={() => {
+                    setTimeout(() => setIsPayeeFocused(false), 200);
+                  }}
+                  style={{
+                    fontSize: HOME_TEXT.bodyLarge,
+                    color: palette.text,
+                    paddingVertical: 8,
+                    minHeight: 40,
+                  }}
                 />
-              ) : (
-                <PickerRow
-                  label="Category"
-                  value={
-                    <CategoryPickerValue
-                      category={getCategoryDisplayParts(categories, categoryId)}
-                      palette={palette}
-                    />
-                  }
-                  placeholder={!categoryId}
-                  palette={palette}
-                  onPress={openCategorySheet}
-                  custom
-                  hasError={attemptedSubmit && !categoryId}
-                />
-              )}
-              <InlineComboBox
-                label="Payee"
-                value={payee}
-                onChange={setPayee}
-                suggestions={payeeSuggestions}
-                placeholder="Add payee"
-                palette={palette}
-                accentColor={activeConfig.color}
-              />
+                {isPayeeFocused && payee.trim() !== '' && payeeSuggestions.length > 0 && (
+                  <View style={{ marginTop: 10 }}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 8 }}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      {payeeSuggestions.map((suggestion) => (
+                        <TouchableOpacity
+                          key={suggestion}
+                          onPress={() => setPayee(suggestion)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: HOME_RADIUS.chip,
+                            backgroundColor: palette.isDark ? palette.layers.surfaceSunken : palette.inputBg,
+                            borderWidth: 1,
+                            borderColor: palette.divider,
+                          }}
+                        >
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>
+                            {suggestion}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
+              <CardDivider palette={palette} />
+
+              {/* Field 4: Receipts */}
               <ReceiptSection
                 palette={palette}
                 receiptImageUris={receiptImageUris}
@@ -1338,13 +1583,51 @@ export default function AddTransactionModal() {
                 onPreview={openReceiptPreview}
                 onRemove={removeReceiptAtIndex}
               />
-              <PickerRow
-                label="Tag"
-                value={selectedTagIds.length ? tagSummary(tags, selectedTagIds) : 'Add tag'}
-                placeholder={!selectedTagIds.length}
-                palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setShowTagSheet(true))}
-              />
+
+              <CardDivider palette={palette} />
+
+              {/* Field 5: Tags */}
+              <View style={{ paddingVertical: 14, paddingHorizontal: FORM_GUTTER }}>
+                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 8 }}>
+                  Tags
+                </Text>
+                <TouchableOpacity
+                  onPress={() => runAfterKeyboardDismiss(() => setShowTagSheet(true))}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 4,
+                    gap: 8,
+                    minHeight: 32,
+                  }}
+                >
+                  <AppIcon name="tag" size={16} color={palette.textMuted} />
+                  {selectedTagIds.length > 0 ? (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, flex: 1 }}>
+                      {selectedTagIds.map((tagId) => {
+                        const tag = tags.find(t => t.id === tagId);
+                        if (!tag) return null;
+                        return (
+                          <TagBadge
+                            key={tag.id}
+                            name={tag.name}
+                            color={tag.color}
+                            palette={palette}
+                          />
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: FONT_WEIGHT.medium, flex: 1 }} numberOfLines={1}>
+                      Select tags
+                    </Text>
+                  )}
+                  <AppChevron direction="right" size={16} tone="secondary" palette={palette} />
+                </TouchableOpacity>
+              </View>
+
+              <CardDivider palette={palette} />
+
               <InlineComboBox
                 label="Notes"
                 value={note}
@@ -1352,23 +1635,53 @@ export default function AddTransactionModal() {
                 suggestions={noteSuggestions}
                 multiline
                 palette={palette}
-                accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
             </SectionCard>
           ) : type === 'transfer' ? (
-            <SectionCard palette={palette}>
-              <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
-              <PickerRow
-                label="From"
-                value={getAccountName(accounts, accountId) || 'Select...'}
-                subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
-                placeholder={!accountId}
-                palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('from'))}
-                hasError={attemptedSubmit && !accountId}
-              />
-              <View style={{ alignItems: 'center', paddingVertical: 2 }}>
+            <SectionCard palette={palette} horizontalInset={SCREEN_GUTTER}>
+              {/* From Account selection */}
+              <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                <TouchableOpacity
+                  onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('from'))}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    minHeight: 40,
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && !accountId ? palette.negative : palette.textSecondary, width: 100 }}>
+                    From Account
+                  </Text>
+                  {accountId && accounts.find(a => a.id === accountId) ? (() => {
+                    const acc = accounts.find(a => a.id === accountId)!;
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <AccountTypeBadge account={acc} palette={palette} />
+                        <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                          <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: FONT_WEIGHT.medium }} numberOfLines={1}>
+                            {formatAccountDisplayName(acc.name, acc.accountNumber)}
+                          </Text>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, fontWeight: FONT_WEIGHT.regular, marginTop: 2 }}>
+                            {formatSignedCurrency(acc.balance, displaySym)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })() : (
+                    <Text style={{ fontSize: HOME_TEXT.body, color: attemptedSubmit && !accountId ? palette.negative : palette.textMuted, flex: 1 }}>
+                      Select Account
+                    </Text>
+                  )}
+                  <AppChevron direction="right" size={16} tone="secondary" color={attemptedSubmit && !accountId ? palette.negative : undefined} palette={palette} />
+                </TouchableOpacity>
+              </View>
+
+              <CardDivider palette={palette} />
+              <View style={{ alignItems: 'center', marginVertical: -10, zIndex: 10 }}>
                 <TouchableOpacity delayPressIn={0}
                   onPress={() => {
                     const tmp = accountId;
@@ -1376,43 +1689,74 @@ export default function AddTransactionModal() {
                     setLinkedAccountId(tmp);
                   }}
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: HOME_RADIUS.small,
-                    backgroundColor: activeConfig.bg,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: palette.isDark ? palette.layers.surfaceSunken : palette.background,
+                    borderWidth: 1,
+                    borderColor: palette.divider,
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
-                  <AppIcon name="arrow-up-down" size={16} color={activeConfig.color} />
+                  <AppIcon name="repeat" size={15} color={palette.brand} />
                 </TouchableOpacity>
               </View>
-              <PickerRow
-                label="To"
-                value={getAccountName(accounts, linkedAccountId) || 'Select...'}
-                subtitle={selectedLinkedAccount ? formatSignedCurrency(selectedLinkedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
-                placeholder={!linkedAccountId}
-                palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('to'))}
-                hasError={attemptedSubmit && !linkedAccountId}
-              />
-              {accountId && linkedAccountId && accountId === linkedAccountId ? (
-                <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingBottom: 4 }}>
-                  <Text style={{ marginLeft: ROW_LABEL_WIDTH + 4, fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>
-                    Heads up: Same account transfer.
+              <CardDivider palette={palette} />
+
+              {/* To Account selection */}
+              <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                <TouchableOpacity
+                  onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('to'))}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    minHeight: 40,
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && !linkedAccountId ? palette.negative : palette.textSecondary, width: 100 }}>
+                    To Account
                   </Text>
-                </View>
+                  {linkedAccountId && accounts.find(a => a.id === linkedAccountId) ? (() => {
+                    const acc = accounts.find(a => a.id === linkedAccountId)!;
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <AccountTypeBadge account={acc} palette={palette} />
+                        <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                          <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: FONT_WEIGHT.medium }} numberOfLines={1}>
+                            {formatAccountDisplayName(acc.name, acc.accountNumber)}
+                          </Text>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, fontWeight: FONT_WEIGHT.regular, marginTop: 2 }}>
+                            {formatSignedCurrency(acc.balance, displaySym)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })() : (
+                    <Text style={{ fontSize: HOME_TEXT.body, color: attemptedSubmit && !linkedAccountId ? palette.negative : palette.textMuted, flex: 1 }}>
+                      Select Account
+                    </Text>
+                  )}
+                  <AppChevron direction="right" size={16} tone="secondary" color={attemptedSubmit && !linkedAccountId ? palette.negative : undefined} palette={palette} />
+                </TouchableOpacity>
+              </View>
+
+              {accountId && linkedAccountId && accountId === linkedAccountId ? (
+                <>
+                  <CardDivider palette={palette} />
+                  <View style={{ paddingHorizontal: FORM_GUTTER, paddingVertical: 10 }}>
+                    <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>
+                      Heads up: Same account transfer.
+                    </Text>
+                  </View>
+                </>
               ) : null}
-              <AmountRow
-                sym={displaySym}
-                amountStr={amountStr}
-                setAmountStr={setAmountStr}
-                onOpenCalculator={handleOpenCalculator}
-                palette={palette}
-                accentColor={activeConfig.color}
-                autoFocus
-                hasError={attemptedSubmit && !hasNonZeroAmount}
-              />
+
+              <CardDivider palette={palette} />
+
               <InlineComboBox
                 label="Notes"
                 value={note}
@@ -1420,13 +1764,11 @@ export default function AddTransactionModal() {
                 suggestions={noteSuggestions}
                 multiline
                 palette={palette}
-                accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
             </SectionCard>
           ) : type === 'loan' ? (
-            <SectionCard palette={palette}>
-              <InteractiveDateTimeRow date={date} palette={palette} onOpenDate={openDate} onOpenTime={openTime} />
+            <SectionCard palette={palette} horizontalInset={SCREEN_GUTTER}>
               {loanEditMode === 'settlement' ? (
                 <>
                   <DisplayRow
@@ -1450,7 +1792,7 @@ export default function AddTransactionModal() {
                     }}
                   />
                   {loanTransactionType !== 'principal' && (
-                    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 8 }}>
+                    <View style={{ paddingHorizontal: FORM_GUTTER, paddingTop: 2, paddingBottom: 8 }}>
                       <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
                         Loan outstanding balance will not be affected
                       </Text>
@@ -1459,9 +1801,9 @@ export default function AddTransactionModal() {
                 </>
               ) : (
                 <>
-                  <View style={{ marginTop: -8 }}>
-                    <FieldRow label="Direction" palette={palette}>
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ marginTop: 8 }}>
+                    <FieldRow label="Direction" palette={palette} noBorder>
+                      <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
                         {(['lent', 'borrowed'] as const).map((d) => {
                           const active = loanDirection === d;
                           return (
@@ -1495,49 +1837,137 @@ export default function AddTransactionModal() {
                       </View>
                     </FieldRow>
                   </View>
+
+                  <CardDivider palette={palette} />
+
                   {isLoanAddMore ? (
-                    <DisplayRow
-                      label="Person"
-                      value={personName}
-                      palette={palette}
-                    />
+                    <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 6 }}>
+                        Person
+                      </Text>
+                      <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, paddingVertical: 8 }}>
+                        {personName}
+                      </Text>
+                    </View>
                   ) : (
-                    <>
-                      <InlineComboBox
-                        label="Person"
+                    <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && personName.trim().length === 0 ? palette.negative : palette.textSecondary, marginBottom: 6 }}>
+                        Person
+                      </Text>
+                      <TextInput
                         value={personName}
-                        onChange={setPersonName}
-                        suggestions={persons}
-                        filterLocally={true}
-                        showAdd={true}
-                        palette={palette}
-                        accentColor={activeConfig.color}
+                        onChangeText={setPersonName}
+                        placeholder=""
+                        placeholderTextColor={palette.textSoft}
+                        cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                        onFocus={() => setIsPersonFocused(true)}
+                        onBlur={() => {
+                          setTimeout(() => setIsPersonFocused(false), 200);
+                        }}
                         autoFocus={type === 'loan' && !isEditing && !isLoanAddMore}
-                        hasError={attemptedSubmit && personName.trim().length === 0}
+                        style={{
+                          fontSize: HOME_TEXT.bodyLarge,
+                          color: palette.text,
+                          paddingVertical: 8,
+                          minHeight: 40,
+                        }}
                       />
-                    </>
+                      {isPersonFocused && personName.trim() !== '' && (
+                        <View style={{ marginTop: 10 }}>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ gap: 8 }}
+                            keyboardShouldPersistTaps="handled"
+                          >
+                            {!exactPersonMatch && (
+                              <TouchableOpacity
+                                onPress={() => setPersonName(personName.trim())}
+                                style={{
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 6,
+                                  borderRadius: HOME_RADIUS.chip,
+                                  backgroundColor: palette.brandSoft,
+                                  borderWidth: 1,
+                                  borderColor: `${palette.brand}55`,
+                                }}
+                              >
+                                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: FONT_WEIGHT.bold }}>
+                                  + Add "{personName.trim()}"
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                            {filteredPersonSuggestions.map((suggestion) => (
+                              <TouchableOpacity
+                                key={suggestion}
+                                onPress={() => setPersonName(suggestion)}
+                                style={{
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 6,
+                                  borderRadius: HOME_RADIUS.chip,
+                                  backgroundColor: palette.isDark ? palette.layers.surfaceSunken : palette.inputBg,
+                                  borderWidth: 1,
+                                  borderColor: palette.divider,
+                                }}
+                              >
+                                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>
+                                  {suggestion}
+                                </Text>
+                              </TouchableOpacity>
+
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                   )}
                 </>
               )}
-              <AmountRow
-                sym={displaySym}
-                amountStr={amountStr}
-                setAmountStr={setAmountStr}
-                onOpenCalculator={handleOpenCalculator}
-                palette={palette}
-                accentColor={activeConfig.color}
-                autoFocus={type !== 'loan' || loanEditMode === 'settlement'}
-                hasError={attemptedSubmit && !hasNonZeroAmount}
-              />
-              <PickerRow
-                label="Account"
-                value={getAccountName(accounts, accountId) || 'Select...'}
-                subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
-                placeholder={!accountId}
-                palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
-                hasError={attemptedSubmit && !accountId}
-              />
+
+              <CardDivider palette={palette} />
+
+              {/* Account selection */}
+              <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                <TouchableOpacity
+                  onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    minHeight: 40,
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && !accountId ? palette.negative : palette.textSecondary, width: 80 }}>
+                    Account
+                  </Text>
+                  {accountId && accounts.find(a => a.id === accountId) ? (() => {
+                    const acc = accounts.find(a => a.id === accountId)!;
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <AccountTypeBadge account={acc} palette={palette} />
+                        <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                          <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: FONT_WEIGHT.medium }} numberOfLines={1}>
+                            {formatAccountDisplayName(acc.name, acc.accountNumber)}
+                          </Text>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, fontWeight: FONT_WEIGHT.regular, marginTop: 2 }}>
+                            {formatSignedCurrency(acc.balance, displaySym)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })() : (
+                    <Text style={{ fontSize: HOME_TEXT.body, color: attemptedSubmit && !accountId ? palette.negative : palette.textMuted, flex: 1 }}>
+                      Select Account
+                    </Text>
+                  )}
+                  <AppChevron direction="right" size={16} tone="secondary" color={attemptedSubmit && !accountId ? palette.negative : undefined} palette={palette} />
+                </TouchableOpacity>
+              </View>
+
+              <CardDivider palette={palette} />
+
               <InlineComboBox
                 label="Notes"
                 value={note}
@@ -1545,54 +1975,88 @@ export default function AddTransactionModal() {
                 suggestions={noteSuggestions}
                 multiline
                 palette={palette}
-                accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
             </SectionCard>
-          ) : null}
+          ) : type === 'deposit' ? (
+            <SectionCard palette={palette} horizontalInset={SCREEN_GUTTER}>
+              {/* Source Account selection */}
+              <View style={{ paddingVertical: 10, paddingHorizontal: FORM_GUTTER }}>
+                <TouchableOpacity
+                  onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    minHeight: 40,
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && !accountId ? palette.negative : palette.textSecondary, width: 110 }}>
+                    Source Account
+                  </Text>
+                  {accountId && accounts.find(a => a.id === accountId) ? (() => {
+                    const acc = accounts.find(a => a.id === accountId)!;
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <AccountTypeBadge account={acc} palette={palette} />
+                        <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                          <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: FONT_WEIGHT.medium }} numberOfLines={1}>
+                            {formatAccountDisplayName(acc.name, acc.accountNumber)}
+                          </Text>
+                          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, fontWeight: FONT_WEIGHT.regular, marginTop: 2 }}>
+                            {formatSignedCurrency(acc.balance, displaySym)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })() : (
+                    <Text style={{ fontSize: HOME_TEXT.body, color: attemptedSubmit && !accountId ? palette.negative : palette.textMuted, flex: 1 }}>
+                      Select Account
+                    </Text>
+                  )}
+                  <AppChevron direction="right" size={16} tone="secondary" color={attemptedSubmit && !accountId ? palette.negative : undefined} palette={palette} />
+                </TouchableOpacity>
+              </View>
 
-          {type === 'deposit' ? (
-            <SectionCard palette={palette}>
-              <InteractiveDateTimeRow
-                date={date}
-                onOpenDate={openDate}
-                onOpenTime={openTime}
-                palette={palette}
-              />
-              <PickerRow
-                label="Source"
-                value={getAccountName(accounts, accountId) || 'Select...'}
-                subtitle={selectedAccount ? formatSignedCurrency(selectedAccount.balance, displaySym, { zeroPlaceholder: null }) ?? undefined : undefined}
-                placeholder={!accountId}
-                palette={palette}
-                onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
-                hasError={attemptedSubmit && !accountId}
-              />
+              <CardDivider palette={palette} />
+
               {isClosingDeposit ? (
                 <>
-                  <InlineComboBox
-                    label="Principal"
-                    value={closePrincipalStr}
-                    onChange={setClosePrincipalStr}
-                    suggestions={[]}
-                    palette={palette}
-                    accentColor={activeConfig.color}
-                    keyboardType="decimal-pad"
-                    autoFocus={focusField !== 'interest'}
-                    hasError={attemptedSubmit && closePrincipal <= 0}
-                  />
-                  <InlineComboBox
-                    label="Interest"
-                    value={closeInterestStr}
-                    onChange={setCloseInterestStr}
-                    suggestions={[]}
-                    palette={palette}
-                    accentColor={activeConfig.color}
-                    keyboardType="decimal-pad"
-                    autoFocus={focusField === 'interest'}
-                  />
+                  <View style={{ paddingVertical: 14, paddingHorizontal: FORM_GUTTER }}>
+                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && closePrincipal <= 0 ? palette.negative : palette.textSecondary, marginBottom: 8 }}>
+                      Principal
+                    </Text>
+                    <TextInput
+                      value={closePrincipalStr}
+                      onChangeText={setClosePrincipalStr}
+                      placeholder=""
+                      placeholderTextColor={palette.textSoft}
+                      cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                      keyboardType="decimal-pad"
+                      autoFocus={focusField !== 'interest'}
+                      style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, paddingVertical: 6, minHeight: 36 }}
+                    />
+                  </View>
+                  <CardDivider palette={palette} />
+                  <View style={{ paddingVertical: 14, paddingHorizontal: FORM_GUTTER }}>
+                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 8 }}>
+                      Interest
+                    </Text>
+                    <TextInput
+                      value={closeInterestStr}
+                      onChangeText={setCloseInterestStr}
+                      placeholder=""
+                      placeholderTextColor={palette.textSoft}
+                      cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                      keyboardType="decimal-pad"
+                      autoFocus={focusField === 'interest'}
+                      style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, paddingVertical: 6, minHeight: 36 }}
+                    />
+                  </View>
                   {(closePrincipal > 0 || closeInterest > 0) && (
-                    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: 2, paddingBottom: 10, flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
+                    <View style={{ paddingHorizontal: FORM_GUTTER, paddingTop: 2, paddingBottom: 10, flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
                       <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.textSecondary }}>Total Received</Text>
                       <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
                         {displaySym}{formatCurrency(closePrincipal + closeInterest, '')}
@@ -1601,67 +2065,84 @@ export default function AddTransactionModal() {
                   )}
                 </>
               ) : (
-                <AmountRow
-                  sym={displaySym}
-                  amountStr={amountStr}
-                  setAmountStr={setAmountStr}
-                  onOpenCalculator={handleOpenCalculator}
-                  palette={palette}
-                  accentColor={activeConfig.color}
-                  autoFocus
-                  hasError={attemptedSubmit && !hasNonZeroAmount}
-                />
-              )}
-              {!isClosingDeposit ? (
                 <>
-                  <InlineComboBox
-                    label="Name"
-                    value={depositName}
-                    onChange={setDepositName}
-                    suggestions={[]}
-                    palette={palette}
-                    accentColor={activeConfig.color}
-                    hasError={attemptedSubmit && depositName.trim().length === 0}
-                  />
-                  <InlineComboBox
-                    label="Bank"
-                    value={depositBank}
-                    onChange={setDepositBank}
-                    suggestions={[]}
-                    palette={palette}
-                    accentColor={activeConfig.color}
-                  />
-                  <InlineComboBox
-                    label="Tenure"
-                    value={depositTenure}
-                    onChange={setDepositTenure}
-                    suggestions={[]}
-                    palette={palette}
-                    accentColor={activeConfig.color}
-                    keyboardType="number-pad"
-                    rightAnnotation="months"
-                  />
-                  <InlineComboBox
-                    label="Interest %"
-                    value={depositInterest}
-                    onChange={setDepositInterest}
-                    suggestions={[]}
-                    palette={palette}
-                    accentColor={activeConfig.color}
-                    keyboardType="decimal-pad"
-                    rightAnnotation="p.a."
-                  />
-                  <InlineComboBox
-                    label="Maturity Value"
-                    value={depositMaturityStr}
-                    onChange={(v) => setDepositMaturityStr(formatIndianNumberStr(parseFormattedNumber(v)) || v)}
-                    suggestions={[]}
-                    palette={palette}
-                    accentColor={activeConfig.color}
-                    keyboardType="decimal-pad"
-                  />
+                  <View style={{ paddingVertical: 14, paddingHorizontal: FORM_GUTTER }}>
+                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: attemptedSubmit && depositName.trim().length === 0 ? palette.negative : palette.textSecondary, marginBottom: 8 }}>
+                      Deposit Name
+                    </Text>
+                    <TextInput
+                      value={depositName}
+                      onChangeText={setDepositName}
+                      placeholder=""
+                      placeholderTextColor={palette.textSoft}
+                      cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                      style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, paddingVertical: 6, minHeight: 36 }}
+                    />
+                  </View>
+                  <CardDivider palette={palette} />
+                  <View style={{ paddingVertical: 14, paddingHorizontal: FORM_GUTTER }}>
+                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 8 }}>
+                      Bank
+                    </Text>
+                    <TextInput
+                      value={depositBank}
+                      onChangeText={setDepositBank}
+                      placeholder=""
+                      placeholderTextColor={palette.textSoft}
+                      cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                      style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, paddingVertical: 6, minHeight: 36 }}
+                    />
+                  </View>
+                  <CardDivider palette={palette} />
+                  <View style={{ paddingVertical: 14, paddingHorizontal: FORM_GUTTER }}>
+                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 8 }}>
+                      Tenure <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>months</Text>
+                    </Text>
+                    <TextInput
+                      value={depositTenure}
+                      onChangeText={setDepositTenure}
+                      placeholder=""
+                      placeholderTextColor={palette.textSoft}
+                      cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                      keyboardType="number-pad"
+                      style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, paddingVertical: 6, minHeight: 36 }}
+                    />
+                  </View>
+                  <CardDivider palette={palette} />
+                  <View style={{ paddingVertical: 14, paddingHorizontal: FORM_GUTTER }}>
+                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 8 }}>
+                      Interest % <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>p.a.</Text>
+                    </Text>
+                    <TextInput
+                      value={depositInterest}
+                      onChangeText={setDepositInterest}
+                      placeholder=""
+                      placeholderTextColor={palette.textSoft}
+                      cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                      keyboardType="decimal-pad"
+                      style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, paddingVertical: 6, minHeight: 36 }}
+                    />
+                  </View>
+                  <CardDivider palette={palette} />
+                  <View style={{ paddingVertical: 14, paddingHorizontal: FORM_GUTTER }}>
+                    <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 8 }}>
+                      Maturity Value
+                    </Text>
+                    <TextInput
+                      value={depositMaturityStr}
+                      onChangeText={(v) => setDepositMaturityStr(formatIndianNumberStr(parseFormattedNumber(v)) || v)}
+                      placeholder=""
+                      placeholderTextColor={palette.textSoft}
+                      cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                      keyboardType="decimal-pad"
+                      style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, paddingVertical: 6, minHeight: 36 }}
+                    />
+                  </View>
                 </>
-              ) : null}
+              )}
+
+              <CardDivider palette={palette} />
+
               <InlineComboBox
                 label="Notes"
                 value={note}
@@ -1669,7 +2150,6 @@ export default function AddTransactionModal() {
                 suggestions={[]}
                 multiline
                 palette={palette}
-                accentColor={activeConfig.color}
                 onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
               />
             </SectionCard>
@@ -1680,25 +2160,55 @@ export default function AddTransactionModal() {
       </ScrollView>
 
       <FixedBottomActions palette={palette}>
-        <Animated.View style={[shakeStyle, { width: '100%' }]}>
-          <FilledButton
-            label={actionLabel}
-            onPress={handleSubmit}
-            disabled={false}
-            palette={palette}
-            tone="brand"
-            style={{
-              backgroundColor: actionButtonColor,
-            }}
-          />
-        </Animated.View>
-        {isEditing && (
-          <TextButton
-            label={isEditingDeposit ? 'Delete deposit' : 'Delete transaction'}
-            onPress={handleDelete}
-            palette={palette}
-            tone="danger"
-          />
+        {attemptedSubmit && getValidationErrorMessage() ? (
+          <Animated.View style={[shakeStyle, { alignItems: 'center', marginBottom: 8, paddingHorizontal: FORM_GUTTER }]}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall + 1, color: palette.negative, fontWeight: FONT_WEIGHT.semibold, textAlign: 'center' }}>
+              {getValidationErrorMessage()}
+            </Text>
+          </Animated.View>
+        ) : null}
+        {isEditing ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <TextButton
+                label="Delete"
+                onPress={handleDelete}
+                palette={palette}
+                tone="danger"
+                style={{
+                  minHeight: PRIMARY_ACTION.height,
+                  justifyContent: 'center',
+                }}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Animated.View style={[shakeStyle, { width: '100%' }]}>
+                <FilledButton
+                  label="Save"
+                  onPress={handleSubmit}
+                  disabled={false}
+                  palette={palette}
+                  tone="brand"
+                  style={{
+                    backgroundColor: actionButtonColor,
+                  }}
+                />
+              </Animated.View>
+            </View>
+          </View>
+        ) : (
+          <Animated.View style={[shakeStyle, { width: '100%' }]}>
+            <FilledButton
+              label={actionLabel}
+              onPress={handleSubmit}
+              disabled={false}
+              palette={palette}
+              tone="brand"
+              style={{
+                backgroundColor: actionButtonColor,
+              }}
+            />
+          </Animated.View>
         )}
       </FixedBottomActions>
 
@@ -1745,7 +2255,7 @@ export default function AddTransactionModal() {
           }
         >
           {accounts.length === 0 ? (
-            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No accounts available</Text>
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: FORM_GUTTER }}>No accounts available</Text>
           ) : (
             accounts.map((account, index) => {
               const isSelected = accountSheetMode === 'to' ? linkedAccountId === account.id : accountId === account.id;
@@ -1795,7 +2305,7 @@ export default function AddTransactionModal() {
           footer={
             <View
               style={{
-                paddingHorizontal: SCREEN_GUTTER,
+                paddingHorizontal: FORM_GUTTER,
                 paddingTop: 10,
                 paddingBottom: 10,
                 borderTopWidth: 1,
@@ -1819,7 +2329,7 @@ export default function AddTransactionModal() {
           }
         >
           {tags.length === 0 ? (
-            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: SCREEN_GUTTER }}>No tags created yet</Text>
+            <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.body, paddingVertical: 12, paddingHorizontal: FORM_GUTTER }}>No tags created yet</Text>
           ) : (
             tags.map((tag, index) => {
               return (
@@ -1828,7 +2338,7 @@ export default function AddTransactionModal() {
                   title={tag.name}
                   selected={selectedTagIds.includes(tag.id)}
                   palette={palette}
-                  leftElement={<AppIcon name="tag" size={18} color={tag.color} strokeWidth={2} />}
+                  leftElement={<View style={{ width: 12, height: 12, borderRadius: HOME_RADIUS.xs ?? 3, backgroundColor: tag.color }} />}
                   onPress={() => toggleTag(tag.id)}
                   noBorder={index === tags.length - 1}
                 />
@@ -2055,74 +2565,71 @@ function ReceiptSection({
   onRemove: (index: number) => void;
 }) {
   return (
-    <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
-      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 10 }}>
-        Receipt
+    <View style={{ paddingHorizontal: FORM_GUTTER, paddingVertical: 10 }}>
+      <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 6 }}>
+        Receipts
       </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, alignItems: 'center' }}>
-        {receiptImageUris.map((uri, index) => (
-          <View key={`${uri}-${index}`} style={{ width: 76, height: 76 }}>
-            <TouchableOpacity
-              delayPressIn={0}
-              onPress={() => onPreview(index)}
-              style={{
-                width: 76,
-                height: 76,
-                borderRadius: HOME_RADIUS.button,
-                borderWidth: 1,
-                borderColor: palette.border,
-                backgroundColor: palette.surface,
-                overflow: 'hidden',
-              }}
-            >
-              <Image source={{ uri }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              delayPressIn={0}
-              onPress={() => onRemove(index)}
-              style={{
-                position: 'absolute',
-                top: 4,
-                right: 4,
-                width: 26,
-                height: 26,
-                borderRadius: 13,
-                backgroundColor: 'rgba(0,0,0,0.58)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <AppIcon name="x" size={17} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        ))}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        {/* Fixed Camera Button on the Left */}
         <TouchableOpacity
           delayPressIn={0}
           onPress={onAdd}
           style={{
-            width: receiptImageUris.length ? 76 : 58,
-            height: receiptImageUris.length ? 76 : 58,
+            width: 40,
+            height: 40,
             borderRadius: HOME_RADIUS.button,
-            borderWidth: 1,
-            borderColor: palette.border,
-            backgroundColor: palette.surface,
+            borderWidth: 1.5,
+            borderColor: palette.borderSoft,
+            backgroundColor: 'transparent',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <AppIcon name={receiptImageUris.length ? 'plus' : 'camera'} size={22} color={palette.tabActive} />
+          <AppIcon name="camera" size={18} color={palette.brand} />
         </TouchableOpacity>
-        {!receiptImageUris.length ? (
-          <View style={{ justifyContent: 'center' }}>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: FONT_WEIGHT.medium }}>
-              Add receipt
-            </Text>
-            <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, marginTop: 2 }}>
-              Take photos or choose images
-            </Text>
-          </View>
+
+        {/* Scrollable attached thumbnails to the right */}
+        {receiptImageUris.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: 'center' }}>
+            {receiptImageUris.map((uri, index) => (
+              <View key={`${uri}-${index}`} style={{ width: 40, height: 40 }}>
+                <TouchableOpacity
+                  delayPressIn={0}
+                  onPress={() => onPreview(index)}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: HOME_RADIUS.button,
+                    borderWidth: 1,
+                    borderColor: palette.border,
+                    backgroundColor: palette.surface,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Image source={{ uri }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  delayPressIn={0}
+                  onPress={() => onRemove(index)}
+                  style={{
+                    position: 'absolute',
+                    top: -3,
+                    right: -3,
+                    width: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    backgroundColor: 'rgba(0,0,0,0.58)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <AppIcon name="x" size={10} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
         ) : null}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -2208,18 +2715,6 @@ function ZoomableReceiptImage({ uri }: { uri: string }) {
   );
 }
 
-function tagSummary(tags: Tag[], selectedIds: string[]) {
-  const names = selectedIds
-    .map((id) => tags.find((tag) => tag.id === id)?.name)
-    .filter((value): value is string => !!value);
-  if (names.length === 0) return 'Add tag';
-  if (names.length <= 2) return names.join(', ');
-  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
-}
-
-function getAccountName(accounts: Account[], accountId: string) {
-  return accounts.find((account) => account.id === accountId)?.name ?? 'Select account';
-}
 
 function getCategoryDisplayParts(
   categories: Category[],
@@ -2228,38 +2723,12 @@ function getCategoryDisplayParts(
   const category = categories.find((item) => item.id === categoryId);
   if (!category) return { name: 'Select Category', fullName: 'Select Category', icon: 'tag' };
   if (!category.parentId) return { name: category.name, fullName: category.name, icon: category.icon || 'tag' };
-  const parentName = categories.find((item) => item.id === category.parentId)?.name ?? 'Category';
+  const parent = categories.find((item) => item.id === category.parentId);
+  const parentName = parent?.name ?? 'Category';
   return {
     name: category.name,
     parentName,
     fullName: `${parentName} › ${category.name}`,
-    icon: category.icon || 'tag',
+    icon: parent?.icon || category.icon || 'tag',
   };
-}
-
-function CategoryPickerValue({
-  category,
-  palette,
-}: {
-  category: ReturnType<typeof getCategoryDisplayParts>;
-  palette: AppThemePalette;
-}) {
-  const isPlaceholder = category.fullName === 'Select Category';
-
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: ROW_MIN_HEIGHT }}>
-      <Text
-        style={{
-          flex: 1,
-          fontSize: HOME_TEXT.body,
-          fontWeight: FONT_WEIGHT.medium,
-          color: isPlaceholder ? palette.textMuted : palette.text,
-          lineHeight: 21,
-        }}
-        numberOfLines={1}
-      >
-        {category.fullName}
-      </Text>
-    </View>
-  );
 }

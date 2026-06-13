@@ -107,6 +107,7 @@ export interface Tag {
 export interface Budget {
   id: string;
   categoryId: string;
+  subCategoryIds?: string[] | null;
   amount: number;
   period: 'month';
   startDate: string;
@@ -286,6 +287,7 @@ export interface CreateAssetInput {
 
 export interface CreateBudgetInput {
   categoryId: string;
+  subCategoryIds?: string[] | null;
   amount: number;
   period: 'month';
   startDate: string;

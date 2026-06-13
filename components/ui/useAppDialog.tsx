@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppConfirmDialog } from './AppConfirmDialog';
 import type { AppThemePalette } from '../../lib/theme';
 
@@ -14,22 +14,40 @@ type DialogConfig = {
 
 export function useAppDialog(palette: AppThemePalette) {
   const [config, setConfig] = useState<DialogConfig | null>(null);
+  const [visible, setVisible] = useState(false);
+  const isMountedRef = useRef(true);
 
-  const closeDialog = useCallback(() => setConfig(null), []);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const closeDialog = useCallback(() => {
+    setVisible(false);
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        setConfig(null);
+      }
+    }, 150);
+  }, []);
 
   const showAlert = useCallback((title: string, message: string, confirmLabel = 'OK') => {
     setConfig({ title, message, confirmLabel, showCancel: false });
+    setVisible(true);
   }, []);
 
   const showConfirm = useCallback((nextConfig: DialogConfig) => {
     setConfig({ ...nextConfig, showCancel: nextConfig.showCancel ?? true });
+    setVisible(true);
   }, []);
 
   const dialog = useMemo(() => {
     if (!config) return null;
     return (
       <AppConfirmDialog
-        visible
+        visible={visible}
         title={config.title}
         message={config.message}
         palette={palette}
@@ -42,12 +60,16 @@ export function useAppDialog(palette: AppThemePalette) {
           onPress: () => {
             const onConfirm = config.onConfirm;
             closeDialog();
-            void onConfirm?.();
+            if (onConfirm) {
+              setTimeout(() => {
+                void onConfirm();
+              }, 160);
+            }
           },
         }}
       />
     );
-  }, [closeDialog, config, palette]);
+  }, [closeDialog, config, palette, visible]);
 
   return { showAlert, showConfirm, dialog };
 }

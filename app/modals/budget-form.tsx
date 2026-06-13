@@ -20,7 +20,7 @@ import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAppDialog } from '../../components/ui/useAppDialog';
-import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
+import { BudgetCategoryPickerSheet } from '../../components/ui/BudgetCategoryPickerSheet';
 import type { BudgetWithSpent, Category } from '../../types';
 import { toLocalMonthStartISO } from '../../lib/dateUtils';
 
@@ -55,6 +55,7 @@ export default function BudgetFormModal() {
 
   const [amountStr, setAmountStr] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [subCategoryIds, setSubCategoryIds] = useState<string[] | null>(null);
   const [startMonth, setStartMonth] = useState(month || toLocalMonthStartISO(new Date().getFullYear(), new Date().getMonth()));
   const [repeat, setRepeat] = useState(true);
   const [showMonthSheet, setShowMonthSheet] = useState(false);
@@ -69,6 +70,7 @@ export default function BudgetFormModal() {
       setAmountStr(formatIndianNumberStr(String(editingBudget.amount)));
       setCategoryId(editingBudget.categoryId);
       setDraftCategoryId(editingBudget.categoryId);
+      setSubCategoryIds(editingBudget.subCategoryIds || null);
       setStartMonth(editingBudget.startDate);
       setRepeat(editingBudget.repeat);
     } else {
@@ -80,11 +82,14 @@ export default function BudgetFormModal() {
   useEffect(() => {
     if (draftCategoryId && draftCategoryId !== categoryId) {
       setCategoryId(draftCategoryId);
+      setSubCategoryIds(null);
     }
   }, [categoryId, draftCategoryId]);
 
   const selectedCategory = categories.find((category) => category.id === categoryId);
   const isValid = !!categoryId && Number(parseFormattedNumber(amountStr || '0')) !== 0;
+
+
 
   const openMonthPicker = () => {
     Keyboard.dismiss();
@@ -110,6 +115,7 @@ export default function BudgetFormModal() {
     try {
       const payload = {
         categoryId,
+        subCategoryIds,
         amount: Number(parseFormattedNumber(amountStr)),
         period: 'month' as const,
         startDate: startMonth,
@@ -176,12 +182,13 @@ export default function BudgetFormModal() {
           />
           <PickerRow
             label="Category"
-            value={getCategoryDisplayParts(categories, categoryId).fullName}
+            value={getCategoryDisplayParts(categories, categoryId, subCategoryIds).fullName}
             placeholder={!selectedCategory}
             palette={palette}
             onPress={openCategoryPicker}
             hasError={attemptedSubmit && !categoryId}
           />
+
           <AmountRow
             sym={sym}
             amountStr={amountStr}
@@ -226,18 +233,15 @@ export default function BudgetFormModal() {
         }}
       />
       {showCategorySheet && (
-        <CategoryPickerSheet
+        <BudgetCategoryPickerSheet
           categories={categories}
-          transactionType="out"
           selectedCategoryId={categoryId}
+          selectedSubCategoryIds={subCategoryIds}
           palette={palette}
           onClose={() => setShowCategorySheet(false)}
-          onManage={() => {
-            setShowCategorySheet(false);
-            router.push('/settings/categories');
-          }}
-          onSelect={(id) => {
-            setCategoryId(id);
+          onApply={(data) => {
+            setCategoryId(data.categoryId);
+            setSubCategoryIds(data.subCategoryIds);
             setShowCategorySheet(false);
           }}
         />
@@ -250,12 +254,18 @@ export default function BudgetFormModal() {
 function getCategoryDisplayParts(
   categories: Category[],
   categoryId: string,
+  subCategoryIds?: string[] | null,
 ): { fullName: string } {
   const category = categories.find((item) => item.id === categoryId);
   if (!category) return { fullName: 'Select Category' };
-  if (!category.parentId) return { fullName: category.name };
-  const parentName = categories.find((item) => item.id === category.parentId)?.name ?? 'Category';
-  return { fullName: `${parentName} › ${category.name}` };
+  if (subCategoryIds && subCategoryIds.length > 0) {
+    const subNames = subCategoryIds
+      .map((sid) => categories.find((c) => c.id === sid)?.name)
+      .filter(Boolean)
+      .join(', ');
+    return { fullName: `${category.name} › ${subNames}` };
+  }
+  return { fullName: `${category.name} (All)` };
 }
 
 function RepeatRow({

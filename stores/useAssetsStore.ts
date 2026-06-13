@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Asset, CreateAssetInput } from '../types';
 import * as assetsService from '../services/assets';
+import { useTransactionsStore } from './useTransactionsStore';
 
 interface AssetsStore {
   assets: Asset[];
@@ -17,7 +18,7 @@ export const useAssetsStore = create<AssetsStore>((set, get) => ({
   assets: [],
   isLoaded: false,
   totalValue: 0,
-
+  
   load: async () => {
     const list = await assetsService.getAssets();
     const total = list.reduce((sum, a) => sum + a.value, 0);
@@ -31,16 +32,19 @@ export const useAssetsStore = create<AssetsStore>((set, get) => ({
   add: async (data) => {
     const created = await assetsService.createAsset(data);
     await get().load();
+    useTransactionsStore.getState().markMutated();
     return created;
   },
 
   update: async (id, data) => {
     await assetsService.updateAsset(id, data);
     await get().load();
+    useTransactionsStore.getState().markMutated();
   },
 
   remove: async (id) => {
     await assetsService.deleteAsset(id);
     await get().load();
+    useTransactionsStore.getState().markMutated();
   },
 }));

@@ -115,7 +115,7 @@ export function PersonPickerSheet({
                 placeholderTextColor={palette.textSoft}
                 autoFocus
                 autoCapitalize="words"
-                cursorColor={palette.brand}
+                cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
                 style={{
                   flex: 1,
                   fontSize: HOME_TEXT.body,

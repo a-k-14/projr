@@ -14,6 +14,7 @@ import { AmountRow, PickerRow, SectionCard } from '../../components/ui/transacti
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
 import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
+
 import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
@@ -93,7 +94,7 @@ export default function SplitTransactionModal() {
     (sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0),
     0,
   );
-  const amountColor = txType === 'in' ? palette.uiPositive : palette.uiNegative;
+  const amountColor = palette.brand;
 
   const updateRow = (id: string, patch: Partial<SplitDraftRow>) => {
     setSplitRows(splitRows.map((row) => (row.id === id ? { ...row, ...patch } : row)));

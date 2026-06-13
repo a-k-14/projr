@@ -1,10 +1,11 @@
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/client';
-import { deposits } from '../db/schema';
+import { deposits, auditLogs } from '../db/schema';
 import type { CloseDepositInput, Deposit, CreateDepositInput, DepositFilters, DepositStatus } from '../types';
 import { generateId } from '../lib/ids';
 import { nowUTC, addMonthsSafe } from '../lib/dateUtils';
 import { createTransaction, deleteTransaction, getTransactions, updateTransaction } from './transactions';
+import { logAction } from './audit';
 
 function rowToDeposit(row: typeof deposits.$inferSelect): Deposit {
   return {
@@ -71,6 +72,7 @@ export async function createDeposit(data: CreateDepositInput): Promise<Deposit> 
     createdAt: now,
   };
   await db.insert(deposits).values(row);
+  await logAction(db, 'create', 'deposits', id, null, rowToDeposit(row));
 
   try {
     await createTransaction({
@@ -151,6 +153,8 @@ export async function updateDeposit(
   if (data.status !== undefined) patch.status = data.status;
 
   await db.update(deposits).set(patch as any).where(eq(deposits.id, id));
+  const rows = await db.select().from(deposits).where(eq(deposits.id, id));
+  await logAction(db, 'update', 'deposits', id, existing, rowToDeposit(rows[0]));
 
   // Mirror amount/account/date/note onto the 'new' transaction so the
   // Activity row and account balance stay in sync.
@@ -161,12 +165,9 @@ export async function updateDeposit(
     if (data.accountId !== undefined) txPatch.accountId = data.accountId;
     if (data.startDate !== undefined) txPatch.date = data.startDate;
     if (data.note !== undefined) txPatch.note = data.note ?? undefined;
-    if (Object.keys(txPatch).length > 0) {
-      await updateTransaction(linkedNewTx.id, txPatch as any);
-    }
+    await updateTransaction(linkedNewTx.id, txPatch as any);
   }
 
-  const rows = await db.select().from(deposits).where(eq(deposits.id, id));
   return rowToDeposit(rows[0]);
 }
 
@@ -220,6 +221,7 @@ export async function closeDeposit(id: string, data: CloseDepositInput = {}): Pr
     .set({ status: 'closed', maturityValue: principalAmount + interestAmount })
     .where(eq(deposits.id, id));
   const rows = await db.select().from(deposits).where(eq(deposits.id, id));
+  await logAction(db, 'update', 'deposits', id, existing, rowToDeposit(rows[0]));
   return rowToDeposit(rows[0]);
 }
 
@@ -240,6 +242,7 @@ export async function reopenDeposit(id: string): Promise<Deposit> {
   }
   await db.update(deposits).set({ status: 'active' }).where(eq(deposits.id, id));
   const rows = await db.select().from(deposits).where(eq(deposits.id, id));
+  await logAction(db, 'update', 'deposits', id, existing, rowToDeposit(rows[0]));
   return rowToDeposit(rows[0]);
 }
 
@@ -248,9 +251,16 @@ export async function reopenDeposit(id: string): Promise<Deposit> {
  * via deleteTransaction so balances auto-unwind, then drops the deposit row.
  */
 export async function deleteDeposit(id: string): Promise<void> {
+  const existing = await getDepositById(id);
   const linked = await getTransactions({ depositId: id });
   for (const tx of linked) {
     await deleteTransaction(tx.id, { skipDepositCascade: true });
   }
-  await db.delete(deposits).where(eq(deposits.id, id));
+  await db.transaction(async (tx) => {
+    await tx.delete(auditLogs).where(and(eq(auditLogs.recordId, id), eq(auditLogs.tableName, 'deposits')));
+    await tx.delete(deposits).where(eq(deposits.id, id));
+    if (existing) {
+      await logAction(tx, 'delete', 'deposits', id, existing, null);
+    }
+  });
 }

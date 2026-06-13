@@ -1,6 +1,6 @@
 import { eq, and, gte, lte, desc, inArray, sql, or, like } from 'drizzle-orm';
 import { db } from '../db/client';
-import { accounts, categories, deposits, transactions, loans } from '../db/schema';
+import { accounts, categories, deposits, transactions, loans, auditLogs } from '../db/schema';
 import type {
   Transaction,
   CreateTransactionInput,
@@ -14,6 +14,7 @@ import {
   deleteReceiptOwnerDirectory,
   persistReceiptImagesForOwner,
 } from './receiptStorage';
+import { logAction } from './audit';
 
 
 async function getLoanCategoryId(loanId: string | null | undefined, loanTransactionType: string | null | undefined): Promise<string | null> {
@@ -275,6 +276,8 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       await tx.insert(transactions).values([outRow, inRow]);
       await applyAccountBalanceDelta(tx, data.accountId, -data.amount);
       await applyAccountBalanceDelta(tx, data.linkedAccountId!, data.amount);
+      await logAction(tx, 'create', 'transactions', outId, null, rowToTransaction(outRow));
+      await logAction(tx, 'create', 'transactions', inId, null, rowToTransaction(inRow));
     });
     return rowToTransaction(outRow);
   }
@@ -310,6 +313,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     if (delta) {
       await applyAccountBalanceDelta(tx, data.accountId, delta);
     }
+    await logAction(tx, 'create', 'transactions', id, null, rowToTransaction(row));
   });
 
   return rowToTransaction(row);
@@ -382,6 +386,7 @@ export async function updateTransaction(
     if (nextDelta) {
       await applyAccountBalanceDelta(tx, updatedRow.accountId, nextDelta);
     }
+    await logAction(tx, 'update', 'transactions', id, existing, rowToTransaction(updatedRow));
   });
 
   if (data.receiptImageUris !== undefined) {
@@ -462,6 +467,15 @@ export async function updateTransferTransaction(
 
     const rows = await tx.select().from(transactions).where(eq(transactions.id, id));
     updatedRow = rows[0];
+
+    const outRows = await tx.select().from(transactions).where(eq(transactions.id, outRow.id));
+    const inRows = await tx.select().from(transactions).where(eq(transactions.id, inRow.id));
+    const nextOutRow = outRows[0];
+    const nextInRow = inRows[0];
+    if (nextOutRow && nextInRow) {
+      await logAction(tx, 'update', 'transactions', outRow.id, rowToTransaction(outRow), rowToTransaction(nextOutRow));
+      await logAction(tx, 'update', 'transactions', inRow.id, rowToTransaction(inRow), rowToTransaction(nextInRow));
+    }
   });
 
   if (!updatedRow) throw new Error('Updated transfer transaction not found');
@@ -571,6 +585,9 @@ export async function createSplitTransactionGroup(data: SplitGroupInput): Promis
     const total = items.reduce((sum, item) => sum + item.amount, 0);
     assertNonZeroAmount(total);
     await applyAccountBalanceDelta(tx, data.accountId, data.type === 'in' ? total : -total);
+    for (const row of rows) {
+      await logAction(tx, 'create', 'transactions', row.id, null, rowToTransaction(row));
+    }
   });
   return rows.map(rowToTransaction);
 }
@@ -593,9 +610,9 @@ export async function updateSplitTransactionGroup(
       : await persistReceiptImagesForOwner(splitGroupId, data.receiptImageUris);
   const existingCreatedAts = existing.map((tx) => tx.createdAt);
   const oldestExistingTime = existingCreatedAts.reduce(
-    (oldest, createdAt) => Math.min(oldest, new Date(createdAt).getTime()),
-    Date.now(),
-  );
+      (oldest, createdAt) => Math.min(oldest, new Date(createdAt).getTime()),
+      Date.now(),
+    );
 
   const rows = items.map((item, index) => {
     const createdAt =
@@ -634,6 +651,13 @@ export async function updateSplitTransactionGroup(
     const total = items.reduce((sum, item) => sum + item.amount, 0);
     assertNonZeroAmount(total);
     await applyAccountBalanceDelta(tx, data.accountId, data.type === 'in' ? total : -total);
+    
+    for (const item of existing) {
+      await logAction(tx, 'delete', 'transactions', item.id, item, null);
+    }
+    for (const row of rows) {
+      await logAction(tx, 'create', 'transactions', row.id, null, rowToTransaction(row));
+    }
   });
   await Promise.all(
     existingReceiptUris
@@ -688,6 +712,10 @@ export async function deleteTransaction(id: string, opts: { skipDepositCascade?:
         else if (item.type === 'out') await applyAccountBalanceDelta(tx, item.accountId, item.amount);
       }
       await tx.delete(transactions).where(eq(transactions.splitGroupId, existing.splitGroupId!));
+      for (const item of group) {
+        await tx.delete(auditLogs).where(and(eq(auditLogs.recordId, item.id), eq(auditLogs.tableName, 'transactions')));
+        await logAction(tx, 'delete', 'transactions', item.id, item, null);
+      }
     });
     await deleteReceiptOwnerDirectory(existing.splitGroupId);
     return;
@@ -708,6 +736,10 @@ export async function deleteTransaction(id: string, opts: { skipDepositCascade?:
       await tx
         .delete(transactions)
         .where(eq(transactions.transferPairId, existing.transferPairId!));
+      for (const item of pair) {
+        await tx.delete(auditLogs).where(and(eq(auditLogs.recordId, item.id), eq(auditLogs.tableName, 'transactions')));
+        await logAction(tx, 'delete', 'transactions', item.id, rowToTransaction(item), null);
+      }
     });
     await Promise.all(pair.flatMap((item) => rowToTransaction(item).receiptImageUris ?? []).map((uri) => deleteReceiptImage(uri)));
     return;
@@ -720,6 +752,8 @@ export async function deleteTransaction(id: string, opts: { skipDepositCascade?:
     }
 
     await tx.delete(transactions).where(eq(transactions.id, id));
+    await tx.delete(auditLogs).where(and(eq(auditLogs.recordId, id), eq(auditLogs.tableName, 'transactions')));
+    await logAction(tx, 'delete', 'transactions', id, existing, null);
   });
   await deleteReceiptOwnerDirectory(id);
 

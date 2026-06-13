@@ -1,13 +1,13 @@
 import { AppChevron } from '@/components/ui/AppChevron';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { Text } from '@/components/ui/AppText';
 import { CalculatorTrigger } from '@/components/ui/CalculatorTrigger';
 import { RefObject, useState } from 'react';
-import { Text } from '@/components/ui/AppText';
-import { TextInput, View , TouchableOpacity, Pressable } from 'react-native';
-import { AppIcon } from '@/components/ui/AppIcon';
-import { formatDate, APP_LOCALE } from '../../lib/dateUtils';
+import { Pressable, TextInput, TouchableOpacity, View } from 'react-native';
+import { APP_LOCALE, formatDate } from '../../lib/dateUtils';
 import { formatIndianNumberStr } from '../../lib/derived';
-import { SCREEN_GUTTER , FONT_WEIGHT} from '../../lib/design';
-import { HOME_TEXT , HOME_RADIUS} from '../../lib/layoutTokens';
+import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
+import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 
 export const ROW_LABEL_WIDTH = 92;
@@ -33,19 +33,20 @@ export function SectionCard({
   children,
   palette,
   horizontalInset = SCREEN_GUTTER }: {
-  children: React.ReactNode;
-  palette: AppThemePalette;
-  horizontalInset?: number;
-}) {
+    children: React.ReactNode;
+    palette: AppThemePalette;
+    horizontalInset?: number;
+  }) {
   return (
     <View
       style={{
-        backgroundColor: palette.surface,
+        backgroundColor: palette.isDark ? palette.surface : '#FAFAFA',
         borderRadius: HOME_RADIUS.large,
         marginHorizontal: horizontalInset,
         borderWidth: 1,
         borderColor: palette.border,
-        overflow: 'hidden' }}
+        overflow: 'hidden'
+      }}
     >
       {children}
     </View>
@@ -62,16 +63,16 @@ export function PickerRow({
   custom = false,
   showChevron = true,
   hasError = false }: {
-  label: string;
-  value: string | React.ReactNode;
-  subtitle?: string;
-  placeholder?: boolean;
-  onPress: () => void;
-  palette: AppThemePalette;
-  custom?: boolean;
-  showChevron?: boolean;
-  hasError?: boolean;
-}) {
+    label: string;
+    value: string | React.ReactNode;
+    subtitle?: string;
+    placeholder?: boolean;
+    onPress: () => void;
+    palette: AppThemePalette;
+    custom?: boolean;
+    showChevron?: boolean;
+    hasError?: boolean;
+  }) {
   return (
     <TouchableOpacity
       delayPressIn={0}
@@ -164,7 +165,8 @@ export function DisplayRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center' }}
+        alignItems: 'center'
+      }}
     >
       <Text
         appWeight="medium"
@@ -174,7 +176,8 @@ export function DisplayRow({
           fontWeight: FONT_WEIGHT.medium,
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP }}
+          paddingRight: ROW_COLUMN_GAP
+        }}
       >
         {label}
       </Text>
@@ -185,7 +188,8 @@ export function DisplayRow({
           flex: 1,
           minWidth: 0,
           minHeight: ROW_MIN_HEIGHT,
-          paddingLeft: 4 }}
+          paddingLeft: 4
+        }}
       >
         <Text
           style={{
@@ -193,7 +197,8 @@ export function DisplayRow({
             fontWeight: FONT_WEIGHT.medium,
             color: palette.text,
             textAlign: 'left',
-            flexShrink: 1 }}
+            flexShrink: 1
+          }}
           numberOfLines={1}
         >
           {value}
@@ -209,19 +214,20 @@ export function FieldRow({
   palette,
   noBorder,
   hasError = false }: {
-  label: string;
-  children: React.ReactNode;
-  palette: AppThemePalette;
-  noBorder?: boolean;
-  hasError?: boolean;
-}) {
+    label: string;
+    children: React.ReactNode;
+    palette: AppThemePalette;
+    noBorder?: boolean;
+    hasError?: boolean;
+  }) {
   return (
     <View
       style={{
         paddingHorizontal: SCREEN_GUTTER,
         paddingVertical: 14,
         borderBottomWidth: noBorder === false ? 1 : 0,
-        borderBottomColor: palette.border }}
+        borderBottomColor: palette.border
+      }}
     >
       <Text
         appWeight="medium"
@@ -246,11 +252,11 @@ export function OptionChipRow({
   palette,
   options,
   helperText }: {
-  label: string;
-  palette: AppThemePalette;
-  options: { label: string; selected: boolean; onPress: () => void; activeColor: string; activeBg: string }[];
-  helperText?: string;
-}) {
+    label: string;
+    palette: AppThemePalette;
+    options: { label: string; selected: boolean; onPress: () => void; activeColor: string; activeBg: string }[];
+    helperText?: string;
+  }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, minHeight: ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'flex-start', paddingTop: 18, paddingBottom: 14 }}>
       <Text
@@ -261,7 +267,8 @@ export function OptionChipRow({
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
           paddingRight: ROW_COLUMN_GAP,
-          paddingTop: 10 }}
+          paddingTop: 10
+        }}
       >
         {label}
       </Text>
@@ -280,7 +287,8 @@ export function OptionChipRow({
                 justifyContent: 'center',
                 marginBottom: 4,
                 backgroundColor: option.selected ? option.activeBg : palette.inputBg,
-                borderColor: option.selected ? option.activeColor : palette.divider }}
+                borderColor: option.selected ? option.activeColor : palette.divider
+              }}
             >
               <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.bold, color: option.selected ? option.activeColor : palette.text }}>
                 {option.label}
@@ -303,11 +311,11 @@ export function InteractiveDateTimeRow({
   palette,
   onOpenDate,
   onOpenTime }: {
-  date: string;
-  palette: AppThemePalette;
-  onOpenDate: () => void;
-  onOpenTime: () => void;
-}) {
+    date: string;
+    palette: AppThemePalette;
+    onOpenDate: () => void;
+    onOpenTime: () => void;
+  }) {
   const dt = new Date(date);
   const dateStr = formatDate(date);
   const timeStr = dt.toLocaleTimeString(APP_LOCALE, { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
@@ -319,7 +327,8 @@ export function InteractiveDateTimeRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center' }}
+        alignItems: 'center'
+      }}
     >
       <Text
         appWeight="medium"
@@ -328,7 +337,8 @@ export function InteractiveDateTimeRow({
           fontWeight: FONT_WEIGHT.medium,
           color: palette.textSecondary,
           width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP }}
+          paddingRight: ROW_COLUMN_GAP
+        }}
       >
         Date
       </Text>
@@ -339,7 +349,8 @@ export function InteractiveDateTimeRow({
           alignItems: 'center',
           minHeight: ROW_MIN_HEIGHT,
           paddingLeft: 4,
-          gap: 8 }}
+          gap: 8
+        }}
       >
         <TouchableOpacity delayPressIn={0}
           onPress={onOpenDate}
@@ -349,7 +360,8 @@ export function InteractiveDateTimeRow({
             paddingVertical: 9,
             borderRadius: HOME_RADIUS.chip,
             alignItems: 'center',
-            justifyContent: 'center' }}
+            justifyContent: 'center'
+          }}
         >
           <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{dateStr}</Text>
         </TouchableOpacity>
@@ -361,7 +373,8 @@ export function InteractiveDateTimeRow({
             paddingVertical: 9,
             borderRadius: HOME_RADIUS.chip,
             alignItems: 'center',
-            justifyContent: 'center' }}
+            justifyContent: 'center'
+          }}
         >
           <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{timeStr}</Text>
         </TouchableOpacity>
@@ -414,7 +427,8 @@ export function AmountRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center' }}
+        alignItems: 'center'
+      }}
     >
       <Text
         appWeight="medium"
@@ -424,7 +438,8 @@ export function AmountRow({
           fontWeight: FONT_WEIGHT.medium,
           color: hasError ? palette.negative : palette.textSecondary,
           width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP }}
+          paddingRight: ROW_COLUMN_GAP
+        }}
       >
         Amount {sym ? `(${sym})` : ''}
       </Text>
@@ -435,7 +450,8 @@ export function AmountRow({
             minWidth: 0,
             flexDirection: 'row',
             alignItems: 'center',
-            position: 'relative' }}
+            position: 'relative'
+          }}
         >
           <TextInput
             ref={inputRef}
@@ -449,7 +465,7 @@ export function AmountRow({
               flex: 1,
               fontSize: HOME_TEXT.sectionTitle,
               fontWeight: FONT_WEIGHT.medium,
-              color: editable ? (hasError ? palette.negative : accentColor) : palette.text,
+              color: editable ? (hasError ? palette.negative : palette.brand) : palette.brand,
               paddingBottom: 2,
               paddingTop: 0,
               paddingLeft: 4,
@@ -459,12 +475,13 @@ export function AmountRow({
               borderBottomColor: hasError
                 ? palette.negative
                 : editable
-                ? (isFocused ? accentColor : palette.borderSoft ?? palette.border)
-                : palette.borderSoft ?? palette.border,
-              opacity: editable ? 1 : 0.92 }}
+                  ? (isFocused ? accentColor : palette.borderSoft ?? palette.border)
+                  : palette.borderSoft ?? palette.border,
+              opacity: editable ? 1 : 0.92
+            }}
             onFocus={() => editable && setIsFocused(true)}
             onBlur={() => editable && setIsFocused(false)}
-            cursorColor={editable ? (hasError ? palette.negative : accentColor) : palette.text}
+            cursorColor={editable ? (hasError ? palette.negative : (palette.isDark ? '#FFFFFF' : '#000000')) : palette.text}
             autoFocus={autoFocus && !onPressAmount}
             returnKeyType={returnKeyType}
             onSubmitEditing={onSubmitEditing}
@@ -493,7 +510,8 @@ export function AmountRow({
               height: isLargeButton ? 48 : undefined,
               minHeight: ROW_MIN_HEIGHT,
               alignItems: 'center',
-              justifyContent: 'center' }}
+              justifyContent: 'center'
+            }}
           >
             <CalculatorTrigger
               palette={palette}
@@ -510,7 +528,8 @@ export function AmountRow({
               height: isLargeButton ? 48 : undefined,
               minHeight: ROW_MIN_HEIGHT,
               alignItems: 'center',
-              justifyContent: 'center' }}
+              justifyContent: 'center'
+            }}
           >
             <Pressable
               onPress={onDelete}
@@ -585,7 +604,8 @@ export function TextInputRow({
         paddingHorizontal: SCREEN_GUTTER,
         minHeight: ROW_MIN_HEIGHT,
         flexDirection: 'row',
-        alignItems: 'center' }}
+        alignItems: 'center'
+      }}
     >
       <Text
         appWeight="medium"
@@ -595,7 +615,8 @@ export function TextInputRow({
           fontWeight: FONT_WEIGHT.medium,
           color: hasError ? palette.negative : palette.textSecondary,
           width: ROW_LABEL_WIDTH,
-          paddingRight: ROW_COLUMN_GAP }}
+          paddingRight: ROW_COLUMN_GAP
+        }}
       >
         {label}
       </Text>
@@ -604,7 +625,8 @@ export function TextInputRow({
           flex: 1,
           minWidth: 0,
           flexDirection: 'row',
-          alignItems: 'center' }}
+          alignItems: 'center'
+        }}
       >
         <TextInput
           ref={inputRef}
@@ -612,7 +634,7 @@ export function TextInputRow({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={hasError ? palette.negative : palette.textSoft}
-          cursorColor={hasError ? palette.negative : activeColor}
+          cursorColor={hasError ? palette.negative : (palette.isDark ? '#FFFFFF' : '#000000')}
           autoFocus={autoFocus}
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
@@ -632,8 +654,9 @@ export function TextInputRow({
             borderBottomColor: hasError
               ? palette.negative
               : isFocused
-              ? activeColor
-              : palette.borderSoft }}
+                ? activeColor
+                : palette.borderSoft
+          }}
           onFocus={() => {
             setIsFocused(true);
             onFocus?.();
@@ -652,16 +675,14 @@ export function NotesSection({
   note,
   onChangeNote,
   palette,
-  accentColor,
   onFocus,
   onBlur }: {
-  note: string;
-  onChangeNote: (value: string) => void;
-  palette: AppThemePalette;
-  accentColor?: string;
-  onFocus?: () => void;
-  onBlur?: () => void;
-}) {
+    note: string;
+    onChangeNote: (value: string) => void;
+    palette: AppThemePalette;
+    onFocus?: () => void;
+    onBlur?: () => void;
+  }) {
   return (
     <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
       <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, marginBottom: 10 }}>
@@ -673,13 +694,14 @@ export function NotesSection({
         onFocus={onFocus}
         placeholder="Add a note..."
         placeholderTextColor={palette.textSoft}
-        cursorColor={accentColor || palette.tabActive}
+        cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
         style={{
           minHeight: 72,
           fontSize: HOME_TEXT.bodyLarge,
           color: palette.text,
           paddingVertical: 0,
-          textAlignVertical: 'top' }}
+          textAlignVertical: 'top'
+        }}
         onBlur={onBlur}
         multiline
       />

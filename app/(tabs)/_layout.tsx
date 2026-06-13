@@ -1,7 +1,7 @@
 import { AppIcon, IconName } from '@/components/ui/AppIcon';
 import { router, Tabs } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,14 +51,23 @@ function AppTabBar({
   const pillHeight = 36;
   const activeRouteName = state.routes[state.index]?.name;
   const activeSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === activeRouteName);
+
+  const lastValidSlotIndexRef = useRef(activeSlotIndex >= 0 ? activeSlotIndex : 0);
+  if (activeSlotIndex >= 0 && activeRouteName && VISIBLE_TAB_NAMES.includes(activeRouteName as any)) {
+    lastValidSlotIndexRef.current = activeSlotIndex;
+  }
+  const targetSlotIndex = (activeSlotIndex >= 0 && activeRouteName && VISIBLE_TAB_NAMES.includes(activeRouteName as any))
+    ? activeSlotIndex
+    : lastValidSlotIndexRef.current;
+
   const getPillTarget = (slotIndex: number) =>
     Math.max(slotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2;
-  const pillX = useSharedValue(getPillTarget(activeSlotIndex));
+  const pillX = useSharedValue(getPillTarget(targetSlotIndex));
 
   useEffect(() => {
-    pillX.value = withTiming(getPillTarget(activeSlotIndex), { duration: 160 });
+    pillX.value = withTiming(getPillTarget(targetSlotIndex), { duration: 160 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSlotIndex, itemWidth]);
+  }, [targetSlotIndex, itemWidth]);
 
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: pillX.value }],
@@ -101,7 +110,7 @@ function AppTabBar({
               borderWidth: 1,
               borderColor: palette.brand,
               backgroundColor: palette.brandSoft,
-              opacity: activeSlotIndex >= 0 ? 1 : 0,
+              opacity: targetSlotIndex >= 0 ? 1 : 0,
             },
             pillStyle,
           ]}

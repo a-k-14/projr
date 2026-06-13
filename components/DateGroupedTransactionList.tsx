@@ -41,6 +41,29 @@ export function buildDateGroups(transactions: Transaction[]): DateGroup[] {
   return groups;
 }
 
+export const TransactionDateHeader = React.memo(function TransactionDateHeader({
+  dateKey,
+  palette,
+  style,
+}: {
+  dateKey: string;
+  palette: AppThemePalette;
+  style?: any;
+}) {
+  const { date, label } = getRelativeDateLabel(dateKey.includes('T') ? dateKey : dateKey + 'T00:00:00');
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.sm, paddingHorizontal: 2 }, style]}>
+      <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{date}</Text>
+      {label ? (
+        <>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginHorizontal: 5 }}>•</Text>
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{label}</Text>
+        </>
+      ) : null}
+    </View>
+  );
+});
+
 /** One day's card: relative date header + a bordered surface listing that day's rows.
  *  Shared so the plain (ScrollView) list and the virtualized sheet list render
  *  identically — only the container differs (map vs FlatList item). */
@@ -56,19 +79,10 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
     getCategoryFullDisplayName,
     onTransactionPress,
   } = row;
-  const { date, label } = getRelativeDateLabel(group.dateKey + 'T00:00:00');
   return (
     <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: HOME_SPACE.sm, paddingHorizontal: 2 }}>
-        <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{date}</Text>
-        {label ? (
-          <>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginHorizontal: 5 }}>•</Text>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{label}</Text>
-          </>
-        ) : null}
-      </View>
-      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
+      <TransactionDateHeader dateKey={group.dateKey} palette={palette} />
+      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF', overflow: 'hidden' }}>
         {group.items.map((tx, index) => (
           <TransactionListItem
             key={tx.id}

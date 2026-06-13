@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 
 describe('android release config', () => {
-  const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-  const eas = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
-  const android = config.expo.android;
+const config = require('../app.config.js');
+const eas = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
+const android = config.expo.android;
 
   it('uses local app versioning with a bumped Android versionCode', () => {
     expect(eas.cli.appVersionSource).toBe('local');

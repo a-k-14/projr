@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -6,8 +6,10 @@ import { Text } from '@/components/ui/AppText';
 import { FilledButton } from '../ui/AppButton';
 import { BottomSheet } from '../ui/BottomSheet';
 import { ListHeading } from '../ui/ListHeading';
+import { AppSwitch } from '../ui/AppSwitch';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { CARD_PADDING, FONT_WEIGHT } from '../../lib/design';
-import { HOME_TEXT, BOTTOM_SHEET_TOKENS, HOME_LAYOUT } from '../../lib/layoutTokens';
+import { HOME_TEXT, BOTTOM_SHEET_TOKENS, HOME_LAYOUT, HELP_TEXTS } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import type { Category } from '../../types';
 import { CategoryIconBadge, Checkbox } from './ActivityUI';
@@ -51,6 +53,18 @@ export function ActivityMoreFiltersSheet({
   const [cashflowBucket, setCashflowBucket] = useState(initialCashflowBucket);
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
 
+  const isCashflow = cashflowBucket === 'net';
+  const noteProgress = useSharedValue(isCashflow ? 1 : 0);
+
+  useEffect(() => {
+    noteProgress.value = withTiming(isCashflow ? 1 : 0, { duration: 220 });
+  }, [isCashflow]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const noteStyle = useAnimatedStyle(() => ({
+    height: noteProgress.value * 30,
+    opacity: noteProgress.value,
+  }));
+
   const toggleCategoryId = (id: string) => {
     const category = categories.find((c) => c.id === id);
     setSelectedCategoryIds((prev) => {
@@ -81,10 +95,6 @@ export function ActivityMoreFiltersSheet({
 
   const toggleTagId = (id: string) => {
     setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
-  };
-
-  const onCashflowBucketChange = (bucket: 'all' | 'in' | 'out' | 'net') => {
-    setCashflowBucket(bucket);
   };
 
   const clearAll = () => {
@@ -205,33 +215,30 @@ export function ActivityMoreFiltersSheet({
       }
     >
       <View style={{ paddingBottom: 12 }}>
-        <ListHeading label="Cashflow" palette={palette} />
-
-        <TouchableOpacity
-          delayPressIn={0}
-          onPress={() => onCashflowBucketChange(cashflowBucket === 'in' ? 'all' : 'in')}
-          style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}
-        >
-          <View style={{ marginRight: 12 }}>
-            <Checkbox selected={cashflowBucket === 'in'} palette={palette} />
+        <View style={{ paddingHorizontal: CARD_PADDING, paddingTop: 12, paddingBottom: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ flex: 1, fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+              Cashflow
+            </Text>
+            <AppSwitch
+              value={isCashflow}
+              onValueChange={(v) => setCashflowBucket(v ? 'net' : 'all')}
+              palette={palette}
+              width={36}
+              height={21}
+              thumbSize={15}
+              padding={3}
+            />
           </View>
-          <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
-            Inflow
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          delayPressIn={0}
-          onPress={() => onCashflowBucketChange(cashflowBucket === 'out' ? 'all' : 'out')}
-          style={[styles.moreRow, { borderBottomColor: palette.divider, paddingHorizontal: CARD_PADDING }]}
-        >
-          <View style={{ marginRight: 12 }}>
-            <Checkbox selected={cashflowBucket === 'out'} palette={palette} />
-          </View>
-          <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
-            Outflow
-          </Text>
-        </TouchableOpacity>
+          <Animated.View style={noteStyle}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 8 }}>
+              <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
+              <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
+                {HELP_TEXTS.cashflowNote}
+              </Text>
+            </View>
+          </Animated.View>
+        </View>
 
         <View style={{ height: 1, backgroundColor: palette.divider }} />
 

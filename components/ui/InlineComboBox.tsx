@@ -218,7 +218,7 @@ export function InlineComboBox({
             onBlur={handleBlur}
             placeholder={placeholder ?? 'Add a note…'}
             placeholderTextColor={palette.textSoft}
-            cursorColor={hasError ? palette.negative : focusedColor}
+            cursorColor={hasError ? palette.negative : (palette.isDark ? '#FFFFFF' : '#000000')}
             autoFocus={autoFocus}
             multiline
             style={{
@@ -262,7 +262,7 @@ export function InlineComboBox({
               placeholderTextColor={hasError ? palette.negative : palette.textSoft}
               autoCapitalize={keyboardType === 'default' ? 'words' : 'none'}
               keyboardType={keyboardType}
-              cursorColor={hasError ? palette.negative : focusedColor}
+              cursorColor={hasError ? palette.negative : (palette.isDark ? '#FFFFFF' : '#000000')}
               autoFocus={autoFocus}
               style={[inputBaseStyle, {
                 flex: 1,

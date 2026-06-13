@@ -239,6 +239,12 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/settings/export')}
               />
               <SettingsRow
+                icon="history"
+                label="Activity Log"
+                palette={palette}
+                onPress={() => router.push('/settings/audit' as any)}
+              />
+              <SettingsRow
                 leftElement={<AppIcon name="refresh-cw" size={18} color={palette.uiNegative} />}
                 label="Reset App"
                 labelStyle={{ color: palette.uiNegative }}

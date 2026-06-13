@@ -37,6 +37,7 @@ beforeEach(() => {
   sqlite.exec(`
     DROP TABLE IF EXISTS transactions;
     DROP TABLE IF EXISTS accounts;
+    DROP TABLE IF EXISTS audit_logs;
     
     CREATE TABLE accounts (
       id TEXT PRIMARY KEY,
@@ -71,6 +72,16 @@ beforeEach(() => {
       date TEXT NOT NULL,
       transfer_pair_id TEXT,
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE audit_logs (
+      id TEXT PRIMARY KEY,
+      action TEXT NOT NULL,
+      table_name TEXT NOT NULL,
+      record_id TEXT NOT NULL,
+      payload_before TEXT,
+      payload_after TEXT,
+      timestamp TEXT NOT NULL
     );
 
     INSERT INTO accounts (id, name, type, balance, created_at) VALUES ('acc1', 'Saving', 'savings', 1000, '2024-01-01T00:00:00.000Z');

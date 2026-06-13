@@ -210,8 +210,8 @@ export default function AccountDetailScreen() {
                 titleSize={SCREEN_HEADER.detailTitleSize}
                 titleAddon={
                   <HeaderResetButton
-                    visible={!!inlineFilter}
-                    onPress={() => { setInlineFilter(null); setResetInlineFilterToken((t) => t + 1); }}
+                    visible={!!inlineFilter || period !== 'today'}
+                    onPress={() => { setInlineFilter(null); setPeriod('today'); setResetInlineFilterToken((t) => t + 1); }}
                     palette={palette}
                     isFocused={isFocused}
                     style={{ marginLeft: 8 }}

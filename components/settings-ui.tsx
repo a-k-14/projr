@@ -371,7 +371,7 @@ export const InputField = forwardRef<TextInput, React.ComponentProps<typeof Text
           props.style as any,
         ]}
         placeholderTextColor={hasError ? palette.negative : palette.textSoft}
-        cursorColor={hasError ? palette.negative : palette.brand}
+        cursorColor={hasError ? palette.negative : (palette.isDark ? '#FFFFFF' : '#000000')}
         keyboardType={isNumeric ? (Platform.OS === 'ios' ? 'decimal-pad' : 'numeric') : props.keyboardType}
         onFocus={(e) => {
           setIsFocused(true);

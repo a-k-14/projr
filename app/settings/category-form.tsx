@@ -72,6 +72,7 @@ export default function CategoryFormScreen() {
   const [iconPickerTab, setIconPickerTab] = useState<'icons' | 'emojis'>('icons');
   const [, setEmojiQuery] = useState('');
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [duplicateError, setDuplicateError] = useState('');
   const formScrollRef = useRef<ScrollView | null>(null);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const originalSubsRef = useRef<SubDraft[]>([]);
@@ -128,6 +129,7 @@ export default function CategoryFormScreen() {
 
   function updateSubName(idx: number, value: string) {
     setSubs((s) => s.map((sub, i) => (i === idx ? { ...sub, name: value } : sub)));
+    setDuplicateError('');
   }
 
   function deleteSub(idx: number, cardKey: string) {
@@ -163,6 +165,55 @@ export default function CategoryFormScreen() {
         withTiming(0, { duration: 50 })
       );
       return;
+    }
+
+    const hasDuplicate = isSubcategory
+      ? categories.some(
+          (c) =>
+            c.parentId === editingCategory?.parentId &&
+            c.id !== id &&
+            c.name.trim().toLowerCase() === trimmed.toLowerCase()
+        )
+      : categories.some(
+          (c) =>
+            c.parentId == null &&
+            c.id !== id &&
+            c.name.trim().toLowerCase() === trimmed.toLowerCase() &&
+            (type === 'both' || c.type === 'both' || c.type === type)
+        );
+
+    if (hasDuplicate) {
+      setAttemptedSubmit(true);
+      submitShakeOffset.value = withSequence(
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+      if (isSubcategory) {
+        setDuplicateError(`A subcategory named "${trimmed}" already exists under this parent.`);
+      } else {
+        const typeLabel = type === 'both' ? 'Income or Expense' : type === 'in' ? 'Income' : 'Expense';
+        setDuplicateError(`A category named "${trimmed}" already exists in ${typeLabel}.`);
+      }
+      return;
+    }
+
+    if (!isSubcategory) {
+      const activeSubs = subs.filter((sub) => !sub.deleted && sub.name.trim().length > 0);
+      const subNames = activeSubs.map((s) => s.name.trim().toLowerCase());
+      const hasDuplicateInForm = subNames.some((val, i) => subNames.indexOf(val) !== i);
+      if (hasDuplicateInForm) {
+        setAttemptedSubmit(true);
+        submitShakeOffset.value = withSequence(
+          withTiming(10, { duration: 50 }),
+          withTiming(-10, { duration: 50 }),
+          withTiming(10, { duration: 50 }),
+          withTiming(0, { duration: 50 })
+        );
+        setDuplicateError('Subcategories cannot have duplicate names.');
+        return;
+      }
     }
 
     // A top-level category must have at least one subcategory. This guarantees every
@@ -289,6 +340,20 @@ export default function CategoryFormScreen() {
         scrollRef={formScrollRef}
         bottomActions={
           <FixedBottomActions palette={palette}>
+            {duplicateError ? (
+              <Text
+                style={{
+                  color: palette.negative,
+                  fontSize: HOME_TEXT.bodySmall,
+                  fontWeight: FONT_WEIGHT.semibold,
+                  marginBottom: 8,
+                  textAlign: 'center',
+                  width: '100%',
+                }}
+              >
+                {duplicateError}
+              </Text>
+            ) : null}
             {!isSystem && (
               <Animated.View style={[submitShakeStyle, { width: '100%' }]}>
                 <ActionButton
@@ -345,10 +410,10 @@ export default function CategoryFormScreen() {
               />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
-              <InputField
+               <InputField
                 palette={palette}
                 value={name}
-                onChangeText={isSystem ? () => triggerSystemShake() : setName}
+                onChangeText={isSystem ? () => triggerSystemShake() : (val) => { setName(val); setDuplicateError(''); }}
                 onFocus={isSystem ? () => triggerSystemShake() : undefined}
                 placeholder="Category name"
                 autoFocus={!isEditing && !isSystem}
@@ -463,6 +528,7 @@ export default function CategoryFormScreen() {
               noBorder={i === CATEGORY_TYPE_OPTIONS.length - 1}
               onPress={() => {
                 setType(opt.key);
+                setDuplicateError('');
                 setShowTypePicker(false);
               }}
             />

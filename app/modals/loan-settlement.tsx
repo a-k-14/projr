@@ -279,7 +279,6 @@ export default function LoanSettlementModal() {
               note={note}
               onChangeNote={setNote}
               palette={palette}
-              accentColor={palette.loan}
             />
           </SectionCard>
         </View>

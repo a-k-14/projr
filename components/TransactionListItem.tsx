@@ -10,6 +10,7 @@ import { AppCard, CardTitleRow } from './ui/AppCard';
 import type { Transaction } from '../types';
 import { FONT_WEIGHT } from '../lib/design';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
+import { TagBadge } from './ui/TagBadge';
 
 interface Props {
   tx: Transaction;
@@ -36,24 +37,14 @@ interface Props {
   style?: any;
   /** If true, renders as a standalone card with borders/radius rather than a list item */
   isCard?: boolean;
-}
-
-function hexToRGBA(hex: string, alpha: number): string {
-  if (!hex) return 'transparent';
-  if (hex.startsWith('rgba') || hex.startsWith('rgb')) {
-    return hex;
-  }
-  let cleanHex = hex.replace('#', '');
-  if (cleanHex.length === 3) {
-    cleanHex = cleanHex.split('').map(char => char + char).join('');
-  }
-  if (cleanHex.length === 6) {
-    const r = parseInt(cleanHex.substring(0, 2), 16);
-    const g = parseInt(cleanHex.substring(2, 4), 16);
-    const b = parseInt(cleanHex.substring(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  return hex;
+  /** Optional date text to show below amount/icons on the right */
+  dateText?: string;
+  /** Optional flag to hide payee names in the subtitle */
+  hidePayee?: boolean;
+  /** Optional flag to hide category/type icon */
+  hideIcon?: boolean;
+  /** Optional flag to hide tags */
+  hideTags?: boolean;
 }
 
 function TransactionListItemBase({
@@ -76,7 +67,11 @@ function TransactionListItemBase({
   paddingY = HOME_LAYOUT.listRowPaddingY + 2,
   onPress,
   style,
-  isCard = false }: Props) {
+  isCard = false,
+  dateText,
+  hidePayee = false,
+  hideIcon = false,
+  hideTags = false }: Props) {
   const tags = useCategoriesStore((state) => state.tags);
   const txTags = (tx.tags || [])
     .map((id) => tags.find((t) => t.id === id))
@@ -157,7 +152,7 @@ function TransactionListItemBase({
       subtitle = [accountNameSelected, depositName].filter(Boolean).join(' \u2022 ');
       noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
     } else {
-      subtitle = [accountNameSelected, tx.payee || loanPersonName].filter(Boolean).join(' \u2022 ');
+      subtitle = [accountNameSelected, (hidePayee ? undefined : tx.payee) || loanPersonName].filter(Boolean).join(' \u2022 ');
       noteLine = hideNote ? undefined : (tx.note?.trim() || undefined);
     }
   }
@@ -203,8 +198,8 @@ function TransactionListItemBase({
   return (
     <AppCard
       palette={palette}
-      onPress={() => onPress && onPress(tx)}
-      icon={inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
+      onPress={onPress ? () => onPress(tx) : undefined}
+      icon={hideIcon ? undefined : (inOutCategoryIcon && isEmojiIcon(inOutCategoryIcon) ? (
         <Text style={{ fontSize: HOME_LAYOUT.listIconInnerSize }}>{inOutCategoryIcon}</Text>
       ) : inOutCategoryIcon && isValidIcon(inOutCategoryIcon) ? (
         <AppIcon name={inOutCategoryIcon}
@@ -218,7 +213,7 @@ function TransactionListItemBase({
           color={iconColor}
           strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
         />
-      )}
+      ))}
       topRow={
         <CardTitleRow
           title={title}
@@ -234,67 +229,50 @@ function TransactionListItemBase({
           <Text numberOfLines={1} style={{ flex: 1, fontSize: CARD_TEXT.line2, color: palette.textSecondary }}>
             {subtitle}
           </Text>
-          {supportIcons ? <View style={{ minWidth: 28 }}>{supportIcons}</View> : null}
+          {(supportIcons || dateText) ? (
+            <View style={{ alignItems: 'flex-end', gap: 4 }}>
+              {supportIcons}
+              {dateText ? (
+                <Text style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary }}>
+                  {dateText}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       }
       tertiaryRow={
-        (noteLine || txTags.length > 0 || tertiaryText) ? (
+        (noteLine || (!hideTags && txTags.length > 0) || tertiaryText) ? (
           <View style={{ gap: 6, marginTop: 2 }}>
             {noteLine ? (
               <Text
-                numberOfLines={1}
+                numberOfLines={2}
                 ellipsizeMode="tail"
                 style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}
               >
                 {noteLine}
               </Text>
             ) : null}
-            {txTags.length > 0 ? (
+            {!hideTags && txTags.length > 0 ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
                 {txTags.map((tag) => (
-                  <View
+                  <TagBadge
                     key={tag.id}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4,
-                      backgroundColor: hexToRGBA(tag.color, palette.states.tagBgOpacity),
-                      borderColor: hexToRGBA(tag.color, palette.states.tagBorderOpacity),
-                      borderWidth: 0.5,
-                      borderRadius: 6,
-                      paddingHorizontal: 6,
-                      paddingVertical: 2.5,
-                    }}
-                  >
-                    <AppIcon name="tag" size={9.5} color={tag.color} strokeWidth={2.1} />
-                    <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
-                      {tag.name}
-                    </Text>
-                  </View>
+                    name={tag.name}
+                    color={tag.color}
+                    palette={palette}
+                  />
                 ))}
               </View>
             ) : tertiaryText ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
                 {tertiaryText.split(' • ').map((tag) => (
-                  <View
+                  <TagBadge
                     key={tag}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4,
-                      backgroundColor: palette.states.badgeNeutralBg,
-                      borderColor: palette.borderSoft,
-                      borderWidth: 0.5,
-                      borderRadius: 6,
-                      paddingHorizontal: 6,
-                      paddingVertical: 2.5,
-                    }}
-                  >
-                    <AppIcon name="tag" size={9.5} color={palette.textSecondary} strokeWidth={2.1} />
-                    <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
-                      {tag}
-                    </Text>
-                  </View>
+                    name={tag}
+                    neutral
+                    palette={palette}
+                  />
                 ))}
               </View>
             ) : null}
@@ -305,7 +283,7 @@ function TransactionListItemBase({
         {
           paddingVertical: paddingY,
           borderRadius: isCard ? HOME_RADIUS.card : 0,
-          backgroundColor: isCard ? palette.surface : 'transparent',
+          backgroundColor: isCard ? (palette.isDark ? palette.surface : '#FFFFFF') : 'transparent',
           borderWidth: 0,
           borderBottomWidth: isCard ? 0 : (isLast ? 0 : 1),
           borderBottomColor: palette.divider,
@@ -353,6 +331,10 @@ function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.paddingY !== next.paddingY) return false;
   if (prev.onPress !== next.onPress) return false;
   if (prev.isCard !== next.isCard) return false;
+  if (prev.dateText !== next.dateText) return false;
+  if (prev.hidePayee !== next.hidePayee) return false;
+  if (prev.hideIcon !== next.hideIcon) return false;
+  if (prev.hideTags !== next.hideTags) return false;
   if (!isStyleEqual(prev.style, next.style)) return false;
   return true;
 }

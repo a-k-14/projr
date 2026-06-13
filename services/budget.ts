@@ -1,4 +1,4 @@
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 import { db } from '../db/client';
 import { budget, transactions } from '../db/schema';
 import type { Budget, BudgetWithSpent, CreateBudgetInput, Transaction } from '../types';
@@ -11,6 +11,7 @@ function rowToBudget(row: typeof budget.$inferSelect): Budget {
   return {
     id: row.id,
     categoryId: row.categoryId,
+    subCategoryIds: row.subCategoryIds ? JSON.parse(row.subCategoryIds) : null,
     amount: row.amount,
     period: 'month',
     startDate: row.startDate,
@@ -78,8 +79,8 @@ async function assertBudgetableCategory(categoryId: string) {
   const categories = await getCategories();
   const category = categories.find((entry) => entry.id === categoryId);
   if (!category) throw new Error('Category not found.');
-  if (category.parentId == null || category.type !== 'out') {
-    throw new Error('Budgets can only be created for expense subcategories.');
+  if (category.type !== 'out') {
+    throw new Error('Budgets can only be created for expense categories.');
   }
 }
 
@@ -134,7 +135,21 @@ export async function getBudgetWithSpent(selectedMonthIso: string = todayUTC()):
 
   for (const b of activeBudgets) {
     const category = categoriesById.get(b.categoryId);
-    const spent = spentByCategory.get(b.categoryId) ?? 0;
+    
+    // Determine all category IDs covered by this budget
+    let coveredIds: string[] = [];
+    if (b.subCategoryIds && b.subCategoryIds.length > 0) {
+      coveredIds = b.subCategoryIds;
+    } else {
+      const children = allCategories.filter((c) => c.parentId === b.categoryId);
+      coveredIds = [b.categoryId, ...children.map((c) => c.id)];
+    }
+
+    let spent = 0;
+    coveredIds.forEach((cid) => {
+      spent += spentByCategory.get(cid) ?? 0;
+    });
+
     const remaining = b.amount - spent;
     const percent = b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0;
 
@@ -151,14 +166,28 @@ export async function getBudgetWithSpent(selectedMonthIso: string = todayUTC()):
   return result;
 }
 
-export async function getBudgetTransactions(categoryId: string, monthIso: string): Promise<Transaction[]> {
+export async function getBudgetTransactions(
+  categoryId: string,
+  monthIso: string,
+  subCategoryIds?: string[] | null
+): Promise<Transaction[]> {
   const { from, to } = getMonthRange(monthIso);
+  
+  let coveredIds: string[] = [];
+  if (subCategoryIds && subCategoryIds.length > 0) {
+    coveredIds = subCategoryIds;
+  } else {
+    const allCategories = await getCategories();
+    const children = allCategories.filter((c) => c.parentId === categoryId);
+    coveredIds = [categoryId, ...children.map((c) => c.id)];
+  }
+
   const rows = await db
     .select()
     .from(transactions)
     .where(
       and(
-        eq(transactions.categoryId, categoryId),
+        inArray(transactions.categoryId, coveredIds),
         eq(transactions.type, 'out'),
         gte(transactions.date, from),
         lte(transactions.date, to)
@@ -178,7 +207,16 @@ export async function createBudget(data: CreateBudgetInput): Promise<Budget> {
   });
   const id = generateId();
   const now = nowUTC();
-  const row = { id, ...data, repeat: data.repeat ? 1 : 0, createdAt: now };
+  const row = {
+    id,
+    categoryId: data.categoryId,
+    subCategoryIds: data.subCategoryIds ? JSON.stringify(data.subCategoryIds) : null,
+    amount: data.amount,
+    period: data.period,
+    startDate: data.startDate,
+    repeat: data.repeat ? 1 : 0,
+    createdAt: now,
+  };
   await db.insert(budget).values(row);
   return rowToBudget(row);
 }
@@ -203,8 +241,13 @@ export async function updateBudget(id: string, data: Partial<Budget>): Promise<B
     },
     id,
   );
+  
   const payload = {
-    ...data,
+    categoryId: data.categoryId,
+    subCategoryIds: data.subCategoryIds !== undefined ? (data.subCategoryIds ? JSON.stringify(data.subCategoryIds) : null) : undefined,
+    amount: data.amount,
+    period: data.period,
+    startDate: data.startDate,
     repeat: typeof data.repeat === 'boolean' ? (data.repeat ? 1 : 0) : undefined,
   };
   await db.update(budget).set(payload as any).where(eq(budget.id, id));
@@ -219,13 +262,25 @@ export async function deleteBudget(id: string): Promise<void> {
 export async function getBudgetTransactionEntries(
   categoryId: string,
   selectedMonthIso: string,
+  subCategoryIds?: string[] | null
 ): Promise<Array<{ transaction: Transaction; countedAmount: number }>> {
   const { from, to } = getMonthRange(selectedMonthIso);
+  
+  let coveredIds: string[] = [];
+  if (subCategoryIds && subCategoryIds.length > 0) {
+    coveredIds = subCategoryIds;
+  } else {
+    const allCategories = await getCategories();
+    const children = allCategories.filter((c) => c.parentId === categoryId);
+    coveredIds = [categoryId, ...children.map((c) => c.id)];
+  }
+
   const rows = await db
     .select()
     .from(transactions)
     .where(
       and(
+        inArray(transactions.categoryId, coveredIds),
         eq(transactions.type, 'out'),
         gte(transactions.date, from),
         lte(transactions.date, to),
@@ -235,16 +290,13 @@ export async function getBudgetTransactionEntries(
   const entries: Array<{ transaction: Transaction; countedAmount: number }> = [];
 
   rows.forEach((row) => {
-      const tx = rowToTransaction(row);
-
-      if (tx.categoryId === categoryId) {
-        entries.push({ transaction: tx, countedAmount: tx.amount });
-      }
-    });
+    const tx = rowToTransaction(row);
+    entries.push({ transaction: tx, countedAmount: tx.amount });
+  });
 
   return entries.sort((a, b) => {
-      const byDate = new Date(b.transaction.date).getTime() - new Date(a.transaction.date).getTime();
-      if (byDate !== 0) return byDate;
-      return new Date(b.transaction.createdAt).getTime() - new Date(a.transaction.createdAt).getTime();
-    });
+    const byDate = new Date(b.transaction.date).getTime() - new Date(a.transaction.date).getTime();
+    if (byDate !== 0) return byDate;
+    return new Date(b.transaction.createdAt).getTime() - new Date(a.transaction.createdAt).getTime();
+  });
 }

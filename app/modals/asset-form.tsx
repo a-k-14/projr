@@ -25,10 +25,16 @@ export default function AssetFormScreen() {
   const isEditing = !!id;
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
-  const { assets, add, update, remove } = useAssetsStore();
+  const { assets, isLoaded, load, add, update, remove } = useAssetsStore();
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const { showConfirm, dialog } = useAppDialog(palette);
+
+  useEffect(() => {
+    if (!isLoaded) {
+      load().catch(() => undefined);
+    }
+  }, [isLoaded, load]);
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');

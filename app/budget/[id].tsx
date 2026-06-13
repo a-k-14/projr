@@ -97,13 +97,13 @@ export default function BudgetDetailScreen() {
     if (!budget || !month) return;
     const task = InteractionManager.runAfterInteractions(() => {
       setTxnsLoading(true);
-      getBudgetTransactions(budget.categoryId, month)
+      getBudgetTransactions(budget.categoryId, month, budget.subCategoryIds)
         .then(setTxns)
         .catch(() => undefined)
         .finally(() => setTxnsLoading(false));
     });
     return () => task.cancel();
-  }, [budget?.categoryId, month, mutationVersion]);
+  }, [budget?.categoryId, budget?.subCategoryIds, month, mutationVersion]);
 
   if (!budget) {
     return (
@@ -114,7 +114,18 @@ export default function BudgetDetailScreen() {
   }
 
   const isOver = budget.amount > 0 && budget.remaining < 0;
-  const categoryLabel = getCategoryFullDisplayName(budget.categoryId, ' › ');
+  const categoryLabel = (() => {
+    const category = categoriesById.get(budget.categoryId);
+    if (!category) return 'Unknown';
+    if (budget.subCategoryIds && budget.subCategoryIds.length > 0) {
+      const subNames = budget.subCategoryIds
+        .map((sid) => categoriesById.get(sid)?.name)
+        .filter(Boolean)
+        .join(', ');
+      return `${category.name} › ${subNames}`;
+    }
+    return `${category.name} (All)`;
+  })();
 
   const groups: { dateKey: string; items: Transaction[] }[] = [];
   for (const tx of txns) {

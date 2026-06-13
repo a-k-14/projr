@@ -18,6 +18,7 @@ export function CategoryPickerSheet({
   onClose,
   onManage,
   onSelect,
+  onlyParents = false,
 }: {
   title?: string;
   categories: Category[];
@@ -27,6 +28,7 @@ export function CategoryPickerSheet({
   onClose: () => void;
   onManage: () => void;
   onSelect: (id: string) => void;
+  onlyParents?: boolean;
 }) {
   const [search, setSearch] = useState('');
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
@@ -53,8 +55,9 @@ export function CategoryPickerSheet({
         if (transactionType === undefined || transactionType === 'transfer' || transactionType === 'loan') return true;
         return category.type === transactionType || category.type === 'both';
       },
+      childFilter: onlyParents ? () => false : undefined,
     });
-  }, [categories, search, transactionType]);
+  }, [categories, search, transactionType, onlyParents]);
 
   useEffect(() => {
     if (search.trim()) {

@@ -1,6 +1,5 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
-import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InteractionManager, Modal, Pressable, RefreshControl, TouchableOpacity, View } from 'react-native';
 import ReAnimated from 'react-native-reanimated';
@@ -29,7 +28,7 @@ import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import { getAutoBucketType, getAvailableGranularities, getTimeBuckets, type ChartGranularity } from '../../lib/chartUtils';
 import { formatDate, getDateRange, safeLocalDateKey, toLocalDateKey, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
-import { getLoanTransactionKind } from '../../lib/derived';
+import { useTransactionPress } from '../../lib/useTransactionPress';
 import { FONT_WEIGHT, TYPE } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING, BOTTOM_SHEET_TOKENS } from '../../lib/layoutTokens';
 import type { IncomeExpenseBucket } from '../../services/analytics';
@@ -306,20 +305,7 @@ export default function InsightsScreen() {
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
   const tagNamesById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
 
-  const handleTransactionPress = useCallback((tx: Transaction) => {
-    if (tx.type === 'deposit' && tx.depositId) {
-      router.push({ pathname: '/modals/add-transaction', params: { editDepositId: tx.depositId, closeDepositId: '' } });
-      return;
-    }
-    if (tx.loanId) {
-      const loan = loansById.get(tx.loanId);
-      if (loan && getLoanTransactionKind(tx, loan.direction) === 'settlement') {
-        router.push({ pathname: '/modals/loan-settlement', params: { editId: tx.id } });
-        return;
-      }
-    }
-    router.push({ pathname: '/modals/add-transaction', params: { editId: tx.id } });
-  }, [loansById]);
+  const handleTransactionPress = useTransactionPress();
 
   const chartTheme = useMemo(() => ({
     brand: palette.brand,

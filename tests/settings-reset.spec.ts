@@ -98,6 +98,7 @@ beforeEach(() => {
     CREATE TABLE budget (
       id TEXT PRIMARY KEY,
       category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+      sub_category_ids TEXT,
       amount REAL NOT NULL,
       period TEXT NOT NULL DEFAULT 'month',
       start_date TEXT NOT NULL,

@@ -1,6 +1,6 @@
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/client';
-import { loans } from '../db/schema';
+import { loans, auditLogs } from '../db/schema';
 import type { Loan, LoanWithSummary, CreateLoanInput, CreateTransactionInput, LoanFilters } from '../types';
 import { generateId } from '../lib/ids';
 import { nowUTC } from '../lib/dateUtils';
@@ -16,6 +16,7 @@ import {
 } from '../lib/derived';
 import { getTransactions, getTransactionsByLoanIds, createTransaction, updateTransaction, deleteTransaction } from './transactions';
 import { upsertPerson } from './persons';
+import { logAction } from './audit';
 
 function rowToLoan(row: typeof loans.$inferSelect): Loan {
   return {
@@ -112,6 +113,7 @@ export async function createLoan(data: CreateLoanInput): Promise<Loan> {
     createdAt: now,
   };
   await db.insert(loans).values(row);
+  await logAction(db, 'create', 'loans', id, null, rowToLoan(row));
 
   try {
     const label = getLoanOriginLabel(data.direction, data.personName);
@@ -132,8 +134,10 @@ export async function createLoan(data: CreateLoanInput): Promise<Loan> {
 }
 
 export async function updateLoan(id: string, data: Partial<Loan>): Promise<Loan> {
+  const existing = await getLoanById(id);
   await db.update(loans).set(data as any).where(eq(loans.id, id));
   const rows = await db.select().from(loans).where(eq(loans.id, id));
+  await logAction(db, 'update', 'loans', id, existing, rowToLoan(rows[0]));
   return rowToLoan(rows[0]);
 }
 
@@ -184,6 +188,8 @@ export async function updateLoanOrigin(
     tags: JSON.stringify(next.tags),
     date: next.date,
   }).where(eq(loans.id, id));
+  const rows = await db.select().from(loans).where(eq(loans.id, id));
+  await logAction(db, 'update', 'loans', id, existing, rowToLoan(rows[0]));
 
   const nextOriginLabel = getLoanOriginLabel(next.direction, next.personName);
   const directionChanged = next.direction !== existing.direction || next.personName !== existing.personName;
@@ -215,8 +221,8 @@ export async function updateLoanOrigin(
     }
   }
 
-  const rows = await db.select().from(loans).where(eq(loans.id, id));
-  return rowToLoan(rows[0]);
+  const updatedRows = await db.select().from(loans).where(eq(loans.id, id));
+  return rowToLoan(updatedRows[0]);
 }
 
 export async function addLoanPrincipal(
@@ -243,6 +249,8 @@ export async function addLoanPrincipal(
     .update(loans)
     .set({ givenAmount: loan.givenAmount + amount })
     .where(eq(loans.id, loanId));
+  const rows = await db.select().from(loans).where(eq(loans.id, loanId));
+  await logAction(db, 'update', 'loans', loanId, loan, rowToLoan(rows[0]));
 }
 
 export async function recordLoanPayment(
@@ -280,9 +288,16 @@ export async function updateLoanSettlement(
 }
 
 export async function deleteLoanCascade(loanId: string): Promise<void> {
+  const existing = await getLoanById(loanId);
   const loanTransactions = await getTransactions({ loanId });
   for (const tx of loanTransactions) {
     await deleteTransaction(tx.id);
   }
-  await db.delete(loans).where(eq(loans.id, loanId));
+  await db.transaction(async (tx) => {
+    await tx.delete(auditLogs).where(and(eq(auditLogs.recordId, loanId), eq(auditLogs.tableName, 'loans')));
+    await tx.delete(loans).where(eq(loans.id, loanId));
+    if (existing) {
+      await logAction(tx, 'delete', 'loans', loanId, existing, null);
+    }
+  });
 }

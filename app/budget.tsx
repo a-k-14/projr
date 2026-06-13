@@ -17,6 +17,7 @@ import { useAppTheme } from '../lib/theme';
 import { useBudgetStore } from '../stores/useBudgetStore';
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useUIStore } from '../stores/useUIStore';
+import type { BudgetWithSpent } from '../types';
 
 import { toLocalMonthStartISO } from '../lib/dateUtils';
 
@@ -33,7 +34,6 @@ export default function BudgetScreen() {
   const categories = useCategoriesStore((s) => s.categories);
   const categoriesLoaded = useCategoriesStore((s) => s.isLoaded);
   const loadCategories = useCategoriesStore((s) => s.load);
-  const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const sym = showCurrencySymbol ? currencySymbol : '';
@@ -88,18 +88,31 @@ export default function BudgetScreen() {
   const totalRemaining = totalBudgeted - totalSpent;
   const overBudgetCount = budgets.filter((budget) => budget.remaining < 0).length;
 
+  const getBudgetCategoryLabel = useCallback((b: BudgetWithSpent) => {
+    const category = categoriesById.get(b.categoryId);
+    if (!category) return 'Unknown';
+    if (b.subCategoryIds && b.subCategoryIds.length > 0) {
+      const subNames = b.subCategoryIds
+        .map((sid: string) => categoriesById.get(sid)?.name)
+        .filter(Boolean)
+        .join(', ');
+      return `${category.name} › ${subNames}`;
+    }
+    return `${category.name} (All)`;
+  }, [categoriesById]);
+
   const monthBudgets = useMemo(
     () =>
       budgets.slice().sort((a, b) => {
         const overDelta = Number(b.remaining < 0) - Number(a.remaining < 0);
         if (overDelta !== 0) return overDelta;
-        return getCategoryFullDisplayName(a.categoryId, ' › ').localeCompare(
-          getCategoryFullDisplayName(b.categoryId, ' › '),
+        return getBudgetCategoryLabel(a).localeCompare(
+          getBudgetCategoryLabel(b),
           'en',
           { sensitivity: 'base' },
         );
       }),
-    [budgets, getCategoryFullDisplayName],
+    [budgets, getBudgetCategoryLabel],
   );
 
   return (
@@ -147,7 +160,7 @@ export default function BudgetScreen() {
                 budget={budget}
                 sym={sym}
                 palette={palette}
-                categoryLabel={getCategoryFullDisplayName(budget.categoryId, ' › ')}
+                categoryLabel={getBudgetCategoryLabel(budget)}
                 categoryIcon={getCategoryDisplayIcon(categoriesById, budget.categoryId) ?? budget.categoryIcon}
                 onPress={() =>
                   router.push({
