@@ -22,7 +22,7 @@ export const RADIUS = {
 } as const;
 
 export const HOME_TEXT = {
-  screenTitle: 28,
+  screenTitle: 26,
   subhead: 18,
   heroLabel: 16,
   heroValue: 22,

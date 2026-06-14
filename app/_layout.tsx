@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { AppState, View, ActivityIndicator, Platform } from 'react-native';
+import { AppState, View, ActivityIndicator, Platform, UIManager } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as QuickActions from 'expo-quick-actions';
@@ -27,6 +27,12 @@ import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/se
 import { isAutoBackupDue, runAutoBackup } from '../services/backup';
 import { pruneAuditLogs } from '../services/audit';
 import { FilledButton } from '../components/ui/AppButton';
+
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 // Skip the 400ms fade-out animation. On warm-resume (activity recreated, JS alive)

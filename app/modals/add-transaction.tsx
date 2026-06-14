@@ -272,7 +272,6 @@ export default function AddTransactionModal() {
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const [loanTransactionType, setLoanTransactionType] = useState<'principal' | 'interest' | 'others'>('principal');
   const [showTypeSheet, setShowTypeSheet] = useState(false);
   const [payeeSuggestions, setPayeeSuggestions] = useState<string[]>([]);
@@ -301,6 +300,8 @@ export default function AddTransactionModal() {
   const depositMaturityInputRef = useRef<TextInput>(null);
   const closePrincipalInputRef = useRef<TextInput>(null);
   const closeInterestInputRef = useRef<TextInput>(null);
+  const suppressPersonBlurRef = useRef(false);
+  const suppressPayeeBlurRef = useRef(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -315,17 +316,50 @@ export default function AddTransactionModal() {
     return persons.some((p) => p.toLowerCase() === normalizedPersonQuery);
   }, [persons, normalizedPersonQuery]);
 
+  const handleFieldFocus = (target: number | React.RefObject<any>) => {
+    setTimeout(() => {
+      if (typeof target === 'number') {
+        scrollViewRef.current?.scrollTo({ y: target, animated: true });
+      } else if (target?.current && scrollViewRef.current) {
+        target.current.measureLayout(
+          scrollViewRef.current,
+          (_x: number, y: number) => {
+            scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 180), animated: true });
+          },
+          () => {}
+        );
+      }
+    }, 180);
+  };
 
   useEffect(() => {
     const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setKeyboardHeight(e.endCoordinates.height);
     });
-    const hideSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setKeyboardHeight(0);
+
+    const willHideSub = Platform.OS === 'ios'
+      ? Keyboard.addListener('keyboardWillHide', () => {
+          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        })
+      : null;
+
+    const didHideSub = Keyboard.addListener('keyboardDidHide', () => {
+      if (Platform.OS === 'ios') {
+        setKeyboardHeight(0);
+      } else {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        setTimeout(() => {
+          setKeyboardHeight(0);
+        }, 250);
+      }
     });
-    return () => { showSub.remove(); hideSub.remove(); };
+
+    return () => {
+      showSub.remove();
+      willHideSub?.remove();
+      didHideSub.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -644,7 +678,6 @@ export default function AddTransactionModal() {
   const dt = new Date(date);
   const dayName = dt.toLocaleDateString(APP_LOCALE, { weekday: 'short' });
   const dateFormatted = `${dayName}, ${formatDate(date)}`;
-  const timeFormatted = dt.toLocaleTimeString(APP_LOCALE, { hour: 'numeric', minute: '2-digit', hour12: true });
   const lockLoanDirection = isLoanAddMore || (isEditing && type === 'loan' && !!editingLoanId);
   const displaySym = showCurrencySymbol ? sym : '';
   const splitTotal = splitRows.reduce((sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0), 0);
@@ -1294,13 +1327,6 @@ export default function AddTransactionModal() {
 
   const openDate = () => {
     Keyboard.dismiss();
-    setPickerMode('date');
-    setShowDatePicker(true);
-  };
-
-  const openTime = () => {
-    Keyboard.dismiss();
-    setPickerMode('time');
     setShowDatePicker(true);
   };
 
@@ -1387,8 +1413,9 @@ export default function AddTransactionModal() {
               onPress={() => amountInputRef.current?.focus()}
               style={{
                 marginHorizontal: FORM_TOKENS.gutter,
-                paddingTop: 20,
-                paddingBottom: 44,
+                marginTop: 8,
+                paddingTop: 28,
+                paddingBottom: 42,
                 paddingHorizontal: 18,
                 alignItems: 'center',
                 backgroundColor: palette.surface,
@@ -1414,7 +1441,7 @@ export default function AddTransactionModal() {
                   editable={usableSplitRows.length === 0}
                   pointerEvents={usableSplitRows.length > 0 ? 'none' : 'auto'}
                   style={{
-                    fontSize: 42,
+                    fontSize: 34,
                     fontWeight: FONT_WEIGHT.regular,
                     color: amountInputColor,
                     letterSpacing: 0,
@@ -1422,7 +1449,7 @@ export default function AddTransactionModal() {
                     minWidth: 100,
                     paddingTop: 0,
                     paddingBottom: 2,
-                    lineHeight: 46,
+                    lineHeight: 38,
                   }}
                   autoFocus={!isEditing && usableSplitRows.length === 0}
                 />
@@ -1431,23 +1458,16 @@ export default function AddTransactionModal() {
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 8,
                   position: 'absolute',
                   left: 0,
                   right: 0,
-                  bottom: 12,
+                  bottom: 8,
                   justifyContent: 'center',
                 }}
               >
                 <TouchableOpacity onPress={openDate} style={{ justifyContent: 'center' }}>
                   <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
                     {dateFormatted}
-                  </Text>
-                </TouchableOpacity>
-                <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textMuted }}>|</Text>
-                <TouchableOpacity onPress={openTime} style={{ justifyContent: 'center' }}>
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
-                    {timeFormatted.toLowerCase()}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1457,7 +1477,7 @@ export default function AddTransactionModal() {
                 style={{
                   position: 'absolute',
                   right: 14,
-                  bottom: 2,
+                  bottom: 0,
                   width: 42,
                   height: 42,
                   alignItems: 'center',
@@ -1623,13 +1643,22 @@ export default function AddTransactionModal() {
                   <TextInput
                     ref={payeeInputRef}
                     value={payee}
-                    onChangeText={(text: string) => setPayee(text)}
-                    placeholder="Add payee..."
+                    onChangeText={(text: string) => {
+                      setPayee(text);
+                    }}
+                    placeholder="Payee"
                     placeholderTextColor={palette.textMuted}
                     cursorColor={palette.isDark ? '#FFFFFF' : palette.text}
-                    onFocus={() => setIsPayeeFocused(true)}
+                    onFocus={() => {
+                      setIsPayeeFocused(true);
+                      handleFieldFocus(payeeInputRef);
+                    }}
                     onBlur={() => {
-                      setTimeout(() => setIsPayeeFocused(false), 200);
+                      if (suppressPayeeBlurRef.current) {
+                        suppressPayeeBlurRef.current = false;
+                        return;
+                      }
+                      setIsPayeeFocused(false);
                     }}
                     style={{
                       flex: 1,
@@ -1653,14 +1682,18 @@ export default function AddTransactionModal() {
                       {payeeSuggestions.map((suggestion) => (
                         <TouchableOpacity
                           key={suggestion}
-                          onPress={() => setPayee(suggestion)}
+                          onPressIn={() => { suppressPayeeBlurRef.current = true; }}
+                          onPress={() => {
+                            setPayee(suggestion);
+                            setIsPayeeFocused(false);
+                          }}
                           style={{
                             paddingHorizontal: 12,
                             paddingVertical: 6,
                             borderRadius: HOME_RADIUS.chip,
-                            backgroundColor: palette.surfaceRaised,
+                            backgroundColor: palette.isDark ? palette.layers.surfaceSunken : palette.inputBg,
                             borderWidth: 1,
-                            borderColor: palette.borderSoft,
+                            borderColor: palette.divider,
                           }}
                         >
                           <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>
@@ -1719,7 +1752,7 @@ export default function AddTransactionModal() {
                       </View>
                     ) : (
                       <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>
-                        Add tags...
+                        Tags
                       </Text>
                     )}
                   </View>
@@ -1736,10 +1769,12 @@ export default function AddTransactionModal() {
                   suggestions={noteSuggestions}
                   multiline
                   palette={palette}
-                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+                  onFocus={() => {
+                    handleFieldFocus(460);
+                  }}
                   leftIcon="file-text"
                   hideLabel={true}
-                  placeholder="Add notes..."
+                  placeholder="Notes"
                 />
               </PremiumSection>
             </>
@@ -1900,10 +1935,12 @@ export default function AddTransactionModal() {
                   suggestions={noteSuggestions}
                   multiline
                   palette={palette}
-                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+                  onFocus={() => {
+                    handleFieldFocus(460);
+                  }}
                   leftIcon="file-text"
                   hideLabel={true}
-                  placeholder="Add notes..."
+                  placeholder="Notes"
                 />
               </PremiumSection>
             </>
@@ -2055,13 +2092,22 @@ export default function AddTransactionModal() {
                           <TextInput
                             ref={personInputRef}
                             value={personName}
-                            onChangeText={setPersonName}
-                            placeholder="Add person..."
+                            onChangeText={(text) => {
+                              setPersonName(text);
+                            }}
+                            placeholder="Person"
                             placeholderTextColor={palette.textMuted}
                             cursorColor={palette.isDark ? '#FFFFFF' : palette.text}
-                            onFocus={() => setIsPersonFocused(true)}
+                            onFocus={() => {
+                              setIsPersonFocused(true);
+                              handleFieldFocus(personInputRef);
+                            }}
                             onBlur={() => {
-                              setTimeout(() => setIsPersonFocused(false), 200);
+                              if (suppressPersonBlurRef.current) {
+                                suppressPersonBlurRef.current = false;
+                                return;
+                              }
+                              setIsPersonFocused(false);
                             }}
                             style={{
                               flex: 1,
@@ -2084,7 +2130,11 @@ export default function AddTransactionModal() {
                             >
                               {!exactPersonMatch && (
                                 <TouchableOpacity
-                                  onPress={() => setPersonName(personName.trim())}
+                                  onPressIn={() => { suppressPersonBlurRef.current = true; }}
+                                  onPress={() => {
+                                    setPersonName(personName.trim());
+                                    setIsPersonFocused(false);
+                                  }}
                                   style={{
                                     paddingHorizontal: 12,
                                     paddingVertical: 6,
@@ -2094,7 +2144,7 @@ export default function AddTransactionModal() {
                                     borderColor: `${palette.brand}55`,
                                   }}
                                 >
-                                  <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: FONT_WEIGHT.bold }}>
+                                  <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: FONT_WEIGHT.regular }}>
                                     + Add "{personName.trim()}"
                                   </Text>
                                 </TouchableOpacity>
@@ -2102,14 +2152,18 @@ export default function AddTransactionModal() {
                               {filteredPersonSuggestions.map((suggestion) => (
                                 <TouchableOpacity
                                   key={suggestion}
-                                  onPress={() => setPersonName(suggestion)}
+                                  onPressIn={() => { suppressPersonBlurRef.current = true; }}
+                                  onPress={() => {
+                                    setPersonName(suggestion);
+                                    setIsPersonFocused(false);
+                                  }}
                                   style={{
                                     paddingHorizontal: 12,
                                     paddingVertical: 6,
                                     borderRadius: HOME_RADIUS.chip,
-                                    backgroundColor: palette.surfaceRaised,
+                                    backgroundColor: palette.isDark ? palette.layers.surfaceSunken : palette.inputBg,
                                     borderWidth: 1,
-                                    borderColor: palette.borderSoft,
+                                    borderColor: palette.divider,
                                   }}
                                 >
                                   <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>
@@ -2191,10 +2245,12 @@ export default function AddTransactionModal() {
                   suggestions={noteSuggestions}
                   multiline
                   palette={palette}
-                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+                  onFocus={() => {
+                    handleFieldFocus(460);
+                  }}
                   leftIcon="file-text"
                   hideLabel={true}
-                  placeholder="Add notes..."
+                  placeholder="Notes"
                 />
               </PremiumSection>
             </>
@@ -2268,7 +2324,7 @@ export default function AddTransactionModal() {
                         alignItems: 'center',
                         paddingHorizontal: 16,
                         paddingVertical: 12,
-                        minHeight: 56,
+                        minHeight: 62,
                         gap: 12,
                       }}
                     >
@@ -2308,7 +2364,7 @@ export default function AddTransactionModal() {
                         alignItems: 'center',
                         paddingHorizontal: 16,
                         paddingVertical: 12,
-                        minHeight: 56,
+                        minHeight: 62,
                         gap: 12,
                       }}
                     >
@@ -2360,7 +2416,7 @@ export default function AddTransactionModal() {
                         alignItems: 'center',
                         paddingHorizontal: 16,
                         paddingVertical: 12,
-                        minHeight: 56,
+                        minHeight: 62,
                         gap: 12,
                       }}
                     >
@@ -2398,7 +2454,7 @@ export default function AddTransactionModal() {
                         alignItems: 'center',
                         paddingHorizontal: 16,
                         paddingVertical: 12,
-                        minHeight: 56,
+                        minHeight: 62,
                         gap: 12,
                       }}
                     >
@@ -2436,7 +2492,7 @@ export default function AddTransactionModal() {
                         alignItems: 'center',
                         paddingHorizontal: 16,
                         paddingVertical: 12,
-                        minHeight: 56,
+                        minHeight: 62,
                         gap: 12,
                       }}
                     >
@@ -2478,7 +2534,7 @@ export default function AddTransactionModal() {
                         alignItems: 'center',
                         paddingHorizontal: 16,
                         paddingVertical: 12,
-                        minHeight: 56,
+                        minHeight: 62,
                         gap: 12,
                       }}
                     >
@@ -2520,7 +2576,7 @@ export default function AddTransactionModal() {
                         alignItems: 'center',
                         paddingHorizontal: 16,
                         paddingVertical: 12,
-                        minHeight: 56,
+                        minHeight: 62,
                         gap: 12,
                       }}
                     >
@@ -2561,10 +2617,12 @@ export default function AddTransactionModal() {
                   suggestions={[]}
                   multiline
                   palette={palette}
-                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250)}
+                  onFocus={() => {
+                    handleFieldFocus(460);
+                  }}
                   leftIcon="file-text"
                   hideLabel={true}
-                  placeholder="Add notes..."
+                  placeholder="Notes"
                 />
               </PremiumSection>
             </>
@@ -2764,13 +2822,22 @@ export default function AddTransactionModal() {
       ) : null}
       <DateTimePickerPopup
         visible={showDatePicker}
-        mode={pickerMode}
+        mode="date"
         value={new Date(date)}
         palette={palette}
         accentColor={activeConfig.color}
         onClose={() => setShowDatePicker(false)}
         onConfirm={(nextDate) => {
-          setDate(nextDate.toISOString());
+          // Preserve the original hours/minutes/seconds/ms from the existing date
+          const originalDate = new Date(date);
+          const combinedDate = new Date(nextDate);
+          combinedDate.setHours(
+            originalDate.getHours(),
+            originalDate.getMinutes(),
+            originalDate.getSeconds(),
+            originalDate.getMilliseconds()
+          );
+          setDate(combinedDate.toISOString());
         }}
       />
 
@@ -2986,7 +3053,7 @@ function ReceiptSection({
         alignItems: 'center',
         paddingLeft: 16,
         paddingRight: 16,
-        height: 62,
+        height: 72,
         gap: 12,
       }}
     >
@@ -3007,7 +3074,7 @@ function ReceiptSection({
             }}
           >
             <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>
-              Add receipts...
+              Receipts
             </Text>
           </TouchableOpacity>
           <PressableScale

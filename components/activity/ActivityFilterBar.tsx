@@ -5,8 +5,8 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from '
 import { ACTIVITY_LAYOUT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import { TransactionType } from '../../types';
-import { FilterChip } from '../ui/FilterChip';
 import { AccountPickerButton } from '../ui/AccountPickerButton';
+import { FilterChip } from '../ui/FilterChip';
 import { FilterMoreButton } from '../ui/FilterMoreButton';
 
 interface ActivityFilterBarProps {
@@ -23,6 +23,8 @@ interface ActivityFilterBarProps {
   palette: AppThemePalette;
   periodNavigation: React.ReactNode;
   chipScrollResetToken?: number;
+  isExpanded: boolean;
+  setIsExpanded: (expanded: boolean) => void;
 }
 
 export function ActivityFilterBar({
@@ -38,7 +40,9 @@ export function ActivityFilterBar({
   moreActiveCount,
   palette,
   periodNavigation,
-  chipScrollResetToken = 0 }: ActivityFilterBarProps) {
+  chipScrollResetToken = 0,
+  isExpanded,
+  setIsExpanded }: ActivityFilterBarProps) {
   const chipScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -51,9 +55,7 @@ export function ActivityFilterBar({
     cashflowBucket !== 'all' ||
     moreActiveCount > 0;
 
-  const [isExpanded, setIsExpanded] = React.useState(hasActiveFiltersOnLine2);
-
-  const expansion = useSharedValue(hasActiveFiltersOnLine2 ? 1 : 0);
+  const expansion = useSharedValue(isExpanded ? 1 : 0);
 
   useEffect(() => {
     expansion.value = withTiming(isExpanded ? 1 : 0, {
@@ -62,18 +64,22 @@ export function ActivityFilterBar({
     });
   }, [isExpanded]);
 
+  const prevHasActiveFilters = useRef(hasActiveFiltersOnLine2);
+
   useEffect(() => {
-    if (!hasActiveFiltersOnLine2 && isExpanded) {
+    if (prevHasActiveFilters.current && !hasActiveFiltersOnLine2 && isExpanded) {
       setIsExpanded(false);
     }
-  }, [hasActiveFiltersOnLine2]);
+    prevHasActiveFilters.current = hasActiveFiltersOnLine2;
+  }, [hasActiveFiltersOnLine2, isExpanded, setIsExpanded]);
 
   const toggleExpand = () => {
-    setIsExpanded(prev => !prev);
+    setIsExpanded(!isExpanded);
   };
 
   const animStyle = useAnimatedStyle(() => ({
-    height: expansion.value * 52,
+    // Row 2 (36) + gap (8) + Row 3 (52) = 96
+    height: expansion.value * 96,
     opacity: expansion.value,
   }));
 
@@ -87,35 +93,23 @@ export function ActivityFilterBar({
 
   return (
     <Animated.View style={outerStyle}>
+      {/* Row 1: Period navigation + slider toggle */}
       <Animated.View
         style={[
           styles.row,
           row1Style,
-          {
-            paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-          },
+          { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX },
         ]}
       >
-        <View style={{ flex: 1, marginRight: ACTIVITY_LAYOUT.controlChipGap }}>
+        <View style={{ flex: 1, marginLeft: 0, marginRight: -10 }}>
           {periodNavigation}
         </View>
-
-        <ActivityViewModeToggle
-          mode={viewMode}
-          palette={palette}
-          onChange={setViewMode}
-        />
 
         <TouchableOpacity
           delayPressIn={0}
           activeOpacity={0.75}
           onPress={toggleExpand}
-          style={[
-            styles.expandButton,
-            {
-              backgroundColor: 'transparent',
-            }
-          ]}
+          style={[styles.expandButton, { backgroundColor: 'transparent' }]}
         >
           <AppIcon
             name="sliders-horizontal"
@@ -138,22 +132,41 @@ export function ActivityFilterBar({
         </TouchableOpacity>
       </Animated.View>
 
+      {/* Rows 2 + 3 — collapse together */}
       <Animated.View style={[animStyle, { overflow: 'hidden' }]}>
-        <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, height: 40, marginBottom: 12 }]}>
-          <AccountPickerButton
-            label={accountLabel}
-            onPress={() => setShowAccountSheet(true)}
+        {/* Row 2: List/Group toggle | Account picker | More filters */}
+        <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, height: ACTIVITY_LAYOUT.controlHeight, marginBottom: ACTIVITY_LAYOUT.headerRowGap }]}>
+          <ActivityViewModeToggle
+            mode={viewMode}
             palette={palette}
-            compact
-            width={122}
-            style={{ marginRight: 8 }}
+            onChange={setViewMode}
           />
+
+          <View style={{ flex: 1, marginLeft: ACTIVITY_LAYOUT.controlChipGap, marginRight: ACTIVITY_LAYOUT.controlChipGap }}>
+            <AccountPickerButton
+              label={accountLabel}
+              onPress={() => setShowAccountSheet(true)}
+              palette={palette}
+              compact
+            />
+          </View>
+
+          <FilterMoreButton
+            palette={palette}
+            moreActiveCount={moreActiveCount}
+            onPress={() => setShowMoreSheet(true)}
+            iconOnly
+          />
+        </View>
+
+        {/* Row 3: Type filter chips */}
+        <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, height: 40, marginBottom: 12 }]}>
           <ScrollView
             ref={chipScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingLeft: ACTIVITY_LAYOUT.controlChipGap, paddingRight: ACTIVITY_LAYOUT.controlChipGap, paddingBottom: 2 }}
+            contentContainerStyle={{ paddingRight: ACTIVITY_LAYOUT.controlChipGap, paddingBottom: 2 }}
           >
             <View style={styles.chipRow}>
               {(() => {
@@ -199,12 +212,6 @@ export function ActivityFilterBar({
               })()}
             </View>
           </ScrollView>
-          <FilterMoreButton
-            palette={palette}
-            moreActiveCount={moreActiveCount}
-            onPress={() => setShowMoreSheet(true)}
-            iconOnly
-          />
         </View>
       </Animated.View>
     </Animated.View>

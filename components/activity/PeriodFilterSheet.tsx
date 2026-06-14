@@ -31,6 +31,7 @@ interface PeriodFilterSheetProps {
   /** Custom range Apply (both dates chosen). */
   onApplyCustom: (from: string, to: string) => void;
   onClose: () => void;
+  hasNavBar?: boolean;
 }
 
 /** Period selector shared by the Activity filter bar and the Export screen. */
@@ -44,6 +45,7 @@ export function PeriodFilterSheet({
   onSelectPeriod,
   onApplyCustom,
   onClose,
+  hasNavBar = true,
 }: PeriodFilterSheetProps) {
   const [pendingFrom, setPendingFrom] = useState<string | undefined>(customFrom);
   const [pendingTo, setPendingTo] = useState<string | undefined>(customTo);
@@ -80,7 +82,7 @@ export function PeriodFilterSheet({
   })();
 
   return (
-    <BottomSheet title="Period" palette={palette} onClose={onClose} hasNavBar maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}>
+    <BottomSheet title="Period" palette={palette} onClose={onClose} hasNavBar={hasNavBar} maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}>
       <ChoiceRow
         title="Today"
         subtitle={formatDateFull(new Date().toISOString())}

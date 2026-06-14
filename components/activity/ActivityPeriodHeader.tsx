@@ -1,9 +1,10 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import { Text } from '@/components/ui/AppText';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { FONT_WEIGHT } from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
 interface ActivityPeriodHeaderProps {
@@ -33,7 +34,6 @@ export function ActivityPeriodHeader({
   palette,
   largeArrows = false,
   height,
-  arrowAccent = false,
 }: ActivityPeriodHeaderProps) {
   const isDisabled = period === 'custom' || period === 'all' || period === 'last30';
 
@@ -41,18 +41,24 @@ export function ActivityPeriodHeader({
   const hitExtension = 14;
   const totalHeight = vHeight + hitExtension * 2;
 
-  // Arrow touchable width (40px standard visual width, 56px large)
-  const arrowWidth = largeArrows ? (ACTIVITY_LAYOUT.periodArrowWidth + 24) : 40;
+  const prevArrowHitSlop = largeArrows
+    ? { top: 16, bottom: 16, left: 32, right: 48 }
+    : { top: 16, bottom: 16, left: 24, right: 40 };
 
-  // In the wide variant, sit the chevrons close to the bar's outer edges instead of
-  // centering them inside the (wider) hit columns.
-  const prevArrowAlign = largeArrows ? { alignItems: 'flex-start' as const, paddingLeft: 14 } : null;
-  const nextArrowAlign = largeArrows ? { alignItems: 'flex-end' as const, paddingRight: 14 } : null;
+  const nextArrowHitSlop = largeArrows
+    ? { top: 16, bottom: 16, left: 48, right: 32 }
+    : { top: 16, bottom: 16, left: 40, right: 24 };
 
-  // We can still use a hitSlop for extra horizontal padding (iOS-safe since container covers it)
-  const arrowHitSlop = largeArrows
-    ? { top: 0, bottom: 0, left: 18, right: 18 }
-    : { top: 0, bottom: 0, left: 16, right: 12 };
+  const prevScale = useSharedValue(1);
+  const nextScale = useSharedValue(1);
+
+  const prevAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: prevScale.value }],
+  }));
+
+  const nextAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: nextScale.value }],
+  }));
 
   return (
     <View
@@ -64,13 +70,13 @@ export function ActivityPeriodHeader({
         },
       ]}
     >
-      {/* Visual pill background & border */}
+      {/* Shared pill background & border */}
       <View
         style={[
           styles.periodBarVisual,
           {
             backgroundColor: palette.surface,
-            borderColor: palette.divider,
+            borderColor: palette.borderSoft,
             top: hitExtension,
             bottom: hitExtension,
             borderRadius: ACTIVITY_LAYOUT.controlRadius,
@@ -81,37 +87,34 @@ export function ActivityPeriodHeader({
 
       {/* Row containing actual interactive elements */}
       <View style={[styles.periodContentRow, { height: totalHeight }]}>
-        <TouchableOpacity
-          delayPressIn={0}
+        <Pressable
           onPress={isDisabled ? undefined : goPrev}
-          style={[
-            styles.periodArrowTouch,
-            { width: arrowWidth },
-            prevArrowAlign,
-          ]}
-          hitSlop={arrowHitSlop}
+          onPressIn={() => { prevScale.value = withTiming(0.9, { duration: 80 }); }}
+          onPressOut={() => { prevScale.value = withTiming(1, { duration: 120 }); }}
+          hitSlop={prevArrowHitSlop}
         >
-          <AppChevron
-            direction="left"
-            size={16}
-            tone={isDisabled ? 'subtle' : 'primary'}
-            opacity={1}
-            palette={palette}
-          />
-          {arrowAccent && (
-            <View
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: hitExtension,
-                bottom: hitExtension,
-                width: 1,
-                backgroundColor: palette.divider,
-              }}
+          <Animated.View
+            style={[
+              styles.periodArrowTouch,
+              prevAnimStyle,
+              {
+                width: 44,
+                height: 28,
+                opacity: 1,
+              }
+            ]}
+          >
+            <AppChevron
+              direction="left"
+              size={16}
+              tone="primary"
+              opacity={1}
+              palette={palette}
             />
-          )}
-        </TouchableOpacity>
+          </Animated.View>
+        </Pressable>
 
+        {/* Center — period label + down chevron */}
         <View style={styles.periodCenter}>
           <TouchableOpacity
             delayPressIn={0}
@@ -123,7 +126,7 @@ export function ActivityPeriodHeader({
             <Text
               appWeight="medium"
               style={{
-                fontSize: HOME_TEXT.bodySmall,
+                fontSize: 15,
                 fontWeight: FONT_WEIGHT.medium,
                 color: palette.text,
               }}
@@ -131,39 +134,42 @@ export function ActivityPeriodHeader({
             >
               {periodLabel}
             </Text>
+            <AppChevron
+              direction="down"
+              size={13}
+              tone="primary"
+              opacity={1}
+              palette={palette}
+            />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          delayPressIn={0}
+        <Pressable
           onPress={canGoNext ? goNext : undefined}
-          style={[
-            styles.periodArrowTouch,
-            { width: arrowWidth },
-            nextArrowAlign,
-          ]}
-          hitSlop={arrowHitSlop}
+          onPressIn={() => { nextScale.value = withTiming(0.9, { duration: 80 }); }}
+          onPressOut={() => { nextScale.value = withTiming(1, { duration: 120 }); }}
+          hitSlop={nextArrowHitSlop}
         >
-          <AppChevron
-            direction="right"
-            size={16}
-            tone={canGoNext ? 'primary' : 'subtle'}
-            opacity={1}
-            palette={palette}
-          />
-          {arrowAccent && (
-            <View
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: hitExtension,
-                bottom: hitExtension,
-                width: 1,
-                backgroundColor: palette.divider,
-              }}
+          <Animated.View
+            style={[
+              styles.periodArrowTouch,
+              nextAnimStyle,
+              {
+                width: 44,
+                height: 28,
+                opacity: 1,
+              }
+            ]}
+          >
+            <AppChevron
+              direction="right"
+              size={16}
+              tone="primary"
+              opacity={1}
+              palette={palette}
             />
-          )}
-        </TouchableOpacity>
+          </Animated.View>
+        </Pressable>
       </View>
     </View>
   );
@@ -187,21 +193,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   periodArrowTouch: {
-    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   periodCenter: {
     flex: 1,
-    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   periodCenterTouch: {
     height: '100%',
     width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
     paddingHorizontal: 4,
   },
 });

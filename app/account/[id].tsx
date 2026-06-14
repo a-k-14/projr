@@ -25,7 +25,7 @@ import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
 import { ActionChip } from '../../components/ui/AppButton';
-import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { getAccountTypeLabel, ACCOUNT_TYPE_META } from '../../lib/settings-shared';
 import type { PeriodType } from '../../types';
 import { getAccountBalanceTrend } from '../../services/analytics';
@@ -112,6 +112,7 @@ export default function AccountDetailScreen() {
   const indicatorY = useSharedValue(0);
 
   const [period, setPeriod] = useState<AccountPeriodType>('today');
+  const [activePoint, setActivePoint] = useState<any>(null);
 
   const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
   const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
@@ -146,6 +147,14 @@ export default function AccountDetailScreen() {
     setPeriod('custom');
     setCustomRangeOpen(false);
   }, [customDraftFrom, customDraftTo]);
+
+  const handleApplyCustomRange = useCallback((from: Date, to: Date) => {
+    setCustomDraftFrom(from);
+    setCustomDraftTo(to);
+    setCustomRangeFrom(toLocalDayStartISO(from));
+    setCustomRangeTo(toLocalDayEndISO(to));
+    setPeriod('custom');
+  }, []);
 
   const openDatePicker = useCallback(
     (stage: 'from' | 'to') => {
@@ -187,11 +196,18 @@ export default function AccountDetailScreen() {
       points={trendPoints}
       palette={palette}
       currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-      title="Balance Trend"
-      subtitle="(Last 30 Days)"
+      title=""
       lineColor={lineColor}
       onInteractionStateChange={setChartInteracting}
       isLoading={isLoadingTrend}
+      hideHeader={true}
+      hideStartDot={true}
+      flatStyle={true}
+      smoothCurves={true}
+      hideAxisLabels={false}
+      endLabelIsToday={true}
+      hideEndBalance={true}
+      onActivePointChange={setActivePoint}
     />
   );
 
@@ -204,10 +220,11 @@ export default function AccountDetailScreen() {
           header: () => (
             <View style={{ paddingTop: insets.top, backgroundColor: palette.background }}>
               <ScreenHeader
-                title="Account Details"
+                title={formatAccountDisplayName(account.name, account.accountNumber)}
                 onBack={() => router.back()}
                 palette={palette}
-                titleSize={SCREEN_HEADER.detailTitleSize}
+                titleSize={18}
+                iconSize={18}
                 titleAddon={
                   <HeaderResetButton
                     visible={!!inlineFilter || period !== 'today'}
@@ -280,6 +297,9 @@ export default function AccountDetailScreen() {
         dataNonce={mutationVersion}
         onInlineFilterChange={setInlineFilter}
         resetInlineFilterToken={resetInlineFilterToken}
+        isDetailScreen={true}
+        activePoint={activePoint}
+        onApplyCustomRange={handleApplyCustomRange}
       />
 
       <Modal

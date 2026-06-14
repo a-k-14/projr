@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   compactPicker: {
-    height: 34,
+    height: ACTIVITY_LAYOUT.controlHeight,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,

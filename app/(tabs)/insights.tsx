@@ -113,7 +113,7 @@ export default function InsightsScreen() {
   // every mount so the dates stay current as the calendar rolls forward.
   // Default to a rolling 7-day window so the screen is never empty on a fresh
   // calendar month (which would happen with a strict `month` default).
-  const [period, setPeriod] = useState<HomePeriodType>('custom');
+  const [period, setPeriod] = useState<HomePeriodType>('month');
   const [chartMode, setChartMode] = useState<CategoryChartMode>('expense');
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
   const [chartResetNonce, setChartResetNonce] = useState(0);
@@ -124,7 +124,7 @@ export default function InsightsScreen() {
   // The active preset drives both the rolling-on-focus behavior and the inline
   // switcher's left label. `null` means the user picked a real custom range or a
   // different period chip — in that case nothing rolls automatically.
-  const [activePreset, setActivePreset] = useState<RangePresetKey | null>('last7');
+  const [activePreset, setActivePreset] = useState<RangePresetKey | null>(null);
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
@@ -182,13 +182,13 @@ export default function InsightsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [chartInteracting, setChartInteracting] = useState(false);
   const [isLoadingTrend, setIsLoadingTrend] = useState(true);
-  const [incomeExpenseGranularity, setIncomeExpenseGranularity] = useState<ChartGranularity>('auto');
+  const [incomeExpenseGranularity, setIncomeExpenseGranularity] = useState<ChartGranularity>('day');
   const [chartPanelCloseToken, setChartPanelCloseToken] = useState(0);
 
   // Reset granularity override whenever the period changes — but only if it's not already 'auto'.
   // Returning the previous ref tells React to skip the re-render entirely.
   useEffect(() => {
-    setIncomeExpenseGranularity((prev) => (prev === 'auto' ? prev : 'auto'));
+    setIncomeExpenseGranularity(period === 'month' ? 'day' : 'auto');
   }, [period]);
 
   // Wrappers that flip the loading mask ON in the SAME batch as the state change that triggers
@@ -248,8 +248,8 @@ export default function InsightsScreen() {
   }, [availableGranularities]);
 
   const isDefaultView =
-    activePreset === 'last7' &&
-    period === 'custom' &&
+    period === 'month' &&
+    activePreset === null &&
     selectedChartCategoryId === null &&
     selectedAccountId === 'all' &&
     cashflowMode === 'incomeExpense';
@@ -393,20 +393,19 @@ export default function InsightsScreen() {
       setExpandedSheetTxs([]);
       setIncExpExpanded(false);
       setIncExpBucketFilter(null);
-      setIncomeExpenseGranularity('auto');
       if (mode === 'full') {
-        // Restore the Last 7D default: re-arm the preset and seed today's range.
-        const seed = computePresetRange('last7');
-        setCustomRangeFrom(seed.from);
-        setCustomRangeTo(seed.to);
-        setActivePreset('last7');
-        setPeriod('custom');
+        // Restore the Month default.
+        setPeriod('month');
+        setActivePreset(null);
         setSelectedChartCategoryId(null);
         setSelectedAccountId('all');
         setCashflowMode('incomeExpense');
+        setIncomeExpenseGranularity('day');
+      } else {
+        setIncomeExpenseGranularity(period === 'month' ? 'day' : 'auto');
       }
     });
-  }, []);
+  }, [period]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);

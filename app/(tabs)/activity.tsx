@@ -1,5 +1,4 @@
 import { Text } from '@/components/ui/AppText';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -22,19 +21,18 @@ import { ActivityMoreFiltersSheet } from '../../components/activity/ActivityMore
 import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { AccountFilterSheet } from '../../components/activity/AccountFilterSheet';
-import { CardSection, ChoiceRow } from '../../components/settings-ui';
+import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
+import { CardSection } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { useTransactionPress } from '../../lib/useTransactionPress';
 import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
-import { BottomSheet } from '../../components/ui/BottomSheet';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { OutlinedButton } from '../../components/ui/AppButton';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
-import { ListHeading } from '../../components/ui/ListHeading';
 import { HeaderSearchBar, HeaderSearchTrigger } from '../../components/ui/HeaderSearchBar';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import { filterTransactions } from '../../lib/transactionFilters';
@@ -43,9 +41,7 @@ import {
   getLast30DaysRange,
   getNavigableDateRange,
   getPeriodNavLabel,
-  getRelativeDateLabel,
-  toLocalDayEndISO,
-  toLocalDayStartISO
+  getRelativeDateLabel
 } from '../../lib/dateUtils';
 import {
   formatCurrency,
@@ -53,10 +49,9 @@ import {
   groupTransactionsByDate
 } from '../../lib/derived';
 import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS, BOTTOM_SHEET_TOKENS} from '../../lib/layoutTokens';
+import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS} from '../../lib/layoutTokens';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
-import { formatDateFull } from '../../lib/ui-format';
 import * as transactionsService from '../../services/transactions';
 import { getActivityPeriodCashflow } from '../../services/analytics';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -151,6 +146,7 @@ export default function ActivityScreen() {
   const [customFrom, setCustomFrom] = useState<string | undefined>();
   const [customTo, setCustomTo] = useState<string | undefined>();
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [cashflowBucket, setCashflowBucket] = useState<'all' | 'in' | 'out' | 'net'>('all');
   const [cashflowMode, setCashflowMode] = useState<'incomeExpense' | 'total'>('incomeExpense');
@@ -179,16 +175,9 @@ export default function ActivityScreen() {
   const [stickyDateLabel, setStickyDateLabel] = useState<{ key: string; title: string; subtitle?: string } | null>(null);
   const [showStickyDateLabel, setShowStickyDateLabel] = useState(false);
 
-  const [pendingPeriod, setPendingPeriod] = useState<ActivityPeriod>('month');
-  const [pendingCustomFrom, setPendingCustomFrom] = useState<string | undefined>();
-  const [pendingCustomTo, setPendingCustomTo] = useState<string | undefined>();
-
   const handleOpenPeriodSheet = useCallback(() => {
-    setPendingPeriod(period);
-    setPendingCustomFrom(customFrom);
-    setPendingCustomTo(customTo);
     setShowPeriodSheet(true);
-  }, [period, customFrom, customTo]);
+  }, []);
 
   const flatListRef = useRef<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -241,6 +230,7 @@ export default function ActivityScreen() {
     setGroupByMode('date');
     setCategoryDrilldown(null);
     setIsSearchActive(false);
+    setIsFiltersExpanded(false);
     // Don't null serverCashflow — the existing aggregate stays valid for the
     // default month view we just reset to. Nulling causes a flash of
     // local-derived (paginated) totals before the new aggregate arrives.
@@ -260,6 +250,12 @@ export default function ActivityScreen() {
       }
     });
   }, [resetActivityScrollState, resetAllFilters, trimStoreTransactionsToFirstPage]);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setIsFiltersExpanded(false);
+    }
+  }, [isFocused]);
 
   useEffect(() => {
     if (storeTransactionsLoaded || storePrefetchStartedRef.current) return;
@@ -765,62 +761,6 @@ export default function ActivityScreen() {
     }
   };
 
-  const openCustomFromPicker = () => {
-    DateTimePickerAndroid.open({
-      value: pendingCustomFrom ? new Date(pendingCustomFrom) : (customFrom ? new Date(customFrom) : new Date()),
-      mode: 'date',
-      display: 'calendar',
-      onChange: (event, date) => {
-        if (event.type !== 'set' || !date) return;
-        const pickedFrom = toLocalDayStartISO(date);
-        setPendingCustomFrom(pickedFrom);
-        setPendingPeriod('custom');
-      }
-    });
-  };
-
-  const openCustomToPicker = () => {
-    const minDate = pendingCustomFrom ? new Date(pendingCustomFrom) : (customFrom ? new Date(customFrom) : undefined);
-    DateTimePickerAndroid.open({
-      value: pendingCustomTo ? new Date(pendingCustomTo) : (customTo ? new Date(customTo) : new Date()),
-      mode: 'date',
-      display: 'calendar',
-      minimumDate: minDate,
-      onChange: (event, date) => {
-        if (event.type !== 'set' || !date) return;
-        const pickedTo = toLocalDayEndISO(date);
-        setPendingCustomTo(pickedTo);
-        setPendingPeriod('custom');
-      }
-    });
-  };
-
-  const applyPeriodDirectly = (p: ActivityPeriod, offset: number = 0) => {
-    setPeriod(p);
-    setPeriodOffset(offset);
-    setCustomFrom(undefined);
-    setCustomTo(undefined);
-    setShowPeriodSheet(false);
-    queueScrollToTop(false);
-  };
-
-  const handleApplyPeriod = () => {
-    if (pendingCustomFrom && pendingCustomTo) {
-      const fromDate = new Date(pendingCustomFrom);
-      const toDate = new Date(pendingCustomTo);
-      if (fromDate > toDate) {
-        setCustomFrom(toLocalDayStartISO(toDate));
-        setCustomTo(toLocalDayEndISO(fromDate));
-      } else {
-        setCustomFrom(pendingCustomFrom);
-        setCustomTo(pendingCustomTo);
-      }
-      setPeriod('custom');
-      setPeriodOffset(0);
-      setShowPeriodSheet(false);
-      queueScrollToTop(false);
-    }
-  };
 
   // In default view, read from the store directly — avoids a double-render
   // every time the store's transactions array updates.
@@ -1318,6 +1258,8 @@ export default function ActivityScreen() {
         moreActiveCount={moreActiveCount}
         palette={palette}
         chipScrollResetToken={chipScrollResetToken}
+        isExpanded={isFiltersExpanded}
+        setIsExpanded={setIsFiltersExpanded}
         periodNavigation={
           <ActivityPeriodHeader
             period={period}
@@ -1336,8 +1278,6 @@ export default function ActivityScreen() {
           <SummaryCard cashflow={summaryCardCashflow} sym={sym} palette={palette} isCashflowMode={cashflowBucket !== 'all'} />
         </View>
       ) : null}
-
-      <View style={{ height: 1, backgroundColor: palette.divider, marginBottom: 14 }} />
 
       {groupByMode === 'category' && categoryDrilldown ? (
         <View
@@ -1365,7 +1305,7 @@ export default function ActivityScreen() {
         </View>
       ) : null}
     </View>
-  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, cashflowBucket, setCashflowBucket, derivedCashflowMode, setShowMoreSheet, moreActiveCount, palette, chipScrollResetToken, period, periodLabel, goPrev, goNext, canGoNext, handleOpenPeriodSheet, summaryCardCashflow, sym]);
+  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, cashflowBucket, setCashflowBucket, derivedCashflowMode, setShowMoreSheet, moreActiveCount, palette, chipScrollResetToken, period, periodLabel, goPrev, goNext, canGoNext, handleOpenPeriodSheet, summaryCardCashflow, sym, isFiltersExpanded, setIsFiltersExpanded]);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
@@ -1740,124 +1680,31 @@ export default function ActivityScreen() {
       ) : null}
 
       {showPeriodSheet ? (
-        <BottomSheet
-          title="Period"
+        <PeriodFilterSheet
+          period={period === 'day' ? 'day' : period}
+          periodOffset={periodOffset}
+          customFrom={customFrom}
+          customTo={customTo}
+          yearStart={yearStart}
           palette={palette}
+          onSelectPeriod={(nextPeriod, nextOffset) => {
+            setPeriod(nextPeriod);
+            setPeriodOffset(nextOffset);
+            setCustomFrom(undefined);
+            setCustomTo(undefined);
+            setShowPeriodSheet(false);
+            queueScrollToTop(false);
+          }}
+          onApplyCustom={(fromStr, toStr) => {
+            setCustomFrom(fromStr);
+            setCustomTo(toStr);
+            setPeriod('custom');
+            setPeriodOffset(0);
+            setShowPeriodSheet(false);
+            queueScrollToTop(false);
+          }}
           onClose={() => setShowPeriodSheet(false)}
-          hasNavBar
-          maxHeightRatio={BOTTOM_SHEET_TOKENS.filterWithNavBarMaxHeight}
-        >
-          <ChoiceRow
-            title="Today"
-            subtitle={formatDateFull(new Date().toISOString())}
-            selected={pendingPeriod === 'day' && periodOffset === 0}
-            palette={palette}
-            onPress={() => applyPeriodDirectly('day', 0)}
-          />
-          <ChoiceRow
-            title="Yesterday"
-            subtitle={(() => {
-              const d = new Date();
-              d.setDate(d.getDate() - 1);
-              return formatDateFull(d.toISOString());
-            })()}
-            selected={pendingPeriod === 'day' && periodOffset === -1}
-            palette={palette}
-            onPress={() => applyPeriodDirectly('day', -1)}
-          />
-          <ChoiceRow
-            title="This Week"
-            subtitle={formatRangeLabel('week', yearStart, 0)}
-            selected={pendingPeriod === 'week'}
-            palette={palette}
-            onPress={() => applyPeriodDirectly('week')}
-          />
-          <ChoiceRow
-            title="This Month"
-            subtitle={formatRangeLabel('month', yearStart, 0)}
-            selected={pendingPeriod === 'month'}
-            palette={palette}
-            onPress={() => applyPeriodDirectly('month')}
-          />
-          <ChoiceRow
-            title="Last 30 Days"
-            subtitle={(() => {
-              const r = getLast30DaysRange();
-              return getPeriodNavLabel('custom', r.from, r.to);
-            })()}
-            selected={pendingPeriod === 'last30'}
-            palette={palette}
-            onPress={() => applyPeriodDirectly('last30')}
-          />
-          <ChoiceRow
-            title="This Year"
-            subtitle={formatRangeLabel('year', yearStart, 0)}
-            selected={pendingPeriod === 'year'}
-            palette={palette}
-            onPress={() => applyPeriodDirectly('year')}
-          />
-          <ChoiceRow
-            title="All Time"
-            selected={pendingPeriod === 'all'}
-            palette={palette}
-            onPress={() => applyPeriodDirectly('all')}
-          />
-          <View style={{ backgroundColor: palette.background, paddingHorizontal: CARD_PADDING, paddingTop: 10, paddingBottom: 16, borderTopWidth: 1, borderTopColor: palette.divider }}>
-            <ListHeading label="Custom Range" palette={palette} paddingHorizontal={0} paddingTop={0} paddingBottom={10} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <TouchableOpacity delayPressIn={0}
-                onPress={openCustomFromPicker}
-                style={[
-                  styles.dateField,
-                  {
-                    borderColor: (pendingPeriod === 'custom' || pendingCustomFrom) ? palette.brand : palette.divider,
-                    backgroundColor: palette.surface,
-                    justifyContent: 'center',
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: (pendingCustomFrom || customFrom) ? palette.text : palette.textSoft }}>
-                  {pendingCustomFrom ? formatDateFull(pendingCustomFrom) : (customFrom ? formatDateFull(customFrom) : 'From')}
-                </Text>
-              </TouchableOpacity>
-
-              <AppIcon name="arrow-right" size={18} color={palette.textSoft} />
-
-              <TouchableOpacity delayPressIn={0}
-                onPress={openCustomToPicker}
-                style={[
-                  styles.dateField,
-                  {
-                    borderColor: (pendingPeriod === 'custom' || pendingCustomTo) ? palette.brand : palette.divider,
-                    backgroundColor: palette.surface,
-                    justifyContent: 'center',
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: (pendingCustomTo || customTo) ? palette.text : palette.textSoft }}>
-                  {pendingCustomTo ? formatDateFull(pendingCustomTo) : (customTo ? formatDateFull(customTo) : 'To')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity delayPressIn={0}
-              onPress={handleApplyPeriod}
-              style={[
-                styles.applyBtn,
-                {
-                  height: 48,
-                  borderRadius: HOME_RADIUS.pill,
-                  backgroundColor: (pendingCustomFrom && pendingCustomTo) ? palette.brand : palette.borderSoft
-                },
-              ]}
-              activeOpacity={0.8}
-            >
-              <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.bold, color: palette.onBrand }}>
-                Apply
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </BottomSheet>
+        />
       ) : null}
 
       {showMoreSheet ? (
@@ -1926,10 +1773,6 @@ function familyAwareCurrency(familyKey: HierarchyFamily, total: number, sym: str
   return signedCurrency(total, sym);
 }
 
-function formatRangeLabel(period: 'week' | 'month' | 'year', yearStart: number, offset: number) {
-  const range = getNavigableDateRange(period, offset, yearStart);
-  return getPeriodNavLabel(period, range.from, range.to);
-}
 
 const styles = StyleSheet.create({
   topBar: {

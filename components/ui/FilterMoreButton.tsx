@@ -2,7 +2,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
-import { FONT_WEIGHT, APP_CARD_RADIUS } from '../../lib/design';
+import { FONT_WEIGHT } from '../../lib/design';
 import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 
@@ -38,7 +38,7 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
           paddingVertical: 6,
           paddingHorizontal: 14,
           justifyContent: 'center',
-          borderRadius: APP_CARD_RADIUS,
+          borderRadius: ACTIVITY_LAYOUT.chipRadius,
         },
         style,
       ]}
@@ -68,7 +68,7 @@ export function FilterMoreButton({ onPress, moreActiveCount, palette, flex, icon
 
 const styles = StyleSheet.create({
   moreChip: {
-    height: 32,
+    height: ACTIVITY_LAYOUT.controlHeight,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,

@@ -19,6 +19,8 @@ interface ScreenHeaderProps {
   backgroundColor?: string;
   titleColor?: string;
   iconColor?: string;
+  /** Size of the back-arrow icon in dp. Defaults to 22. */
+  iconSize?: number;
 }
 
 import { PillIconButton } from './PillIconButton';
@@ -128,6 +130,7 @@ export function ScreenHeader({
   backgroundColor,
   titleColor,
   iconColor,
+  iconSize = 22,
 }: ScreenHeaderProps) {
   const resolvedBg = backgroundColor ?? palette.background;
   const resolvedTitle = titleColor ?? palette.text;
@@ -154,7 +157,7 @@ export function ScreenHeader({
             },
           ]}
         >
-          <AppIcon name="arrow-left" size={22} color={resolvedIcon} strokeWidth={2} />
+          <AppIcon name="arrow-left" size={iconSize} color={resolvedIcon} strokeWidth={2} />
         </TouchableOpacity>
       )}
 

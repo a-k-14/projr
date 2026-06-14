@@ -162,7 +162,7 @@ export function PersonPickerSheet({
                   <Text
                     style={{
                       fontSize: HOME_TEXT.body,
-                      fontWeight: FONT_WEIGHT.medium,
+                      fontWeight: FONT_WEIGHT.regular,
                       color: palette.brand,
                     }}
                   >

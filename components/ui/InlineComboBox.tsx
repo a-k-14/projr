@@ -29,7 +29,6 @@ import {
 const ROW_HEIGHT = 50;
 const MAX_VISIBLE = 5;
 const OPEN_MS = 210;
-const CLOSE_MS = 170;
 
 interface Props {
   label: string;
@@ -122,11 +121,8 @@ export function InlineComboBox({
 
   const collapse = useCallback(() => {
     'worklet';
-    listH.value = withTiming(0, {
-      duration: CLOSE_MS,
-      easing: Easing.inOut(Easing.ease),
-    });
-    listAlpha.value = withTiming(0, { duration: CLOSE_MS });
+    listH.value = 0;
+    listAlpha.value = 0;
   }, [listH, listAlpha]);
 
   useEffect(() => {
@@ -326,7 +322,7 @@ export function InlineComboBox({
                 }}
               >
                 <AppIcon name="plus-circle" size={16} color={palette.brand} />
-                <Text style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.medium, color: palette.brand }}>
+                <Text style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.regular, color: palette.brand }}>
                   Add "{normalized}"
                 </Text>
               </TouchableOpacity>

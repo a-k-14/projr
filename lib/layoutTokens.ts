@@ -165,7 +165,7 @@ export const BUTTON_TOKENS = {
 export const PRIMARY_ACTION = BUTTON_TOKENS.filled;
 
 export const SCREEN_HEADER = {
-  titleSize: 18,
+  titleSize: 16,
   titleWeight: '500' as const,
   iconTitleGap: HOME_SPACE.md,
   paddingX: 14,
@@ -180,7 +180,7 @@ export const ACTIVITY_LAYOUT = {
   headerRowGap: 8,
   controlRadius: 22,
   controlRowGap: 6,
-  controlHeight: 40,
+  controlHeight: 36,
   controlChipPaddingX: 14,
   controlChipPaddingY: 7,
   controlChipGap: 6,
@@ -248,7 +248,7 @@ export const PROGRESS = PROGRESS_LAYOUT;
 // Color tokens come from palette.* directly — no local overrides needed.
 export const FORM_TOKENS = {
   gutter: 16,                   // horizontal section margin
-  sectionGap: 14,               // marginTop between consecutive sections
+  sectionGap: 20,               // marginTop between consecutive sections
   rowMinHeight: 56,             // standard tappable row height
   cardRadius: HOME_RADIUS.card, // card border-radius — same as AppCard
   dividerIndent: 58,            // left indent on intra-card dividers
