@@ -1,6 +1,7 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import React, { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { ACTIVITY_LAYOUT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
 import { TransactionType } from '../../types';
@@ -44,14 +45,54 @@ export function ActivityFilterBar({
     chipScrollRef.current?.scrollTo({ x: 0, animated: false });
   }, [chipScrollResetToken]);
 
+  const hasActiveFiltersOnLine2 =
+    accountLabel !== 'All Accounts' ||
+    typeFilter !== 'all' ||
+    cashflowBucket !== 'all' ||
+    moreActiveCount > 0;
+
+  const [isExpanded, setIsExpanded] = React.useState(hasActiveFiltersOnLine2);
+
+  const expansion = useSharedValue(hasActiveFiltersOnLine2 ? 1 : 0);
+
+  useEffect(() => {
+    expansion.value = withTiming(isExpanded ? 1 : 0, {
+      duration: 200,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [isExpanded]);
+
+  useEffect(() => {
+    if (!hasActiveFiltersOnLine2 && isExpanded) {
+      setIsExpanded(false);
+    }
+  }, [hasActiveFiltersOnLine2]);
+
+  const toggleExpand = () => {
+    setIsExpanded(prev => !prev);
+  };
+
+  const animStyle = useAnimatedStyle(() => ({
+    height: expansion.value * 52,
+    opacity: expansion.value,
+  }));
+
+  const outerStyle = useAnimatedStyle(() => ({
+    paddingBottom: (1 - expansion.value) * 6,
+  }));
+
+  const row1Style = useAnimatedStyle(() => ({
+    marginBottom: expansion.value * ACTIVITY_LAYOUT.headerRowGap,
+  }));
+
   return (
-    <View>
-      <View
+    <Animated.View style={outerStyle}>
+      <Animated.View
         style={[
           styles.row,
+          row1Style,
           {
             paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-            marginBottom: ACTIVITY_LAYOUT.headerRowGap
           },
         ]}
       >
@@ -59,79 +100,114 @@ export function ActivityFilterBar({
           {periodNavigation}
         </View>
 
-        <AccountPickerButton
-          label={accountLabel}
-          onPress={() => setShowAccountSheet(true)}
-          palette={palette}
-          width={ACTIVITY_LAYOUT.accountPickerWidth}
-        />
-      </View>
-
-      <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, marginBottom: ACTIVITY_LAYOUT.summaryPaddingBottom }]}>
         <ActivityViewModeToggle
           mode={viewMode}
           palette={palette}
           onChange={setViewMode}
         />
-        <ScrollView
-          ref={chipScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingLeft: ACTIVITY_LAYOUT.controlChipGap, paddingRight: ACTIVITY_LAYOUT.controlChipGap, paddingBottom: 2 }}
+
+        <TouchableOpacity
+          delayPressIn={0}
+          activeOpacity={0.75}
+          onPress={toggleExpand}
+          style={[
+            styles.expandButton,
+            {
+              backgroundColor: 'transparent',
+            }
+          ]}
         >
-          <View style={styles.chipRow}>
-            {(() => {
-              const typeOptions = [
-                { label: 'All', key: 'all' },
-                { label: 'Income', key: 'in' },
-                { label: 'Expense', key: 'out' },
-                { label: 'Transfer', key: 'transfer' },
-                { label: 'Deposit', key: 'deposit' },
-                { label: 'Loan', key: 'loan' },
-              ] as const;
+          <AppIcon
+            name="sliders-horizontal"
+            size={18}
+            color={isExpanded ? palette.textSecondary : palette.textMuted}
+          />
+          {hasActiveFiltersOnLine2 && !isExpanded && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 5,
+                right: 5,
+                width: 7,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: palette.brand,
+              }}
+            />
+          )}
+        </TouchableOpacity>
+      </Animated.View>
 
-              return typeOptions.map((option) => {
-                let isActive = false;
-                if (option.key === 'all') {
-                  isActive = typeFilter === 'all' && cashflowBucket === 'all';
-                } else if (option.key === 'in') {
-                  isActive = typeFilter === 'in' && cashflowBucket === 'all';
-                } else if (option.key === 'out') {
-                  isActive = typeFilter === 'out' && cashflowBucket === 'all';
-                } else {
-                  isActive = typeFilter === option.key;
-                }
+      <Animated.View style={[animStyle, { overflow: 'hidden' }]}>
+        <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, height: 40, marginBottom: 12 }]}>
+          <AccountPickerButton
+            label={accountLabel}
+            onPress={() => setShowAccountSheet(true)}
+            palette={palette}
+            compact
+            width={122}
+            style={{ marginRight: 8 }}
+          />
+          <ScrollView
+            ref={chipScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingLeft: ACTIVITY_LAYOUT.controlChipGap, paddingRight: ACTIVITY_LAYOUT.controlChipGap, paddingBottom: 2 }}
+          >
+            <View style={styles.chipRow}>
+              {(() => {
+                const typeOptions = [
+                  { label: 'All', key: 'all' },
+                  { label: 'Income', key: 'in' },
+                  { label: 'Expense', key: 'out' },
+                  { label: 'Transfer', key: 'transfer' },
+                  { label: 'Deposit', key: 'deposit' },
+                  { label: 'Loan', key: 'loan' },
+                ] as const;
 
-                return (
-                  <FilterChip
-                    key={option.key}
-                    label={option.label}
-                    isActive={isActive}
-                    onPress={() => {
-                      if (option.key === 'all') {
-                        setTypeFilter('all');
-                        setCashflowBucket('all');
-                      } else {
-                        setTypeFilter(option.key);
-                        setCashflowBucket('all');
-                      }
-                    }}
-                    palette={palette}
-                  />
-                );
-              });
-            })()}
-          </View>
-        </ScrollView>
-        <FilterMoreButton
-          palette={palette}
-          moreActiveCount={moreActiveCount}
-          onPress={() => setShowMoreSheet(true)}
-          iconOnly
-        />
-      </View>
-    </View>
+                return typeOptions.map((option) => {
+                  let isActive = false;
+                  if (option.key === 'all') {
+                    isActive = typeFilter === 'all' && cashflowBucket === 'all';
+                  } else if (option.key === 'in') {
+                    isActive = typeFilter === 'in' && cashflowBucket === 'all';
+                  } else if (option.key === 'out') {
+                    isActive = typeFilter === 'out' && cashflowBucket === 'all';
+                  } else {
+                    isActive = typeFilter === option.key;
+                  }
+
+                  return (
+                    <FilterChip
+                      key={option.key}
+                      label={option.label}
+                      isActive={isActive}
+                      onPress={() => {
+                        if (option.key === 'all') {
+                          setTypeFilter('all');
+                          setCashflowBucket('all');
+                        } else {
+                          setTypeFilter(option.key);
+                          setCashflowBucket('all');
+                        }
+                      }}
+                      palette={palette}
+                    />
+                  );
+                });
+              })()}
+            </View>
+          </ScrollView>
+          <FilterMoreButton
+            palette={palette}
+            moreActiveCount={moreActiveCount}
+            onPress={() => setShowMoreSheet(true)}
+            iconOnly
+          />
+        </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
@@ -191,12 +267,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
     flexShrink: 0,
+    height: ACTIVITY_LAYOUT.controlHeight,
   },
   viewModeButton: {
     width: 42,
-    height: 29,
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  expandButton: {
+    height: ACTIVITY_LAYOUT.controlHeight,
+    width: ACTIVITY_LAYOUT.controlHeight,
+    borderRadius: ACTIVITY_LAYOUT.chipRadius,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: ACTIVITY_LAYOUT.controlChipGap,
   },
   moreChip: {
     height: 36,

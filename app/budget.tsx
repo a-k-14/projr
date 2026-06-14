@@ -27,6 +27,7 @@ function monthStartIso(date: Date) {
 
 import { ScreenScaffold } from '../components/ui/ScreenScaffold';
 
+
 export default function BudgetScreen() {
   const isFocused = useIsFocused();
   const budgets = useBudgetStore((s) => s.budgets);
@@ -121,7 +122,7 @@ export default function BudgetScreen() {
         title="Budgets"
         palette={palette}
         showBack={true}
-        onBack={() => router.replace('/')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         rightAction={
           <HeaderAddButton palette={palette} onPress={() => router.push({ pathname: '/modals/budget-form', params: { month: selectedMonth } })} />
         }

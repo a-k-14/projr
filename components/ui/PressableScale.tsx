@@ -9,7 +9,7 @@
  * inherits it.
  */
 import React from 'react';
-import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, type StyleProp, type ViewStyle, type GestureResponderEvent } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -20,14 +20,14 @@ const PRESS_IN = { damping: 20, stiffness: 360, mass: 0.5 } as const;
 const PRESS_OUT = { damping: 18, stiffness: 320, mass: 0.6 } as const;
 
 interface PressableScaleProps {
-  onPress?: () => void;
+  onPress?: (event: GestureResponderEvent) => void;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   activeScale?: number;
   disabled?: boolean;
   hitSlop?: number | { top?: number; bottom?: number; left?: number; right?: number };
   /** Forwarded so callers can stop row presses from firing on inner taps, etc. */
-  onLongPress?: () => void;
+  onLongPress?: (event: GestureResponderEvent) => void;
 }
 
 export function PressableScale({

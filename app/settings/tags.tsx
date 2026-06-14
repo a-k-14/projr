@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { View , TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
 import {
   CardSection,
   FixedBottomActions,
@@ -11,6 +11,7 @@ import { TYPE, FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { PressableScale } from '../../components/ui/PressableScale';
 
 export default function TagsScreen() {
   const { tags, load, isLoaded } = useCategoriesStore();
@@ -26,9 +27,9 @@ export default function TagsScreen() {
       palette={palette}
       bottomAction={
         <FixedBottomActions palette={palette}>
-          <TouchableOpacity delayPressIn={0}
+          <PressableScale
             onPress={() => router.push('/settings/tag-form')}
-            activeOpacity={0.7}
+            activeScale={0.96}
             style={{
               minHeight: 48,
               borderRadius: HOME_RADIUS.pill,
@@ -38,7 +39,7 @@ export default function TagsScreen() {
               justifyContent: 'center' }}
           >
             <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>+ Add Tag</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </FixedBottomActions>
       }
     >

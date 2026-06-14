@@ -243,6 +243,17 @@ export const LAYOUT = HOME_LAYOUT;
 export const SHADOW = HOME_SHADOW;
 export const PROGRESS = PROGRESS_LAYOUT;
 
+// ─── Form layout tokens ───────────────────────────────────────────────────────
+// Single source of truth for add-transaction (and future forms) spacing/layout.
+// Color tokens come from palette.* directly — no local overrides needed.
+export const FORM_TOKENS = {
+  gutter: 16,                   // horizontal section margin
+  sectionGap: 14,               // marginTop between consecutive sections
+  rowMinHeight: 56,             // standard tappable row height
+  cardRadius: HOME_RADIUS.card, // card border-radius — same as AppCard
+  dividerIndent: 58,            // left indent on intra-card dividers
+} as const;
+
 // ─── Shared page size ─────────────────────────────────────────────────────────
 // Used by useTransactionsStore and activity.tsx so both stay in sync.
 export const TRANSACTIONS_PAGE_SIZE = 20;

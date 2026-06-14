@@ -2,12 +2,13 @@ import { AppIcon, IconName } from '@/components/ui/AppIcon';
 import { router, Tabs } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
-import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useWindowDimensions, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { getTabReset, runAfterTabHidden } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
+import { PressableScale } from '../../components/ui/PressableScale';
 
 const TAB_ITEMS: Record<string, { icon: IconName; label: string }> = {
   index: { icon: 'house', label: 'Home' },
@@ -65,7 +66,7 @@ function AppTabBar({
   const pillX = useSharedValue(getPillTarget(targetSlotIndex));
 
   useEffect(() => {
-    pillX.value = withTiming(getPillTarget(targetSlotIndex), { duration: 160 });
+    pillX.value = withSpring(getPillTarget(targetSlotIndex), { damping: 20, stiffness: 300, mass: 0.5 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetSlotIndex, itemWidth]);
 
@@ -118,11 +119,10 @@ function AppTabBar({
         {TAB_BAR_SLOTS.map((slot) => {
           if (slot === 'add') {
             return (
-              <TouchableOpacity
+              <PressableScale
                 key="add"
-                delayPressIn={0}
-                activeOpacity={0.88}
                 onPress={() => router.push('/modals/add-transaction')}
+                activeScale={0.94}
                 style={{
                   width: itemWidth,
                   height: tabHeight,
@@ -157,7 +157,7 @@ function AppTabBar({
                     />
                   </View>
                 </View>
-              </TouchableOpacity>
+              </PressableScale>
             );
           }
 
@@ -193,11 +193,10 @@ function AppTabBar({
           };
 
           return (
-            <TouchableOpacity
-              delayPressIn={0}
+            <PressableScale
               key={route.key}
-              activeOpacity={0.82}
               onPress={onPress}
+              activeScale={0.92}
               style={{
                 width: itemWidth,
                 height: tabHeight,
@@ -212,7 +211,7 @@ function AppTabBar({
                 color={focused ? palette.brand : palette.textSecondary}
                 strokeWidth={focused ? 2 : 1.75}
               />
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </View>

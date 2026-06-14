@@ -1,10 +1,11 @@
 import { Text } from '@/components/ui/AppText';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
-import { TouchableOpacity, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
+import { type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { BUTTON_TOKENS, PRIMARY_ACTION , HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { FONT_WEIGHT } from '../../lib/design';
+import { PressableScale } from './PressableScale';
 
 type FilledTone = 'brand' | 'loan' | 'budget' | 'danger' | 'neutral';
 type TextTone = 'brand' | 'loan' | 'danger' | 'default' | 'muted';
@@ -80,11 +81,10 @@ export function FilledButton({
 }: BaseButtonProps & { tone?: FilledTone }) {
   const colors = getFilledColors(palette, tone, disabled);
   return (
-    <TouchableOpacity
-      delayPressIn={0}
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
-      activeOpacity={0.85}
+      activeScale={0.97}
       style={[
         {
           minHeight: PRIMARY_ACTION.height,
@@ -109,7 +109,7 @@ export function FilledButton({
           {label}
         </Text>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -123,11 +123,10 @@ export function OutlinedButton({
 }: BaseButtonProps & { tone?: OutlinedTone }) {
   const colors = getOutlinedColors(palette, tone, disabled);
   return (
-    <TouchableOpacity
-      delayPressIn={0}
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
-      activeOpacity={0.75}
+      activeScale={0.98}
       style={[
         {
           height: 36,
@@ -152,7 +151,7 @@ export function OutlinedButton({
       >
         {label}
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -166,11 +165,10 @@ export function TextButton({
   style,
 }: BaseButtonProps & { tone?: TextTone; compact?: boolean }) {
   return (
-    <TouchableOpacity
-      delayPressIn={0}
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
-      activeOpacity={0.75}
+      activeScale={0.98}
       style={[
         {
           alignItems: 'center',
@@ -191,7 +189,7 @@ export function TextButton({
       >
         {label}
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -212,10 +210,9 @@ export function ActionChip({
 }) {
   const color = destructive ? palette.uiNegative : palette.text;
   return (
-    <TouchableOpacity
-      delayPressIn={0}
-      activeOpacity={0.7}
+    <PressableScale
       onPress={onPress}
+      activeScale={0.97}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -242,7 +239,7 @@ export function ActionChip({
       >
         {label}
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

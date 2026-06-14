@@ -82,7 +82,7 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
   return (
     <View>
       <TransactionDateHeader dateKey={group.dateKey} palette={palette} />
-      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF', overflow: 'hidden' }}>
+      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
         {group.items.map((tx, index) => (
           <TransactionListItem
             key={tx.id}

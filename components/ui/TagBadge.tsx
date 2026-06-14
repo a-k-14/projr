@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, StyleProp, ViewStyle } from 'react-native';
-import { Text } from './AppText';
-import { AppIcon } from './AppIcon';
+import { StyleProp, View, ViewStyle } from 'react-native';
 import { FONT_WEIGHT } from '../../lib/design';
-import { hexToRGBA } from '../../lib/ui-utils';
 import type { AppThemePalette } from '../../lib/theme';
+import { hexToRGBA } from '../../lib/ui-utils';
+import { AppIcon } from './AppIcon';
+import { Text } from './AppText';
 
 export interface TagBadgeProps {
   name: string;

@@ -40,7 +40,7 @@ export function SectionCard({
   return (
     <View
       style={{
-        backgroundColor: palette.isDark ? palette.surface : '#FAFAFA',
+        backgroundColor: palette.surface,
         borderRadius: HOME_RADIUS.large,
         marginHorizontal: horizontalInset,
         borderWidth: 1,

@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { FlatList, TouchableOpacity, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   FixedBottomActions,
@@ -49,10 +49,9 @@ export default function AccountsScreen() {
       useScrollView={false}
       bottomAction={
         <FixedBottomActions palette={palette}>
-          <TouchableOpacity
-            delayPressIn={0}
+          <PressableScale
             onPress={() => router.push('/settings/account-form')}
-            activeOpacity={0.7}
+            activeScale={0.96}
             style={{
               minHeight: 48,
               borderRadius: HOME_RADIUS.pill,
@@ -65,7 +64,7 @@ export default function AccountsScreen() {
             <Text appWeight="medium" style={{ fontSize: TYPE.section, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>
               + Add Account
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         </FixedBottomActions>
       }
     >

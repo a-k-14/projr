@@ -221,10 +221,9 @@ export default function CategoriesScreen() {
       useScrollView={false}
       bottomAction={
         <FixedBottomActions palette={palette}>
-          <TouchableOpacity
-            delayPressIn={0}
+          <PressableScale
             onPress={() => router.push({ pathname: '/settings/category-form', params: { type: tab } })}
-            activeOpacity={0.7}
+            activeScale={0.96}
             style={{
               minHeight: 48,
               borderRadius: HOME_RADIUS.pill,
@@ -237,7 +236,7 @@ export default function CategoriesScreen() {
             <Text style={{ fontSize: TYPE.section, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>
               + Add Category
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         </FixedBottomActions>
       }
     >

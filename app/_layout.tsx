@@ -233,23 +233,23 @@ export default function RootLayout() {
                 <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="modals/add-transaction"
-                  options={{ headerShown: false }}
+                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}
                 />
                 <Stack.Screen
                   name="modals/asset-form"
-                  options={{ headerShown: false }}
+                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}
                 />
                 <Stack.Screen
                   name="modals/budget-form"
-                  options={{ headerShown: false }}
+                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}
                 />
                 <Stack.Screen
                   name="modals/loan-settlement"
-                  options={{ headerShown: false }}
+                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}
                 />
                 <Stack.Screen
                   name="modals/split-transaction"
-                  options={{ headerShown: false }}
+                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}
                 />
               </Stack>
             </SecurityGuard>

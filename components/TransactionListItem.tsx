@@ -283,7 +283,7 @@ function TransactionListItemBase({
         {
           paddingVertical: paddingY,
           borderRadius: isCard ? HOME_RADIUS.card : 0,
-          backgroundColor: isCard ? (palette.isDark ? palette.surface : '#FFFFFF') : 'transparent',
+          backgroundColor: isCard ? palette.surface : 'transparent',
           borderWidth: 0,
           borderBottomWidth: isCard ? 0 : (isLast ? 0 : 1),
           borderBottomColor: palette.divider,

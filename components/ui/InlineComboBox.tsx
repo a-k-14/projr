@@ -9,7 +9,7 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -55,6 +55,8 @@ interface Props {
   rightAnnotation?: string;
   required?: boolean;
   hasError?: boolean;
+  leftIcon?: string;
+  hideLabel?: boolean;
 }
 
 export function InlineComboBox({
@@ -74,12 +76,15 @@ export function InlineComboBox({
   keyboardType = 'default',
   rightAnnotation,
   hasError = false,
+  leftIcon,
+  hideLabel = false,
 }: Props) {
   const [query, setQuery] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
   const suppressBlurRef = useRef(false);
   const listH = useSharedValue(0);
   const listAlpha = useSharedValue(0);
+  const inputRef = useRef<TextInput>(null);
 
   // Sync query when value changes externally (editing mode)
   useEffect(() => { setQuery(value); }, [value]);
@@ -89,59 +94,45 @@ export function InlineComboBox({
 
   const displayList = useMemo(() => {
     if (!filterLocally) return suggestions;
-    if (!normalized) return [];
-    return suggestions.filter((s) =>
-      s.toLowerCase().includes(normalized.toLowerCase()),
+    if (!query.trim()) return [];
+    return suggestions.filter(
+      (person) =>
+        normalizePerson(person).includes(normalized) &&
+        normalizePerson(person) !== normalized
     );
-  }, [filterLocally, suggestions, normalized]);
+  }, [suggestions, query, filterLocally, normalized]);
 
-  const exactMatch = filterLocally
-    ? suggestions.some((s) => s.toLowerCase() === normalized.toLowerCase())
-    : false;
-  const showAddRow = showAdd && filterLocally && normalized.length > 0 && !exactMatch;
+  const showAddRow =
+    showAdd &&
+    filterLocally &&
+    query.trim() !== '' &&
+    !suggestions.map(normalizePerson).includes(normalized);
 
-  const shouldShowDropdown = !filterLocally || normalized.length > 0;
-  const rowCount = shouldShowDropdown ? (showAddRow ? 1 : 0) + displayList.length : 0;
-  const effectiveRows = shouldShowDropdown
-    ? Math.max(rowCount, isFocused && displayList.length === 0 && !showAddRow ? 0 : rowCount)
-    : 0;
-  const targetH = Math.min(Math.max(effectiveRows, 0), MAX_VISIBLE) * ROW_HEIGHT;
-  const targetHRef = useRef(targetH);
-  targetHRef.current = targetH;
+  const rowCount = displayList.length + (showAddRow ? 1 : 0);
 
-  // ── Animation ──────────────────────────────────────────────────────────────
+  // ── Collapsible animations ──────────────────────────────────────────────────
   const expand = useCallback(() => {
-    if (targetHRef.current === 0) return;
-    listH.value = withTiming(targetHRef.current, {
+    'worklet';
+    listH.value = withTiming(Math.min(rowCount, MAX_VISIBLE) * ROW_HEIGHT, {
       duration: OPEN_MS,
-      easing: Easing.out(Easing.cubic),
+      easing: Easing.out(Easing.ease),
     });
-    listAlpha.value = withTiming(1, { duration: OPEN_MS - 50 });
-  }, [listH, listAlpha]);
+    listAlpha.value = withTiming(1, { duration: OPEN_MS });
+  }, [rowCount, listH, listAlpha]);
 
   const collapse = useCallback(() => {
-    listAlpha.value = withTiming(0, { duration: CLOSE_MS - 50 });
+    'worklet';
     listH.value = withTiming(0, {
       duration: CLOSE_MS,
-      easing: Easing.in(Easing.cubic),
+      easing: Easing.inOut(Easing.ease),
     });
+    listAlpha.value = withTiming(0, { duration: CLOSE_MS });
   }, [listH, listAlpha]);
 
-  // Open/close when suggestions arrive or clear while focused
   useEffect(() => {
-    if (!isFocused) return;
-    if (rowCount > 0) expand();
+    if (isFocused && rowCount > 0) expand();
     else collapse();
-  }, [rowCount, isFocused, expand, collapse]);
-
-  // Smoothly resize when row count changes while open
-  useEffect(() => {
-    if (!isFocused || rowCount === 0) return;
-    listH.value = withTiming(targetH, {
-      duration: 130,
-      easing: Easing.out(Easing.quad),
-    });
-  }, [targetH, isFocused, rowCount, listH]);
+  }, [isFocused, rowCount, expand, collapse]);
 
   const animStyle = useAnimatedStyle(() => ({
     height: listH.value,
@@ -149,40 +140,33 @@ export function InlineComboBox({
   }));
 
   // ── Handlers ───────────────────────────────────────────────────────────────
-  function handleFocus() {
-    setIsFocused(true);
-    if (rowCount > 0) expand();
-    onFocusProp?.();
-  }
-
-  function handleBlur() {
-    setTimeout(() => {
-      if (!suppressBlurRef.current) {
-        setIsFocused(false);
-        collapse();
-      }
-      suppressBlurRef.current = false;
-    }, 150);
-    onBlurProp?.();
-  }
-
-  function handleChangeText(text: string) {
+  const handleChangeText = (text: string) => {
     setQuery(text);
     onChange(text);
-    if (!isFocused) {
-      setIsFocused(true);
-      expand();
-    }
-  }
+  };
 
-  function handleSelect(name: string) {
-    suppressBlurRef.current = false;
+  const handleFocus = () => {
+    setIsFocused(true);
+    onFocusProp?.();
+  };
+
+  const handleBlur = () => {
+    if (suppressBlurRef.current) {
+      suppressBlurRef.current = false;
+      return;
+    }
+    setIsFocused(false);
+    onBlurProp?.();
+  };
+
+  const handleSelect = (name: string) => {
     setQuery(name);
     onChange(name);
     setIsFocused(false);
     collapse();
-  }
+  };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   const focusedColor = accentColor ?? palette.tabActive;
 
   const inputBaseStyle = {
@@ -194,45 +178,67 @@ export function InlineComboBox({
     borderBottomColor: hasError ? palette.negative : (isFocused ? focusedColor : palette.borderSoft),
   } as const;
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <View>
       {/* Input row */}
       {multiline ? (
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingVertical: 14 }}>
-          <Text
-            appWeight="medium"
-            style={{
-              fontSize: HOME_TEXT.body,
-              fontWeight: FONT_WEIGHT.medium,
-              color: hasError ? palette.negative : palette.textSecondary,
-              marginBottom: 10,
-            }}
-          >
-            {label}
-          </Text>
-          <TextInput
-            value={query}
-            onChangeText={handleChangeText}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder={placeholder ?? 'Add a note…'}
-            placeholderTextColor={palette.textSoft}
-            cursorColor={hasError ? palette.negative : (palette.isDark ? '#FFFFFF' : '#000000')}
-            autoFocus={autoFocus}
-            multiline
-            style={{
-              fontSize: HOME_TEXT.bodyLarge,
-              color: palette.text,
-              paddingVertical: 0,
-              minHeight: 72,
-              textAlignVertical: 'top',
-              lineHeight: 20,
-            }}
-          />
-        </View>
+        <Pressable
+          onPress={() => inputRef.current?.focus()}
+          style={leftIcon ? {
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            gap: 12,
+          } : {
+            paddingHorizontal: SCREEN_GUTTER,
+            paddingVertical: 14,
+          }}
+        >
+          {leftIcon ? (
+            <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+              <AppIcon name={leftIcon} size={18} color={palette.text} />
+            </View>
+          ) : null}
+          <View style={{ flex: 1 }}>
+            {!hideLabel && (
+              <Text
+                appWeight="medium"
+                style={{
+                  fontSize: HOME_TEXT.body,
+                  fontWeight: FONT_WEIGHT.medium,
+                  color: hasError ? palette.negative : palette.textSecondary,
+                  marginBottom: 10,
+                }}
+              >
+                {label}
+              </Text>
+            )}
+            <TextInput
+              ref={inputRef}
+              value={query}
+              onChangeText={handleChangeText}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              placeholder={placeholder ?? 'Add a note…'}
+              placeholderTextColor={palette.textSoft}
+              cursorColor={hasError ? palette.negative : (palette.isDark ? '#FFFFFF' : '#000000')}
+              autoFocus={autoFocus}
+              multiline
+              style={{
+                fontSize: HOME_TEXT.bodyLarge,
+                color: palette.text,
+                paddingVertical: 0,
+                minHeight: 72,
+                textAlignVertical: 'top',
+                lineHeight: 20,
+              }}
+            />
+          </View>
+        </Pressable>
       ) : (
-        <View
+        <Pressable
+          onPress={() => inputRef.current?.focus()}
           style={{
             paddingHorizontal: SCREEN_GUTTER,
             minHeight: ROW_MIN_HEIGHT,
@@ -254,6 +260,7 @@ export function InlineComboBox({
           </Text>
           <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' }}>
             <TextInput
+              ref={inputRef}
               value={query}
               onChangeText={handleChangeText}
               onFocus={handleFocus}
@@ -277,7 +284,7 @@ export function InlineComboBox({
               </Text>
             ) : null}
           </View>
-        </View>
+        </Pressable>
       )}
 
       {/* Animated dropdown */}
@@ -379,3 +386,4 @@ export function InlineComboBox({
     </View>
   );
 }
+
