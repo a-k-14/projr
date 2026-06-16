@@ -21,6 +21,8 @@
   ],
   "exclude": [
     ".claude",
+    ".claude/**/*",
+    "**/worktrees/**/*",
     "node_modules"
   ]
 }

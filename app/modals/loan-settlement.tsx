@@ -3,6 +3,7 @@ import { Text } from '@/components/ui/AppText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
+  BackHandler,
   InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
@@ -76,6 +77,7 @@ export default function LoanSettlementModal() {
   const amountInputRef = useRef<TextInput | null>(null);
 
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [initialTx, setInitialTx] = useState<any | null>(null);
   const shakeOffset = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeOffset.value }]
@@ -103,6 +105,7 @@ export default function LoanSettlementModal() {
                 ? 'principal'
                 : 'others'
           );
+          setInitialTx(tx);
         });
         return;
       }
@@ -113,7 +116,8 @@ export default function LoanSettlementModal() {
           setPersonName(loan.personName);
           setLoanDirection(loan.direction);
           setAccountId(loan.accountId);
-          setDate(new Date().toISOString());
+          const initialDate = new Date().toISOString();
+          setDate(initialDate);
         });
       }
     });
@@ -128,6 +132,60 @@ export default function LoanSettlementModal() {
     });
     return () => task.cancel();
   }, []);
+
+  const checkIsDirty = () => {
+    if (isEditing) {
+      if (!initialTx) return false;
+      const originalAmountStr = formatIndianNumberStr(String(initialTx.amount));
+      const originalNote = getLoanTransactionUserNote(initialTx.note);
+      const originalType = initialTx.loanTransactionType || 'principal';
+      return (
+        amountStr !== originalAmountStr ||
+        accountId !== initialTx.accountId ||
+        date !== initialTx.date ||
+        note !== originalNote ||
+        loanTransactionType !== originalType
+      );
+    }
+    return amountStr !== '' || note !== '';
+  };
+
+  const closeScreen = () => {
+    if (checkIsDirty()) {
+      showConfirm({
+        title: 'Discard Changes',
+        message: 'Are you sure you want to discard your changes?',
+        confirmLabel: 'Discard',
+        onConfirm: () => {
+          router.back();
+        },
+      });
+      return;
+    }
+    router.back();
+  };
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (checkIsDirty()) {
+        showConfirm({
+          title: 'Discard Changes',
+          message: 'Are you sure you want to discard your changes?',
+          confirmLabel: 'Discard',
+          onConfirm: () => {
+            router.back();
+          },
+        });
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => {
+      subscription.remove();
+    };
+  }, [initialTx, amountStr, accountId, date, note, loanTransactionType]);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const isValid = !!resolvedLoanId && !!accountId && amount !== 0;
@@ -156,16 +214,30 @@ export default function LoanSettlementModal() {
     const work = isEditing && editId
       ? () => updateLoanSettlement(editId, payload)
       : () => addTransaction(payload);
-    router.back();
-    (async () => {
-      try {
-        await work();
-        await Promise.all([refreshAccounts(), loadLoans()]);
-        updateAllReniWidgets().catch(() => undefined);
-      } catch (e) {
-        showAlert('Error', String(e));
-      }
-    })();
+
+    showConfirm({
+      title: isEditing
+        ? 'Save changes?'
+        : loanDirection === 'lent'
+          ? 'Confirm Receipt'
+          : 'Confirm Payment',
+      message: isEditing
+        ? 'Are you sure you want to save changes to this transaction?'
+        : `Confirm record of ${formatSignedCurrency(amount, displaySym)} for ${personName}?`,
+      confirmLabel: 'Confirm',
+      onConfirm: () => {
+        router.back();
+        (async () => {
+          try {
+            await work();
+            await Promise.all([refreshAccounts(), loadLoans()]);
+            updateAllReniWidgets().catch(() => undefined);
+          } catch (e) {
+            showAlert('Error', String(e));
+          }
+        })();
+      },
+    });
   };
 
   const handleDelete = () => {
@@ -174,7 +246,7 @@ export default function LoanSettlementModal() {
     showConfirm({
       title: 'Delete Transaction',
       message: 'This cannot be undone.',
-      confirmLabel: 'Delete',
+      confirmLabel: 'Confirm',
       destructive: true,
       onConfirm: () => {
         router.back();
@@ -211,7 +283,7 @@ export default function LoanSettlementModal() {
     >
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
-          <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
+          <TouchableOpacity delayPressIn={0} onPress={closeScreen} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
             <AppIcon name="x" size={24} color={palette.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>{title}</Text>

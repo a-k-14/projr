@@ -22,6 +22,7 @@ interface ActivityPeriodHeaderProps {
   height?: number;
   /** When true, paint a subtle separator behind each arrow so they read as buttons. */
   arrowAccent?: boolean;
+  noBackground?: boolean;
 }
 
 export function ActivityPeriodHeader({
@@ -34,10 +35,11 @@ export function ActivityPeriodHeader({
   palette,
   largeArrows = false,
   height,
+  noBackground = false,
 }: ActivityPeriodHeaderProps) {
   const isDisabled = period === 'custom' || period === 'all' || period === 'last30';
 
-  const vHeight = height ?? ACTIVITY_LAYOUT.controlHeight;
+  const vHeight = height ?? (ACTIVITY_LAYOUT.controlHeight + 2);
   const hitExtension = 14;
   const totalHeight = vHeight + hitExtension * 2;
 
@@ -71,19 +73,21 @@ export function ActivityPeriodHeader({
       ]}
     >
       {/* Shared pill background & border */}
-      <View
-        style={[
-          styles.periodBarVisual,
-          {
-            backgroundColor: palette.surface,
-            borderColor: palette.borderSoft,
-            top: hitExtension,
-            bottom: hitExtension,
-            borderRadius: ACTIVITY_LAYOUT.controlRadius,
-          },
-        ]}
-        pointerEvents="none"
-      />
+      {!noBackground && (
+        <View
+          style={[
+            styles.periodBarVisual,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.borderSoft,
+              top: hitExtension,
+              bottom: hitExtension,
+              borderRadius: ACTIVITY_LAYOUT.controlRadius,
+            },
+          ]}
+          pointerEvents="none"
+        />
+      )}
 
       {/* Row containing actual interactive elements */}
       <View style={[styles.periodContentRow, { height: totalHeight }]}>
@@ -107,8 +111,8 @@ export function ActivityPeriodHeader({
             <AppChevron
               direction="left"
               size={16}
-              tone="primary"
-              opacity={1}
+              color={isDisabled ? palette.textMuted : palette.text}
+              strokeWidth={2.4}
               palette={palette}
             />
           </Animated.View>
@@ -164,8 +168,8 @@ export function ActivityPeriodHeader({
             <AppChevron
               direction="right"
               size={16}
-              tone="primary"
-              opacity={1}
+              color={!canGoNext ? palette.textMuted : palette.text}
+              strokeWidth={2.4}
               palette={palette}
             />
           </Animated.View>
@@ -191,6 +195,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    paddingHorizontal: 4,
   },
   periodArrowTouch: {
     alignItems: 'center',

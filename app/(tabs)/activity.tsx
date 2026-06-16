@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/AppText';
-import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useIsFocused } from '@react-navigation/native';
+import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -15,27 +15,26 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AccountFilterSheet } from '../../components/activity/AccountFilterSheet';
 import { ActivityFilterBar } from '../../components/activity/ActivityFilterBar';
 import { ActivityMoreFiltersSheet } from '../../components/activity/ActivityMoreFiltersSheet';
 import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
-import { AccountFilterSheet } from '../../components/activity/AccountFilterSheet';
 import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
 import { CardSection } from '../../components/settings-ui';
 import { SummaryCard } from '../../components/SummaryCard';
 import { TransactionListItem } from '../../components/TransactionListItem';
-import { useTransactionPress } from '../../lib/useTransactionPress';
+import { OutlinedButton } from '../../components/ui/AppButton';
 import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
-import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { OutlinedButton } from '../../components/ui/AppButton';
-import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
+import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { HeaderSearchBar, HeaderSearchTrigger } from '../../components/ui/HeaderSearchBar';
+import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
-import { filterTransactions } from '../../lib/transactionFilters';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
   getLast30DaysRange,
@@ -48,19 +47,21 @@ import {
   getCashflowFromList,
   groupTransactionsByDate
 } from '../../lib/derived';
-import { CARD_PADDING , FONT_WEIGHT} from '../../lib/design';
-import { ACTIVITY_LAYOUT, HOME_LAYOUT, HOME_TEXT, TRANSACTIONS_PAGE_SIZE, getTxTypeConfig , HOME_RADIUS} from '../../lib/layoutTokens';
+import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
+import { ACTIVITY_LAYOUT, getTxTypeConfig, HOME_LAYOUT, HOME_RADIUS, HOME_TEXT, TRANSACTIONS_PAGE_SIZE } from '../../lib/layoutTokens';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
-import * as transactionsService from '../../services/transactions';
+import { filterTransactions } from '../../lib/transactionFilters';
+import { useTransactionPress } from '../../lib/useTransactionPress';
 import { getActivityPeriodCashflow } from '../../services/analytics';
+import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
+import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
-import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
 import type { CashflowSummary, Transaction, TransactionFilters, TransactionType } from '../../types';
 
 type ActivityPeriod = 'all' | 'last30' | 'day' | 'week' | 'month' | 'year' | 'custom';
@@ -73,19 +74,19 @@ type ActivityGroup = {
 };
 type ActivityDateRow =
   | {
-      type: 'dateHeader';
-      key: string;
-      title: string;
-      subtitle?: string;
-      isFirst: boolean;
-    }
+    type: 'dateHeader';
+    key: string;
+    title: string;
+    subtitle?: string;
+    isFirst: boolean;
+  }
   | {
-      type: 'transaction';
-      key: string;
-      tx: Transaction;
-      indexInSection: number;
-      sectionLength: number;
-    };
+    type: 'transaction';
+    key: string;
+    tx: Transaction;
+    indexInSection: number;
+    sectionLength: number;
+  };
 type GroupByMode = 'date' | 'category';
 type CategoryDrilldown = {
   parentKey: string;
@@ -152,6 +153,37 @@ export default function ActivityScreen() {
   const [cashflowMode, setCashflowMode] = useState<'incomeExpense' | 'total'>('incomeExpense');
   const [search, setSearch] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
+
+  const filterButtonAnimation = useSharedValue(0);
+  useEffect(() => {
+    filterButtonAnimation.value = withSpring(isFiltersExpanded ? 1 : 0, {
+      damping: 18,
+      stiffness: 160,
+      mass: 0.8,
+    });
+  }, [isFiltersExpanded]);
+
+  const filterDotsStyle = useAnimatedStyle(() => {
+    const rotation = `${filterButtonAnimation.value * 90}deg`;
+    return {
+      opacity: 1 - filterButtonAnimation.value,
+      transform: [
+        { scale: 1 - filterButtonAnimation.value * 0.15 },
+        { rotate: rotation },
+      ],
+    };
+  });
+
+  const filterCloseStyle = useAnimatedStyle(() => {
+    const rotation = `${(filterButtonAnimation.value - 1) * 90}deg`;
+    return {
+      opacity: filterButtonAnimation.value,
+      transform: [
+        { scale: 0.85 + filterButtonAnimation.value * 0.15 },
+        { rotate: rotation },
+      ],
+    };
+  });
 
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -486,11 +518,11 @@ export default function ActivityScreen() {
         // Fetch paginated rows and (on initial load) server-side totals in parallel.
         const totalsPromise = isInitial && dateRange?.from && dateRange?.to
           ? getActivityPeriodCashflow(
-              selectedAccountId,
-              dateRange.from,
-              dateRange.to,
-              { includeTransfers: derivedCashflowMode === 'total', includeLoans: derivedCashflowMode === 'total', includeDeposits: derivedCashflowMode === 'total' }
-            )
+            selectedAccountId,
+            dateRange.from,
+            dateRange.to,
+            { includeTransfers: derivedCashflowMode === 'total', includeLoans: derivedCashflowMode === 'total', includeDeposits: derivedCashflowMode === 'total' }
+          )
           : Promise.resolve(null);
         const [results, totals] = await Promise.all([
           transactionsService.getTransactions(filters),
@@ -1275,7 +1307,7 @@ export default function ActivityScreen() {
 
       {period !== 'all' ? (
         <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
-          <SummaryCard cashflow={summaryCardCashflow} sym={sym} palette={palette} isCashflowMode={cashflowBucket !== 'all'} />
+          <SummaryCard cashflow={summaryCardCashflow} sym={sym} palette={palette} isCashflowMode={cashflowBucket !== 'all'} style={{ marginTop: 12, marginBottom: 32 }} />
         </View>
       ) : null}
 
@@ -1296,11 +1328,11 @@ export default function ActivityScreen() {
             }}
           >
             <AppIcon name="arrow-left" size={18} color={palette.text} strokeWidth={1.8} />
-              <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
-                {categoryDrilldown.compactLabel
-                  ? categoryDrilldown.parentLabel
-                  : `${categoryDrilldown.parentLabel} \u203a ${categoryDrilldown.subLabel}`}
-              </Text>
+            <Text style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
+              {categoryDrilldown.compactLabel
+                ? categoryDrilldown.parentLabel
+                : `${categoryDrilldown.parentLabel} \u203a ${categoryDrilldown.subLabel}`}
+            </Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -1339,15 +1371,80 @@ export default function ActivityScreen() {
 
             <View style={{ flex: 1 }} />
 
-            <HeaderSearchTrigger
-              onPress={() => toggleSearch(true)}
-              palette={palette}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+              <HeaderSearchTrigger
+                onPress={() => toggleSearch(true)}
+                palette={palette}
+              />
+              <TouchableOpacity
+                delayPressIn={0}
+                activeOpacity={0.75}
+                onPress={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                style={{ paddingLeft: 4, paddingVertical: 6, paddingRight: 0, width: 24, height: 32, position: 'relative', justifyContent: 'center', alignItems: 'center' }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, filterDotsStyle]}>
+                  <AppIcon
+                    name="more-vertical"
+                    size={20}
+                    color={palette.text}
+                    strokeWidth={2}
+                  />
+                </Animated.View>
+                <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, filterCloseStyle]}>
+                  <AppIcon
+                    name="x"
+                    size={20}
+                    color={palette.text}
+                    strokeWidth={2}
+                  />
+                </Animated.View>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
 
-      <>
+      {isSearchActive ? (
+        search.trim() === '' ? (
+          <View style={{ flex: 1, backgroundColor: palette.background }} />
+        ) : (
+          <FlashList
+            ref={flatListRef}
+            data={dateRows}
+            keyExtractor={(item) => item.key}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
+            onScroll={({ nativeEvent }) => {
+              maybePrefetchMore(nativeEvent);
+            }}
+            scrollEventThrottle={32}
+            onEndReached={onLoadMore}
+            onEndReachedThreshold={0.6}
+            getItemType={(item) => item.type}
+            drawDistance={900}
+            maintainVisibleContentPosition={{ disabled: true }}
+            contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets), paddingHorizontal: SCREEN_GUTTER }}
+            ListFooterComponent={showLoadingMoreFooter ? (
+              <View style={{ paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+                <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
+                  Loading...
+                </Text>
+              </View>
+            ) : null}
+            ListEmptyComponent={
+              !refreshing && !isTransitioning ? (
+                <View style={{ paddingTop: 40, alignItems: 'center', paddingHorizontal: 24 }}>
+                  <Text style={{ fontSize: 14, color: palette.textMuted, textAlign: 'center' }}>
+                    No transactions match "{search}"
+                  </Text>
+                </View>
+              ) : null
+            }
+            renderItem={renderDateRow}
+          />
+        )
+      ) : (
+        <>
           {groupByMode === 'date' || categoryDrilldown ? (
             <FlashList
               ref={flatListRef}
@@ -1660,10 +1757,21 @@ export default function ActivityScreen() {
                     </View>
                   ))}
                 </View>
+                {hierarchySections.length === 0 && (
+                  <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
+                    <EmptyStateCard
+                      palette={palette}
+                      title="No transactions found"
+                      subtitle="Add transactions or widen your filters to see activity here."
+                      illustration={<FinanceEmptyMascot palette={palette} variant="activity" />}
+                    />
+                  </View>
+                )}
               </>
             </ScrollView>
           ) : null}
         </>
+      )}
 
       {showAccountSheet ? (
         <AccountFilterSheet
@@ -1776,7 +1884,8 @@ function familyAwareCurrency(familyKey: HierarchyFamily, total: number, sym: str
 
 const styles = StyleSheet.create({
   topBar: {
-    paddingHorizontal: 14,
+    paddingLeft: SCREEN_GUTTER,
+    paddingRight: SCREEN_GUTTER,
     paddingTop: 8,
     paddingBottom: 6,
     borderBottomWidth: 0

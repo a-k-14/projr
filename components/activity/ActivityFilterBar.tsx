@@ -73,10 +73,6 @@ export function ActivityFilterBar({
     prevHasActiveFilters.current = hasActiveFiltersOnLine2;
   }, [hasActiveFiltersOnLine2, isExpanded, setIsExpanded]);
 
-  const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
-
   const animStyle = useAnimatedStyle(() => ({
     // Row 2 (36) + gap (8) + Row 3 (52) = 96
     height: expansion.value * 96,
@@ -93,43 +89,20 @@ export function ActivityFilterBar({
 
   return (
     <Animated.View style={outerStyle}>
-      {/* Row 1: Period navigation + slider toggle */}
+      {/* Row 1: Period navigation centered */}
       <Animated.View
         style={[
           styles.row,
           row1Style,
-          { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX },
+          { 
+            paddingHorizontal: 10,
+            justifyContent: 'center',
+          },
         ]}
       >
-        <View style={{ flex: 1, marginLeft: 0, marginRight: -10 }}>
+        <View style={{ flex: 1 }}>
           {periodNavigation}
         </View>
-
-        <TouchableOpacity
-          delayPressIn={0}
-          activeOpacity={0.75}
-          onPress={toggleExpand}
-          style={[styles.expandButton, { backgroundColor: 'transparent' }]}
-        >
-          <AppIcon
-            name="sliders-horizontal"
-            size={18}
-            color={isExpanded ? palette.textSecondary : palette.textMuted}
-          />
-          {hasActiveFiltersOnLine2 && !isExpanded && (
-            <View
-              style={{
-                position: 'absolute',
-                top: 5,
-                right: 5,
-                width: 7,
-                height: 7,
-                borderRadius: 4,
-                backgroundColor: palette.brand,
-              }}
-            />
-          )}
-        </TouchableOpacity>
       </Animated.View>
 
       {/* Rows 2 + 3 — collapse together */}
@@ -282,13 +255,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   expandButton: {
     height: ACTIVITY_LAYOUT.controlHeight,
-    width: ACTIVITY_LAYOUT.controlHeight,
+    width: 48,
     borderRadius: ACTIVITY_LAYOUT.chipRadius,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: ACTIVITY_LAYOUT.controlChipGap,
   },
   moreChip: {
     height: 36,

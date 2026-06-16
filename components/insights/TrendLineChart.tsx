@@ -42,6 +42,8 @@ interface TrendLineChartProps {
   flatStyle?: boolean;
   /** When true, completely hide the bottom axis labels. */
   hideAxisLabels?: boolean;
+  /** Custom height for the chart line area. Defaults to 110. */
+  chartHeight?: number;
 }
 
 // ─── Monotone cubic spline helper ────────────────────────────────────────────
@@ -134,6 +136,7 @@ function TrendLineChartBase({
   hideStartDot = false,
   flatStyle = false,
   hideAxisLabels = false,
+  chartHeight = 110,
 }: TrendLineChartProps) {
   const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
   const chartWidthRef = useRef(Dimensions.get('window').width - 48);
@@ -164,13 +167,13 @@ function TrendLineChartBase({
   }, [isLoading, fadeAnim]);
 
   const VB_W = 300; // viewBox width
-  const CHART_H = 110;
+  const CHART_H = chartHeight;
   const PAD_X = flatStyle ? 1.5 : 4; // viewBox units from SVG edges to line endpoints
   // Vertical band the line occupies inside the viewBox. Breathing room top/bottom.
   // Used both for non-flat point mapping (val → y) and as the centerline for the
   // flat-line case below.
-  const PLOT_MIN_Y = flatStyle ? 6 : 20;
-  const PLOT_MAX_Y = flatStyle ? 104 : 88;
+  const PLOT_MIN_Y = flatStyle ? 24 : 20;
+  const PLOT_MAX_Y = flatStyle ? CHART_H - 6 : CHART_H - 22;
   const PLOT_HEIGHT = PLOT_MAX_Y - PLOT_MIN_Y;
   const PLOT_MID_Y = (PLOT_MIN_Y + PLOT_MAX_Y) / 2;
 
@@ -186,7 +189,7 @@ function TrendLineChartBase({
     onActivePointChange?.(points[clampedIdx]);
   };
 
-  // SVG Chart path calculation — viewBox coordinate space (0–300 x, 0–110 y)
+  // SVG Chart path calculation — viewBox coordinate space (0–300 x, 0–CHART_H y)
   const { lineD, areaD, startY, endY, pts } = useMemo(() => {
     const total = points.length;
     if (total === 0) {
@@ -231,7 +234,7 @@ function TrendLineChartBase({
       valRange,
       pts,
     };
-  }, [points, smoothCurves]);
+  }, [points, smoothCurves, CHART_H, PLOT_MID_Y, PLOT_MAX_Y, PLOT_HEIGHT]);
 
   // Format tooltip date as dd mmm yyyy
   const formattedTooltipDate = useMemo(() => {
@@ -270,7 +273,7 @@ function TrendLineChartBase({
     paddingBottom: flatStyle ? 0 : 16,
     // No paddingHorizontal — text rows carry their own explicit padding,
     // SVG spans the full card width without any wrapper fighting it.
-    height: flatStyle ? undefined : 220,
+    height: flatStyle ? undefined : CHART_H + 110,
   } as const;
 
   // 1. Loading/Skeleton State — only the chart line area is a placeholder.
@@ -301,15 +304,15 @@ function TrendLineChartBase({
           </View>
         </View>
 
-        <View style={{ height: 110, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ height: CHART_H, justifyContent: 'center', alignItems: 'center' }}>
           <Animated.View style={{ width: '96%', height: 2.8, borderRadius: 1.4, backgroundColor: strokeColor, opacity: Animated.multiply(fadeAnim, 0.45) }} />
           <Animated.View style={{ position: 'absolute', bottom: 0, left: 8, right: 8, height: 42, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: strokeColor, opacity: Animated.multiply(fadeAnim, 0.1) }} />
         </View>
 
         {!hideAxisLabels && (
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: flatStyle ? 1.5 : 12 }}>
-            <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted }}>{axisStart}</Text>
-            <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted }}>{axisEnd}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: flatStyle ? -2 : 14, paddingHorizontal: flatStyle ? 0 : 12 }}>
+            <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, color: palette.textMuted }}>{axisStart}</Text>
+            <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, color: palette.textMuted }}>{axisEnd}</Text>
           </View>
         )}
       </View>
@@ -395,7 +398,7 @@ function TrendLineChartBase({
             onInteractionStateChange?.(false);
             onActivePointChange?.(null);
           }}
-          style={{ height: 110 }}
+          style={{ height: CHART_H }}
         >
           <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} style={{ pointerEvents: 'none', overflow: 'visible' }}>
             <Defs>
@@ -405,9 +408,12 @@ function TrendLineChartBase({
               </LinearGradient>
             </Defs>
             {/* Horizontal grid lines */}
-            {[0.25, 0.75].map((frac) => {
-              const gy = PLOT_MIN_Y + frac * PLOT_HEIGHT;
-              return <Line key={frac} x1={PAD_X} y1={gy} x2={VB_W - PAD_X} y2={gy} stroke={palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} strokeWidth={1} strokeDasharray="4 5" />;
+            {[
+              PLOT_MIN_Y,
+              PLOT_MIN_Y + 0.5 * PLOT_HEIGHT,
+              PLOT_MAX_Y
+            ].map((gy, idx) => {
+              return <Line key={idx} x1={PAD_X} y1={gy} x2={VB_W - PAD_X} y2={gy} stroke={palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} strokeWidth={1} strokeDasharray="4 5" />;
             })}
             <Path d={areaD} fill="url(#reusableChartAreaGrad)" />
             <Path d={lineD} fill="none" stroke={strokeColor} strokeWidth={flatStyle ? 2.4 : 2.8} strokeLinejoin="round" strokeLinecap="round" />
@@ -419,7 +425,7 @@ function TrendLineChartBase({
                 const activePt = pts[activePointIndex];
                 return (
                   <>
-                    <Line x1={activePt.x} y1={activePt.y} x2={activePt.x} y2={104} stroke={strokeColor} strokeWidth={1} strokeDasharray="3 3" opacity={0.7} />
+                    <Line x1={activePt.x} y1={activePt.y} x2={activePt.x} y2={CHART_H - 6} stroke={strokeColor} strokeWidth={1} strokeDasharray="3 3" opacity={0.7} />
                     <Circle cx={activePt.x} cy={activePt.y} r={9} fill={strokeColor} opacity={0.25} />
                     <Circle cx={activePt.x} cy={activePt.y} r={5.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.5} />
                   </>
@@ -432,11 +438,11 @@ function TrendLineChartBase({
 
       {/* Axis labels */}
       {!hideAxisLabels && (
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, paddingLeft: 14, paddingRight: 20, paddingBottom: flatStyle ? 8 : 0 }}>
-          <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: flatStyle ? 6 : 10, paddingLeft: 14, paddingRight: 20, paddingBottom: flatStyle ? 2 : 0 }}>
+          <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
             {formatAxisDate(startDate ?? points[0]?.date)} ({formatSignedCurrency(points[0]?.val, currencySymbol, { zeroPlaceholder: null })})
           </Text>
-          <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+          <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
             {hideEndBalance
               ? endAxisLabel
               : `${endAxisLabel} (${formatSignedCurrency(points[points.length - 1]?.val, currencySymbol, { zeroPlaceholder: null })})`

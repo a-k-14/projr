@@ -195,6 +195,15 @@ export default function LoanDetailScreen() {
             onPress={() => { closePanel(); router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } }); }}
           />
           <ActionChip
+            icon={loan.status === 'open' ? 'check-square' : 'play'}
+            label={loan.status === 'open' ? 'Close Loan' : 'Reopen Loan'}
+            palette={palette}
+            onPress={() => {
+              closePanel();
+              handleToggleStatus();
+            }}
+          />
+          <ActionChip
             icon="trash-2"
             label="Delete"
             palette={palette}

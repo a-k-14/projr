@@ -51,7 +51,7 @@ import {
   parseFormattedNumber
 } from '../../lib/derived';
 import { FONT_WEIGHT } from '../../lib/design';
-import { BUTTON_TOKENS, FORM_TOKENS, HOME_RADIUS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
+import { FORM_TOKENS, HOME_RADIUS, HOME_TEXT, PRIMARY_ACTION, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { isEmojiIcon } from '../../lib/ui-format';
@@ -206,6 +206,9 @@ export default function AddTransactionModal() {
   const beginPrivacyGrace = useUIStore((s) => s.beginPrivacyGrace);
   const { palette } = useAppTheme();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
+  const [initialTx, setInitialTx] = useState<any | null>(null);
+  const [initialDeposit, setInitialDeposit] = useState<any | null>(null);
+
   const draftCategoryId = useTransactionDraftStore((s) => s.categoryId);
   const setDraftCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
@@ -501,6 +504,7 @@ export default function AddTransactionModal() {
     const found = deposits.find((d) => d.id === depositId);
     if (!found) return;
 
+    setInitialDeposit(found);
     isDepositHydratedRef.current = true;
     setType('deposit');
 
@@ -561,6 +565,7 @@ export default function AddTransactionModal() {
     const task = InteractionManager.runAfterInteractions(() => {
       getTransactionById(editId).then(async (tx) => {
         if (!tx) return;
+        setInitialTx(tx);
         setIsTransferEdit(!!tx.transferPairId);
         setType(tx.type);
         setAmountStr(formatIndianNumberStr(String(tx.amount)));
@@ -685,14 +690,123 @@ export default function AddTransactionModal() {
     (row) => row.categoryId && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
   );
 
+  const checkIsDirty = () => {
+    if (isEditingDeposit || isClosingDeposit) {
+      if (!initialDeposit) return false;
+      const originalAmountStr = formatIndianNumberStr(String(Math.round(initialDeposit.principalAmount)));
+      return (
+        depositName !== (initialDeposit.name ?? '') ||
+        depositBank !== (initialDeposit.bankName ?? '') ||
+        depositTenure !== (initialDeposit.tenureMonths != null ? String(initialDeposit.tenureMonths) : '') ||
+        depositInterest !== (initialDeposit.interestRate != null ? String(initialDeposit.interestRate) : '') ||
+        amountStr !== originalAmountStr ||
+        note !== (isClosingDeposit ? '' : initialDeposit.note ?? '')
+      );
+    }
+
+    if (isEditing) {
+      if (!initialTx) return false;
+      const originalAmountStr = formatIndianNumberStr(String(initialTx.amount));
+      return (
+        amountStr !== originalAmountStr ||
+        accountId !== initialTx.accountId ||
+        categoryId !== (initialTx.categoryId ?? '') ||
+        payee !== (initialTx.payee ?? '') ||
+        note !== (initialTx.note ?? '') ||
+        JSON.stringify(selectedTagIds.sort()) !== JSON.stringify((initialTx.tags ?? []).sort())
+      );
+    }
+
+    return (
+      amountStr !== '' ||
+      payee !== '' ||
+      note !== '' ||
+      categoryId !== '' ||
+      selectedTagIds.length > 0 ||
+      receiptImageUris.length > 0 ||
+      splitRows.length > 0
+    );
+  };
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (checkIsDirty()) {
+        showConfirm({
+          title: 'Discard Changes',
+          message: 'Are you sure you want to discard your changes?',
+          confirmLabel: 'Discard',
+          onConfirm: () => {
+            setIsClosing(true);
+            if (fromWidget === '1') {
+              BackHandler.exitApp();
+            } else if (!router.canGoBack()) {
+              router.replace('/');
+            } else {
+              router.back();
+            }
+          },
+        });
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => {
+      subscription.remove();
+    };
+  }, [
+    initialTx,
+    initialDeposit,
+    type,
+    amountStr,
+    accountId,
+    linkedAccountId,
+    categoryId,
+    payee,
+    selectedTagIds,
+    note,
+    date,
+    receiptImageUris,
+    splitRows,
+    depositName,
+    depositBank,
+    depositTenure,
+    depositInterest,
+    depositMaturityStr,
+    closePrincipalStr,
+    closeInterestStr,
+    personName,
+    loanDirection,
+    loanTransactionType
+  ]);
+
   // Re-entrancy guard kept in a ref — using state here would trigger a wasted
   // re-render of the modal in the same React commit as the closeScreen()
   // navigation, which adds noticeable latency to the tap→transition window.
   const isSubmittingRef = useRef(false);
 
   const closeScreen = (isCancel: boolean | object = true) => {
-    setIsClosing(true);
     const isCancelBoolean = isCancel === true || typeof isCancel === 'object' || isCancel === undefined;
+    if (isCancelBoolean && checkIsDirty()) {
+      showConfirm({
+        title: 'Discard Changes',
+        message: 'Are you sure you want to discard your changes?',
+        confirmLabel: 'Discard',
+        onConfirm: () => {
+          setIsClosing(true);
+          if (fromWidget === '1') {
+            BackHandler.exitApp();
+          } else if (!router.canGoBack()) {
+            router.replace('/');
+          } else {
+            router.back();
+          }
+        },
+      });
+      return;
+    }
+    setIsClosing(true);
     if (fromWidget === '1' && !isCancelBoolean) {
       BackHandler.exitApp();
     } else if (!router.canGoBack()) {
@@ -2892,13 +3006,13 @@ export default function AddTransactionModal() {
                 </View>
                 <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: FONT_WEIGHT.semibold }}>Choose Photo</Text>
               </TouchableOpacity>
-              <View style={{ padding: 16, backgroundColor: palette.surface }}>
+              <View style={{ padding: 16, backgroundColor: palette.surface, alignItems: 'center' }}>
                 <TouchableOpacity
                   delayPressIn={0}
                   onPress={() => setShowReceiptSheet(false)}
-                  style={{ paddingVertical: 14, alignItems: 'center', backgroundColor: palette.inputBg, borderRadius: HOME_RADIUS.chip }}
+                  style={{ paddingVertical: 12, paddingHorizontal: 20 }}
                 >
-                  <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: BUTTON_TOKENS.text.labelWeight }}>Cancel</Text>
+                  <Text style={{ fontSize: HOME_TEXT.body, color: palette.textSecondary, fontWeight: FONT_WEIGHT.semibold }}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </View>

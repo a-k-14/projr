@@ -6,8 +6,8 @@ export { CARD_PADDING, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING };
 // Previously HOME_COLORS. Now unified into AppThemePalette in lib/theme.ts.
 
 // ─── Transaction-type config (single source of truth) ─────────────────────────
-import { AppThemePalette } from './theme';
 import { CATEGORY_COLORS } from './categoryColors';
+import { AppThemePalette } from './theme';
 
 export function getTxTypeConfig(palette: AppThemePalette): Record<
   'in' | 'out' | 'transfer' | 'loan' | 'deposit',
@@ -166,7 +166,7 @@ export const PRIMARY_ACTION = BUTTON_TOKENS.filled;
 
 export const SCREEN_HEADER = {
   titleSize: 16,
-  titleWeight: '500' as const,
+  titleWeight: '400' as const,
   iconTitleGap: HOME_SPACE.md,
   paddingX: 14,
   /** Large title used by push-navigation detail screens (budget, account, etc.) */

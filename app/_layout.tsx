@@ -44,6 +44,7 @@ SplashScreen.setOptions({ duration: 0 });
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SecurityGuard } from '../components/SecurityGuard';
 import { GlobalNotice } from '../components/ui/GlobalNotice';
+import { useAppDialog } from '../components/ui/useAppDialog';
 
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
@@ -56,6 +57,7 @@ export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const { palette } = useAppTheme();
+  const { showConfirm, dialog } = useAppDialog(palette);
 
   const init = useCallback(async () => {
     setReady(false);
@@ -118,6 +120,40 @@ export default function RootLayout() {
       .then(() => updateSettings({ lastAutoBackupAt: new Date().toISOString(), lastAutoBackupError: '' }))
       .catch((e: any) => updateSettings({ lastAutoBackupError: e?.message ?? 'Backup failed' }).catch(() => undefined));
   }, [ready]);
+
+  const [dismissedInSession, setDismissedInSession] = useState(false);
+  const lastErrorRef = useRef('');
+
+  // Reset session dismissal state if a new/different error occurs
+  useEffect(() => {
+    if (!ready) return;
+    const currentError = settings.lastAutoBackupError;
+    if (currentError && currentError !== lastErrorRef.current) {
+      setDismissedInSession(false);
+    }
+    lastErrorRef.current = currentError;
+  }, [ready, settings.lastAutoBackupError]);
+
+  // Alert trigger
+  useEffect(() => {
+    if (!ready || dismissedInSession) return;
+    const currentError = settings.lastAutoBackupError;
+    if (!currentError) return;
+
+    showConfirm({
+      title: 'Auto Backup Failed',
+      message: 'The app was unable to run auto-backup because the selected folder is no longer accessible.\n\nWould you like to select a new folder now?',
+      confirmLabel: 'Go to Settings',
+      cancelLabel: 'Dismiss',
+      onConfirm: () => {
+        setDismissedInSession(true);
+        router.push('/settings/backup');
+      },
+      onCancel: () => {
+        setDismissedInSession(true);
+      },
+    });
+  }, [ready, settings.lastAutoBackupError, dismissedInSession, showConfirm]);
 
   // Update widget when app goes to background — only place new transactions can happen
   const appStateRef = useRef(AppState.currentState);
@@ -261,6 +297,7 @@ export default function RootLayout() {
             </SecurityGuard>
           </ErrorBoundary>
           <GlobalNotice />
+          {dialog}
         </BottomSheetModalProvider>
         <StatusBar
           style={palette.statusBarStyle}

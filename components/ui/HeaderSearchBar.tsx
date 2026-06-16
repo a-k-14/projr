@@ -2,9 +2,10 @@ import React from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, View, StyleProp, ViewStyle } from 'react-native';
 import { Text } from './AppText';
 import { AppIcon } from './AppIcon';
-import { PillIconButton } from './PillIconButton';
+
 import { ACTIVITY_LAYOUT, BUTTON_TOKENS, HOME_TEXT } from '../../lib/layoutTokens';
 import { type AppThemePalette } from '../../lib/theme';
+import { SCREEN_GUTTER } from '../../lib/design';
 
 interface HeaderSearchTriggerProps {
   onPress: () => void;
@@ -16,11 +17,23 @@ interface HeaderSearchTriggerProps {
  */
 export function HeaderSearchTrigger({ onPress, palette }: HeaderSearchTriggerProps) {
   return (
-    <PillIconButton
-      icon="search"
+    <TouchableOpacity
+      delayPressIn={0}
+      activeOpacity={0.75}
       onPress={onPress}
-      palette={palette}
-    />
+      style={{
+        paddingLeft: 4,
+        paddingVertical: 6,
+        paddingRight: 4,
+        width: 24,
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <AppIcon name="search" size={20} color={palette.text} strokeWidth={2} />
+    </TouchableOpacity>
   );
 }
 
@@ -110,7 +123,8 @@ export function HeaderSearchBar({
 
 const styles = StyleSheet.create({
   topBar: {
-    paddingHorizontal: 14,
+    paddingLeft: SCREEN_GUTTER,
+    paddingRight: SCREEN_GUTTER,
     paddingTop: 8,
     paddingBottom: 6,
     borderBottomWidth: 0,

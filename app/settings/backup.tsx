@@ -108,7 +108,7 @@ export default function BackupScreen() {
     try {
       const uri = await pickBackupFolder();
       if (uri) {
-        updateSettings({ autoBackupFolderUri: uri, autoBackupEnabled: true }).catch(() => undefined);
+        updateSettings({ autoBackupFolderUri: uri, autoBackupEnabled: true, lastAutoBackupError: '' }).catch(() => undefined);
       }
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Could not select folder.');
@@ -122,7 +122,7 @@ export default function BackupScreen() {
       await handlePickFolder();
       return;
     }
-    updateSettings({ autoBackupEnabled: value }).catch(() => undefined);
+    updateSettings({ autoBackupEnabled: value, ...(!value ? { lastAutoBackupError: '' } : {}) }).catch(() => undefined);
   };
 
   return (
@@ -241,7 +241,7 @@ export default function BackupScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 5 }}>
                 <AppIcon name="info" size={12} color={warnColor} strokeWidth={2} style={{ marginTop: 1 }} />
                 <Text style={{ flex: 1, fontSize: HOME_TEXT.caption, color: warnColor, lineHeight: 17, fontWeight: FONT_WEIGHT.regular }}>
-                  {settings.lastAutoBackupError}
+                  Auto-backup failed because the selected folder is no longer accessible. Tap &quot;Backup Folder&quot; above to re-select it.
                 </Text>
               </View>
             )}

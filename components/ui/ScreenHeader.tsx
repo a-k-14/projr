@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { AppIcon } from './AppIcon';
 import { AppThemePalette } from '../../lib/theme';
@@ -105,14 +106,50 @@ export function HeaderMoreButton({
   isOpen: boolean;
   onPress: () => void;
 }) {
+  const rotationVal = useSharedValue(0);
+  React.useEffect(() => {
+    rotationVal.value = withSpring(isOpen ? 1 : 0, {
+      damping: 18,
+      stiffness: 160,
+      mass: 0.8,
+    });
+  }, [isOpen]);
+
+  const dotsStyle = useAnimatedStyle(() => {
+    const rotation = `${rotationVal.value * 90}deg`;
+    return {
+      opacity: 1 - rotationVal.value,
+      transform: [
+        { scale: 1 - rotationVal.value * 0.15 },
+        { rotate: rotation },
+      ],
+    };
+  });
+
+  const closeStyle = useAnimatedStyle(() => {
+    const rotation = `${(rotationVal.value - 1) * 90}deg`;
+    return {
+      opacity: rotationVal.value,
+      transform: [
+        { scale: 0.85 + rotationVal.value * 0.15 },
+        { rotate: rotation },
+      ],
+    };
+  });
+
   return (
     <TouchableOpacity
       delayPressIn={0}
       activeOpacity={0.75}
       onPress={onPress}
-      style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center', marginRight: -8, position: 'relative' }}
     >
-      <AppIcon name={isOpen ? 'x' : 'more-vertical'} size={18} color={palette.text} strokeWidth={2} />
+      <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, dotsStyle]}>
+        <AppIcon name="more-vertical" size={18} color={palette.text} strokeWidth={2} />
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, closeStyle]}>
+        <AppIcon name="x" size={18} color={palette.text} strokeWidth={2} />
+      </Animated.View>
     </TouchableOpacity>
   );
 }

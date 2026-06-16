@@ -13,6 +13,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useTransactionsStore } from '../../stores/useTransactionsStore';
 
 import { CategoryDonutChartBlock, type CategoryChartMode } from '../../components/CategoryDonutChartBlock';
 import { SummaryCard } from '../../components/SummaryCard';
@@ -107,6 +108,7 @@ export default function InsightsScreen() {
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
 
   // Default insights view: a rolling 7-day window so the screen is never empty on a
   // fresh week/month. Implemented as `period: 'custom'` with the range recomputed on
@@ -369,7 +371,7 @@ export default function InsightsScreen() {
     // predictable on Android than InteractionManager for this case.
     const id = setTimeout(() => loadData(), 0);
     return () => clearTimeout(id);
-  }, [loadData, isFocused]);
+  }, [loadData, isFocused, mutationVersion]);
 
   useEffect(() => {
     if (!accountsLoaded) loadAccounts().catch(() => undefined);
@@ -626,12 +628,12 @@ export default function InsightsScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg }}>
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg, alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <TextButton label="Cancel" onPress={() => setCustomRangeOpen(false)} palette={palette} tone="default" style={{ minHeight: 48, borderRadius: HOME_RADIUS.tab, backgroundColor: 'transparent', borderWidth: 1, borderColor: palette.border }} />
+                <TextButton label="Cancel" onPress={() => setCustomRangeOpen(false)} palette={palette} tone="default" />
               </View>
               <View style={{ flex: 1 }}>
-                <FilledButton label="Done" onPress={handleCustomRangeDone} palette={palette} tone="brand" style={{ borderRadius: HOME_RADIUS.tab }} />
+                <FilledButton label="Done" onPress={handleCustomRangeDone} palette={palette} tone="brand" style={{ borderRadius: 24, minHeight: 40 }} />
               </View>
             </View>
           </Pressable>

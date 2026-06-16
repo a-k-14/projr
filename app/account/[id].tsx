@@ -3,33 +3,32 @@ import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
-import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
-import { useUIStore } from '../../stores/useUIStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 import { Text } from '@/components/ui/AppText';
 import { HomeAccountPage } from '../(tabs)/index';
-import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
-import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import { ActionStrip } from '../../components/ui/ActionStrip';
+import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppButton';
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { HeaderMoreButton, ScreenHeader } from '../../components/ui/ScreenHeader';
+import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { FONT_WEIGHT } from '../../lib/design';
-import { ActionChip } from '../../components/ui/AppButton';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
-import { getAccountTypeLabel, ACCOUNT_TYPE_META } from '../../lib/settings-shared';
-import type { PeriodType } from '../../types';
+import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { getAccountBalanceTrend } from '../../services/analytics';
-import { TrendLineChart } from '../../components/insights/TrendLineChart';
+import type { PeriodType } from '../../types';
 
 // Persists across screen mounts — stack screens remount fresh on every navigation
 // unlike tabs which stay mounted. Cache gives instant display on revisit; mutationVersion
@@ -208,6 +207,7 @@ export default function AccountDetailScreen() {
       endLabelIsToday={true}
       hideEndBalance={true}
       onActivePointChange={setActivePoint}
+      chartHeight={110}
     />
   );
 
@@ -253,15 +253,15 @@ export default function AccountDetailScreen() {
       />
 
       <ActionStrip palette={palette} animatedStyle={actionsAnimatedStyle}>
-          <ActionChip
-            icon="edit"
-            label="Edit Account"
-            palette={palette}
-            onPress={() => {
-              closePanel();
-              router.push({ pathname: '/settings/account-form', params: { id: account.id } });
-            }}
-          />
+        <ActionChip
+          icon="edit"
+          label="Edit Account"
+          palette={palette}
+          onPress={() => {
+            closePanel();
+            router.push({ pathname: '/settings/account-form', params: { id: account.id } });
+          }}
+        />
       </ActionStrip>
 
       <HomeAccountPage
@@ -336,12 +336,12 @@ export default function AccountDetailScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg }}>
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg, alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <TextButton label="Cancel" onPress={() => setCustomRangeOpen(false)} palette={palette} tone="default" style={{ minHeight: 48, borderRadius: HOME_RADIUS.tab, backgroundColor: 'transparent', borderWidth: 1, borderColor: palette.border }} />
+                <TextButton label="Cancel" onPress={() => setCustomRangeOpen(false)} palette={palette} tone="default" />
               </View>
               <View style={{ flex: 1 }}>
-                <FilledButton label="Done" onPress={handleCustomRangeDone} palette={palette} tone="brand" style={{ borderRadius: HOME_RADIUS.tab }} />
+                <FilledButton label="Done" onPress={handleCustomRangeDone} palette={palette} tone="brand" style={{ borderRadius: 24, minHeight: 40 }} />
               </View>
             </View>
           </Pressable>

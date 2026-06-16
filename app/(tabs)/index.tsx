@@ -506,12 +506,12 @@ function HomeScreenContent() {
                 </Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg }}>
+            <View style={{ flexDirection: 'row', gap: HOME_SPACE.md, marginTop: HOME_SPACE.lg, alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <TextButton label="Cancel" onPress={() => setCustomRangeOpen(false)} palette={palette} tone="default" style={{ minHeight: 48, borderRadius: HOME_RADIUS.tab, backgroundColor: 'transparent', borderWidth: 1, borderColor: palette.border }} />
+                <TextButton label="Cancel" onPress={() => setCustomRangeOpen(false)} palette={palette} tone="default" />
               </View>
               <View style={{ flex: 1 }}>
-                <FilledButton label="Done" onPress={handleCustomRangeDone} palette={palette} tone="brand" style={{ borderRadius: HOME_RADIUS.tab }} />
+                <FilledButton label="Done" onPress={handleCustomRangeDone} palette={palette} tone="brand" style={{ borderRadius: 24, minHeight: 40 }} />
               </View>
             </View>
           </Pressable>
@@ -1174,24 +1174,34 @@ function AccountSummaryCard({
                   const rightSign = metricRightAmount < 0 ? '-' : '';
                   return (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 8 }}>
-                      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricIn} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <AppIcon name="arrow-down-left" size={15} color={leftIsZero ? palette.textMuted : palette.positive} strokeWidth={2.2} />
-                        <AnimatedMetricValue style={leftSpringStyle}>
-                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
-                            {hideAmounts ? '••••' : leftIsZero ? '—' : (
-                              <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
-                            )}
+                        <View style={{ flexDirection: 'column' }}>
+                          <AnimatedMetricValue style={leftSpringStyle}>
+                            <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                              {hideAmounts ? '••••' : leftIsZero ? '—' : (
+                                <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
+                              )}
+                            </Text>
+                          </AnimatedMetricValue>
+                          <Text style={{ fontSize: 11, color: heroMutedText, marginTop: 1, fontWeight: FONT_WEIGHT.medium }}>
+                            {isCashflowView ? 'Inflow' : 'Income'}
                           </Text>
-                        </AnimatedMetricValue>
+                        </View>
                       </TouchableOpacity>
-                      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <AnimatedMetricValue style={rightSpringStyle}>
-                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
-                            {hideAmounts ? '••••' : rightIsZero ? '—' : (
-                              <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
-                            )}
+                      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={onPressMetricOut} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+                          <AnimatedMetricValue style={rightSpringStyle}>
+                            <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                              {hideAmounts ? '••••' : rightIsZero ? '—' : (
+                                <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
+                              )}
+                            </Text>
+                          </AnimatedMetricValue>
+                          <Text style={{ fontSize: 11, color: heroMutedText, marginTop: 1, fontWeight: FONT_WEIGHT.medium }}>
+                            {isCashflowView ? 'Outflow' : 'Expense'}
                           </Text>
-                        </AnimatedMetricValue>
+                        </View>
                         <AppIcon name="arrow-up-right" size={15} color={rightIsZero ? palette.textMuted : palette.negative} strokeWidth={2.2} />
                       </TouchableOpacity>
                     </View>
@@ -1267,12 +1277,6 @@ function AccountSummaryCard({
                   onPress={onPressMetricIn}
                   style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 15 }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                    <AppIcon name="arrow-down-left" size={14} color={palette.textMuted} strokeWidth={2} />
-                    <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                      {metricLeftLabel}
-                    </Text>
-                  </View>
                   <AnimatedText
                     appWeight="medium"
                     numberOfLines={1}
@@ -1283,12 +1287,19 @@ function AccountSummaryCard({
                         fontWeight: FONT_WEIGHT.semibold,
                         letterSpacing: -0.2,
                         color: metricLeftAmount === 0 ? palette.textMuted : palette.text,
+                        marginBottom: 3,
                       },
                       leftSpringStyle,
                     ]}
                   >
                     {renderHeroMetricValue(metricLeftAmount)}
                   </AnimatedText>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <AppIcon name="arrow-down-left" size={14} color={palette.textMuted} strokeWidth={2} />
+                    <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                      {metricLeftLabel}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
 
                 <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : palette.divider }} />
@@ -1300,12 +1311,6 @@ function AccountSummaryCard({
                   onPress={onPressMetricOut}
                   style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 15, alignItems: 'flex-end' }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                    <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                      {metricRightLabel}
-                    </Text>
-                    <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
-                  </View>
                   <AnimatedText
                     appWeight="medium"
                     numberOfLines={1}
@@ -1316,12 +1321,19 @@ function AccountSummaryCard({
                         fontWeight: FONT_WEIGHT.semibold,
                         letterSpacing: -0.2,
                         color: metricRightAmount === 0 ? palette.textMuted : palette.text,
+                        marginBottom: 3,
                       },
                       rightSpringStyle,
                     ]}
                   >
                     {renderHeroMetricValue(metricRightAmount)}
                   </AnimatedText>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Text style={{ fontSize: HOME_TEXT.tiny, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                      {metricRightLabel}
+                    </Text>
+                    <AppIcon name="arrow-up-right" size={14} color={palette.textMuted} strokeWidth={2} />
+                  </View>
                 </TouchableOpacity>
               </View>
 
@@ -2391,28 +2403,17 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 marginBottom: 8,
               }}
             >
-              {/* Row 1: Period Navigation & View Toggle */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <ActivityPeriodHeader
-                    period={period === 'today' ? 'day' : period}
-                    periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
-                    goPrev={() => setPeriodOffset((o) => o - 1)}
-                    goNext={() => setPeriodOffset((o) => o + 1)}
-                    canGoNext={periodOffset < 0}
-                    setShowPeriodSheet={() => setShowPeriodSheet(true)}
-                    palette={palette}
-                    height={36}
-                  />
-                </View>
-                <AccountViewModeToggle
-                  mode={activityViewMode}
+              {/* Row 1: Period switcher stretched wide */}
+              <View style={{ height: 32, marginBottom: 12 }}>
+                <ActivityPeriodHeader
+                  period={period === 'today' ? 'day' : period}
+                  periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
+                  goPrev={() => setPeriodOffset((o) => o - 1)}
+                  goNext={() => setPeriodOffset((o) => o + 1)}
+                  canGoNext={periodOffset < 0}
+                  setShowPeriodSheet={() => setShowPeriodSheet(true)}
                   palette={palette}
-                  onChange={(mode) => {
-                    setActivityViewMode(mode);
-                    setExpandedCategoryIds([]);
-                    if (mode === 'date') setCategoryDrilldown(null);
-                  }}
+                  height={32}
                 />
               </View>
 
@@ -2462,7 +2463,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               {/* Row 3: Ticks and Values */}
               <View style={{ paddingBottom: 0 }}>
                 {/* Speedometer sweep ticks */}
-                <View style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 8, width: TICK_CONTAINER_W }}>
+                <View style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 4, width: TICK_CONTAINER_W }}>
                   {Array.from({ length: TICK_TOTAL }).map((_, i) => (
                     <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
                   ))}
@@ -2492,8 +2493,23 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   const rightSign = metricRightAmount < 0 ? '-' : '';
                   return (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 0 }}>
-                      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={() => openPeriodActivity('in')} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <AppIcon name="arrow-down-left" size={15} color={leftIsZero ? palette.textMuted : detailInflowColor} strokeWidth={2.2} />
+                      <TouchableOpacity
+                        delayPressIn={0}
+                        activeOpacity={0.75}
+                        onPress={() => openPeriodActivity('in')}
+                        style={{ flexDirection: 'column', gap: 2 }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <AppIcon
+                            name="arrow-down-left"
+                            size={14}
+                            color={leftIsZero ? palette.textMuted : detailInflowColor}
+                            strokeWidth={2.4}
+                          />
+                          <Text style={{ fontSize: 11, color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>
+                            {cashflowIsCashflow ? 'Inflow' : 'Income'}
+                          </Text>
+                        </View>
                         <AnimatedMetricValue style={leftSpringStyle}>
                           <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                             {hideAmounts ? '••••' : leftIsZero ? '—' : (
@@ -2502,7 +2518,24 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                           </Text>
                         </AnimatedMetricValue>
                       </TouchableOpacity>
-                      <TouchableOpacity delayPressIn={0} activeOpacity={0.75} onPress={() => openPeriodActivity('out')} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+
+                      <TouchableOpacity
+                        delayPressIn={0}
+                        activeOpacity={0.75}
+                        onPress={() => openPeriodActivity('out')}
+                        style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Text style={{ fontSize: 11, color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>
+                            {cashflowIsCashflow ? 'Outflow' : 'Expense'}
+                          </Text>
+                          <AppIcon
+                            name="arrow-up-right"
+                            size={14}
+                            color={rightIsZero ? palette.textMuted : detailOutflowColor}
+                            strokeWidth={2.4}
+                          />
+                        </View>
                         <AnimatedMetricValue style={rightSpringStyle}>
                           <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                             {hideAmounts ? '••••' : rightIsZero ? '—' : (
@@ -2510,7 +2543,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                             )}
                           </Text>
                         </AnimatedMetricValue>
-                        <AppIcon name="arrow-up-right" size={15} color={rightIsZero ? palette.textMuted : detailOutflowColor} strokeWidth={2.2} />
                       </TouchableOpacity>
                     </View>
                   );
@@ -2534,47 +2566,32 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             onLayout={(e) => { activitySectionY.current = e.nativeEvent.layout.y; }}
             style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 8 : 28) }}
           >
-            {!(isDetailScreen && !categoryDrilldown) && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: accountId === 'all' ? 8 : 16 }}>
-                {categoryDrilldown ? (
-                  <TouchableOpacity delayPressIn={0} onPress={() => setCategoryDrilldown(null)} activeOpacity={0.75}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                    <AppIcon name="arrow-left" size={18} color={palette.text} strokeWidth={1.8} />
-                    <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-                      {categoryDrilldown.compactLabel ? categoryDrilldown.parentLabel : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
-                    </Text>
-                  </TouchableOpacity>
-                ) : accountId === 'all' ? (
-                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.medium, color: palette.text, flex: 1, marginRight: 8 }}>
-                    {inlineFilter === 'in' ? 'Income' : inlineFilter === 'out' ? 'Expenses' : 'Activity'}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: accountId === 'all' ? 8 : 16 }}>
+              {categoryDrilldown ? (
+                <TouchableOpacity delayPressIn={0} onPress={() => setCategoryDrilldown(null)} activeOpacity={0.75}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <AppIcon name="arrow-left" size={18} color={palette.text} strokeWidth={1.8} />
+                  <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                    {categoryDrilldown.compactLabel ? categoryDrilldown.parentLabel : `${categoryDrilldown.parentLabel} › ${categoryDrilldown.subLabel}`}
                   </Text>
-                ) : (
-                  <View style={{ flex: 1, marginRight: 8, flexDirection: 'row', alignItems: 'center' }}>
-                    <ActivityPeriodHeader
-                      period={period === 'today' ? 'day' : period}
-                      periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
-                      goPrev={() => setPeriodOffset((o) => o - 1)}
-                      goNext={() => setPeriodOffset((o) => o + 1)}
-                      canGoNext={periodOffset < 0}
-                      setShowPeriodSheet={() => setShowPeriodSheet(true)}
-                      palette={palette}
-                      height={36}
-                    />
-                  </View>
-                )}
-                {accountId !== 'all' && !categoryDrilldown && (
-                  <AccountViewModeToggle
-                    mode={activityViewMode}
-                    palette={palette}
-                    onChange={(mode) => {
-                      setActivityViewMode(mode);
-                      setExpandedCategoryIds([]);
-                      if (mode === 'date') setCategoryDrilldown(null);
-                    }}
-                  />
-                )}
-              </View>
-            )}
+                </TouchableOpacity>
+              ) : (
+                <Text appWeight="medium" numberOfLines={1} style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.medium, color: palette.text, flex: 1, marginRight: 8 }}>
+                  {inlineFilter === 'in' ? 'Income' : inlineFilter === 'out' ? 'Expenses' : 'Activity'}
+                </Text>
+              )}
+              {accountId !== 'all' && !categoryDrilldown && (
+                <AccountViewModeToggle
+                  mode={activityViewMode}
+                  palette={palette}
+                  onChange={(mode) => {
+                    setActivityViewMode(mode);
+                    setExpandedCategoryIds([]);
+                    if (mode === 'date') setCategoryDrilldown(null);
+                  }}
+                />
+              )}
+            </View>
 
             {/* Date-grouped list view (default, or drilldown from category) */}
             {(activityViewMode === 'date' || categoryDrilldown) && (

@@ -163,7 +163,8 @@ export function TextButton({
   tone = 'brand',
   compact = false,
   style,
-}: BaseButtonProps & { tone?: TextTone; compact?: boolean }) {
+  weight,
+}: BaseButtonProps & { tone?: TextTone; compact?: boolean; weight?: any }) {
   return (
     <PressableScale
       onPress={onPress}
@@ -183,7 +184,7 @@ export function TextButton({
         appWeight="medium"
         style={{
           fontSize: compact ? BUTTON_TOKENS.text.compactLabelSize : BUTTON_TOKENS.text.labelSize,
-          fontWeight: compact ? BUTTON_TOKENS.text.compactLabelWeight : BUTTON_TOKENS.text.labelWeight,
+          fontWeight: weight ?? (compact ? BUTTON_TOKENS.text.compactLabelWeight : BUTTON_TOKENS.text.labelWeight),
           color: getTextColor(palette, tone, disabled),
         }}
       >

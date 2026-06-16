@@ -1,6 +1,6 @@
-import React, { Fragment } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { StyleSheet, View , TouchableOpacity } from 'react-native';
+import React, { Fragment } from 'react';
+import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { formatCurrency } from '../lib/derived';
 import { FONT_WEIGHT } from '../lib/design';
 import { HOME_RADIUS, HOME_SURFACE, HOME_TEXT } from '../lib/layoutTokens';
@@ -13,9 +13,10 @@ interface SummaryCardProps {
   palette: AppThemePalette;
   onPressCategory?: (category: 'in' | 'out' | 'net') => void;
   isCashflowMode?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function SummaryCard({ cashflow, sym, palette, onPressCategory, isCashflowMode }: SummaryCardProps) {
+export function SummaryCard({ cashflow, sym, palette, onPressCategory, isCashflowMode, style }: SummaryCardProps) {
   const categories = [
     { key: 'in', label: isCashflowMode ? 'Inflow' : 'Income', color: palette.text },
     { key: 'out', label: isCashflowMode ? 'Outflow' : 'Expense', color: palette.text },
@@ -23,7 +24,7 @@ export function SummaryCard({ cashflow, sym, palette, onPressCategory, isCashflo
   ] as const;
 
   return (
-    <View style={[styles.card, { backgroundColor: 'transparent', borderColor: palette.divider }]}>
+    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.divider }, style]}>
       {categories.map((category, index) => (
         <Fragment key={category.key}>
           {index > 0 && (
@@ -67,17 +68,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: HOME_RADIUS.card,
     overflow: 'hidden',
-    marginTop: 16,
-    marginBottom: 16,
-    borderWidth: 1 },
+    marginTop: 12,
+    marginBottom: 32,
+    borderWidth: 0
+  },
   column: {
     flex: 1,
     paddingVertical: HOME_SURFACE.summaryColumnPaddingY,
     paddingHorizontal: HOME_SURFACE.summaryColumnPaddingX,
-    alignItems: 'center' },
+    alignItems: 'center'
+  },
   label: {
     fontSize: HOME_TEXT.caption,
-    marginBottom: 6 },
+    marginBottom: 6
+  },
   value: {
     fontSize: HOME_TEXT.body,
-    fontWeight: FONT_WEIGHT.medium } });
+    fontWeight: FONT_WEIGHT.medium
+  }
+});

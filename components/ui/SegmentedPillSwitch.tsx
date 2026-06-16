@@ -1,6 +1,7 @@
 import { Text } from '@/components/ui/AppText';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, LayoutChangeEvent, StyleProp, TouchableOpacity, View, ViewStyle } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { LayoutChangeEvent, StyleProp, TouchableOpacity, View, ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const SWITCH_INSET = 2;
 
@@ -45,7 +46,7 @@ export function SegmentedPillSwitch({
   const [controlWidth, setControlWidth] = useState(0);
   const selectedIndex = Math.max(0, options.findIndex((option) => option.key === value));
   const optionCount = Math.max(options.length, 1);
-  const indicatorX = useRef(new Animated.Value(0)).current;
+  const indicatorX = useSharedValue(0);
   const hasLaidOut = useRef(false);
 
   const innerWidth = Math.max(controlWidth - 2, 0);
@@ -57,48 +58,43 @@ export function SegmentedPillSwitch({
     const nextX = getIndicatorX(controlWidth, selectedIndex, optionCount);
     // Skip animation on first layout so the selected pill is present immediately.
     if (!animated || !hasLaidOut.current) {
-      indicatorX.setValue(nextX);
+      indicatorX.value = nextX;
       hasLaidOut.current = true;
       return;
     }
-    Animated.spring(indicatorX, {
-      toValue: nextX,
-      damping: 20,
-      mass: 0.7,
-      stiffness: 220,
-      useNativeDriver: true,
-    }).start();
-  }, [animated, controlWidth, indicatorX, optionCount, segmentWidth, selectedIndex]);
+    indicatorX.value = withSpring(nextX, {
+      damping: 18,
+      stiffness: 150,
+      mass: 0.8,
+    });
+  }, [animated, controlWidth, optionCount, segmentWidth, selectedIndex]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
     if (width > 0) {
       if (!hasLaidOut.current) {
-        indicatorX.setValue(getIndicatorX(width, selectedIndex, optionCount));
+        indicatorX.value = getIndicatorX(width, selectedIndex, optionCount);
         hasLaidOut.current = true;
       }
       setControlWidth(width);
     }
   };
 
-  const highlightStyle = useMemo(
-    () => {
-      if (controlWidth === 0) {
-        const pctLeft = `${(selectedIndex * 100) / optionCount}%`;
-        const pctWidth = `${100 / optionCount}%`;
-        return {
-          left: pctLeft,
-          width: pctWidth,
-        } as any;
-      }
+  const highlightStyle = useAnimatedStyle(() => {
+    if (controlWidth === 0) {
+      const pctLeft = `${(selectedIndex * 100) / optionCount}%`;
+      const pctWidth = `${100 / optionCount}%`;
       return {
-        left: 0,
-        width: segmentWidth,
-        transform: [{ translateX: indicatorX }],
+        left: pctLeft,
+        width: pctWidth,
       } as any;
-    },
-    [controlWidth, selectedIndex, optionCount, segmentWidth, indicatorX],
-  );
+    }
+    return {
+      left: 0,
+      width: segmentWidth,
+      transform: [{ translateX: indicatorX.value }],
+    };
+  }, [controlWidth, selectedIndex, optionCount, segmentWidth]);
 
   return (
     <View

@@ -10,6 +10,7 @@ type DialogConfig = {
   destructive?: boolean;
   showCancel?: boolean;
   onConfirm?: () => void | Promise<void>;
+  onCancel?: () => void | Promise<void>;
 };
 
 export function useAppDialog(palette: AppThemePalette) {
@@ -53,7 +54,15 @@ export function useAppDialog(palette: AppThemePalette) {
         palette={palette}
         cancelLabel={config.cancelLabel}
         showCancel={config.showCancel}
-        onCancel={closeDialog}
+        onCancel={() => {
+          const onCancel = config.onCancel;
+          closeDialog();
+          if (onCancel) {
+            setTimeout(() => {
+              void onCancel();
+            }, 160);
+          }
+        }}
         confirm={{
           label: config.confirmLabel ?? 'OK',
           destructive: config.destructive,

@@ -147,7 +147,7 @@ export default function NoteDetailScreen() {
       <ScreenHeader
         title={formatDateFull(note.updatedAt)}
         titleSize={14}
-        titleWeight={FONT_WEIGHT.medium}
+        titleWeight={FONT_WEIGHT.regular}
         titleColor={palette.text}
         backgroundColor={palette.background}
         palette={palette}

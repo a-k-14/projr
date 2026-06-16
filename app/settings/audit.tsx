@@ -1,9 +1,9 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { useIsFocused } from '@react-navigation/native';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, InteractionManager, Pressable, RefreshControl, View } from 'react-native';
+import { ActivityIndicator, FlatList, InteractionManager, Pressable, RefreshControl, View, Modal, TouchableOpacity } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionDateHeader } from '../../components/DateGroupedTransactionList';
@@ -11,6 +11,7 @@ import { TransactionListItem } from '../../components/TransactionListItem';
 import { getScrollableBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { TagBadge } from '../../components/ui/TagBadge';
+import { SheetScrollTopButton } from '../../components/ui/SheetScrollTopButton';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import { formatDate, toLocalDateKey } from '../../lib/dateUtils';
 import { formatCurrency } from '../../lib/derived';
@@ -500,9 +501,9 @@ const AuditLogItem = React.memo(({
       showAmountSign={false}
       paddingY={16}
       dateText={formatDate(activeTx.date)}
-      hidePayee={item.tableName === 'assets' ? false : true}
-      hideIcon={true}
-      hideTags={true}
+      hidePayee={item.action === 'delete' ? false : (item.tableName === 'assets' ? false : true)}
+      hideIcon={item.action === 'delete' ? false : true}
+      hideTags={item.action === 'delete' ? false : true}
     />
   );
 
@@ -752,6 +753,20 @@ export default function AuditScreen() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
+  // Scroll and Info Header Button States
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
+
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 150);
+  };
+
+  const scrollToTop = () => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
+
   // Initialize store cache if needed
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -872,6 +887,27 @@ export default function AuditScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <SheetScrollTopButton
+                visible={showScrollTop}
+                onPress={scrollToTop}
+                palette={palette}
+              />
+              <TouchableOpacity
+                delayPressIn={0}
+                activeOpacity={0.65}
+                onPress={() => setShowInfoModal(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <AppIcon name="info" size={20} color={palette.textSecondary} strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+          ),
+        }}
+      />
 
       {loading && offset === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -879,22 +915,17 @@ export default function AuditScreen() {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={logs}
           renderItem={renderAuditLogItem}
           keyExtractor={(item) => item.id}
           style={{ flex: 1 }}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={{
             paddingVertical: SPACING.md,
             paddingBottom: getScrollableBottomPadding(insets, 40),
           }}
-          ListHeaderComponent={
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SCREEN_GUTTER, marginTop: -12, marginBottom: 4 }}>
-              <AppIcon name="info" size={14} color={palette.textSecondary} strokeWidth={2} />
-              <Text style={{ fontSize: 13.5, color: palette.textSecondary, fontWeight: FONT_WEIGHT.regular, lineHeight: 18 }}>
-                Showing transaction activity log for the last 30 days.
-              </Text>
-            </View>
-          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -927,6 +958,102 @@ export default function AuditScreen() {
       )}
       <SystemBottomGuard />
       {dialog}
+
+      <Modal
+        visible={showInfoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInfoModal(false)}
+      >
+        <Pressable
+          onPress={() => setShowInfoModal(false)}
+          style={{
+            flex: 1,
+            backgroundColor: palette.scrim,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 24,
+          }}
+        >
+          <Pressable
+            onPress={() => {}}
+            style={{
+              width: '100%',
+              maxWidth: 340,
+              borderRadius: HOME_RADIUS.card,
+              backgroundColor: palette.card,
+              borderWidth: 1,
+              borderColor: palette.divider,
+              padding: 20,
+            }}
+          >
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: palette.brandSoft,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppIcon name="info" size={16} color={palette.brand} strokeWidth={2} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 16, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                Activity Log
+              </Text>
+            </View>
+
+            {/* Description */}
+            <Text style={{ fontSize: 13.5, lineHeight: 20, color: palette.text, marginBottom: 16 }}>
+              You can see the date-wise log of all changes made to your transactions, deposits, loans, and assets over the last <Text style={{ fontWeight: FONT_WEIGHT.semibold }}>30 days</Text>.
+            </Text>
+
+            {/* Legend */}
+            <View style={{ gap: 22, marginBottom: 20, padding: 12, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: HOME_RADIUS.small }}>
+              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: palette.numberPositive }} />
+                <Text style={{ fontSize: 12.5, color: palette.textSecondary }}>
+                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Added:</Text> Newly created items
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: palette.brand }} />
+                <Text style={{ fontSize: 12.5, color: palette.textSecondary }}>
+                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Edited:</Text> Details updated (with diffs)
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: palette.numberNegative }} />
+                <Text style={{ fontSize: 12.5, color: palette.textSecondary }}>
+                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Deleted:</Text> Removed items (with details)
+                </Text>
+              </View>
+            </View>
+
+            {/* Button */}
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <TouchableOpacity
+                delayPressIn={0}
+                activeOpacity={0.8}
+                onPress={() => setShowInfoModal(false)}
+                style={{
+                  backgroundColor: palette.brand,
+                  paddingHorizontal: 20,
+                  paddingVertical: 10,
+                  borderRadius: 24,
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: FONT_WEIGHT.semibold, color: palette.onBrand }}>
+                  Got It
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

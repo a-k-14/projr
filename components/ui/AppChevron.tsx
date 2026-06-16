@@ -13,6 +13,7 @@ interface AppChevronProps {
   tone?: ChevronTone;
   color?: string;
   opacity?: number;
+  strokeWidth?: number;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -29,6 +30,7 @@ export function AppChevron({
   tone = 'secondary',
   color,
   opacity,
+  strokeWidth,
   style,
 }: AppChevronProps) {
   return (
@@ -36,6 +38,7 @@ export function AppChevron({
       name={`chevron-${direction}`}
       size={size}
       color={color ?? getChevronColor(palette, tone)}
+      strokeWidth={strokeWidth}
       style={[opacity !== undefined ? { opacity } : null, style]}
     />
   );

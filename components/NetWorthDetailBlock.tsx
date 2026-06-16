@@ -754,9 +754,9 @@ export function NetWorthDetailBlock({
                   strokeWidth={2.2}
                 />
               </View>
-              <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Net Change</Text>
+              <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>Net Change</Text>
             </View>
-            <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.bold, color: activeVals.netChange === 0 ? palette.textMuted : activeVals.netChange > 0 ? palette.positive : palette.negative }}>
+            <Text style={{ fontSize: CARD_TEXT.line1, fontWeight: FONT_WEIGHT.medium, color: activeVals.netChange === 0 ? palette.textMuted : activeVals.netChange > 0 ? palette.positive : palette.negative }}>
               {activeVals.netChange === 0 ? '—' : `${activeVals.netChange > 0 ? '+' : '-'}${formatCurrency(Math.abs(activeVals.netChange), currencySymbol)}`}
             </Text>
           </View>
