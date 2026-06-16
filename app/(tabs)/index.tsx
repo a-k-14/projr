@@ -26,8 +26,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
-import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
+import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
 import { DateGroupedTransactionList, EmptyTransactions } from '../../components/DateGroupedTransactionList';
 import { CardSection, ScreenTitle } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -47,12 +47,12 @@ import {
   APP_LOCALE,
   formatDate,
   getDateRange,
+  getLast30DaysRange,
   getNavigableDateRange,
   getPeriodNavLabel,
   toLocalDayEndISO,
   toLocalDayStartISO,
-  toLocalMonthStartISO,
-  getLast30DaysRange
+  toLocalMonthStartISO
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
 import { formatCurrency, getCashflowFromList, getLoanSummary, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
@@ -2036,7 +2036,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       : 0;
     return {
       width: Math.max(0, width),
-      right: TICK_REMAINDER,
+      right: 0,
     };
   });
 
@@ -2331,10 +2331,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 paddingBottom: 4,
                 paddingHorizontal: 16,
                 marginBottom: 12,
+                position: 'relative',
               }}
             >
               {/* Balance Row */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 14 }}>
                 {/* Col 1: Icon */}
                 <View style={{
                   backgroundColor: typeMeta?.bg ?? `${typeColor}18`,
@@ -2351,37 +2352,72 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 </View>
                 {/* Col 2: Name row 1, Balance row 2 */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.4 }}>
+                  <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, letterSpacing: 0.4 }}>
                     Balance
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                     {currencySymbol && !hideAmounts && (
-                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginRight: 3 }}>
+                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted, marginRight: 3 }}>
                         {currencySymbol}
                       </Text>
                     )}
-                    <Text style={{ fontSize: HOME_TEXT.heroCardValue - 1, fontWeight: FONT_WEIGHT.medium, color: palette.text, opacity: 0.87 }}>
+                    <Text style={{ fontSize: HOME_TEXT.heroCardValue - 1, fontWeight: FONT_WEIGHT.regular, color: palette.text, opacity: 0.87 }}>
                       {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
                     </Text>
                     {balanceDec && (
-                      <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>
+                      <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted }}>
                         {balanceDec}
                       </Text>
                     )}
                   </View>
                 </View>
-                {/* Col 3: Tooltip (Right-aligned, date above, balance below) */}
-                {activePoint && (
-                  <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginBottom: 1 }}>
-                      {activePointDateFormatted}
-                    </Text>
-                    <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
-                      {activePointValFormatted}
-                    </Text>
-                  </View>
-                )}
+                {/* Col 3: Account Type Badge */}
+                <View style={{
+                  backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                  borderRadius: 8,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  alignSelf: 'center',
+                }}>
+                  <Text style={{
+                    fontSize: 10.5,
+                    fontWeight: FONT_WEIGHT.semibold,
+                    color: palette.textMuted,
+                    letterSpacing: 0.3,
+                    textTransform: 'uppercase',
+                  }}>
+                    {accountTypeLabel}
+                  </Text>
+                </View>
               </View>
+
+              {/* Active tooltip overlay block */}
+              {activePoint && (
+                <View style={{
+                  position: 'absolute',
+                  top: 58,
+                  alignSelf: 'center',
+                  backgroundColor: palette.isDark ? '#1E2538' : '#F1F5F9',
+                  borderColor: palette.divider,
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  zIndex: 10,
+                  ...palette.states.cardShadow,
+                }}>
+                  <Text style={{ fontSize: 11, color: palette.textSecondary, fontWeight: FONT_WEIGHT.semibold }}>
+                    {activePointDateFormatted}
+                  </Text>
+                  <View style={{ width: 1, height: 12, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }} />
+                  <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                    {activePointValFormatted}
+                  </Text>
+                </View>
+              )}
 
               {/* Chart Line container closer to edges */}
               <View style={{ marginHorizontal: -16, marginBottom: 4 }}>
@@ -2399,7 +2435,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
                 borderColor: palette.borderSoft,
-                padding: 12,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
                 marginBottom: 8,
               }}
             >
@@ -2463,7 +2500,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               {/* Row 3: Ticks and Values */}
               <View style={{ paddingBottom: 0 }}>
                 {/* Speedometer sweep ticks */}
-                <View style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 4, width: TICK_CONTAINER_W }}>
+                <View style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 4, width: TICK_CONTENT_W, alignSelf: 'center' }}>
                   {Array.from({ length: TICK_TOTAL }).map((_, i) => (
                     <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
                   ))}

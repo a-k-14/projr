@@ -165,12 +165,12 @@ export const BUTTON_TOKENS = {
 export const PRIMARY_ACTION = BUTTON_TOKENS.filled;
 
 export const SCREEN_HEADER = {
-  titleSize: 16,
-  titleWeight: '400' as const,
+  titleSize: 18,
+  titleWeight: '500' as const,
   iconTitleGap: HOME_SPACE.md,
   paddingX: 14,
   /** Large title used by push-navigation detail screens (budget, account, etc.) */
-  detailTitleSize: 23,
+  detailTitleSize: 25,
 } as const;
 
 export const ACTIVITY_LAYOUT = {

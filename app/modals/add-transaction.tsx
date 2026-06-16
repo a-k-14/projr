@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
   Image,
@@ -20,7 +20,7 @@ import {
   View
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
@@ -147,6 +147,38 @@ function PremiumSection({
 
 function PremiumDivider({ palette }: { palette: AppThemePalette }) {
   return <View style={{ height: 1, backgroundColor: palette.borderSoft, marginLeft: FORM_TOKENS.dividerIndent }} />;
+}
+
+/** Smoothly expands / collapses a suggestion chip strip (payee, person, etc.). */
+function AnimatedSuggestionStrip({ visible, children }: { visible: boolean; children: React.ReactNode }) {
+  const expansion = useSharedValue(0);
+  const contentHeight = useSharedValue(0);
+
+  React.useEffect(() => {
+    expansion.value = withTiming(visible ? 1 : 0, {
+      duration: 200,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [visible]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    height: expansion.value * contentHeight.value,
+    opacity: expansion.value,
+    overflow: 'hidden' as const,
+  }));
+
+  return (
+    <Animated.View style={animStyle}>
+      <View
+        onLayout={(e) => {
+          contentHeight.value = e.nativeEvent.layout.height;
+        }}
+        style={{ position: 'absolute', width: '100%' }}
+      >
+        {children}
+      </View>
+    </Animated.View>
+  );
 }
 
 // We compute TYPE_CONFIG dynamically inside the component to use the derived palette
@@ -1785,8 +1817,8 @@ export default function AddTransactionModal() {
                   />
                 </Pressable>
 
-                {isPayeeFocused && payee.trim() !== '' && payeeSuggestions.length > 0 && (
-                  <View style={{ paddingHorizontal: 16, paddingBottom: 10, marginTop: -4 }}>
+                <AnimatedSuggestionStrip visible={isPayeeFocused && payee.trim() !== '' && payeeSuggestions.length > 0}>
+                  <View style={{ paddingHorizontal: 16, paddingBottom: 10, paddingTop: 4 }}>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -1807,7 +1839,7 @@ export default function AddTransactionModal() {
                             borderRadius: HOME_RADIUS.chip,
                             backgroundColor: palette.isDark ? palette.layers.surfaceSunken : palette.inputBg,
                             borderWidth: 1,
-                            borderColor: palette.divider,
+                            borderColor: palette.lines.borderStrong,
                           }}
                         >
                           <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>
@@ -1817,7 +1849,7 @@ export default function AddTransactionModal() {
                       ))}
                     </ScrollView>
                   </View>
-                )}
+                </AnimatedSuggestionStrip>
 
                 <PremiumDivider palette={palette} />
 
@@ -2234,8 +2266,8 @@ export default function AddTransactionModal() {
                           />
                         </Pressable>
 
-                        {isPersonFocused && personName.trim() !== '' && (
-                          <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                        <AnimatedSuggestionStrip visible={isPersonFocused && personName.trim() !== ''}>
+                          <View style={{ paddingHorizontal: 16, paddingBottom: 12, paddingTop: 4 }}>
                             <ScrollView
                               horizontal
                               showsHorizontalScrollIndicator={false}
@@ -2255,7 +2287,7 @@ export default function AddTransactionModal() {
                                     borderRadius: HOME_RADIUS.chip,
                                     backgroundColor: palette.brandSoft,
                                     borderWidth: 1,
-                                    borderColor: `${palette.brand}55`,
+                                    borderColor: `${palette.brand}75`,
                                   }}
                                 >
                                   <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.brand, fontWeight: FONT_WEIGHT.regular }}>
@@ -2277,7 +2309,7 @@ export default function AddTransactionModal() {
                                     borderRadius: HOME_RADIUS.chip,
                                     backgroundColor: palette.isDark ? palette.layers.surfaceSunken : palette.inputBg,
                                     borderWidth: 1,
-                                    borderColor: palette.divider,
+                                    borderColor: palette.lines.borderStrong,
                                   }}
                                 >
                                   <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text }}>
@@ -2287,7 +2319,7 @@ export default function AddTransactionModal() {
                               ))}
                             </ScrollView>
                           </View>
-                        )}
+                        </AnimatedSuggestionStrip>
                       </View>
                     )}
                   </>

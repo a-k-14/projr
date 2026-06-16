@@ -224,6 +224,7 @@ export default function AccountDetailScreen() {
                 onBack={() => router.back()}
                 palette={palette}
                 titleSize={18}
+                titleWeight={FONT_WEIGHT.medium}
                 iconSize={18}
                 titleAddon={
                   <HeaderResetButton

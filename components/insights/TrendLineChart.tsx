@@ -359,10 +359,10 @@ function TrendLineChartBase({
 
           {activePointIndex !== null && points[activePointIndex] && (
             <View style={{ position: 'absolute', right: 12, top: -2, alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
+              <Text style={{ fontSize: HOME_TEXT.caption + 0.5, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
                 {formatSignedCurrency(points[activePointIndex].val, currencySymbol, { zeroPlaceholder: null })}
               </Text>
-              <Text style={{ fontSize: HOME_TEXT.tiny, color: palette.textMuted, marginTop: 1 }}>
+              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 1 }}>
                 {formattedTooltipDate}
               </Text>
             </View>
