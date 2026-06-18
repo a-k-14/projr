@@ -70,9 +70,11 @@ import {
   getTxTypeConfig
 } from '../../lib/layoutTokens';
 import { safePush } from '../../lib/safePush';
+import { prefetchAccountTrend } from '../../lib/trendCache';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
+import { useDateFilter } from '../../lib/useDateFilter';
 import { useSweep } from '../../lib/useSweep';
 import { useTransactionPress } from '../../lib/useTransactionPress';
 import { getCashflowSnapshot } from '../../services/analytics';
@@ -179,6 +181,10 @@ function HomeScreenContent() {
 
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    accounts.forEach(a => prefetchAccountTrend(a.id, txMutationVersion));
+  }, [accounts, txMutationVersion]);
   const accountScrollRef = useRef<any>(null);
   const pageScrollTopRef = useRef<(() => void) | null>(null);
 
@@ -190,11 +196,9 @@ function HomeScreenContent() {
   const verticalScrolls = useSharedValue<number[]>([0]);
   const indicatorY = useSharedValue(0);
 
-  const [period, setPeriod] = useState<HomePeriodType>('today');
+  const dateFilter = useDateFilter({ initialPeriod: 'today' });
   const [homeFullResetNonce, setHomeFullResetNonce] = useState(0);
 
-  const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
-  const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
@@ -204,11 +208,11 @@ function HomeScreenContent() {
       if (mode === 'full') {
         pageScrollTopRef.current?.();
         accountScrollRef.current?.scrollTo({ x: 0, animated });
-        setPeriod('today');
+        dateFilter.setPeriod('today');
         setHomeFullResetNonce((n) => n + 1);
       }
     });
-  }, [setPeriod, setHomeFullResetNonce]);
+  }, [dateFilter, setHomeFullResetNonce]);
 
 
 
@@ -259,11 +263,13 @@ function HomeScreenContent() {
     const toDate = customDraftTo >= customDraftFrom ? customDraftTo : customDraftFrom;
     setCustomDraftFrom(fromDate);
     setCustomDraftTo(toDate);
-    setCustomRangeFrom(toLocalDayStartISO(fromDate));
-    setCustomRangeTo(toLocalDayEndISO(toDate));
-    setPeriod('custom');
+    dateFilter.setCustomRange({
+      from: toLocalDayStartISO(fromDate),
+      to: toLocalDayEndISO(toDate)
+    });
+    dateFilter.setPeriod('custom');
     setCustomRangeOpen(false);
-  }, [customDraftFrom, customDraftTo]);
+  }, [customDraftFrom, customDraftTo, dateFilter]);
 
   const toggleHomeAccountInclusion = useCallback((accountId: string, included: boolean) => {
     const next = new Set(homeExcludedAccountIds);
@@ -438,10 +444,10 @@ function HomeScreenContent() {
         accountTypeLabel=""
         settingsYearStart={settingsYearStart}
         currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-        customRange={{ from: new Date(customRangeFrom), to: new Date(customRangeTo) }}
+        dateFilter={dateFilter}
         onOpenCustomRange={() => {
-          setCustomDraftFrom(new Date(customRangeFrom));
-          setCustomDraftTo(new Date(customRangeTo));
+          setCustomDraftFrom(new Date(dateFilter.customRange?.from || Date.now()));
+          setCustomDraftTo(new Date(dateFilter.customRange?.to || Date.now()));
           setCustomRangeOpen(true);
         }}
         totalBalance={includedHomeBalance}
@@ -450,8 +456,6 @@ function HomeScreenContent() {
         pageIndex={0}
         verticalScrolls={verticalScrolls}
         indicatorY={indicatorY}
-        period={period}
-        onPeriodChange={setPeriod}
         registerScrollTop={(_, fn) => { pageScrollTopRef.current = fn; }}
         isPageReady={true}
         fullResetNonce={homeFullResetNonce}
@@ -698,9 +702,7 @@ function AccountSummaryCard({
   netWorthChange,
   incomeExpense,
   cashflowSummary,
-  period,
-  onPeriodChange,
-  onOpenCustomRange,
+  dateFilter,
   isCashflowView,
   onToggleCashflowView,
   onPressMetricIn,
@@ -730,9 +732,7 @@ function AccountSummaryCard({
   netWorthChange?: number;
   incomeExpense?: { income: number; expense: number };
   cashflowSummary?: CashflowSummary;
-  period?: HomePeriodType;
-  onPeriodChange?: (p: HomePeriodType) => void;
-  onOpenCustomRange?: () => void;
+  dateFilter?: any;
   isCashflowView?: boolean;
   onToggleCashflowView?: (value: boolean) => void;
   onPressMetricIn?: () => void;
@@ -1084,14 +1084,17 @@ function AccountSummaryCard({
             <View style={{ marginHorizontal: -14, marginBottom: -12 }}>
               <View style={{ backgroundColor: walletCardBg, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12 }}>
                 {/* Period pills */}
-                {period && onPeriodChange && (
+                {dateFilter && (
                   <SegmentedPillSwitch
                     options={periodOptions}
-                    value={period}
+                    value={dateFilter.period === 'today' ? 'day' : dateFilter.period}
                     onChange={(key) => {
                       const nextPeriod = key as HomePeriodType;
-                      if (nextPeriod === 'custom') { onOpenCustomRange?.(); return; }
-                      onPeriodChange(nextPeriod);
+                      if (nextPeriod === 'custom') {
+                        dateFilter.setPeriod('custom');
+                        return;
+                      }
+                      dateFilter.setPeriod(nextPeriod);
                     }}
                     backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
                     pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
@@ -1129,7 +1132,7 @@ function AccountSummaryCard({
                       <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.2 }}>
                         {formatDate(from)}
                       </Text>
-                      {period !== 'today' && (
+                      {dateFilter?.period !== 'today' && (
                         <Animated.View entering={FadeInRight.duration(200)} exiting={FadeOutRight.duration(200)}>
                           <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.2 }}>
                             {` – ${formatDate(to)}`}
@@ -1473,31 +1476,7 @@ function formatNetWorthStripValue(value: number, currencySymbol: string) {
   return `${sign}${currencySymbol}${compact}${unit.suffix.trimStart()}`;
 }
 
-function getHomeDateRange(
-  period: HomePeriodType,
-  settingsYearStart: number,
-  customRange?: { from: Date; to: Date },
-  periodOffset: number = 0,
-) {
-  if (periodOffset !== 0 && period !== 'custom') {
-    const navPeriod = period === 'today' ? 'day' : period as 'week' | 'month' | 'year';
-    return getNavigableDateRange(navPeriod, periodOffset, settingsYearStart);
-  }
-  if (period === 'today') {
-    const now = new Date();
-    return {
-      from: toLocalDayStartISO(now),
-      to: toLocalDayEndISO(now),
-    };
-  }
 
-  return getDateRange(
-    period,
-    settingsYearStart,
-    customRange ? customRange.from.toISOString() : undefined,
-    customRange ? customRange.to.toISOString() : undefined,
-  );
-}
 
 function BalanceVisibilitySheet({
   accounts,
@@ -1668,16 +1647,14 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   accountTypeLabel,
   settingsYearStart,
   currencySymbol,
-  customRange,
-  onOpenCustomRange,
+
   totalBalance,
   onRefresh,
   isSelected,
   pageIndex,
   verticalScrolls,
   indicatorY,
-  period,
-  onPeriodChange,
+  dateFilter,
   registerScrollTop,
   onOpenNetWorth,
   onOpenBalanceVisibility,
@@ -1719,8 +1696,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   pageIndex: number;
   verticalScrolls: SharedValue<number[]>;
   indicatorY: SharedValue<number>;
-  period: HomePeriodType;
-  onPeriodChange: (p: HomePeriodType) => void;
+  dateFilter: ReturnType<typeof useDateFilter>;
   registerScrollTop: (id: string, fn: (() => void) | null) => void;
   onOpenNetWorth?: () => void;
   onOpenBalanceVisibility?: () => void;
@@ -1745,7 +1721,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   onInlineFilterChange?: (filter: 'in' | 'out' | null) => void;
   resetInlineFilterToken?: number;
   isDetailScreen?: boolean;
-  activePoint?: { date: string; val: number } | null;
+  activePoint?: any;
   onApplyCustomRange?: (from: Date, to: Date) => void;
 }) {
   const { palette } = useAppTheme();
@@ -1760,22 +1736,21 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [cashflowIsCashflow, setCashflowIsCashflow] = useState(false);
-  const [periodOffset, setPeriodOffset] = useState(0);
   // Inline filter: tap inc/exp on hero → filter Activity list to those tx; reset clears it
   const [inlineFilter, setInlineFilter] = useState<'in' | 'out' | null>(null);
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
   useEffect(() => {
     if (resetInlineFilterToken > 0) {
       setInlineFilter(null);
-      setPeriodOffset(0);
+      dateFilter?.setOffset(0);
       setActivityViewMode('date');
       setCategoryDrilldown(null);
       setExpandedCategoryIds([]);
-      onPeriodChange('today');
+      dateFilter?.setPeriod('today');
       mainScrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetInlineFilterToken]);
+  }, [resetInlineFilterToken, dateFilter]);
   // Activity view mode (list vs category grouped) — only used for individual account pages
   const [activityViewMode, setActivityViewMode] = useState<AccountViewMode>('date');
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
@@ -1812,7 +1787,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     if (accountId !== 'all' && lastAddedTx.accountId !== accountId) return;
 
     // Only apply if the tx date falls within the currently displayed period
-    const { from: currentFrom, to: currentTo } = getHomeDateRange(period, settingsYearStart, customRange);
+    const currentFrom = dateFilter?.from || '';
+    const currentTo = dateFilter?.to || '';
     if (lastAddedTx.date < currentFrom || lastAddedTx.date > currentTo) return;
 
     setPeriodTransactions((prev) => {
@@ -1847,7 +1823,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         return d !== 0 ? d : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
     });
-  }, [lastAddedTx, isScreenFocused, accountId, period, settingsYearStart, customRange]);
+  }, [lastAddedTx, isScreenFocused, accountId, dateFilter, settingsYearStart]);
 
   // Optimistic delete — mirror of the add path above. Removing a plain in/out
   // row is the cleanest optimistic case (we know exactly which row goes), so drop
@@ -1860,7 +1836,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
     if (accountId !== 'all' && lastRemovedTx.accountId !== accountId) return;
 
-    const { from: currentFrom, to: currentTo } = getHomeDateRange(period, settingsYearStart, customRange);
+    const currentFrom = dateFilter?.from || '';
+    const currentTo = dateFilter?.to || '';
     if (lastRemovedTx.date < currentFrom || lastRemovedTx.date > currentTo) return;
 
     setPeriodTransactions((prev) => prev.filter((t) => t.id !== lastRemovedTx.id));
@@ -1873,7 +1850,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     }
 
     setTransactions((prev) => prev.filter((t) => t.id !== lastRemovedTx.id));
-  }, [lastRemovedTx, isScreenFocused, accountId, period, settingsYearStart, customRange]);
+  }, [lastRemovedTx, isScreenFocused, accountId, dateFilter, settingsYearStart]);
 
   useEffect(() => {
     if (fullResetNonce > 0) {
@@ -1940,23 +1917,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     verticalScrolls.value = arr;
   });
 
-  const { from, to } = getHomeDateRange(
-    period,
-    settingsYearStart,
-    customRange,
-    periodOffset,
-  );
+  const from = dateFilter?.from || '';
+  const to = dateFilter?.to || '';
   const currentRangeKey = `${from}:${to}`;
   // Period label for the Activity section header: "Today", "Jun 2026", "1 Jun – 7 Jun", etc.
-  const activityPeriodLabel = useMemo(() => {
-    if (period === 'today') {
-      // If the user navigated away from today via arrows, show the actual date
-      if (periodOffset !== 0) return getPeriodNavLabel('day', from, to);
-      return 'Today';
-    }
-    const navPeriod = period === 'week' ? 'week' : period === 'month' ? 'month' : period === 'year' ? 'year' : 'custom';
-    return getPeriodNavLabel(navPeriod, from, to);
-  }, [period, periodOffset, from, to]);
+  const activityPeriodLabel = dateFilter?.label || 'Today';
   const hasCurrentPeriodData = periodDataRangeKey === currentRangeKey;
   // Keep last known values while a new period loads — avoids flash-to-zero on period change
   const displayedCashflow = cashflow;
@@ -2253,8 +2218,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       safePush(nav, {
         pathname: '/(tabs)/activity',
         params: {
-          source: period === 'today' ? 'home-today' : 'home-period',
-          period: period === 'today' ? 'day' : period,
+          source: dateFilter?.period === 'today' ? 'home-today' : 'home-period',
+          period: dateFilter?.period === 'today' ? 'day' : dateFilter?.period,
           accountId: 'all',
           returnTo: '/',
           cashflowBucket: cashflowIsCashflow ? kind : 'all',
@@ -2266,7 +2231,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         }
       });
     },
-    [accountId, cashflowIsCashflow, from, period, to, nav, onInlineFilterChange],
+    [accountId, cashflowIsCashflow, from, dateFilter, to, nav, onInlineFilterChange],
   );
 
   const handleTransactionPress = useTransactionPress();
@@ -2300,17 +2265,15 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               netWorthChange={accountId === 'all' ? nwChipValue : undefined}
               incomeExpense={incExpSummary}
               cashflowSummary={displayedCashflow}
-              period={accountId === 'all' ? undefined : period}
-              onPeriodChange={accountId === 'all' ? undefined : (p: HomePeriodType) => { setPeriodOffset(0); onPeriodChange(p); }}
-              onOpenCustomRange={accountId === 'all' ? undefined : () => onOpenCustomRange(accountId)}
+              dateFilter={accountId === 'all' ? undefined : dateFilter}
               isCashflowView={cashflowIsCashflow}
               onToggleCashflowView={setCashflowIsCashflow}
               onPressMetricIn={() => openPeriodActivity('in')}
               onPressMetricOut={() => openPeriodActivity('out')}
               hideAmounts={hideAmounts}
               heroMode
-              heroMetricPeriod={period === 'month' ? 'month' : 'today'}
-              onHeroMetricPeriodChange={onPeriodChange}
+              heroMetricPeriod={dateFilter?.period === 'month' ? 'month' : 'today'}
+              onHeroMetricPeriodChange={(next) => dateFilter?.setPeriod(next)}
               tweenTrigger={txMutationVersion}
               accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
               from={from}
@@ -2505,11 +2468,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               {/* Row 1: Period switcher stretched wide */}
               <View style={{ height: 32, marginBottom: 12 }}>
                 <ActivityPeriodHeader
-                  period={period === 'today' ? 'day' : period}
+                  period={dateFilter?.period === 'today' ? 'day' : dateFilter?.period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
                   periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
-                  goPrev={() => setPeriodOffset((o) => o - 1)}
-                  goNext={() => setPeriodOffset((o) => o + 1)}
-                  canGoNext={periodOffset < 0}
+                  goPrev={() => dateFilter?.navigatePrevious()}
+                  goNext={() => dateFilter?.navigateNext()}
+                  canGoNext={dateFilter?.canNavigateNext}
                   setShowPeriodSheet={() => setShowPeriodSheet(true)}
                   palette={palette}
                   height={32}
@@ -2523,10 +2486,10 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                     { key: 'today', label: 'Today' },
                     { key: 'month', label: 'Month' }
                   ]}
-                  value={period === 'month' ? 'month' : 'today'}
+                  value={dateFilter?.period === 'month' ? 'month' : 'today'}
                   onChange={(key) => {
-                    setPeriodOffset(0);
-                    onPeriodChange(key as any);
+                    dateFilter?.setOffset(0);
+                    dateFilter?.setPeriod(key as any);
                   }}
                   backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
                   pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
@@ -2874,30 +2837,30 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
       {showPeriodSheet && (
         <PeriodFilterSheet
-          period={period === 'today' ? 'day' : period}
-          periodOffset={periodOffset}
-          customFrom={customRange?.from.toISOString()}
-          customTo={customRange?.to.toISOString()}
+          period={dateFilter?.period === 'today' ? 'day' : dateFilter?.period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
+          periodOffset={dateFilter?.offset || 0}
+          customFrom={dateFilter?.customRange?.from}
+          customTo={dateFilter?.customRange?.to}
           yearStart={settingsYearStart}
           palette={palette}
           hasNavBar={!isDetailScreen}
           onSelectPeriod={(nextPeriod: string, nextOffset: number) => {
             if (nextPeriod === 'last30') {
               const r = getLast30DaysRange();
-              setPeriodOffset(0);
+              dateFilter?.setOffset(0);
               onApplyCustomRange?.(new Date(r.from), new Date(r.to));
               setShowPeriodSheet(false);
               return;
             }
             if (nextPeriod === 'all') {
-              setPeriodOffset(0);
+              dateFilter?.setOffset(0);
               onApplyCustomRange?.(new Date('2000-01-01T00:00:00'), new Date('2100-12-31T23:59:59'));
               setShowPeriodSheet(false);
               return;
             }
             const mappedPeriod = nextPeriod === 'day' ? 'today' : nextPeriod;
-            setPeriodOffset(nextOffset);
-            onPeriodChange(mappedPeriod as any);
+            dateFilter?.setOffset(nextOffset);
+            dateFilter?.setPeriod(mappedPeriod as any);
             setShowPeriodSheet(false);
           }}
           onApplyCustom={(fromStr: string, toStr: string) => {

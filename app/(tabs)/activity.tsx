@@ -33,6 +33,7 @@ import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { HeaderSearchBar, HeaderSearchTrigger } from '../../components/ui/HeaderSearchBar';
+import { useDateFilter } from '../../lib/useDateFilter';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
@@ -142,10 +143,9 @@ export default function ActivityScreen() {
   const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
 
-  const [period, setPeriod] = useState<ActivityPeriod>('month');
-  const [periodOffset, setPeriodOffset] = useState(0);
-  const [customFrom, setCustomFrom] = useState<string | undefined>();
-  const [customTo, setCustomTo] = useState<string | undefined>();
+  const dateFilter = useDateFilter({ initialPeriod: 'month' });
+  const period = dateFilter.period;
+  const periodOffset = dateFilter.offset;
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
@@ -246,10 +246,7 @@ export default function ActivityScreen() {
   }, [queueScrollToTop]);
 
   const resetAllFilters = useCallback((animated: boolean) => {
-    setPeriod('month');
-    setPeriodOffset(0);
-    setCustomFrom(undefined);
-    setCustomTo(undefined);
+    dateFilter.setPeriod('month');
     setSelectedAccountId('all');
     setTypeFilter('all');
     setCashflowBucket('all');
@@ -305,8 +302,8 @@ export default function ActivityScreen() {
     const signature = [
       period,
       periodOffset,
-      customFrom ?? '',
-      customTo ?? '',
+      dateFilter.customRange?.from ?? '',
+      dateFilter.customRange?.to ?? '',
       selectedAccountId,
       typeFilter,
       cashflowBucket,
@@ -328,8 +325,8 @@ export default function ActivityScreen() {
     cashflowBucket,
     cashflowMode,
     categoryDrilldown,
-    customFrom,
-    customTo,
+    dateFilter.customRange?.from,
+    dateFilter.customRange?.to,
     groupByMode,
     isFocused,
     isInitialParamSyncComplete,
@@ -390,10 +387,8 @@ export default function ActivityScreen() {
 
   const dateRange = useMemo(() => {
     if (period === 'all') return null;
-    if (period === 'last30') return getLast30DaysRange();
-    if (period === 'custom') return customFrom && customTo ? { from: customFrom, to: customTo } : null;
-    return getNavigableDateRange(period, periodOffset, yearStart);
-  }, [customFrom, customTo, period, periodOffset, yearStart]);
+    return { from: dateFilter.from, to: dateFilter.to };
+  }, [dateFilter.from, dateFilter.to, period]);
 
   const derivedCashflowMode = useMemo(() => {
     if (typeFilter === 'transfer' || typeFilter === 'loan' || typeFilter === 'deposit') {
@@ -428,12 +423,8 @@ export default function ActivityScreen() {
     [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, search, selectedAccountId, typeFilter],
   );
 
-  const canGoNext = period !== 'all' && period !== 'last30' && period !== 'custom' && periodOffset < 0;
-  const periodLabel = useMemo(() => {
-    if (period === 'all' || !dateRange) return 'All Time';
-    if (period === 'last30') return 'Last 30 Days';
-    return getPeriodNavLabel(period, dateRange.from, dateRange.to);
-  }, [dateRange, period]);
+  const canGoNext = dateFilter.canNavigateNext;
+  const periodLabel = dateFilter.label;
   const selectedAccount =
     selectedAccountId === 'all' ? null : accounts.find((account) => account.id === selectedAccountId);
   const accountLabel = selectedAccount ? selectedAccount.name : 'All Accounts';
@@ -648,10 +639,7 @@ export default function ActivityScreen() {
       return;
     }
 
-    setPeriod('month');
-    setPeriodOffset(0);
-    setCustomFrom(undefined);
-    setCustomTo(undefined);
+    dateFilter.setPeriod('month');
     setSelectedAccountId('all');
     setTypeFilter('all');
     setCashflowBucket('all');
@@ -676,15 +664,12 @@ export default function ActivityScreen() {
     // periodParam comes from deep-link callers. The pre-reset above already
     // landed us on the 'month' default; only override here for explicit values.
     if (periodParam === 'all' || periodParam === 'last30') {
-      setPeriod(periodParam);
-      setPeriodOffset(0);
+      dateFilter.setPeriod(periodParam);
     } else if (periodParam === 'day' || periodParam === 'week' || periodParam === 'month' || periodParam === 'year') {
-      setPeriod(periodParam);
-      setPeriodOffset(0);
-    } else if (periodParam === 'custom') {
-      setPeriod('custom');
-      setCustomFrom(fromParam);
-      setCustomTo(toParam);
+      dateFilter.setPeriod(periodParam === 'day' ? 'today' : periodParam);
+    } else if (periodParam === 'custom' && typeof fromParam === 'string' && typeof toParam === 'string') {
+      dateFilter.setCustomRange({ from: fromParam, to: toParam });
+      dateFilter.setPeriod('custom');
     }
 
     if (accountParam === 'all') {
@@ -781,14 +766,14 @@ export default function ActivityScreen() {
 
   const goPrev = () => {
     if (period !== 'all' && period !== 'last30' && period !== 'custom') {
-      setPeriodOffset((value) => value - 1);
+      dateFilter.navigatePrevious();
       queueScrollToTop(false);
     }
   };
 
   const goNext = () => {
     if (canGoNext) {
-      setPeriodOffset((value) => value + 1);
+      dateFilter.navigateNext();
       queueScrollToTop(false);
     }
   };
@@ -1483,7 +1468,7 @@ export default function ActivityScreen() {
                         period === 'month' && periodOffset === 0 ? (
                           <OutlinedButton
                             label="Show Last 30 Days"
-                            onPress={() => { setPeriod('last30'); setPeriodOffset(0); }}
+                            onPress={() => dateFilter.setPeriod('last30')}
                             palette={palette}
                           />
                         ) : null
@@ -1789,25 +1774,21 @@ export default function ActivityScreen() {
 
       {showPeriodSheet ? (
         <PeriodFilterSheet
-          period={period === 'day' ? 'day' : period}
+          period={period === 'today' ? 'day' : (period as any)}
           periodOffset={periodOffset}
-          customFrom={customFrom}
-          customTo={customTo}
+          customFrom={dateFilter.customRange?.from}
+          customTo={dateFilter.customRange?.to}
           yearStart={yearStart}
           palette={palette}
           onSelectPeriod={(nextPeriod, nextOffset) => {
-            setPeriod(nextPeriod);
-            setPeriodOffset(nextOffset);
-            setCustomFrom(undefined);
-            setCustomTo(undefined);
+            dateFilter.setPeriod(nextPeriod === 'day' ? 'today' : (nextPeriod as any));
+            dateFilter.setOffset(nextOffset);
             setShowPeriodSheet(false);
             queueScrollToTop(false);
           }}
           onApplyCustom={(fromStr, toStr) => {
-            setCustomFrom(fromStr);
-            setCustomTo(toStr);
-            setPeriod('custom');
-            setPeriodOffset(0);
+            dateFilter.setCustomRange({ from: fromStr, to: toStr });
+            dateFilter.setPeriod('custom');
             setShowPeriodSheet(false);
             queueScrollToTop(false);
           }}

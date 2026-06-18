@@ -15,6 +15,7 @@ import { useUIStore } from '../../stores/useUIStore';
 
 import { Text } from '@/components/ui/AppText';
 import { HomeAccountPage } from '../(tabs)/index';
+import { useDateFilter } from '../../lib/useDateFilter';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import { ActionStrip } from '../../components/ui/ActionStrip';
 import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -28,12 +29,8 @@ import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { getAccountBalanceTrend } from '../../services/analytics';
+import { trendCache } from '../../lib/trendCache';
 import type { PeriodType } from '../../types';
-
-// Persists across screen mounts — stack screens remount fresh on every navigation
-// unlike tabs which stay mounted. Cache gives instant display on revisit; mutationVersion
-// bump triggers a silent background refresh without showing the skeleton again.
-const trendCache = new Map<string, { date: string; val: number }[]>();
 
 type AccountPeriodType = 'today' | PeriodType;
 
@@ -60,7 +57,7 @@ export default function AccountDetailScreen() {
   const account = accounts.find((a) => a.id === id);
 
   const [trendPoints, setTrendPoints] = useState<{ date: string; val: number }[]>(
-    () => trendCache.get(id ?? '') ?? []
+    () => trendCache.get(id ?? '')?.data ?? []
   );
   const [isLoadingTrend, setIsLoadingTrend] = useState(!trendCache.has(id ?? ''));
   const [chartInteracting, setChartInteracting] = useState(false);
@@ -88,7 +85,7 @@ export default function AccountDetailScreen() {
         const trend = await getAccountBalanceTrend(account.id, fromStr, toStr);
         if (active) {
           const mapped = trend.map(t => ({ date: t.date, val: t.balance }));
-          trendCache.set(account.id, mapped);
+          trendCache.set(account.id, { version: mutationVersion, data: mapped });
           setTrendPoints(mapped);
         }
       } catch (err) {
@@ -110,16 +107,35 @@ export default function AccountDetailScreen() {
   const verticalScrolls = useSharedValue<number[]>([0]);
   const indicatorY = useSharedValue(0);
 
-  const [period, setPeriod] = useState<AccountPeriodType>('today');
+  const dateFilter = useDateFilter({ initialPeriod: 'today' });
   const [activePoint, setActivePoint] = useState<any>(null);
 
-  const [customRangeFrom, setCustomRangeFrom] = useState(() => toLocalDayStartISO(new Date()));
-  const [customRangeTo, setCustomRangeTo] = useState(() => toLocalDayEndISO(new Date()));
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
   const [customDraftTo, setCustomDraftTo] = useState(() => new Date());
   const [customRangeOpen, setCustomRangeOpen] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const panelProgress = useSharedValue(0);
+
+  const openCustomRange = useCallback(() => {
+    setCustomDraftFrom(new Date(dateFilter.customRange?.from || Date.now()));
+    setCustomDraftTo(new Date(dateFilter.customRange?.to || Date.now()));
+    setCustomRangeOpen(true);
+  }, [dateFilter]);
+
+  const handleApplyCustomRange = useCallback((from: Date, to: Date) => {
+    dateFilter.setCustomRange({
+      from: toLocalDayStartISO(from),
+      to: toLocalDayEndISO(to)
+    });
+    dateFilter.setPeriod('custom');
+  }, [dateFilter]);
+
+  const handleCustomRangeDone = useCallback(() => {
+    const fromDate = customDraftFrom <= customDraftTo ? customDraftFrom : customDraftTo;
+    const toDate = customDraftTo >= customDraftFrom ? customDraftTo : customDraftFrom;
+    handleApplyCustomRange(fromDate, toDate);
+    setCustomRangeOpen(false);
+  }, [customDraftFrom, customDraftTo, handleApplyCustomRange]);
 
   const toggleActions = () => {
     const nextShow = !showActions;
@@ -135,25 +151,6 @@ export default function AccountDetailScreen() {
     height: panelProgress.value * 56, // 36 height + 20 vertical padding
     opacity: panelProgress.value,
   }));
-
-  const handleCustomRangeDone = useCallback(() => {
-    const fromDate = customDraftFrom <= customDraftTo ? customDraftFrom : customDraftTo;
-    const toDate = customDraftTo >= customDraftFrom ? customDraftTo : customDraftFrom;
-    setCustomDraftFrom(fromDate);
-    setCustomDraftTo(toDate);
-    setCustomRangeFrom(toLocalDayStartISO(fromDate));
-    setCustomRangeTo(toLocalDayEndISO(toDate));
-    setPeriod('custom');
-    setCustomRangeOpen(false);
-  }, [customDraftFrom, customDraftTo]);
-
-  const handleApplyCustomRange = useCallback((from: Date, to: Date) => {
-    setCustomDraftFrom(from);
-    setCustomDraftTo(to);
-    setCustomRangeFrom(toLocalDayStartISO(from));
-    setCustomRangeTo(toLocalDayEndISO(to));
-    setPeriod('custom');
-  }, []);
 
   const openDatePicker = useCallback(
     (stage: 'from' | 'to') => {
@@ -179,12 +176,6 @@ export default function AccountDetailScreen() {
     },
     [customDraftFrom, customDraftTo],
   );
-
-  const openCustomRange = useCallback(() => {
-    setCustomDraftFrom(new Date(customRangeFrom));
-    setCustomDraftTo(new Date(customRangeTo));
-    setCustomRangeOpen(true);
-  }, [customRangeFrom, customRangeTo]);
 
   if (!account) return null;
 
@@ -228,8 +219,8 @@ export default function AccountDetailScreen() {
                 iconSize={18}
                 titleAddon={
                   <HeaderResetButton
-                    visible={!!inlineFilter || period !== 'today'}
-                    onPress={() => { setInlineFilter(null); setPeriod('today'); setResetInlineFilterToken((t) => t + 1); }}
+                    visible={!!inlineFilter || dateFilter.period !== 'today'}
+                    onPress={() => { setInlineFilter(null); dateFilter.setPeriod('today'); setResetInlineFilterToken((t) => t + 1); }}
                     palette={palette}
                     isFocused={isFocused}
                     style={{ marginLeft: 8 }}
@@ -273,7 +264,7 @@ export default function AccountDetailScreen() {
         accountTypeLabel={getAccountTypeLabel(account.type)}
         settingsYearStart={settingsYearStart}
         currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-        customRange={{ from: new Date(customRangeFrom), to: new Date(customRangeTo) }}
+        dateFilter={dateFilter}
         onOpenCustomRange={() => openCustomRange()}
         totalBalance={account.balance}
         onRefresh={refreshAccounts}
@@ -281,8 +272,6 @@ export default function AccountDetailScreen() {
         pageIndex={0}
         verticalScrolls={verticalScrolls}
         indicatorY={indicatorY}
-        period={period}
-        onPeriodChange={setPeriod}
         registerScrollTop={() => { }}
         isPageReady={true}
         accountsById={accountsById}

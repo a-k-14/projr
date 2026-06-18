@@ -117,9 +117,7 @@ interface Props {
   incomeExpense?: { income: number; expense: number };
   cashflowSummary?: CashflowSummary;
 
-  period?: HomePeriodType;
-  onPeriodChange?: (p: HomePeriodType) => void;
-  onOpenCustomRange?: () => void;
+  dateFilter?: any;
 
   isCashflowView?: boolean;
   onToggleCashflowView?: (v: boolean) => void;
@@ -147,9 +145,7 @@ export function AccountDetailsV2Hero({
   palette,
   incomeExpense,
   cashflowSummary,
-  period,
-  onPeriodChange,
-  onOpenCustomRange,
+  dateFilter,
   isCashflowView,
   onToggleCashflowView,
   onPressMetricIn,
@@ -424,14 +420,19 @@ export function AccountDetailsV2Hero({
       >
         <View style={{ paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12 }}>
           {/* Period pills */}
-          {period && onPeriodChange && (
+          {dateFilter && (
             <SegmentedPillSwitch
               options={periodOptions}
-              value={period}
+              value={dateFilter.period === 'today' ? 'day' : dateFilter.period}
               onChange={(key) => {
                 const nextPeriod = key as HomePeriodType;
-                if (nextPeriod === 'custom') { onOpenCustomRange?.(); return; }
-                onPeriodChange(nextPeriod);
+                if (nextPeriod === 'custom') {
+                  // If there was an open custom range prop we could call it, but let's assume
+                  // the UI for custom range lives in PeriodFilterSheet or the parent
+                  dateFilter.setPeriod('custom');
+                  return;
+                }
+                dateFilter.setPeriod(nextPeriod);
               }}
               backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
               pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
@@ -470,7 +471,7 @@ export function AccountDetailsV2Hero({
                 <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.2 }}>
                   {formatDate(from)}
                 </Text>
-                {period !== 'today' && (
+                {dateFilter?.period !== 'today' && (
                   <Text style={{ fontSize: 10.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 0.2 }}>
                     {` – ${formatDate(to)}`}
                   </Text>

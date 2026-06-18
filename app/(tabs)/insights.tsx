@@ -27,6 +27,7 @@ import { DateGroupedTransactionSheetList } from '../../components/DateGroupedTra
 import { SheetScrollTopButton } from '../../components/ui/SheetScrollTopButton';
 import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
+import { useDateFilter } from '../../lib/useDateFilter';
 import { getAutoBucketType, getAvailableGranularities, getTimeBuckets, type ChartGranularity } from '../../lib/chartUtils';
 import { formatDate, getDateRange, safeLocalDateKey, toLocalDateKey, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { useTransactionPress } from '../../lib/useTransactionPress';
@@ -40,7 +41,7 @@ import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 type HomePeriodType = 'today' | PeriodType;
 
 const PERIODS: HomePeriodType[] = ['today', 'week', 'month', 'year', 'custom'];
-const PERIOD_LABELS: Record<HomePeriodType, string> = {
+const PERIOD_LABELS: Record<string, string> = {
   today: 'Today',
   week: 'Week',
   month: 'Month',
@@ -115,14 +116,18 @@ export default function InsightsScreen() {
   // every mount so the dates stay current as the calendar rolls forward.
   // Default to a rolling 7-day window so the screen is never empty on a fresh
   // calendar month (which would happen with a strict `month` default).
-  const [period, setPeriod] = useState<HomePeriodType>('month');
+  const dateFilter = useDateFilter({ 
+    initialPeriod: 'month',
+    initialCustomRange: computePresetRange('last7', settingsYearStart)
+  });
+  const period = dateFilter.period;
+  const customRangeFrom = dateFilter.customRange?.from ?? computePresetRange('last7', settingsYearStart).from;
+  const customRangeTo = dateFilter.customRange?.to ?? computePresetRange('last7', settingsYearStart).to;
+  
   const [chartMode, setChartMode] = useState<CategoryChartMode>('expense');
   const [selectedChartCategoryId, setSelectedChartCategoryId] = useState<string | null>(null);
   const [chartResetNonce, setChartResetNonce] = useState(0);
-
   const loadRequestIdRef = useRef(0);
-  const [customRangeFrom, setCustomRangeFrom] = useState(() => computePresetRange('last7').from);
-  const [customRangeTo, setCustomRangeTo] = useState(() => computePresetRange('last7').to);
   // The active preset drives both the rolling-on-focus behavior and the inline
   // switcher's left label. `null` means the user picked a real custom range or a
   // different period chip — in that case nothing rolls automatically.
@@ -201,9 +206,12 @@ export default function InsightsScreen() {
     if (next === period) return;
     // Any explicit period change exits the active preset.
     setActivePreset(null);
-    setIsLoadingTrend(true);
-    setPeriod(next);
-  }, [period]);
+    if (next === 'custom') {
+      setCustomRangeOpen(true);
+      return;
+    }
+    dateFilter.setPeriod(next);
+  }, [period, dateFilter]);
   const handleGranularityChange = useCallback((g: ChartGranularity) => {
     if (g === incomeExpenseGranularity) return;
     setIsLoadingTrend(true);
@@ -359,10 +367,9 @@ export default function InsightsScreen() {
     if (!isFocused || !activePreset) return;
     const { from: nextFrom, to: nextTo } = computePresetRange(activePreset, settingsYearStart);
     if (nextFrom !== customRangeFrom || nextTo !== customRangeTo) {
-      setCustomRangeFrom(nextFrom);
-      setCustomRangeTo(nextTo);
+      dateFilter.setCustomRange({ from: nextFrom, to: nextTo });
     }
-  }, [isFocused, activePreset, customRangeFrom, customRangeTo, settingsYearStart]);
+  }, [isFocused, activePreset, customRangeFrom, customRangeTo, settingsYearStart, dateFilter]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -396,9 +403,10 @@ export default function InsightsScreen() {
       setIncExpExpanded(false);
       setIncExpBucketFilter(null);
       if (mode === 'full') {
-        // Restore the Month default.
-        setPeriod('month');
-        setActivePreset(null);
+        if (period === 'custom' && !activePreset) {
+          dateFilter.setPeriod('month');
+          setActivePreset(null);
+        }
         setSelectedChartCategoryId(null);
         setSelectedAccountId('all');
         setCashflowMode('incomeExpense');
@@ -469,11 +477,10 @@ export default function InsightsScreen() {
       setIsLoadingTrend(true);
       setCustomDraftFrom(fromDate);
       setCustomDraftTo(toDate);
-      setCustomRangeFrom(newFromIso);
-      setCustomRangeTo(newToIso);
-      setPeriod('custom');
+      dateFilter.setCustomRange({ from: newFromIso, to: newToIso });
+      dateFilter.setPeriod('custom');
     });
-  }, [customDraftFrom, customDraftTo, period, customRangeFrom, customRangeTo]);
+  }, [customDraftFrom, customDraftTo, period, customRangeFrom, customRangeTo, dateFilter]);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -714,10 +721,9 @@ export default function InsightsScreen() {
             const { from, to } = computePresetRange(key, settingsYearStart);
             requestAnimationFrame(() => {
               setIsLoadingTrend(true);
-              setCustomRangeFrom(from);
-              setCustomRangeTo(to);
+              dateFilter.setCustomRange({ from, to });
               setActivePreset(key);
-              setPeriod('custom');
+              dateFilter.setPeriod('custom');
             });
           }}
           accounts={accounts}

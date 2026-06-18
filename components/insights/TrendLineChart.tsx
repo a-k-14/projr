@@ -33,7 +33,7 @@ interface TrendLineChartProps {
   /** When true, omit the balance value from the right axis label. */
   hideEndBalance?: boolean;
   /** Callback fired when the active interactive point changes (e.g. scrubbing). */
-  onActivePointChange?: (point: TrendPoint | null) => void;
+  onActivePointChange?: (point: any) => void;
   /** When true, completely omit the header (title and interactive tooltip row). */
   hideHeader?: boolean;
   /** When true, hide the starting dot at index 0 on the left edge. */
@@ -142,8 +142,21 @@ function TrendLineChartBase({
   const chartWidthRef = useRef(Dimensions.get('window').width - 48);
   const chartLeftRef = useRef(0);
   const fadeAnim = useRef(new Animated.Value(0.3)).current;
+  const lineOpacity = useRef(new Animated.Value(0)).current;
 
   const strokeColor = lineColor ?? palette.brand;
+
+  useEffect(() => {
+    if (!isLoading) {
+      Animated.timing(lineOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      lineOpacity.setValue(0);
+    }
+  }, [isLoading, lineOpacity]);
 
   useEffect(() => {
     if (isLoading) {
@@ -294,18 +307,20 @@ function TrendLineChartBase({
     const axisEnd = (endLabelIsToday && isToday(rawEnd)) ? 'Today' : formatAxisDate(rawEnd);
     return (
       <View style={[CARD_BASE, containerStyle]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, minHeight: 20, paddingHorizontal: 12 }}>
-          <View>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-              {title}
-            </Text>
-            {subtitle && (
-              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2 }}>
-                {subtitle}
+        {!hideHeader && (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, minHeight: 20, paddingHorizontal: 12 }}>
+            <View>
+              <Text style={{ fontSize: HOME_TEXT.bodySmall - 0.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                {title}
               </Text>
-            )}
+              {subtitle && (
+                <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 2 }}>
+                  {subtitle}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
         <View style={{ height: CHART_H, justifyContent: 'center', alignItems: 'center' }}>
           <Animated.View style={{ width: '96%', height: 2.8, borderRadius: 1.4, backgroundColor: strokeColor, opacity: Animated.multiply(fadeAnim, 0.45) }} />
@@ -313,9 +328,9 @@ function TrendLineChartBase({
         </View>
 
         {!hideAxisLabels && (
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: flatStyle ? -2 : 14, paddingHorizontal: flatStyle ? 0 : 12 }}>
-            <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, color: palette.textMuted }}>{axisStart}</Text>
-            <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, color: palette.textMuted }}>{axisEnd}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: flatStyle ? 0 : 10, paddingLeft: 14, paddingRight: 20, paddingBottom: flatStyle ? 8 : 0 }}>
+            <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{axisStart}</Text>
+            <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{axisEnd}</Text>
           </View>
         )}
       </View>
@@ -403,39 +418,41 @@ function TrendLineChartBase({
           }}
           style={{ height: CHART_H }}
         >
-          <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} style={{ pointerEvents: 'none', overflow: 'visible' }}>
-            <Defs>
-              <LinearGradient id="reusableChartAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0%" stopColor={strokeColor} stopOpacity={0.24} />
-                <Stop offset="100%" stopColor={strokeColor} stopOpacity={0.0} />
-              </LinearGradient>
-            </Defs>
-            {/* Horizontal grid lines */}
-            {[
-              PLOT_MIN_Y,
-              PLOT_MIN_Y + 0.5 * PLOT_HEIGHT,
-              PLOT_MAX_Y
-            ].map((gy, idx) => {
-              return <Line key={idx} x1={PAD_X} y1={gy} x2={VB_W - PAD_X} y2={gy} stroke={palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} strokeWidth={1} strokeDasharray="4 5" />;
-            })}
-            <Path d={areaD} fill="url(#reusableChartAreaGrad)" />
-            <Path d={lineD} fill="none" stroke={strokeColor} strokeWidth={flatStyle ? 2.4 : 2.8} strokeLinejoin="round" strokeLinecap="round" />
-            {!hideStartDot && <Circle cx={pts[0]?.x ?? PAD_X} cy={startY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />}
-            <Circle cx={pts[pts.length - 1]?.x ?? VB_W - PAD_X} cy={endY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />
+          <Animated.View style={{ opacity: lineOpacity }}>
+            <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} style={{ pointerEvents: 'none', overflow: 'visible' }}>
+              <Defs>
+                <LinearGradient id="reusableChartAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0%" stopColor={strokeColor} stopOpacity={0.24} />
+                  <Stop offset="100%" stopColor={strokeColor} stopOpacity={0.0} />
+                </LinearGradient>
+              </Defs>
+              {/* Horizontal grid lines */}
+              {[
+                PLOT_MIN_Y,
+                PLOT_MIN_Y + 0.5 * PLOT_HEIGHT,
+                PLOT_MAX_Y
+              ].map((gy, idx) => {
+                return <Line key={idx} x1={PAD_X} y1={gy} x2={VB_W - PAD_X} y2={gy} stroke={palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} strokeWidth={1} strokeDasharray="4 5" />;
+              })}
+              <Path d={areaD} fill="url(#reusableChartAreaGrad)" />
+              <Path d={lineD} fill="none" stroke={strokeColor} strokeWidth={flatStyle ? 2.4 : 2.8} strokeLinejoin="round" strokeLinecap="round" />
+              {!hideStartDot && <Circle cx={pts[0]?.x ?? PAD_X} cy={startY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />}
+              <Circle cx={pts[pts.length - 1]?.x ?? VB_W - PAD_X} cy={endY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />
 
-            {activePointIndex !== null && points[activePointIndex] && pts[activePointIndex] && (
-              (() => {
-                const activePt = pts[activePointIndex];
-                return (
-                  <>
-                    <Line x1={activePt.x} y1={activePt.y} x2={activePt.x} y2={CHART_H - 6} stroke={strokeColor} strokeWidth={1} strokeDasharray="3 3" opacity={0.7} />
-                    <Circle cx={activePt.x} cy={activePt.y} r={9} fill={strokeColor} opacity={0.25} />
-                    <Circle cx={activePt.x} cy={activePt.y} r={5.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.5} />
-                  </>
-                );
-              })()
-            )}
-          </Svg>
+              {activePointIndex !== null && points[activePointIndex] && pts[activePointIndex] && (
+                (() => {
+                  const activePt = pts[activePointIndex];
+                  return (
+                    <>
+                      <Line x1={activePt.x} y1={activePt.y} x2={activePt.x} y2={CHART_H - 6} stroke={strokeColor} strokeWidth={1} strokeDasharray="3 3" opacity={0.7} />
+                      <Circle cx={activePt.x} cy={activePt.y} r={9} fill={strokeColor} opacity={0.25} />
+                      <Circle cx={activePt.x} cy={activePt.y} r={5.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.5} />
+                    </>
+                  );
+                })()
+              )}
+            </Svg>
+          </Animated.View>
         </View>
       </View>
 
