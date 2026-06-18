@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import type { CloseDepositInput, CreateDepositInput, Deposit, DepositStatus } from '../types';
 import * as depositsService from '../services/fixedDeposits';
 import { getFixedDepositSummary } from '../lib/fixed-deposits';
-import { useTransactionsStore } from './useTransactionsStore';
 import { useAccountsStore } from './useAccountsStore';
 import { useGlobalNotice } from './useGlobalNotice';
 
@@ -10,7 +9,7 @@ async function refreshLinkedStores() {
   // Creating/closing/deleting a deposit also writes/removes a linked
   // type='deposit' transaction and shifts the source-account balance.
   await Promise.all([
-    useTransactionsStore.getState().load().catch(() => undefined),
+    import('./useTransactionsStore').then(m => m.useTransactionsStore.getState().load()).catch(() => undefined),
     useAccountsStore.getState().load().catch(() => undefined),
   ]);
 }

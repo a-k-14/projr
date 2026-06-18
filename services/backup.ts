@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as SQLite from 'expo-sqlite';
 import type { Settings } from '../types';
 import { sqlite } from '../db/client';
 
@@ -105,7 +106,25 @@ export async function importBackup(): Promise<boolean> {
     await FileSystem.makeDirectoryAsync(DB_DIR, { intermediates: true });
   }
 
-  await FileSystem.copyAsync({ from: picked.uri, to: DB_PATH });
+  try {
+    sqlite.closeSync();
+  } catch (e) {
+    // Ignore if already closed
+  }
+
+  try {
+    await SQLite.deleteDatabaseAsync(DB_NAME);
+  } catch (e) {
+    // Ignore if delete fails
+  }
+
+  try {
+    const base64 = await FileSystem.readAsStringAsync(picked.uri, { encoding: FileSystem.EncodingType.Base64 });
+    await FileSystem.writeAsStringAsync(DB_PATH, base64, { encoding: FileSystem.EncodingType.Base64 });
+  } catch (err: any) {
+    throw new Error(`Failed to read/write backup file: ${err.message}`);
+  }
+
   // Remove stale WAL/SHM sidecars left by the previous database. Without this,
   // SQLite can replay the old write-ahead frames over the freshly restored file
   // on next open, corrupting the restored data.

@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, BackHandler, ScrollView, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppSwitch } from '../../components/ui/AppSwitch';
 import { ChoiceRow } from '../../components/settings-ui';
@@ -11,6 +11,7 @@ import { useAppTheme } from '../../lib/theme';
 import { useUIStore } from '../../stores/useUIStore';
 import { exportBackup, importBackup, pickBackupFolder } from '../../services/backup';
 import { APP_LOCALE } from '../../lib/dateUtils';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 
 const FREQUENCY_OPTIONS = [
   { label: 'Daily', days: 1 },
@@ -30,6 +31,7 @@ export default function BackupScreen() {
   const { palette } = useAppTheme();
   const settings = useUIStore((s) => s.settings);
   const updateSettings = useUIStore((s) => s.updateSettings);
+  const { showConfirm, showAlert, dialog } = useAppDialog(palette);
 
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -61,46 +63,42 @@ export default function BackupScreen() {
         updateSettings({ lastManualBackupAt: new Date().toISOString() }).catch(() => undefined);
       }
     } catch (e: any) {
-      Alert.alert('Export Failed', e?.message ?? 'Could not export backup.');
+      showAlert('Export Failed', e?.message ?? 'Could not export backup.');
     } finally {
       setExporting(false);
     }
   };
 
   const handleImport = async () => {
-    Alert.alert(
-      'Restore Backup',
-      'This will replace all current data with the selected backup. You will need to restart the app to complete the restore.\n\nContinue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Choose File',
-          style: 'destructive',
-          onPress: async () => {
-            setImporting(true);
-            try {
-              const success = await importBackup();
-              if (success) {
-                // Do NOT write to the DB here — the open connection still points at
-                // the pre-restore database, so any write could checkpoint stale data
-                // over the file we just restored. Close the app immediately so it
-                // reopens with a fresh connection on the restored file.
-                Alert.alert(
-                  'Restore Complete',
-                  'Your backup has been restored. The app will now close — reopen it to load your restored data.',
-                  [{ text: 'Close App', onPress: () => BackHandler.exitApp() }],
-                  { cancelable: false }
-                );
-              }
-            } catch (e: any) {
-              Alert.alert('Restore Failed', e?.message ?? 'Could not restore backup.');
-            } finally {
-              setImporting(false);
-            }
-          },
-        },
-      ]
-    );
+    showConfirm({
+      title: 'Restore Backup',
+      message: 'This will replace all current data with the selected backup. You will need to restart the app to complete the restore.\n\nContinue?',
+      confirmLabel: 'Choose File',
+      destructive: true,
+      onConfirm: async () => {
+        setImporting(true);
+        try {
+          const success = await importBackup();
+          if (success) {
+            // Do NOT write to the DB here — the open connection still points at
+            // the pre-restore database, so any write could checkpoint stale data
+            // over the file we just restored. Close the app immediately so it
+            // reopens with a fresh connection on the restored file.
+            showConfirm({
+              title: 'Restore Complete',
+              message: 'Your backup has been restored. The app will now close — reopen it to load your restored data.',
+              confirmLabel: 'Close App',
+              showCancel: false,
+              onConfirm: () => BackHandler.exitApp()
+            });
+          }
+        } catch (e: any) {
+          showAlert('Restore Failed', e?.message ?? 'Could not restore backup.');
+        } finally {
+          setImporting(false);
+        }
+      }
+    });
   };
 
   const handlePickFolder = async () => {
@@ -111,7 +109,7 @@ export default function BackupScreen() {
         updateSettings({ autoBackupFolderUri: uri, autoBackupEnabled: true, lastAutoBackupError: '' }).catch(() => undefined);
       }
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Could not select folder.');
+      showAlert('Error', e?.message ?? 'Could not select folder.');
     } finally {
       setPickingFolder(false);
     }
@@ -284,6 +282,7 @@ export default function BackupScreen() {
           ))}
         </BottomSheet>
       )}
+      {dialog}
     </SafeAreaView>
   );
 }

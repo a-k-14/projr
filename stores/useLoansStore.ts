@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import type { LoanWithSummary, CreateLoanInput, CreateTransactionInput, LoanFilters } from '../types';
 import * as loansService from '../services/loans';
 import { usePersonsStore } from './usePersonsStore';
-import { useTransactionsStore } from './useTransactionsStore';
 import { useGlobalNotice } from './useGlobalNotice';
 
 interface LoansStore {
@@ -56,26 +55,26 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
     // Loan list + hero are now up to date; reload the (invisible-from-here)
     // transaction list and persons cache in the background so callers can
     // navigate back to the loans screen without waiting on them.
-    useTransactionsStore.getState().load().catch(() => undefined);
+    import('./useTransactionsStore').then(m => m.useTransactionsStore.getState().load()).catch(() => undefined);
     usePersonsStore.getState().load().catch(() => undefined);
   },
 
   addPrincipal: async (loanId, amount, accountId, date, note) => {
     await loansService.addLoanPrincipal(loanId, amount, accountId, date, note);
     await get().load(get().filters);
-    await useTransactionsStore.getState().load();
+    await import('./useTransactionsStore').then(m => m.useTransactionsStore.getState().load());
   },
 
   update: async (id, data) => {
     await loansService.updateLoan(id, data);
     await get().load(get().filters);
-    await useTransactionsStore.getState().load();
+    await import('./useTransactionsStore').then(m => m.useTransactionsStore.getState().load());
   },
 
   updateOrigin: async (id, data, originTransactionId) => {
     await loansService.updateLoanOrigin(id, data, originTransactionId);
     await get().load(get().filters);
-    await useTransactionsStore.getState().load();
+    await import('./useTransactionsStore').then(m => m.useTransactionsStore.getState().load());
     if (data.personName) usePersonsStore.getState().load().catch(() => undefined);
   },
 
@@ -85,7 +84,7 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
   updateSettlement: async (txId, data) => {
     await loansService.updateLoanSettlement(txId, data);
     await get().load(get().filters);
-    await useTransactionsStore.getState().load();
+    await import('./useTransactionsStore').then(m => m.useTransactionsStore.getState().load());
   },
 
   remove: async (id) => {
@@ -97,7 +96,7 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
     set({ loans: snapshot.filter((l) => l.id !== id) });
     try {
       await loansService.deleteLoanCascade(id);
-      useTransactionsStore.getState().load().catch(() => undefined);
+      import('./useTransactionsStore').then(m => m.useTransactionsStore.getState().load()).catch(() => undefined);
     } catch (error) {
       set({ loans: snapshot });
       useGlobalNotice.getState().show('Error in deleting the loan. Please try again.');

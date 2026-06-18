@@ -4,8 +4,6 @@ import * as transactionsService from '../services/transactions';
 import { TRANSACTIONS_PAGE_SIZE as PAGE_SIZE } from '../lib/layoutTokens';
 import { getTransactionBalanceDelta } from '../lib/transactionImpact';
 import { useAccountsStore } from './useAccountsStore';
-import { useLoansStore } from './useLoansStore';
-import { useFixedDepositsStore } from './useFixedDepositsStore';
 import { useGlobalNotice } from './useGlobalNotice';
 
 const SAVE_FAILED_MESSAGE = 'Error in saving the last transaction. Please try again.';
@@ -401,13 +399,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         await transactionsService.deleteTransaction(id);
         set((state) => ({ mutationVersion: state.mutationVersion + 1 }));
         if (originalTx?.loanId) {
-          useLoansStore.getState().load().catch(() => {});
+          import('./useLoansStore').then(m => m.useLoansStore.getState().load()).catch(() => {});
         }
         // Deposit-linked deletes cascade in the service (deleting a 'new' tx drops the
         // parent deposit row; deleting a 'closed' tx flips status back to 'active').
         // Without this reload the deposits store is stale after either.
         if (originalTx?.depositId) {
-          useFixedDepositsStore.getState().load().catch(() => {});
+          import('./useFixedDepositsStore').then(m => m.useFixedDepositsStore.getState().load()).catch(() => {});
         }
       } catch (error) {
         // Revert: restore every removed row and re-apply its balance delta.

@@ -82,7 +82,7 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
   return (
     <View>
       <TransactionDateHeader dateKey={group.dateKey} palette={palette} />
-      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
+      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF', overflow: 'hidden' }}>
         {group.items.map((tx, index) => (
           <TransactionListItem
             key={tx.id}
@@ -115,7 +115,7 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
 
 export function EmptyTransactions({ palette, emptyText }: { palette: AppThemePalette; emptyText: string }) {
   return (
-    <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface }}>
+    <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF' }}>
       <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 20 }}>
         {emptyText}
       </Text>

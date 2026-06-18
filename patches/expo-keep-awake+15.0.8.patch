@@ -1,0 +1,21 @@
+diff --git a/node_modules/expo-keep-awake/.DS_Store b/node_modules/expo-keep-awake/.DS_Store
+new file mode 100644
+index 0000000..f8d1835
+Binary files /dev/null and b/node_modules/expo-keep-awake/.DS_Store differ
+diff --git a/node_modules/expo-keep-awake/src/index.ts b/node_modules/expo-keep-awake/src/index.ts
+index b7a856e..8ef14c7 100644
+--- a/node_modules/expo-keep-awake/src/index.ts
++++ b/node_modules/expo-keep-awake/src/index.ts
+@@ -77,7 +77,11 @@ export function activateKeepAwake(tag: string = ExpoKeepAwakeTag): Promise<void>
+  * @param tag Tag to lock screen sleep prevention. If not provided, the default tag is used.
+  */
+ export async function activateKeepAwakeAsync(tag: string = ExpoKeepAwakeTag): Promise<void> {
+-  await ExpoKeepAwake.activate?.(tag);
++  try {
++    await ExpoKeepAwake.activate?.(tag);
++  } catch (err) {
++    console.warn('[KeepAwake] Ignored activation error:', err);
++  }
+ }
+ 
+ // @needsAudit

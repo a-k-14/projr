@@ -1978,6 +1978,21 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const account = useMemo(() => accounts.find(a => a.id === accountId), [accounts, accountId]);
   const typeMeta = account ? ACCOUNT_TYPE_META[account.type as AccountType] : null;
   const typeColor = typeMeta?.color ?? palette.brand;
+
+  const accountHeroDarkGradient: [string, string] = useMemo(() => {
+    const accountType = account?.type;
+    if (!accountType || !typeColor.startsWith('#') || typeColor.length < 7) return ['#16192A', '#1A1E30'];
+    const r = parseInt(typeColor.slice(1, 3), 16);
+    const g = parseInt(typeColor.slice(3, 5), 16);
+    const b = parseInt(typeColor.slice(5, 7), 16);
+    const darkFactor = 0.68;
+    const dr = Math.round(r * darkFactor);
+    const dg = Math.round(g * darkFactor);
+    const db = Math.round(b * darkFactor);
+    const darker = `#${dr.toString(16).padStart(2, '0')}${dg.toString(16).padStart(2, '0')}${db.toString(16).padStart(2, '0')}`;
+    return [typeColor, darker];
+  }, [account?.type, typeColor]);
+
   const detailInflowColor = '#47ae79';
   const detailOutflowColor = palette.isDark ? '#FB923C' : '#EA580C';
 
@@ -2166,7 +2181,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     if (!activePoint?.date) return '';
     const d = new Date(activePoint.date.includes('T') ? activePoint.date : activePoint.date + 'T00:00:00');
     if (isNaN(d.getTime())) return '';
-    return `${d.getDate()} ${d.toLocaleDateString(APP_LOCALE, { month: 'short' })} ${d.getFullYear()}`;
+    return `${d.getDate()} ${d.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
   }, [activePoint]);
 
   const activePointValFormatted = useMemo(() => {
@@ -2326,101 +2341,148 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 backgroundColor: palette.card,
                 borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
-                borderColor: palette.borderSoft,
-                paddingTop: 10,
-                paddingBottom: 4,
-                paddingHorizontal: 16,
+                borderColor: palette.isDark ? palette.borderSoft : 'transparent',
                 marginBottom: 12,
                 position: 'relative',
+                overflow: 'hidden',
+                ...(palette.isDark ? {} : {
+                  elevation: 6,
+                  shadowColor: '#94A3B8',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.13,
+                  shadowRadius: 10,
+                }),
               }}
             >
-              {/* Balance Row */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 14 }}>
-                {/* Col 1: Icon */}
-                <View style={{
-                  backgroundColor: typeMeta?.bg ?? `${typeColor}18`,
-                  width: 42, height: 42,
-                  borderRadius: HOME_RADIUS.chip,
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <AppIcon
-                    name={typeMeta?.icon ?? 'wallet'}
-                    size={20}
-                    color={typeColor}
-                    strokeWidth={1.9}
-                  />
-                </View>
-                {/* Col 2: Name row 1, Balance row 2 */}
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, letterSpacing: 0.4 }}>
-                    Balance
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                    {currencySymbol && !hideAmounts && (
-                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted, marginRight: 3 }}>
-                        {currencySymbol}
-                      </Text>
-                    )}
-                    <Text style={{ fontSize: HOME_TEXT.heroCardValue - 1, fontWeight: FONT_WEIGHT.regular, color: palette.text, opacity: 0.87 }}>
-                      {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
-                    </Text>
-                    {balanceDec && (
-                      <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted }}>
-                        {balanceDec}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-                {/* Col 3: Account Type Badge */}
-                <View style={{
-                  backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-                  borderRadius: 8,
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  alignSelf: 'center',
-                }}>
-                  <Text style={{
-                    fontSize: 10.5,
-                    fontWeight: FONT_WEIGHT.semibold,
-                    color: palette.textMuted,
-                    letterSpacing: 0.3,
-                    textTransform: 'uppercase',
+              <View style={{ position: 'relative', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 }}>
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={[accountHeroDarkGradient[0], accountHeroDarkGradient[1]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+                />
+                {/* Balance Row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  {/* Col 1: Icon */}
+                  <View style={{
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    width: 42, height: 42,
+                    borderRadius: HOME_RADIUS.chip,
+                    alignItems: 'center', justifyContent: 'center',
                   }}>
-                    {accountTypeLabel}
-                  </Text>
+                    <AppIcon
+                      name={typeMeta?.icon ?? 'wallet'}
+                      size={20}
+                      color={'rgba(255,255,255,0.90)'}
+                      strokeWidth={1.9}
+                    />
+                  </View>
+                  {/* Col 2: Name row 1, Balance row 2 */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.4 }}>
+                      Balance
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                      {currencySymbol && !hideAmounts && (
+                        <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF', marginRight: 3 }}>
+                          {currencySymbol}
+                        </Text>
+                      )}
+                      <Text style={{ fontSize: HOME_TEXT.heroCardValue - 1, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF' }}>
+                        {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
+                      </Text>
+                      {balanceDec && (
+                        <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.7)' }}>
+                          {balanceDec}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  {/* Col 3: Account Type Badge */}
+                  <View style={{
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    borderRadius: 8,
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    alignSelf: 'center',
+                  }}>
+                    <Text style={{
+                      fontSize: 10.5,
+                      fontWeight: FONT_WEIGHT.semibold,
+                      color: 'rgba(255,255,255,0.7)',
+                      letterSpacing: 0.3,
+                      textTransform: 'uppercase',
+                    }}>
+                      {accountTypeLabel}
+                    </Text>
+                  </View>
                 </View>
               </View>
 
               {/* Active tooltip overlay block */}
-              {activePoint && (
-                <View style={{
-                  position: 'absolute',
-                  top: 58,
-                  alignSelf: 'center',
-                  backgroundColor: palette.isDark ? '#1E2538' : '#F1F5F9',
-                  borderColor: palette.divider,
-                  borderWidth: 1,
-                  borderRadius: 12,
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                  zIndex: 10,
-                  ...palette.states.cardShadow,
-                }}>
-                  <Text style={{ fontSize: 11, color: palette.textSecondary, fontWeight: FONT_WEIGHT.semibold }}>
-                    {activePointDateFormatted}
-                  </Text>
-                  <View style={{ width: 1, height: 12, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }} />
-                  <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-                    {activePointValFormatted}
-                  </Text>
-                </View>
-              )}
+              {activePoint && (() => {
+                const diff = activePoint.prev ? activePoint.val - activePoint.prev.val : 0;
+                const hasPrev = diff !== 0 && activePoint.prev;
+                let prevDateStr = '';
+                if (hasPrev) {
+                  const prevD = new Date(activePoint.prev.date + 'T00:00:00');
+                  prevDateStr = isNaN(prevD.getTime()) ? '' : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
+                }
+                const isPositive = diff > 0;
+
+                return (
+                  <View style={{
+                    position: 'absolute',
+                    top: 12,
+                    alignSelf: 'center',
+                    backgroundColor: palette.isDark ? '#1E2538' : '#F1F5F9',
+                    borderColor: palette.divider,
+                    borderWidth: 1,
+                    borderRadius: 12,
+                    paddingVertical: 8,
+                    paddingHorizontal: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    zIndex: 10,
+                    ...palette.states.cardShadow,
+                  }}>
+                    {/* Column 1: Dates */}
+                    <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                      <Text style={{ fontSize: 11, color: palette.textSecondary, fontWeight: FONT_WEIGHT.semibold }}>
+                        {activePointDateFormatted}
+                      </Text>
+                      {hasPrev && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 9.5, color: palette.textMuted, marginRight: 3 }}>vs</Text>
+                          <Text style={{ fontSize: 10, color: palette.textSecondary, fontWeight: FONT_WEIGHT.medium }}>
+                            {prevDateStr}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Divider */}
+                    <View style={{ width: 1, height: hasPrev ? 26 : 14, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }} />
+
+                    {/* Column 2: Amounts */}
+                    <View style={{ alignItems: 'flex-start', gap: 2 }}>
+                      <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                        {activePointValFormatted}
+                      </Text>
+                      {hasPrev && (
+                        <Text style={{ fontSize: 10, color: isPositive ? palette.positive : palette.negative, fontWeight: FONT_WEIGHT.bold }}>
+                          {isPositive ? '↑' : '↓'} {formatCurrency(Math.abs(diff), currencySymbol)}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })()}
 
               {/* Chart Line container closer to edges */}
-              <View style={{ marginHorizontal: -16, marginBottom: 4 }}>
+              <View style={{ marginHorizontal: 0, marginBottom: 4, marginTop: -2 }}>
                 {middleContent}
               </View>
             </View>

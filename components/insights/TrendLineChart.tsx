@@ -172,8 +172,8 @@ function TrendLineChartBase({
   // Vertical band the line occupies inside the viewBox. Breathing room top/bottom.
   // Used both for non-flat point mapping (val → y) and as the centerline for the
   // flat-line case below.
-  const PLOT_MIN_Y = flatStyle ? 24 : 20;
-  const PLOT_MAX_Y = flatStyle ? CHART_H - 6 : CHART_H - 22;
+  const PLOT_MIN_Y = flatStyle ? 20 : 20;
+  const PLOT_MAX_Y = flatStyle ? CHART_H - 12 : CHART_H - 22;
   const PLOT_HEIGHT = PLOT_MAX_Y - PLOT_MIN_Y;
   const PLOT_MID_Y = (PLOT_MIN_Y + PLOT_MAX_Y) / 2;
 
@@ -186,7 +186,10 @@ function TrendLineChartBase({
     const idx = Math.round(ratio * (points.length - 1));
     const clampedIdx = Math.max(0, Math.min(points.length - 1, idx));
     setActivePointIndex(clampedIdx);
-    onActivePointChange?.(points[clampedIdx]);
+    onActivePointChange?.(points[clampedIdx] ? {
+      ...points[clampedIdx],
+      prev: clampedIdx > 0 ? points[clampedIdx - 1] : null,
+    } : null);
   };
 
   // SVG Chart path calculation — viewBox coordinate space (0–300 x, 0–CHART_H y)
@@ -438,7 +441,7 @@ function TrendLineChartBase({
 
       {/* Axis labels */}
       {!hideAxisLabels && (
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: flatStyle ? 6 : 10, paddingLeft: 14, paddingRight: 20, paddingBottom: flatStyle ? 2 : 0 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: flatStyle ? 0 : 10, paddingLeft: 14, paddingRight: 20, paddingBottom: flatStyle ? 8 : 0 }}>
           <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
             {formatAxisDate(startDate ?? points[0]?.date)} ({formatSignedCurrency(points[0]?.val, currencySymbol, { zeroPlaceholder: null })})
           </Text>
