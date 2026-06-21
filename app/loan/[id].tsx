@@ -157,7 +157,6 @@ export default function LoanDetailScreen() {
               <ScreenHeader
                 title={`${loan.personName} • ${isLent ? 'Lent' : 'Borrowed'}`}
                 palette={palette}
-                titleSize={25}
                 rightAction={
                   <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
                 }

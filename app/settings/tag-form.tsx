@@ -71,15 +71,19 @@ export default function TagFormScreen() {
       );
       return;
     }
-    if (isEditing && id) {
-      await updateTag(id, { name, color: draft.color });
-    } else {
-      await addTag({ name, color: draft.color });
+    const work = (isEditing && id)
+      ? () => updateTag(id, { name, color: draft.color })
+      : () => addTag({ name, color: draft.color });
+
+    try {
+      await work();
+      router.back();
+    } catch (error) {
+      showAlert('Error', String(error));
     }
-    router.back();
   }
 
-  async function onDelete() {
+  function onDelete() {
     if (!id) return;
     const tag = tags.find((t) => t.id === id);
     showConfirm({

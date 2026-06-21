@@ -10,7 +10,7 @@ import {
   RefreshControl,
   ScrollView,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import Animated, {
   FadeInRight,
@@ -46,16 +46,13 @@ import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import {
   APP_LOCALE,
   formatDate,
-  getDateRange,
   getLast30DaysRange,
-  getNavigableDateRange,
-  getPeriodNavLabel,
   toLocalDayEndISO,
   toLocalDayStartISO,
   toLocalMonthStartISO
 } from '../../lib/dateUtils';
 import { DEPOSIT_VISUAL } from '../../lib/depositVisuals';
-import { formatCurrency, getCashflowFromList, getLoanSummary, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
+import { formatCurrency, formatSignedCurrency, getCashflowFromList, getLoanSummary, getTotalBalance, getTransactionCashflowImpact } from '../../lib/derived';
 import { CARD_PADDING, FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { getFixedDepositSummary } from '../../lib/fixed-deposits';
 import {
@@ -77,7 +74,7 @@ import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { useDateFilter } from '../../lib/useDateFilter';
 import { useSweep } from '../../lib/useSweep';
 import { useTransactionPress } from '../../lib/useTransactionPress';
-import { getCashflowSnapshot } from '../../services/analytics';
+import { getCashflowSnapshotFromTransactions } from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useAssetsStore } from '../../stores/useAssetsStore';
@@ -181,6 +178,10 @@ function HomeScreenContent() {
 
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    refreshAccounts().catch(() => undefined);
+  }, [txMutationVersion, refreshAccounts]);
 
   useEffect(() => {
     accounts.forEach(a => prefetchAccountTrend(a.id, txMutationVersion));
@@ -620,15 +621,10 @@ const TICK_CONTENT_W = TICK_TOTAL * (TICK_W + TICK_GAP) - TICK_GAP;
 const TICK_REMAINDER = TICK_CONTAINER_W - TICK_CONTENT_W;
 
 // ── Metric spring: each number that actually changed springs up ──────────────
-// Runs ALONGSIDE the silent-optimistic value update — the value still snaps,
-// the motion just acknowledges "this one updated." A tx mutation bumps
-// `tweenTrigger`, which ARMS the animation; the side whose amount then changes
-// springs — whether that change lands in the same frame (optimistic add) or a
-// beat later after a DB reload (delete/edit). The arm survives that gap (up to
-// ~1.2s) so every kind of update animates consistently, then disarms once a
-// change is acknowledged (or the window lapses) so an unrelated period/cashflow
-// toggle — which never bumps the trigger — can't borrow a stale arm. Shared by
-// the home hero strip and every per-account hero card so both read identically.
+// A tx mutation bumps `tweenTrigger`, which arms the animation; the side whose
+// amount changes after the DB reload springs. The arm survives that short gap
+// (up to ~1.2s), then disarms once a change is acknowledged or the window lapses
+// so unrelated period/cashflow toggles cannot borrow a stale arm.
 const METRIC_ARM_WINDOW_MS = 1200;
 
 function useMetricSprings(tweenTrigger: number, leftAmount: number, rightAmount: number) {
@@ -786,7 +782,8 @@ function AccountSummaryCard({
     : isAccountHero
       ? 'rgba(255,255,255,0.15)'
       : heroMode ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.06)';
-  const realBalanceFormatted = `${balance < 0 ? '-' : ''}${formatCurrency(Math.abs(balance), currencySymbol)}`;
+  const isNegative = balance < 0;
+  const realBalanceFormatted = formatCurrency(Math.abs(balance), currencySymbol);
   const realDotIdx = realBalanceFormatted.lastIndexOf('.');
   const realBalanceInt = realDotIdx >= 0 ? realBalanceFormatted.slice(0, realDotIdx) : realBalanceFormatted;
   const balanceFormatted = hideAmounts ? null : realBalanceFormatted;
@@ -969,6 +966,9 @@ function AccountSummaryCard({
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                {isNegative && !hideAmounts && (
+                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: heroText, marginRight: 1 }}>-</Text>
+                )}
                 {currencySymbol && (
                   <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: heroMutedText, marginRight: 3 }}>{currencySymbol}</Text>
                 )}
@@ -995,6 +995,11 @@ function AccountSummaryCard({
                   {homeExcludedCount > 0 ? `${homeTotalCount - homeExcludedCount} of ${homeTotalCount} Accounts` : 'All Accounts'}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                  {isNegative && !hideAmounts && (
+                    <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.65)', marginRight: 1 }}>
+                      -
+                    </Text>
+                  )}
                   {currencySymbol ? (
                     <Text appWeight="medium" style={{ fontSize: heroCurrencyFontSize, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.65)', marginRight: 4 }}>
                       {currencySymbol}
@@ -1062,7 +1067,7 @@ function AccountSummaryCard({
                   adjustsFontSizeToFit
                   style={{ fontSize: HOME_TEXT.subhead, fontWeight: FONT_WEIGHT.bold, color: balanceColor, letterSpacing: -0.6, flexShrink: 1 }}
                 >
-                  {balanceInt}
+                  {isNegative && !hideAmounts ? '-' : ''}{balanceInt}
                 </Text>
                 {balanceDec ? (
                   <Text
@@ -1770,87 +1775,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const mainScrollRef = useAnimatedRef<Animated.ScrollView>();
 
-  // Optimistic update: apply a newly-added transaction to local period state immediately,
-  // before the background DB re-fetch confirms it. Makes the hero card feel instant.
-  const lastAddedTx = useTransactionsStore((s) => s.lastAddedTx);
-  const lastRemovedTx = useTransactionsStore((s) => s.lastRemovedTx);
-  // Bumps on every tx mutation — drives the Home hero income/expense dip cue.
-  const txMutationVersion = useTransactionsStore((s) => s.mutationVersion);
-  const processedOptimisticIds = useRef(new Set<string>());
-  const processedRemovedIds = useRef(new Set<string>());
-  useEffect(() => {
-    if (!lastAddedTx || !isScreenFocused) return;
-    if (processedOptimisticIds.current.has(lastAddedTx.id)) return;
-    processedOptimisticIds.current.add(lastAddedTx.id);
 
-    // Only apply to this page's account
-    if (accountId !== 'all' && lastAddedTx.accountId !== accountId) return;
-
-    // Only apply if the tx date falls within the currently displayed period
-    const currentFrom = dateFilter?.from || '';
-    const currentTo = dateFilter?.to || '';
-    if (lastAddedTx.date < currentFrom || lastAddedTx.date > currentTo) return;
-
-    setPeriodTransactions((prev) => {
-      if (prev.some((t) => t.id === lastAddedTx.id)) return prev;
-      return [lastAddedTx, ...prev].sort((a, b) => {
-        const d = new Date(b.date).getTime() - new Date(a.date).getTime();
-        return d !== 0 ? d : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-    });
-
-    if (accountId === 'all' && lastAddedTx.transferPairId) {
-      // In all-accounts mode, a transfer has both an outflow and an inflow leg, netting out to zero impact on net
-      setCashflow((prev) => ({
-        ...prev,
-        in: prev.in + lastAddedTx.amount,
-        out: prev.out + lastAddedTx.amount,
-      }));
-    } else {
-      const impact = getTransactionCashflowImpact(lastAddedTx, { includeTransfers: true, includeLoans: true });
-      if (impact === 'in') {
-        setCashflow((prev) => ({ ...prev, in: prev.in + lastAddedTx.amount, net: prev.net + lastAddedTx.amount }));
-      } else if (impact === 'out') {
-        setCashflow((prev) => ({ ...prev, out: prev.out + lastAddedTx.amount, net: prev.net - lastAddedTx.amount }));
-      }
-    }
-
-    setTransactions((prev) => {
-      if (prev.some((t) => t.id === lastAddedTx.id)) return prev;
-      if (accountId !== 'all' && lastAddedTx.accountId !== accountId) return prev;
-      return [lastAddedTx, ...prev].slice(0, 10).sort((a, b) => {
-        const d = new Date(b.date).getTime() - new Date(a.date).getTime();
-        return d !== 0 ? d : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-    });
-  }, [lastAddedTx, isScreenFocused, accountId, dateFilter, settingsYearStart]);
-
-  // Optimistic delete — mirror of the add path above. Removing a plain in/out
-  // row is the cleanest optimistic case (we know exactly which row goes), so drop
-  // it from local period/recent state and back out its cashflow impact instantly
-  // instead of waiting for the post-delete reload.
-  useEffect(() => {
-    if (!lastRemovedTx || !isScreenFocused) return;
-    if (processedRemovedIds.current.has(lastRemovedTx.id)) return;
-    processedRemovedIds.current.add(lastRemovedTx.id);
-
-    if (accountId !== 'all' && lastRemovedTx.accountId !== accountId) return;
-
-    const currentFrom = dateFilter?.from || '';
-    const currentTo = dateFilter?.to || '';
-    if (lastRemovedTx.date < currentFrom || lastRemovedTx.date > currentTo) return;
-
-    setPeriodTransactions((prev) => prev.filter((t) => t.id !== lastRemovedTx.id));
-
-    const impact = getTransactionCashflowImpact(lastRemovedTx, { includeTransfers: true, includeLoans: true });
-    if (impact === 'in') {
-      setCashflow((prev) => ({ ...prev, in: prev.in - lastRemovedTx.amount, net: prev.net - lastRemovedTx.amount }));
-    } else if (impact === 'out') {
-      setCashflow((prev) => ({ ...prev, out: prev.out - lastRemovedTx.amount, net: prev.net + lastRemovedTx.amount }));
-    }
-
-    setTransactions((prev) => prev.filter((t) => t.id !== lastRemovedTx.id));
-  }, [lastRemovedTx, isScreenFocused, accountId, dateFilter, settingsYearStart]);
 
   useEffect(() => {
     if (fullResetNonce > 0) {
@@ -1873,14 +1798,17 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     const requestId = ++loadRequestIdRef.current;
     const requestRangeKey = `${rangeFrom}:${rangeTo}`;
     const accountFilter = accountId === 'all' ? undefined : accountId;
-    const [periodSnapshot, recentTransactions, periodScopedTransactions] = await Promise.all([
-      getCashflowSnapshot(accountId, rangeFrom, rangeTo, { includeTransfers: true, includeLoans: true }),
+    const [recentTransactions, periodScopedTransactions] = await Promise.all([
       getTransactions({ accountId: accountFilter, limit: 10 }),
       getTransactions({ accountId: accountFilter, fromDate: rangeFrom, toDate: rangeTo }),
     ]);
 
     if (requestId !== loadRequestIdRef.current) return;
 
+    const periodSnapshot = getCashflowSnapshotFromTransactions(periodScopedTransactions, {
+      includeTransfers: true,
+      includeLoans: true,
+    });
     const periodSummary = periodSnapshot.summary;
 
     setCashflow(periodSummary);
@@ -1961,7 +1889,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const detailInflowColor = '#47ae79';
   const detailOutflowColor = palette.isDark ? '#FB923C' : '#EA580C';
 
-  const realBalanceFormatted = `${totalBalance < 0 ? '-' : ''}${formatCurrency(Math.abs(totalBalance), currencySymbol)}`;
+  const isNegative = totalBalance < 0;
+  const realBalanceFormatted = formatCurrency(Math.abs(totalBalance), currencySymbol);
   const balanceFormatted = hideAmounts ? null : realBalanceFormatted;
   const dotIdx = balanceFormatted ? balanceFormatted.lastIndexOf('.') : -1;
   const balanceInt = hideAmounts ? '••••' : (dotIdx >= 0 ? balanceFormatted!.slice(0, dotIdx) : balanceFormatted ?? '');
@@ -2021,7 +1950,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   });
 
   const { leftSpringStyle, rightSpringStyle } = useMetricSprings(
-    txMutationVersion,
+    dataNonce,
     metricLeftAmount,
     metricRightAmount
   );
@@ -2140,8 +2069,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     });
   }, []);
 
-  const txTypeConfig = useMemo(() => getTxTypeConfig(palette), [palette]);
-
   const activePointDateFormatted = useMemo(() => {
     if (!activePoint?.date) return '';
     const d = new Date(activePoint.date.includes('T') ? activePoint.date : activePoint.date + 'T00:00:00');
@@ -2151,8 +2078,10 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
   const activePointValFormatted = useMemo(() => {
     if (!activePoint) return '';
-    return formatCurrency(activePoint.val, currencySymbol);
+    return formatSignedCurrency(activePoint.val, currencySymbol, { zeroPlaceholder: null });
   }, [activePoint, currencySymbol]);
+
+  const txTypeConfig = useMemo(() => getTxTypeConfig(palette), [palette]);
 
   // NW chip delta: income - expenses + assets added in this period
   // Excludes loans, transfers, deposits (all NW-neutral). Asset additions have no
@@ -2173,18 +2102,28 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     await loadRangeData(from, to);
   }, [from, loadRangeData, to, dataNonce]);
 
+  const lastLoadedNonceRef = useRef(dataNonce);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!isPageReady || !isScreenFocused) return;
-    // Debounce: rapid period arrow clicks settle before firing DB queries
-    if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
-    loadDebounceRef.current = setTimeout(() => {
+    if (dataNonce !== lastLoadedNonceRef.current) {
+      lastLoadedNonceRef.current = dataNonce;
+      if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
+      // Mutation-driven: the modal transition is already complete by the time
+      // mutationVersion bumps, so skip the InteractionManager wait.
       loadPageData();
-    }, 150);
+    } else {
+      // Keep a short debounce so rapid arrow taps coalesce without making a
+      // deliberate period selection feel delayed.
+      if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
+      loadDebounceRef.current = setTimeout(() => {
+        loadPageData();
+      }, 60);
+    }
     return () => {
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
     };
-  }, [isPageReady, isScreenFocused, loadPageData]);
+  }, [isPageReady, isScreenFocused, loadPageData, dataNonce]);
 
   useEffect(() => {
     if (!isPageReady || !isScreenFocused || !isSelected || loansLoaded) return;
@@ -2274,7 +2213,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               heroMode
               heroMetricPeriod={dateFilter?.period === 'month' ? 'month' : 'today'}
               onHeroMetricPeriodChange={(next) => dateFilter?.setPeriod(next)}
-              tweenTrigger={txMutationVersion}
+              tweenTrigger={dataNonce}
               accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
               from={from}
               to={to}
@@ -2347,6 +2286,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                       Balance
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                      {isNegative && !hideAmounts && (
+                        <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF', marginRight: 1 }}>
+                          -
+                        </Text>
+                      )}
                       {currencySymbol && !hideAmounts && (
                         <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF', marginRight: 3 }}>
                           {currencySymbol}
@@ -2381,68 +2325,89 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                     </Text>
                   </View>
                 </View>
-              </View>
 
-              {/* Active tooltip overlay block */}
-              {activePoint && (() => {
-                const diff = activePoint.prev ? activePoint.val - activePoint.prev.val : 0;
-                const hasPrev = diff !== 0 && activePoint.prev;
-                let prevDateStr = '';
-                if (hasPrev) {
-                  const prevD = new Date(activePoint.prev.date + 'T00:00:00');
-                  prevDateStr = isNaN(prevD.getTime()) ? '' : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
-                }
-                const isPositive = diff > 0;
+                {/* Active tooltip overlay block */}
+                {activePoint && (() => {
+                  const diff = activePoint.prev ? activePoint.val - activePoint.prev.val : 0;
+                  const hasPrev = diff !== 0 && activePoint.prev;
+                  let prevDateStr = '';
+                  if (hasPrev) {
+                    const prevD = new Date(activePoint.prev.date + 'T00:00:00');
+                    prevDateStr = isNaN(prevD.getTime()) ? '' : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
+                  }
+                  const isPositive = diff > 0;
+                  const tooltipBg = palette.isDark ? '#1E293B' : '#F1F5F9'; // slate in dark, clean light gray in light
+                  const tooltipBorder = palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+                  const textMainColor = palette.text;
+                  const textMutedColor = palette.textSecondary;
+                  const dividerColor = palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
 
-                return (
-                  <View style={{
-                    position: 'absolute',
-                    top: 12,
-                    alignSelf: 'center',
-                    backgroundColor: palette.isDark ? '#1E2538' : '#F1F5F9',
-                    borderColor: palette.divider,
-                    borderWidth: 1,
-                    borderRadius: 12,
-                    paddingVertical: 8,
-                    paddingHorizontal: 14,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                    zIndex: 10,
-                    ...palette.states.cardShadow,
-                  }}>
-                    {/* Column 1: Dates */}
-                    <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                      <Text style={{ fontSize: 11, color: palette.textSecondary, fontWeight: FONT_WEIGHT.semibold }}>
-                        {activePointDateFormatted}
-                      </Text>
-                      {hasPrev && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 9.5, color: palette.textMuted, marginRight: 3 }}>vs</Text>
-                          <Text style={{ fontSize: 10, color: palette.textSecondary, fontWeight: FONT_WEIGHT.medium }}>
-                            {prevDateStr}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Divider */}
-                    <View style={{ width: 1, height: hasPrev ? 26 : 14, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }} />
-
-                    {/* Column 2: Amounts */}
-                    <View style={{ alignItems: 'flex-start', gap: 2 }}>
-                      <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-                        {activePointValFormatted}
-                      </Text>
-                      {hasPrev && (
-                        <Text style={{ fontSize: 10, color: isPositive ? palette.positive : palette.negative, fontWeight: FONT_WEIGHT.bold }}>
-                          {isPositive ? '↑' : '↓'} {formatCurrency(Math.abs(diff), currencySymbol)}
+                  return (
+                    <View style={{
+                      position: 'absolute',
+                      top: 12,
+                      alignSelf: 'center',
+                      backgroundColor: tooltipBg,
+                      borderColor: tooltipBorder,
+                      borderWidth: 1,
+                      borderRadius: 12,
+                      paddingVertical: 8,
+                      paddingHorizontal: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                      zIndex: 100,
+                      shadowColor: '#000000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: palette.isDark ? 0.3 : 0.08,
+                      shadowRadius: 8,
+                      elevation: 8,
+                    }}>
+                      {/* Column 1: Dates */}
+                      <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                        <Text style={{ fontSize: 11, color: textMutedColor, fontWeight: FONT_WEIGHT.semibold }}>
+                          {activePointDateFormatted}
                         </Text>
-                      )}
+                        {hasPrev && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 9.5, color: palette.textMuted, marginRight: 3 }}>vs</Text>
+                            <Text style={{ fontSize: 10, color: textMutedColor, fontWeight: FONT_WEIGHT.medium }}>
+                              {prevDateStr}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Divider */}
+                      <View style={{ width: 1, height: hasPrev ? 26 : 14, backgroundColor: dividerColor }} />
+
+                      {/* Column 2: Amounts */}
+                      <View style={{ alignItems: 'flex-start', gap: 2 }}>
+                        <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: textMainColor }}>
+                          {activePointValFormatted}
+                        </Text>
+                        {hasPrev && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <AppIcon
+                              name={isPositive ? 'trending-up' : 'trending-down'}
+                              size={12}
+                              color={isPositive ? palette.numberPositive : palette.numberNegative}
+                              strokeWidth={2.5}
+                            />
+                            <Text style={{
+                              fontSize: 10,
+                              color: isPositive ? palette.numberPositive : palette.numberNegative,
+                              fontWeight: FONT_WEIGHT.bold,
+                            }}>
+                              {formatSignedCurrency(Math.abs(diff), currencySymbol, { zeroPlaceholder: null })}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                );
-              })()}
+                  );
+                })()}
+              </View>
 
               {/* Chart Line container closer to edges */}
               <View style={{ marginHorizontal: 0, marginBottom: 4, marginTop: -2 }}>

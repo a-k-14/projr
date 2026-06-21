@@ -14,7 +14,6 @@ interface AccountsStore {
   setOrder: (ids: string[]) => Promise<void>;
   remove: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
-  applyBalanceDelta: (accountId: string, delta: number) => void;
   getById: (id: string) => Account | undefined;
 }
 
@@ -36,14 +35,7 @@ export const useAccountsStore = create<AccountsStore>((set, get) => ({
     set({ accounts });
   },
 
-  applyBalanceDelta: (accountId, delta) => {
-    if (delta === 0) return;
-    set((state) => ({
-      accounts: state.accounts.map((a) =>
-        a.id === accountId ? { ...a, balance: a.balance + delta } : a
-      ),
-    }));
-  },
+
 
   add: async (data) => {
     const account = await accountsService.createAccount(data);

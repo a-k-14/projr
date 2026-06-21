@@ -45,6 +45,8 @@ export default function AssetsScreen() {
         palette={palette}
         showBack
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        titleSize={25}
+        titleWeight="400"
         rightAction={
           <HeaderAddButton
             onPress={() => router.push('/modals/asset-form')}

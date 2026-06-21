@@ -3,7 +3,6 @@ import type { CloseDepositInput, CreateDepositInput, Deposit, DepositStatus } fr
 import * as depositsService from '../services/fixedDeposits';
 import { getFixedDepositSummary } from '../lib/fixed-deposits';
 import { useAccountsStore } from './useAccountsStore';
-import { useGlobalNotice } from './useGlobalNotice';
 
 async function refreshLinkedStores() {
   // Creating/closing/deleting a deposit also writes/removes a linked
@@ -85,33 +84,8 @@ export const useFixedDepositsStore = create<DepositsStore>((set, get) => ({
   },
 
   remove: async (id) => {
-    // Optimistic: drop the deposit from the in-memory list and re-derive the
-    // hero summary in the same paint as the navigation back to the deposits
-    // screen. Cascade delete + tx/account reconcile run in the background; on
-    // failure we restore and surface a notice.
-    const snapshot = {
-      deposits: get().deposits,
-      totalInvested: get().totalInvested,
-      totalMaturityValue: get().totalMaturityValue,
-      totalInterest: get().totalInterest,
-      activeMaturityValue: get().activeMaturityValue,
-    };
-    const nextDeposits = snapshot.deposits.filter((d) => d.id !== id);
-    const nextSummary = deriveSummary(nextDeposits);
-    set({
-      deposits: nextDeposits,
-      totalInvested: nextSummary.totalInvested,
-      totalMaturityValue: nextSummary.totalMaturityValue,
-      totalInterest: nextSummary.totalInterest,
-      activeMaturityValue: nextSummary.activeMaturityValue,
-    });
-    try {
-      await depositsService.deleteDeposit(id);
-      refreshLinkedStores().catch(() => undefined);
-    } catch (error) {
-      set(snapshot);
-      useGlobalNotice.getState().show('Error in deleting the deposit. Please try again.');
-      throw error;
-    }
+    await depositsService.deleteDeposit(id);
+    await get().load();
+    await refreshLinkedStores();
   },
 }));

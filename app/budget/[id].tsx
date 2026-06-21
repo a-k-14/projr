@@ -23,7 +23,6 @@ import {
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
-  SCREEN_HEADER,
 } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/useBudgetStore';
@@ -148,7 +147,6 @@ export default function BudgetDetailScreen() {
                 title={categoryLabel}
                 palette={palette}
                 showBack={true}
-                titleSize={SCREEN_HEADER.detailTitleSize}
                 rightAction={
                   <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
                 }

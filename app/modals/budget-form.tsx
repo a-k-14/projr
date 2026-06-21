@@ -2,27 +2,28 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Keyboard, ScrollView, View , TouchableOpacity } from 'react-native';
+import { Keyboard, ScrollView, View, TouchableOpacity, Pressable, TextInput } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthSheet, formatBudgetMonthLabel } from '../../components/budget-ui';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
-import { FixedBottomActions } from '../../components/settings-ui';
+import { FixedBottomActions, FormSection } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
-import { AmountRow, OptionChipRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
+import { AppChevron } from '../../components/ui/AppChevron';
+import { sanitizeDecimalInput } from '../../components/ui/transaction-form-primitives';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
-import { SCREEN_GUTTER } from '../../lib/design';
-import { SCREEN_HEADER } from '../../lib/layoutTokens';
+import { FONT_WEIGHT } from '../../lib/design';
+import { HOME_TEXT, SCREEN_HEADER, FORM_TOKENS, HOME_RADIUS } from '../../lib/layoutTokens';
 import { useAppTheme, type AppThemePalette } from '../../lib/theme';
 import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
-import { useUIStore } from '../../stores/useUIStore';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { BudgetCategoryPickerSheet } from '../../components/ui/BudgetCategoryPickerSheet';
-import type { BudgetWithSpent, Category } from '../../types';
+import type { BudgetWithSpent } from '../../types';
 import { toLocalMonthStartISO } from '../../lib/dateUtils';
+import { isEmojiIcon } from '../../lib/ui-format';
 
 export default function BudgetFormModal() {
   const { budgetId, month } = useLocalSearchParams<{ budgetId?: string; month?: string }>();
@@ -31,9 +32,6 @@ export default function BudgetFormModal() {
   const updateBudget = useBudgetStore((s) => s.update);
   const removeBudget = useBudgetStore((s) => s.remove);
   const categories = useCategoriesStore((s) => s.categories);
-  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
-  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
-  const sym = showCurrencySymbol ? currencySymbol : '';
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
@@ -62,6 +60,7 @@ export default function BudgetFormModal() {
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const initializedRef = useRef(false);
+  const amountInputRef = useRef<TextInput | null>(null);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -79,6 +78,8 @@ export default function BudgetFormModal() {
     }
   }, [editingBudget, month, resetDraft, setDraftCategoryId]);
 
+  const isValid = !!categoryId && Number(parseFormattedNumber(amountStr || '0')) !== 0;
+
   useEffect(() => {
     if (draftCategoryId && draftCategoryId !== categoryId) {
       setCategoryId(draftCategoryId);
@@ -86,8 +87,13 @@ export default function BudgetFormModal() {
     }
   }, [categoryId, draftCategoryId]);
 
-  const selectedCategory = categories.find((category) => category.id === categoryId);
-  const isValid = !!categoryId && Number(parseFormattedNumber(amountStr || '0')) !== 0;
+  const category = useMemo(() => categories.find((item) => item.id === categoryId) ?? null, [categories, categoryId]);
+  const subCatsOfParent = useMemo(() => categories.filter((c) => c.parentId === categoryId), [categories, categoryId]);
+  const isAllSelected = useMemo(() => {
+    if (!subCategoryIds || subCategoryIds.length === 0) return true;
+    if (subCatsOfParent.length === 0) return true;
+    return subCategoryIds.length === subCatsOfParent.length;
+  }, [subCategoryIds, subCatsOfParent]);
 
 
 
@@ -112,19 +118,19 @@ export default function BudgetFormModal() {
       );
       return;
     }
+    const payload = {
+      categoryId,
+      subCategoryIds,
+      amount: Number(parseFormattedNumber(amountStr)),
+      period: 'month' as const,
+      startDate: startMonth,
+      repeat };
+    const work = editingBudget
+      ? () => updateBudget(editingBudget.id, payload as Partial<BudgetWithSpent>, month)
+      : () => addBudget(payload, month);
+
     try {
-      const payload = {
-        categoryId,
-        subCategoryIds,
-        amount: Number(parseFormattedNumber(amountStr)),
-        period: 'month' as const,
-        startDate: startMonth,
-        repeat };
-      if (editingBudget) {
-        await updateBudget(editingBudget.id, payload as Partial<BudgetWithSpent>, month);
-      } else {
-        await addBudget(payload, month);
-      }
+      await work();
       resetDraft();
       router.back();
     } catch (error) {
@@ -140,9 +146,13 @@ export default function BudgetFormModal() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        await removeBudget(editingBudget.id, month);
-        resetDraft();
-        router.back();
+        try {
+          await removeBudget(editingBudget.id, month);
+          resetDraft();
+          router.back();
+        } catch (error) {
+          showAlert('Error', String(error));
+        }
       },
     });
   };
@@ -155,7 +165,7 @@ export default function BudgetFormModal() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
+        <View style={{ height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
           <TouchableOpacity delayPressIn={0}
             onPress={() => {
               resetDraft();
@@ -164,7 +174,7 @@ export default function BudgetFormModal() {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{ marginRight: SCREEN_HEADER.iconTitleGap }}
           >
-            <AppIcon name="x" size={24} color={palette.text} />
+            <AppIcon name="x" size={18} color={palette.text} strokeWidth={2} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             {editingBudget ? 'Edit Budget' : 'New Budget'}
@@ -172,36 +182,267 @@ export default function BudgetFormModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) }}>
-        <SectionCard palette={palette}>
-          <PickerRow
-            label="Month"
-            value={formatBudgetMonthLabel(startMonth)}
-            palette={palette}
-            onPress={openMonthPicker}
-          />
-          <PickerRow
-            label="Category"
-            value={getCategoryDisplayParts(categories, categoryId, subCategoryIds).fullName}
-            placeholder={!selectedCategory}
-            palette={palette}
-            onPress={openCategoryPicker}
-            hasError={attemptedSubmit && !categoryId}
-          />
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 120) }}>
+        <View style={{ paddingBottom: 20 }}>
+          
+          {/* Centered Large Amount Input pressable */}
+          <Pressable
+            onPress={() => amountInputRef.current?.focus()}
+            style={{
+              marginHorizontal: FORM_TOKENS.gutter,
+              marginTop: 8,
+              paddingTop: 28,
+              paddingBottom: 28,
+              paddingHorizontal: 18,
+              alignItems: 'center',
+              backgroundColor: palette.surface,
+              borderRadius: HOME_RADIUS.card,
+              borderWidth: 1,
+              borderColor: palette.borderSoft,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center', position: 'relative' }}>
+              <TextInput
+                ref={amountInputRef}
+                value={amountStr}
+                onChangeText={(value: string) => setAmountStr(formatIndianNumberStr(sanitizeDecimalInput(value)))}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={palette.textSoft}
+                cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                style={{
+                  fontSize: 34,
+                  fontWeight: FONT_WEIGHT.regular,
+                  color: palette.brand,
+                  letterSpacing: 0,
+                  textAlign: 'center',
+                  minWidth: 100,
+                  paddingTop: 0,
+                  paddingBottom: 2,
+                  lineHeight: 38,
+                }}
+                autoFocus
+              />
+            </View>
+            <TouchableOpacity
+              onPress={handleOpenCalculator}
+              activeOpacity={0.72}
+              style={{
+                position: 'absolute',
+                right: 14,
+                bottom: 12,
+                width: 42,
+                height: 42,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'transparent',
+              }}
+            >
+              <AppIcon name="calculator" size={21} color={palette.text} strokeWidth={1.9} />
+            </TouchableOpacity>
+          </Pressable>
 
-          <AmountRow
-            sym={sym}
-            amountStr={amountStr}
-            setAmountStr={setAmountStr}
-            onOpenCalculator={handleOpenCalculator}
-            palette={palette}
-            accentColor={palette.brand}
-            autoFocus
-            calculatorButtonVariant="large"
-            hasError={attemptedSubmit && Number(parseFormattedNumber(amountStr || '0')) === 0}
-          />
-          <RepeatRow repeat={repeat} setRepeat={setRepeat} palette={palette} />
-        </SectionCard>
+          {/* Period FormSection */}
+          <FormSection title="Period" palette={palette}>
+            <TouchableOpacity
+              onPress={openMonthPicker}
+              activeOpacity={0.76}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                minHeight: 62,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppIcon name="calendar-plus" size={21} color={palette.brand} strokeWidth={1.5} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  appWeight="medium"
+                  style={{
+                    fontSize: HOME_TEXT.bodyLarge,
+                    color: palette.text,
+                  }}
+                  numberOfLines={1}
+                >
+                  {formatBudgetMonthLabel(startMonth)}
+                </Text>
+              </View>
+              <AppChevron direction="right" size={18} tone="secondary" color={palette.textSecondary} palette={palette} />
+            </TouchableOpacity>
+
+            <PremiumDivider palette={palette} />
+
+            {/* Repeat row */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                minHeight: 62,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppIcon name="repeat" size={21} color={palette.brand} strokeWidth={1.5} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  appWeight="medium"
+                  style={{
+                    fontSize: HOME_TEXT.bodyLarge,
+                    color: palette.text,
+                  }}
+                  numberOfLines={1}
+                >
+                  Repeat Monthly
+                </Text>
+              </View>
+              
+              {/* Toggles/chips for repeat */}
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {(['yes', 'no'] as const).map((opt) => {
+                  const active = (opt === 'yes') === repeat;
+                  return (
+                    <TouchableOpacity
+                      key={opt}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setRepeat(opt === 'yes');
+                      }}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 6,
+                        borderRadius: HOME_RADIUS.pill,
+                        borderWidth: 1,
+                        borderColor: active ? palette.budget : palette.borderSoft,
+                        backgroundColor: active ? palette.budgetSoft : 'transparent',
+                      }}
+                    >
+                      <Text
+                        appWeight="medium"
+                        style={{
+                          fontSize: HOME_TEXT.bodySmall,
+                          color: active ? palette.budget : palette.textSecondary,
+                        }}
+                      >
+                        {opt === 'yes' ? 'Yes' : 'No'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </FormSection>
+
+          {/* Repeat helper text */}
+          <View style={{ marginHorizontal: FORM_TOKENS.gutter + 4, marginTop: 6, marginBottom: 2 }}>
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary }}>
+              {repeat
+                ? 'Budget repeats every month from the selected month onward.'
+                : 'Budget applies only to the selected month.'}
+            </Text>
+          </View>
+
+          {/* Category FormSection */}
+          <FormSection title="Category" palette={palette}>
+            {/* Category row */}
+            <TouchableOpacity
+              onPress={openCategoryPicker}
+              activeOpacity={0.76}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                minHeight: 62,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {category ? (
+                  isEmojiIcon(category.icon) ? (
+                    <Text style={{ fontSize: 21 }}>{category.icon}</Text>
+                  ) : (
+                    <AppIcon name={category.icon as any} size={21} color={palette.brand} strokeWidth={1.5} />
+                  )
+                ) : (
+                  <AppIcon name="layout-grid" size={21} color={attemptedSubmit && !categoryId ? palette.negative : palette.brand} strokeWidth={1.5} />
+                )}
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  appWeight="medium"
+                  style={{
+                    fontSize: HOME_TEXT.bodyLarge,
+                    color: categoryId ? palette.text : (attemptedSubmit && !categoryId ? palette.negative : palette.textMuted),
+                  }}
+                  numberOfLines={1}
+                >
+                  {category ? category.name : 'Select category'}
+                </Text>
+                {categoryId && subCategoryIds && subCategoryIds.length > 0 && !isAllSelected ? (
+                  <View style={{ marginTop: 4, gap: 2 }}>
+                    {subCategoryIds.map((sid) => {
+                      const subName = categories.find((c) => c.id === sid)?.name || '';
+                      return (
+                        <Text
+                          key={sid}
+                          appWeight="medium"
+                          style={{
+                            fontSize: HOME_TEXT.bodySmall,
+                            color: palette.textSecondary,
+                            paddingLeft: 8,
+                          }}
+                        >
+                          › {subName}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                ) : categoryId ? (
+                  <Text
+                    appWeight="medium"
+                    style={{
+                      fontSize: HOME_TEXT.bodySmall,
+                      color: palette.textSecondary,
+                      marginTop: 2,
+                    }}
+                  >
+                    All subcategories
+                  </Text>
+                ) : null}
+              </View>
+              <AppChevron direction="right" size={18} tone="secondary" color={palette.textMuted} palette={palette} />
+            </TouchableOpacity>
+          </FormSection>
+
+        </View>
       </ScrollView>
 
       <FixedBottomActions palette={palette}>
@@ -251,37 +492,6 @@ export default function BudgetFormModal() {
   );
 }
 
-function getCategoryDisplayParts(
-  categories: Category[],
-  categoryId: string,
-  subCategoryIds?: string[] | null,
-): { fullName: string } {
-  const category = categories.find((item) => item.id === categoryId);
-  if (!category) return { fullName: 'Select Category' };
-  if (subCategoryIds && subCategoryIds.length > 0) {
-    const subNames = subCategoryIds
-      .map((sid) => categories.find((c) => c.id === sid)?.name)
-      .filter(Boolean)
-      .join(', ');
-    return { fullName: `${category.name} › ${subNames}` };
-  }
-  return { fullName: `${category.name} (All)` };
-}
-
-function RepeatRow({
-  repeat,
-  setRepeat,
-  palette }: {
-  repeat: boolean;
-  setRepeat: (value: boolean) => void;
-  palette: AppThemePalette;
-}) {
-  return (
-    <OptionChipRow
-      label="Repeat"
-      palette={palette}
-      options={[{ label: 'Yes', selected: repeat, onPress: () => { Keyboard.dismiss(); setRepeat(true); }, activeColor: palette.budget, activeBg: palette.budgetSoft }, { label: 'No', selected: !repeat, onPress: () => { Keyboard.dismiss(); setRepeat(false); }, activeColor: palette.budget, activeBg: palette.budgetSoft }]}
-      helperText={repeat ? 'Budget repeats every month from the selected month onward.' : 'Budget applies only to the selected month.'}
-    />
-  );
+function PremiumDivider({ palette }: { palette: AppThemePalette }) {
+  return <View style={{ height: 1, backgroundColor: palette.borderSoft, marginLeft: FORM_TOKENS.dividerIndent }} />;
 }

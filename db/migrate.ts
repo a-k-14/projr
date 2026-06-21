@@ -1,5 +1,9 @@
 import { sqlite } from './client';
 
+function normalizePersonName(raw: string): string {
+  return raw.trim().replace(/\s+/g, ' ');
+}
+
 export async function runMigrations() {
   await sqlite.execAsync(`
     CREATE TABLE IF NOT EXISTS accounts (
@@ -157,11 +161,10 @@ export async function runMigrations() {
         name TEXT NOT NULL,
         created_at TEXT NOT NULL
       );
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_persons_name_ci ON persons(name COLLATE NOCASE);
     `);
-    // Backfill distinct person names from existing loans.
-    // Normalize (trim + collapse whitespace) and de-duplicate case-insensitively so
-    // the backfilled names match runtime upsertPerson() (services/persons.ts).
+    // Backfill distinct person names from existing loans. The follow-up pass below
+    // canonicalizes whitespace and de-duplicates case-insensitively to match
+    // runtime upsertPerson() behavior (services/persons.ts).
     await sqlite.execAsync(`
       INSERT OR IGNORE INTO persons (id, name, created_at)
       SELECT
@@ -172,6 +175,29 @@ export async function runMigrations() {
       WHERE person_name IS NOT NULL AND trim(person_name) != ''
       GROUP BY lower(trim(person_name));
     `);
+
+    const personRows = await sqlite.getAllAsync<{ id: string; name: string; created_at: string }>(
+      'SELECT id, name, created_at FROM persons ORDER BY created_at ASC, id ASC;',
+    );
+    const canonicalByKey = new Map<string, { id: string; name: string }>();
+    for (const row of personRows) {
+      const normalized = normalizePersonName(row.name);
+      if (!normalized) {
+        await sqlite.runAsync('DELETE FROM persons WHERE id = ?;', [row.id]);
+        continue;
+      }
+      const key = normalized.toLowerCase();
+      const existing = canonicalByKey.get(key);
+      if (existing) {
+        await sqlite.runAsync('DELETE FROM persons WHERE id = ?;', [row.id]);
+      } else {
+        canonicalByKey.set(key, { id: row.id, name: normalized });
+      }
+    }
+    for (const row of canonicalByKey.values()) {
+      await sqlite.runAsync('UPDATE persons SET name = ? WHERE id = ?;', [row.name, row.id]);
+    }
+    await sqlite.execAsync('CREATE UNIQUE INDEX IF NOT EXISTS idx_persons_name_ci ON persons(name COLLATE NOCASE);');
   } catch (err) {
     console.warn('Migration patch (persons) error:', err);
   }
@@ -413,4 +439,3 @@ export async function runMigrations() {
     console.warn('Migration patch (budget.sub_category_ids) error:', err);
   }
 }
-

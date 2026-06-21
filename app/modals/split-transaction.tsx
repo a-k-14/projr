@@ -156,9 +156,9 @@ export default function SplitTransactionModal() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_GUTTER, paddingTop: 8, paddingBottom: 12 }}>
+        <View style={{ height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
-            <AppIcon name="x" size={24} color={palette.text} />
+            <AppIcon name="x" size={18} color={palette.text} strokeWidth={2} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             Split Transaction

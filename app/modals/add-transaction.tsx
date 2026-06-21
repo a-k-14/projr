@@ -61,6 +61,7 @@ import { createSplitTransactionGroup, createTransaction, deleteTransaction, getR
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
+import { useGlobalNotice } from '../../stores/useGlobalNotice';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { usePersonsStore } from '../../stores/usePersonsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
@@ -181,6 +182,37 @@ function AnimatedSuggestionStrip({ visible, children }: { visible: boolean; chil
   );
 }
 
+function AnimatedWarningBox({ visible, children }: { visible: boolean; children: React.ReactNode }) {
+  const expansion = useSharedValue(visible ? 1 : 0);
+  const contentHeight = useSharedValue(0);
+
+  React.useEffect(() => {
+    expansion.value = withTiming(visible ? 1 : 0, {
+      duration: 200,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [visible]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    height: expansion.value * contentHeight.value,
+    opacity: expansion.value,
+    overflow: 'hidden' as const,
+  }));
+
+  return (
+    <Animated.View style={animStyle}>
+      <View
+        onLayout={(e) => {
+          contentHeight.value = e.nativeEvent.layout.height;
+        }}
+        style={{ position: 'absolute', width: '100%' }}
+      >
+        {children}
+      </View>
+    </Animated.View>
+  );
+}
+
 // We compute TYPE_CONFIG dynamically inside the component to use the derived palette
 
 export default function AddTransactionModal() {
@@ -240,6 +272,7 @@ export default function AddTransactionModal() {
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
   const [initialTx, setInitialTx] = useState<any | null>(null);
   const [initialDeposit, setInitialDeposit] = useState<any | null>(null);
+  const [initialLoan, setInitialLoan] = useState<any | null>(null);
 
   const draftCategoryId = useTransactionDraftStore((s) => s.categoryId);
   const setDraftCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
@@ -651,6 +684,7 @@ export default function AddTransactionModal() {
           const loan = await getLoanById(tx.loanId);
           if (!loan) return;
           setEditingLoanId(loan.id);
+          setInitialLoan(loan);
           setPersonName(loan.personName);
           setLoanDirection(loan.direction);
           setSelectedTagIds(loan.tags ?? []);
@@ -739,6 +773,33 @@ export default function AddTransactionModal() {
     if (isEditing) {
       if (!initialTx) return false;
       const originalAmountStr = formatIndianNumberStr(String(initialTx.amount));
+
+      if (initialTx.type === 'loan' && initialTx.loanId) {
+        if (!initialLoan) return false;
+        const originalNote = getLoanTransactionUserNote(initialTx.note);
+        if (loanEditMode === 'origin') {
+          return (
+            amountStr !== originalAmountStr ||
+            accountId !== initialTx.accountId ||
+            date !== initialTx.date ||
+            note !== originalNote ||
+            personName !== (initialLoan.personName ?? '') ||
+            loanDirection !== (initialLoan.direction ?? 'lent') ||
+            JSON.stringify(selectedTagIds.sort()) !== JSON.stringify((initialLoan.tags ?? []).sort())
+          );
+        } else {
+          // settlement
+          const originalType = initialTx.loanTransactionType || 'principal';
+          return (
+            amountStr !== originalAmountStr ||
+            accountId !== initialTx.accountId ||
+            date !== initialTx.date ||
+            note !== originalNote ||
+            loanTransactionType !== originalType
+          );
+        }
+      }
+
       return (
         amountStr !== originalAmountStr ||
         accountId !== initialTx.accountId ||
@@ -857,7 +918,8 @@ export default function AddTransactionModal() {
       closeScreen(false);
     } else {
       closeScreen(false);
-      InteractionManager.runAfterInteractions(runWork);
+      // Wait 50ms to let the transition start smoothly before firing heavy queries
+      setTimeout(runWork, 50);
     }
   };
 
@@ -1015,20 +1077,27 @@ export default function AddTransactionModal() {
       return;
     }
     if (isSubmittingRef.current) return;
+
+    if ((isEditing || isEditingDeposit || isClosingDeposit) && !checkIsDirty()) {
+      closeScreen(false);
+      return;
+    }
+
     isSubmittingRef.current = true;
 
     // Every save path follows the same shape: close the modal immediately, run the
     // mutation in the background, refresh dependent stores after, and surface any
-    // error via showAlert. This keeps the UI responsive even when the DB write or
+    // error via the root notice. This keeps the UI responsive even when the DB write or
     // a subsequent reload takes a moment.
     const runInBackground = (
       work: () => Promise<unknown>,
-      refresh?: { tx?: boolean; widgets?: boolean },
+      refresh?: { tx?: boolean; widgets?: boolean; accounts?: boolean },
     ) => {
       (async () => {
         try {
           await work();
-          const tasks: Promise<unknown>[] = [refreshAccounts()];
+          const tasks: Promise<unknown>[] = [];
+          if (refresh?.accounts !== false) tasks.push(refreshAccounts());
           if (refresh?.tx) tasks.push(reloadTransactions());
           await Promise.all(tasks);
           // These background paths (splits, transfer edits, deposits, loans) write
@@ -1038,7 +1107,7 @@ export default function AddTransactionModal() {
           if (refresh?.tx) markTxMutated();
           if (refresh?.widgets) updateAllReniWidgets().catch(() => undefined);
         } catch (e) {
-          showAlert('Error', String(e));
+          useGlobalNotice.getState().show(String(e));
         }
       })();
     };
@@ -1069,7 +1138,7 @@ export default function AddTransactionModal() {
           closeScreenAndExecute(() => {
             persistLastAccountEagerly();
             runInBackground(() => closeDeposit(closeDepositId, payload), { tx: true, widgets: true });
-          }, true);
+          }, false);
           return;
         }
 
@@ -1115,7 +1184,7 @@ export default function AddTransactionModal() {
         closeScreenAndExecute(() => {
           persistLastAccountEagerly();
           runInBackground(depositWork, { tx: true, widgets: true });
-        }, true);
+        }, false);
         return;
       }
 
@@ -1160,7 +1229,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(splitWork, { tx: true, widgets: true });
-        }, true);
+        }, false);
         return;
       }
 
@@ -1184,7 +1253,7 @@ export default function AddTransactionModal() {
             await deleteTransaction(oldGroupMemberId);
             await createTransaction({ ...data, splitGroupId: undefined });
           }, { tx: true, widgets: true });
-        }, true);
+        }, false);
         return;
       }
 
@@ -1204,7 +1273,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
-        }, true);
+        }, false);
         return;
       }
       if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
@@ -1223,7 +1292,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => updateLoanSettlement(txId, payload), { tx: true, widgets: true });
-        }, true);
+        }, false);
         return;
       }
       if (type === 'loan' && routeLoanId && settlement === '1') {
@@ -1239,8 +1308,10 @@ export default function AddTransactionModal() {
         closeScreenAndExecute(() => {
           clearSplitRows();
           persistLastAccountEagerly();
-          runInBackground(() => addTransaction(payload), { tx: true, widgets: true });
-        }, true);
+          // The transaction store already reloads transactions/accounts and bumps
+          // mutationVersion after commit, so avoid doing the same reads twice.
+          runInBackground(() => addTransaction(payload), { accounts: false, widgets: true });
+        }, false);
         return;
       }
       if (type === 'loan' && isLoanAddMore && routeLoanId) {
@@ -1250,7 +1321,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
-        }, true);
+        }, false);
         return;
       }
       if (type === 'loan') {
@@ -1267,7 +1338,7 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => addLoan(payload), { tx: true, widgets: true });
-        }, true);
+        }, false);
         return;
       }
       if (isEditing && editId && isTransferEdit) {
@@ -1284,15 +1355,9 @@ export default function AddTransactionModal() {
           clearSplitRows();
           persistLastAccountEagerly();
           runInBackground(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
-        }, true);
+        }, false);
         return;
       }
-      // For in/out add + edit, the store's optimistic patch runs SYNCHRONOUSLY
-      // (balance delta + transaction insert) before its first await. We apply it
-      // BEFORE navigating so the screen underneath the modal (home/account/activity/
-      // etc.) re-renders with correct values while still occluded — when the modal
-      // slides away it's already up to date, with no visible "tick". The DB write
-      // and reni widget refresh continue in the background.
       const runMutation = isEditing && editId
         ? () => updateTransaction(editId, data)
         : () => addTransaction(data);
@@ -1319,15 +1384,15 @@ export default function AddTransactionModal() {
         return;
       }
 
-      const applyMutationOptimistically = () => {
+      const runMutationAfterClose = () => {
         if (showDatePicker) setShowDatePicker(false);
         clearSplitRows();
         persistLastAccountEagerly();
         runMutation()
           .then(() => updateAllReniWidgets().catch(() => undefined))
-          .catch((e) => showAlert('Error', String(e)));
+          .catch((e) => useGlobalNotice.getState().show(String(e)));
       };
-      closeScreenAndExecute(applyMutationOptimistically, true);
+      closeScreenAndExecute(runMutationAfterClose, false);
     } catch (e) {
       showAlert('Error', String(e));
       isSubmittingRef.current = false;
@@ -1347,10 +1412,7 @@ export default function AddTransactionModal() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: () => {
-        // Close first, then run the delete in the background. The optimistic
-        // remove() in useTransactionsStore makes plain in/out deletes instant;
-        // loans/deposits/splits cascade in the store but a redundant DB-truth
-        // refresh follows for safety.
+        // Close first, then run the delete and refresh the stores against DB truth.
         const work = isLoanOrigin
           ? () => removeLoan(editingLoanId!)
           : isDepositEdit
@@ -1368,11 +1430,11 @@ export default function AddTransactionModal() {
               await reloadTransactions();
               updateAllReniWidgets().catch(() => undefined);
             } catch (e) {
-              showAlert('Error', String(e));
+              useGlobalNotice.getState().show(String(e));
             }
           })();
         };
-        closeScreenAndExecute(runAfterDeleteClose, true);
+        closeScreenAndExecute(runAfterDeleteClose, false);
       },
     });
   };
@@ -1476,6 +1538,7 @@ export default function AddTransactionModal() {
     setShowDatePicker(true);
   };
 
+
   if (isClosing) {
     return <View style={{ flex: 1, backgroundColor: palette.background }} />;
   }
@@ -1489,15 +1552,14 @@ export default function AddTransactionModal() {
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View
           style={{
+            height: 52,
             flexDirection: 'row',
             alignItems: 'center',
             paddingHorizontal: FORM_TOKENS.gutter,
-            paddingTop: 8,
-            paddingBottom: 12
           }}
         >
           <TouchableOpacity delayPressIn={0} onPress={closeScreen} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
-            <AppIcon name="x" size={24} color={palette.text} />
+            <AppIcon name="x" size={18} color={palette.text} strokeWidth={2} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             {screenTitle}
@@ -2148,14 +2210,6 @@ export default function AddTransactionModal() {
                       </View>
                       <AppChevron direction="right" size={18} tone="secondary" color={palette.textSecondary} palette={palette} />
                     </TouchableOpacity>
-
-                    {loanTransactionType !== 'principal' && (
-                      <View style={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12 }}>
-                        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary }}>
-                          Loan outstanding balance will not be affected
-                        </Text>
-                      </View>
-                    )}
                   </>
                 ) : (
                   <>
@@ -2325,6 +2379,24 @@ export default function AddTransactionModal() {
                   </>
                 )}
               </PremiumSection>
+
+              <AnimatedWarningBox visible={loanTransactionType !== 'principal'}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    paddingHorizontal: 16,
+                    marginTop: 6,
+                    marginBottom: 2,
+                  }}
+                >
+                  <AppIcon name="info" size={14} color={palette.textSecondary} strokeWidth={2} />
+                  <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, flex: 1 }}>
+                    Loan outstanding balance will not be affected
+                  </Text>
+                </View>
+              </AnimatedWarningBox>
 
               {/* Account selection */}
               <PremiumSection title="Account" palette={palette}>

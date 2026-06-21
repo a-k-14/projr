@@ -288,6 +288,8 @@ export default function LoansScreen() {
           palette={palette}
           showBack={true}
           onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          titleSize={25}
+          titleWeight="400"
           titleAddon={
             <HeaderResetButton
               visible={directionFilter !== 'all' || statusFilter !== 'open' || !!search || !!fromDate || !!toDate || !!amountMinStr || !!amountMaxStr || selectedAccountId !== 'all'}

@@ -16,6 +16,126 @@ export interface AuditLog {
   timestamp: string;
 }
 
+function hasSubstantiveChanges(tableName: string, before: any, after: any): boolean {
+  if (!before || !after) return true;
+
+  if (tableName === 'transactions') {
+    const normalizeTags = (tags: any): string => {
+      if (!tags) return '[]';
+      if (typeof tags === 'string') {
+        try {
+          const arr = JSON.parse(tags);
+          return JSON.stringify(Array.isArray(arr) ? [...arr].sort() : arr);
+        } catch {
+          return tags;
+        }
+      }
+      if (Array.isArray(tags)) {
+        return JSON.stringify([...tags].sort());
+      }
+      return JSON.stringify(tags);
+    };
+
+    const normalizeReceipts = (uris: any): string => {
+      if (!uris) return '[]';
+      if (typeof uris === 'string') {
+        try {
+          const arr = JSON.parse(uris);
+          return JSON.stringify(Array.isArray(arr) ? [...arr].sort() : arr);
+        } catch {
+          return uris;
+        }
+      }
+      if (Array.isArray(uris)) {
+        return JSON.stringify([...uris].sort());
+      }
+      return JSON.stringify(uris);
+    };
+
+    const beforePayee = (before.payee || '').trim();
+    const afterPayee = (after.payee || '').trim();
+    const beforeNote = (before.note || '').trim();
+    const afterNote = (after.note || '').trim();
+
+    return (
+      before.type !== after.type ||
+      before.amount !== after.amount ||
+      before.accountId !== after.accountId ||
+      before.linkedAccountId !== after.linkedAccountId ||
+      before.categoryId !== after.categoryId ||
+      beforePayee !== afterPayee ||
+      beforeNote !== afterNote ||
+      before.date !== after.date ||
+      before.loanId !== after.loanId ||
+      before.loanTransactionType !== after.loanTransactionType ||
+      before.depositId !== after.depositId ||
+      before.depositTransactionType !== after.depositTransactionType ||
+      normalizeTags(before.tags) !== normalizeTags(after.tags) ||
+      normalizeReceipts(before.receiptImageUris) !== normalizeReceipts(after.receiptImageUris)
+    );
+  }
+
+  if (tableName === 'deposits') {
+    const beforeNote = (before.note || '').trim();
+    const afterNote = (after.note || '').trim();
+    return (
+      before.name !== after.name ||
+      before.bankName !== after.bankName ||
+      before.principalAmount !== after.principalAmount ||
+      before.interestRate !== after.interestRate ||
+      before.tenureMonths !== after.tenureMonths ||
+      before.startDate !== after.startDate ||
+      before.maturityDate !== after.maturityDate ||
+      before.maturityValue !== after.maturityValue ||
+      before.status !== after.status ||
+      beforeNote !== afterNote
+    );
+  }
+
+  if (tableName === 'loans') {
+    const beforeNote = (before.note || '').trim();
+    const afterNote = (after.note || '').trim();
+    const normalizeTags = (tags: any): string => {
+      if (!tags) return '[]';
+      if (typeof tags === 'string') {
+        try {
+          const arr = JSON.parse(tags);
+          return JSON.stringify(Array.isArray(arr) ? [...arr].sort() : arr);
+        } catch {
+          return tags;
+        }
+      }
+      if (Array.isArray(tags)) {
+        return JSON.stringify([...tags].sort());
+      }
+      return JSON.stringify(tags);
+    };
+
+    return (
+      before.personName !== after.personName ||
+      before.direction !== after.direction ||
+      before.accountId !== after.accountId ||
+      before.givenAmount !== after.givenAmount ||
+      before.status !== after.status ||
+      beforeNote !== afterNote ||
+      normalizeTags(before.tags) !== normalizeTags(after.tags)
+    );
+  }
+
+  if (tableName === 'assets') {
+    const beforeNote = (before.note || '').trim();
+    const afterNote = (after.note || '').trim();
+    return (
+      before.name !== after.name ||
+      before.icon !== after.icon ||
+      before.value !== after.value ||
+      beforeNote !== afterNote
+    );
+  }
+
+  return true;
+}
+
 /**
  * Inserts an audit log record into the database.
  * Run inside the same db transaction as the target change to ensure data consistency.
@@ -28,6 +148,10 @@ export async function logAction(
   before: any | null,
   after: any | null
 ): Promise<void> {
+  if (action === 'update' && !hasSubstantiveChanges(tableName, before, after)) {
+    return;
+  }
+
   const logId = generateId();
   const timestamp = nowUTC();
   

@@ -902,7 +902,7 @@ export default function AuditScreen() {
                 onPress={() => setShowInfoModal(true)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <AppIcon name="info" size={20} color={palette.textSecondary} strokeWidth={2} />
+                <AppIcon name="info" size={20} color={palette.text} strokeWidth={2} />
               </TouchableOpacity>
             </View>
           ),

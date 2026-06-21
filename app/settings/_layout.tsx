@@ -3,7 +3,6 @@ import { router, Stack } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
 import { TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SCREEN_GUTTER } from '../../lib/design';
 import { SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 
@@ -22,7 +21,7 @@ export default function SettingsLayout() {
                 height: 52,
                 flexDirection: 'row',
                 alignItems: 'center',
-                paddingHorizontal: SCREEN_GUTTER,
+                paddingHorizontal: 16,
               }}
             >
               <TouchableOpacity
@@ -31,7 +30,7 @@ export default function SettingsLayout() {
                 onPress={() => router.back()}
                 style={{ marginRight: SCREEN_HEADER.iconTitleGap }}
               >
-                <AppIcon name="arrow-left" size={24} color={palette.text} />
+                <AppIcon name="arrow-left" size={18} color={palette.text} strokeWidth={2} />
               </TouchableOpacity>
               <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
                 {options.title}

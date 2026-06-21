@@ -34,7 +34,12 @@ import { useTransactionPress } from '../../lib/useTransactionPress';
 import { FONT_WEIGHT, TYPE } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT, SCREEN_GUTTER, SCREEN_HEADER, SPACING, BOTTOM_SHEET_TOKENS } from '../../lib/layoutTokens';
 import type { IncomeExpenseBucket } from '../../services/analytics';
-import { getAccountBalanceTrend, getBalanceTrend, getCashflowSnapshot, getIncomeExpenseByBuckets } from '../../services/analytics';
+import {
+  getAccountBalanceTrend,
+  getBalanceTrend,
+  getCashflowSnapshotFromTransactions,
+  getIncomeExpenseByBucketsFromTransactions
+} from '../../services/analytics';
 import { getTransactions } from '../../services/transactions';
 import type { CashflowSummary, PeriodType, Transaction } from '../../types';
 
@@ -338,15 +343,16 @@ export default function InsightsScreen() {
     const buckets = getTimeBuckets(period, dateRange.from, dateRange.to, incomeExpenseGranularity);
     const isTotal = cashflowMode === 'total';
     try {
-      const [snapshot, txs, trend, incExp] = await Promise.all([
-        getCashflowSnapshot(selectedAccountId, dateRange.from, dateRange.to, { includeTransfers: isTotal, includeLoans: isTotal, includeDeposits: isTotal }),
+      const [txs, trend] = await Promise.all([
         getTransactions({ fromDate: dateRange.from, toDate: dateRange.to, accountId: selectedAccountId === 'all' ? undefined : selectedAccountId }),
         selectedAccountId === 'all'
           ? getBalanceTrend(dateRange.from, dateRange.to)
           : getAccountBalanceTrend(selectedAccountId, dateRange.from, dateRange.to),
-        getIncomeExpenseByBuckets(buckets, dateRange.from, dateRange.to, selectedAccountId, { includeTransfers: isTotal, includeLoans: isTotal, includeDeposits: isTotal }),
       ]);
       if (requestId !== loadRequestIdRef.current) return;
+      const cashflowOptions = { includeTransfers: isTotal, includeLoans: isTotal, includeDeposits: isTotal };
+      const snapshot = getCashflowSnapshotFromTransactions(txs, cashflowOptions);
+      const incExp = getIncomeExpenseByBucketsFromTransactions(txs, buckets, cashflowOptions);
       setCashflow(snapshot.summary);
       setPeriodTransactions(txs);
       setBalanceTrend(trend);

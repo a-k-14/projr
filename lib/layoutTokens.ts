@@ -56,7 +56,7 @@ export function getTxTypeConfig(palette: AppThemePalette): Record<
 export const HOME_RADIUS = {
   card: APP_CARD_RADIUS,           // 18 — main card radius, driven by APP_CARD_RADIUS
   cardSm: APP_CARD_RADIUS - 6,    // 12 — inner strips / sub-containers
-  button: APP_CARD_RADIUS - 4,    // 14 — buttons
+  button: APP_CARD_RADIUS - 4,    // 12 — buttons
   pill: DESIGN_RADIUS.md - 2,     // 14 — segmented pills
   tab: DESIGN_RADIUS.md - 2,      // 14 — tab items
   chip: 12,                        // small chips / icon badges

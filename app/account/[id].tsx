@@ -2,7 +2,7 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, TouchableOpacity, View, InteractionManager } from 'react-native';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -30,9 +30,6 @@ import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { getAccountBalanceTrend } from '../../services/analytics';
 import { trendCache } from '../../lib/trendCache';
-import type { PeriodType } from '../../types';
-
-type AccountPeriodType = 'today' | PeriodType;
 
 export default function AccountDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -71,11 +68,17 @@ export default function AccountDetailScreen() {
   }, [isFocused, loadCategories]);
 
   useEffect(() => {
-    if (!account) return;
+    if (!isFocused || !account) return;
+    const cachedTrend = trendCache.get(account.id);
+    if (cachedTrend?.version === mutationVersion) {
+      setTrendPoints(cachedTrend.data);
+      setIsLoadingTrend(false);
+      return;
+    }
     let active = true;
     const loadTrend = async () => {
       // Only show skeleton on the very first load; subsequent refreshes are silent.
-      if (!trendCache.has(account.id)) setIsLoadingTrend(true);
+      if (!cachedTrend) setIsLoadingTrend(true);
       const today = new Date();
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(today.getDate() - 29);
@@ -94,11 +97,20 @@ export default function AccountDetailScreen() {
         if (active) setIsLoadingTrend(false);
       }
     };
-    loadTrend();
+
+    if (cachedTrend) {
+      // Mutation-driven refresh: data exists but is stale — reload immediately,
+      // no need to wait for a navigation transition that's already complete.
+      loadTrend();
+      return () => { active = false; };
+    }
+    // Initial load: defer until the screen's navigation transition settles.
+    const task = InteractionManager.runAfterInteractions(() => { loadTrend(); });
     return () => {
       active = false;
+      task.cancel();
     };
-  }, [account?.id, mutationVersion]);
+  }, [account?.id, mutationVersion, isFocused]);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -137,15 +149,18 @@ export default function AccountDetailScreen() {
     setCustomRangeOpen(false);
   }, [customDraftFrom, customDraftTo, handleApplyCustomRange]);
 
-  const toggleActions = () => {
+  const toggleActions = useCallback(() => {
     const nextShow = !showActions;
     setShowActions(nextShow);
     panelProgress.value = withTiming(nextShow ? 1 : 0, { duration: 220 });
-  };
-  const closePanel = () => {
+  }, [showActions]);
+
+  const closePanel = useCallback(() => {
     setShowActions(false);
     panelProgress.value = withTiming(0, { duration: 220 });
-  };
+  }, []);
+
+  const handleRegisterScrollTop = useCallback(() => {}, []);
 
   const actionsAnimatedStyle = useAnimatedStyle(() => ({
     height: panelProgress.value * 56, // 36 height + 20 vertical padding
@@ -181,7 +196,7 @@ export default function AccountDetailScreen() {
 
   const lineColor = ACCOUNT_TYPE_META[account.type]?.color ?? palette.brand;
 
-  const middleContent = (
+  const middleContent = useMemo(() => (
     <TrendLineChart
       points={trendPoints}
       palette={palette}
@@ -198,9 +213,10 @@ export default function AccountDetailScreen() {
       endLabelIsToday={true}
       hideEndBalance={true}
       onActivePointChange={setActivePoint}
+      hideInternalTooltip={true}
       chartHeight={110}
     />
-  );
+  ), [trendPoints, palette, showCurrencySymbol, currencySymbol, lineColor, setChartInteracting, isLoadingTrend, setActivePoint]);
 
   return (
     <ScreenScaffold palette={palette}>
@@ -214,9 +230,6 @@ export default function AccountDetailScreen() {
                 title={formatAccountDisplayName(account.name, account.accountNumber)}
                 onBack={() => router.back()}
                 palette={palette}
-                titleSize={18}
-                titleWeight={FONT_WEIGHT.medium}
-                iconSize={18}
                 titleAddon={
                   <HeaderResetButton
                     visible={!!inlineFilter || dateFilter.period !== 'today'}
@@ -265,14 +278,14 @@ export default function AccountDetailScreen() {
         settingsYearStart={settingsYearStart}
         currencySymbol={showCurrencySymbol ? currencySymbol : ''}
         dateFilter={dateFilter}
-        onOpenCustomRange={() => openCustomRange()}
+        onOpenCustomRange={openCustomRange}
         totalBalance={account.balance}
         onRefresh={refreshAccounts}
         isSelected={true}
         pageIndex={0}
         verticalScrolls={verticalScrolls}
         indicatorY={indicatorY}
-        registerScrollTop={() => { }}
+        registerScrollTop={handleRegisterScrollTop}
         isPageReady={true}
         accountsById={accountsById}
         categoriesById={categoriesById}

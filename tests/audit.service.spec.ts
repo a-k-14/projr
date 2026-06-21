@@ -141,6 +141,32 @@ describe('Audit logs integration', () => {
     expect(payloadAfter.payee).toBe('Food Court');
   });
 
+  it('should not write an update log when a transaction is saved without changes', async () => {
+    const tx = await createTransaction({
+      type: 'out',
+      amount: 200,
+      accountId: 'acc1',
+      date: '2024-01-02T12:00:00.000Z',
+      payee: 'Food Court',
+      note: 'Dinner'
+    });
+
+    const logsBefore = await getAuditLogs();
+    // Only the create log is present
+    expect(logsBefore).toHaveLength(1);
+
+    // Call updateTransaction with the same values
+    await updateTransaction(tx.id, {
+      amount: 200,
+      payee: 'Food Court',
+      note: 'Dinner'
+    });
+
+    const logsAfter = await getAuditLogs();
+    // Still only 1 log, no new update log was written
+    expect(logsAfter).toHaveLength(1);
+  });
+
   it('should write a delete log when a transaction is deleted', async () => {
     const tx = await createTransaction({
       type: 'out',

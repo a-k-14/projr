@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
@@ -208,8 +208,7 @@ export function BudgetCategoryPickerSheet({
       title="Select Category"
       palette={palette}
       onClose={onClose}
-      scrollEnabled={false}
-      fixedHeightRatio={0.75}
+      fixedHeightRatio={0.80}
       footer={
         <View style={{ padding: 16 }}>
           <FilledButton
@@ -222,9 +221,9 @@ export function BudgetCategoryPickerSheet({
         </View>
       }
     >
-      <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+      <View style={{ paddingBottom: 16 }}>
         {parents.map(renderParentRow)}
-      </ScrollView>
+      </View>
     </BottomSheet>
   );
 }

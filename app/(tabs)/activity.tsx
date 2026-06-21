@@ -38,9 +38,6 @@ import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
-  getLast30DaysRange,
-  getNavigableDateRange,
-  getPeriodNavLabel,
   getRelativeDateLabel
 } from '../../lib/dateUtils';
 import {
@@ -54,7 +51,7 @@ import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { filterTransactions } from '../../lib/transactionFilters';
 import { useTransactionPress } from '../../lib/useTransactionPress';
-import { getActivityPeriodCashflow } from '../../services/analytics';
+import { getActivityPeriodCashflow, getActivityPeriodCashflowFromTransactions } from '../../services/analytics';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
@@ -65,7 +62,6 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { CashflowSummary, Transaction, TransactionFilters, TransactionType } from '../../types';
 
-type ActivityPeriod = 'all' | 'last30' | 'day' | 'week' | 'month' | 'year' | 'custom';
 type ActivityGroup = {
   groupKey: string;
   title: string;
@@ -506,20 +502,31 @@ export default function ActivityScreen() {
           limit: loadAll ? undefined : TRANSACTIONS_PAGE_SIZE,
           offset: loadAll ? 0 : currentOffset
         };
+        const cashflowOptions = {
+          includeTransfers: derivedCashflowMode === 'total',
+          includeLoans: derivedCashflowMode === 'total',
+          includeDeposits: derivedCashflowMode === 'total',
+        };
+        const canDeriveTotalsFromResults = isInitial && loadAll && !!dateRange?.from && !!dateRange?.to && !searchActive;
         // Fetch paginated rows and (on initial load) server-side totals in parallel.
-        const totalsPromise = isInitial && dateRange?.from && dateRange?.to
+        // When this load already contains the complete bounded range, derive totals
+        // from those rows instead of asking SQLite for the same scan again.
+        const totalsPromise = isInitial && dateRange?.from && dateRange?.to && !searchActive && !canDeriveTotalsFromResults
           ? getActivityPeriodCashflow(
             selectedAccountId,
             dateRange.from,
             dateRange.to,
-            { includeTransfers: derivedCashflowMode === 'total', includeLoans: derivedCashflowMode === 'total', includeDeposits: derivedCashflowMode === 'total' }
+            cashflowOptions
           )
           : Promise.resolve(null);
-        const [results, totals] = await Promise.all([
+        const [results, queriedTotals] = await Promise.all([
           transactionsService.getTransactions(filters),
           totalsPromise,
         ]);
         if (requestId !== requestIdRef.current) return;
+        const totals = canDeriveTotalsFromResults
+          ? getActivityPeriodCashflowFromTransactions(results, cashflowOptions)
+          : queriedTotals;
         if (isInitial) {
           setTransactions(results);
           offsetRef.current = results.length;
@@ -854,15 +861,24 @@ export default function ActivityScreen() {
     ],
   );
 
-  // SummaryCard totals: use server-side aggregate (accurate for all pages) when available.
+  const summaryUsesLocalScope =
+    categoryDrilldown !== null ||
+    selectedCategoryIds.length > 0 ||
+    selectedTagIds.length > 0 ||
+    !!amountMinStr ||
+    !!amountMaxStr ||
+    !!search.trim();
+
+  // SummaryCard totals: use server-side aggregate (accurate for paginated base pages)
+  // when available; for local-only scopes, use the exact rows visible on screen.
   // Apply cashflowBucket so the card matches the filtered list — when viewing only income,
   // only show income total; when viewing only expenses, only show expense total.
   const summaryCardCashflow = useMemo((): CashflowSummary => {
-    const base = serverCashflow ?? displayedCashflow;
+    const base = summaryUsesLocalScope ? displayedCashflow : (serverCashflow ?? displayedCashflow);
     if (cashflowBucket === 'in') return { in: base.in, out: 0, net: base.in };
     if (cashflowBucket === 'out') return { in: 0, out: base.out, net: -base.out };
     return base;
-  }, [serverCashflow, displayedCashflow, cashflowBucket]);
+  }, [serverCashflow, displayedCashflow, cashflowBucket, summaryUsesLocalScope]);
 
   const isCashflowFilterActiveInMore = cashflowBucket !== 'all';
 

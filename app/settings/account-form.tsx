@@ -96,33 +96,40 @@ export default function AccountFormScreen() {
     }
 
     const initialBalance = parseFloat(parseFormattedNumber(draft.balance)) || 0;
+    const work = (isEditing && id)
+      ? () => {
+          const updateData: Partial<Account> = {
+            name,
+            accountNumber: draft.accountNumber.trim() || undefined,
+            type: draft.type,
+            initialBalance,
+            currency: appCurrency,
+          };
+          return updateAccount(id, updateData);
+        }
+      : () => {
+          const createData: CreateAccountInput = {
+            name,
+            accountNumber: draft.accountNumber.trim() || undefined,
+            type: draft.type,
+            initialBalance,
+            balance: initialBalance,
+            currency: appCurrency,
+            color: ENTITY_COLORS[0],
+            icon: ACCOUNT_ICONS[0],
+          };
+          return addAccount(createData);
+        };
 
-    if (isEditing && id) {
-      const updateData: Partial<Account> = {
-        name,
-        accountNumber: draft.accountNumber.trim() || undefined,
-        type: draft.type,
-        initialBalance,
-        currency: appCurrency,
-      };
-      await updateAccount(id, updateData);
-    } else {
-      const createData: CreateAccountInput = {
-        name,
-        accountNumber: draft.accountNumber.trim() || undefined,
-        type: draft.type,
-        initialBalance,
-        balance: initialBalance,
-        currency: appCurrency,
-        color: ENTITY_COLORS[0],
-        icon: ACCOUNT_ICONS[0],
-      };
-      await addAccount(createData);
+    try {
+      await work();
+      router.back();
+    } catch (error) {
+      showAlert('Error', String(error));
     }
-    router.back();
   }
 
-  async function onDelete() {
+  function onDelete() {
     if (!id) return;
     const account = accounts.find((a) => a.id === id);
     showConfirm({

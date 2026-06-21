@@ -77,6 +77,7 @@ export default function CategoryFormScreen() {
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const originalSubsRef = useRef<SubDraft[]>([]);
   const subCardRefs = useRef(new Map<string, CollapseHandle>());
+  const subViewRefs = useRef(new Map<string, View>());
 
   const editingCategory = id ? categories.find((c) => c.id === id) : undefined;
   const isSubcategory = !!editingCategory?.parentId;
@@ -233,23 +234,23 @@ export default function CategoryFormScreen() {
       }
     }
 
-    let parentCategoryId = id;
-    const color = editingCategory?.color ?? ENTITY_COLORS[0];
+    const work = async () => {
+      let parentCategoryId = id;
+      const color = editingCategory?.color ?? ENTITY_COLORS[0];
 
-    if (isEditing && id) {
-      await updateCategory(id, {
-        name: trimmed,
-        type,
-        icon,
-        color,
-        parentId: editingCategory?.parentId ?? undefined });
-    } else {
-      const created = await addCategory({ name: trimmed, type, icon, color: ENTITY_COLORS[0] });
-      parentCategoryId = created.id;
-    }
+      if (isEditing && id) {
+        await updateCategory(id, {
+          name: trimmed,
+          type,
+          icon,
+          color,
+          parentId: editingCategory?.parentId ?? undefined });
+      } else {
+        const created = await addCategory({ name: trimmed, type, icon, color: ENTITY_COLORS[0] });
+        parentCategoryId = created.id;
+      }
 
-    if (!isSubcategory && parentCategoryId) {
-      try {
+      if (!isSubcategory && parentCategoryId) {
         const originalById = new Map(originalSubsRef.current.filter((sub): sub is SubDraft & { id: string } => !!sub.id).map((sub) => [sub.id!, sub]));
         const subOps: Promise<unknown>[] = [];
         for (const sub of subs) {
@@ -293,16 +294,18 @@ export default function CategoryFormScreen() {
           }));
         }
         await Promise.all(subOps);
-      } catch (error) {
-        showAlert('Could Not Update All Subcategories', error instanceof Error ? error.message : 'An error occurred during save.');
-        return;
       }
-    }
+    };
 
-    router.back();
+    try {
+      await work();
+      router.back();
+    } catch (error) {
+      showAlert('Could Not Update All Subcategories', error instanceof Error ? error.message : 'An error occurred during save.');
+    }
   }
 
-  async function onDelete() {
+  function onDelete() {
     if (!id) return;
     const cat = categories.find((c) => c.id === id);
     const childCount = subs.filter((s) => !s.deleted && s.id).length;
@@ -479,31 +482,51 @@ export default function CategoryFormScreen() {
                 {visibleSubs.map((sub, renderIdx) => {
                   const cardKey = sub.id ?? `new-${sub.originalIdx}`;
                   return (
-                    <AnimatedCollapseCard
+                    <View
                       key={cardKey}
-                      ref={(handle) => { if (handle) subCardRefs.current.set(cardKey, handle); else subCardRefs.current.delete(cardKey); }}
-                      onRemoved={() => setSubs((current) => current.map((s, i) => (i === sub.originalIdx ? { ...s, deleted: true } : s)))}
+                      ref={(el) => {
+                        if (el) subViewRefs.current.set(cardKey, el);
+                        else subViewRefs.current.delete(cardKey);
+                      }}
                     >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <View style={{ flex: 1 }}>
-                          <InputField
+                      <AnimatedCollapseCard
+                        ref={(handle) => { if (handle) subCardRefs.current.set(cardKey, handle); else subCardRefs.current.delete(cardKey); }}
+                        onRemoved={() => setSubs((current) => current.map((s, i) => (i === sub.originalIdx ? { ...s, deleted: true } : s)))}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <View style={{ flex: 1 }}>
+                            <InputField
+                              palette={palette}
+                              value={sub.name}
+                              onChangeText={(v) => updateSubName(sub.originalIdx, v)}
+                              placeholder={`Subcategory ${renderIdx + 1}`}
+                              autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
+                              onFocus={() => {
+                                setTimeout(() => {
+                                  const viewEl = subViewRefs.current.get(cardKey);
+                                  if (viewEl && formScrollRef.current) {
+                                    viewEl.measureLayout(
+                                      formScrollRef.current as any,
+                                      (_x: number, y: number) => {
+                                        formScrollRef.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
+                                      },
+                                      () => {}
+                                    );
+                                  }
+                                }, 250);
+                              }}
+                            />
+                          </View>
+                          <IconBtn
+                            onPress={() => deleteSub(sub.originalIdx, cardKey)}
                             palette={palette}
-                            value={sub.name}
-                            onChangeText={(v) => updateSubName(sub.originalIdx, v)}
-                            placeholder={`Subcategory ${renderIdx + 1}`}
-                            autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
-                            onFocus={() => setTimeout(() => formScrollRef.current?.scrollToEnd({ animated: true }), 250)}
-                          />
+                            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                          >
+                            <AppIcon name="trash-2" size={18} color={palette.negative} />
+                          </IconBtn>
                         </View>
-                        <IconBtn
-                          onPress={() => deleteSub(sub.originalIdx, cardKey)}
-                          palette={palette}
-                          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                        >
-                          <AppIcon name="trash-2" size={18} color={palette.negative} />
-                        </IconBtn>
-                      </View>
-                    </AnimatedCollapseCard>
+                      </AnimatedCollapseCard>
+                    </View>
                   );
                 })}
               </View>

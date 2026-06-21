@@ -3,9 +3,10 @@ import { db } from '../db/client';
 import { transactions, accounts as accountsTable } from '../db/schema';
 import { getTransactionCashflowImpact } from '../lib/derived';
 import { toLocalDateKey, toLocalDayEndISO, safeLocalDateKey } from '../lib/dateUtils';
-import type { CashflowSummary, CategoryBreakdown, DailyCashflow } from '../types';
+import type { CashflowSummary, CategoryBreakdown, DailyCashflow, Transaction } from '../types';
 import { getCategories } from './categories';
 import type { TimeBucket, BucketType } from '../lib/chartUtils';
+import { rowToTransaction } from './transactions';
 
 // safeLocalDateKey is now exported from lib/dateUtils — no local copy needed.
 
@@ -20,6 +21,80 @@ async function getTransactionsInRange(
   ];
   if (accountId !== 'all') conditions.push(eq(transactions.accountId, accountId));
   return db.select().from(transactions).where(and(...conditions));
+}
+
+type CashflowOptions = {
+  includeTransfers?: boolean;
+  includeLoans?: boolean;
+  includeDeposits?: boolean;
+};
+
+function normalizeCashflowOptions(
+  options: CashflowOptions | undefined,
+  defaults: Required<CashflowOptions>,
+) {
+  return {
+    includeTransfers: options?.includeTransfers ?? defaults.includeTransfers,
+    includeLoans: options?.includeLoans ?? defaults.includeLoans,
+    includeDeposits: options?.includeDeposits ?? defaults.includeDeposits,
+  };
+}
+
+export function getCashflowSnapshotFromTransactions(
+  rows: Transaction[],
+  options?: CashflowOptions,
+): { summary: CashflowSummary; daily: DailyCashflow[] } {
+  const opts = normalizeCashflowOptions(options, {
+    includeTransfers: false,
+    includeLoans: false,
+    includeDeposits: true,
+  });
+
+  let inTotal = 0;
+  let outTotal = 0;
+  const byDate: Record<string, { in: number; out: number }> = {};
+
+  for (const row of rows) {
+    const dateKey = safeLocalDateKey(row.date);
+    if (!dateKey) continue;
+    if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
+    const impact = getTransactionCashflowImpact(row, opts);
+    if (impact === 'in') {
+      inTotal += row.amount;
+      byDate[dateKey].in += row.amount;
+    } else if (impact === 'out') {
+      outTotal += row.amount;
+      byDate[dateKey].out += row.amount;
+    }
+  }
+
+  return {
+    summary: { in: inTotal, out: outTotal, net: inTotal - outTotal },
+    daily: Object.entries(byDate)
+      .map(([date, totals]) => ({ date, ...totals }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+  };
+}
+
+export function getActivityPeriodCashflowFromTransactions(
+  rows: Transaction[],
+  options: CashflowOptions = {},
+): CashflowSummary {
+  const opts = normalizeCashflowOptions(options, {
+    includeTransfers: false,
+    includeLoans: false,
+    includeDeposits: options.includeTransfers === true || options.includeLoans === true,
+  });
+  let inTotal = 0;
+  let outTotal = 0;
+
+  for (const row of rows) {
+    const impact = getTransactionCashflowImpact(row, opts);
+    if (impact === 'in') inTotal += row.amount;
+    else if (impact === 'out') outTotal += row.amount;
+  }
+
+  return { in: inTotal, out: outTotal, net: inTotal - outTotal };
 }
 
 export async function getCashflowSummary(
@@ -40,58 +115,20 @@ export async function getActivityPeriodCashflow(
   accountId: string | 'all',
   fromDate: string,
   toDate: string,
-  options: { includeTransfers?: boolean; includeLoans?: boolean; includeDeposits?: boolean } = {}
+  options: CashflowOptions = {}
 ): Promise<CashflowSummary> {
   const rows = await getTransactionsInRange(accountId, fromDate, toDate);
-  let inTotal = 0, outTotal = 0;
-  const includeTransfers = options.includeTransfers ?? false;
-  const includeLoans = options.includeLoans ?? false;
-  const includeDeposits = options.includeDeposits ?? (includeTransfers || includeLoans);
-  for (const row of rows) {
-    const impact = getTransactionCashflowImpact(row, {
-      includeTransfers,
-      includeLoans,
-      includeDeposits,
-    });
-    if (impact === 'in') inTotal += row.amount;
-    else if (impact === 'out') outTotal += row.amount;
-  }
-  return { in: inTotal, out: outTotal, net: inTotal - outTotal };
+  return getActivityPeriodCashflowFromTransactions(rows.map(rowToTransaction), options);
 }
 
 export async function getCashflowSnapshot(
   accountId: string | 'all',
   fromDate: string,
   toDate: string,
-  options?: { includeTransfers?: boolean; includeLoans?: boolean; includeDeposits?: boolean }
+  options?: CashflowOptions
 ): Promise<{ summary: CashflowSummary; daily: DailyCashflow[] }> {
   const rows = await getTransactionsInRange(accountId, fromDate, toDate);
-  const includeTransfers = options?.includeTransfers ?? false;
-  const includeLoans = options?.includeLoans ?? false;
-  const includeDeposits = options?.includeDeposits ?? true;
-
-  let inTotal = 0,
-    outTotal = 0;
-  const byDate: Record<string, { in: number; out: number }> = {};
-  for (const row of rows) {
-    const dateKey = safeLocalDateKey(row.date);
-    if (!dateKey) continue;
-    if (!byDate[dateKey]) byDate[dateKey] = { in: 0, out: 0 };
-    const impact = getTransactionCashflowImpact(row, { includeTransfers, includeLoans, includeDeposits });
-    if (impact === 'in') {
-      inTotal += row.amount;
-      byDate[dateKey].in += row.amount;
-    } else if (impact === 'out') {
-      outTotal += row.amount;
-      byDate[dateKey].out += row.amount;
-    }
-  }
-  return {
-    summary: { in: inTotal, out: outTotal, net: inTotal - outTotal },
-    daily: Object.entries(byDate)
-      .map(([date, totals]) => ({ date, ...totals }))
-      .sort((a, b) => a.date.localeCompare(b.date)),
-  };
+  return getCashflowSnapshotFromTransactions(rows.map(rowToTransaction), options);
 }
 
 export async function getDailyCashflow(
@@ -268,14 +305,11 @@ export async function getAccountBalanceTrend(
 
 export type IncomeExpenseBucket = { label: string; income: number; expense: number; from: string; to: string; type: BucketType };
 
-export async function getIncomeExpenseByBuckets(
+export function getIncomeExpenseByBucketsFromTransactions(
+  rows: Transaction[],
   buckets: TimeBucket[],
-  fromDate: string,
-  toDate: string,
-  accountId: string | 'all' = 'all',
-  includeOpts: { includeTransfers?: boolean; includeLoans?: boolean; includeDeposits?: boolean } = {},
-): Promise<IncomeExpenseBucket[]> {
-  const rows = await getTransactionsInRange(accountId, fromDate, toDate);
+  includeOpts: CashflowOptions = {},
+): IncomeExpenseBucket[] {
   const opts = {
     includeLoans: includeOpts.includeLoans ?? false,
     includeTransfers: includeOpts.includeTransfers ?? false,
@@ -296,6 +330,17 @@ export async function getIncomeExpenseByBuckets(
     }
     return { label: bucket.label, income, expense, from: bucket.from, to: bucket.to, type: bucket.type };
   });
+}
+
+export async function getIncomeExpenseByBuckets(
+  buckets: TimeBucket[],
+  fromDate: string,
+  toDate: string,
+  accountId: string | 'all' = 'all',
+  includeOpts: CashflowOptions = {},
+): Promise<IncomeExpenseBucket[]> {
+  const rows = await getTransactionsInRange(accountId, fromDate, toDate);
+  return getIncomeExpenseByBucketsFromTransactions(rows.map(rowToTransaction), buckets, includeOpts);
 }
 
 export async function getCategoryBreakdown(

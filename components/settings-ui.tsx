@@ -5,7 +5,7 @@ import { forwardRef, ReactNode, RefObject, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../lib/design';
-import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT, SCREEN_HEADER} from '../lib/layoutTokens';
+import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT, SCREEN_HEADER, FORM_TOKENS} from '../lib/layoutTokens';
 import type { AppThemePalette } from '../lib/theme';
 import { isEmojiIcon } from '../lib/ui-format';
 import { FilledButton, TextButton } from './ui/AppButton';
@@ -652,5 +652,51 @@ export function SettingsFormLayout({
       </KeyboardAvoidingView>
       {bottomActions}
     </SafeAreaView>
+  );
+}
+
+export function FormSection({
+  title,
+  children,
+  palette,
+  rightElement,
+  style,
+}: {
+  title: string;
+  children: React.ReactNode;
+  palette: AppThemePalette;
+  rightElement?: React.ReactNode;
+  style?: any;
+}) {
+  return (
+    <View style={[{ marginHorizontal: FORM_TOKENS.gutter, marginTop: FORM_TOKENS.sectionGap }, style]}>
+      {!!title && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <Text
+            appWeight="medium"
+            style={{
+              fontSize: HOME_TEXT.caption,
+              fontWeight: FONT_WEIGHT.bold,
+              color: palette.textSecondary,
+              textTransform: 'uppercase',
+            }}
+          >
+            {title}
+          </Text>
+          {rightElement}
+        </View>
+      )}
+      <View
+        style={{
+          backgroundColor: palette.surface,
+          borderRadius: FORM_TOKENS.cardRadius,
+          borderWidth: 1,
+          borderColor: palette.borderSoft,
+          overflow: 'hidden',
+        }}
+      >
+        {children}
+      </View>
+    </View>
   );
 }

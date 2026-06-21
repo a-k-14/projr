@@ -7,6 +7,7 @@ import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { Text } from '../ui/AppText';
+import { AppIcon } from '../ui/AppIcon';
 
 interface TrendPoint {
   date: string;
@@ -44,6 +45,8 @@ interface TrendLineChartProps {
   hideAxisLabels?: boolean;
   /** Custom height for the chart line area. Defaults to 110. */
   chartHeight?: number;
+  /** When true, completely hide the internal floating tooltip. */
+  hideInternalTooltip?: boolean;
 }
 
 // ─── Monotone cubic spline helper ────────────────────────────────────────────
@@ -137,6 +140,7 @@ function TrendLineChartBase({
   flatStyle = false,
   hideAxisLabels = false,
   chartHeight = 110,
+  hideInternalTooltip = false,
 }: TrendLineChartProps) {
   const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
   const chartWidthRef = useRef(Dimensions.get('window').width - 48);
@@ -252,13 +256,13 @@ function TrendLineChartBase({
     };
   }, [points, smoothCurves, CHART_H, PLOT_MID_Y, PLOT_MAX_Y, PLOT_HEIGHT]);
 
-  // Format tooltip date as dd mmm yyyy
+  // Format tooltip date as dd mmm (no year)
   const formattedTooltipDate = useMemo(() => {
     if (activePointIndex === null || !points[activePointIndex]) return '';
     const p = points[activePointIndex];
     const d = new Date(p.date + 'T00:00:00');
     if (isNaN(d.getTime())) return '';
-    return `${d.getDate()} ${d.toLocaleDateString(APP_LOCALE, { month: 'short' })} ${d.getFullYear()}`;
+    return `${d.getDate()} ${d.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
   }, [activePointIndex, points]);
 
   // Format axis dates
@@ -290,6 +294,7 @@ function TrendLineChartBase({
     // No paddingHorizontal — text rows carry their own explicit padding,
     // SVG spans the full card width without any wrapper fighting it.
     height: flatStyle ? undefined : CHART_H + 110,
+    position: 'relative' as const,
   } as const;
 
   // 1. Loading/Skeleton State — only the chart line area is a placeholder.
@@ -357,6 +362,95 @@ function TrendLineChartBase({
   // 3. Fully Rendered Interactive Chart State
   return (
     <View style={[CARD_BASE, containerStyle]}>
+      {activePointIndex !== null && points[activePointIndex] && !hideInternalTooltip && (() => {
+        const activePoint = points[activePointIndex];
+        const prevPoint = activePointIndex > 0 ? points[activePointIndex - 1] : null;
+        const diff = prevPoint ? activePoint.val - prevPoint.val : 0;
+        const hasPrev = diff !== 0 && prevPoint;
+        let prevDateStr = '';
+        if (hasPrev) {
+          const prevD = new Date(prevPoint.date + 'T00:00:00');
+          prevDateStr = isNaN(prevD.getTime())
+            ? ''
+            : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
+        }
+        const isPositive = diff > 0;
+        const tooltipBg = palette.isDark ? '#1E293B' : '#F1F5F9'; // slate in dark, clean light gray in light
+        const tooltipBorder = palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+        const textMainColor = palette.text;
+        const textMutedColor = palette.textSecondary;
+        const dividerColor = palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+
+        return (
+          <View
+            style={{
+              position: 'absolute',
+              top: 10,
+              alignSelf: 'center',
+              backgroundColor: tooltipBg,
+              borderColor: tooltipBorder,
+              borderWidth: 1,
+              borderRadius: 12,
+              paddingVertical: 8,
+              paddingHorizontal: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              zIndex: 100,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: palette.isDark ? 0.3 : 0.08,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
+          >
+            {/* Column 1: Dates */}
+            <View style={{ alignItems: 'flex-end', gap: 2 }}>
+              <Text style={{ fontSize: 11, color: textMutedColor, fontWeight: FONT_WEIGHT.semibold }}>
+                {formattedTooltipDate}
+              </Text>
+              {hasPrev && (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 9.5, color: palette.textMuted, marginRight: 3 }}>vs</Text>
+                  <Text style={{ fontSize: 10, color: textMutedColor, fontWeight: FONT_WEIGHT.medium }}>
+                    {prevDateStr}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Divider */}
+            <View style={{ width: 1, height: hasPrev ? 26 : 14, backgroundColor: dividerColor }} />
+
+            {/* Column 2: Amounts */}
+            <View style={{ alignItems: 'flex-start', gap: 2 }}>
+              <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: textMainColor }}>
+                {formatSignedCurrency(activePoint.val, currencySymbol, { zeroPlaceholder: null })}
+              </Text>
+              {hasPrev && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <AppIcon
+                    name={isPositive ? 'trending-up' : 'trending-down'}
+                    size={12}
+                    color={isPositive ? palette.numberPositive : palette.numberNegative}
+                    strokeWidth={2.5}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: isPositive ? palette.numberPositive : palette.numberNegative,
+                      fontWeight: FONT_WEIGHT.bold,
+                    }}
+                  >
+                    {formatSignedCurrency(Math.abs(diff), currencySymbol, { zeroPlaceholder: null })}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        );
+      })()}
+
       {/* Title & Interactive Tooltip Row */}
       {!hideHeader && (
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, minHeight: 20, paddingHorizontal: 12 }}>
@@ -373,17 +467,6 @@ function TrendLineChartBase({
 
           {headerRight && activePointIndex === null && (
             <View>{headerRight}</View>
-          )}
-
-          {activePointIndex !== null && points[activePointIndex] && (
-            <View style={{ position: 'absolute', right: 12, top: -2, alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: HOME_TEXT.caption + 0.5, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
-                {formatSignedCurrency(points[activePointIndex].val, currencySymbol, { zeroPlaceholder: null })}
-              </Text>
-              <Text style={{ fontSize: HOME_TEXT.tiny + 0.5, color: palette.textMuted, marginTop: 1 }}>
-                {formattedTooltipDate}
-              </Text>
-            </View>
           )}
         </View>
       )}

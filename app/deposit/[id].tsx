@@ -26,6 +26,7 @@ import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
+import { getTransactions } from '../../services/transactions';
 import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
 import type { DepositStatus, Transaction } from '../../types';
 
@@ -76,6 +77,7 @@ export default function DepositDetailScreen() {
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [depositTransactions, setDepositTransactions] = useState<Transaction[]>([]);
   const panelProgress = useSharedValue(0);
 
   const toggleActions = () => {
@@ -111,21 +113,29 @@ export default function DepositDetailScreen() {
     }
   }, [categoriesLoaded, loadCategories]);
 
-  const depositTransactions = useMemo<Transaction[]>(() => {
-    return transactions
-      .filter((t) => t.depositId === id)
-      .slice()
-      .sort((a, b) => {
-        const timeA = new Date(a.date).getTime();
-        const timeB = new Date(b.date).getTime();
-        if (timeA !== timeB) return timeB - timeA;
-        // Within same date: closed (principal) before interest income — matches Activity tab
-        const aOrder = a.depositTransactionType === 'closed' ? 0 : 1;
-        const bOrder = b.depositTransactionType === 'closed' ? 0 : 1;
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-  }, [transactions, id]);
+  useEffect(() => {
+    let active = true;
+    if (id) {
+      getTransactions({ depositId: id }).then((list) => {
+        if (active) {
+          const sorted = list.sort((a, b) => {
+            const timeA = new Date(a.date).getTime();
+            const timeB = new Date(b.date).getTime();
+            if (timeA !== timeB) return timeB - timeA;
+            // Within same date: closed (principal) before interest income — matches Activity tab
+            const aOrder = a.depositTransactionType === 'closed' ? 0 : 1;
+            const bOrder = b.depositTransactionType === 'closed' ? 0 : 1;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+          setDepositTransactions(sorted);
+        }
+      }).catch(() => undefined);
+    }
+    return () => {
+      active = false;
+    };
+  }, [id, transactions]);
 
   const handleTransactionPress = useTransactionPress();
 

@@ -123,6 +123,8 @@ export default function BudgetScreen() {
         palette={palette}
         showBack={true}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        titleSize={25}
+        titleWeight="400"
         rightAction={
           <HeaderAddButton palette={palette} onPress={() => router.push({ pathname: '/modals/budget-form', params: { month: selectedMonth } })} />
         }

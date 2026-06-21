@@ -4,8 +4,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { router } from 'expo-router';
 import { AppIcon } from './AppIcon';
 import { AppThemePalette } from '../../lib/theme';
-import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
-import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
+import { FONT_WEIGHT } from '../../lib/design';
+import { HOME_RADIUS, HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 
 interface ScreenHeaderProps {
   title: string;
@@ -20,7 +20,7 @@ interface ScreenHeaderProps {
   backgroundColor?: string;
   titleColor?: string;
   iconColor?: string;
-  /** Size of the back-arrow icon in dp. Defaults to 22. */
+  /** Size of the back-arrow icon in dp. Defaults to 18. */
   iconSize?: number;
 }
 
@@ -161,13 +161,13 @@ export function ScreenHeader({
   titleAddon,
   onBack,
   showBack = true,
-  height = 54,
-  titleSize = 27,
-  titleWeight = FONT_WEIGHT.regular,
+  height = 52,
+  titleSize = SCREEN_HEADER.titleSize,
+  titleWeight = FONT_WEIGHT.medium,
   backgroundColor,
   titleColor,
   iconColor,
-  iconSize = 22,
+  iconSize = 18,
 }: ScreenHeaderProps) {
   const resolvedBg = backgroundColor ?? palette.background;
   const resolvedTitle = titleColor ?? palette.text;
@@ -178,8 +178,9 @@ export function ScreenHeader({
         height,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: SCREEN_GUTTER,
+        paddingHorizontal: 16,
         backgroundColor: resolvedBg,
+        paddingBottom: 3,
       }}
     >
       {showBack && (
@@ -187,18 +188,17 @@ export function ScreenHeader({
           delayPressIn={0}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           onPress={() => (onBack ? onBack() : router.back())}
-          style={[
-            styles.backButton,
-            {
-              marginRight: 4,
-            },
-          ]}
+          style={{
+            marginRight: SCREEN_HEADER.iconTitleGap,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
         >
           <AppIcon name="arrow-left" size={iconSize} color={resolvedIcon} strokeWidth={2} />
         </TouchableOpacity>
       )}
 
-      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: showBack ? 0 : 4 }}>
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Text
           style={{
             flexShrink: 1,

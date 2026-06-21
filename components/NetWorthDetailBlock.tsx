@@ -1,9 +1,10 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { SegmentedPillSwitch } from '@/components/ui/SegmentedPillSwitch';
+import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View, InteractionManager } from 'react-native';
 import Animated, { useAnimatedRef, useAnimatedScrollHandler, type SharedValue } from 'react-native-reanimated';
 import { formatAccountDisplayName } from '../lib/account-utils';
 import { ASSET_TONE } from '../lib/assetVisuals';
@@ -56,6 +57,7 @@ export function NetWorthDetailBlock({
   bottomPadding?: number;
 }) {
   const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
+  const isFocused = useIsFocused();
   const [period, setPeriod] = useState<'today' | 'month'>('month');
   const [chartInteracting, setChartInteracting] = useState(false);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
@@ -89,28 +91,32 @@ export function NetWorthDetailBlock({
 
   // Load 30d transaction history
   useEffect(() => {
+    if (!isFocused) return;
     let active = true;
-    async function loadHistory() {
-      try {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const rangeFrom = toLocalDayStartISO(thirtyDaysAgo);
-        const txs = await getTransactions({
-          fromDate: rangeFrom,
-          limit: 5000,
-        });
-        if (active) {
-          setHistoryTransactions(txs);
+    const task = InteractionManager.runAfterInteractions(() => {
+      async function loadHistory() {
+        try {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          const rangeFrom = toLocalDayStartISO(thirtyDaysAgo);
+          const txs = await getTransactions({
+            fromDate: rangeFrom,
+            limit: 5000,
+          });
+          if (active) {
+            setHistoryTransactions(txs);
+          }
+        } catch (err) {
+          console.error("Failed to load net worth history transactions", err);
         }
-      } catch (err) {
-        console.error("Failed to load net worth history transactions", err);
       }
-    }
-    loadHistory();
+      loadHistory();
+    });
     return () => {
       active = false;
+      task.cancel();
     };
-  }, [mutationVersion]);
+  }, [mutationVersion, isFocused]);
 
   // Today and Month ranges
   const today = new Date();

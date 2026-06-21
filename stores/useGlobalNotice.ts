@@ -9,11 +9,9 @@ type GlobalNoticeState = {
   dismiss: () => void;
 };
 
-// App-wide notice surfaced from anywhere — including non-React store code such as
-// the optimistic-UI rollback handlers in useTransactionsStore. The add-transaction
-// modal closes synchronously on save, so a later DB-write failure has no in-modal
-// dialog left to render into; this banner lives at the app root and is always
-// visible regardless of which screen the user landed on.
+// App-wide notice surfaced from anywhere. The add-transaction modal can close
+// before background work finishes, so this banner lives at the app root and is
+// always visible regardless of which screen the user landed on.
 export const useGlobalNotice = create<GlobalNoticeState>((set) => ({
   message: null,
   tone: 'error',

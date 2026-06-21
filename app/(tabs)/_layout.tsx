@@ -31,6 +31,41 @@ const BACKGROUND_RESET_ENABLED: Record<string, boolean> = {
   settings: true,
 };
 
+function TabIcon({
+  name,
+  focused,
+  palette,
+}: {
+  name: IconName;
+  focused: boolean;
+  palette: AppThemePalette;
+}) {
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    scale.value = withSpring(focused ? 1.12 : 1, {
+      damping: 14,
+      stiffness: 320,
+      mass: 0.5,
+    });
+  }, [focused]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={animStyle}>
+      <AppIcon
+        name={name}
+        size={20}
+        color={focused ? palette.brand : palette.textSecondary}
+        strokeWidth={1.8}
+      />
+    </Animated.View>
+  );
+}
+
 function AppTabBar({
   state,
   navigation,
@@ -52,21 +87,25 @@ function AppTabBar({
   const pillHeight = 36;
   const activeRouteName = state.routes[state.index]?.name;
   const activeSlotIndex = TAB_BAR_SLOTS.findIndex((slot) => slot === activeRouteName);
-
-  const lastValidSlotIndexRef = useRef(activeSlotIndex >= 0 ? activeSlotIndex : 0);
-  if (activeSlotIndex >= 0 && activeRouteName && VISIBLE_TAB_NAMES.includes(activeRouteName as any)) {
-    lastValidSlotIndexRef.current = activeSlotIndex;
-  }
-  const targetSlotIndex = (activeSlotIndex >= 0 && activeRouteName && VISIBLE_TAB_NAMES.includes(activeRouteName as any))
-    ? activeSlotIndex
-    : lastValidSlotIndexRef.current;
+  const targetSlotIndex = activeSlotIndex >= 0 ? activeSlotIndex : 0;
 
   const getPillTarget = (slotIndex: number) =>
     Math.max(slotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2;
   const pillX = useSharedValue(getPillTarget(targetSlotIndex));
+  const hasAnimatedPillRef = useRef(false);
 
   useEffect(() => {
-    pillX.value = withSpring(getPillTarget(targetSlotIndex), { damping: 20, stiffness: 300, mass: 0.5 });
+    const nextX = getPillTarget(targetSlotIndex);
+    if (!hasAnimatedPillRef.current) {
+      pillX.value = nextX;
+      hasAnimatedPillRef.current = true;
+      return;
+    }
+    pillX.value = withSpring(nextX, {
+      damping: 24,
+      stiffness: 420,
+      mass: 0.45,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetSlotIndex, itemWidth]);
 
@@ -111,7 +150,7 @@ function AppTabBar({
               borderWidth: 1,
               borderColor: palette.brand,
               backgroundColor: palette.brandSoft,
-              opacity: targetSlotIndex >= 0 ? 1 : 0,
+              opacity: activeSlotIndex >= 0 ? 1 : 0,
             },
             pillStyle,
           ]}
@@ -205,11 +244,10 @@ function AppTabBar({
                 paddingTop: 21,
               }}
             >
-              <AppIcon
+              <TabIcon
                 name={item.icon as any}
-                size={21}
-                color={focused ? palette.brand : palette.textSecondary}
-                strokeWidth={focused ? 2 : 1.75}
+                focused={focused}
+                palette={palette}
               />
             </PressableScale>
           );
