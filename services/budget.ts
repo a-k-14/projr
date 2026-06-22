@@ -6,6 +6,7 @@ import { generateId } from '../lib/ids';
 import { todayUTC, toLocalMonthStartISO, nowUTC } from '../lib/dateUtils';
 import { getCategories } from './categories';
 import { rowToTransaction } from './transactions';
+import { STRINGS } from '../lib/strings';
 
 function rowToBudget(row: typeof budget.$inferSelect): Budget {
   return {
@@ -54,23 +55,23 @@ function assertNoBudgetConflict(
 
     if (candidate.repeat) {
       if (existing.repeat) {
-        throw new Error('A recurring budget already exists for this category.');
+        throw new Error(STRINGS.duplicate.budgetRecurring);
       }
       if (existingMonthKey >= candidateMonthKey) {
-        throw new Error('A budget already exists for this category in a month covered by this recurring budget.');
+        throw new Error(STRINGS.duplicate.budgetCoveredByRecurring);
       }
       continue;
     }
 
     if (existing.repeat) {
       if (existingMonthKey <= candidateMonthKey) {
-        throw new Error('A recurring budget already covers this category for the selected month.');
+        throw new Error(STRINGS.duplicate.budgetRecurringCoversSelected);
       }
       continue;
     }
 
     if (existingMonthKey === candidateMonthKey) {
-      throw new Error('A budget already exists for this category in the selected month.');
+      throw new Error(STRINGS.duplicate.budget);
     }
   }
 }

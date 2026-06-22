@@ -102,7 +102,7 @@ export function ActivityPeriodHeader({
               styles.periodArrowTouch,
               prevAnimStyle,
               {
-                width: 44,
+                width: 28,
                 height: 28,
                 opacity: 1,
               }
@@ -159,7 +159,7 @@ export function ActivityPeriodHeader({
               styles.periodArrowTouch,
               nextAnimStyle,
               {
-                width: 44,
+                width: 28,
                 height: 28,
                 opacity: 1,
               }

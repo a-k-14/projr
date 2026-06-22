@@ -46,7 +46,6 @@ import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import {
   APP_LOCALE,
   formatDate,
-  getLast30DaysRange,
   toLocalDayEndISO,
   toLocalDayStartISO,
   toLocalMonthStartISO
@@ -67,10 +66,10 @@ import {
   getTxTypeConfig
 } from '../../lib/layoutTokens';
 import { safePush } from '../../lib/safePush';
-import { prefetchAccountTrend } from '../../lib/trendCache';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
+import { prefetchAccountTrend } from '../../lib/trendCache';
 import { useDateFilter } from '../../lib/useDateFilter';
 import { useSweep } from '../../lib/useSweep';
 import { useTransactionPress } from '../../lib/useTransactionPress';
@@ -1744,6 +1743,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   // Inline filter: tap inc/exp on hero → filter Activity list to those tx; reset clears it
   const [inlineFilter, setInlineFilter] = useState<'in' | 'out' | null>(null);
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
+  const [showInfoSection, setShowInfoSection] = useState(false);
   useEffect(() => {
     if (resetInlineFilterToken > 0) {
       setInlineFilter(null);
@@ -1752,10 +1752,12 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       setCategoryDrilldown(null);
       setExpandedCategoryIds([]);
       dateFilter?.setPeriod('today');
+      setShowInfoSection(false);
       mainScrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetInlineFilterToken, dateFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetInlineFilterToken]);
   // Activity view mode (list vs category grouped) — only used for individual account pages
   const [activityViewMode, setActivityViewMode] = useState<AccountViewMode>('date');
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
@@ -1955,14 +1957,15 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     metricRightAmount
   );
 
-  const detailCashflowNoteProgress = useSharedValue(cashflowIsCashflow ? 1 : 0);
+  const detailCashflowNoteProgress = useSharedValue(0);
   React.useEffect(() => {
-    detailCashflowNoteProgress.value = withTiming(cashflowIsCashflow ? 1 : 0, { duration: 220 });
-  }, [cashflowIsCashflow]);
-  const CASHFLOW_NOTE_H = 30;
+    detailCashflowNoteProgress.value = withTiming(showInfoSection ? 1 : 0, { duration: 220 });
+  }, [showInfoSection]);
+  const CASHFLOW_NOTE_H = 54;
   const detailCashflowNoteStyle = useAnimatedStyle(() => ({
     height: detailCashflowNoteProgress.value * CASHFLOW_NOTE_H,
     opacity: detailCashflowNoteProgress.value,
+    overflow: 'hidden',
   }));
 
   // ── Category hierarchy for grouped view ──────────────────────────────────
@@ -2244,7 +2247,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
                 borderColor: palette.isDark ? palette.borderSoft : 'transparent',
-                marginBottom: 12,
+                marginBottom: 26,
                 position: 'relative',
                 overflow: 'hidden',
                 ...(palette.isDark ? {} : {
@@ -2427,62 +2430,48 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 borderColor: palette.borderSoft,
                 paddingVertical: 12,
                 paddingHorizontal: 16,
-                marginBottom: 8,
+                marginBottom: 22,
               }}
             >
-              {/* Row 1: Period switcher stretched wide */}
-              <View style={{ height: 32, marginBottom: 12 }}>
-                <ActivityPeriodHeader
-                  period={dateFilter?.period === 'today' ? 'day' : dateFilter?.period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
-                  periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
-                  goPrev={() => dateFilter?.navigatePrevious()}
-                  goNext={() => dateFilter?.navigateNext()}
-                  canGoNext={dateFilter?.canNavigateNext}
-                  setShowPeriodSheet={() => setShowPeriodSheet(true)}
-                  palette={palette}
-                  height={32}
-                />
-              </View>
-
-              {/* Row 2: Today/Month Switch & Cashflow Toggle */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <SegmentedPillSwitch
-                  options={[
-                    { key: 'today', label: 'Today' },
-                    { key: 'month', label: 'Month' }
-                  ]}
-                  value={dateFilter?.period === 'month' ? 'month' : 'today'}
-                  onChange={(key) => {
-                    dateFilter?.setOffset(0);
-                    dateFilter?.setPeriod(key as any);
-                  }}
-                  backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
-                  pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
-                  borderColor={palette.isDark ? 'transparent' : '#DFE5EF'}
-                  activeTextColor={palette.text}
-                  inactiveTextColor={palette.textMuted}
-                  height={32}
-                  radius={14}
-                  fontSize={10.5}
-                  itemMinWidth={54}
-                  style={{ width: 114 }}
-                />
+              {/* Row 1: Period Switcher & Info Button */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 12,
+                marginLeft: -4,
+                marginRight: -8,
+              }}>
+                <View style={{ flex: 1, marginRight: 4 }}>
+                  <ActivityPeriodHeader
+                    period={dateFilter?.period === 'today' ? 'day' : dateFilter?.period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
+                    periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
+                    goPrev={() => dateFilter?.navigatePrevious()}
+                    goNext={() => dateFilter?.navigateNext()}
+                    canGoNext={dateFilter?.canNavigateNext}
+                    setShowPeriodSheet={() => setShowPeriodSheet(true)}
+                    palette={palette}
+                    height={32}
+                  />
+                </View>
 
                 <TouchableOpacity
                   activeOpacity={0.75}
-                  onPress={() => setCashflowIsCashflow(!cashflowIsCashflow)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
+                  onPress={() => setShowInfoSection(!showInfoSection)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: showInfoSection ? (palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)') : 'transparent',
+                  }}
                 >
-                  <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
-                    Cashflow
-                  </Text>
-                  <AppSwitch
-                    value={cashflowIsCashflow}
-                    onValueChange={(val) => setCashflowIsCashflow(val)}
-                    palette={palette}
-                    width={36}
-                    height={20}
-                    thumbSize={14}
+                  <AppIcon
+                    name="info"
+                    size={16}
+                    color={showInfoSection ? palette.brand : palette.textMuted}
+                    strokeWidth={showInfoSection ? 2.4 : 1.8}
                   />
                 </TouchableOpacity>
               </View>
@@ -2577,7 +2566,23 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
                 {/* Cashflow info note */}
                 <Animated.View style={detailCashflowNoteStyle}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 8 }}>
+                  <View style={{ height: 1, backgroundColor: palette.divider, marginTop: 6, marginBottom: 6 }} />
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={{ fontSize: 13, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                      Cashflow Mode
+                    </Text>
+                    <AppSwitch
+                      value={cashflowIsCashflow}
+                      onValueChange={(val) => setCashflowIsCashflow(val)}
+                      palette={palette}
+                      width={36}
+                      height={20}
+                      thumbSize={14}
+                    />
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                     <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
                     <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
                       {HELP_TEXTS.cashflowNote}
@@ -2591,7 +2596,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           {/* ── Activity — list or category-grouped ── */}
           <View
             onLayout={(e) => { activitySectionY.current = e.nativeEvent.layout.y; }}
-            style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 8 : 28) }}
+            style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 0 : 28) }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: accountId === 'all' ? 8 : 16 }}>
               {categoryDrilldown ? (
@@ -2811,21 +2816,20 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           hasNavBar={!isDetailScreen}
           onSelectPeriod={(nextPeriod: string, nextOffset: number) => {
             if (nextPeriod === 'last30') {
-              const r = getLast30DaysRange();
+              dateFilter?.setPeriod('last30');
               dateFilter?.setOffset(0);
-              onApplyCustomRange?.(new Date(r.from), new Date(r.to));
               setShowPeriodSheet(false);
               return;
             }
             if (nextPeriod === 'all') {
+              dateFilter?.setPeriod('all');
               dateFilter?.setOffset(0);
-              onApplyCustomRange?.(new Date('2000-01-01T00:00:00'), new Date('2100-12-31T23:59:59'));
               setShowPeriodSheet(false);
               return;
             }
             const mappedPeriod = nextPeriod === 'day' ? 'today' : nextPeriod;
-            dateFilter?.setOffset(nextOffset);
             dateFilter?.setPeriod(mappedPeriod as any);
+            dateFilter?.setOffset(nextOffset);
             setShowPeriodSheet(false);
           }}
           onApplyCustom={(fromStr: string, toStr: string) => {

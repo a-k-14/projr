@@ -1,6 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
+import { STRINGS } from '../../lib/strings';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { FilledButton } from '../../components/ui/AppButton';
@@ -139,10 +140,10 @@ export default function ExportScreen() {
       if (result.status === 'success') {
         setSuccessInfo({ rowCount: result.rowCount });
       } else if (result.status === 'empty') {
-        Alert.alert('Nothing to Export', 'No transactions match the selected period and account.');
+        Alert.alert(STRINGS.export.alerts.emptyTitle, STRINGS.export.alerts.emptyMessage);
       }
     } catch (e: any) {
-      Alert.alert('Export Failed', e?.message ?? 'Could not export CSV.');
+      Alert.alert(STRINGS.export.alerts.failedTitle, e?.message ?? STRINGS.export.alerts.failedMessage);
     } finally {
       setExporting(false);
       setConfirmAllPending(false);
@@ -156,18 +157,18 @@ export default function ExportScreen() {
         bottomAction={
           <FixedBottomActions palette={palette}>
             <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, textAlign: 'center', lineHeight: 19, marginBottom: 12 }}>
-              Exporting data for <Text style={{ color: palette.text, fontWeight: FONT_WEIGHT.semibold }}>{summaryPeriodText}</Text>
-              {' for '}
+              {STRINGS.export.labels.exportingDataFor} <Text style={{ color: palette.text, fontWeight: FONT_WEIGHT.semibold }}>{summaryPeriodText}</Text>
+              {` ${STRINGS.export.labels.forLabel} `}
               <Text style={{ color: palette.text, fontWeight: FONT_WEIGHT.semibold }}>{accountLabel}</Text>
             </Text>
             {confirmAllPending ? (
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.negative, textAlign: 'center', marginBottom: 10 }}>
-                You are exporting all the data as no filters are selected. Tap again to continue export.
+                {STRINGS.export.alerts.allTimeWarning}
               </Text>
             ) : null}
             <Animated.View style={[shakeStyle, { width: '100%' }]}>
               <FilledButton
-                label={exporting ? 'Exporting…' : 'Export CSV'}
+                label={exporting ? STRINGS.export.labels.exporting : STRINGS.export.labels.exportCsv}
                 onPress={handleExport}
                 palette={palette}
                 disabled={exporting}
@@ -209,12 +210,12 @@ export default function ExportScreen() {
             </Animated.View>
           </View>
           <Text style={{ marginTop: SPACING.md, fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: successInfo ? palette.positive : palette.text, textAlign: 'center' }}>
-            {successInfo ? 'Export Complete' : 'Take your data with you'}
+            {successInfo ? STRINGS.export.labels.successTitle : STRINGS.export.labels.title}
           </Text>
           <Text style={{ marginTop: 6, fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary, textAlign: 'center', paddingHorizontal: SCREEN_GUTTER, lineHeight: 19 }}>
             {successInfo
-              ? `${successInfo.rowCount} transaction${successInfo.rowCount === 1 ? '' : 's'} exported to CSV.`
-              : 'Export your transactions as a CSV file you can open in any spreadsheet.'}
+              ? STRINGS.export.labels.successSubtitle(successInfo.rowCount)
+              : STRINGS.export.labels.subtitle}
           </Text>
         </View>
         <View style={{ paddingHorizontal: SCREEN_GUTTER, gap: SPACING.md, marginTop: SPACING.md }}>

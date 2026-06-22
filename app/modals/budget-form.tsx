@@ -20,6 +20,7 @@ import { useBudgetDraftStore } from '../../stores/useBudgetDraftStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useAppDialog } from '../../components/ui/useAppDialog';
+import { useUIStore } from '../../stores/useUIStore';
 import { BudgetCategoryPickerSheet } from '../../components/ui/BudgetCategoryPickerSheet';
 import type { BudgetWithSpent } from '../../types';
 import { toLocalMonthStartISO } from '../../lib/dateUtils';
@@ -32,6 +33,8 @@ export default function BudgetFormModal() {
   const updateBudget = useBudgetStore((s) => s.update);
   const removeBudget = useBudgetStore((s) => s.remove);
   const categories = useCategoriesStore((s) => s.categories);
+  const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
   const { palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { showAlert, showConfirm, dialog } = useAppDialog(palette);
@@ -202,6 +205,11 @@ export default function BudgetFormModal() {
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center', position: 'relative' }}>
+              {showCurrencySymbol && (
+                <Text style={{ fontSize: 24, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginRight: 4 }}>
+                  {currencySymbol}
+                </Text>
+              )}
               <TextInput
                 ref={amountInputRef}
                 value={amountStr}
@@ -216,7 +224,7 @@ export default function BudgetFormModal() {
                   color: palette.brand,
                   letterSpacing: 0,
                   textAlign: 'center',
-                  minWidth: 100,
+                  minWidth: 60,
                   paddingTop: 0,
                   paddingBottom: 2,
                   lineHeight: 38,

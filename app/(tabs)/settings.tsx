@@ -1,5 +1,7 @@
 import { AppIcon, IconName } from '../../components/ui/AppIcon';
+import { Text } from '../../components/ui/AppText';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { STRINGS } from '../../lib/strings';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, ScrollView, TouchableWithoutFeedback, View } from 'react-native';
@@ -13,7 +15,9 @@ import {
   CURRENCIES,
   MONTHS,
   THEMES,
+  ACCOUNT_TYPE_META,
 } from '../../lib/settings-shared';
+import { HOME_RADIUS } from '../../lib/layoutTokens';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -74,12 +78,12 @@ export default function SettingsScreen() {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
     if (value) {
       if (!hasHardware) {
-        showAlert('Not Supported', 'Your device does not support biometric authentication.');
+        showAlert(STRINGS.settings.biometrics.notSupportedTitle, STRINGS.settings.biometrics.notSupportedMessage);
         return;
       }
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       if (!isEnrolled) {
-        showAlert('Not Enrolled', 'No biometrics are enrolled on this device. Please set up a screen lock or biometrics in your device settings.');
+        showAlert(STRINGS.settings.biometrics.notEnrolledTitle, STRINGS.settings.biometrics.notEnrolledMessage);
         return;
       }
     } else {
@@ -87,13 +91,13 @@ export default function SettingsScreen() {
         const isEnrolled = await LocalAuthentication.isEnrolledAsync();
         if (isEnrolled) {
           const authResult = await LocalAuthentication.authenticateAsync({
-            promptMessage: 'Disable Biometric Lock',
-            promptSubtitle: 'Authenticate with your biometrics or device passcode to disable security lock',
-            fallbackLabel: 'Use Passcode',
+            promptMessage: STRINGS.settings.biometrics.disablePromptTitle,
+            promptSubtitle: STRINGS.settings.biometrics.disablePromptSubtitle,
+            fallbackLabel: STRINGS.settings.biometrics.disableFallbackLabel,
             disableDeviceFallback: false,
           });
           if (!authResult.success) {
-            showAlert('Authentication Failed', 'Security lock remains enabled.');
+            showAlert(STRINGS.settings.biometrics.authFailedTitle, STRINGS.settings.biometrics.authFailedMessage);
             return;
           }
         }
@@ -106,9 +110,9 @@ export default function SettingsScreen() {
     try {
       await seedMassiveTransactions(1000);
       await Promise.all([loadAccounts(), useTransactionsStore.getState().load()]);
-      showAlert('Success', '1,000 test transactions added.');
+      showAlert(STRINGS.settings.seeding.successTitle, STRINGS.settings.seeding.successMessage);
     } catch (error) {
-      showAlert('Error', error instanceof Error ? error.message : 'Failed to seed data.');
+      showAlert(STRINGS.settings.seeding.errorTitle, error instanceof Error ? error.message : STRINGS.settings.seeding.errorMessage);
     }
   };
 
@@ -305,6 +309,22 @@ export default function SettingsScreen() {
                 key="none"
                 title="None"
                 subtitle="Prompt every time"
+                leftElement={
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: HOME_RADIUS.chip,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : '#F2F4F7',
+                      borderWidth: 1,
+                      borderColor: palette.isDark ? 'rgba(255,255,255,0.12)' : '#D0D5DD',
+                    }}
+                  >
+                    <AppIcon name="ban" size={19} color={palette.textMuted} strokeWidth={1.6} />
+                  </View>
+                }
                 selected={!settings.defaultAccountId}
                 palette={palette}
                 onPress={() => {
@@ -312,20 +332,39 @@ export default function SettingsScreen() {
                   updateSettings({ defaultAccountId: '' });
                 }}
               />,
-              ...accounts.map((account, index) => (
-                <ChoiceRow
-                  key={account.id}
-                  title={account.name}
-                  subtitle={`${capitalize(account.type)} · ${formatSignedCurrency(account.balance, displaySymbol, { zeroPlaceholder: '0' })}`}
-                  selected={settings.defaultAccountId === account.id}
-                  palette={palette}
-                  onPress={() => {
-                    setPicker(null);
-                    updateSettings({ defaultAccountId: account.id });
-                  }}
-                  noBorder={index === accounts.length - 1}
-                />
-              )),
+              ...accounts.map((account, index) => {
+                const typeMeta = ACCOUNT_TYPE_META[account.type];
+                return (
+                  <ChoiceRow
+                    key={account.id}
+                    title={account.name}
+                    subtitle={`${capitalize(account.type)} · ${formatSignedCurrency(account.balance, displaySymbol, { zeroPlaceholder: '0' })}`}
+                    leftElement={
+                      <View
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: HOME_RADIUS.chip,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: `${typeMeta.color}18`,
+                          borderWidth: 1,
+                          borderColor: `${typeMeta.color}30`,
+                        }}
+                      >
+                        <AppIcon name={typeMeta.icon as any} size={19} color={typeMeta.color} strokeWidth={1.6} />
+                      </View>
+                    }
+                    selected={settings.defaultAccountId === account.id}
+                    palette={palette}
+                    onPress={() => {
+                      setPicker(null);
+                      updateSettings({ defaultAccountId: account.id });
+                    }}
+                    noBorder={index === accounts.length - 1}
+                  />
+                );
+              }),
             ]
             : null}
 
@@ -335,6 +374,7 @@ export default function SettingsScreen() {
                 key={currency.code}
                 title={`${currency.symbol} ${currency.code}`}
                 subtitle={currency.name}
+                leftElement={currency.flag ? <Text style={{ fontSize: 22 }}>{currency.flag}</Text> : undefined}
                 selected={settings.currency === currency.code}
                 palette={palette}
                 onPress={() => {
@@ -372,13 +412,13 @@ export default function SettingsScreen() {
 function pickerTitle(kind: PickerKind) {
   switch (kind) {
     case 'year-start':
-      return 'Year Start';
+      return STRINGS.settings.pickers.yearStartTitle;
     case 'default-account':
-      return 'Default Account';
+      return STRINGS.settings.pickers.defaultAccountTitle;
     case 'currency':
-      return 'Currency';
+      return STRINGS.settings.pickers.currencyTitle;
     case 'theme':
-      return 'Theme';
+      return STRINGS.settings.pickers.themeTitle;
     default:
       return '';
   }
@@ -387,13 +427,13 @@ function pickerTitle(kind: PickerKind) {
 function pickerSubtitle(kind: PickerKind) {
   switch (kind) {
     case 'year-start':
-      return 'Choose the first month of your year';
+      return STRINGS.settings.pickers.yearStartSubtitle;
     case 'default-account':
-      return 'Choose the default account for new transactions';
+      return STRINGS.settings.pickers.defaultAccountSubtitle;
     case 'currency':
-      return 'Pick the currency shown across the app';
+      return STRINGS.settings.pickers.currencySubtitle;
     case 'theme':
-      return 'Choose how the app follows system appearance';
+      return STRINGS.settings.pickers.themeSubtitle;
     default:
       return undefined;
   }

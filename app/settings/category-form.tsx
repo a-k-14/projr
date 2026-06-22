@@ -30,6 +30,7 @@ import {
 import { useAppTheme } from '../../lib/theme';
 import { isEmojiIcon } from '../../lib/ui-format';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { STRINGS } from '../../lib/strings';
 
 type SubDraft = {
   id?: string;
@@ -192,10 +193,10 @@ export default function CategoryFormScreen() {
         withTiming(0, { duration: 50 })
       );
       if (isSubcategory) {
-        setDuplicateError(`A subcategory named "${trimmed}" already exists under this parent.`);
+        setDuplicateError(STRINGS.duplicate.subcategory(trimmed));
       } else {
         const typeLabel = type === 'both' ? 'Income or Expense' : type === 'in' ? 'Income' : 'Expense';
-        setDuplicateError(`A category named "${trimmed}" already exists in ${typeLabel}.`);
+        setDuplicateError(STRINGS.duplicate.category(trimmed, typeLabel));
       }
       return;
     }
@@ -501,20 +502,6 @@ export default function CategoryFormScreen() {
                               onChangeText={(v) => updateSubName(sub.originalIdx, v)}
                               placeholder={`Subcategory ${renderIdx + 1}`}
                               autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
-                              onFocus={() => {
-                                setTimeout(() => {
-                                  const viewEl = subViewRefs.current.get(cardKey);
-                                  if (viewEl && formScrollRef.current) {
-                                    viewEl.measureLayout(
-                                      formScrollRef.current as any,
-                                      (_x: number, y: number) => {
-                                        formScrollRef.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
-                                      },
-                                      () => {}
-                                    );
-                                  }
-                                }, 250);
-                              }}
                             />
                           </View>
                           <IconBtn

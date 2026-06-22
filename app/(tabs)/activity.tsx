@@ -1704,33 +1704,45 @@ export default function ActivityScreen() {
                                     borderBottomColor: palette.divider
                                   }}
                                 >
-                                  {category.subcategories.map((sub) => (
-                                    <TouchableOpacity delayPressIn={0}
-                                      key={sub.subKey}
-                                      onPress={() =>
-                                        setCategoryDrilldown({
-                                          parentKey: category.parentKey,
-                                          parentLabel: category.parentLabel,
-                                          subKey: sub.subKey,
-                                          subLabel: sub.subLabel
-                                        })
-                                      }
-                                      activeOpacity={0.75}
-                                      style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        paddingVertical: 12,
-                                        paddingLeft: CARD_PADDING + 52,
-                                        paddingRight: CARD_PADDING,
-                                        minHeight: 52,
-                                        borderTopWidth: 1,
-                                        borderTopColor: palette.divider,
-                                        backgroundColor: palette.surface,
-                                      }}
-                                    >
-                                      <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
-                                        {sub.subLabel}
-                                      </Text>
+                                  {category.subcategories.map((sub) => {
+                                    const subColor = categoriesById.get(sub.subKey)?.color ||
+                                                     (sub.subKey.startsWith('type:') ? (txTypeConfig as any)[sub.subKey.slice(5)]?.color : undefined) ||
+                                                     palette.brand;
+                                    return (
+                                      <TouchableOpacity delayPressIn={0}
+                                        key={sub.subKey}
+                                        onPress={() =>
+                                          setCategoryDrilldown({
+                                            parentKey: category.parentKey,
+                                            parentLabel: category.parentLabel,
+                                            subKey: sub.subKey,
+                                            subLabel: sub.subLabel
+                                          })
+                                        }
+                                        activeOpacity={0.75}
+                                        style={{
+                                          flexDirection: 'row',
+                                          alignItems: 'center',
+                                          paddingVertical: 12,
+                                          paddingLeft: CARD_PADDING + 24,
+                                          paddingRight: CARD_PADDING,
+                                          minHeight: 52,
+                                          borderTopWidth: 1,
+                                          borderTopColor: palette.divider,
+                                          backgroundColor: palette.surface,
+                                        }}
+                                      >
+                                        <View style={{
+                                          width: 8,
+                                          height: 8,
+                                          borderRadius: 4,
+                                          backgroundColor: subColor,
+                                          marginLeft: 5,
+                                          marginRight: 15,
+                                        }} />
+                                        <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
+                                          {sub.subLabel}
+                                        </Text>
                                       <Text
                                         style={{
                                           fontSize: HOME_TEXT.bodySmall,
@@ -1748,7 +1760,8 @@ export default function ActivityScreen() {
                                       </Text>
                                       <AppChevron direction="right" size={16} tone="secondary" palette={palette} />
                                     </TouchableOpacity>
-                                  ))}
+                                  );
+                                  })}
                                 </View>
                               ) : null}
                             </View>

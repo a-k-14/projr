@@ -68,6 +68,7 @@ import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore'
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
+import { STRINGS } from '../../lib/strings';
 
 
 import type {
@@ -357,6 +358,8 @@ export default function AddTransactionModal() {
   const isHydratingEditRef = useRef(false);
   const isDepositHydratedRef = useRef(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const currentScrollYRef = useRef(0);
+  const preFocusScrollYRef = useRef<number | null>(null);
   const typeScrollViewRef = useRef<ScrollView>(null);
   const amountInputRef = useRef<TextInput>(null);
   const payeeInputRef = useRef<TextInput>(null);
@@ -385,6 +388,9 @@ export default function AddTransactionModal() {
   }, [persons, normalizedPersonQuery]);
 
   const handleFieldFocus = (target: number | React.RefObject<any>) => {
+    if (preFocusScrollYRef.current === null) {
+      preFocusScrollYRef.current = currentScrollYRef.current;
+    }
     setTimeout(() => {
       if (typeof target === 'number') {
         scrollViewRef.current?.scrollTo({ y: target, animated: true });
@@ -408,7 +414,10 @@ export default function AddTransactionModal() {
 
     const willHideSub = Platform.OS === 'ios'
       ? Keyboard.addListener('keyboardWillHide', () => {
-          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+          if (preFocusScrollYRef.current !== null) {
+            scrollViewRef.current?.scrollTo({ y: preFocusScrollYRef.current, animated: true });
+            preFocusScrollYRef.current = null;
+          }
         })
       : null;
 
@@ -416,7 +425,10 @@ export default function AddTransactionModal() {
       if (Platform.OS === 'ios') {
         setKeyboardHeight(0);
       } else {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        if (preFocusScrollYRef.current !== null) {
+          scrollViewRef.current?.scrollTo({ y: preFocusScrollYRef.current, animated: true });
+          preFocusScrollYRef.current = null;
+        }
         setTimeout(() => {
           setKeyboardHeight(0);
         }, 250);
@@ -757,6 +769,8 @@ export default function AddTransactionModal() {
   );
 
   const checkIsDirty = () => {
+    if (isHydratingEditRef.current) return false;
+
     if (isEditingDeposit || isClosingDeposit) {
       if (!initialDeposit) return false;
       const originalAmountStr = formatIndianNumberStr(String(Math.round(initialDeposit.principalAmount)));
@@ -798,6 +812,17 @@ export default function AddTransactionModal() {
             loanTransactionType !== originalType
           );
         }
+      }
+
+      if (initialTx.transferPairId) {
+        const originalSourceId = initialTx.type === 'out' ? initialTx.accountId : initialTx.linkedAccountId ?? '';
+        const originalDestId = initialTx.type === 'out' ? initialTx.linkedAccountId ?? '' : initialTx.accountId;
+        return (
+          amountStr !== originalAmountStr ||
+          accountId !== originalSourceId ||
+          linkedAccountId !== originalDestId ||
+          note !== (initialTx.note ?? '')
+        );
       }
 
       return (
@@ -1014,22 +1039,22 @@ export default function AddTransactionModal() {
   const getValidationErrorMessage = () => {
     const amountVal = isClosingDeposit ? closePrincipal : amount;
     if (amountVal <= 0 || (usableSplitRows.length > 0 && splitTotal === 0)) {
-      return 'Please enter an amount';
+      return STRINGS.validation.enterAmount;
     }
     if (!accountId) {
-      return 'Please select an account';
+      return STRINGS.validation.selectAccount;
     }
     if (type === 'transfer' && !linkedAccountId) {
-      return 'Please select a destination account';
+      return STRINGS.validation.selectDestAccount;
     }
     if ((type === 'in' || type === 'out') && usableSplitRows.length === 0 && !categoryId) {
-      return 'Please select a category';
+      return STRINGS.validation.selectCategory;
     }
     if (type === 'loan' && personName.trim().length === 0) {
-      return 'Please enter a person name';
+      return STRINGS.validation.enterPersonName;
     }
     if (type === 'deposit' && !isClosingDeposit && depositName.trim().length === 0) {
-      return 'Please enter a deposit name';
+      return STRINGS.validation.enterDepositName;
     }
     return null;
   };
@@ -1572,6 +1597,13 @@ export default function AddTransactionModal() {
         contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 132) + keyboardHeight }}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
+        onScroll={(e) => {
+          currentScrollYRef.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          preFocusScrollYRef.current = null;
+        }}
       >
         <Pressable onPress={Keyboard.dismiss} style={{ paddingBottom: 20 }}>
           <View style={{ paddingTop: 2, paddingBottom: 14 }}>
@@ -1638,6 +1670,11 @@ export default function AddTransactionModal() {
                 onPress={() => runAfterKeyboardDismiss(() => router.push({ pathname: '/modals/split-transaction', params: { type } }))}
                 style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center', position: 'relative' }}
               >
+                {showCurrencySymbol && (
+                  <Text style={{ fontSize: 24, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginRight: 4 }}>
+                    {sym}
+                  </Text>
+                )}
                 <TextInput
                   ref={amountInputRef}
                   value={amountStr}
@@ -1654,7 +1691,7 @@ export default function AddTransactionModal() {
                     color: amountInputColor,
                     letterSpacing: 0,
                     textAlign: 'center',
-                    minWidth: 100,
+                    minWidth: 60,
                     paddingTop: 0,
                     paddingBottom: 2,
                     lineHeight: 38,
@@ -2250,8 +2287,6 @@ export default function AddTransactionModal() {
                       </View>
                     </View>
 
-                    <PremiumDivider palette={palette} />
-
                     {/* Person selection */}
                     {isLoanAddMore ? (
                       <View
@@ -2315,7 +2350,7 @@ export default function AddTransactionModal() {
                               color: palette.text,
                               paddingVertical: 0,
                               minHeight: 28,
-                              fontWeight: FONT_WEIGHT.regular,
+                              fontWeight: FONT_WEIGHT.semibold,
                             }}
                           />
                         </Pressable>
@@ -2657,7 +2692,7 @@ export default function AddTransactionModal() {
                           color: palette.text,
                           paddingVertical: 0,
                           minHeight: 28,
-                          fontWeight: FONT_WEIGHT.regular,
+                          fontWeight: FONT_WEIGHT.semibold,
                         }}
                       />
                     </Pressable>

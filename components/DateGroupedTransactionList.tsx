@@ -129,19 +129,36 @@ interface Props extends DateGroupRowProps {
   emptyText?: string;
 }
 
-/** Plain (non-virtualized) list for use as content inside an existing ScrollView,
- *  e.g. the home/account "recent" list (capped, small). For large lists inside a
- *  bottom sheet use DateGroupedTransactionSheetList instead — it virtualizes. */
-export function DateGroupedTransactionList({
+export const DateGroupedTransactionList = React.memo(function DateGroupedTransactionList({
   transactions,
   emptyText = 'No transactions',
-  ...row
+  palette,
+  sym,
+  categoriesById,
+  accountsById,
+  loansById,
+  depositsById,
+  tagNamesById,
+  getCategoryFullDisplayName,
+  onTransactionPress,
 }: Props) {
   if (transactions.length === 0) {
-    return <EmptyTransactions palette={row.palette} emptyText={emptyText} />;
+    return <EmptyTransactions palette={palette} emptyText={emptyText} />;
   }
 
   const groups = buildDateGroups(transactions);
+
+  const row = {
+    palette,
+    sym,
+    categoriesById,
+    accountsById,
+    loansById,
+    depositsById,
+    tagNamesById,
+    getCategoryFullDisplayName,
+    onTransactionPress,
+  };
 
   return (
     <View style={{ gap: HOME_SPACE.xxl }}>
@@ -150,4 +167,4 @@ export function DateGroupedTransactionList({
       ))}
     </View>
   );
-}
+});

@@ -1,4 +1,5 @@
 import { APP_CARD_RADIUS, CARD_PADDING, RADIUS as DESIGN_RADIUS, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING } from './design';
+import { STRINGS } from './strings';
 
 export { CARD_PADDING, HOME_TEXT, SCREEN_GUTTER, SHEET_GUTTER, SPACING };
 
@@ -260,7 +261,7 @@ export const TRANSACTIONS_PAGE_SIZE = 20;
 
 // ─── Help Texts ──────────────────────────────────────────────────────────────
 export const HELP_TEXTS = {
-  cashflowNote: 'Cashflow includes Transfer, Deposit & Loan movements',
+  cashflowNote: STRINGS.notes.cashflowHelp,
 } as const;
 
 // ─── Net Worth Change Chip Theme ──────────────────────────────────────────────

@@ -4,6 +4,7 @@ import { accounts, loans, transactions } from '../db/schema';
 import type { Account, CreateAccountInput } from '../types';
 import { generateId } from '../lib/ids';
 import { nowUTC } from '../lib/dateUtils';
+import { STRINGS } from '../lib/strings';
 
 function rowToAccount(row: typeof accounts.$inferSelect): Account {
   return {
@@ -42,7 +43,7 @@ async function assertNoDuplicateAccountName(name: string, excludeId?: string): P
     (a) => (excludeId ? a.id !== excludeId : true) && normalizeAccountName(a.name) === normalized
   );
   if (hasDuplicate) {
-    throw new Error('An account with this name already exists.');
+    throw new Error(STRINGS.duplicate.account);
   }
 }
 

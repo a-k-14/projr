@@ -3,20 +3,21 @@ import { Text } from '@/components/ui/AppText';
 import { useIsFocused } from '@react-navigation/native';
 import { router, Stack } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, InteractionManager, Pressable, RefreshControl, View, Modal, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, FlatList, InteractionManager, Modal, Pressable, RefreshControl, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionDateHeader } from '../../components/DateGroupedTransactionList';
 import { TransactionListItem } from '../../components/TransactionListItem';
 import { getScrollableBottomPadding, SystemBottomGuard } from '../../components/ui/safeBottom';
-import { useAppDialog } from '../../components/ui/useAppDialog';
-import { TagBadge } from '../../components/ui/TagBadge';
 import { SheetScrollTopButton } from '../../components/ui/SheetScrollTopButton';
+import { TagBadge } from '../../components/ui/TagBadge';
+import { useAppDialog } from '../../components/ui/useAppDialog';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import { formatDate, toLocalDateKey } from '../../lib/dateUtils';
 import { formatCurrency } from '../../lib/derived';
 import { FONT_WEIGHT, SCREEN_GUTTER, SPACING, TYPE } from '../../lib/design';
 import { CARD_TEXT, HOME_RADIUS } from '../../lib/layoutTokens';
+import { STRINGS } from '../../lib/strings';
 import { useAppTheme } from '../../lib/theme';
 import { useTransactionPress } from '../../lib/useTransactionPress';
 import { AuditLog, getAuditLogs } from '../../services/audit';
@@ -470,10 +471,10 @@ const AuditLogItem = React.memo(({
         if (originTx) {
           handleTransactionPress(originTx);
         } else {
-          showAlert('Error', 'Origin transaction not found.');
+          showAlert(STRINGS.audit.alerts.errorTitle, STRINGS.audit.alerts.errorOriginNotFound);
         }
       } catch {
-        showAlert('Error', 'Failed to retrieve loan transaction.');
+        showAlert(STRINGS.audit.alerts.errorTitle, STRINGS.audit.alerts.errorGetLoanTx);
       }
     } else if (item.tableName === 'assets') {
       router.push({ pathname: '/modals/asset-form', params: { id: item.recordId } });
@@ -559,8 +560,8 @@ const AuditLogItem = React.memo(({
           <View
             style={{
               position: 'absolute',
-              width: 7,
-              height: 7,
+              width: 7.5,
+              height: 7.5,
               borderRadius: 3.5,
               backgroundColor: actionColor,
               borderWidth: 1.5,
@@ -833,7 +834,7 @@ export default function AuditScreen() {
         setHasMore(rawResults.length === PAGE_SIZE);
       }
     } catch (error) {
-      showAlert('Error', 'Failed to retrieve activity logs.');
+      showAlert(STRINGS.audit.alerts.errorTitle, STRINGS.audit.alerts.errorGetLogs);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -939,10 +940,10 @@ export default function AuditScreen() {
             <View style={{ flex: 1, padding: 40, alignItems: 'center', justifyContent: 'center', marginTop: 80 }}>
               <AppIcon name="history" size={40} color={palette.textMuted} style={{ marginBottom: 12 }} />
               <Text appWeight="medium" style={{ color: palette.textMuted, fontSize: TYPE.rowLabel, textAlign: 'center' }}>
-                No activity logged yet.
+                {STRINGS.audit.empty.title}
               </Text>
               <Text style={{ color: palette.textMuted, fontSize: TYPE.caption, textAlign: 'center', marginTop: 4 }}>
-                Added, edited, or deleted transactions will show up here.
+                {STRINGS.audit.empty.subtitle}
               </Text>
             </View>
           }
@@ -976,7 +977,7 @@ export default function AuditScreen() {
           }}
         >
           <Pressable
-            onPress={() => {}}
+            onPress={() => { }}
             style={{
               width: '100%',
               maxWidth: 340,
@@ -1002,13 +1003,13 @@ export default function AuditScreen() {
                 <AppIcon name="info" size={16} color={palette.brand} strokeWidth={2} />
               </View>
               <Text style={{ flex: 1, fontSize: 16, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-                Activity Log
+                {STRINGS.audit.modal.title}
               </Text>
             </View>
 
             {/* Description */}
             <Text style={{ fontSize: 13.5, lineHeight: 20, color: palette.text, marginBottom: 16 }}>
-              You can see the date-wise log of all changes made to your transactions, deposits, loans, and assets over the last <Text style={{ fontWeight: FONT_WEIGHT.semibold }}>30 days</Text>.
+              {STRINGS.audit.modal.description}
             </Text>
 
             {/* Legend */}
@@ -1016,19 +1017,19 @@ export default function AuditScreen() {
               <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: palette.numberPositive }} />
                 <Text style={{ fontSize: 12.5, color: palette.textSecondary }}>
-                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Added:</Text> Newly created items
+                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{STRINGS.audit.modal.added}</Text> {STRINGS.audit.modal.addedDesc}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: palette.brand }} />
                 <Text style={{ fontSize: 12.5, color: palette.textSecondary }}>
-                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Edited:</Text> Details updated (with diffs)
+                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{STRINGS.audit.modal.edited}</Text> {STRINGS.audit.modal.editedDesc}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: palette.numberNegative }} />
                 <Text style={{ fontSize: 12.5, color: palette.textSecondary }}>
-                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>Deleted:</Text> Removed items (with details)
+                  <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>{STRINGS.audit.modal.deleted}</Text> {STRINGS.audit.modal.deletedDesc}
                 </Text>
               </View>
             </View>
@@ -1047,7 +1048,7 @@ export default function AuditScreen() {
                 }}
               >
                 <Text style={{ fontSize: 13, fontWeight: FONT_WEIGHT.semibold, color: palette.onBrand }}>
-                  Got It
+                  {STRINGS.audit.modal.gotIt}
                 </Text>
               </TouchableOpacity>
             </View>

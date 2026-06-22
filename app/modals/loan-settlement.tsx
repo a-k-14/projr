@@ -168,8 +168,13 @@ export default function LoanSettlementModal() {
   }, [editId, isEditing, loanId]);
 
   const scrollViewRef = useRef<ScrollView>(null);
+  const currentScrollYRef = useRef(0);
+  const preFocusScrollYRef = useRef<number | null>(null);
 
   const handleFieldFocus = (target: number) => {
+    if (preFocusScrollYRef.current === null) {
+      preFocusScrollYRef.current = currentScrollYRef.current;
+    }
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({ y: target, animated: true });
     }, 180);
@@ -194,7 +199,10 @@ export default function LoanSettlementModal() {
 
     const willHideSub = Platform.OS === 'ios'
       ? Keyboard.addListener('keyboardWillHide', () => {
-          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+          if (preFocusScrollYRef.current !== null) {
+            scrollViewRef.current?.scrollTo({ y: preFocusScrollYRef.current, animated: true });
+            preFocusScrollYRef.current = null;
+          }
         })
       : null;
 
@@ -202,7 +210,10 @@ export default function LoanSettlementModal() {
       if (Platform.OS === 'ios') {
         setKeyboardHeight(0);
       } else {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        if (preFocusScrollYRef.current !== null) {
+          scrollViewRef.current?.scrollTo({ y: preFocusScrollYRef.current, animated: true });
+          preFocusScrollYRef.current = null;
+        }
         setTimeout(() => {
           setKeyboardHeight(0);
         }, 250);
@@ -362,7 +373,19 @@ export default function LoanSettlementModal() {
         </View>
       </SafeAreaView>
 
-      <ScrollView ref={scrollViewRef} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 120) + keyboardHeight }}>
+      <ScrollView
+        ref={scrollViewRef}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 120) + keyboardHeight }}
+        onScroll={(e) => {
+          currentScrollYRef.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          preFocusScrollYRef.current = null;
+        }}
+      >
         <View style={{ paddingBottom: 20 }}>
           
           {/* Centered Large Amount Input pressable */}
@@ -382,6 +405,11 @@ export default function LoanSettlementModal() {
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center', position: 'relative' }}>
+              {showCurrencySymbol && (
+                <Text style={{ fontSize: 24, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginRight: 4 }}>
+                  {currencySymbol}
+                </Text>
+              )}
               <TextInput
                 ref={amountInputRef}
                 value={amountStr}
@@ -396,7 +424,7 @@ export default function LoanSettlementModal() {
                   color: palette.brand,
                   letterSpacing: 0,
                   textAlign: 'center',
-                  minWidth: 100,
+                  minWidth: 60,
                   paddingTop: 0,
                   paddingBottom: 2,
                   lineHeight: 38,
@@ -472,6 +500,7 @@ export default function LoanSettlementModal() {
                   style={{
                     fontSize: HOME_TEXT.bodyLarge,
                     color: personName ? palette.text : palette.textMuted,
+                    fontWeight: FONT_WEIGHT.semibold,
                   }}
                 >
                   {personName || 'Person'}

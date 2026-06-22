@@ -150,29 +150,30 @@ export default function CategoriesScreen() {
                       backgroundColor: palette.inputBg
                     }}
                   >
-                    {subs.map((sub) => (
-                      <View
-                        key={sub.id}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          paddingLeft: CATEGORY_TREE_ROW.childIndent,
-                          paddingRight: CARD_PADDING,
-                          paddingVertical: 12,
-                          minHeight: CATEGORY_TREE_ROW.childMinHeight,
-                          gap: 10,
-                          borderTopWidth: 1,
-                          borderTopColor: palette.divider
-                        }}
-                      >
-                        <Text
-                          style={{ flex: 1, fontSize: CATEGORY_TREE_ROW.childFontSize, color: palette.text, fontWeight: CATEGORY_TREE_ROW.childFontWeight }}
-                          numberOfLines={1}
+                    {subs.map((sub) => {
+                      return (
+                        <View
+                          key={sub.id}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingLeft: CATEGORY_TREE_ROW.childIndent,
+                            paddingRight: CARD_PADDING,
+                            paddingVertical: 12,
+                            minHeight: CATEGORY_TREE_ROW.childMinHeight,
+                            borderTopWidth: 1,
+                            borderTopColor: palette.divider
+                          }}
                         >
-                          {sub.name}
-                        </Text>
-                      </View>
-                    ))}
+                          <Text
+                            style={{ flex: 1, fontSize: CATEGORY_TREE_ROW.childFontSize, color: palette.text, fontWeight: CATEGORY_TREE_ROW.childFontWeight }}
+                            numberOfLines={1}
+                          >
+                            {sub.name}
+                          </Text>
+                        </View>
+                      );
+                    })}
                     {subs.length === 0 && (
                       <View
                         style={{
