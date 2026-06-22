@@ -620,11 +620,20 @@ export function SettingsFormLayout({
   children,
   palette,
   bottomActions,
-  scrollRef }: {
+  scrollRef,
+  onScroll,
+  onScrollBeginDrag,
+  scrollEventThrottle,
+  preFocusScrollYRef,
+}: {
     children: ReactNode;
     palette: AppThemePalette;
     bottomActions?: ReactNode;
     scrollRef?: RefObject<ScrollView | null>;
+    onScroll?: (event: any) => void;
+    onScrollBeginDrag?: () => void;
+    scrollEventThrottle?: number;
+    preFocusScrollYRef?: RefObject<number | null>;
 }) {
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -640,15 +649,27 @@ export function SettingsFormLayout({
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setKeyboardHeight(0);
+        if (preFocusScrollYRef && preFocusScrollYRef.current !== null) {
+          scrollRef?.current?.scrollTo({ y: preFocusScrollYRef.current, animated: true });
+          preFocusScrollYRef.current = null;
+        }
+
+        if (Platform.OS === 'ios') {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setKeyboardHeight(0);
+        } else {
+          setTimeout(() => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setKeyboardHeight(0);
+          }, 250);
+        }
       }
     );
     return () => {
       showSub.remove();
       hideSub.remove();
     };
-  }, []);
+  }, [scrollRef, preFocusScrollYRef]);
 
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
@@ -663,6 +684,9 @@ export function SettingsFormLayout({
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        onScroll={onScroll}
+        onScrollBeginDrag={onScrollBeginDrag}
+        scrollEventThrottle={scrollEventThrottle}
       >
         <View style={{ width: '100%' }}>{children}</View>
       </ScrollView>

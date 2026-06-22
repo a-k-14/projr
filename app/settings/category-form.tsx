@@ -2,7 +2,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { ScrollView, View, TouchableOpacity } from 'react-native';
+import { ScrollView, View, TouchableOpacity, Keyboard, Platform } from 'react-native';
 import { AnimatedCollapseCard, CollapseHandle } from '../../components/ui/AnimatedCollapseCard';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import {
@@ -75,6 +75,9 @@ export default function CategoryFormScreen() {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [duplicateError, setDuplicateError] = useState('');
   const formScrollRef = useRef<ScrollView | null>(null);
+  const currentScrollYRef = useRef(0);
+  const preFocusScrollYRef = useRef<number | null>(null);
+  const categoryNameRowRef = useRef<View | null>(null);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const originalSubsRef = useRef<SubDraft[]>([]);
   const subCardRefs = useRef(new Map<string, CollapseHandle>());
@@ -88,6 +91,50 @@ export default function CategoryFormScreen() {
 
   const submitShakeOffset = useSharedValue(0);
   const submitShakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: submitShakeOffset.value }] }));
+
+
+
+  const handleCategoryNameFocus = () => {
+    if (isSystem) {
+      triggerSystemShake();
+      return;
+    }
+    if (preFocusScrollYRef.current === null) {
+      preFocusScrollYRef.current = currentScrollYRef.current;
+    }
+    const view = categoryNameRowRef.current;
+    const scroll = formScrollRef.current;
+    if (view && scroll) {
+      setTimeout(() => {
+        view.measureLayout(
+          scroll,
+          (_x: number, y: number) => {
+            scroll.scrollTo({ y: Math.max(0, y - 100), animated: true });
+          },
+          () => {}
+        );
+      }, 180);
+    }
+  };
+
+  const handleSubFocus = (cardKey: string) => {
+    if (preFocusScrollYRef.current === null) {
+      preFocusScrollYRef.current = currentScrollYRef.current;
+    }
+    const view = subViewRefs.current.get(cardKey);
+    const scroll = formScrollRef.current;
+    if (view && scroll) {
+      setTimeout(() => {
+        view.measureLayout(
+          scroll,
+          (_x: number, y: number) => {
+            scroll.scrollTo({ y: Math.max(0, y - 100), animated: true });
+          },
+          () => {}
+        );
+      }, 180);
+    }
+  };
 
   function triggerSystemShake() {
     shakeOffset.value = withSequence(
@@ -342,6 +389,14 @@ export default function CategoryFormScreen() {
       <SettingsFormLayout
         palette={palette}
         scrollRef={formScrollRef}
+        preFocusScrollYRef={preFocusScrollYRef}
+        onScroll={(e) => {
+          currentScrollYRef.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          preFocusScrollYRef.current = null;
+        }}
         bottomActions={
           <FixedBottomActions palette={palette}>
             {duplicateError ? (
@@ -389,7 +444,7 @@ export default function CategoryFormScreen() {
               </Text>
             </View>
           )}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.md }}>
+          <View ref={categoryNameRowRef} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.md }}>
             <TouchableOpacity
               delayPressIn={0}
               onPress={() => isSystem ? triggerSystemShake() : runAfterKeyboardDismiss(() => setShowIconPicker(true))}
@@ -418,7 +473,7 @@ export default function CategoryFormScreen() {
                 palette={palette}
                 value={name}
                 onChangeText={isSystem ? () => triggerSystemShake() : (val) => { setName(val); setDuplicateError(''); }}
-                onFocus={isSystem ? () => triggerSystemShake() : undefined}
+                onFocus={handleCategoryNameFocus}
                 placeholder="Category name"
                 autoFocus={!isEditing && !isSystem}
                 editable={!isSystem}
@@ -502,6 +557,7 @@ export default function CategoryFormScreen() {
                               onChangeText={(v) => updateSubName(sub.originalIdx, v)}
                               placeholder={`Subcategory ${renderIdx + 1}`}
                               autoFocus={!sub.id && renderIdx === visibleSubs.length - 1}
+                              onFocus={() => handleSubFocus(cardKey)}
                             />
                           </View>
                           <IconBtn
