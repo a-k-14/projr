@@ -150,48 +150,56 @@ Lab mode lets us A/B test full screen redesigns against real data.
   - `activeVariant === 'ledger'`  → `<LedgerComingSoonHero />` (Phase 2)
 - **Variant components:** `components/account-detail/PulseVariant.tsx`.
 
-### Pulse variant (Phase 1) — SHIPPED 2026-01
-- Hero: ONE gradient covers balance + chart (no white break), tabular-num
-  balance, pulsing end-of-line dot (account-type color halo).
-- Cashflow card: ticks are 22px (was 12px), cascade-fill on data change,
-  glowing handoff tick at the green↔red boundary, Net amount centered
-  beneath, all three controls (period · today/month · cashflow) collapsed
-  into one bottom row.
+### Pulse variant (Phase 1) — REWRITTEN 2026-01 to literal "Direction A"
+Original Pulse (gradient hero, taller ticks, glow handoff) was replaced
+when the user said "implement Direction A as-is in place of pulse, just
+leave the font styles changes". Both Pulse + Ledger now share the
+editorial cream canvas; the difference is **typography**:
+- Pulse keeps the app's existing sans (per user direction).
+- Ledger uses Fraunces serif.
+Pulse also implements the **literal Direction A bullets** that Ledger
+intentionally omits (Ledger preserves the user's overrides):
+- **No card chrome** on hero. Balance + 1px ink line on cream.
+- **Single proportional cashflow bar** (forest green | terracotta) —
+  replaces the 60-tick speedometer. Still animated, still proportional.
+- **Quick actions row** of 4 outline pills under the hero (Transfer ·
+  Statement · Reconcile · Categorize). Currently no `onPress` wired —
+  placeholders for future feature work.
+- **Floating bottom-right FAB** for `+ Add` (header `+ Add` is hidden
+  only in Pulse; Ledger keeps it in header per user constraint).
+- Activity list rendering UNCHANGED in Pulse for now (the "category
+  dots vs icons" Direction A bullet wasn't implemented — left as a
+  Phase 3 follow-up if the user picks Pulse).
 
 ### Ledger variant (Phase 2) — SHIPPED 2026-01
-Direction A — editorial / minimal aesthetic.
-- **Canvas:** Warm off-white `#F7F4EE`. ScreenScaffold + ScreenHeader
-  background overridden when `designVariant === 'ledger'` in
-  `app/account/[id].tsx`.
-- **Palette:** ink `#0E1014`, muted ink `#5C5852`, hairline `#E5DFD3`,
-  credit forest `#1B6B4F`, debit terracotta `#B23A2F`. All centralized in
-  `LEDGER_PALETTE` exported from `LedgerVariant.tsx`.
-- **Typography:** Fraunces serif via `@expo-google-fonts/fraunces` loaded
-  lazily by `useLedgerFonts()`. Used for: balance display (~48px), income/
-  expense values (~22px), Net amount. Sans for everything else.
-  Falls back to system-serif gracefully if fonts haven't loaded yet.
-- **Hero:** No card chrome — balance + 1px ink trend line read as one
-  editorial block on cream. Chart uses new TrendLineChart props
-  `hideAreaFill={true}` + `lineStrokeWidth={1}`.
-- **Chart variant:** `account/[id].tsx` builds `middleContentLedger` in
-  addition to the existing `middleContent`; passed to HomeAccountPage which
-  forwards it to LedgerAccountHero.
-- **Cashflow card:** Quieter speedometer ticks (14px tall, 1.5px wide, 6px
-  gap, monochrome forest/terracotta, no glow handoff). Cascade fill still
-  present, just slower (700ms vs Pulse's 480ms). Period + Today/Month +
-  Cashflow toggle laid out single-row editorial. Dotted hairlines bookend
-  the cashflow block.
-- **Activity list:** unchanged in Phase 2 (still uses colored category
-  circles + user emojis/icons). On cream this still reads as the
-  editorial look since cards remain near-white.
+Direction A — editorial / minimal aesthetic, BUT respects the user's
+overrides (ticks stay, no quick actions, no FAB, +Add in header,
+emojis/icons in activity stay).
+- **Canvas:** same `EDITORIAL_BG` cream wash as Pulse.
+- **Palette:** ink, muted ink, hairline, forest credit, terracotta debit.
+  Centralized in `EDITORIAL_*` constants exported from `PulseVariant.tsx`
+  + `LEDGER_PALETTE` mirror exported from `LedgerVariant.tsx`.
+- **Typography:** Fraunces via `@expo-google-fonts/fraunces` lazy via
+  `useLedgerFonts()`. Used for balance display (~48px), income/expense
+  values (~22px), Net amount. Sans for everything else. Graceful
+  system-serif fallback.
+- **Hero:** No card chrome — balance + 1px ink trend line on cream.
+- **Chart:** uses `TrendLineChart` props `hideAreaFill={true}` +
+  `lineStrokeWidth={1}`.
+- **Cashflow card:** Quieter speedometer ticks (14px×1.5px, monochrome,
+  no glow handoff). Cascade fill 700ms. Period + Today/Month +
+  Cashflow toggle laid out single-row editorial.
 
 ### Plumbing
 - New props on `TrendLineChart`: `hideAreaFill?`, `lineStrokeWidth?`.
-- New props on `HomeAccountPage`: `middleContentLedger?: ReactNode`.
+- New props on `HomeAccountPage`: `middleContentLedger?: ReactNode`
+  (used by both Pulse and Ledger heroes — the prop name predates the
+  Pulse rewrite, do not be misled).
 - New props on `ScreenHeader`: `onTitleLongPress?` (Phase 1).
-- New optional `iconColor` on `HeaderMoreButton` to wash ink color when in
-  Ledger mode.
-- New dep: `@expo-google-fonts/fraunces` (and transitively `expo-font`).
+- New optional `iconColor` on `HeaderMoreButton`.
+- New dep: `@expo-google-fonts/fraunces` + transitive `expo-font`.
+- New screen-level flag in `account/[id].tsx`: `isEditorial = isLedger
+  || isPulse` — controls the cream wash on Scaffold + Header.
 
 ### Cleanup (when winner picked)
 Delete:
@@ -200,7 +208,6 @@ Delete:
 - `components/account-detail/LedgerVariant.tsx` (or rename / inline)
 - `onTitleLongPress` wiring in `ScreenHeader.tsx` + `account/[id].tsx`
 - `activeVariant` branches in `app/(tabs)/index.tsx`
-- `middleContentLedger` prop on HomeAccountPage if Pulse wins, OR drop
-  `middleContent` if Ledger wins (and keep the Ledger chart).
-- `@expo-google-fonts/fraunces` if Ledger does NOT win.
+- `middleContentLedger` prop on HomeAccountPage
+- `@expo-google-fonts/fraunces` if Ledger does NOT win
 Inline the winning JSX into the existing `isDetailScreen` block.

@@ -23,6 +23,7 @@ import { ActionStrip } from '../../components/ui/ActionStrip';
 import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppButton';
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { HeaderMoreButton, ScreenHeader } from '../../components/ui/ScreenHeader';
+import { AppIcon } from '../../components/ui/AppIcon';
 import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
@@ -204,6 +205,9 @@ export default function AccountDetailScreen() {
 
   const lineColor = ACCOUNT_TYPE_META[account.type]?.color ?? palette.brand;
   const isLedger = designVariant === 'ledger';
+  const isPulse = designVariant === 'pulse';
+  // Both Pulse and Ledger use the editorial cream canvas.
+  const isEditorial = isLedger || isPulse;
 
   const middleContent = useMemo(() => (
     <TrendLineChart
@@ -255,22 +259,22 @@ export default function AccountDetailScreen() {
   return (
     <ScreenScaffold
       palette={palette}
-      style={isLedger ? { backgroundColor: LEDGER_BG } : undefined}
+      style={isEditorial ? { backgroundColor: LEDGER_BG } : undefined}
     >
       <Stack.Screen
         options={{
           headerShown: true,
           headerShadowVisible: false,
           header: () => (
-            <View style={{ paddingTop: insets.top, backgroundColor: isLedger ? LEDGER_BG : palette.background }}>
+            <View style={{ paddingTop: insets.top, backgroundColor: isEditorial ? LEDGER_BG : palette.background }}>
               <ScreenHeader
                 title={formatAccountDisplayName(account.name, account.accountNumber)}
                 onBack={() => router.back()}
                 palette={palette}
                 onTitleLongPress={cycleDesignVariant}
-                backgroundColor={isLedger ? LEDGER_BG : undefined}
-                titleColor={isLedger ? LEDGER_INK : undefined}
-                iconColor={isLedger ? LEDGER_INK : undefined}
+                backgroundColor={isEditorial ? LEDGER_BG : undefined}
+                titleColor={isEditorial ? LEDGER_INK : undefined}
+                iconColor={isEditorial ? LEDGER_INK : undefined}
                 titleAddon={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <HeaderResetButton
@@ -289,14 +293,14 @@ export default function AccountDetailScreen() {
                           paddingVertical: 3,
                           borderRadius: 999,
                           borderWidth: 1,
-                          borderColor: isLedger ? LEDGER_INK : palette.brand,
-                          backgroundColor: isLedger ? 'transparent' : palette.brandSoft,
+                          borderColor: isEditorial ? LEDGER_INK : palette.brand,
+                          backgroundColor: isEditorial ? 'transparent' : palette.brandSoft,
                         }}
                       >
                         <Text style={{
                           fontSize: 9.5,
                           fontWeight: FONT_WEIGHT.heavy,
-                          color: isLedger ? LEDGER_INK : palette.brand,
+                          color: isEditorial ? LEDGER_INK : palette.brand,
                           letterSpacing: 0.8,
                           textTransform: 'uppercase',
                         }}>
@@ -308,14 +312,18 @@ export default function AccountDetailScreen() {
                 }
                 rightAction={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                    <TouchableOpacity
-                      delayPressIn={0}
-                      activeOpacity={0.5}
-                      onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
-                    >
-                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: isLedger ? LEDGER_INK : palette.brand }}>+ Add</Text>
-                    </TouchableOpacity>
-                    <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} iconColor={isLedger ? LEDGER_INK : undefined} />
+                    {/* Per Direction A, Pulse moves +Add to a floating FAB.
+                        Ledger keeps it in the header (user constraint). */}
+                    {!isPulse && (
+                      <TouchableOpacity
+                        delayPressIn={0}
+                        activeOpacity={0.5}
+                        onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
+                      >
+                        <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: isEditorial ? LEDGER_INK : palette.brand }}>+ Add</Text>
+                      </TouchableOpacity>
+                    )}
+                    <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} iconColor={isEditorial ? LEDGER_INK : undefined} />
                   </View>
                 }
               />
@@ -372,6 +380,34 @@ export default function AccountDetailScreen() {
         activePoint={activePoint}
         onApplyCustomRange={handleApplyCustomRange}
       />
+
+      {/* Pulse variant: floating bottom-right FAB for +Add (per Direction A).
+          Header +Add is hidden when isPulse — see ScreenHeader rightAction. */}
+      {isPulse && (
+        <TouchableOpacity
+          delayPressIn={0}
+          activeOpacity={0.85}
+          onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
+          style={{
+            position: 'absolute',
+            right: 20,
+            bottom: 28 + insets.bottom,
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: LEDGER_INK,
+            justifyContent: 'center',
+            alignItems: 'center',
+            elevation: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.18,
+            shadowRadius: 10,
+          }}
+        >
+          <AppIcon name="plus" size={22} color={LEDGER_BG} strokeWidth={2.4} />
+        </TouchableOpacity>
+      )}
 
       <Modal
         visible={customRangeOpen}

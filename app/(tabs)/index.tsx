@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
-import { PulseAccountHero, PulseCashflowCard } from '../../components/account-detail/PulseVariant';
+import { PulseAccountHero, PulseCashflowBar, PulseQuickActions } from '../../components/account-detail/PulseVariant';
 import { LedgerAccountHero, LedgerCashflowCard } from '../../components/account-detail/LedgerVariant';
 import { DateGroupedTransactionList, EmptyTransactions } from '../../components/DateGroupedTransactionList';
 import { CardSection, ScreenTitle } from '../../components/settings-ui';
@@ -2427,21 +2427,21 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               </View>
             </View>
           ) : isDetailScreen && activeVariant === 'pulse' ? (
-            <PulseAccountHero
-              palette={palette}
-              accountTypeLabel={accountTypeLabel}
-              isNegative={isNegative}
-              hideAmounts={!!hideAmounts}
-              currencySymbol={currencySymbol}
-              balanceInt={balanceInt}
-              balanceDec={balanceDec}
-              accountHeroDarkGradient={accountHeroDarkGradient}
-              typeColor={typeColor}
-              activePoint={activePoint}
-              activePointDateFormatted={activePointDateFormatted}
-              activePointValFormatted={activePointValFormatted}
-              middleContent={middleContent}
-            />
+            <>
+              <PulseAccountHero
+                accountTypeLabel={accountTypeLabel}
+                isNegative={isNegative}
+                hideAmounts={!!hideAmounts}
+                currencySymbol={currencySymbol}
+                balanceInt={balanceInt}
+                balanceDec={balanceDec}
+                activePoint={activePoint}
+                activePointDateFormatted={activePointDateFormatted}
+                activePointValFormatted={activePointValFormatted}
+                middleContent={middleContentLedger ?? middleContent}
+              />
+              <PulseQuickActions />
+            </>
           ) : isDetailScreen && activeVariant === 'ledger' ? (
             <LedgerAccountHero
               accountTypeLabel={accountTypeLabel}
@@ -2630,7 +2630,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           )}
 
           {isDetailScreen && activeVariant === 'pulse' && (
-            <PulseCashflowCard
+            <PulseCashflowBar
               palette={palette}
               dateFilter={dateFilter}
               activityPeriodLabel={activityPeriodLabel}
@@ -2642,13 +2642,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               currencySymbol={currencySymbol}
               metricLeftAmount={metricLeftAmount}
               metricRightAmount={metricRightAmount}
-              leftSpringStyle={leftSpringStyle}
-              rightSpringStyle={rightSpringStyle}
-              detailInflowColor={detailInflowColor}
-              detailOutflowColor={detailOutflowColor}
               animatedIncomeFraction={animatedIncomeFraction}
               tickActivityProgress={tickActivityProgress}
-              typeColor={typeColor}
               openPeriodActivity={openPeriodActivity}
             />
           )}
