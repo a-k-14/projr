@@ -24,6 +24,7 @@
     "test": "node --test --experimental-strip-types tests/*.test.ts && jest"
   },
   "dependencies": {
+    "@expo-google-fonts/fraunces": "^0.4.1",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/native": "^7.1.8",

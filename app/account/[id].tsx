@@ -10,6 +10,7 @@ import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useDesignLabStore, VARIANT_LABEL } from '../../stores/useDesignLabStore';
+import { LEDGER_PALETTE } from '../../components/account-detail/LedgerVariant';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -54,6 +55,9 @@ export default function AccountDetailScreen() {
 
   const designVariant = useDesignLabStore((s) => s.accountDetailVariant);
   const cycleDesignVariant = useDesignLabStore((s) => s.cycleAccountDetailVariant);
+
+  const LEDGER_BG = LEDGER_PALETTE.bg;
+  const LEDGER_INK = LEDGER_PALETTE.ink;
 
   const account = accounts.find((a) => a.id === id);
 
@@ -199,6 +203,7 @@ export default function AccountDetailScreen() {
   if (!account) return null;
 
   const lineColor = ACCOUNT_TYPE_META[account.type]?.color ?? palette.brand;
+  const isLedger = designVariant === 'ledger';
 
   const middleContent = useMemo(() => (
     <TrendLineChart
@@ -222,19 +227,50 @@ export default function AccountDetailScreen() {
     />
   ), [trendPoints, palette, showCurrencySymbol, currencySymbol, lineColor, setChartInteracting, isLoadingTrend, setActivePoint]);
 
+  // Ledger-tuned chart: deep ink 1px stroke, no fill, no axis labels chrome.
+  const middleContentLedger = useMemo(() => (
+    <TrendLineChart
+      points={trendPoints}
+      palette={palette}
+      currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+      title=""
+      lineColor={LEDGER_INK}
+      onInteractionStateChange={setChartInteracting}
+      isLoading={isLoadingTrend}
+      hideHeader={true}
+      hideStartDot={true}
+      flatStyle={true}
+      smoothCurves={true}
+      hideAxisLabels={true}
+      endLabelIsToday={true}
+      hideEndBalance={true}
+      onActivePointChange={setActivePoint}
+      hideInternalTooltip={true}
+      hideAreaFill={true}
+      lineStrokeWidth={1}
+      chartHeight={120}
+    />
+  ), [trendPoints, palette, showCurrencySymbol, currencySymbol, setChartInteracting, isLoadingTrend, setActivePoint]);
+
   return (
-    <ScreenScaffold palette={palette}>
+    <ScreenScaffold
+      palette={palette}
+      style={isLedger ? { backgroundColor: LEDGER_BG } : undefined}
+    >
       <Stack.Screen
         options={{
           headerShown: true,
           headerShadowVisible: false,
           header: () => (
-            <View style={{ paddingTop: insets.top, backgroundColor: palette.background }}>
+            <View style={{ paddingTop: insets.top, backgroundColor: isLedger ? LEDGER_BG : palette.background }}>
               <ScreenHeader
                 title={formatAccountDisplayName(account.name, account.accountNumber)}
                 onBack={() => router.back()}
                 palette={palette}
                 onTitleLongPress={cycleDesignVariant}
+                backgroundColor={isLedger ? LEDGER_BG : undefined}
+                titleColor={isLedger ? LEDGER_INK : undefined}
+                iconColor={isLedger ? LEDGER_INK : undefined}
                 titleAddon={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <HeaderResetButton
@@ -253,14 +289,14 @@ export default function AccountDetailScreen() {
                           paddingVertical: 3,
                           borderRadius: 999,
                           borderWidth: 1,
-                          borderColor: palette.brand,
-                          backgroundColor: palette.brandSoft,
+                          borderColor: isLedger ? LEDGER_INK : palette.brand,
+                          backgroundColor: isLedger ? 'transparent' : palette.brandSoft,
                         }}
                       >
                         <Text style={{
                           fontSize: 9.5,
                           fontWeight: FONT_WEIGHT.heavy,
-                          color: palette.brand,
+                          color: isLedger ? LEDGER_INK : palette.brand,
                           letterSpacing: 0.8,
                           textTransform: 'uppercase',
                         }}>
@@ -277,9 +313,9 @@ export default function AccountDetailScreen() {
                       activeOpacity={0.5}
                       onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
                     >
-                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: palette.brand }}>+ Add</Text>
+                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: isLedger ? LEDGER_INK : palette.brand }}>+ Add</Text>
                     </TouchableOpacity>
-                    <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} />
+                    <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} iconColor={isLedger ? LEDGER_INK : undefined} />
                   </View>
                 }
               />
@@ -327,6 +363,7 @@ export default function AccountDetailScreen() {
         contentBottomPadding={getScrollableBottomPadding(insets)}
         onScrollBeginDrag={closePanel}
         middleContent={middleContent}
+        middleContentLedger={middleContentLedger}
         scrollEnabled={!chartInteracting}
         dataNonce={mutationVersion}
         onInlineFilterChange={setInlineFilter}

@@ -104,10 +104,12 @@ export function HeaderMoreButton({
   palette,
   isOpen,
   onPress,
+  iconColor,
 }: {
   palette: AppThemePalette;
   isOpen: boolean;
   onPress: () => void;
+  iconColor?: string;
 }) {
   const rotationVal = useSharedValue(0);
   React.useEffect(() => {
@@ -148,10 +150,10 @@ export function HeaderMoreButton({
       style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.full, alignItems: 'center', justifyContent: 'center', marginRight: -8, position: 'relative' }}
     >
       <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, dotsStyle]}>
-        <AppIcon name="more-vertical" size={18} color={palette.text} strokeWidth={2} />
+        <AppIcon name="more-vertical" size={18} color={iconColor ?? palette.text} strokeWidth={2} />
       </Animated.View>
       <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, closeStyle]}>
-        <AppIcon name="x" size={18} color={palette.text} strokeWidth={2} />
+        <AppIcon name="x" size={18} color={iconColor ?? palette.text} strokeWidth={2} />
       </Animated.View>
     </TouchableOpacity>
   );

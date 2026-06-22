@@ -28,7 +28,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
-import { LedgerComingSoonHero, PulseAccountHero, PulseCashflowCard } from '../../components/account-detail/PulseVariant';
+import { PulseAccountHero, PulseCashflowCard } from '../../components/account-detail/PulseVariant';
+import { LedgerAccountHero, LedgerCashflowCard } from '../../components/account-detail/LedgerVariant';
 import { DateGroupedTransactionList, EmptyTransactions } from '../../components/DateGroupedTransactionList';
 import { CardSection, ScreenTitle } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -1670,6 +1671,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   netWorth,
   isPageReady,
   middleContent,
+  middleContentLedger,
   accountsById,
   categoriesById,
   loansById,
@@ -1712,6 +1714,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   netWorth?: number;
   isPageReady: boolean;
   middleContent?: React.ReactNode;
+  /** Ledger-tuned chart node (Design Lab Phase 2). Used when the user has
+   *  switched the account-detail screen to the Ledger variant. */
+  middleContentLedger?: React.ReactNode;
   accountsById: Map<string, string>;
   categoriesById: Map<string, Category>;
   loansById: Map<string, LoanWithSummary>;
@@ -2438,7 +2443,18 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               middleContent={middleContent}
             />
           ) : isDetailScreen && activeVariant === 'ledger' ? (
-            <LedgerComingSoonHero palette={palette} />
+            <LedgerAccountHero
+              accountTypeLabel={accountTypeLabel}
+              isNegative={isNegative}
+              hideAmounts={!!hideAmounts}
+              currencySymbol={currencySymbol}
+              balanceInt={balanceInt}
+              balanceDec={balanceDec}
+              activePoint={activePoint}
+              activePointDateFormatted={activePointDateFormatted}
+              activePointValFormatted={activePointValFormatted}
+              middleContent={middleContentLedger ?? middleContent}
+            />
           ) : (
             middleContent
           )}
@@ -2633,6 +2649,27 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
               animatedIncomeFraction={animatedIncomeFraction}
               tickActivityProgress={tickActivityProgress}
               typeColor={typeColor}
+              openPeriodActivity={openPeriodActivity}
+            />
+          )}
+
+          {isDetailScreen && activeVariant === 'ledger' && (
+            <LedgerCashflowCard
+              palette={palette}
+              dateFilter={dateFilter}
+              activityPeriodLabel={activityPeriodLabel}
+              inlineFilter={inlineFilter}
+              setShowPeriodSheet={setShowPeriodSheet}
+              cashflowIsCashflow={cashflowIsCashflow}
+              setCashflowIsCashflow={setCashflowIsCashflow}
+              hideAmounts={!!hideAmounts}
+              currencySymbol={currencySymbol}
+              metricLeftAmount={metricLeftAmount}
+              metricRightAmount={metricRightAmount}
+              detailInflowColor={detailInflowColor}
+              detailOutflowColor={detailOutflowColor}
+              animatedIncomeFraction={animatedIncomeFraction}
+              tickActivityProgress={tickActivityProgress}
               openPeriodActivity={openPeriodActivity}
             />
           )}

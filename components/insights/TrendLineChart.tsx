@@ -47,6 +47,11 @@ interface TrendLineChartProps {
   chartHeight?: number;
   /** When true, completely hide the internal floating tooltip. */
   hideInternalTooltip?: boolean;
+  /** When true, omit the area fill below the trend line (used by the Ledger
+   *  design variant which wants a single thin ink line, nothing else). */
+  hideAreaFill?: boolean;
+  /** Override the stroke width of the trend line (default ~2.4-2.8). */
+  lineStrokeWidth?: number;
 }
 
 // ─── Monotone cubic spline helper ────────────────────────────────────────────
@@ -141,6 +146,8 @@ function TrendLineChartBase({
   hideAxisLabels = false,
   chartHeight = 110,
   hideInternalTooltip = false,
+  hideAreaFill = false,
+  lineStrokeWidth,
 }: TrendLineChartProps) {
   const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
   const chartWidthRef = useRef(Dimensions.get('window').width - 48);
@@ -517,8 +524,8 @@ function TrendLineChartBase({
               ].map((gy, idx) => {
                 return <Line key={idx} x1={PAD_X} y1={gy} x2={VB_W - PAD_X} y2={gy} stroke={palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} strokeWidth={1} strokeDasharray="4 5" />;
               })}
-              <Path d={areaD} fill="url(#reusableChartAreaGrad)" />
-              <Path d={lineD} fill="none" stroke={strokeColor} strokeWidth={flatStyle ? 2.4 : 2.8} strokeLinejoin="round" strokeLinecap="round" />
+              {!hideAreaFill && <Path d={areaD} fill="url(#reusableChartAreaGrad)" />}
+              <Path d={lineD} fill="none" stroke={strokeColor} strokeWidth={lineStrokeWidth ?? (flatStyle ? 2.4 : 2.8)} strokeLinejoin="round" strokeLinecap="round" />
               {!hideStartDot && <Circle cx={pts[0]?.x ?? PAD_X} cy={startY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />}
               <Circle cx={pts[pts.length - 1]?.x ?? VB_W - PAD_X} cy={endY} r={3.5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={1.2} />
 
