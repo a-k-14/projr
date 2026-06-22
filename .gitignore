@@ -52,3 +52,8 @@ build.log
 .expo-export-release-review/
 .expo-export-final-review/
 *.zip
+.env
+.env.*
+*.env
+credentials.json
+.credentials
