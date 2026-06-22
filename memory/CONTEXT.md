@@ -133,4 +133,39 @@ The hero card top is `typeColor`, bottom is darkened ×0.68. That's the
 - No quick actions.
 - `+ Add` stays where it is (secondary).
 - Asked for codebase notes file (this one).
-**Status:** Awaiting confirmation on direction before any code changes.
+
+### Design Lab — Phase 1 SHIPPED 2026-01
+Lab mode lets us A/B test full screen redesigns against real data.
+- **Toggle:** long-press the account name in the header → cycles
+  `Current → Pulse → Ledger → Current`. Resets to Current on app restart
+  (in-memory only).
+- **Store:** `stores/useDesignLabStore.ts` — Zustand, not persisted.
+- **Header badge:** when not on Current, a small pill `PULSE` / `LEDGER`
+  appears next to the title (also tappable to cycle).
+- **Plumbing:** `ScreenHeader` gained `onTitleLongPress?: () => void`.
+  `HomeAccountPage` reads `useDesignLabStore` and branches the
+  detail-screen JSX three ways inside `app/(tabs)/index.tsx`:
+  - `activeVariant === 'current'` → unchanged production block (L2247+)
+  - `activeVariant === 'pulse'`   → `<PulseAccountHero />` + `<PulseCashflowCard />`
+  - `activeVariant === 'ledger'`  → `<LedgerComingSoonHero />` (Phase 2)
+- **Variant components:** `components/account-detail/PulseVariant.tsx`.
+
+### Pulse variant (Phase 1)
+- Hero: ONE gradient covers balance + chart (no white break), tabular-num
+  balance, pulsing end-of-line dot (account-type color halo).
+- Cashflow card: ticks are 22px (was 12px), cascade-fill on data change,
+  glowing handoff tick at the green↔red boundary, Net amount centered
+  beneath, all three controls (period · today/month · cashflow) collapsed
+  into one bottom row.
+
+### Phase 2 TODO
+- Ledger variant — editorial / cream / serif balance / proportional split
+  bar replacing 60 ticks. Needs `expo-font` + Fraunces or Source Serif.
+
+### Cleanup (when winner picked)
+Delete:
+- `stores/useDesignLabStore.ts`
+- `components/account-detail/PulseVariant.tsx` (or rename / merge into prod)
+- `onTitleLongPress` wiring in `ScreenHeader.tsx` + `account/[id].tsx`
+- `activeVariant` branches in `app/(tabs)/index.tsx`
+Inline the winning JSX into the existing `isDetailScreen` block.

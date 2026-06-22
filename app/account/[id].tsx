@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useDesignLabStore, VARIANT_LABEL } from '../../stores/useDesignLabStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
@@ -50,6 +51,9 @@ export default function AccountDetailScreen() {
   const settingsYearStart = useUIStore((s) => s.settings.yearStart);
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+
+  const designVariant = useDesignLabStore((s) => s.accountDetailVariant);
+  const cycleDesignVariant = useDesignLabStore((s) => s.cycleAccountDetailVariant);
 
   const account = accounts.find((a) => a.id === id);
 
@@ -230,14 +234,41 @@ export default function AccountDetailScreen() {
                 title={formatAccountDisplayName(account.name, account.accountNumber)}
                 onBack={() => router.back()}
                 palette={palette}
+                onTitleLongPress={cycleDesignVariant}
                 titleAddon={
-                  <HeaderResetButton
-                    visible={!!inlineFilter || dateFilter.period !== 'today'}
-                    onPress={() => { setInlineFilter(null); dateFilter.setPeriod('today'); setResetInlineFilterToken((t) => t + 1); }}
-                    palette={palette}
-                    isFocused={isFocused}
-                    style={{ marginLeft: 8 }}
-                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <HeaderResetButton
+                      visible={!!inlineFilter || dateFilter.period !== 'today'}
+                      onPress={() => { setInlineFilter(null); dateFilter.setPeriod('today'); setResetInlineFilterToken((t) => t + 1); }}
+                      palette={palette}
+                      isFocused={isFocused}
+                    />
+                    {designVariant !== 'current' && (
+                      <TouchableOpacity
+                        delayPressIn={0}
+                        onPress={cycleDesignVariant}
+                        activeOpacity={0.75}
+                        style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 999,
+                          borderWidth: 1,
+                          borderColor: palette.brand,
+                          backgroundColor: palette.brandSoft,
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 9.5,
+                          fontWeight: FONT_WEIGHT.heavy,
+                          color: palette.brand,
+                          letterSpacing: 0.8,
+                          textTransform: 'uppercase',
+                        }}>
+                          {VARIANT_LABEL[designVariant]}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 }
                 rightAction={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>

@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
+import { LedgerComingSoonHero, PulseAccountHero, PulseCashflowCard } from '../../components/account-detail/PulseVariant';
 import { DateGroupedTransactionList, EmptyTransactions } from '../../components/DateGroupedTransactionList';
 import { CardSection, ScreenTitle } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -80,6 +81,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useAssetsStore } from '../../stores/useAssetsStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { useDesignLabStore, type AccountDetailVariant } from '../../stores/useDesignLabStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
@@ -1762,6 +1764,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
+
+  // Design-lab variant — only meaningful on the account-detail screen. Read at
+  // top level so the variant flip re-renders the screen.
+  const designVariant = useDesignLabStore((s) => s.accountDetailVariant);
+  const activeVariant: AccountDetailVariant = isDetailScreen ? designVariant : 'current';
   const todayDataCacheRef = useRef<{
     cashflow: CashflowSummary;
     periodTransactions: Transaction[];
@@ -2237,7 +2244,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         >
 
 
-          {isDetailScreen ? (
+          {isDetailScreen && activeVariant === 'current' ? (
             <View
               style={{
                 backgroundColor: palette.card,
@@ -2414,11 +2421,29 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 {middleContent}
               </View>
             </View>
+          ) : isDetailScreen && activeVariant === 'pulse' ? (
+            <PulseAccountHero
+              palette={palette}
+              accountTypeLabel={accountTypeLabel}
+              isNegative={isNegative}
+              hideAmounts={!!hideAmounts}
+              currencySymbol={currencySymbol}
+              balanceInt={balanceInt}
+              balanceDec={balanceDec}
+              accountHeroDarkGradient={accountHeroDarkGradient}
+              typeColor={typeColor}
+              activePoint={activePoint}
+              activePointDateFormatted={activePointDateFormatted}
+              activePointValFormatted={activePointValFormatted}
+              middleContent={middleContent}
+            />
+          ) : isDetailScreen && activeVariant === 'ledger' ? (
+            <LedgerComingSoonHero palette={palette} />
           ) : (
             middleContent
           )}
 
-          {isDetailScreen && (
+          {isDetailScreen && activeVariant === 'current' && (
             <View
               style={{
                 backgroundColor: palette.card,
@@ -2586,6 +2611,30 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 </Animated.View>
               </View>
             </View>
+          )}
+
+          {isDetailScreen && activeVariant === 'pulse' && (
+            <PulseCashflowCard
+              palette={palette}
+              dateFilter={dateFilter}
+              activityPeriodLabel={activityPeriodLabel}
+              inlineFilter={inlineFilter}
+              setShowPeriodSheet={setShowPeriodSheet}
+              cashflowIsCashflow={cashflowIsCashflow}
+              setCashflowIsCashflow={setCashflowIsCashflow}
+              hideAmounts={!!hideAmounts}
+              currencySymbol={currencySymbol}
+              metricLeftAmount={metricLeftAmount}
+              metricRightAmount={metricRightAmount}
+              leftSpringStyle={leftSpringStyle}
+              rightSpringStyle={rightSpringStyle}
+              detailInflowColor={detailInflowColor}
+              detailOutflowColor={detailOutflowColor}
+              animatedIncomeFraction={animatedIncomeFraction}
+              tickActivityProgress={tickActivityProgress}
+              typeColor={typeColor}
+              openPeriodActivity={openPeriodActivity}
+            />
           )}
 
           {/* ── Activity — list or category-grouped ── */}

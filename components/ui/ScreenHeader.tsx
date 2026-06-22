@@ -22,6 +22,9 @@ interface ScreenHeaderProps {
   iconColor?: string;
   /** Size of the back-arrow icon in dp. Defaults to 18. */
   iconSize?: number;
+  /** Optional long-press handler on the title (used for the Design Lab gesture
+   *  on the account-detail screen). Default delay ~500ms. */
+  onTitleLongPress?: () => void;
 }
 
 import { PillIconButton } from './PillIconButton';
@@ -168,10 +171,25 @@ export function ScreenHeader({
   titleColor,
   iconColor,
   iconSize = 18,
+  onTitleLongPress,
 }: ScreenHeaderProps) {
   const resolvedBg = backgroundColor ?? palette.background;
   const resolvedTitle = titleColor ?? palette.text;
   const resolvedIcon = iconColor ?? palette.text;
+  const titleNode = (
+    <Text
+      style={{
+        flexShrink: 1,
+        fontSize: titleSize,
+        fontWeight: titleWeight as any,
+        color: resolvedTitle,
+        letterSpacing: -0.5,
+      }}
+      numberOfLines={1}
+    >
+      {title}
+    </Text>
+  );
   return (
     <View
       style={{
@@ -199,18 +217,19 @@ export function ScreenHeader({
       )}
 
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text
-          style={{
-            flexShrink: 1,
-            fontSize: titleSize,
-            fontWeight: titleWeight as any,
-            color: resolvedTitle,
-            letterSpacing: -0.5,
-          }}
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
+        {onTitleLongPress ? (
+          <TouchableOpacity
+            activeOpacity={1}
+            onLongPress={onTitleLongPress}
+            delayLongPress={500}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+            style={{ flexShrink: 1 }}
+          >
+            {titleNode}
+          </TouchableOpacity>
+        ) : (
+          titleNode
+        )}
         {titleAddon}
       </View>
 
