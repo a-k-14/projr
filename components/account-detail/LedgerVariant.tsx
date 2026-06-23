@@ -16,6 +16,7 @@
  * Toggle: long-press the account name in the screen header.
  * Owned by `stores/useDesignLabStore.ts`.
  */
+import { Text } from '@/components/ui/AppText';
 import React, { useEffect, useMemo } from 'react';
 import { Dimensions, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -25,21 +26,13 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import {
-  useFonts,
-  Fraunces_400Regular,
-  Fraunces_500Medium,
-  Fraunces_600SemiBold,
-} from '@expo-google-fonts/fraunces';
-
-import { Text } from '@/components/ui/AppText';
+import { formatCurrency, formatSignedCurrency } from '../../lib/derived';
+import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
+import { type AppThemePalette, useAppTheme } from '../../lib/theme';
 import { ActivityPeriodHeader } from '../activity/ActivityPeriodHeader';
 import { AppIcon } from '../ui/AppIcon';
 import { AppSwitch } from '../ui/AppSwitch';
-import { formatCurrency, formatSignedCurrency } from '../../lib/derived';
-import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { SegmentedPillSwitch } from '../ui/SegmentedPillSwitch';
-import { type AppThemePalette } from '../../lib/theme';
 
 // ── Ledger palette (literal hex per Direction A spec) ───────────────────────
 export const LEDGER_PALETTE = {
@@ -64,19 +57,28 @@ const LEDGER_TICK_TOTAL = Math.floor((LEDGER_TICK_CONTAINER_W + LEDGER_TICK_GAP)
 const LEDGER_TICK_CONTENT_W = LEDGER_TICK_TOTAL * (LEDGER_TICK_W + LEDGER_TICK_GAP) - LEDGER_TICK_GAP;
 const LEDGER_TICK_REMAINDER = LEDGER_TICK_CONTAINER_W - LEDGER_TICK_CONTENT_W;
 
-/** Custom hook — load Fraunces lazily. Returns the font family to use for
- *  display numerals, with a graceful system-serif fallback. */
+/** Custom hook stub — returns undefined display font families to fall back to system font. */
 export function useLedgerFonts() {
-  const [loaded] = useFonts({
-    Fraunces_400Regular,
-    Fraunces_500Medium,
-    Fraunces_600SemiBold,
-  });
   return {
-    fontsLoaded: loaded,
-    displayFamily: loaded ? 'Fraunces_500Medium' : undefined,
-    displayFamilyHeavy: loaded ? 'Fraunces_600SemiBold' : undefined,
+    fontsLoaded: true,
+    displayFamily: undefined,
+    displayFamilyHeavy: undefined,
   };
+}
+
+export function useLedgerPalette() {
+  const { palette } = useAppTheme();
+  return useMemo(() => ({
+    bg: palette.background,
+    ink: palette.text,
+    inkMuted: palette.textSecondary,
+    inkSubtle: palette.textMuted,
+    hairline: palette.divider,
+    credit: '#1B6B4F',
+    debit: '#B23A2F',
+    cardBg: palette.card,
+    cardEdge: palette.borderSoft,
+  }), [palette]);
 }
 
 interface LedgerHeroProps {
@@ -110,6 +112,7 @@ export function LedgerAccountHero({
   activePointValFormatted,
   middleContent,
 }: LedgerHeroProps) {
+  const LEDGER_PALETTE = useLedgerPalette();
   const { displayFamily, displayFamilyHeavy } = useLedgerFonts();
   const balanceClean = currencySymbol && balanceInt.startsWith(currencySymbol)
     ? balanceInt.slice(currencySymbol.length)
@@ -255,6 +258,7 @@ export function LedgerCashflowCard({
   tickActivityProgress,
   openPeriodActivity,
 }: LedgerCashflowProps) {
+  const LEDGER_PALETTE = useLedgerPalette();
   const { displayFamily } = useLedgerFonts();
   // Ledger uses its own forest-green / terracotta — overrides the global brand
   // colors so the editorial palette stays consistent.

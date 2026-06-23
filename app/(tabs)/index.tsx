@@ -1672,6 +1672,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   isPageReady,
   middleContent,
   middleContentLedger,
+  middleContentPulse,
   accountsById,
   categoriesById,
   loansById,
@@ -1717,6 +1718,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   /** Ledger-tuned chart node (Design Lab Phase 2). Used when the user has
    *  switched the account-detail screen to the Ledger variant. */
   middleContentLedger?: React.ReactNode;
+  middleContentPulse?: React.ReactNode;
   accountsById: Map<string, string>;
   categoriesById: Map<string, Category>;
   loansById: Map<string, LoanWithSummary>;
@@ -2256,7 +2258,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
                 borderColor: palette.isDark ? palette.borderSoft : 'transparent',
-                marginBottom: 12,
+                marginBottom: 24,
                 position: 'relative',
                 overflow: 'hidden',
                 ...(palette.isDark ? {} : {
@@ -2349,7 +2351,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   }
                   const isPositive = diff > 0;
                   const tooltipBg = palette.isDark ? '#1E293B' : '#F1F5F9'; // slate in dark, clean light gray in light
-                  const tooltipBorder = palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
                   const textMainColor = palette.text;
                   const textMutedColor = palette.textSecondary;
                   const dividerColor = palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
@@ -2360,8 +2361,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                       top: 12,
                       alignSelf: 'center',
                       backgroundColor: tooltipBg,
-                      borderColor: tooltipBorder,
-                      borderWidth: 1,
                       borderRadius: 12,
                       paddingVertical: 8,
                       paddingHorizontal: 14,
@@ -2369,9 +2368,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                       alignItems: 'center',
                       gap: 12,
                       zIndex: 100,
-                      shadowColor: '#000000',
+                      shadowColor: palette.isDark ? '#000000' : '#94A3B8',
                       shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: palette.isDark ? 0.3 : 0.08,
+                      shadowOpacity: palette.isDark ? 0.3 : 0.15,
                       shadowRadius: 8,
                       elevation: 8,
                     }}>
@@ -2430,6 +2429,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             <>
               <PulseAccountHero
                 accountTypeLabel={accountTypeLabel}
+                accountType={useAccountsStore.getState().accounts.find(a => a.id === accountId)?.type}
                 isNegative={isNegative}
                 hideAmounts={!!hideAmounts}
                 currencySymbol={currencySymbol}
@@ -2438,7 +2438,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 activePoint={activePoint}
                 activePointDateFormatted={activePointDateFormatted}
                 activePointValFormatted={activePointValFormatted}
-                middleContent={middleContentLedger ?? middleContent}
+                middleContent={middleContentPulse ?? middleContentLedger ?? middleContent}
+                palette={palette}
               />
               <PulseQuickActions />
             </>
@@ -2466,9 +2467,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
                 borderColor: palette.borderSoft,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                marginBottom: 8,
+                paddingVertical: 18,
+                paddingHorizontal: 18,
+                marginBottom: 24,
               }}
             >
               {/* Row 1: Period switcher stretched wide */}
@@ -2485,30 +2486,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 />
               </View>
 
-              {/* Row 2: Today/Month Switch & Cashflow Toggle */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <SegmentedPillSwitch
-                  options={[
-                    { key: 'today', label: 'Today' },
-                    { key: 'month', label: 'Month' }
-                  ]}
-                  value={dateFilter?.period === 'month' ? 'month' : 'today'}
-                  onChange={(key) => {
-                    dateFilter?.setOffset(0);
-                    dateFilter?.setPeriod(key as any);
-                  }}
-                  backgroundColor={palette.isDark ? 'rgba(255,255,255,0.08)' : '#EEF2F8'}
-                  pillColor={palette.isDark ? palette.surface : '#FFFFFF'}
-                  borderColor={palette.isDark ? 'transparent' : '#DFE5EF'}
-                  activeTextColor={palette.text}
-                  inactiveTextColor={palette.textMuted}
-                  height={32}
-                  radius={14}
-                  fontSize={10.5}
-                  itemMinWidth={54}
-                  style={{ width: 114 }}
-                />
-
+              {/* Row 2: Cashflow Toggle (Today/Month Switch hidden) */}
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 16 }}>
                 <TouchableOpacity
                   activeOpacity={0.75}
                   onPress={() => setCashflowIsCashflow(!cashflowIsCashflow)}
@@ -2715,6 +2694,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 getCategoryFullDisplayName={getCategoryFullDisplayName}
                 onTransactionPress={handleTransactionPress}
                 emptyText="No Transactions Yet"
+                emptyStateTransparentDashed={activeVariant === 'pulse'}
               />
             )}
 
@@ -2825,7 +2805,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 ))}
                 {hierarchySections.length === 0 && (
                   <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-                    <EmptyTransactions palette={palette} emptyText="No Transactions Yet" />
+                    <EmptyTransactions
+                      palette={palette}
+                      emptyText="No Transactions Yet"
+                      isTransparentDashed={activeVariant === 'pulse'}
+                    />
                   </View>
                 )}
               </View>

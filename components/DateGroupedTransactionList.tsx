@@ -82,7 +82,7 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
   return (
     <View>
       <TransactionDateHeader dateKey={group.dateKey} palette={palette} />
-      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF', overflow: 'hidden' }}>
+      <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, overflow: 'hidden' }}>
         {group.items.map((tx, index) => (
           <TransactionListItem
             key={tx.id}
@@ -113,9 +113,25 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
   );
 });
 
-export function EmptyTransactions({ palette, emptyText }: { palette: AppThemePalette; emptyText: string }) {
+export function EmptyTransactions({
+  palette,
+  emptyText,
+  isTransparentDashed,
+}: {
+  palette: AppThemePalette;
+  emptyText: string;
+  isTransparentDashed?: boolean;
+}) {
   return (
-    <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF' }}>
+    <View style={{
+      borderRadius: HOME_RADIUS.card,
+      borderWidth: 1,
+      borderStyle: isTransparentDashed ? 'dashed' : 'solid',
+      borderColor: isTransparentDashed
+        ? (palette.isDark ? 'rgba(255,255,255,0.22)' : `${palette.brand}50`)
+        : palette.border,
+      backgroundColor: isTransparentDashed ? 'transparent' : palette.surface
+    }}>
       <Text style={{ color: palette.textMuted, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 20 }}>
         {emptyText}
       </Text>
@@ -127,18 +143,20 @@ interface Props extends DateGroupRowProps {
   transactions: Transaction[];
   /** Shown when transactions is empty. Defaults to "No transactions". */
   emptyText?: string;
+  emptyStateTransparentDashed?: boolean;
 }
 
 /** Plain (non-virtualized) list for use as content inside an existing ScrollView,
  *  e.g. the home/account "recent" list (capped, small). For large lists inside a
  *  bottom sheet use DateGroupedTransactionSheetList instead — it virtualizes. */
-export function DateGroupedTransactionList({
+export const DateGroupedTransactionList = React.memo(function DateGroupedTransactionList({
   transactions,
   emptyText = 'No transactions',
+  emptyStateTransparentDashed,
   ...row
 }: Props) {
   if (transactions.length === 0) {
-    return <EmptyTransactions palette={row.palette} emptyText={emptyText} />;
+    return <EmptyTransactions palette={row.palette} emptyText={emptyText} isTransparentDashed={emptyStateTransparentDashed} />;
   }
 
   const groups = buildDateGroups(transactions);
@@ -150,4 +168,4 @@ export function DateGroupedTransactionList({
       ))}
     </View>
   );
-}
+});

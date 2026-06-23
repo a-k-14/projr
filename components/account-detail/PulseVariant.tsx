@@ -18,10 +18,9 @@
  * Toggle: long-press the account name in the screen header.
  * Owned by `stores/useDesignLabStore.ts`.
  */
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Dimensions, TouchableOpacity, View } from 'react-native';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -29,29 +28,23 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/AppText';
+import { formatCurrency, formatSignedCurrency } from '../../lib/derived';
+import { APP_LOCALE } from '../../lib/dateUtils';
+import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
+import { type AppThemePalette } from '../../lib/theme';
 import { ActivityPeriodHeader } from '../activity/ActivityPeriodHeader';
 import { AppIcon } from '../ui/AppIcon';
 import { AppSwitch } from '../ui/AppSwitch';
-import { formatCurrency, formatSignedCurrency } from '../../lib/derived';
-import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
-import { SegmentedPillSwitch } from '../ui/SegmentedPillSwitch';
-import { type AppThemePalette } from '../../lib/theme';
+import { ACCOUNT_TYPE_META } from '../../lib/settings-shared';
+import { HOME_RADIUS, HOME_TEXT, HELP_TEXTS } from '../../lib/layoutTokens';
+import type { AccountType } from '../../types';
 
 // ── Editorial palette shared between Pulse + Ledger variants ────────────────
-// Both variants apply the same cream canvas wash; the difference is that
-// Ledger uses serif numerals (Fraunces) while Pulse stays on the app's
-// existing sans. See `app/account/[id].tsx` for the screen-level overrides.
 export const EDITORIAL_BG = '#F7F4EE';
 export const EDITORIAL_INK = '#0E1014';
 export const EDITORIAL_INK_MUTED = '#5C5852';
 export const EDITORIAL_INK_SUBTLE = '#8A8580';
 export const EDITORIAL_HAIRLINE = '#E5DFD3';
-export const EDITORIAL_CREDIT = '#1B6B4F';   // forest green
-export const EDITORIAL_DEBIT = '#B23A2F';    // terracotta
-
-// Proportional cashflow bar dims.
-const CASHFLOW_BAR_HEIGHT = 8;
-const CASHFLOW_BAR_RADIUS = 4;
 
 // Width of the dotted divider in the hero.
 const SCREEN_W = Dimensions.get('window').width;
@@ -60,6 +53,7 @@ const DOTTED_DOTS = Math.floor(DOTTED_W / 6);
 
 interface PulseHeroProps {
   accountTypeLabel: string;
+  accountType?: string;
   isNegative: boolean;
   hideAmounts: boolean;
   currencySymbol: string;
@@ -70,6 +64,7 @@ interface PulseHeroProps {
   activePointValFormatted: string;
   /** Editorial chart node — 1px ink line, no fill. Built by the parent. */
   middleContent: React.ReactNode;
+  palette: AppThemePalette;
 }
 
 /**
@@ -78,6 +73,7 @@ interface PulseHeroProps {
  */
 export function PulseAccountHero({
   accountTypeLabel,
+  accountType,
   isNegative,
   hideAmounts,
   currencySymbol,
@@ -87,166 +83,190 @@ export function PulseAccountHero({
   activePointDateFormatted,
   activePointValFormatted,
   middleContent,
+  palette,
 }: PulseHeroProps) {
   const balanceClean = currencySymbol && balanceInt.startsWith(currencySymbol)
     ? balanceInt.slice(currencySymbol.length)
     : balanceInt;
 
-  return (
-    <View style={{ paddingTop: 18, paddingBottom: 4 }}>
-      {/* Type label — small caps */}
-      <Text style={{
-        fontSize: 10,
-        fontWeight: FONT_WEIGHT.heavy,
-        color: EDITORIAL_INK_SUBTLE,
-        letterSpacing: 1.6,
-        textTransform: 'uppercase',
-        marginBottom: 12,
-      }}>
-        {accountTypeLabel}
-      </Text>
-
-      {/* Balance — sans, large, ink. Tabular-nums so digits don't jiggle. */}
-      <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-        {isNegative && !hideAmounts && (
-          <Text style={{
-            fontSize: 36,
-            fontWeight: FONT_WEIGHT.medium,
-            color: EDITORIAL_INK,
-            marginRight: 2,
-          }}>−</Text>
-        )}
-        {currencySymbol && !hideAmounts && (
-          <Text style={{
-            fontSize: 22,
-            fontWeight: FONT_WEIGHT.medium,
-            color: EDITORIAL_INK_MUTED,
-            marginRight: 4,
-          }}>
-            {currencySymbol}
-          </Text>
-        )}
-        <Text
-          adjustsFontSizeToFit
-          numberOfLines={1}
-          style={{
-            fontSize: 44,
-            fontWeight: FONT_WEIGHT.semibold,
-            color: EDITORIAL_INK,
-            letterSpacing: -1.4,
-            fontVariant: ['tabular-nums'],
-            lineHeight: 48,
-          }}>
-          {balanceClean}
-        </Text>
-        {balanceDec && (
-          <Text style={{
-            fontSize: 20,
-            fontWeight: FONT_WEIGHT.medium,
-            color: EDITORIAL_INK_MUTED,
-            fontVariant: ['tabular-nums'],
-          }}>
-            {balanceDec}
-          </Text>
-        )}
-      </View>
-
-      {/* Chart — 1px ink line, no fill. Scrubber updates active-point row. */}
-      <View style={{ marginTop: 4, marginHorizontal: -SCREEN_GUTTER + 4 }}>
-        {middleContent}
-      </View>
-
-      {/* Active-point readout (scrubber output) / "Today" anchor */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-        <Text style={{
-          fontSize: 11,
-          color: EDITORIAL_INK_SUBTLE,
-          fontWeight: FONT_WEIGHT.semibold,
-          letterSpacing: 0.4,
-          textTransform: 'uppercase',
-        }}>
-          {activePoint ? activePointDateFormatted : '\u00A0'}
-        </Text>
-        <Text style={{
-          fontSize: 12,
-          color: EDITORIAL_INK,
-          fontWeight: FONT_WEIGHT.semibold,
-          letterSpacing: 0.4,
-          fontVariant: ['tabular-nums'],
-        }}>
-          {activePoint ? activePointValFormatted : 'TODAY'}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-interface QuickAction {
-  key: string;
-  label: string;
-  icon: string;
-  onPress?: () => void;
-}
-
-interface PulseQuickActionsProps {
-  actions?: QuickAction[];
-}
-
-/**
- * Row of 4 minimal pill buttons just under the hero — Transfer · Statement
- * · Reconcile · Categorize. These are visually present per Direction A;
- * actual feature wiring TBD (each opens a placeholder for now).
- */
-export function PulseQuickActions({ actions }: PulseQuickActionsProps) {
-  const items: QuickAction[] = actions ?? [
-    { key: 'transfer', label: 'Transfer', icon: 'shuffle' },
-    { key: 'statement', label: 'Statement', icon: 'file-text' },
-    { key: 'reconcile', label: 'Reconcile', icon: 'check-circle' },
-    { key: 'categorize', label: 'Categorize', icon: 'tag' },
-  ];
+  const isDark = palette.isDark;
 
   return (
-    <View style={{
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingTop: 18,
-      paddingBottom: 10,
-      gap: 8,
-    }}>
-      {items.map((a) => (
-        <TouchableOpacity
-          key={a.key}
-          delayPressIn={0}
-          activeOpacity={0.7}
-          onPress={a.onPress}
-          style={{
-            flex: 1,
+    <View style={{ paddingTop: 2, paddingBottom: 4, position: 'relative' }}>
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 2, alignItems: 'flex-start' }}>
+        {/* Column 1: Icon */}
+        {accountType && (() => {
+          const typeMeta = ACCOUNT_TYPE_META[accountType as AccountType];
+          if (!typeMeta) return null;
+          const typeColor = typeMeta.color;
+          return (
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: HOME_RADIUS.chip,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: typeMeta.bg ?? `${typeColor}18`,
+              }}
+            >
+              <AppIcon name={typeMeta.icon} size={18} color={typeColor} strokeWidth={1.8} />
+            </View>
+          );
+        })()}
+
+        {/* Column 2: Type Label + Balance */}
+        <View style={{ flex: 1 }}>
+          {/* Type label — small caps */}
+          <Text style={{
+            fontSize: 10,
+            fontWeight: FONT_WEIGHT.heavy,
+            color: EDITORIAL_INK_MUTED,
+            letterSpacing: 1.6,
+            textTransform: 'uppercase',
+            marginBottom: 2,
+          }}>
+            {accountTypeLabel}
+          </Text>
+
+          {/* Balance — sans, normal weight */}
+          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+            {isNegative && !hideAmounts && (
+              <Text style={{
+                fontSize: 30,
+                fontWeight: FONT_WEIGHT.regular,
+                color: EDITORIAL_INK,
+                marginRight: 2,
+              }}>−</Text>
+            )}
+            {currencySymbol && !hideAmounts && (
+              <Text style={{
+                fontSize: 18,
+                fontWeight: FONT_WEIGHT.regular,
+                color: EDITORIAL_INK_MUTED,
+                marginRight: 4,
+              }}>
+                {currencySymbol}
+              </Text>
+            )}
+            <Text
+              adjustsFontSizeToFit
+              numberOfLines={1}
+              style={{
+                fontSize: 36,
+                fontWeight: FONT_WEIGHT.regular,
+                color: EDITORIAL_INK,
+                letterSpacing: -0.8,
+                fontVariant: ['tabular-nums'],
+                lineHeight: 40,
+              }}>
+              {balanceClean}
+            </Text>
+            {balanceDec && (
+              <Text style={{
+                fontSize: 16,
+                fontWeight: FONT_WEIGHT.regular,
+                color: EDITORIAL_INK_MUTED,
+                fontVariant: ['tabular-nums'],
+              }}>
+                {balanceDec}
+              </Text>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* Active tooltip overlay block — tooltip bg same as screen bg */}
+      {activePoint && (() => {
+        const diff = activePoint.prev ? activePoint.val - activePoint.prev.val : 0;
+        const hasPrev = diff !== 0 && activePoint.prev;
+        let prevDateStr = '';
+        if (hasPrev) {
+          const prevD = new Date(activePoint.prev.date + 'T00:00:00');
+          prevDateStr = isNaN(prevD.getTime())
+            ? ''
+            : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
+        }
+        const isPositive = diff > 0;
+        const tooltipBg = palette.background;
+        const textMainColor = isDark ? '#FFFFFF' : EDITORIAL_INK;
+        const textMutedColor = isDark ? '#8A8580' : EDITORIAL_INK_MUTED;
+        const dividerColor = isDark ? 'rgba(255,255,255,0.12)' : EDITORIAL_HAIRLINE;
+
+        return (
+          <View style={{
+            position: 'absolute',
+            top: 12,
+            alignSelf: 'center',
+            backgroundColor: tooltipBg,
+            borderRadius: 12,
+            paddingVertical: 8,
+            paddingHorizontal: 14,
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            paddingVertical: 9,
-            paddingHorizontal: 6,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: EDITORIAL_HAIRLINE,
-            backgroundColor: 'transparent',
-          }}
-        >
-          <AppIcon name={a.icon} size={12} color={EDITORIAL_INK} strokeWidth={2} />
-          <Text style={{
-            fontSize: 10.5,
-            color: EDITORIAL_INK,
-            fontWeight: FONT_WEIGHT.semibold,
-            letterSpacing: 0.2,
-          }}
-            numberOfLines={1}>
-            {a.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
+            gap: 12,
+            zIndex: 100,
+            shadowColor: isDark ? '#000000' : '#94A3B8',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDark ? 0.35 : 0.15,
+            shadowRadius: 8,
+            elevation: 8,
+          }}>
+            {/* Column 1: Dates */}
+            <View style={{ alignItems: 'flex-end', gap: 2 }}>
+              <Text style={{ fontSize: 11, color: textMutedColor, fontWeight: FONT_WEIGHT.semibold }}>
+                {activePointDateFormatted}
+              </Text>
+              {hasPrev && (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 9.5, color: textMutedColor, marginRight: 3 }}>vs</Text>
+                  <Text style={{ fontSize: 10, color: textMutedColor, fontWeight: FONT_WEIGHT.medium }}>
+                    {prevDateStr}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Divider */}
+            <View style={{ width: 1, height: hasPrev ? 26 : 14, backgroundColor: dividerColor }} />
+
+            {/* Column 2: Amounts */}
+            <View style={{ alignItems: 'flex-start', gap: 2 }}>
+              <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: textMainColor }}>
+                {activePointValFormatted}
+              </Text>
+              {hasPrev && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <AppIcon
+                    name={isPositive ? 'trending-up' : 'trending-down'}
+                    size={12}
+                    color={isPositive ? palette.positive : palette.negative}
+                    strokeWidth={2.5}
+                  />
+                  <Text style={{
+                    fontSize: 10,
+                    color: isPositive ? palette.positive : palette.negative,
+                    fontWeight: FONT_WEIGHT.bold,
+                  }}>
+                    {formatSignedCurrency(Math.abs(diff), currencySymbol, { zeroPlaceholder: null })}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        );
+      })()}
+
+      {/* Chart — 1px ink line, no fill, aligned closer to balance (marginBottom: 12) */}
+      <View style={{ marginTop: 0, marginHorizontal: 0, marginBottom: 12 }}>
+        {middleContent}
+      </View>
     </View>
   );
+}
+
+export function PulseQuickActions() {
+  return null;
 }
 
 interface PulseCashflowBarProps {
@@ -274,8 +294,14 @@ interface PulseCashflowBarProps {
  * shared values, with a cascade-in on mount), just one continuous line not
  * 60 ticks.
  */
+const TICK_W = 2;
+const TICK_GAP = 4;
+const TICK_CONTAINER_W = Math.max(80, Dimensions.get('window').width - 2 * 12);
+const TICK_TOTAL = Math.floor((TICK_CONTAINER_W + TICK_GAP) / (TICK_W + TICK_GAP));
+const TICK_CONTENT_W = TICK_TOTAL * (TICK_W + TICK_GAP) - TICK_GAP;
+
 export function PulseCashflowBar({
-  palette: _palette,
+  palette,
   dateFilter,
   activityPeriodLabel,
   inlineFilter,
@@ -290,34 +316,31 @@ export function PulseCashflowBar({
   tickActivityProgress,
   openPeriodActivity,
 }: PulseCashflowBarProps) {
-  // Cascade-in: the bar paints left→right on first mount + period change.
-  const cascade = useSharedValue(0);
-  const prevKeyRef = React.useRef('');
-  const dataKey = `${metricLeftAmount}|${metricRightAmount}`;
-  useEffect(() => {
-    if (prevKeyRef.current === dataKey) return;
-    prevKeyRef.current = dataKey;
-    cascade.value = 0;
-    cascade.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
-  }, [dataKey, cascade]);
-
-  const cascadeStyle = useAnimatedStyle(() => ({
-    width: `${cascade.value * 100}%`,
-  }));
-
-  // Green segment width = fraction * cascade-revealed area.
-  const greenSegStyle = useAnimatedStyle(() => {
-    const fraction = animatedIncomeFraction.value;
+  const detailIncomeTickOverlayStyle = useAnimatedStyle(() => {
     const progress = tickActivityProgress.value;
+    const fraction = animatedIncomeFraction.value;
+    const greenTicksCount = Math.round(fraction * TICK_TOTAL);
+    const currentGreenTicks = greenTicksCount * progress;
+    const width = currentGreenTicks > 0
+      ? currentGreenTicks * TICK_W + (currentGreenTicks - 1) * TICK_GAP
+      : 0;
     return {
-      flex: Math.max(0.0001, fraction * progress),
+      width: Math.max(0, width),
     };
   });
-  const redSegStyle = useAnimatedStyle(() => {
-    const fraction = animatedIncomeFraction.value;
+
+  const detailExpenseTickOverlayStyle = useAnimatedStyle(() => {
     const progress = tickActivityProgress.value;
+    const fraction = animatedIncomeFraction.value;
+    const greenTicksCount = Math.round(fraction * TICK_TOTAL);
+    const redTicksCount = TICK_TOTAL - greenTicksCount;
+    const currentRedTicks = redTicksCount * progress;
+    const width = currentRedTicks > 0
+      ? currentRedTicks * TICK_W + (currentRedTicks - 1) * TICK_GAP
+      : 0;
     return {
-      flex: Math.max(0.0001, (1 - fraction) * progress),
+      width: Math.max(0, width),
+      right: 0,
     };
   });
 
@@ -338,8 +361,19 @@ export function PulseCashflowBar({
   const leftSign = metricLeftAmount < 0 ? '−' : '';
   const rightSign = metricRightAmount < 0 ? '−' : '';
 
+  const noteProgress = useSharedValue(cashflowIsCashflow ? 1 : 0);
+  useEffect(() => {
+    noteProgress.value = withTiming(cashflowIsCashflow ? 1 : 0, { duration: 220 });
+  }, [cashflowIsCashflow]);
+  const CASHFLOW_NOTE_H = 30;
+  const animatedNoteStyle = useAnimatedStyle(() => ({
+    height: noteProgress.value * CASHFLOW_NOTE_H,
+    opacity: noteProgress.value,
+    overflow: 'hidden',
+  }));
+
   return (
-    <View style={{ paddingTop: 22, paddingBottom: 18 }}>
+    <View style={{ paddingTop: 8, paddingBottom: 18 }}>
       {/* Period strip + Today/Month */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -352,7 +386,7 @@ export function PulseCashflowBar({
             setShowPeriodSheet={() => setShowPeriodSheet(true)}
             // Wash header into the cream/ink palette
             palette={{
-              ..._palette,
+              ...palette,
               text: EDITORIAL_INK,
               textMuted: EDITORIAL_INK_SUBTLE,
               card: 'transparent',
@@ -362,47 +396,31 @@ export function PulseCashflowBar({
             noBackground={true}
           />
         </View>
-
-        <SegmentedPillSwitch
-          options={[
-            { key: 'today', label: 'Today' },
-            { key: 'month', label: 'Month' },
-          ]}
-          value={dateFilter?.period === 'month' ? 'month' : 'today'}
-          onChange={(key) => {
-            dateFilter?.setOffset(0);
-            dateFilter?.setPeriod(key as any);
-          }}
-          backgroundColor={EDITORIAL_HAIRLINE}
-          pillColor="#FFFFFF"
-          borderColor={EDITORIAL_HAIRLINE}
-          activeTextColor={EDITORIAL_INK}
-          inactiveTextColor={EDITORIAL_INK_SUBTLE}
-          height={28}
-          radius={14}
-          fontSize={10.5}
-          itemMinWidth={48}
-          style={{ width: 102, marginLeft: 8 }}
-        />
       </View>
 
-      {/* Proportional bar — single line, green | red */}
-      <Animated.View style={[
-        {
-          height: CASHFLOW_BAR_HEIGHT,
-          borderRadius: CASHFLOW_BAR_RADIUS,
-          backgroundColor: EDITORIAL_HAIRLINE,
-          overflow: 'hidden',
-          flexDirection: 'row',
-        },
-        cascadeStyle,
-      ]}>
-        <Animated.View style={[{ height: CASHFLOW_BAR_HEIGHT, backgroundColor: EDITORIAL_CREDIT }, greenSegStyle]} />
-        <Animated.View style={[{ height: CASHFLOW_BAR_HEIGHT, backgroundColor: EDITORIAL_DEBIT }, redSegStyle]} />
-      </Animated.View>
+      {/* Speedometer sweep ticks — replaced the line bar */}
+      <View style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 4, width: TICK_CONTENT_W, alignSelf: 'center' }}>
+        {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+          <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
+        ))}
+        <Animated.View style={[{ position: 'absolute', left: 0, top: 0, height: 12, overflow: 'hidden' }, detailIncomeTickOverlayStyle]}>
+          <View style={{ flexDirection: 'row', gap: TICK_GAP, width: TICK_CONTENT_W }}>
+            {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+              <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.positive }} />
+            ))}
+          </View>
+        </Animated.View>
+        <Animated.View style={[{ position: 'absolute', top: 0, height: 12, overflow: 'hidden' }, detailExpenseTickOverlayStyle]}>
+          <View style={{ position: 'absolute', right: 0, flexDirection: 'row', gap: TICK_GAP, width: TICK_CONTENT_W }}>
+            {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+              <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.negative }} />
+            ))}
+          </View>
+        </Animated.View>
+      </View>
 
-      {/* Two numbers underneath */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 14 }}>
+      {/* Two numbers underneath — aligned horizontally with the ticks */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 14, width: TICK_CONTENT_W, alignSelf: 'center' }}>
         <TouchableOpacity
           delayPressIn={0}
           activeOpacity={0.7}
@@ -410,7 +428,12 @@ export function PulseCashflowBar({
           style={{ flex: 1, paddingRight: 8 }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: leftZero ? EDITORIAL_INK_SUBTLE : EDITORIAL_CREDIT }} />
+            <AppIcon
+              name="arrow-down-left"
+              size={13}
+              color={leftZero ? EDITORIAL_INK_SUBTLE : palette.positive}
+              strokeWidth={2.4}
+            />
             <Text style={{
               fontSize: 10,
               color: EDITORIAL_INK_SUBTLE,
@@ -426,7 +449,7 @@ export function PulseCashflowBar({
             numberOfLines={1}
             style={{
               fontSize: 20,
-              fontWeight: FONT_WEIGHT.semibold,
+              fontWeight: FONT_WEIGHT.regular,
               color: leftZero ? EDITORIAL_INK_SUBTLE : EDITORIAL_INK,
               letterSpacing: -0.5,
               fontVariant: ['tabular-nums'],
@@ -451,14 +474,19 @@ export function PulseCashflowBar({
             }}>
               {cashflowIsCashflow ? 'Outflow' : 'Expense'}
             </Text>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: rightZero ? EDITORIAL_INK_SUBTLE : EDITORIAL_DEBIT }} />
+            <AppIcon
+              name="arrow-up-right"
+              size={13}
+              color={rightZero ? EDITORIAL_INK_SUBTLE : palette.negative}
+              strokeWidth={2.4}
+            />
           </View>
           <Text
             adjustsFontSizeToFit
             numberOfLines={1}
             style={{
               fontSize: 20,
-              fontWeight: FONT_WEIGHT.semibold,
+              fontWeight: FONT_WEIGHT.regular,
               color: rightZero ? EDITORIAL_INK_SUBTLE : EDITORIAL_INK,
               letterSpacing: -0.5,
               fontVariant: ['tabular-nums'],
@@ -482,8 +510,8 @@ export function PulseCashflowBar({
           </Text>
           <Text style={{
             fontSize: 13,
-            color: net > 0 ? EDITORIAL_CREDIT : net < 0 ? EDITORIAL_DEBIT : EDITORIAL_INK_SUBTLE,
-            fontWeight: FONT_WEIGHT.semibold,
+            color: net > 0 ? palette.positive : net < 0 ? palette.negative : EDITORIAL_INK_SUBTLE,
+            fontWeight: FONT_WEIGHT.regular,
             letterSpacing: -0.2,
             fontVariant: ['tabular-nums'],
           }}>
@@ -491,30 +519,34 @@ export function PulseCashflowBar({
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{
-            fontSize: 10,
-            color: EDITORIAL_INK_SUBTLE,
-            fontWeight: FONT_WEIGHT.heavy,
-            letterSpacing: 1.0,
-            textTransform: 'uppercase',
-          }}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={() => setCashflowIsCashflow(!cashflowIsCashflow)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
+        >
+          <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
             Cashflow
           </Text>
           <AppSwitch
             value={cashflowIsCashflow}
             onValueChange={(val) => setCashflowIsCashflow(val)}
-            palette={{
-              ..._palette,
-              brand: EDITORIAL_INK,
-              borderSoft: EDITORIAL_HAIRLINE,
-            } as any}
-            width={32}
-            height={18}
-            thumbSize={12}
+            palette={palette}
+            width={36}
+            height={20}
+            thumbSize={14}
           />
-        </View>
+        </TouchableOpacity>
       </View>
+
+      {/* Cashflow info note */}
+      <Animated.View style={animatedNoteStyle}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 8 }}>
+          <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
+          <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
+            {HELP_TEXTS.cashflowNote}
+          </Text>
+        </View>
+      </Animated.View>
 
       {/* Closing dotted hairline */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 }}>

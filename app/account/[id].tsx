@@ -2,7 +2,7 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, TouchableOpacity, View, InteractionManager } from 'react-native';
+import { InteractionManager, Modal, Pressable, TouchableOpacity, View } from 'react-native';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,20 +10,17 @@ import { useAppTheme } from '../../lib/theme';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useDesignLabStore, VARIANT_LABEL } from '../../stores/useDesignLabStore';
-import { LEDGER_PALETTE } from '../../components/account-detail/LedgerVariant';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 
 import { Text } from '@/components/ui/AppText';
 import { HomeAccountPage } from '../(tabs)/index';
-import { useDateFilter } from '../../lib/useDateFilter';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import { ActionStrip } from '../../components/ui/ActionStrip';
 import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppButton';
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { HeaderMoreButton, ScreenHeader } from '../../components/ui/ScreenHeader';
-import { AppIcon } from '../../components/ui/AppIcon';
 import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
@@ -31,8 +28,9 @@ import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/date
 import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
-import { getAccountBalanceTrend } from '../../services/analytics';
 import { trendCache } from '../../lib/trendCache';
+import { useDateFilter } from '../../lib/useDateFilter';
+import { getAccountBalanceTrend } from '../../services/analytics';
 
 export default function AccountDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -57,8 +55,8 @@ export default function AccountDetailScreen() {
   const designVariant = useDesignLabStore((s) => s.accountDetailVariant);
   const cycleDesignVariant = useDesignLabStore((s) => s.cycleAccountDetailVariant);
 
-  const LEDGER_BG = LEDGER_PALETTE.bg;
-  const LEDGER_INK = LEDGER_PALETTE.ink;
+  const LEDGER_BG = palette.background;
+  const LEDGER_INK = palette.text;
 
   const account = accounts.find((a) => a.id === id);
 
@@ -169,7 +167,7 @@ export default function AccountDetailScreen() {
     panelProgress.value = withTiming(0, { duration: 220 });
   }, []);
 
-  const handleRegisterScrollTop = useCallback(() => {}, []);
+  const handleRegisterScrollTop = useCallback(() => { }, []);
 
   const actionsAnimatedStyle = useAnimatedStyle(() => ({
     height: panelProgress.value * 56, // 36 height + 20 vertical padding
@@ -222,11 +220,12 @@ export default function AccountDetailScreen() {
       hideStartDot={true}
       flatStyle={true}
       smoothCurves={true}
-      hideAxisLabels={false}
+      hideAxisLabels={true}
       endLabelIsToday={true}
       hideEndBalance={true}
       onActivePointChange={setActivePoint}
       hideInternalTooltip={true}
+      lineStrokeWidth={1.8}
       chartHeight={110}
     />
   ), [trendPoints, palette, showCurrencySymbol, currencySymbol, lineColor, setChartInteracting, isLoadingTrend, setActivePoint]);
@@ -251,8 +250,34 @@ export default function AccountDetailScreen() {
       onActivePointChange={setActivePoint}
       hideInternalTooltip={true}
       hideAreaFill={true}
-      lineStrokeWidth={1}
+      lineStrokeWidth={1.6}
       chartHeight={120}
+    />
+  ), [trendPoints, palette, showCurrencySymbol, currencySymbol, setChartInteracting, isLoadingTrend, setActivePoint]);
+
+  // Pulse-tuned chart: ink stroke (2.0px width), no area fill, no axis labels.
+  const middleContentPulse = useMemo(() => (
+    <TrendLineChart
+      points={trendPoints}
+      palette={palette}
+      currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+      title=""
+      lineColor={palette.text}
+      onInteractionStateChange={setChartInteracting}
+      isLoading={isLoadingTrend}
+      hideHeader={true}
+      hideStartDot={true}
+      flatStyle={true}
+      smoothCurves={true}
+      hideAxisLabels={true}
+      hideAxisBalances={true}
+      endLabelIsToday={true}
+      hideEndBalance={true}
+      onActivePointChange={setActivePoint}
+      hideInternalTooltip={true}
+      hideAreaFill={true}
+      lineStrokeWidth={1.8}
+      chartHeight={100}
     />
   ), [trendPoints, palette, showCurrencySymbol, currencySymbol, setChartInteracting, isLoadingTrend, setActivePoint]);
 
@@ -314,15 +339,13 @@ export default function AccountDetailScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                     {/* Per Direction A, Pulse moves +Add to a floating FAB.
                         Ledger keeps it in the header (user constraint). */}
-                    {!isPulse && (
-                      <TouchableOpacity
-                        delayPressIn={0}
-                        activeOpacity={0.5}
-                        onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
-                      >
-                        <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: isEditorial ? LEDGER_INK : palette.brand }}>+ Add</Text>
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                      delayPressIn={0}
+                      activeOpacity={0.5}
+                      onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
+                    >
+                      <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.semibold, color: isEditorial ? LEDGER_INK : palette.brand }}>+ Add</Text>
+                    </TouchableOpacity>
                     <HeaderMoreButton palette={palette} isOpen={showActions} onPress={toggleActions} iconColor={isEditorial ? LEDGER_INK : undefined} />
                   </View>
                 }
@@ -372,6 +395,7 @@ export default function AccountDetailScreen() {
         onScrollBeginDrag={closePanel}
         middleContent={middleContent}
         middleContentLedger={middleContentLedger}
+        middleContentPulse={middleContentPulse}
         scrollEnabled={!chartInteracting}
         dataNonce={mutationVersion}
         onInlineFilterChange={setInlineFilter}
@@ -380,34 +404,6 @@ export default function AccountDetailScreen() {
         activePoint={activePoint}
         onApplyCustomRange={handleApplyCustomRange}
       />
-
-      {/* Pulse variant: floating bottom-right FAB for +Add (per Direction A).
-          Header +Add is hidden when isPulse — see ScreenHeader rightAction. */}
-      {isPulse && (
-        <TouchableOpacity
-          delayPressIn={0}
-          activeOpacity={0.85}
-          onPress={() => router.push({ pathname: '/modals/add-transaction', params: { accountId: account.id } })}
-          style={{
-            position: 'absolute',
-            right: 20,
-            bottom: 28 + insets.bottom,
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            backgroundColor: LEDGER_INK,
-            justifyContent: 'center',
-            alignItems: 'center',
-            elevation: 6,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.18,
-            shadowRadius: 10,
-          }}
-        >
-          <AppIcon name="plus" size={22} color={LEDGER_BG} strokeWidth={2.4} />
-        </TouchableOpacity>
-      )}
 
       <Modal
         visible={customRangeOpen}

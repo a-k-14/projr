@@ -43,6 +43,8 @@ interface TrendLineChartProps {
   flatStyle?: boolean;
   /** When true, completely hide the bottom axis labels. */
   hideAxisLabels?: boolean;
+  /** When true, hide the balance value in parentheses on the axis labels. */
+  hideAxisBalances?: boolean;
   /** Custom height for the chart line area. Defaults to 110. */
   chartHeight?: number;
   /** When true, completely hide the internal floating tooltip. */
@@ -144,6 +146,7 @@ function TrendLineChartBase({
   hideStartDot = false,
   flatStyle = false,
   hideAxisLabels = false,
+  hideAxisBalances = false,
   chartHeight = 110,
   hideInternalTooltip = false,
   hideAreaFill = false,
@@ -550,10 +553,11 @@ function TrendLineChartBase({
       {!hideAxisLabels && (
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: flatStyle ? 0 : 10, paddingLeft: 14, paddingRight: 20, paddingBottom: flatStyle ? 8 : 0 }}>
           <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-            {formatAxisDate(startDate ?? points[0]?.date)} ({formatSignedCurrency(points[0]?.val, currencySymbol, { zeroPlaceholder: null })})
+            {formatAxisDate(startDate ?? points[0]?.date)}
+            {!hideAxisBalances && ` (${formatSignedCurrency(points[0]?.val, currencySymbol, { zeroPlaceholder: null })})`}
           </Text>
           <Text style={{ fontSize: HOME_TEXT.tiny + 1.0, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-            {hideEndBalance
+            {hideEndBalance || hideAxisBalances
               ? endAxisLabel
               : `${endAxisLabel} (${formatSignedCurrency(points[points.length - 1]?.val, currencySymbol, { zeroPlaceholder: null })})`
             }
