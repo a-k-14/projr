@@ -70,7 +70,7 @@ export default function RootLayout() {
       // and the secondary cards — defer them so the splash hides sooner. Home's
       // `stableNetWorth` retains last non-zero NW so the chip doesn't flash 0 while
       // the background loads finish.
-      await Promise.all([loadAccounts(), loadSettings(), loadCategories()]);
+      await Promise.all([loadAccounts(), loadSettings(), loadCategories(), loadTransactions()]);
 
       // Only seed starter data on a true first run, not after a user-triggered reset.
       if (
@@ -81,14 +81,12 @@ export default function RootLayout() {
         await seedDatabase();
         await markStarterDataSeeded();
         // Reload stores to reflect newly seeded data
-        await Promise.all([loadAccounts(), loadCategories()]);
+        await Promise.all([loadAccounts(), loadCategories(), loadTransactions()]);
       }
 
       setReady(true);
-      // Background loads — kick off after the home tab is visible. Pre-warming
-      // the transactions store here means the Activity tab's default (last 30
-      // days) renders from in-memory cache on first open, no DB roundtrip.
-      Promise.all([loadDeposits(), loadLoans(), loadAssets(), loadTransactions(), pruneAuditLogs(30)]).catch(() => undefined);
+      // Background loads — kick off after the home tab is visible.
+      Promise.all([loadDeposits(), loadLoans(), loadAssets(), pruneAuditLogs(30)]).catch(() => undefined);
     } catch (error) {
       setInitError(
         error instanceof Error ? error.message : 'Something went wrong while opening the app.'

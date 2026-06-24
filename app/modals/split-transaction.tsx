@@ -4,7 +4,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Animated, Keyboard, Pressable, ScrollView, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
+import { Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
@@ -76,6 +76,8 @@ export default function SplitTransactionModal() {
   const { dialog } = useAppDialog(palette);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
+  const currentScrollYRef = useRef(0);
+  const preFocusScrollYRef = useRef<number | null>(null);
   const [categorySheetRowId, setCategorySheetRowId] = useState<string | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
@@ -89,6 +91,34 @@ export default function SplitTransactionModal() {
       setSplitRows([{ id: `split-${Date.now()}`, categoryId: '', amountStr: '' }]);
     }
   }, [setSplitRows, splitRows.length]);
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const didHideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+      if (preFocusScrollYRef.current !== null) {
+        scrollRef.current?.scrollTo({ y: preFocusScrollYRef.current, animated: true });
+        preFocusScrollYRef.current = null;
+      }
+    });
+    return () => {
+      showSub.remove();
+      didHideSub.remove();
+    };
+  }, []);
+
+  const handleFieldFocus = (index: number) => {
+    if (preFocusScrollYRef.current === null) {
+      preFocusScrollYRef.current = currentScrollYRef.current;
+    }
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: index * 132, animated: true });
+    }, 180);
+  };
 
   const total = splitRows.reduce(
     (sum, row) => sum + (parseFloat(parseFormattedNumber(row.amountStr)) || 0),
@@ -105,7 +135,8 @@ export default function SplitTransactionModal() {
     setCategorySheetRowId(null);
   };
 
-  const openCategoryPickerForRow = (rowId: string) => {
+  const openCategoryPickerForRow = (rowId: string, index: number) => {
+    handleFieldFocus(index);
     if (Keyboard.isVisible()) {
       Keyboard.dismiss();
       setTimeout(() => setCategorySheetRowId(rowId), 100);
@@ -154,7 +185,11 @@ export default function SplitTransactionModal() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: palette.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
           <TouchableOpacity delayPressIn={0} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: SCREEN_HEADER.iconTitleGap }}>
@@ -180,9 +215,16 @@ export default function SplitTransactionModal() {
 
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 128) }}
+        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets, 128) + keyboardHeight }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
+        onScroll={(e) => {
+          currentScrollYRef.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          preFocusScrollYRef.current = null;
+        }}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={{ paddingHorizontal: SCREEN_GUTTER, gap: CARD_GAP }}>
@@ -202,12 +244,13 @@ export default function SplitTransactionModal() {
                       autoFocus={index === 0}
                       onDelete={triggerDelete}
                       hasError={attemptedSubmit && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) === 0}
+                      onFocus={() => handleFieldFocus(index)}
                     />
                     <PickerRow
                       label="Category"
                       value={getCategoryName(categories, row.categoryId)}
                       placeholder={!row.categoryId}
-                      onPress={() => openCategoryPickerForRow(row.id)}
+                      onPress={() => openCategoryPickerForRow(row.id, index)}
                       palette={palette}
                       hasError={attemptedSubmit && !row.categoryId}
                     />
@@ -264,6 +307,6 @@ export default function SplitTransactionModal() {
       />
 
       {dialog}
-    </View>
+    </KeyboardAvoidingView>
   );
 }

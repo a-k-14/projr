@@ -400,6 +400,7 @@ export function AmountRow({
   onSubmitEditing,
   blurOnSubmit,
   hasError = false,
+  onFocus,
 }: {
   sym: string;
   amountStr: string;
@@ -417,6 +418,7 @@ export function AmountRow({
   onSubmitEditing?: React.ComponentProps<typeof TextInput>['onSubmitEditing'];
   blurOnSubmit?: boolean;
   hasError?: boolean;
+  onFocus?: () => void;
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const isLargeButton = calculatorButtonVariant === 'large';
@@ -479,7 +481,12 @@ export function AmountRow({
                   : palette.borderSoft ?? palette.border,
               opacity: editable ? 1 : 0.92
             }}
-            onFocus={() => editable && setIsFocused(true)}
+            onFocus={() => {
+              if (editable) {
+                setIsFocused(true);
+                onFocus?.();
+              }
+            }}
             onBlur={() => editable && setIsFocused(false)}
             cursorColor={editable ? (hasError ? palette.negative : (palette.isDark ? '#FFFFFF' : '#000000')) : palette.text}
             autoFocus={autoFocus && !onPressAmount}

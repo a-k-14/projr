@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import { budget, categories, transactions } from '../db/schema';
 import type { Category } from '../types';
 import { generateId } from '../lib/ids';
+import { STRINGS } from '../lib/strings';
 
 function rowToCategory(row: typeof categories.$inferSelect): Category {
   return {
@@ -34,7 +35,7 @@ async function assertNoDuplicateSiblingCategory(
   });
 
   if (hasDuplicate) {
-    throw new Error('A category with this name already exists at this level.');
+    throw new Error(STRINGS.duplicate.categoryGeneral);
   }
 }
 

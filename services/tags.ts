@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import { tags } from '../db/schema';
 import type { Tag } from '../types';
 import { generateId } from '../lib/ids';
+import { STRINGS } from '../lib/strings';
 
 function rowToTag(row: typeof tags.$inferSelect): Tag {
   return { id: row.id, name: row.name, color: row.color };
@@ -29,7 +30,7 @@ async function assertNoDuplicateTagName(name: string, excludeId?: string): Promi
     (t) => (excludeId ? t.id !== excludeId : true) && normalizeTagName(t.name) === normalized
   );
   if (hasDuplicate) {
-    throw new Error('A tag with this name already exists.');
+    throw new Error(STRINGS.duplicate.tag);
   }
 }
 

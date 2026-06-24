@@ -9,12 +9,13 @@ import { create } from 'zustand';
  * To ship a winning variant: remove this store + the variant branches
  * and inline the chosen JSX into the canonical screen.
  */
-export type AccountDetailVariant = 'current' | 'pulse' | 'ledger';
+export type AccountDetailVariant = 'current' | 'classic' | 'pulse' | 'ledger';
 
-const ORDER: AccountDetailVariant[] = ['current', 'pulse', 'ledger'];
+const ORDER: AccountDetailVariant[] = ['current', 'classic', 'pulse', 'ledger'];
 
 export const VARIANT_LABEL: Record<AccountDetailVariant, string> = {
   current: 'Current',
+  classic: 'Classic',
   pulse: 'Pulse',
   ledger: 'Ledger',
 };

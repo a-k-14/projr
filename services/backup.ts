@@ -83,9 +83,31 @@ export async function runAutoBackup(folderUri: string, keepCount: number): Promi
 export function isAutoBackupDue(settings: Pick<Settings, 'autoBackupEnabled' | 'autoBackupFolderUri' | 'autoBackupFrequencyDays' | 'lastAutoBackupAt'>): boolean {
   if (!settings.autoBackupEnabled || !settings.autoBackupFolderUri) return false;
   if (!settings.lastAutoBackupAt) return true;
-  const last = new Date(settings.lastAutoBackupAt).getTime();
-  const dueAfterMs = settings.autoBackupFrequencyDays * 24 * 60 * 60 * 1000;
-  return Date.now() - last >= dueAfterMs;
+
+  // Parse last auto backup date as a local date string (YYYY-MM-DD)
+  const lastDate = new Date(settings.lastAutoBackupAt);
+  const lastYear = lastDate.getFullYear();
+  const lastMonth = lastDate.getMonth();
+  const lastDay = lastDate.getDate();
+  const lastDateStr = `${lastYear}-${String(lastMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  // Get today's local date string
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const todayDay = today.getDate();
+  const todayStr = `${todayYear}-${String(todayMonth + 1).padStart(2, '0')}-${String(todayDay).padStart(2, '0')}`;
+
+  if (lastDateStr === todayStr) {
+    return false;
+  }
+
+  // Calculate difference in calendar days
+  const lastMidnight = new Date(lastYear, lastMonth, lastDay).getTime();
+  const todayMidnight = new Date(todayYear, todayMonth, todayDay).getTime();
+  const diffDays = Math.round((todayMidnight - lastMidnight) / (24 * 60 * 60 * 1000));
+
+  return diffDays >= settings.autoBackupFrequencyDays;
 }
 
 export async function importBackup(): Promise<boolean> {

@@ -315,7 +315,12 @@ export default function AccountDetailScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <HeaderResetButton
                       visible={!!inlineFilter || dateFilter.period !== 'today' || dateFilter.offset !== 0}
-                      onPress={() => { setInlineFilter(null); dateFilter.setPeriod('today'); setResetInlineFilterToken((t) => t + 1); }}
+                      onPress={() => {
+                        setInlineFilter(null);
+                        dateFilter.setPeriod('today');
+                        dateFilter.setOffset(0);
+                        setResetInlineFilterToken((t) => t + 1);
+                      }}
                       palette={palette}
                       isFocused={isFocused}
                     />

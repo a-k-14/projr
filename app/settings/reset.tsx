@@ -1,6 +1,7 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { router } from 'expo-router';
+import { STRINGS } from '../../lib/strings';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
-import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../../lib/design';
+import { CARD_PADDING, HOME_TEXT, RADIUS, SCREEN_GUTTER, TYPE , FONT_WEIGHT} from '../../lib/design';
 import { useAppTheme } from '../../lib/theme';
 import { resetLocalAppData } from '../../services/localReset';
 
@@ -35,14 +36,14 @@ export default function ResetScreen() {
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Failed to reset app:', error);
-      setResetError('Reset failed. Please try again.');
+      setResetError(STRINGS.reset.labels.errorReset);
     } finally {
       setIsResetting(false);
     }
   };
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={['bottom', 'left', 'right']} style={{ flex: 1, backgroundColor: palette.background }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -50,6 +51,7 @@ export default function ResetScreen() {
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
+            paddingTop: 16,
             paddingBottom: 40,
             paddingHorizontal: SCREEN_GUTTER,
           }}
@@ -57,8 +59,30 @@ export default function ResetScreen() {
           keyboardShouldPersistTaps="handled"
         >
 
-          <View style={{ alignItems: 'center', marginBottom: SPACING.lg }}>
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: RADIUS.xl,
+              borderWidth: 1,
+              borderColor: palette.border,
+              padding: CARD_PADDING,
+              alignItems: 'center',
+              marginBottom: 16,
+            }}
+          >
             <FinanceEmptyMascot palette={palette} variant="danger" />
+            <Text
+              style={{
+                fontSize: TYPE.body,
+                lineHeight: 19,
+                color: palette.uiNegative,
+                marginTop: 16,
+                textAlign: 'center',
+                fontWeight: FONT_WEIGHT.semibold,
+              }}
+            >
+              {STRINGS.reset.labels.warnMessage}
+            </Text>
           </View>
 
           <View
@@ -72,37 +96,23 @@ export default function ResetScreen() {
           >
             <Text
               style={{
-                fontSize: TYPE.body,
-                lineHeight: 19,
-                color: palette.textMuted,
-                marginBottom: 16,
-                textAlign: 'center',
-                fontWeight: FONT_WEIGHT.regular,
-              }}
-            >
-              This clears your local data on this device and restores the starter setup.
-            </Text>
-
-            <Text
-              style={{
                 fontSize: TYPE.rowLabel,
                 fontWeight: FONT_WEIGHT.semibold,
                 color: palette.text,
                 marginBottom: 8,
               }}
             >
-              Type RESET to continue
+              {STRINGS.reset.labels.typePrompt}
             </Text>
 
             <TextInput
               value={confirmText}
               onChangeText={(text) => {
-                setConfirmText(text);
+                setConfirmText(text.toUpperCase());
                 if (resetError) setResetError(null);
               }}
-              autoCapitalize="none"
+              autoCapitalize="characters"
               autoCorrect={false}
-              autoFocus
               editable={!isResetting}
               returnKeyType="done"
               style={{
@@ -161,7 +171,7 @@ export default function ResetScreen() {
                       fontWeight: FONT_WEIGHT.regular,
                     }}
                   >
-                    Erase Everything
+                    {STRINGS.reset.labels.buttonText}
                   </Text>
                 </>
               )}
@@ -186,7 +196,7 @@ export default function ResetScreen() {
                   fontWeight: FONT_WEIGHT.medium,
                 }}
               >
-                Cancel
+                {STRINGS.reset.labels.cancelText}
               </Text>
             </TouchableOpacity>
           </View>

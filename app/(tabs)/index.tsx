@@ -1755,6 +1755,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   // Inline filter: tap inc/exp on hero → filter Activity list to those tx; reset clears it
   const [inlineFilter, setInlineFilter] = useState<'in' | 'out' | null>(null);
   const [showPeriodSheet, setShowPeriodSheet] = useState(false);
+  const [showInfoSection, setShowInfoSection] = useState(false);
   useEffect(() => {
     if (resetInlineFilterToken > 0) {
       setInlineFilter(null);
@@ -1763,6 +1764,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       setCategoryDrilldown(null);
       setExpandedCategoryIds([]);
       dateFilter?.setPeriod('today');
+      setShowInfoSection(false);
       mainScrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1975,20 +1977,27 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     metricRightAmount
   );
 
-  const detailCashflowNoteProgress = useSharedValue(cashflowIsCashflow ? 1 : 0);
+  const detailCashflowNoteProgress = useSharedValue(0);
   React.useEffect(() => {
-    detailCashflowNoteProgress.value = withTiming(cashflowIsCashflow ? 1 : 0, { duration: 220 });
-  }, [cashflowIsCashflow]);
+    if (activeVariant === 'classic') {
+      detailCashflowNoteProgress.value = withTiming(showInfoSection ? 1 : 0, { duration: 220 });
+    } else {
+      detailCashflowNoteProgress.value = withTiming(cashflowIsCashflow ? 1 : 0, { duration: 220 });
+    }
+  }, [cashflowIsCashflow, showInfoSection, activeVariant]);
 
   React.useEffect(() => {
-    setInlineFilter(null);
-    onInlineFilterChange?.(null);
-  }, [cashflowIsCashflow, onInlineFilterChange]);
+    if (activeVariant !== 'classic') {
+      setInlineFilter(null);
+      onInlineFilterChange?.(null);
+    }
+  }, [cashflowIsCashflow, onInlineFilterChange, activeVariant]);
 
-  const CASHFLOW_NOTE_H = 22;
+  const CASHFLOW_NOTE_H = activeVariant === 'classic' ? 54 : 22;
   const detailCashflowNoteStyle = useAnimatedStyle(() => ({
     height: detailCashflowNoteProgress.value * CASHFLOW_NOTE_H,
     opacity: detailCashflowNoteProgress.value,
+    overflow: 'hidden',
   }));
 
   // ── Category hierarchy for grouped view ──────────────────────────────────
@@ -2473,40 +2482,87 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             middleContent
           )}
 
-          {isDetailScreen && activeVariant === 'current' && (
+          {isDetailScreen && (activeVariant === 'current' || activeVariant === 'classic') && (
             <View
               style={{
                 backgroundColor: palette.card,
                 borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
-                borderColor: palette.borderSoft,
-                paddingTop: 16,
-                paddingBottom: 8,
-                paddingHorizontal: 18,
-                marginBottom: 24,
+                borderColor: activeVariant === 'classic' ? (palette.isDark ? palette.borderSoft : 'transparent') : palette.borderSoft,
+                paddingTop: activeVariant === 'classic' ? 12 : 16,
+                paddingBottom: activeVariant === 'classic' ? 12 : 8,
+                paddingHorizontal: activeVariant === 'classic' ? 16 : 18,
+                marginBottom: activeVariant === 'classic' ? 22 : 24,
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
-              {/* Row 1: Period switcher aligned with ticks bar edges */}
-              <View style={{ height: 28, width: TICK_CONTENT_W + 8, alignSelf: 'center', marginBottom: 0, marginTop: -4 }}>
-                <ActivityPeriodHeader
-                  period={dateFilter?.period === 'today' ? 'day' : dateFilter?.period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
-                  periodLabel={
-                    inlineFilter === 'in'
-                      ? `${cashflowIsCashflow ? 'Inflow' : 'Income'} · ${activityPeriodLabel}`
-                      : inlineFilter === 'out'
-                      ? `${cashflowIsCashflow ? 'Outflow' : 'Expenses'} · ${activityPeriodLabel}`
-                      : activityPeriodLabel
-                  }
-                  goPrev={() => dateFilter?.navigatePrevious()}
-                  goNext={() => dateFilter?.navigateNext()}
-                  canGoNext={dateFilter?.canNavigateNext}
-                  setShowPeriodSheet={() => setShowPeriodSheet(true)}
-                  palette={palette}
-                  height={28}
-                  noBackground={true}
-                  showArrowBorders={true}
-                />
-              </View>
+              {activeVariant === 'classic' ? (
+                /* Row 1: Period Switcher & Info Button for Classic */
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12,
+                  marginLeft: -4,
+                  marginRight: -8,
+                }}>
+                  <View style={{ flex: 1, marginRight: 4 }}>
+                    <ActivityPeriodHeader
+                      period={dateFilter?.period === 'today' ? 'day' : dateFilter?.period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
+                      periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
+                      goPrev={() => dateFilter?.navigatePrevious()}
+                      goNext={() => dateFilter?.navigateNext()}
+                      canGoNext={dateFilter?.canNavigateNext}
+                      setShowPeriodSheet={() => setShowPeriodSheet(true)}
+                      palette={palette}
+                      height={32}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => setShowInfoSection(!showInfoSection)}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: showInfoSection ? (palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)') : 'transparent',
+                    }}
+                  >
+                    <AppIcon
+                      name="info"
+                      size={16}
+                      color={showInfoSection ? palette.brand : palette.textMuted}
+                      strokeWidth={showInfoSection ? 2.4 : 1.8}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                /* Row 1: Period switcher aligned with ticks bar edges for Current */
+                <View style={{ height: 28, width: TICK_CONTENT_W + 8, alignSelf: 'center', marginBottom: 0, marginTop: -4 }}>
+                  <ActivityPeriodHeader
+                    period={dateFilter?.period === 'today' ? 'day' : dateFilter?.period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
+                    periodLabel={
+                      inlineFilter === 'in'
+                        ? `${cashflowIsCashflow ? 'Inflow' : 'Income'} · ${activityPeriodLabel}`
+                        : inlineFilter === 'out'
+                        ? `${cashflowIsCashflow ? 'Outflow' : 'Expenses'} · ${activityPeriodLabel}`
+                        : activityPeriodLabel
+                    }
+                    goPrev={() => dateFilter?.navigatePrevious()}
+                    goNext={() => dateFilter?.navigateNext()}
+                    canGoNext={dateFilter?.canNavigateNext}
+                    setShowPeriodSheet={() => setShowPeriodSheet(true)}
+                    palette={palette}
+                    height={28}
+                    noBackground={true}
+                    showArrowBorders={true}
+                  />
+                </View>
+              )}
 
               {/* Row 3: Ticks and Values */}
               <View style={{ paddingBottom: 0 }}>
@@ -2596,49 +2652,80 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   );
                 })()}
 
-                {/* Subtle dashed line above Cashflow Toggle */}
-                <View
-                  style={{
-                    borderBottomWidth: 1,
-                    borderColor: palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                    borderStyle: 'dashed',
-                    height: 1,
-                    marginTop: 8,
-                    marginHorizontal: -18,
-                  }}
-                />
+                {activeVariant === 'classic' ? (
+                  /* Cashflow info note / switch section for Classic */
+                  <Animated.View style={detailCashflowNoteStyle}>
+                    <View style={{ height: 1, backgroundColor: palette.divider, marginTop: 6, marginBottom: 6 }} />
 
-                {/* Cashflow Toggle (Shifted below values with reduced size) */}
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 8, marginBottom: 0 }}>
-                  <TouchableOpacity
-                    activeOpacity={0.75}
-                    onPress={() => setCashflowIsCashflow(!cashflowIsCashflow)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-                  >
-                    <Text style={{ fontSize: 11, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
-                      Cashflow
-                    </Text>
-                    <AppSwitch
-                      value={cashflowIsCashflow}
-                      onValueChange={(val) => setCashflowIsCashflow(val)}
-                      palette={palette}
-                      width={30}
-                      height={16}
-                      thumbSize={10}
-                      padding={3}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={{ fontSize: 13, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                        Cashflow Mode
+                      </Text>
+                      <AppSwitch
+                        value={cashflowIsCashflow}
+                        onValueChange={(val) => setCashflowIsCashflow(val)}
+                        palette={palette}
+                        width={36}
+                        height={20}
+                        thumbSize={14}
+                      />
+                    </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
+                      <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
+                        {HELP_TEXTS.cashflowNote}
+                      </Text>
+                    </View>
+                  </Animated.View>
+                ) : (
+                  /* Cashflow switch & note section for Current */
+                  <>
+                    {/* Subtle dashed line above Cashflow Toggle */}
+                    <View
+                      style={{
+                        borderBottomWidth: 1,
+                        borderColor: palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        borderStyle: 'dashed',
+                        height: 1,
+                        marginTop: 8,
+                        marginHorizontal: -18,
+                      }}
                     />
-                  </TouchableOpacity>
-                </View>
 
-                {/* Cashflow info note */}
-                <Animated.View style={detailCashflowNoteStyle}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 4 }}>
-                    <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
-                    <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
-                      {HELP_TEXTS.cashflowNote}
-                    </Text>
-                  </View>
-                </Animated.View>
+                    {/* Cashflow Toggle (Shifted below values with reduced size) */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 8, marginBottom: 0 }}>
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => setCashflowIsCashflow(!cashflowIsCashflow)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
+                          Cashflow
+                        </Text>
+                        <AppSwitch
+                          value={cashflowIsCashflow}
+                          onValueChange={(val) => setCashflowIsCashflow(val)}
+                          palette={palette}
+                          width={30}
+                          height={16}
+                          thumbSize={10}
+                          padding={3}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Cashflow info note */}
+                    <Animated.View style={detailCashflowNoteStyle}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 4 }}>
+                        <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
+                        <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
+                          {HELP_TEXTS.cashflowNote}
+                        </Text>
+                      </View>
+                    </Animated.View>
+                  </>
+                )}
               </View>
             </View>
           )}
@@ -2686,11 +2773,15 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           {/* ── Activity — list or category-grouped ── */}
           <View
             onLayout={(e) => { activitySectionY.current = e.nativeEvent.layout.y; }}
+<<<<<<< HEAD
             style={{
               marginBottom: 4,
               marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 8 : 28),
               minHeight: isDetailScreen ? Dimensions.get('window').height - 100 : undefined
             }}
+=======
+            style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 0 : 28) }}
+>>>>>>> main
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: accountId === 'all' ? 8 : 16 }}>
               {categoryDrilldown ? (
@@ -2915,6 +3006,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           hasNavBar={!isDetailScreen}
           hideLast30={isDetailScreen}
           onSelectPeriod={(nextPeriod: string, nextOffset: number) => {
+<<<<<<< HEAD
             const mappedPeriod = nextPeriod === 'day' ? 'today' : nextPeriod;
             // setPeriod first (it resets offset to 0 internally), then setOffset
             // so a non-zero offset (e.g. Yesterday = -1) isn't clobbered.
@@ -2922,6 +3014,23 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             if (nextOffset !== 0) {
               dateFilter?.setOffset(nextOffset);
             }
+=======
+            if (nextPeriod === 'last30') {
+              dateFilter?.setPeriod('last30');
+              dateFilter?.setOffset(0);
+              setShowPeriodSheet(false);
+              return;
+            }
+            if (nextPeriod === 'all') {
+              dateFilter?.setPeriod('all');
+              dateFilter?.setOffset(0);
+              setShowPeriodSheet(false);
+              return;
+            }
+            const mappedPeriod = nextPeriod === 'day' ? 'today' : nextPeriod;
+            dateFilter?.setPeriod(mappedPeriod as any);
+            dateFilter?.setOffset(nextOffset);
+>>>>>>> main
             setShowPeriodSheet(false);
           }}
           onApplyCustom={(fromStr: string, toStr: string) => {

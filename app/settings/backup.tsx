@@ -12,6 +12,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { exportBackup, importBackup, pickBackupFolder } from '../../services/backup';
 import { APP_LOCALE } from '../../lib/dateUtils';
 import { useAppDialog } from '../../components/ui/useAppDialog';
+import { STRINGS } from '../../lib/strings';
 
 const FREQUENCY_OPTIONS = [
   { label: 'Daily', days: 1 },
@@ -50,7 +51,7 @@ export default function BackupScreen() {
     : null;
   const lastAutoBackup = settings.lastAutoBackupAt
     ? new Date(settings.lastAutoBackupAt).toLocaleString(APP_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
-    : 'Never';
+    : STRINGS.backup.labels.lastAutoBackupNever;
   const folderDisplayPath = decodeSafUri(settings.autoBackupFolderUri);
 
   const warnColor = palette.isDark ? '#FBBF24' : '#92400E';
@@ -63,7 +64,7 @@ export default function BackupScreen() {
         updateSettings({ lastManualBackupAt: new Date().toISOString() }).catch(() => undefined);
       }
     } catch (e: any) {
-      showAlert('Export Failed', e?.message ?? 'Could not export backup.');
+      showAlert(STRINGS.backup.alerts.exportFailedTitle, e?.message ?? STRINGS.backup.alerts.exportFailedMessage);
     } finally {
       setExporting(false);
     }
@@ -71,9 +72,9 @@ export default function BackupScreen() {
 
   const handleImport = async () => {
     showConfirm({
-      title: 'Restore Backup',
-      message: 'This will replace all current data with the selected backup. You will need to restart the app to complete the restore.\n\nContinue?',
-      confirmLabel: 'Choose File',
+      title: STRINGS.backup.alerts.restoreConfirmTitle,
+      message: STRINGS.backup.alerts.restoreConfirmMessage,
+      confirmLabel: STRINGS.backup.alerts.restoreConfirmLabel,
       destructive: true,
       onConfirm: async () => {
         setImporting(true);
@@ -85,15 +86,15 @@ export default function BackupScreen() {
             // over the file we just restored. Close the app immediately so it
             // reopens with a fresh connection on the restored file.
             showConfirm({
-              title: 'Restore Complete',
-              message: 'Your backup has been restored. The app will now close — reopen it to load your restored data.',
-              confirmLabel: 'Close App',
+              title: STRINGS.backup.alerts.restoreCompleteTitle,
+              message: STRINGS.backup.alerts.restoreCompleteMessage,
+              confirmLabel: STRINGS.backup.alerts.restoreCompleteConfirmLabel,
               showCancel: false,
               onConfirm: () => BackHandler.exitApp()
             });
           }
         } catch (e: any) {
-          showAlert('Restore Failed', e?.message ?? 'Could not restore backup.');
+          showAlert(STRINGS.backup.alerts.restoreFailedTitle, e?.message ?? STRINGS.backup.alerts.restoreFailedMessage);
         } finally {
           setImporting(false);
         }
@@ -109,7 +110,7 @@ export default function BackupScreen() {
         updateSettings({ autoBackupFolderUri: uri, autoBackupEnabled: true, lastAutoBackupError: '' }).catch(() => undefined);
       }
     } catch (e: any) {
-      showAlert('Error', e?.message ?? 'Could not select folder.');
+      showAlert(STRINGS.backup.alerts.folderPickErrorTitle, e?.message ?? STRINGS.backup.alerts.folderPickErrorMessage);
     } finally {
       setPickingFolder(false);
     }
@@ -130,12 +131,12 @@ export default function BackupScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Manual backup */}
-        <SectionHeading label="Manual" palette={palette} />
+        <SectionHeading label={STRINGS.backup.labels.manualSection} palette={palette} />
         <View style={{ gap: SPACING.md, marginBottom: SPACING.xl }}>
           <ActionCard
             icon="upload"
-            title="Export Backup"
-            stat={lastManualBackup ? `Last export: ${lastManualBackup}` : undefined}
+            title={STRINGS.backup.labels.exportCardTitle}
+            stat={lastManualBackup ? `${STRINGS.backup.labels.exportLastPrefix} ${lastManualBackup}` : undefined}
             palette={palette}
             loading={exporting}
             onPress={handleExport}
@@ -143,9 +144,9 @@ export default function BackupScreen() {
           />
           <ActionCard
             icon="download"
-            title="Restore Backup"
-            stat={lastRestore ? `Last restore: ${lastRestore}` : undefined}
-            warn="Restoring replaces all current data."
+            title={STRINGS.backup.labels.restoreCardTitle}
+            stat={lastRestore ? `${STRINGS.backup.labels.restoreLastPrefix} ${lastRestore}` : undefined}
+            warn={STRINGS.backup.labels.restoreWarning}
             palette={palette}
             loading={importing}
             onPress={handleImport}
@@ -155,17 +156,17 @@ export default function BackupScreen() {
         </View>
 
         {/* Auto backup */}
-        <SectionHeading label="Auto Backup" palette={palette} />
+        <SectionHeading label={STRINGS.backup.labels.autoSection} palette={palette} />
         <View style={{ backgroundColor: palette.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: palette.border, overflow: 'hidden', marginBottom: SPACING.xl }}>
 
           {/* Enable toggle */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: CARD_PADDING, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.divider }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>Enable Auto Backup</Text>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>{STRINGS.backup.labels.enableAutoBackup}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
                 <AppIcon name="info" size={12} color={warnColor} strokeWidth={2} />
                 <Text style={{ fontSize: HOME_TEXT.caption, color: warnColor, fontWeight: FONT_WEIGHT.regular }}>
-                  Runs only when the app is open
+                  {STRINGS.backup.labels.autoBackupInfo}
                 </Text>
               </View>
             </View>
@@ -185,17 +186,17 @@ export default function BackupScreen() {
             style={{ paddingHorizontal: CARD_PADDING, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.divider }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: hasFolder ? 6 : 0 }}>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>Backup Folder</Text>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>{STRINGS.backup.labels.backupFolder}</Text>
               <AppIcon name="folder" size={18} color={hasFolder ? palette.brand : palette.textSoft} strokeWidth={1.8} />
             </View>
             {pickingFolder ? (
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>Picking folder…</Text>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>{STRINGS.backup.labels.folderPicking}</Text>
             ) : hasFolder ? (
               <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular, lineHeight: 17 }}>
                 {folderDisplayPath}
               </Text>
             ) : (
-              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>Not set — tap to choose</Text>
+              <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>{STRINGS.backup.labels.folderNotSet}</Text>
             )}
           </TouchableOpacity>
 
@@ -206,7 +207,7 @@ export default function BackupScreen() {
             onPress={() => setShowFreqPicker(true)}
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: CARD_PADDING, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.divider }}
           >
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>Backup Frequency</Text>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>{STRINGS.backup.labels.backupFrequency}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>{freqLabel}</Text>
               <AppIcon name="chevron-right" size={14} color={palette.textSoft} strokeWidth={2} />
@@ -220,7 +221,7 @@ export default function BackupScreen() {
             onPress={() => setShowKeepPicker(true)}
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: CARD_PADDING, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.divider }}
           >
-            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>Backups to Keep</Text>
+            <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>{STRINGS.backup.labels.backupsToKeep}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text style={{ fontSize: HOME_TEXT.body, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>{keepLabel}</Text>
               <AppIcon name="chevron-right" size={14} color={palette.textSoft} strokeWidth={2} />
@@ -230,7 +231,7 @@ export default function BackupScreen() {
           {/* Last auto backup */}
           <View style={{ paddingHorizontal: CARD_PADDING, paddingVertical: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>Last Auto Backup</Text>
+              <Text style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>{STRINGS.backup.labels.lastAutoBackup}</Text>
               <Text style={{ fontSize: HOME_TEXT.body, color: settings.lastAutoBackupAt ? palette.positive : palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>
                 {lastAutoBackup}
               </Text>
@@ -239,7 +240,7 @@ export default function BackupScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 5 }}>
                 <AppIcon name="info" size={12} color={warnColor} strokeWidth={2} style={{ marginTop: 1 }} />
                 <Text style={{ flex: 1, fontSize: HOME_TEXT.caption, color: warnColor, lineHeight: 17, fontWeight: FONT_WEIGHT.regular }}>
-                  Auto-backup failed because the selected folder is no longer accessible. Tap &quot;Backup Folder&quot; above to re-select it.
+                  {STRINGS.backup.alerts.autoBackupFailedMessage}
                 </Text>
               </View>
             )}
@@ -248,7 +249,7 @@ export default function BackupScreen() {
       </ScrollView>
 
       {showFreqPicker && (
-        <BottomSheet title="Backup Frequency" palette={palette} onClose={() => setShowFreqPicker(false)}>
+        <BottomSheet title={STRINGS.backup.labels.backupFrequency} palette={palette} onClose={() => setShowFreqPicker(false)}>
           {FREQUENCY_OPTIONS.map((o, i) => (
             <ChoiceRow
               key={o.days}
@@ -266,7 +267,7 @@ export default function BackupScreen() {
       )}
 
       {showKeepPicker && (
-        <BottomSheet title="Backups to Keep" palette={palette} onClose={() => setShowKeepPicker(false)}>
+        <BottomSheet title={STRINGS.backup.labels.backupsToKeep} palette={palette} onClose={() => setShowKeepPicker(false)}>
           {KEEP_OPTIONS.map((o, i) => (
             <ChoiceRow
               key={o.count}
