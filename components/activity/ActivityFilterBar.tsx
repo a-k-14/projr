@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   viewModeToggle: {
     flexDirection: 'row',
-    borderRadius: ACTIVITY_LAYOUT.chipRadius,
+    borderRadius: ACTIVITY_LAYOUT.groupCardRadius,
     borderWidth: 1,
     alignItems: 'center',
     overflow: 'hidden',

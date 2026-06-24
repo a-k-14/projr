@@ -22,14 +22,15 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
+  runOnJS,
   type SharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LedgerAccountHero, LedgerCashflowCard } from '../../components/account-detail/LedgerVariant';
+import { PulseAccountHero, PulseCashflowBar, PulseQuickActions } from '../../components/account-detail/PulseVariant';
 import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHeader';
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
-import { PulseAccountHero, PulseCashflowBar, PulseQuickActions } from '../../components/account-detail/PulseVariant';
-import { LedgerAccountHero, LedgerCashflowCard } from '../../components/account-detail/LedgerVariant';
 import { DateGroupedTransactionList, EmptyTransactions } from '../../components/DateGroupedTransactionList';
 import { CardSection, ScreenTitle } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -48,7 +49,6 @@ import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import {
   APP_LOCALE,
   formatDate,
-  getLast30DaysRange,
   toLocalDayEndISO,
   toLocalDayStartISO,
   toLocalMonthStartISO
@@ -69,10 +69,10 @@ import {
   getTxTypeConfig
 } from '../../lib/layoutTokens';
 import { safePush } from '../../lib/safePush';
-import { prefetchAccountTrend } from '../../lib/trendCache';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
+import { prefetchAccountTrend } from '../../lib/trendCache';
 import { useDateFilter } from '../../lib/useDateFilter';
 import { useSweep } from '../../lib/useSweep';
 import { useTransactionPress } from '../../lib/useTransactionPress';
@@ -141,7 +141,7 @@ const PERIOD_LABELS: Record<HomePeriodType, string> = {
 /** Compact list/category toggle — same as the one in ActivityFilterBar */
 function AccountViewModeToggle({ mode, palette, onChange }: { mode: AccountViewMode; palette: AppThemePalette; onChange: (m: AccountViewMode) => void }) {
   return (
-    <View style={{ flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: palette.borderSoft, backgroundColor: palette.states.activitySegmentedBg, overflow: 'hidden' }}>
+    <View style={{ flexDirection: 'row', borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.borderSoft, backgroundColor: palette.states.activitySegmentedBg, overflow: 'hidden' }}>
       {([{ key: 'date' as const, icon: 'list' }, { key: 'category' as const, icon: 'layout-grid' }]).map((item) => {
         const selected = mode === item.key;
         return (
@@ -616,7 +616,7 @@ function MoreShortcutCard({
 // chain (SCREEN_GUTTER each side + 14dp wallet-hero padding each side). Having these
 // as constants instead of useState+onLayout means the bar renders at the correct
 // width on the very first frame, with no "75% then snap to 100%" flash.
-const TICK_W = 2.3;
+const TICK_W = 2;
 const TICK_GAP = 4;
 const TICK_CONTAINER_W = Math.max(80, Dimensions.get('window').width - 2 * SCREEN_GUTTER - 2 * 14);
 const TICK_TOTAL = Math.floor((TICK_CONTAINER_W + TICK_GAP) / (TICK_W + TICK_GAP));
@@ -1691,6 +1691,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   isDetailScreen = false,
   activePoint = null,
   onApplyCustomRange,
+  onScrollYChange,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1737,6 +1738,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   isDetailScreen?: boolean;
   activePoint?: any;
   onApplyCustomRange?: (from: Date, to: Date) => void;
+  onScrollYChange?: (y: number) => void;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1764,7 +1766,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       mainScrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetInlineFilterToken, dateFilter]);
+  }, [resetInlineFilterToken]);
   // Activity view mode (list vs category grouped) — only used for individual account pages
   const [activityViewMode, setActivityViewMode] = useState<AccountViewMode>('date');
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
@@ -1774,7 +1776,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
   // Design-lab variant — only meaningful on the account-detail screen. Read at
   // top level so the variant flip re-renders the screen.
-  const designVariant = useDesignLabStore((s) => s.accountDetailVariant);
+  const designVariantRaw = useDesignLabStore((s) => s.accountDetailVariant);
+  const designVariant = __DEV__ ? designVariantRaw : 'current';
   const activeVariant: AccountDetailVariant = isDetailScreen ? designVariant : 'current';
   const todayDataCacheRef = useRef<{
     cashflow: CashflowSummary;
@@ -1857,6 +1860,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     const arr = verticalScrolls.value.slice();
     arr[pageIndex] = y;
     verticalScrolls.value = arr;
+    if (onScrollYChange) {
+      runOnJS(onScrollYChange)(y);
+    }
   });
 
   const from = dateFilter?.from || '';
@@ -1900,8 +1906,8 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     return [typeColor, darker];
   }, [account?.type, typeColor]);
 
-  const detailInflowColor = '#47ae79';
-  const detailOutflowColor = palette.isDark ? '#FB923C' : '#EA580C';
+  const detailInflowColor = palette.positive;
+  const detailOutflowColor = palette.negative;
 
   const isNegative = totalBalance < 0;
   const realBalanceFormatted = formatCurrency(Math.abs(totalBalance), currencySymbol);
@@ -1973,7 +1979,13 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   React.useEffect(() => {
     detailCashflowNoteProgress.value = withTiming(cashflowIsCashflow ? 1 : 0, { duration: 220 });
   }, [cashflowIsCashflow]);
-  const CASHFLOW_NOTE_H = 30;
+
+  React.useEffect(() => {
+    setInlineFilter(null);
+    onInlineFilterChange?.(null);
+  }, [cashflowIsCashflow, onInlineFilterChange]);
+
+  const CASHFLOW_NOTE_H = 22;
   const detailCashflowNoteStyle = useAnimatedStyle(() => ({
     height: detailCashflowNoteProgress.value * CASHFLOW_NOTE_H,
     opacity: detailCashflowNoteProgress.value,
@@ -2156,13 +2168,14 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     (kind: 'in' | 'out' | 'net') => {
       if (accountId !== 'all') {
         // Individual account: filter the Activity list inline and scroll to it.
-        const filter = kind === 'in' || kind === 'out' ? kind : null;
-        setInlineFilter(filter);
+        const targetFilter = kind === 'in' || kind === 'out' ? kind : null;
+        const newFilter = inlineFilter === targetFilter ? null : targetFilter;
+        setInlineFilter(newFilter);
         setActivityViewMode('date');
         setCategoryDrilldown(null);
-        onInlineFilterChange?.(filter);
+        onInlineFilterChange?.(newFilter);
         const targetY = lowerBlockOffsetY.current + activitySectionY.current - 10;
-        if (targetY > 0) {
+        if (newFilter !== null && targetY > 0) {
           mainScrollRef.current?.scrollTo({ y: targetY, animated: true });
         }
         return;
@@ -2184,7 +2197,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
         }
       });
     },
-    [accountId, cashflowIsCashflow, from, dateFilter, to, nav, onInlineFilterChange],
+    [accountId, inlineFilter, cashflowIsCashflow, from, dateFilter, to, nav, onInlineFilterChange],
   );
 
   const handleTransactionPress = useTransactionPress();
@@ -2257,32 +2270,18 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 backgroundColor: palette.card,
                 borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
-                borderColor: palette.isDark ? palette.borderSoft : 'transparent',
-                marginBottom: 24,
+                borderColor: palette.borderSoft,
+                marginBottom: 32,
                 position: 'relative',
                 overflow: 'hidden',
-                ...(palette.isDark ? {} : {
-                  elevation: 6,
-                  shadowColor: '#94A3B8',
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.13,
-                  shadowRadius: 10,
-                }),
               }}
             >
-              <View style={{ position: 'relative', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 }}>
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={[accountHeroDarkGradient[0], accountHeroDarkGradient[1]]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-                />
+              <View style={{ position: 'relative', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
                 {/* Balance Row */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
                   {/* Col 1: Icon */}
                   <View style={{
-                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    backgroundColor: typeMeta?.bg ?? `${typeColor}18`,
                     width: 42, height: 42,
                     borderRadius: HOME_RADIUS.chip,
                     alignItems: 'center', justifyContent: 'center',
@@ -2290,53 +2289,65 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                     <AppIcon
                       name={typeMeta?.icon ?? 'wallet'}
                       size={20}
-                      color={'rgba(255,255,255,0.90)'}
+                      color={typeColor}
                       strokeWidth={1.9}
                     />
                   </View>
-                  {/* Col 2: Name row 1, Balance row 2 */}
+                  {/* Col 2: Type label & Balance values */}
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.4 }}>
-                      Balance
+                    <Text style={{
+                      fontSize: 10,
+                      fontWeight: FONT_WEIGHT.heavy,
+                      color: palette.textSecondary,
+                      letterSpacing: 1.6,
+                      textTransform: 'uppercase',
+                      marginBottom: 2,
+                    }}>
+                      {accountTypeLabel}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                       {isNegative && !hideAmounts && (
-                        <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF', marginRight: 1 }}>
-                          -
-                        </Text>
+                        <Text style={{
+                          fontSize: 24,
+                          fontWeight: FONT_WEIGHT.regular,
+                          color: palette.text,
+                          marginRight: 2,
+                        }}>−</Text>
                       )}
                       {currencySymbol && !hideAmounts && (
-                        <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF', marginRight: 3 }}>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: FONT_WEIGHT.regular,
+                          color: palette.textSecondary,
+                          marginRight: 4,
+                        }}>
                           {currencySymbol}
                         </Text>
                       )}
-                      <Text style={{ fontSize: HOME_TEXT.heroCardValue - 1, fontWeight: FONT_WEIGHT.medium, color: '#FFFFFF' }}>
+                      <Text
+                        adjustsFontSizeToFit
+                        numberOfLines={1}
+                        style={{
+                          fontSize: 28,
+                          fontWeight: FONT_WEIGHT.regular,
+                          color: palette.text,
+                          letterSpacing: -0.5,
+                          fontVariant: ['tabular-nums'],
+                          lineHeight: 34,
+                        }}>
                         {currencySymbol && balanceInt.startsWith(currencySymbol) ? balanceInt.slice(currencySymbol.length) : balanceInt}
                       </Text>
                       {balanceDec && (
-                        <Text style={{ fontSize: HOME_TEXT.rowLabel, fontWeight: FONT_WEIGHT.medium, color: 'rgba(255,255,255,0.7)' }}>
+                        <Text style={{
+                          fontSize: 15,
+                          fontWeight: FONT_WEIGHT.regular,
+                          color: palette.textSecondary,
+                          fontVariant: ['tabular-nums'],
+                        }}>
                           {balanceDec}
                         </Text>
                       )}
                     </View>
-                  </View>
-                  {/* Col 3: Account Type Badge */}
-                  <View style={{
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderRadius: 8,
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    alignSelf: 'center',
-                  }}>
-                    <Text style={{
-                      fontSize: 10.5,
-                      fontWeight: FONT_WEIGHT.semibold,
-                      color: 'rgba(255,255,255,0.7)',
-                      letterSpacing: 0.3,
-                      textTransform: 'uppercase',
-                    }}>
-                      {accountTypeLabel}
-                    </Text>
                   </View>
                 </View>
 
@@ -2350,7 +2361,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                     prevDateStr = isNaN(prevD.getTime()) ? '' : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
                   }
                   const isPositive = diff > 0;
-                  const tooltipBg = palette.isDark ? '#1E293B' : '#F1F5F9'; // slate in dark, clean light gray in light
+                  const tooltipBg = palette.background;
                   const textMainColor = palette.text;
                   const textMutedColor = palette.textSecondary;
                   const dividerColor = palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
@@ -2358,7 +2369,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   return (
                     <View style={{
                       position: 'absolute',
-                      top: 12,
+                      top: 28,
                       alignSelf: 'center',
                       backgroundColor: tooltipBg,
                       borderRadius: 12,
@@ -2418,11 +2429,13 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                     </View>
                   );
                 })()}
-              </View>
 
-              {/* Chart Line container closer to edges */}
-              <View style={{ marginHorizontal: 0, marginBottom: 4, marginTop: -2 }}>
-                {middleContent}
+                {/* Chart Line container aligned with ticks */}
+                <View style={{ marginHorizontal: -16, alignItems: 'center', marginBottom: 8, marginTop: 4, overflow: 'visible' }}>
+                  <View style={{ width: TICK_CONTENT_W * 300 / 280, overflow: 'visible' }}>
+                    {middleContent}
+                  </View>
+                </View>
               </View>
             </View>
           ) : isDetailScreen && activeVariant === 'pulse' ? (
@@ -2467,50 +2480,38 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 borderRadius: HOME_RADIUS.card,
                 borderWidth: 1,
                 borderColor: palette.borderSoft,
-                paddingVertical: 18,
+                paddingTop: 16,
+                paddingBottom: 8,
                 paddingHorizontal: 18,
                 marginBottom: 24,
               }}
             >
-              {/* Row 1: Period switcher stretched wide */}
-              <View style={{ height: 32, marginBottom: 12 }}>
+              {/* Row 1: Period switcher aligned with ticks bar edges */}
+              <View style={{ height: 28, width: TICK_CONTENT_W + 8, alignSelf: 'center', marginBottom: 0, marginTop: -4 }}>
                 <ActivityPeriodHeader
                   period={dateFilter?.period === 'today' ? 'day' : dateFilter?.period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
-                  periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
+                  periodLabel={
+                    inlineFilter === 'in'
+                      ? `${cashflowIsCashflow ? 'Inflow' : 'Income'} · ${activityPeriodLabel}`
+                      : inlineFilter === 'out'
+                      ? `${cashflowIsCashflow ? 'Outflow' : 'Expenses'} · ${activityPeriodLabel}`
+                      : activityPeriodLabel
+                  }
                   goPrev={() => dateFilter?.navigatePrevious()}
                   goNext={() => dateFilter?.navigateNext()}
                   canGoNext={dateFilter?.canNavigateNext}
                   setShowPeriodSheet={() => setShowPeriodSheet(true)}
                   palette={palette}
-                  height={32}
+                  height={28}
+                  noBackground={true}
+                  showArrowBorders={true}
                 />
-              </View>
-
-              {/* Row 2: Cashflow Toggle (Today/Month Switch hidden) */}
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 16 }}>
-                <TouchableOpacity
-                  activeOpacity={0.75}
-                  onPress={() => setCashflowIsCashflow(!cashflowIsCashflow)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}
-                >
-                  <Text style={{ fontSize: HOME_TEXT.label, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
-                    Cashflow
-                  </Text>
-                  <AppSwitch
-                    value={cashflowIsCashflow}
-                    onValueChange={(val) => setCashflowIsCashflow(val)}
-                    palette={palette}
-                    width={36}
-                    height={20}
-                    thumbSize={14}
-                  />
-                </TouchableOpacity>
               </View>
 
               {/* Row 3: Ticks and Values */}
               <View style={{ paddingBottom: 0 }}>
                 {/* Speedometer sweep ticks */}
-                <View style={{ flexDirection: 'row', gap: TICK_GAP, marginBottom: 4, width: TICK_CONTENT_W, alignSelf: 'center' }}>
+                <View style={{ flexDirection: 'row', gap: TICK_GAP, marginTop: 12, marginBottom: 10, width: TICK_CONTENT_W, alignSelf: 'center' }}>
                   {Array.from({ length: TICK_TOTAL }).map((_, i) => (
                     <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
                   ))}
@@ -2539,7 +2540,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   const leftSign = metricLeftAmount < 0 ? '-' : '';
                   const rightSign = metricRightAmount < 0 ? '-' : '';
                   return (
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 0 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 0, width: TICK_CONTENT_W, alignSelf: 'center' }}>
                       <TouchableOpacity
                         delayPressIn={0}
                         activeOpacity={0.75}
@@ -2558,9 +2559,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                           </Text>
                         </View>
                         <AnimatedMetricValue style={leftSpringStyle}>
-                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.medium, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                             {hideAmounts ? '••••' : leftIsZero ? '—' : (
-                              <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
+                              <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
                             )}
                           </Text>
                         </AnimatedMetricValue>
@@ -2584,9 +2585,9 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                           />
                         </View>
                         <AnimatedMetricValue style={rightSpringStyle}>
-                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.semibold, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
+                          <Text style={{ fontSize: 15, fontWeight: FONT_WEIGHT.medium, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }}>
                             {hideAmounts ? '••••' : rightIsZero ? '—' : (
-                              <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
+                              <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
                             )}
                           </Text>
                         </AnimatedMetricValue>
@@ -2595,9 +2596,43 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                   );
                 })()}
 
+                {/* Subtle dashed line above Cashflow Toggle */}
+                <View
+                  style={{
+                    borderBottomWidth: 1,
+                    borderColor: palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                    borderStyle: 'dashed',
+                    height: 1,
+                    marginTop: 8,
+                    marginHorizontal: -18,
+                  }}
+                />
+
+                {/* Cashflow Toggle (Shifted below values with reduced size) */}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 8, marginBottom: 0 }}>
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => setCashflowIsCashflow(!cashflowIsCashflow)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted }}>
+                      Cashflow
+                    </Text>
+                    <AppSwitch
+                      value={cashflowIsCashflow}
+                      onValueChange={(val) => setCashflowIsCashflow(val)}
+                      palette={palette}
+                      width={30}
+                      height={16}
+                      thumbSize={10}
+                      padding={3}
+                    />
+                  </TouchableOpacity>
+                </View>
+
                 {/* Cashflow info note */}
                 <Animated.View style={detailCashflowNoteStyle}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 4 }}>
                     <AppIcon name="info" size={11} color={palette.textMuted} strokeWidth={1.8} />
                     <Text style={{ fontSize: HOME_TEXT.tiny + 1, color: palette.textMuted, letterSpacing: 0.1 }}>
                       {HELP_TEXTS.cashflowNote}
@@ -2651,7 +2686,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           {/* ── Activity — list or category-grouped ── */}
           <View
             onLayout={(e) => { activitySectionY.current = e.nativeEvent.layout.y; }}
-            style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 8 : 28) }}
+            style={{
+              marginBottom: 4,
+              marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 8 : 28),
+              minHeight: isDetailScreen ? Dimensions.get('window').height - 100 : undefined
+            }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: accountId === 'all' ? 8 : 16 }}>
               {categoryDrilldown ? (
@@ -2874,23 +2913,15 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           yearStart={settingsYearStart}
           palette={palette}
           hasNavBar={!isDetailScreen}
+          hideLast30={isDetailScreen}
           onSelectPeriod={(nextPeriod: string, nextOffset: number) => {
-            if (nextPeriod === 'last30') {
-              const r = getLast30DaysRange();
-              dateFilter?.setOffset(0);
-              onApplyCustomRange?.(new Date(r.from), new Date(r.to));
-              setShowPeriodSheet(false);
-              return;
-            }
-            if (nextPeriod === 'all') {
-              dateFilter?.setOffset(0);
-              onApplyCustomRange?.(new Date('2000-01-01T00:00:00'), new Date('2100-12-31T23:59:59'));
-              setShowPeriodSheet(false);
-              return;
-            }
             const mappedPeriod = nextPeriod === 'day' ? 'today' : nextPeriod;
-            dateFilter?.setOffset(nextOffset);
+            // setPeriod first (it resets offset to 0 internally), then setOffset
+            // so a non-zero offset (e.g. Yesterday = -1) isn't clobbered.
             dateFilter?.setPeriod(mappedPeriod as any);
+            if (nextOffset !== 0) {
+              dateFilter?.setOffset(nextOffset);
+            }
             setShowPeriodSheet(false);
           }}
           onApplyCustom={(fromStr: string, toStr: string) => {

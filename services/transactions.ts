@@ -58,13 +58,40 @@ function parseTags(tags?: string | null): string[] {
   return [];
 }
 
-export function rowToTransaction(row: typeof transactions.$inferSelect): Transaction {
+const transactionSelectColumns = {
+  id: transactions.id,
+  type: transactions.type,
+  amount: transactions.amount,
+  accountId: transactions.accountId,
+  splitGroupId: transactions.splitGroupId,
+  linkedAccountId: transactions.linkedAccountId,
+  loanId: transactions.loanId,
+  loanTransactionType: transactions.loanTransactionType,
+  depositId: transactions.depositId,
+  depositTransactionType: transactions.depositTransactionType,
+  categoryId: transactions.categoryId,
+  payee: transactions.payee,
+  tags: transactions.tags,
+  note: transactions.note,
+  receiptImageUris: transactions.receiptImageUris,
+  date: transactions.date,
+  transferPairId: transactions.transferPairId,
+  createdAt: transactions.createdAt,
+  splitGroupTotal: sql<number>`(
+    SELECT SUM(t2.amount)
+    FROM transactions t2
+    WHERE t2.split_group_id = transactions.split_group_id
+  )`.as('split_group_total'),
+};
+
+export function rowToTransaction(row: typeof transactions.$inferSelect & { splitGroupTotal?: number | null }): Transaction {
   return {
     id: row.id,
     type: row.type as Transaction['type'],
     amount: row.amount,
     accountId: row.accountId,
     splitGroupId: row.splitGroupId ?? undefined,
+    splitGroupTotal: row.splitGroupTotal ?? undefined,
     linkedAccountId: row.linkedAccountId ?? undefined,
     loanId: row.loanId ?? undefined,
     loanTransactionType: (row.loanTransactionType as Transaction['loanTransactionType']) ?? undefined,
@@ -151,7 +178,7 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
   }
 
   let query = db
-    .select()
+    .select(transactionSelectColumns)
     .from(transactions)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(transactions.date), desc(transactions.createdAt))
@@ -171,7 +198,7 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
 export async function getTransactionsByLoanIds(loanIds: string[]): Promise<Map<string, Transaction[]>> {
   if (loanIds.length === 0) return new Map();
   const rows = await db
-    .select()
+    .select(transactionSelectColumns)
     .from(transactions)
     .where(inArray(transactions.loanId, loanIds))
     .orderBy(desc(transactions.date), desc(transactions.createdAt));
@@ -188,7 +215,7 @@ export async function getTransactionsByLoanIds(loanIds: string[]): Promise<Map<s
 
 export async function getTransactionById(id: string): Promise<Transaction | null> {
   const rows = await db
-    .select()
+    .select(transactionSelectColumns)
     .from(transactions)
     .where(eq(transactions.id, id));
   return rows[0] ? rowToTransaction(rows[0]) : null;
@@ -484,7 +511,7 @@ export async function updateTransferTransaction(
 
 export async function getTransactionsBySplitGroup(splitGroupId: string): Promise<Transaction[]> {
   const rows = await db
-    .select()
+    .select(transactionSelectColumns)
     .from(transactions)
     .where(eq(transactions.splitGroupId, splitGroupId))
     .orderBy(desc(transactions.date), desc(transactions.createdAt));
@@ -493,7 +520,7 @@ export async function getTransactionsBySplitGroup(splitGroupId: string): Promise
 
 export async function getTransactionsByTransferPairId(transferPairId: string): Promise<Transaction[]> {
   const rows = await db
-    .select()
+    .select(transactionSelectColumns)
     .from(transactions)
     .where(eq(transactions.transferPairId, transferPairId));
   return rows.map(rowToTransaction);
@@ -714,6 +741,8 @@ export async function deleteTransaction(id: string, opts: { skipDepositCascade?:
       await tx.delete(transactions).where(eq(transactions.splitGroupId, existing.splitGroupId!));
       for (const item of group) {
         await tx.delete(auditLogs).where(and(eq(auditLogs.recordId, item.id), eq(auditLogs.tableName, 'transactions')));
+      }
+      for (const item of group) {
         await logAction(tx, 'delete', 'transactions', item.id, item, null);
       }
     });
@@ -805,3 +834,24 @@ export async function getRecentNotes(search?: string, limit = 10): Promise<strin
 
   return rows.map((r) => r.note as string);
 }
+
+export async function getSplitGroupTotals(splitGroupIds: string[]): Promise<Map<string, number>> {
+  if (splitGroupIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      splitGroupId: transactions.splitGroupId,
+      total: sql<number>`SUM(${transactions.amount})`
+    })
+    .from(transactions)
+    .where(inArray(transactions.splitGroupId, splitGroupIds))
+    .groupBy(transactions.splitGroupId);
+
+  const result = new Map<string, number>();
+  for (const row of rows) {
+    if (row.splitGroupId && row.total !== null && row.total !== undefined) {
+      result.set(row.splitGroupId, row.total);
+    }
+  }
+  return result;
+}
+

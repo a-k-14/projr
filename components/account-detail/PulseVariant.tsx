@@ -129,11 +129,11 @@ export function PulseAccountHero({
             {accountTypeLabel}
           </Text>
 
-          {/* Balance — sans, normal weight */}
+          {/* Balance — sans, regular weight */}
           <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
             {isNegative && !hideAmounts && (
               <Text style={{
-                fontSize: 30,
+                fontSize: 24,
                 fontWeight: FONT_WEIGHT.regular,
                 color: EDITORIAL_INK,
                 marginRight: 2,
@@ -141,7 +141,7 @@ export function PulseAccountHero({
             )}
             {currencySymbol && !hideAmounts && (
               <Text style={{
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FONT_WEIGHT.regular,
                 color: EDITORIAL_INK_MUTED,
                 marginRight: 4,
@@ -153,18 +153,18 @@ export function PulseAccountHero({
               adjustsFontSizeToFit
               numberOfLines={1}
               style={{
-                fontSize: 36,
+                fontSize: 28,
                 fontWeight: FONT_WEIGHT.regular,
                 color: EDITORIAL_INK,
-                letterSpacing: -0.8,
+                letterSpacing: -0.5,
                 fontVariant: ['tabular-nums'],
-                lineHeight: 40,
+                lineHeight: 34,
               }}>
               {balanceClean}
             </Text>
             {balanceDec && (
               <Text style={{
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FONT_WEIGHT.regular,
                 color: EDITORIAL_INK_MUTED,
                 fontVariant: ['tabular-nums'],
@@ -258,7 +258,7 @@ export function PulseAccountHero({
       })()}
 
       {/* Chart — 1px ink line, no fill, aligned closer to balance (marginBottom: 12) */}
-      <View style={{ marginTop: 0, marginHorizontal: 0, marginBottom: 12 }}>
+      <View style={{ marginTop: 8, marginHorizontal: 0, marginBottom: 12 }}>
         {middleContent}
       </View>
     </View>
@@ -379,7 +379,13 @@ export function PulseCashflowBar({
         <View style={{ flex: 1, minWidth: 0 }}>
           <ActivityPeriodHeader
             period={dateFilter?.period === 'today' ? 'day' : (dateFilter?.period as any)}
-            periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
+            periodLabel={
+              inlineFilter === 'in'
+                ? `${cashflowIsCashflow ? 'Inflow' : 'Income'} · ${activityPeriodLabel}`
+                : inlineFilter === 'out'
+                ? `${cashflowIsCashflow ? 'Outflow' : 'Expenses'} · ${activityPeriodLabel}`
+                : activityPeriodLabel
+            }
             goPrev={() => dateFilter?.navigatePrevious()}
             goNext={() => dateFilter?.navigateNext()}
             canGoNext={dateFilter?.canNavigateNext}

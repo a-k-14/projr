@@ -54,6 +54,8 @@ interface TrendLineChartProps {
   hideAreaFill?: boolean;
   /** Override the stroke width of the trend line (default ~2.4-2.8). */
   lineStrokeWidth?: number;
+  /** Horizontal padding inside the SVG viewBox coordinates to prevent dot clipping. */
+  paddingX?: number;
 }
 
 // ─── Monotone cubic spline helper ────────────────────────────────────────────
@@ -151,6 +153,7 @@ function TrendLineChartBase({
   hideInternalTooltip = false,
   hideAreaFill = false,
   lineStrokeWidth,
+  paddingX,
 }: TrendLineChartProps) {
   const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
   const chartWidthRef = useRef(Dimensions.get('window').width - 48);
@@ -195,7 +198,7 @@ function TrendLineChartBase({
 
   const VB_W = 300; // viewBox width
   const CHART_H = chartHeight;
-  const PAD_X = flatStyle ? 1.5 : 4; // viewBox units from SVG edges to line endpoints
+  const PAD_X = paddingX !== undefined ? paddingX : (flatStyle ? 0 : 4); // viewBox units from SVG edges to line endpoints
   // Vertical band the line occupies inside the viewBox. Breathing room top/bottom.
   // Used both for non-flat point mapping (val → y) and as the centerline for the
   // flat-line case below.
@@ -305,6 +308,8 @@ function TrendLineChartBase({
     // SVG spans the full card width without any wrapper fighting it.
     height: flatStyle ? undefined : CHART_H + 110,
     position: 'relative' as const,
+    width: '100%',
+    alignSelf: 'stretch' as const,
   } as const;
 
   // 1. Loading/Skeleton State — only the chart line area is a placeholder.
@@ -371,7 +376,7 @@ function TrendLineChartBase({
 
   // 3. Fully Rendered Interactive Chart State
   return (
-    <View style={[CARD_BASE, containerStyle]}>
+    <View style={[CARD_BASE, containerStyle, { width: '100%', alignSelf: 'stretch', overflow: 'visible' }]}>
       {activePointIndex !== null && points[activePointIndex] && !hideInternalTooltip && (() => {
         const activePoint = points[activePointIndex];
         const prevPoint = activePointIndex > 0 ? points[activePointIndex - 1] : null;
@@ -385,7 +390,7 @@ function TrendLineChartBase({
             : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
         }
         const isPositive = diff > 0;
-        const tooltipBg = palette.isDark ? '#1E293B' : '#F1F5F9'; // slate in dark, clean light gray in light
+        const tooltipBg = palette.background;
         const tooltipBorder = palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
         const textMainColor = palette.text;
         const textMutedColor = palette.textSecondary;
@@ -395,7 +400,7 @@ function TrendLineChartBase({
           <View
             style={{
               position: 'absolute',
-              top: 10,
+              top: 26,
               alignSelf: 'center',
               backgroundColor: tooltipBg,
               borderColor: tooltipBorder,
@@ -482,7 +487,7 @@ function TrendLineChartBase({
       )}
 
       {/* SVG Interactive Chart — 14px side padding, chartWidthRef updated without re-render */}
-      <View style={{ paddingHorizontal: flatStyle ? 0 : 10 }}>
+      <View style={{ paddingHorizontal: flatStyle ? 0 : 10, width: '100%', alignSelf: 'stretch', overflow: 'visible' }}>
         <View
           onLayout={(evt) => {
             chartWidthRef.current = evt.nativeEvent.layout.width || chartWidthRef.current;
@@ -509,10 +514,10 @@ function TrendLineChartBase({
             onInteractionStateChange?.(false);
             onActivePointChange?.(null);
           }}
-          style={{ height: CHART_H }}
+          style={{ height: CHART_H, width: '100%', alignSelf: 'stretch', overflow: 'visible' }}
         >
-          <Animated.View style={{ opacity: lineOpacity }}>
-            <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} style={{ pointerEvents: 'none', overflow: 'visible' }}>
+          <Animated.View style={{ opacity: lineOpacity, width: '100%', alignSelf: 'stretch', overflow: 'visible' }}>
+            <Svg width="100%" height={CHART_H} viewBox={`0 0 ${VB_W} ${CHART_H}`} preserveAspectRatio="none" style={{ pointerEvents: 'none', overflow: 'visible' }}>
               <Defs>
                 <LinearGradient id="reusableChartAreaGrad" x1="0" y1="0" x2="0" y2="1">
                   <Stop offset="0%" stopColor={strokeColor} stopOpacity={0.24} />

@@ -23,6 +23,7 @@ interface ActivityPeriodHeaderProps {
   /** When true, paint a subtle separator behind each arrow so they read as buttons. */
   arrowAccent?: boolean;
   noBackground?: boolean;
+  showArrowBorders?: boolean;
 }
 
 export function ActivityPeriodHeader({
@@ -36,6 +37,7 @@ export function ActivityPeriodHeader({
   largeArrows = false,
   height,
   noBackground = false,
+  showArrowBorders = false,
 }: ActivityPeriodHeaderProps) {
   const isDisabled = period === 'custom' || period === 'all' || period === 'last30';
 
@@ -96,14 +98,18 @@ export function ActivityPeriodHeader({
           onPressIn={() => { prevScale.value = withTiming(0.9, { duration: 80 }); }}
           onPressOut={() => { prevScale.value = withTiming(1, { duration: 120 }); }}
           hitSlop={prevArrowHitSlop}
+          style={{ paddingLeft: 4, paddingRight: 8, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' }}
         >
           <Animated.View
             style={[
               styles.periodArrowTouch,
               prevAnimStyle,
               {
-                width: 44,
-                height: 28,
+                width: showArrowBorders ? 26 : 44,
+                height: showArrowBorders ? 26 : 28,
+                borderWidth: showArrowBorders ? 1 : 0,
+                borderColor: showArrowBorders ? (isDisabled ? palette.divider : palette.borderSoft) : 'transparent',
+                borderRadius: showArrowBorders ? 8 : 0,
                 opacity: 1,
               }
             ]}
@@ -119,13 +125,13 @@ export function ActivityPeriodHeader({
         </Pressable>
 
         {/* Center — period label + down chevron */}
-        <View style={styles.periodCenter}>
+        <View style={[styles.periodCenter, { marginHorizontal: 8 }]}>
           <TouchableOpacity
             delayPressIn={0}
             onPress={() => setShowPeriodSheet(true)}
             style={styles.periodCenterTouch}
             activeOpacity={0.7}
-            hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            hitSlop={{ top: 12, bottom: 12, left: 0, right: 0 }}
           >
             <Text
               appWeight="medium"
@@ -153,14 +159,18 @@ export function ActivityPeriodHeader({
           onPressIn={() => { nextScale.value = withTiming(0.9, { duration: 80 }); }}
           onPressOut={() => { nextScale.value = withTiming(1, { duration: 120 }); }}
           hitSlop={nextArrowHitSlop}
+          style={{ paddingRight: 4, paddingLeft: 8, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' }}
         >
           <Animated.View
             style={[
               styles.periodArrowTouch,
               nextAnimStyle,
               {
-                width: 44,
-                height: 28,
+                width: showArrowBorders ? 26 : 44,
+                height: showArrowBorders ? 26 : 28,
+                borderWidth: showArrowBorders ? 1 : 0,
+                borderColor: showArrowBorders ? (!canGoNext ? palette.divider : palette.borderSoft) : 'transparent',
+                borderRadius: showArrowBorders ? 8 : 0,
                 opacity: 1,
               }
             ]}
@@ -195,7 +205,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    paddingHorizontal: 4,
   },
   periodArrowTouch: {
     alignItems: 'center',

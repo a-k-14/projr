@@ -1,7 +1,7 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InteractionManager, Modal, Pressable, TouchableOpacity, View } from 'react-native';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +22,7 @@ import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppBut
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { HeaderMoreButton, ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ScreenScaffold } from '../../components/ui/ScreenScaffold';
+import { SheetScrollTopButton } from '../../components/ui/SheetScrollTopButton';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { formatAccountDisplayName } from '../../lib/account-utils';
 import { formatDate, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
@@ -52,7 +53,8 @@ export default function AccountDetailScreen() {
   const currencySymbol = useUIStore((s) => s.settings.currencySymbol);
   const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
 
-  const designVariant = useDesignLabStore((s) => s.accountDetailVariant);
+  const designVariantRaw = useDesignLabStore((s) => s.accountDetailVariant);
+  const designVariant = __DEV__ ? designVariantRaw : 'current';
   const cycleDesignVariant = useDesignLabStore((s) => s.cycleAccountDetailVariant);
 
   const LEDGER_BG = palette.background;
@@ -167,7 +169,15 @@ export default function AccountDetailScreen() {
     panelProgress.value = withTiming(0, { duration: 220 });
   }, []);
 
-  const handleRegisterScrollTop = useCallback(() => { }, []);
+  const pageScrollTopRef = useRef<(() => void) | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const handleRegisterScrollTop = useCallback((id: string, fn: (() => void) | null) => {
+    pageScrollTopRef.current = fn;
+  }, []);
+
+  const handleScrollYChange = useCallback((y: number) => {
+    setShowScrollTop(y > 150);
+  }, []);
 
   const actionsAnimatedStyle = useAnimatedStyle(() => ({
     height: panelProgress.value * 56, // 36 height + 20 vertical padding
@@ -226,7 +236,8 @@ export default function AccountDetailScreen() {
       onActivePointChange={setActivePoint}
       hideInternalTooltip={true}
       lineStrokeWidth={1.8}
-      chartHeight={110}
+      chartHeight={100}
+      paddingX={10}
     />
   ), [trendPoints, palette, showCurrencySymbol, currencySymbol, lineColor, setChartInteracting, isLoadingTrend, setActivePoint]);
 
@@ -251,7 +262,7 @@ export default function AccountDetailScreen() {
       hideInternalTooltip={true}
       hideAreaFill={true}
       lineStrokeWidth={1.6}
-      chartHeight={120}
+      chartHeight={100}
     />
   ), [trendPoints, palette, showCurrencySymbol, currencySymbol, setChartInteracting, isLoadingTrend, setActivePoint]);
 
@@ -296,19 +307,19 @@ export default function AccountDetailScreen() {
                 title={formatAccountDisplayName(account.name, account.accountNumber)}
                 onBack={() => router.back()}
                 palette={palette}
-                onTitleLongPress={cycleDesignVariant}
+                onTitleLongPress={__DEV__ ? cycleDesignVariant : undefined}
                 backgroundColor={isEditorial ? LEDGER_BG : undefined}
                 titleColor={isEditorial ? LEDGER_INK : undefined}
                 iconColor={isEditorial ? LEDGER_INK : undefined}
                 titleAddon={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <HeaderResetButton
-                      visible={!!inlineFilter || dateFilter.period !== 'today'}
+                      visible={!!inlineFilter || dateFilter.period !== 'today' || dateFilter.offset !== 0}
                       onPress={() => { setInlineFilter(null); dateFilter.setPeriod('today'); setResetInlineFilterToken((t) => t + 1); }}
                       palette={palette}
                       isFocused={isFocused}
                     />
-                    {designVariant !== 'current' && (
+                    {__DEV__ && designVariant !== 'current' && (
                       <TouchableOpacity
                         delayPressIn={0}
                         onPress={cycleDesignVariant}
@@ -336,7 +347,13 @@ export default function AccountDetailScreen() {
                   </View>
                 }
                 rightAction={
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <SheetScrollTopButton
+                      visible={showScrollTop}
+                      onPress={() => pageScrollTopRef.current?.()}
+                      palette={palette}
+                      color={isEditorial ? LEDGER_INK : undefined}
+                    />
                     {/* Per Direction A, Pulse moves +Add to a floating FAB.
                         Ledger keeps it in the header (user constraint). */}
                     <TouchableOpacity
@@ -403,6 +420,7 @@ export default function AccountDetailScreen() {
         isDetailScreen={true}
         activePoint={activePoint}
         onApplyCustomRange={handleApplyCustomRange}
+        onScrollYChange={handleScrollYChange}
       />
 
       <Modal

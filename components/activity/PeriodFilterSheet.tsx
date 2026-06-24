@@ -32,6 +32,7 @@ interface PeriodFilterSheetProps {
   onApplyCustom: (from: string, to: string) => void;
   onClose: () => void;
   hasNavBar?: boolean;
+  hideLast30?: boolean;
 }
 
 /** Period selector shared by the Activity filter bar and the Export screen. */
@@ -46,6 +47,7 @@ export function PeriodFilterSheet({
   onApplyCustom,
   onClose,
   hasNavBar = true,
+  hideLast30 = false,
 }: PeriodFilterSheetProps) {
   const [pendingFrom, setPendingFrom] = useState<string | undefined>(customFrom);
   const [pendingTo, setPendingTo] = useState<string | undefined>(customTo);
@@ -111,16 +113,18 @@ export function PeriodFilterSheet({
         palette={palette}
         onPress={() => onSelectPeriod('month', 0)}
       />
-      <ChoiceRow
-        title="Last 30 Days"
-        subtitle={(() => {
-          const r = getLast30DaysRange();
-          return getPeriodNavLabel('custom', r.from, r.to);
-        })()}
-        selected={period === 'last30'}
-        palette={palette}
-        onPress={() => onSelectPeriod('last30', 0)}
-      />
+      {!hideLast30 && (
+        <ChoiceRow
+          title="Last 30 Days"
+          subtitle={(() => {
+            const r = getLast30DaysRange();
+            return getPeriodNavLabel('custom', r.from, r.to);
+          })()}
+          selected={period === 'last30'}
+          palette={palette}
+          onPress={() => onSelectPeriod('last30', 0)}
+        />
+      )}
       <ChoiceRow
         title="This Year"
         subtitle={rangeLabel('year', yearStart, 0)}

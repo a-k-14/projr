@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, TextInput, Keyboard } from 'react-native';
+import { View, ScrollView, TouchableOpacity, TextInput, Keyboard, BackHandler } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Text } from '@/components/ui/AppText';
@@ -62,6 +62,59 @@ export default function AssetFormScreen() {
       }
     }
   }, [id, assets]);
+
+  const asset = id ? assets.find((a) => a.id === id) : null;
+
+  const checkIsDirty = () => {
+    if (isEditing) {
+      if (!asset) return false;
+      const originalAmountStr = formatIndianNumberStr(String(asset.value));
+      return (
+        name !== asset.name ||
+        icon !== asset.icon ||
+        valueStr !== originalAmountStr ||
+        note !== (asset.note ?? '')
+      );
+    }
+    return name !== '' || icon !== '' || valueStr !== '' || note !== '';
+  };
+
+  const handleClose = () => {
+    if (checkIsDirty()) {
+      showConfirm({
+        title: 'Discard Changes',
+        message: 'Are you sure you want to discard your changes?',
+        confirmLabel: 'Discard',
+        onConfirm: () => {
+          router.back();
+        },
+      });
+      return;
+    }
+    router.back();
+  };
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (checkIsDirty()) {
+        showConfirm({
+          title: 'Discard Changes',
+          message: 'Are you sure you want to discard your changes?',
+          confirmLabel: 'Discard',
+          onConfirm: () => {
+            router.back();
+          },
+        });
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => {
+      subscription.remove();
+    };
+  }, [asset, name, icon, valueStr, note]);
 
   const handleSave = async () => {
     if (!name.trim() || Number(parseFormattedNumber(valueStr)) <= 0) {
@@ -135,7 +188,7 @@ export default function AssetFormScreen() {
         showBack
         titleSize={SCREEN_HEADER.titleSize}
         titleWeight={SCREEN_HEADER.titleWeight}
-        onBack={() => router.back()}
+        onBack={handleClose}
       />
 
       <ScrollView

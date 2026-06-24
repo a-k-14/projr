@@ -51,6 +51,7 @@ export interface Transaction {
   amount: number;
   accountId: string;
   splitGroupId?: string;
+  splitGroupTotal?: number;
   linkedAccountId?: string;
   loanId?: string;
   loanTransactionType?: LoanTransactionType;

@@ -136,7 +136,7 @@ export function LedgerAccountHero({
       <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
         {isNegative && !hideAmounts && (
           <Text style={{
-            fontSize: 40,
+            fontSize: 24,
             fontFamily: displayFamily,
             color: LEDGER_PALETTE.ink,
             marginRight: 2,
@@ -144,7 +144,7 @@ export function LedgerAccountHero({
         )}
         {currencySymbol && !hideAmounts && (
           <Text style={{
-            fontSize: 26,
+            fontSize: 16,
             fontFamily: displayFamily,
             color: LEDGER_PALETTE.inkMuted,
             marginRight: 4,
@@ -156,23 +156,24 @@ export function LedgerAccountHero({
           adjustsFontSizeToFit
           numberOfLines={1}
           style={{
-            fontSize: 48,
-            fontFamily: displayFamilyHeavy,
+            fontSize: 28,
+            fontFamily: displayFamily,
+            fontWeight: FONT_WEIGHT.medium,
             color: LEDGER_PALETTE.ink,
-            letterSpacing: -1.2,
+            letterSpacing: -0.6,
             // Tabular-nums via fontVariant doesn't work with custom font on
             // Android — Fraunces handles digits proportionally; we accept a
             // tiny jiggle for the editorial look.
-            lineHeight: 52,
+            lineHeight: 34,
           }}>
           {balanceClean}
         </Text>
         {balanceDec && (
           <Text style={{
-            fontSize: 22,
+            fontSize: 15,
             fontFamily: displayFamily,
             color: LEDGER_PALETTE.inkMuted,
-            lineHeight: 26,
+            lineHeight: 19,
           }}>
             {balanceDec}
           </Text>
@@ -180,7 +181,7 @@ export function LedgerAccountHero({
       </View>
 
       {/* Chart — 1px ink line, no fill. Provided by parent. */}
-      <View style={{ marginTop: 6, marginHorizontal: -SCREEN_GUTTER + 4 }}>
+      <View style={{ marginTop: 12, marginHorizontal: -SCREEN_GUTTER + 4 }}>
         {middleContent}
       </View>
 
@@ -320,7 +321,13 @@ export function LedgerCashflowCard({
         <View style={{ flex: 1, minWidth: 0 }}>
           <ActivityPeriodHeader
             period={dateFilter?.period === 'today' ? 'day' : (dateFilter?.period as any)}
-            periodLabel={inlineFilter === 'in' ? `Income · ${activityPeriodLabel}` : inlineFilter === 'out' ? `Expenses · ${activityPeriodLabel}` : activityPeriodLabel}
+            periodLabel={
+              inlineFilter === 'in'
+                ? `${cashflowIsCashflow ? 'Inflow' : 'Income'} · ${activityPeriodLabel}`
+                : inlineFilter === 'out'
+                ? `${cashflowIsCashflow ? 'Outflow' : 'Expenses'} · ${activityPeriodLabel}`
+                : activityPeriodLabel
+            }
             goPrev={() => dateFilter?.navigatePrevious()}
             goNext={() => dateFilter?.navigateNext()}
             canGoNext={dateFilter?.canNavigateNext}

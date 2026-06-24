@@ -1247,6 +1247,7 @@ export default function ActivityScreen() {
           }
           showAmountSign={false}
           useTypeAmountColor
+          noteNumberOfLines={1}
           onPress={handleTransactionPress}
           style={{
             marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,

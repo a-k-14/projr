@@ -98,9 +98,9 @@ export function GlobalNotice() {
       }),
     ]).start();
 
-    const timer = setTimeout(close, AUTO_DISMISS_MS);
+    const timer = setTimeout(close, tone === 'info' ? 1500 : 4000);
     return () => clearTimeout(timer);
-  }, [message, opacity, translateY, close]);
+  }, [message, opacity, translateY, close, tone]);
 
   if (!rendered) return null;
 
@@ -111,7 +111,7 @@ export function GlobalNotice() {
       {...panResponder.panHandlers}
       style={{
         position: 'absolute',
-        top: insets.top + 8,
+        top: insets.top + 16,
         left: 16,
         right: 16,
         opacity,

@@ -15,10 +15,12 @@ export function SheetScrollTopButton({
   visible,
   onPress,
   palette,
+  color,
 }: {
   visible: boolean;
   onPress: () => void;
   palette: AppThemePalette;
+  color?: string;
 }) {
   const opacity = useSharedValue(visible ? 1 : 0);
   const scale = useSharedValue(visible ? 1 : 0.8);
@@ -69,7 +71,7 @@ export function SheetScrollTopButton({
         onPress={onPress}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <AppIcon name="arrow-up-circle" size={20} color={palette.brand} strokeWidth={2} />
+        <AppIcon name="arrow-up-circle" size={20} color={color ?? palette.brand} strokeWidth={2} />
       </TouchableOpacity>
     </Animated.View>
   );

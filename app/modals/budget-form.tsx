@@ -2,7 +2,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Keyboard, ScrollView, View, TouchableOpacity, Pressable, TextInput } from 'react-native';
+import { Keyboard, ScrollView, View, TouchableOpacity, Pressable, TextInput, BackHandler } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthSheet, formatBudgetMonthLabel } from '../../components/budget-ui';
@@ -95,7 +95,68 @@ export default function BudgetFormModal() {
     return subCategoryIds.length === subCatsOfParent.length;
   }, [subCategoryIds, subCatsOfParent]);
 
+  const checkIsDirty = () => {
+    if (editingBudget) {
+      const originalAmountStr = formatIndianNumberStr(String(editingBudget.amount));
+      const originalSubIds = editingBudget.subCategoryIds || null;
+      const subIdsChanged = JSON.stringify(subCategoryIds) !== JSON.stringify(originalSubIds);
+      return (
+        amountStr !== originalAmountStr ||
+        categoryId !== editingBudget.categoryId ||
+        subIdsChanged ||
+        startMonth !== editingBudget.startDate ||
+        repeat !== editingBudget.repeat
+      );
+    }
+    const initialMonth = month || toLocalMonthStartISO(new Date().getFullYear(), new Date().getMonth());
+    return (
+      amountStr !== '' ||
+      categoryId !== '' ||
+      subCategoryIds !== null ||
+      startMonth !== initialMonth ||
+      repeat !== true
+    );
+  };
 
+  const handleClose = () => {
+    if (checkIsDirty()) {
+      showConfirm({
+        title: 'Discard Changes',
+        message: 'Are you sure you want to discard your changes?',
+        confirmLabel: 'Discard',
+        onConfirm: () => {
+          resetDraft();
+          router.back();
+        },
+      });
+      return;
+    }
+    resetDraft();
+    router.back();
+  };
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (checkIsDirty()) {
+        showConfirm({
+          title: 'Discard Changes',
+          message: 'Are you sure you want to discard your changes?',
+          confirmLabel: 'Discard',
+          onConfirm: () => {
+            resetDraft();
+            router.back();
+          },
+        });
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => {
+      subscription.remove();
+    };
+  }, [editingBudget, amountStr, categoryId, subCategoryIds, startMonth, repeat, month]);
 
   const openMonthPicker = () => {
     Keyboard.dismiss();
@@ -167,10 +228,7 @@ export default function BudgetFormModal() {
       <SafeAreaView edges={['top']} style={{ backgroundColor: palette.background }}>
         <View style={{ height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
           <TouchableOpacity delayPressIn={0}
-            onPress={() => {
-              resetDraft();
-              router.back();
-            }}
+            onPress={handleClose}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{ marginRight: SCREEN_HEADER.iconTitleGap }}
           >

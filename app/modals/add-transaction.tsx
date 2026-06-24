@@ -24,7 +24,9 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withT
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
 import { ChoiceRow, FixedBottomActions } from '../../components/settings-ui';
-import { FilledButton, TextButton } from '../../components/ui/AppButton';
+import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppButton';
+import { HeaderMoreButton } from '../../components/ui/ScreenHeader';
+import { ActionStrip } from '../../components/ui/ActionStrip';
 import { AppChevron } from '../../components/ui/AppChevron';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -56,6 +58,7 @@ import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-share
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
 import { isEmojiIcon } from '../../lib/ui-format';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
+import { STRINGS } from '../../lib/strings';
 import { getLoanById } from '../../services/loans';
 import { createSplitTransactionGroup, createTransaction, deleteTransaction, getRecentNotes, getRecentPayees, getTransactionById, getTransactionsBySplitGroup, updateSplitTransactionGroup, updateTransferTransaction } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
@@ -238,9 +241,10 @@ export default function AddTransactionModal() {
     focusField,
     fromWidget
   } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string; focusField?: string; fromWidget?: string }>();
-  const isEditingDeposit = !!editDepositId && editDepositId !== '';
+  const [duplicateMode, setDuplicateMode] = useState(false);
+  const isEditingDeposit = !!editDepositId && editDepositId !== '' && !duplicateMode;
   const isClosingDeposit = !!closeDepositId && closeDepositId !== '' && !isEditingDeposit;
-  const isEditing = !!editId || isEditingDeposit;
+  const isEditing = (!!editId || isEditingDeposit) && !duplicateMode;
   const isLoanAddMore = !isEditing && !!routeLoanId && addMore === '1';
 
   const addTransaction = useTransactionsStore((s) => s.add);
@@ -273,6 +277,62 @@ export default function AddTransactionModal() {
   const [initialTx, setInitialTx] = useState<any | null>(null);
   const [initialDeposit, setInitialDeposit] = useState<any | null>(null);
   const [initialLoan, setInitialLoan] = useState<any | null>(null);
+
+  const [showActions, setShowActions] = useState(false);
+  const panelProgress = useSharedValue(0);
+  const highlightProgress = useSharedValue(0);
+
+  const toggleActions = () => {
+    const nextShow = !showActions;
+    setShowActions(nextShow);
+    panelProgress.value = withTiming(nextShow ? 1 : 0, { duration: 220 });
+  };
+  const closePanel = () => {
+    setShowActions(false);
+    panelProgress.value = withTiming(0, { duration: 220 });
+  };
+
+  const actionsAnimatedStyle = useAnimatedStyle(() => ({
+    height: panelProgress.value * 56,
+    opacity: panelProgress.value,
+  }));
+
+  const highlightStyle = useAnimatedStyle(() => ({
+    opacity: highlightProgress.value,
+  }));
+
+  const handleCloneTransaction = () => {
+    Keyboard.dismiss();
+    setDuplicateMode(true);
+    setEditingSplitGroupId('');
+    setEditingLoanId('');
+    setIsTransferEdit(false);
+    originalSplitGroupIdRef.current = '';
+    setReceiptImageUris([]);
+    setDate(new Date().toISOString());
+    closePanel();
+
+    useGlobalNotice.getState().show(STRINGS.transactionCloned, 'info');
+
+    // Trigger highlight sequence: fade in, hold, fade out
+    highlightProgress.value = withSequence(
+      withTiming(1, { duration: 200 }),
+      withTiming(1, { duration: 2000 }),
+      withTiming(0, { duration: 1500 })
+    );
+  };
+
+  // Refs to check dirty state of split transactions on discard check
+  const initialSplitTotalRef = useRef<string>('');
+  const initialSplitPayeeRef = useRef<string>('');
+  const initialSplitNoteRef = useRef<string>('');
+  const initialSplitTagsRef = useRef<string[]>([]);
+  const initialSplitReceiptsRef = useRef<string[]>([]);
+  const initialSplitRowsRef = useRef<Array<{ categoryId: string; amountStr: string }>>([]);
+
+  // Refs to check dirty state of deposit closing on discard check
+  const initialClosePrincipalRef = useRef<string>('');
+  const initialCloseInterestRef = useRef<string>('');
 
   const draftCategoryId = useTransactionDraftStore((s) => s.categoryId);
   const setDraftCategoryId = useTransactionDraftStore((s) => s.setCategoryId);
@@ -477,15 +537,15 @@ export default function AddTransactionModal() {
   // Clear category draft on mount for new transactions
   useEffect(() => {
     setDraftCategoryId('');
-    if (!isEditing) {
+    if (!isEditing && !duplicateMode) {
       setCategoryId('');
       clearSplitRows();
     }
-  }, [clearSplitRows, isEditing]);
+  }, [clearSplitRows, isEditing, duplicateMode]);
 
   // Sync state if deep-linked to a different transaction type while already mounted
   useEffect(() => {
-    if (initialType && !isEditing && !isClosingDeposit && !isLoanAddMore) {
+    if (initialType && !isEditing && !isClosingDeposit && !isLoanAddMore && !duplicateMode) {
       setType(initialType as TransactionType);
       // Reset form fields to ensure a clean state
       setAmountStr('');
@@ -496,7 +556,7 @@ export default function AddTransactionModal() {
       setReceiptImageUris([]);
       clearSplitRows();
     }
-  }, [initialType, isEditing, isClosingDeposit, isLoanAddMore, clearSplitRows]);
+  }, [initialType, isEditing, isClosingDeposit, isLoanAddMore, clearSplitRows, duplicateMode]);
 
   useEffect(() => {
     if (isSyncingCategory.current) {
@@ -581,8 +641,12 @@ export default function AddTransactionModal() {
         maturity = principal * Math.pow(1 + found.interestRate / 400, found.tenureMonths / 3);
       }
       const interest = Math.max(0, Math.round(maturity - principal));
-      setClosePrincipalStr(formatIndianNumberStr(String(Math.round(principal))));
-      setCloseInterestStr(interest > 0 ? formatIndianNumberStr(String(interest)) : '');
+      const pStr = formatIndianNumberStr(String(Math.round(principal)));
+      const iStr = interest > 0 ? formatIndianNumberStr(String(interest)) : '';
+      setClosePrincipalStr(pStr);
+      setCloseInterestStr(iStr);
+      initialClosePrincipalRef.current = pStr;
+      initialCloseInterestRef.current = iStr;
     }
 
     setAmountStr(formatIndianNumberStr(String(Math.round(found.principalAmount))));
@@ -648,25 +712,37 @@ export default function AddTransactionModal() {
           if (group.length > 0) {
             const first = group[0];
             const total = group.reduce((sum, item) => sum + item.amount, 0);
+            const totalStr = formatIndianNumberStr(String(total));
+            const payeeVal = first.payee ?? '';
+            const noteVal = first.note ?? '';
+            const tagsVal = first.tags ?? [];
+            const receiptsVal = first.receiptImageUris ?? [];
+
             setEditingSplitGroupId(tx.splitGroupId);
             originalSplitGroupIdRef.current = tx.splitGroupId;
             setType(first.type);
-            setAmountStr(formatIndianNumberStr(String(total)));
+            setAmountStr(totalStr);
             setAccountId(first.accountId);
             setDate(first.date);
-            setPayee(first.payee ?? '');
-            setSelectedTagIds(first.tags ?? []);
-            setNote(first.note ?? '');
-            setReceiptImageUris(first.receiptImageUris ?? []);
+            setPayee(payeeVal);
+            setSelectedTagIds(tagsVal);
+            setNote(noteVal);
+            setReceiptImageUris(receiptsVal);
             setCategoryId('');
-            setSplitRows(
-              group
-                .map((item) => ({
-                  id: `split-${splitIdSeed.current++}`,
-                  categoryId: item.categoryId ?? '',
-                  amountStr: formatIndianNumberStr(String(item.amount))
-                }))
-            );
+            const mappedRows = group.map((item) => ({
+              id: `split-${splitIdSeed.current++}`,
+              categoryId: item.categoryId ?? '',
+              amountStr: formatIndianNumberStr(String(item.amount))
+            }));
+            setSplitRows(mappedRows);
+
+            // Populate initial split references for checkIsDirty
+            initialSplitTotalRef.current = totalStr;
+            initialSplitPayeeRef.current = payeeVal;
+            initialSplitNoteRef.current = noteVal;
+            initialSplitTagsRef.current = tagsVal;
+            initialSplitReceiptsRef.current = receiptsVal;
+            initialSplitRowsRef.current = mappedRows.map(r => ({ categoryId: r.categoryId, amountStr: r.amountStr }));
           }
         }
 
@@ -723,7 +799,7 @@ export default function AddTransactionModal() {
   }, [clearSplitRows, editId, isEditing]);
 
   useEffect(() => {
-    if (isEditing || !routeLoanId || (settlement !== '1' && addMore !== '1')) return;
+    if (isEditing || duplicateMode || !routeLoanId || (settlement !== '1' && addMore !== '1')) return;
     const task = InteractionManager.runAfterInteractions(() => {
       getLoanById(routeLoanId).then((loan) => {
         if (!loan) return;
@@ -737,7 +813,7 @@ export default function AddTransactionModal() {
       });
     });
     return () => task.cancel();
-  }, [addMore, isEditing, routeLoanId, settlement]);
+  }, [addMore, isEditing, routeLoanId, settlement, duplicateMode]);
 
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const closePrincipal = parseFloat(parseFormattedNumber(closePrincipalStr)) || 0;
@@ -757,7 +833,16 @@ export default function AddTransactionModal() {
   );
 
   const checkIsDirty = () => {
-    if (isEditingDeposit || isClosingDeposit) {
+    if (isClosingDeposit) {
+      if (!initialDeposit) return false;
+      return (
+        closePrincipalStr !== initialClosePrincipalRef.current ||
+        closeInterestStr !== initialCloseInterestRef.current ||
+        note !== ''
+      );
+    }
+
+    if (isEditingDeposit) {
       if (!initialDeposit) return false;
       const originalAmountStr = formatIndianNumberStr(String(Math.round(initialDeposit.principalAmount)));
       return (
@@ -766,13 +851,25 @@ export default function AddTransactionModal() {
         depositTenure !== (initialDeposit.tenureMonths != null ? String(initialDeposit.tenureMonths) : '') ||
         depositInterest !== (initialDeposit.interestRate != null ? String(initialDeposit.interestRate) : '') ||
         amountStr !== originalAmountStr ||
-        note !== (isClosingDeposit ? '' : initialDeposit.note ?? '')
+        note !== (initialDeposit.note ?? '')
       );
     }
 
     if (isEditing) {
       if (!initialTx) return false;
       const originalAmountStr = formatIndianNumberStr(String(initialTx.amount));
+
+      if (isTransferEdit) {
+        const originalSourceId = initialTx.type === 'out' ? initialTx.accountId : (initialTx.linkedAccountId ?? '');
+        const originalDestId = initialTx.type === 'out' ? (initialTx.linkedAccountId ?? '') : initialTx.accountId;
+        return (
+          amountStr !== originalAmountStr ||
+          accountId !== originalSourceId ||
+          linkedAccountId !== originalDestId ||
+          date !== initialTx.date ||
+          note !== (initialTx.note ?? '')
+        );
+      }
 
       if (initialTx.type === 'loan' && initialTx.loanId) {
         if (!initialLoan) return false;
@@ -800,13 +897,32 @@ export default function AddTransactionModal() {
         }
       }
 
+      if (initialTx.splitGroupId) {
+        const splitRowsChanged = JSON.stringify(
+          splitRows.map(r => ({ categoryId: r.categoryId, amountStr: r.amountStr }))
+        ) !== JSON.stringify(initialSplitRowsRef.current);
+
+        return (
+          amountStr !== initialSplitTotalRef.current ||
+          accountId !== initialTx.accountId ||
+          date !== initialTx.date ||
+          payee !== initialSplitPayeeRef.current ||
+          note !== initialSplitNoteRef.current ||
+          JSON.stringify([...selectedTagIds].sort()) !== JSON.stringify([...initialSplitTagsRef.current].sort()) ||
+          JSON.stringify([...receiptImageUris].sort()) !== JSON.stringify([...initialSplitReceiptsRef.current].sort()) ||
+          splitRowsChanged
+        );
+      }
+
       return (
         amountStr !== originalAmountStr ||
         accountId !== initialTx.accountId ||
+        date !== initialTx.date ||
         categoryId !== (initialTx.categoryId ?? '') ||
         payee !== (initialTx.payee ?? '') ||
         note !== (initialTx.note ?? '') ||
-        JSON.stringify(selectedTagIds.sort()) !== JSON.stringify((initialTx.tags ?? []).sort())
+        JSON.stringify(selectedTagIds.sort()) !== JSON.stringify((initialTx.tags ?? []).sort()) ||
+        JSON.stringify(receiptImageUris.sort()) !== JSON.stringify((initialTx.receiptImageUris ?? []).sort())
       );
     }
 
@@ -817,7 +933,9 @@ export default function AddTransactionModal() {
       categoryId !== '' ||
       selectedTagIds.length > 0 ||
       receiptImageUris.length > 0 ||
-      splitRows.length > 0
+      splitRows.length > 0 ||
+      (type === 'loan' && personName !== '') ||
+      (type === 'deposit' && (depositName !== '' || depositBank !== '' || depositTenure !== '' || depositInterest !== ''))
     );
   };
 
@@ -1456,7 +1574,7 @@ export default function AddTransactionModal() {
     if (result.canceled) return;
     const nextUris = result.assets.map((asset) => asset.uri).filter(Boolean);
     if (nextUris.length) {
-      setReceiptImageUris((current) => [...current, ...nextUris]);
+      setReceiptImageUris([nextUris[0]]);
     }
   };
 
@@ -1564,8 +1682,24 @@ export default function AddTransactionModal() {
           <Text style={{ flex: 1, fontSize: SCREEN_HEADER.titleSize, fontWeight: SCREEN_HEADER.titleWeight, color: palette.text }}>
             {screenTitle}
           </Text>
+          {isEditing && (
+            <HeaderMoreButton
+              palette={palette}
+              isOpen={showActions}
+              onPress={toggleActions}
+            />
+          )}
         </View>
       </SafeAreaView>
+
+      <ActionStrip palette={palette} animatedStyle={actionsAnimatedStyle}>
+        <ActionChip
+          icon="copy"
+          label="Clone"
+          palette={palette}
+          onPress={handleCloneTransaction}
+        />
+      </ActionStrip>
 
       <ScrollView
         ref={scrollViewRef}
@@ -1673,8 +1807,16 @@ export default function AddTransactionModal() {
                   justifyContent: 'center',
                 }}
               >
-                <TouchableOpacity onPress={openDate} style={{ justifyContent: 'center' }}>
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
+                <TouchableOpacity onPress={openDate} style={{ justifyContent: 'center', position: 'relative' }}>
+                  <Animated.View style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                      backgroundColor: palette.brandSoft,
+                      borderRadius: HOME_RADIUS.chip,
+                    },
+                    highlightStyle
+                  ]} />
+                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, paddingHorizontal: 8, paddingVertical: 2 }}>
                     {dateFormatted}
                   </Text>
                 </TouchableOpacity>
@@ -1915,17 +2057,6 @@ export default function AddTransactionModal() {
 
                 <PremiumDivider palette={palette} />
 
-                {/* Receipts */}
-                <ReceiptSection
-                  palette={palette}
-                  receiptImageUris={receiptImageUris}
-                  onAdd={openReceiptPicker}
-                  onPreview={openReceiptPreview}
-                  onRemove={removeReceiptAtIndex}
-                />
-
-                <PremiumDivider palette={palette} />
-
                 {/* Tags */}
                 <TouchableOpacity
                   onPress={() => runAfterKeyboardDismiss(() => setShowTagSheet(true))}
@@ -1983,6 +2114,17 @@ export default function AddTransactionModal() {
                   leftIcon="file-text"
                   hideLabel={true}
                   placeholder="Notes"
+                />
+              </PremiumSection>
+
+              {/* Receipts */}
+              <PremiumSection title="" palette={palette}>
+                <ReceiptSection
+                  palette={palette}
+                  receiptImageUris={receiptImageUris}
+                  onAdd={openReceiptPicker}
+                  onPreview={openReceiptPreview}
+                  onRemove={removeReceiptAtIndex}
                 />
               </PremiumSection>
             </>
@@ -3292,7 +3434,7 @@ function ReceiptSection({
             }}
           >
             <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>
-              Receipts
+              Receipt
             </Text>
           </TouchableOpacity>
           <PressableScale
@@ -3313,68 +3455,48 @@ function ReceiptSection({
         </>
       ) : (
         <>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6, alignItems: 'center', paddingRight: 16, paddingLeft: 4 }}
-            style={{ flex: 1, height: '100%' }}
-          >
-            {receiptImageUris.map((uri, index) => (
-              <View key={`${uri}-${index}`} style={{ width: 54, height: 54, justifyContent: 'center', alignItems: 'center' }}>
-                <View style={{ width: 54, height: 54, position: 'relative' }}>
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    onPress={() => onPreview(index)}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: HOME_RADIUS.chip,
-                      borderWidth: 1,
-                      borderColor: palette.borderSoft,
-                      backgroundColor: palette.surface,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    delayPressIn={0}
-                    onPress={() => onRemove(index)}
-                    style={{
-                      position: 'absolute',
-                      top: 6,
-                      right: 6,
-                      width: 16,
-                      height: 16,
-                      borderRadius: 8,
-                      backgroundColor: palette.brand,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 10,
-                    }}
-                  >
-                    <AppIcon name="x" size={8} color="#FFFFFF" strokeWidth={2.8} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-
-          <PressableScale
-            onPress={onAdd}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: palette.borderSoft,
-              backgroundColor: 'transparent',
-            }}
-          >
-            <AppIcon name="plus" size={16} color={palette.text} strokeWidth={2.2} />
-          </PressableScale>
+          <View style={{ flex: 1, height: '100%', justifyContent: 'center' }}>
+            <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, fontWeight: FONT_WEIGHT.regular }}>
+              Receipt Attached
+            </Text>
+          </View>
+          <View style={{ width: 54, height: 54, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ width: 54, height: 54, position: 'relative' }}>
+              <TouchableOpacity
+                delayPressIn={0}
+                onPress={() => onPreview(0)}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: HOME_RADIUS.chip,
+                  borderWidth: 1,
+                  borderColor: palette.borderSoft,
+                  backgroundColor: palette.surface,
+                  overflow: 'hidden',
+                }}
+              >
+                <Image source={{ uri: receiptImageUris[0] }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                delayPressIn={0}
+                onPress={() => onRemove(0)}
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -4,
+                  width: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: palette.brand,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 10,
+                }}
+              >
+                <AppIcon name="x" size={10} color="#FFFFFF" strokeWidth={2.8} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </>
       )}
     </View>

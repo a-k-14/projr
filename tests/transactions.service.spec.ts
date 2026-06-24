@@ -31,7 +31,8 @@ jest.mock('expo-file-system/legacy', () => ({
 }));
 
 import * as FileSystem from 'expo-file-system/legacy';
-import { countByAccount, createTransaction, getTransactions, updateTransaction } from '../services/transactions.ts';
+import { countByAccount, createTransaction, getTransactions, updateTransaction, createSplitTransactionGroup, deleteTransaction } from '../services/transactions.ts';
+import { getAuditLogs } from '../services/audit.ts';
 
 beforeEach(() => {
   sqlite.exec(`
@@ -225,5 +226,50 @@ describe('transactions database integration', () => {
 
         const row = sqlite.prepare('SELECT receipt_image_uris FROM transactions WHERE id = ?').get(tx.id) as any;
         expect(JSON.parse(row.receipt_image_uris)).toEqual(receiptImageUris);
+    });
+
+    it('creates a split transaction group, fetches splitGroupTotal correctly, and logs deletes for all items on delete', async () => {
+        // Insert some categories since normalizeSplitGroupItems queries them:
+        sqlite.exec(`
+          CREATE TABLE IF NOT EXISTS categories (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            parent_id TEXT,
+            icon TEXT NOT NULL DEFAULT 'tag',
+            color TEXT NOT NULL DEFAULT '#6B7280',
+            type TEXT NOT NULL DEFAULT 'both',
+            system_key TEXT
+          );
+          INSERT INTO categories (id, name, type) VALUES ('cat1', 'Category 1', 'both');
+          INSERT INTO categories (id, name, type) VALUES ('cat2', 'Category 2', 'both');
+        `);
+
+        const splitGroup = await createSplitTransactionGroup({
+            type: 'out',
+            accountId: 'acc1',
+            date: '2024-01-02T12:00:00.000Z',
+            items: [
+                { categoryId: 'cat1', amount: 150 },
+                { categoryId: 'cat2', amount: 350 },
+            ]
+        });
+
+        expect(splitGroup).toHaveLength(2);
+        const groupTotal = 150 + 350;
+
+        // Verify splitGroupTotal projection works:
+        const list = await getTransactions();
+        expect(list).toHaveLength(2);
+        expect(list[0].splitGroupTotal).toBe(groupTotal);
+        expect(list[1].splitGroupTotal).toBe(groupTotal);
+
+        // Delete the split transaction
+        await deleteTransaction(splitGroup[0].id);
+
+        // Verify delete audit logs: there should be 2 delete logs (one for each split item)
+        const logs = await getAuditLogs();
+        const deleteLogs = logs.filter(l => l.action === 'delete');
+        expect(deleteLogs).toHaveLength(2);
+        expect(deleteLogs.map(l => l.recordId).sort()).toEqual(splitGroup.map(item => item.id).sort());
     });
 });

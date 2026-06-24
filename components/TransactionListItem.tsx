@@ -45,6 +45,8 @@ interface Props {
   hideIcon?: boolean;
   /** Optional flag to hide tags */
   hideTags?: boolean;
+  /** Optional: number of lines to display notes */
+  noteNumberOfLines?: number;
 }
 
 function TransactionListItemBase({
@@ -71,7 +73,8 @@ function TransactionListItemBase({
   dateText,
   hidePayee = false,
   hideIcon = false,
-  hideTags = false }: Props) {
+  hideTags = false,
+  noteNumberOfLines = 2 }: Props) {
   const tags = useCategoriesStore((state) => state.tags);
   const txTags = (tx.tags || [])
     .map((id) => tags.find((t) => t.id === id))
@@ -179,7 +182,14 @@ function TransactionListItemBase({
   const supportIcons = tx.splitGroupId || hasReceipt ? (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
       {tx.splitGroupId ? (
-        <AppIcon name="layers" size={12} color={palette.textSecondary} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          {tx.splitGroupTotal !== undefined ? (
+            <Text style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary }}>
+              {formatCurrency(Math.abs(tx.splitGroupTotal), sym)}
+            </Text>
+          ) : null}
+          <AppIcon name="layers" size={12} color={palette.textSecondary} />
+        </View>
       ) : null}
       {hasReceipt ? (
         <AppIcon name="image" size={12} color={palette.textSecondary} />
@@ -246,7 +256,7 @@ function TransactionListItemBase({
           <View style={{ gap: 6, marginTop: 2 }}>
             {noteLine ? (
               <Text
-                numberOfLines={2}
+                numberOfLines={noteNumberOfLines}
                 ellipsizeMode="tail"
                 style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary, lineHeight: 18 }}
               >
@@ -312,6 +322,7 @@ function getAmountPrefix(amount: number, impact: 'in' | 'out' | 'neutral', showA
 
 function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.tx !== next.tx) return false;
+  if (prev.tx.splitGroupTotal !== next.tx.splitGroupTotal) return false;
   if (prev.sym !== next.sym) return false;
   if (prev.palette !== next.palette) return false;
   if (prev.isLast !== next.isLast) return false;
@@ -335,6 +346,7 @@ function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.hidePayee !== next.hidePayee) return false;
   if (prev.hideIcon !== next.hideIcon) return false;
   if (prev.hideTags !== next.hideTags) return false;
+  if (prev.noteNumberOfLines !== next.noteNumberOfLines) return false;
   if (!isStyleEqual(prev.style, next.style)) return false;
   return true;
 }

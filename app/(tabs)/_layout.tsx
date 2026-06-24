@@ -173,7 +173,7 @@ function AppTabBar({
                 <View
                   style={{
                     paddingHorizontal: 4,
-                    borderRadius: HOME_RADIUS.button + 3,
+                    borderRadius: HOME_RADIUS.tab + 2,
                     backgroundColor: palette.card,
                   }}
                 >
@@ -181,7 +181,7 @@ function AppTabBar({
                     style={{
                       width: 54,
                       height: 44,
-                      borderRadius: HOME_RADIUS.button,
+                      borderRadius: HOME_RADIUS.tab - 1,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: palette.states.tabFabBg,

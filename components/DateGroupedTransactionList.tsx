@@ -67,6 +67,26 @@ export const TransactionDateHeader = React.memo(function TransactionDateHeader({
 /** One day's card: relative date header + a bordered surface listing that day's rows.
  *  Shared so the plain (ScrollView) list and the virtualized sheet list render
  *  identically — only the container differs (map vs FlatList item). */
+function areDateGroupCardPropsEqual(
+  prev: { group: DateGroup; row: DateGroupRowProps },
+  next: { group: DateGroup; row: DateGroupRowProps }
+) {
+  if (prev.group !== next.group) return false;
+  const pRow = prev.row;
+  const nRow = next.row;
+  return (
+    pRow.palette === nRow.palette &&
+    pRow.sym === nRow.sym &&
+    pRow.categoriesById === nRow.categoriesById &&
+    pRow.accountsById === nRow.accountsById &&
+    pRow.loansById === nRow.loansById &&
+    pRow.depositsById === nRow.depositsById &&
+    pRow.tagNamesById === nRow.tagNamesById &&
+    pRow.getCategoryFullDisplayName === nRow.getCategoryFullDisplayName &&
+    pRow.onTransactionPress === nRow.onTransactionPress
+  );
+}
+
 export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: { group: DateGroup; row: DateGroupRowProps }) {
   const {
     palette,
@@ -111,7 +131,7 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
       </View>
     </View>
   );
-});
+}, areDateGroupCardPropsEqual);
 
 export function EmptyTransactions({
   palette,
@@ -146,6 +166,23 @@ interface Props extends DateGroupRowProps {
   emptyStateTransparentDashed?: boolean;
 }
 
+function areDateGroupedTransactionListPropsEqual(prev: Props, next: Props) {
+  if (prev.transactions !== next.transactions) return false;
+  if (prev.emptyText !== next.emptyText) return false;
+  if (prev.emptyStateTransparentDashed !== next.emptyStateTransparentDashed) return false;
+  return (
+    prev.palette === next.palette &&
+    prev.sym === next.sym &&
+    prev.categoriesById === next.categoriesById &&
+    prev.accountsById === next.accountsById &&
+    prev.loansById === next.loansById &&
+    prev.depositsById === next.depositsById &&
+    prev.tagNamesById === next.tagNamesById &&
+    prev.getCategoryFullDisplayName === next.getCategoryFullDisplayName &&
+    prev.onTransactionPress === next.onTransactionPress
+  );
+}
+
 /** Plain (non-virtualized) list for use as content inside an existing ScrollView,
  *  e.g. the home/account "recent" list (capped, small). For large lists inside a
  *  bottom sheet use DateGroupedTransactionSheetList instead — it virtualizes. */
@@ -168,4 +205,4 @@ export const DateGroupedTransactionList = React.memo(function DateGroupedTransac
       ))}
     </View>
   );
-});
+}, areDateGroupedTransactionListPropsEqual);

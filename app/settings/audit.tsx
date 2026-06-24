@@ -20,7 +20,7 @@ import { CARD_TEXT, HOME_RADIUS } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useTransactionPress } from '../../lib/useTransactionPress';
 import { AuditLog, getAuditLogs } from '../../services/audit';
-import { getTransactions } from '../../services/transactions';
+import { getTransactions, getTransactionById, getSplitGroupTotals } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useAssetsStore } from '../../stores/useAssetsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
@@ -373,6 +373,7 @@ const AuditLogItem = React.memo(({
   getCategoryFullDisplayName,
   handleTransactionPress,
   showAlert,
+  splitGroupTotals,
 }: {
   item: AuditLog;
   index: number;
@@ -387,6 +388,7 @@ const AuditLogItem = React.memo(({
   getCategoryFullDisplayName: any;
   handleTransactionPress: any;
   showAlert: any;
+  splitGroupTotals: Record<string, number>;
 }) => {
   const dateKey = toLocalDateKey(item.timestamp);
   const prevDateKey = index > 0 ? toLocalDateKey(logs[index - 1].timestamp) : null;
@@ -410,6 +412,10 @@ const AuditLogItem = React.memo(({
   }
 
   if (!activeTx) return null;
+
+  if (activeTx.splitGroupId && splitGroupTotals) {
+    activeTx.splitGroupTotal = splitGroupTotals[activeTx.splitGroupId];
+  }
 
   // Resolve card properties
   let catName = activeTx.categoryId ? getCategoryFullDisplayName(activeTx.categoryId, ' › ') : undefined;
@@ -470,15 +476,38 @@ const AuditLogItem = React.memo(({
         if (originTx) {
           handleTransactionPress(originTx);
         } else {
-          showAlert('Error', 'Origin transaction not found.');
+          showAlert('Transaction Deleted', 'This loan transaction has been deleted and cannot be opened.');
         }
       } catch {
         showAlert('Error', 'Failed to retrieve loan transaction.');
       }
     } else if (item.tableName === 'assets') {
-      router.push({ pathname: '/modals/asset-form', params: { id: item.recordId } });
+      const assetExists = useAssetsStore.getState().assets.some(a => a.id === item.recordId);
+      if (assetExists) {
+        router.push({ pathname: '/modals/asset-form', params: { id: item.recordId } });
+      } else {
+        showAlert('Asset Deleted', 'This asset has been deleted and cannot be opened.');
+      }
     } else if (activeTx) {
-      handleTransactionPress(activeTx);
+      if (activeTx.depositId) {
+        const depositExists = depositsById.has(activeTx.depositId);
+        if (depositExists) {
+          handleTransactionPress(activeTx);
+        } else {
+          showAlert('Deposit Deleted', 'This deposit has been deleted and cannot be opened.');
+        }
+        return;
+      }
+      try {
+        const exists = await getTransactionById(activeTx.id);
+        if (exists) {
+          handleTransactionPress(exists);
+        } else {
+          showAlert('Transaction Deleted', 'This transaction has been deleted and cannot be opened.');
+        }
+      } catch {
+        showAlert('Error', 'Failed to verify transaction existence.');
+      }
     }
   };
 
@@ -501,9 +530,10 @@ const AuditLogItem = React.memo(({
       showAmountSign={false}
       paddingY={16}
       dateText={formatDate(activeTx.date)}
-      hidePayee={item.action === 'delete' ? false : (item.tableName === 'assets' ? false : true)}
-      hideIcon={item.action === 'delete' ? false : true}
-      hideTags={item.action === 'delete' ? false : true}
+      hidePayee={item.action !== 'delete'}
+      hideIcon={item.action !== 'delete'}
+      hideTags={item.action !== 'delete'}
+      hideNote={item.action !== 'delete'}
     />
   );
 
@@ -584,34 +614,28 @@ const AuditLogItem = React.memo(({
           </View>
 
           {/* Animated visual spring-scaling block for the entire card */}
-          <Animated.View
-            style={[
-              {
-                backgroundColor: palette.surface,
-                borderRadius: HOME_RADIUS.card,
-                borderWidth: 1,
-                borderColor: palette.border,
-                overflow: 'hidden',
-              },
-              animStyle,
-            ]}
+          <Pressable
+            disabled={item.action === 'delete'}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            onPress={handleCardPress}
           >
-            {/* Top section: pressable to route/trigger snapshot */}
-            <Pressable
-              disabled={item.action === 'delete'}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              onPress={handleCardPress}
+            <Animated.View
+              style={[
+                {
+                  backgroundColor: palette.surface,
+                  borderRadius: HOME_RADIUS.card,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                  overflow: 'hidden',
+                },
+                animStyle,
+              ]}
             >
               {cardContent}
-            </Pressable>
 
-            {/* Bottom section: details/diffs - pressable to scale entire card but does NOT route */}
-            {item.action === 'update' && changes.length > 0 && (
-              <Pressable
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-              >
+              {/* Bottom section: details/diffs */}
+              {item.action === 'update' && changes.length > 0 && (
                 <View
                   style={{
                     paddingHorizontal: 14,
@@ -714,9 +738,9 @@ const AuditLogItem = React.memo(({
                     );
                   })}
                 </View>
-              </Pressable>
-            )}
-          </Animated.View>
+              )}
+            </Animated.View>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -752,6 +776,7 @@ export default function AuditScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [splitGroupTotals, setSplitGroupTotals] = useState<Record<string, number>>({});
 
   // Scroll and Info Header Button States
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -824,6 +849,30 @@ export default function AuditScreen() {
         return false;
       });
 
+      // Batch load split group totals for split transactions present in the loaded logs
+      const splitGroupIds = new Set<string>();
+      filteredResults.forEach((log) => {
+        if (log.tableName === 'transactions') {
+          const parsedBefore: Transaction | null = log.payloadBefore ? JSON.parse(log.payloadBefore) : null;
+          const parsedAfter: Transaction | null = log.payloadAfter ? JSON.parse(log.payloadAfter) : null;
+          const activeTx = parsedAfter || parsedBefore;
+          if (activeTx?.splitGroupId) {
+            splitGroupIds.add(activeTx.splitGroupId);
+          }
+        }
+      });
+
+      if (splitGroupIds.size > 0) {
+        const totalsMap = await getSplitGroupTotals(Array.from(splitGroupIds));
+        setSplitGroupTotals((prev) => {
+          const next = { ...prev };
+          totalsMap.forEach((val, key) => {
+            next[key] = val;
+          });
+          return next;
+        });
+      }
+
       if (isRefresh) {
         setLogs(filteredResults);
         setOffset(0);
@@ -881,6 +930,7 @@ export default function AuditScreen() {
         getCategoryFullDisplayName={getCategoryFullDisplayName}
         handleTransactionPress={handleTransactionPress}
         showAlert={showAlert}
+        splitGroupTotals={splitGroupTotals}
       />
     );
   };

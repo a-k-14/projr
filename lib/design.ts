@@ -12,7 +12,7 @@ export const SHEET_GUTTER = 18;
 export const CARD_PADDING = 16;
 
 // ─── Master card radius — change this one value to restyle the whole app ──────
-export const APP_CARD_RADIUS = 16;
+export const APP_CARD_RADIUS = 14;
 
 export const RADIUS = {
   sm: 12,
