@@ -171,7 +171,7 @@ export default function AccountDetailScreen() {
 
   const pageScrollTopRef = useRef<(() => void) | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const handleRegisterScrollTop = useCallback((id: string, fn: (() => void) | null) => {
+  const handleRegisterScrollTop = useCallback((_id: string, fn: (() => void) | null) => {
     pageScrollTopRef.current = fn;
   }, []);
 

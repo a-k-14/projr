@@ -8,7 +8,6 @@ import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
 import { useGlobalNotice } from '../../stores/useGlobalNotice';
 
-const AUTO_DISMISS_MS = 6000;
 const ENTER_OFFSET = -24;
 const SWIPE_DISMISS_DISTANCE = 36;
 const SWIPE_DISMISS_VELOCITY = -0.5;

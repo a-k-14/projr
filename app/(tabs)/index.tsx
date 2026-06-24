@@ -1894,19 +1894,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const typeMeta = account ? ACCOUNT_TYPE_META[account.type as AccountType] : null;
   const typeColor = typeMeta?.color ?? palette.brand;
 
-  const accountHeroDarkGradient: [string, string] = useMemo(() => {
-    const accountType = account?.type;
-    if (!accountType || !typeColor.startsWith('#') || typeColor.length < 7) return ['#16192A', '#1A1E30'];
-    const r = parseInt(typeColor.slice(1, 3), 16);
-    const g = parseInt(typeColor.slice(3, 5), 16);
-    const b = parseInt(typeColor.slice(5, 7), 16);
-    const darkFactor = 0.68;
-    const dr = Math.round(r * darkFactor);
-    const dg = Math.round(g * darkFactor);
-    const db = Math.round(b * darkFactor);
-    const darker = `#${dr.toString(16).padStart(2, '0')}${dg.toString(16).padStart(2, '0')}${db.toString(16).padStart(2, '0')}`;
-    return [typeColor, darker];
-  }, [account?.type, typeColor]);
 
   const detailInflowColor = palette.positive;
   const detailOutflowColor = palette.negative;
@@ -2773,15 +2760,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           {/* ── Activity — list or category-grouped ── */}
           <View
             onLayout={(e) => { activitySectionY.current = e.nativeEvent.layout.y; }}
-<<<<<<< HEAD
             style={{
               marginBottom: 4,
               marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 8 : 28),
               minHeight: isDetailScreen ? Dimensions.get('window').height - 100 : undefined
             }}
-=======
-            style={{ marginBottom: 4, marginTop: accountId === 'all' ? 24 : (isDetailScreen ? 0 : 28) }}
->>>>>>> main
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: accountId === 'all' ? 8 : 16 }}>
               {categoryDrilldown ? (
@@ -3006,7 +2989,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
           hasNavBar={!isDetailScreen}
           hideLast30={isDetailScreen}
           onSelectPeriod={(nextPeriod: string, nextOffset: number) => {
-<<<<<<< HEAD
             const mappedPeriod = nextPeriod === 'day' ? 'today' : nextPeriod;
             // setPeriod first (it resets offset to 0 internally), then setOffset
             // so a non-zero offset (e.g. Yesterday = -1) isn't clobbered.
@@ -3014,23 +2996,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             if (nextOffset !== 0) {
               dateFilter?.setOffset(nextOffset);
             }
-=======
-            if (nextPeriod === 'last30') {
-              dateFilter?.setPeriod('last30');
-              dateFilter?.setOffset(0);
-              setShowPeriodSheet(false);
-              return;
-            }
-            if (nextPeriod === 'all') {
-              dateFilter?.setPeriod('all');
-              dateFilter?.setOffset(0);
-              setShowPeriodSheet(false);
-              return;
-            }
-            const mappedPeriod = nextPeriod === 'day' ? 'today' : nextPeriod;
-            dateFilter?.setPeriod(mappedPeriod as any);
-            dateFilter?.setOffset(nextOffset);
->>>>>>> main
             setShowPeriodSheet(false);
           }}
           onApplyCustom={(fromStr: string, toStr: string) => {

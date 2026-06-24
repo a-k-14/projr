@@ -2,7 +2,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { ScrollView, View, TouchableOpacity, Keyboard, Platform } from 'react-native';
+import { ScrollView, View, TouchableOpacity } from 'react-native';
 import { AnimatedCollapseCard, CollapseHandle } from '../../components/ui/AnimatedCollapseCard';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import {
@@ -107,7 +107,7 @@ export default function CategoryFormScreen() {
     if (view && scroll) {
       setTimeout(() => {
         view.measureLayout(
-          scroll,
+          scroll as any,
           (_x: number, y: number) => {
             scroll.scrollTo({ y: Math.max(0, y - 100), animated: true });
           },
@@ -126,7 +126,7 @@ export default function CategoryFormScreen() {
     if (view && scroll) {
       setTimeout(() => {
         view.measureLayout(
-          scroll,
+          scroll as any,
           (_x: number, y: number) => {
             scroll.scrollTo({ y: Math.max(0, y - 100), animated: true });
           },

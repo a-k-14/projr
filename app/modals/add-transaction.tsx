@@ -71,7 +71,6 @@ import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore'
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
-import { STRINGS } from '../../lib/strings';
 
 
 import type {

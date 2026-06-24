@@ -2,7 +2,7 @@ import { AppChevron } from '@/components/ui/AppChevron';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Text } from '@/components/ui/AppText';
 import { forwardRef, ReactNode, RefObject, useEffect, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, LayoutAnimation, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { Keyboard, LayoutAnimation, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARD_PADDING, RADIUS, SCREEN_GUTTER, SPACING, TYPE , FONT_WEIGHT} from '../lib/design';
 import { HOME_LAYOUT , HOME_RADIUS, HOME_TEXT, SCREEN_HEADER, FORM_TOKENS} from '../lib/layoutTokens';

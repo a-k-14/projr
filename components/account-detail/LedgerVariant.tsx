@@ -113,7 +113,7 @@ export function LedgerAccountHero({
   middleContent,
 }: LedgerHeroProps) {
   const LEDGER_PALETTE = useLedgerPalette();
-  const { displayFamily, displayFamilyHeavy } = useLedgerFonts();
+  const { displayFamily } = useLedgerFonts();
   const balanceClean = currencySymbol && balanceInt.startsWith(currencySymbol)
     ? balanceInt.slice(currencySymbol.length)
     : balanceInt;

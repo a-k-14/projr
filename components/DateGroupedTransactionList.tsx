@@ -198,18 +198,6 @@ export const DateGroupedTransactionList = React.memo(function DateGroupedTransac
 
   const groups = buildDateGroups(transactions);
 
-  const row = {
-    palette,
-    sym,
-    categoriesById,
-    accountsById,
-    loansById,
-    depositsById,
-    tagNamesById,
-    getCategoryFullDisplayName,
-    onTransactionPress,
-  };
-
   return (
     <View style={{ gap: HOME_SPACE.xxl }}>
       {groups.map((group) => (
