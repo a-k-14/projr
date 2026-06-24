@@ -57,3 +57,4 @@ build.log
 *.env
 credentials.json
 .credentials
+/.agents

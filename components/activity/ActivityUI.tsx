@@ -1,5 +1,4 @@
 import { AppIcon, isValidIcon } from '@/components/ui/AppIcon';
-import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { View } from 'react-native';
 import { HOME_RADIUS } from '../../lib/layoutTokens';

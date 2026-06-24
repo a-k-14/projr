@@ -2,6 +2,7 @@ import { db } from '../db/client';
 import { accounts, budget, categories, loans, settings, tags, transactions, deposits, persons, assets } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import type { Settings } from '../types';
+import * as SecureStore from 'expo-secure-store';
 
 const STARTER_DATA_SEED_STATE_KEY = 'starterDataSeedState';
 type StarterDataSeedState = 'seeded' | 'suppressed';
@@ -37,6 +38,9 @@ export async function getSettings(): Promise<Settings> {
     DEFAULT_SETTINGS.homeExcludedAccountIds,
   );
 
+  const biometricLockVal = await SecureStore.getItemAsync('biometricLock').catch(() => null);
+  const biometricLock = biometricLockVal !== null ? biometricLockVal === 'true' : DEFAULT_SETTINGS.biometricLock;
+
   return {
     defaultAccountId: map['defaultAccountId'] ?? DEFAULT_SETTINGS.defaultAccountId,
     lastUsedAccountId: map['lastUsedAccountId'] ?? DEFAULT_SETTINGS.lastUsedAccountId,
@@ -46,7 +50,7 @@ export async function getSettings(): Promise<Settings> {
     theme: (map['theme'] as Settings['theme']) ?? DEFAULT_SETTINGS.theme,
     yearStart: map['yearStart'] ? parseInt(map['yearStart']) : DEFAULT_SETTINGS.yearStart,
     cloudBackupEnabled: map['cloudBackupEnabled'] === 'true',
-    biometricLock: map['biometricLock'] === 'true',
+    biometricLock,
     homeAccountViewMode: map['homeAccountViewMode'] === 'list' ? 'list' : 'swipe',
     homeExcludedAccountIds,
     supabaseUserId: map['supabaseUserId'],
@@ -63,7 +67,11 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function updateSettings(data: Partial<Settings>): Promise<void> {
-  const updates = Object.entries(data).filter(([, value]) => value !== undefined);
+  if (data.biometricLock !== undefined) {
+    await SecureStore.setItemAsync('biometricLock', String(data.biometricLock)).catch(() => undefined);
+  }
+
+  const updates = Object.entries(data).filter(([key, value]) => value !== undefined && key !== 'biometricLock');
   if (updates.length === 0) return;
 
   await Promise.all(

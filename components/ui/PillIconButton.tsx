@@ -1,4 +1,3 @@
-import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { AppIcon, IconName } from './AppIcon';
 import { HOME_RADIUS } from '../../lib/layoutTokens';

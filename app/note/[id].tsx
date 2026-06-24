@@ -4,14 +4,14 @@ import { ScreenHeader, HeaderMoreButton } from '@/components/ui/ScreenHeader';
 import { ActionStrip } from '@/components/ui/ActionStrip';
 import { ActionChip } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
   ScrollView,
   TextInput,
-  TouchableOpacity,
   View,
+  Pressable,
 } from 'react-native';
 import { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -199,10 +199,10 @@ export default function NoteDetailScreen() {
           {/* Items */}
           {note.items.map((item) => (
             <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }}>
-              <TouchableOpacity
+              <Pressable
                 onPress={() => handleToggleItem(item)}
-                delayPressIn={0}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
                 <View style={{
                   width: 20, height: 20, borderRadius: HOME_RADIUS.small,
@@ -211,9 +211,9 @@ export default function NoteDetailScreen() {
                   backgroundColor: item.checked ? palette.brand : 'transparent',
                   alignItems: 'center', justifyContent: 'center',
                 }}>
-                  {item.checked && <AppIcon name="check" size={11} color="#fff" strokeWidth={2.5} />}
+                  {!!item.checked && <AppIcon name="check" size={11} color="#fff" strokeWidth={2.5} />}
                 </View>
-              </TouchableOpacity>
+              </Pressable>
               <TextInput
                 ref={(r) => {
                   itemRefs.current.set(item.id, r);
@@ -245,29 +245,28 @@ export default function NoteDetailScreen() {
                 blurOnSubmit={false}
                 textBreakStrategy="simple"
               />
-              <TouchableOpacity
+              <Pressable
                 onPress={() => handleDeleteItem(item)}
-                delayPressIn={0}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
                 <AppIcon name="x" size={17} color={palette.textSecondary} strokeWidth={2} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           ))}
 
           {/* Add Item button */}
-          <TouchableOpacity
+          <Pressable
             onPress={handleAddItem}
-            delayPressIn={0}
-            activeOpacity={0.7}
-            style={{
+            style={({ pressed }) => ({
               flexDirection: 'row',
               alignItems: 'center',
               gap: 10,
               marginTop: HOME_SPACE.sm,
               paddingVertical: 8,
               alignSelf: 'flex-start',
-            }}
+              opacity: pressed ? 0.7 : 1,
+            })}
           >
             <View style={{
               width: 20, height: 20, borderRadius: HOME_RADIUS.full,
@@ -279,7 +278,7 @@ export default function NoteDetailScreen() {
             <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.brand, fontWeight: FONT_WEIGHT.semibold }}>
               Add Item
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </ScrollView>
       </View>
 

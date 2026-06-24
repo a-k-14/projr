@@ -4,7 +4,6 @@
  * The progress bar is static (the hero ring carries the motion; animating every
  * row's bar at once was too busy). Tap feedback comes from the shared PressableScale.
  */
-import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from '../AppText';
 import { AppIcon } from '../AppIcon';

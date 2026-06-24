@@ -1,6 +1,6 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused } from '@react-navigation/native';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InteractionManager, Modal, Pressable, RefreshControl, TouchableOpacity, View } from 'react-native';
 import ReAnimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -379,11 +379,10 @@ export default function InsightsScreen() {
 
   useEffect(() => {
     if (!isFocused) return;
-    // Defer one frame so React commits + OS paints the chip highlight + "Updating…" mask
-    // BEFORE the SQLite queries + post-fetch re-render begin. setTimeout(…, 0) is more
-    // predictable on Android than InteractionManager for this case.
-    const id = setTimeout(() => loadData(), 0);
-    return () => clearTimeout(id);
+    const task = InteractionManager.runAfterInteractions(() => {
+      loadData();
+    });
+    return () => task.cancel();
   }, [loadData, isFocused, mutationVersion]);
 
   useEffect(() => {

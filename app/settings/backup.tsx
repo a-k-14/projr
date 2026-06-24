@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, BackHandler, ScrollView, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppSwitch } from '../../components/ui/AppSwitch';

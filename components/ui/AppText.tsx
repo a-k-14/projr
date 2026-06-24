@@ -1,4 +1,3 @@
-import React from 'react';
 import { FONT_WEIGHT } from "../../lib/design";
 import { Text as RNText, TextProps } from 'react-native';
 import Animated from 'react-native-reanimated';

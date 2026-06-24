@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ColorProp } from 'react-native-android-widget';
 import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 

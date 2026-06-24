@@ -5,7 +5,6 @@
  * stacked text block with primary "Remaining" value + secondary spent/budgeted line
  * + status pill. Ring fills via reanimated.
  */
-import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from '../AppText';

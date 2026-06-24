@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/AppText';
 import { BottomSheet } from './BottomSheet';

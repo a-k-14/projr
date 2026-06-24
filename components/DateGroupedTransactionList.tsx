@@ -20,6 +20,7 @@ export interface DateGroupRowProps {
   depositsById?: Map<string, { name: string; bankName?: string | null }>;
   /** Pass a Map from tag id → tag name to show tags on rows. */
   tagNamesById?: Map<string, string>;
+  tagsById?: Map<string, { id: string; name: string; color: string }>;
   getCategoryFullDisplayName?: (id: string, sep?: string) => string;
   onTransactionPress?: (tx: Transaction) => void;
 }
@@ -82,6 +83,7 @@ function areDateGroupCardPropsEqual(
     pRow.loansById === nRow.loansById &&
     pRow.depositsById === nRow.depositsById &&
     pRow.tagNamesById === nRow.tagNamesById &&
+    pRow.tagsById === nRow.tagsById &&
     pRow.getCategoryFullDisplayName === nRow.getCategoryFullDisplayName &&
     pRow.onTransactionPress === nRow.onTransactionPress
   );
@@ -96,6 +98,7 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
     loansById,
     depositsById,
     tagNamesById,
+    tagsById,
     getCategoryFullDisplayName,
     onTransactionPress,
   } = row;
@@ -123,9 +126,14 @@ export const DateGroupCard = React.memo(function DateGroupCard({ group, row }: {
                 ? tx.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined
                 : undefined
             }
+            txTags={
+              tagsById && tx.tags.length > 0
+                ? tx.tags.map((id) => tagsById.get(id)).filter((v): v is { id: string; name: string; color: string } => !!v)
+                : undefined
+            }
             showAmountSign={false}
             paddingY={14}
-            onPress={onTransactionPress ? () => onTransactionPress(tx) : undefined}
+            onPress={onTransactionPress}
           />
         ))}
       </View>
@@ -178,6 +186,7 @@ function areDateGroupedTransactionListPropsEqual(prev: Props, next: Props) {
     prev.loansById === next.loansById &&
     prev.depositsById === next.depositsById &&
     prev.tagNamesById === next.tagNamesById &&
+    prev.tagsById === next.tagsById &&
     prev.getCategoryFullDisplayName === next.getCategoryFullDisplayName &&
     prev.onTransactionPress === next.onTransactionPress
   );

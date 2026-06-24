@@ -1,4 +1,3 @@
-import React from 'react';
 import { View } from 'react-native';
 import Animated, { FadeInLeft, FadeInRight, FadeOutLeft, FadeOutRight, LinearTransition } from 'react-native-reanimated';
 import { Text } from '@/components/ui/AppText';

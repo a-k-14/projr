@@ -1227,31 +1227,26 @@ export default function AddTransactionModal() {
 
     isSubmittingRef.current = true;
 
-    // Every save path follows the same shape: close the modal immediately, run the
-    // mutation in the background, refresh dependent stores after, and surface any
-    // error via the root notice. This keeps the UI responsive even when the DB write or
-    // a subsequent reload takes a moment.
-    const runInBackground = (
+    // Every save path follows the same shape: await the mutation + store reloads
+    // BEFORE closing the screen, so the list/balance are already correct when the
+    // user lands back. SQLite writes are ~5ms and reloads ~30-50ms — imperceptible.
+    // Widget updates are non-critical and fire in the background after close.
+    const runMutationThenClose = async (
       work: () => Promise<unknown>,
       refresh?: { tx?: boolean; widgets?: boolean; accounts?: boolean },
     ) => {
-      (async () => {
-        try {
-          await work();
-          const tasks: Promise<unknown>[] = [];
-          if (refresh?.accounts !== false) tasks.push(refreshAccounts());
-          if (refresh?.tx) tasks.push(reloadTransactions());
-          await Promise.all(tasks);
-          // These background paths (splits, transfer edits, deposits, loans) write
-          // straight to the service layer, bypassing the store's own mutationVersion
-          // bump. Bump it now — after the DB-truth reload — so screens keyed on it
-          // (account detail, home hero) refresh too.
-          if (refresh?.tx) markTxMutated();
-          if (refresh?.widgets) updateAllReniWidgets().catch(() => undefined);
-        } catch (e) {
-          useGlobalNotice.getState().show(String(e));
-        }
-      })();
+      await work();
+      const tasks: Promise<unknown>[] = [];
+      if (refresh?.accounts !== false) tasks.push(refreshAccounts());
+      if (refresh?.tx) tasks.push(reloadTransactions());
+      await Promise.all(tasks);
+      // These paths (splits, transfer edits, deposits, loans) write straight to
+      // the service layer, bypassing the store's own mutationVersion bump. Bump
+      // it now — after the DB-truth reload — so screens keyed on it refresh too.
+      if (refresh?.tx) markTxMutated();
+      closeScreen(false);
+      // Widgets are non-critical — fire after the screen has closed.
+      if (refresh?.widgets) updateAllReniWidgets().catch(() => undefined);
     };
 
     try {
@@ -1277,10 +1272,8 @@ export default function AddTransactionModal() {
             date,
             note: note.trim() || undefined,
           };
-          closeScreenAndExecute(() => {
-            persistLastAccountEagerly();
-            runInBackground(() => closeDeposit(closeDepositId, payload), { tx: true, widgets: true });
-          }, false);
+          persistLastAccountEagerly();
+          await runMutationThenClose(() => closeDeposit(closeDepositId, payload), { tx: true, widgets: true });
           return;
         }
 
@@ -1323,10 +1316,8 @@ export default function AddTransactionModal() {
         const depositWork = isEditingDeposit && editDepositId
           ? () => depositsStore.update(editDepositId, depositPayload)
           : () => depositsStore.add(depositPayload);
-        closeScreenAndExecute(() => {
-          persistLastAccountEagerly();
-          runInBackground(depositWork, { tx: true, widgets: true });
-        }, false);
+        persistLastAccountEagerly();
+        await runMutationThenClose(depositWork, { tx: true, widgets: true });
         return;
       }
 
@@ -1367,11 +1358,9 @@ export default function AddTransactionModal() {
             // Convert single → split: drop the now-orphaned original row.
             if (isEditing && editId) await deleteTransaction(editId);
           };
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          runInBackground(splitWork, { tx: true, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        await runMutationThenClose(splitWork, { tx: true, widgets: true });
         return;
       }
 
@@ -1388,14 +1377,12 @@ export default function AddTransactionModal() {
         usableSplitRows.length === 0
       ) {
         const oldGroupMemberId = editId;
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          runInBackground(async () => {
-            await deleteTransaction(oldGroupMemberId);
-            await createTransaction({ ...data, splitGroupId: undefined });
-          }, { tx: true, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        await runMutationThenClose(async () => {
+          await deleteTransaction(oldGroupMemberId);
+          await createTransaction({ ...data, splitGroupId: undefined });
+        }, { tx: true, widgets: true });
         return;
       }
 
@@ -1411,11 +1398,9 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         };
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          runInBackground(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        await runMutationThenClose(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
         return;
       }
       if (type === 'loan' && isEditing && editId && loanEditMode === 'settlement' && editingLoanId) {
@@ -1430,11 +1415,9 @@ export default function AddTransactionModal() {
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
           date,
         };
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          runInBackground(() => updateLoanSettlement(txId, payload), { tx: true, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        await runMutationThenClose(() => updateLoanSettlement(txId, payload), { tx: true, widgets: true });
         return;
       }
       if (type === 'loan' && routeLoanId && settlement === '1') {
@@ -1447,23 +1430,19 @@ export default function AddTransactionModal() {
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
           date,
         };
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          // The transaction store already reloads transactions/accounts and bumps
-          // mutationVersion after commit, so avoid doing the same reads twice.
-          runInBackground(() => addTransaction(payload), { accounts: false, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        // The transaction store already reloads transactions/accounts and bumps
+        // mutationVersion after commit, so avoid doing the same reads twice.
+        await runMutationThenClose(() => addTransaction(payload), { accounts: false, widgets: true });
         return;
       }
       if (type === 'loan' && isLoanAddMore && routeLoanId) {
         const loanId = routeLoanId;
         const trimmedNote = note.trim();
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          runInBackground(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        await runMutationThenClose(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
         return;
       }
       if (type === 'loan') {
@@ -1476,11 +1455,9 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         };
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          runInBackground(() => addLoan(payload), { tx: true, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        await runMutationThenClose(() => addLoan(payload), { tx: true, widgets: true });
         return;
       }
       if (isEditing && editId && isTransferEdit) {
@@ -1493,11 +1470,9 @@ export default function AddTransactionModal() {
           note: note.trim(),
           payee: payee.trim() || undefined,
         };
-        closeScreenAndExecute(() => {
-          clearSplitRows();
-          persistLastAccountEagerly();
-          runInBackground(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
-        }, false);
+        clearSplitRows();
+        persistLastAccountEagerly();
+        await runMutationThenClose(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
         return;
       }
       const runMutation = isEditing && editId
@@ -1526,15 +1501,14 @@ export default function AddTransactionModal() {
         return;
       }
 
-      const runMutationAfterClose = () => {
-        if (showDatePicker) setShowDatePicker(false);
-        clearSplitRows();
-        persistLastAccountEagerly();
-        runMutation()
-          .then(() => updateAllReniWidgets().catch(() => undefined))
-          .catch((e) => useGlobalNotice.getState().show(String(e)));
-      };
-      closeScreenAndExecute(runMutationAfterClose, false);
+      if (showDatePicker) setShowDatePicker(false);
+      clearSplitRows();
+      persistLastAccountEagerly();
+      // store.add/update does: DB write → reload txs + refresh accounts → bump
+      // mutationVersion. Await it so data is fully fresh before screen closes.
+      await runMutation();
+      closeScreen(false);
+      updateAllReniWidgets().catch(() => undefined);
     } catch (e) {
       showAlert('Error', String(e));
       isSubmittingRef.current = false;
@@ -1554,7 +1528,6 @@ export default function AddTransactionModal() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: () => {
-        // Close first, then run the delete and refresh the stores against DB truth.
         const work = isLoanOrigin
           ? () => removeLoan(editingLoanId!)
           : isDepositEdit
@@ -1562,21 +1535,19 @@ export default function AddTransactionModal() {
             : editId
               ? () => removeTransaction(editId)
               : async () => undefined;
-        const runAfterDeleteClose = () => {
-          setEditingSplitGroupId('');
-          clearSplitRows();
-          (async () => {
-            try {
-              await work();
-              await refreshAccounts();
-              await reloadTransactions();
-              updateAllReniWidgets().catch(() => undefined);
-            } catch (e) {
-              useGlobalNotice.getState().show(String(e));
-            }
-          })();
-        };
-        closeScreenAndExecute(runAfterDeleteClose, false);
+        setEditingSplitGroupId('');
+        clearSplitRows();
+        // Await the delete BEFORE closing. store.remove() does: DB delete +
+        // optimistic array filter + reload txs/accounts internally (~50ms total).
+        (async () => {
+          try {
+            await work();
+          } catch (e) {
+            useGlobalNotice.getState().show(String(e));
+          }
+          closeScreen(false);
+          updateAllReniWidgets().catch(() => undefined);
+        })();
       },
     });
   };

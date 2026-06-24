@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { router } from 'expo-router';
 import { STRINGS } from '../../lib/strings';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,

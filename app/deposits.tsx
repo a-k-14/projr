@@ -6,7 +6,8 @@ import { router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { safePush } from '../lib/safePush';
 import { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyStateCard } from '../components/ui/EmptyStateCard';
 import { GrainHeroCard } from '../components/ui/GrainHeroCard';
@@ -75,13 +76,77 @@ function DepositsScreenContent() {
     [activeDeposits],
   );
 
-
-
   const pills = [
     { key: 'active' as const, label: 'Active', count: activeDeposits.length },
     { key: 'closed' as const, label: 'Closed', count: closedDeposits.length },
     { key: 'all' as const, label: 'All', count: deposits.length },
   ];
+
+  const listData = useMemo(() => {
+    if (!hasDeposits) return [];
+    const items: Array<
+      | { type: 'section_header'; title: string }
+      | { type: 'deposit'; deposit: typeof deposits[number] }
+    > = [];
+
+    if (showActive && activeDeposits.length > 0) {
+      if (statusFilter === 'all') {
+        items.push({ type: 'section_header', title: 'Active' });
+      }
+      activeDeposits.forEach((deposit) => {
+        items.push({ type: 'deposit', deposit });
+      });
+    }
+
+    if (showClosed && closedDeposits.length > 0) {
+      if (statusFilter === 'all') {
+        items.push({ type: 'section_header', title: 'Closed' });
+      }
+      closedDeposits.forEach((deposit) => {
+        items.push({ type: 'deposit', deposit });
+      });
+    }
+
+    return items;
+  }, [hasDeposits, showActive, activeDeposits, showClosed, closedDeposits, statusFilter]);
+
+  const renderItem = ({ item, index }: { item: typeof listData[number]; index: number }) => {
+    if (item.type === 'section_header') {
+      return (
+        <Text
+          style={{
+            fontSize: HOME_TEXT.sectionTitle,
+            fontWeight: FONT_WEIGHT.bold,
+            color: palette.text,
+            marginTop: index > 0 ? HOME_SPACE.lg - HOME_SPACE.md : 0,
+            marginBottom: HOME_SPACE.md,
+          }}
+        >
+          {item.title}
+        </Text>
+      );
+    }
+
+    return (
+      <View style={{ marginBottom: HOME_SPACE.md }}>
+        <DepositListCard
+          deposit={item.deposit}
+          sym={sym}
+          palette={palette}
+          onPress={() => safePush(nav, `/deposit/${item.deposit.id}`)}
+        />
+      </View>
+    );
+  };
+
+  const keyExtractor = (item: typeof listData[number]) => {
+    if (item.type === 'section_header') {
+      return `header-${item.title}`;
+    }
+    return `deposit-${item.deposit.id}`;
+  };
+
+  const getItemType = (item: typeof listData[number]) => item.type;
 
   return (
     <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
@@ -104,7 +169,16 @@ function DepositsScreenContent() {
         }
       />
 
-      <ScrollView
+      <FlashList
+        data={listData}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemType={getItemType}
+        contentContainerStyle={{
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingBottom: getScrollableBottomPadding(insets),
+        }}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={false}
@@ -112,107 +186,74 @@ function DepositsScreenContent() {
             tintColor={palette.brand}
           />
         }
-        contentContainerStyle={{ paddingBottom: getScrollableBottomPadding(insets) }}
-        showsVerticalScrollIndicator={false}
-      >
-        {hasDeposits ? (
-          <>
-            {/* Hero Card */}
-            <View style={{ marginHorizontal: SCREEN_GUTTER, marginTop: 4, marginBottom: 20 }}>
-              <GrainHeroCard
-                solidColor={DEPOSIT_VISUAL.tone}
-                icon="vault"
-                eyebrow="Invested"
-                value={formatCurrency(activeInvested, sym)}
-                sym={sym}
-                badgeLabel={activeDeposits.length > 0 ? `${activeDeposits.length} Active` : undefined}
+        ListHeaderComponent={
+          hasDeposits ? (
+            <View>
+              {/* Hero Card */}
+              <View style={{ marginTop: 4, marginBottom: 20 }}>
+                <GrainHeroCard
+                  solidColor={DEPOSIT_VISUAL.tone}
+                  icon="vault"
+                  eyebrow="Invested"
+                  value={formatCurrency(activeInvested, sym)}
+                  sym={sym}
+                  badgeLabel={activeDeposits.length > 0 ? `${activeDeposits.length} Active` : undefined}
+                  palette={palette}
+                  metrics={[
+                    {
+                      label: 'MATURITY',
+                      value: formatCurrency(totalMaturity, sym),
+                    },
+                    {
+                      label: 'EST. RETURNS',
+                      value: expectedReturn > 0 ? `+${formatCurrency(expectedReturn, sym)}` : '—',
+                      valueColor: expectedReturn > 0 ? palette.numberPositive : undefined,
+                    },
+                  ]}
+                />
+              </View>
+
+              {/* Filter pills — Active / Closed / All */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: HOME_SPACE.md }}>
+                {pills.map((pill) => {
+                  const labelWithCount = `${pill.label}${pill.count > 0 ? ` (${pill.count})` : ''}`;
+                  return (
+                    <FilterChip
+                      key={pill.key}
+                      label={labelWithCount}
+                      isActive={statusFilter === pill.key}
+                      palette={palette}
+                      onPress={() => setStatusFilter(pill.key)}
+                      style={{ borderRadius: HOME_RADIUS.pill }}
+                    />
+                  );
+                })}
+              </View>
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          hasDeposits ? (
+            <View style={{ marginTop: HOME_SPACE.xl }}>
+              <EmptyStateCard
                 palette={palette}
-                metrics={[
-                  {
-                    label: 'MATURITY',
-                    value: formatCurrency(totalMaturity, sym),
-                  },
-                  {
-                    label: 'EST. RETURNS',
-                    value: expectedReturn > 0 ? `+${formatCurrency(expectedReturn, sym)}` : '—',
-                    valueColor: expectedReturn > 0 ? palette.numberPositive : undefined,
-                  },
-                ]}
+                title={statusFilter === 'active' ? 'No active deposits' : 'No closed deposits'}
+                subtitle={statusFilter === 'active' ? 'All your fixed deposits are closed.' : "You don't have any closed fixed deposits."}
+                illustration={<FinanceEmptyMascot palette={palette} variant="budget" />}
               />
             </View>
-
-            {/* Filter pills — Active / Closed / All */}
-            <View style={{ flexDirection: 'row', paddingHorizontal: SCREEN_GUTTER, gap: 8, marginBottom: HOME_SPACE.md }}>
-              {pills.map((pill) => {
-                const labelWithCount = `${pill.label}${pill.count > 0 ? ` (${pill.count})` : ''}`;
-                return (
-                  <FilterChip
-                    key={pill.key}
-                    label={labelWithCount}
-                    isActive={statusFilter === pill.key}
-                    palette={palette}
-                    onPress={() => setStatusFilter(pill.key)}
-                    style={{ borderRadius: HOME_RADIUS.pill }}
-                  />
-                );
-              })}
+          ) : (
+            <View style={{ marginTop: HOME_SPACE.xl }}>
+              <EmptyStateCard
+                palette={palette}
+                title="No fixed deposits yet"
+                subtitle="Add your fixed deposits to track maturity dates and interest earnings."
+                illustration={<FinanceEmptyMascot palette={palette} variant="budget" />}
+              />
             </View>
-
-            {/* Active Deposits */}
-            {showActive && activeDeposits.length > 0 && (
-              <View style={{ paddingHorizontal: SCREEN_GUTTER, marginBottom: HOME_SPACE.lg }}>
-                {statusFilter === 'all' && (
-                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginBottom: HOME_SPACE.md }}>
-                    Active
-                  </Text>
-                )}
-                <View style={{ gap: HOME_SPACE.md }}>
-                  {activeDeposits.map((deposit) => (
-                    <DepositListCard
-                      key={deposit.id}
-                      deposit={deposit}
-                      sym={sym}
-                      palette={palette}
-                      onPress={() => safePush(nav, `/deposit/${deposit.id}`)}
-                    />
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Closed Deposits */}
-            {showClosed && closedDeposits.length > 0 && (
-              <View style={{ paddingHorizontal: SCREEN_GUTTER }}>
-                {statusFilter === 'all' && (
-                  <Text style={{ fontSize: HOME_TEXT.sectionTitle, fontWeight: FONT_WEIGHT.bold, color: palette.text, marginBottom: HOME_SPACE.md }}>
-                    Closed
-                  </Text>
-                )}
-                <View style={{ gap: HOME_SPACE.md }}>
-                  {closedDeposits.map((deposit) => (
-                    <DepositListCard
-                      key={deposit.id}
-                      deposit={deposit}
-                      sym={sym}
-                      palette={palette}
-                      onPress={() => safePush(nav, `/deposit/${deposit.id}`)}
-                    />
-                  ))}
-                </View>
-              </View>
-            )}
-          </>
-        ) : (
-          <View style={{ paddingHorizontal: SCREEN_GUTTER, marginTop: HOME_SPACE.xl }}>
-            <EmptyStateCard
-              palette={palette}
-              title="No fixed deposits yet"
-              subtitle="Add your fixed deposits to track maturity dates and interest earnings."
-              illustration={<FinanceEmptyMascot palette={palette} variant="budget" />}
-            />
-          </View>
-        )}
-      </ScrollView>
+          )
+        }
+      />
     </ScreenScaffold>
   );
 }

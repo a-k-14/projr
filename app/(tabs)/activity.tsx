@@ -138,6 +138,7 @@ export default function ActivityScreen() {
   const categoriesById = useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((loan) => [loan.id, loan])), [loans]);
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
+  const tagsById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag])), [tags]);
 
   const dateFilter = useDateFilter({ initialPeriod: 'month' });
   const period = dateFilter.period;
@@ -148,7 +149,15 @@ export default function ActivityScreen() {
   const [cashflowBucket, setCashflowBucket] = useState<'all' | 'in' | 'out' | 'net'>('all');
   const [cashflowMode, setCashflowMode] = useState<'incomeExpense' | 'total'>('incomeExpense');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   const filterButtonAnimation = useSharedValue(0);
   useEffect(() => {
@@ -405,7 +414,7 @@ export default function ActivityScreen() {
         // `searchActive` is part of the sig so toggling search forces a reload —
         // we drop the period/account/type constraints in that mode and pull the
         // full set, so the previous query's result wouldn't satisfy this one.
-        search.trim() ? 'search' : 'normal',
+        debouncedSearch.trim() ? 'search' : 'normal',
         period,
         periodOffset,
         dateRange?.from ?? '',
@@ -416,7 +425,7 @@ export default function ActivityScreen() {
         derivedCashflowMode,
         groupByMode,
       ].join('|'),
-    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, search, selectedAccountId, typeFilter],
+    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, debouncedSearch, selectedAccountId, typeFilter],
   );
 
   const canGoNext = dateFilter.canNavigateNext;
@@ -432,7 +441,7 @@ export default function ActivityScreen() {
     selectedAccountId === 'all' &&
     typeFilter === 'all' &&
     cashflowBucket === 'all' &&
-    !search &&
+    !debouncedSearch &&
     selectedCategoryIds.length === 0 &&
     selectedTagIds.length === 0 &&
     !amountMinStr &&
@@ -492,7 +501,7 @@ export default function ActivityScreen() {
         // When the user is searching, drop period/account/type constraints so search
         // results are drawn from the FULL transaction set — search is meant to ignore
         // every other filter (the client-side `filterTransactions` does the same).
-        const searchActive = !!search.trim();
+        const searchActive = !!debouncedSearch.trim();
         const loadAll = searchActive || !!(dateRange?.from && dateRange?.to) || groupByMode === 'category';
         const filters: TransactionFilters = {
           accountId: searchActive ? undefined : (selectedAccountId === 'all' ? undefined : selectedAccountId),
@@ -547,11 +556,13 @@ export default function ActivityScreen() {
         loadingRef.current = false;
       }
     },
-    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, remoteQuerySignature, search, selectedAccountId, typeFilter],
+    [cashflowBucket, derivedCashflowMode, dateRange?.from, dateRange?.to, groupByMode, period, periodOffset, remoteQuerySignature, debouncedSearch, selectedAccountId, typeFilter],
   );
 
   useEffect(() => {
     if (isFocused) {
+      // Fast-path: the store already has correct data after write-before-close
+      // mutations, so skip InteractionManager — read it immediately.
       if (useStoreFastPath) {
         const noNewMutations = lastSeenMutationVersionRef.current === storeMutationVersion;
         if (!storeTransactionsLoaded || !noNewMutations) {
@@ -562,26 +573,31 @@ export default function ActivityScreen() {
           });
         }
       } else {
-        // Only load data if we aren't waiting for an initial param sync
-        if (!source || isInitialParamSyncComplete) {
-          // We're on the custom (non-fast-path) read here, so only the local
-          // `transactions` set counts as "loaded". If we just transitioned out of
-          // the store fast-path (e.g. user added a category/tag/amount filter),
-          // `storeTransactions` is populated but `transactions` is still empty —
-          // `hasContent` would falsely report ready and skip the load, leaving
-          // the filter to run over an empty array and show "No transactions".
-          const queryUnchanged = transactions.length > 0 && lastLoadedRemoteQueryRef.current === remoteQuerySignature;
-          const noNewMutations = lastSeenMutationVersionRef.current === storeMutationVersion;
-          if (queryUnchanged && noNewMutations) {
-            setIsTransitioning(false);
-            return;
+        // Custom-filtered path: heavier SQL queries benefit from waiting for
+        // the navigation animation to finish before firing.
+        const task = InteractionManager.runAfterInteractions(() => {
+          // Only load data if we aren't waiting for an initial param sync
+          if (!source || isInitialParamSyncComplete) {
+            // We're on the custom (non-fast-path) read here, so only the local
+            // `transactions` set counts as "loaded". If we just transitioned out of
+            // the store fast-path (e.g. user added a category/tag/amount filter),
+            // `storeTransactions` is populated but `transactions` is still empty —
+            // `hasContent` would falsely report ready and skip the load, leaving
+            // the filter to run over an empty array and show "No transactions".
+            const queryUnchanged = transactions.length > 0 && lastLoadedRemoteQueryRef.current === remoteQuerySignature;
+            const noNewMutations = lastSeenMutationVersionRef.current === storeMutationVersion;
+            if (queryUnchanged && noNewMutations) {
+              setIsTransitioning(false);
+              return;
+            }
+            lastSeenMutationVersionRef.current = storeMutationVersion;
+            if (!queryUnchanged) setIsTransitioning(true);
+            loadData(true).finally(() => {
+              setIsTransitioning(false);
+            });
           }
-          lastSeenMutationVersionRef.current = storeMutationVersion;
-          if (!queryUnchanged) setIsTransitioning(true);
-          loadData(true).finally(() => {
-            setIsTransitioning(false);
-          });
-        }
+        });
+        return () => task.cancel();
       }
     }
   }, [hasContent, useStoreFastPath, isFocused, isInitialParamSyncComplete, loadData, loadStoreTransactions, remoteQuerySignature, source, storeMutationVersion, storeTransactionsLoaded]);
@@ -807,7 +823,7 @@ export default function ActivityScreen() {
         selectedTagIds,
         amountMin: amountMinStr ? Number(amountMinStr) : undefined,
         amountMax: amountMaxStr ? Number(amountMaxStr) : undefined,
-        searchQuery: search,
+        searchQuery: debouncedSearch,
       },
       {
         categories,
@@ -827,7 +843,7 @@ export default function ActivityScreen() {
     selectedTagIds,
     amountMinStr,
     amountMaxStr,
-    search,
+    debouncedSearch,
     categories,
     accountsById,
     tagNamesById,
@@ -867,7 +883,7 @@ export default function ActivityScreen() {
     selectedTagIds.length > 0 ||
     !!amountMinStr ||
     !!amountMaxStr ||
-    !!search.trim();
+    !!debouncedSearch.trim();
 
   // SummaryCard totals: use server-side aggregate (accurate for paginated base pages)
   // when available; for local-only scopes, use the exact rows visible on screen.
@@ -1221,13 +1237,19 @@ export default function ActivityScreen() {
       const deposit = tx.depositId ? depositsById.get(tx.depositId) : undefined;
       const isFirst = item.indexInSection === 0;
       const isLast = item.indexInSection === item.sectionLength - 1;
+      const txTags = tx.tags.length > 0
+        ? tx.tags.map((tagId) => tagsById.get(tagId)).filter((value): value is { id: string; name: string; color: string } => !!value)
+        : undefined;
 
       return (
         <TransactionListItem
           tx={tx}
           sym={sym}
           palette={palette}
+          isFirst={isFirst}
           isLast={isLast}
+          isGrouped={true}
+          txTags={txTags}
           paddingY={HOME_LAYOUT.listRowPaddingY + 2}
           categoryName={tx.categoryId ? getCategoryFullDisplayName(tx.categoryId, ' › ') : undefined}
           categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
@@ -1249,22 +1271,10 @@ export default function ActivityScreen() {
           useTypeAmountColor
           noteNumberOfLines={1}
           onPress={handleTransactionPress}
-          style={{
-            marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
-            backgroundColor: palette.surface,
-            borderLeftWidth: 1,
-            borderRightWidth: 1,
-            borderTopWidth: isFirst ? 1 : 0,
-            borderColor: palette.divider,
-            borderTopLeftRadius: isFirst ? ACTIVITY_LAYOUT.groupCardRadius : 0,
-            borderTopRightRadius: isFirst ? ACTIVITY_LAYOUT.groupCardRadius : 0,
-            borderBottomLeftRadius: isLast ? ACTIVITY_LAYOUT.groupCardRadius : 0,
-            borderBottomRightRadius: isLast ? ACTIVITY_LAYOUT.groupCardRadius : 0,
-          }}
         />
       );
     },
-    [accountsById, categoriesById, loansById, depositsById, tagNamesById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
+    [accountsById, categoriesById, loansById, depositsById, tagNamesById, tagsById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
   );
 
   const activityHeader = useMemo(() => (
@@ -1408,7 +1418,7 @@ export default function ActivityScreen() {
       )}
 
       {isSearchActive ? (
-        search.trim() === '' ? (
+        search.trim() === '' || debouncedSearch.trim() === '' ? (
           <View style={{ flex: 1, backgroundColor: palette.background }} />
         ) : (
           <FlashList
@@ -1437,7 +1447,7 @@ export default function ActivityScreen() {
               !refreshing && !isTransitioning ? (
                 <View style={{ paddingTop: 40, alignItems: 'center', paddingHorizontal: 24 }}>
                   <Text style={{ fontSize: 14, color: palette.textMuted, textAlign: 'center' }}>
-                    No transactions match "{search}"
+                    No transactions match "{debouncedSearch}"
                   </Text>
                 </View>
               ) : null

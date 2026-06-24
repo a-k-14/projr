@@ -1,6 +1,5 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import { Text } from '@/components/ui/AppText';
-import React from 'react';
 import { Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { FONT_WEIGHT } from '../../lib/design';

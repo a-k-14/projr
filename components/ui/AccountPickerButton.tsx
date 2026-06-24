@@ -1,6 +1,5 @@
 import { AppChevron } from '@/components/ui/AppChevron';
 import { Text } from '@/components/ui/AppText';
-import React from 'react';
 import { StyleSheet, TouchableOpacity, StyleProp, ViewStyle, DimensionValue } from 'react-native';
 import { FONT_WEIGHT } from '../../lib/design';
 import { ACTIVITY_LAYOUT, HOME_TEXT } from '../../lib/layoutTokens';

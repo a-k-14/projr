@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleProp, View, ViewStyle } from 'react-native';
 import { FONT_WEIGHT } from '../../lib/design';
 import type { AppThemePalette } from '../../lib/theme';

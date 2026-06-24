@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, View, StyleProp, ViewStyle } from 'react-native';
 import { Text } from './AppText';
 import { AppIcon } from './AppIcon';

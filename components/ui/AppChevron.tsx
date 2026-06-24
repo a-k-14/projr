@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import { AppIcon } from './AppIcon';
 import type { AppThemePalette } from '../../lib/theme';

@@ -14,6 +14,7 @@ import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../l
 import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { useFixedDepositsStore } from '../stores/useFixedDepositsStore';
 import { AppDonutChart, type DonutSlice } from './ui/AppDonutChart';
+import { FlashList } from '@shopify/flash-list';
 
 export type CategoryChartMode = 'expense' | 'income';
 
@@ -384,7 +385,11 @@ function CategoryDonutChartBlockBase({
   const selectedParentSlice = drillParentId ? parentSlices.find((s) => s.id === drillParentId) ?? null : null;
   const isSubcategoryLevel = !!drillParentId;
   const visibleHierarchyNodes = isSubcategoryLevel ? selectedParent?.children ?? [] : hierarchy;
-  const visibleListSlices = drillParentId ? buildSlices(visibleHierarchyNodes, transactions, mode, isCashflowMode, loansById, selectedParentSlice?.color) : parentSlices;
+  const visibleListSlices = useMemo(() => {
+    return drillParentId
+      ? buildSlices(visibleHierarchyNodes, transactions, mode, isCashflowMode, loansById, selectedParentSlice?.color)
+      : parentSlices;
+  }, [drillParentId, visibleHierarchyNodes, transactions, mode, isCashflowMode, loansById, selectedParentSlice?.color, parentSlices]);
   const visibleNegativeRows = useMemo(
     () => buildNegativeRows(visibleHierarchyNodes, transactions, isCashflowMode, loansById, targetImpact),
     [visibleHierarchyNodes, transactions, isCashflowMode, loansById, targetImpact],
@@ -716,7 +721,7 @@ function CategoryDonutChartBlockBase({
                     tertiaryText={tx.tags.length > 0 ? tx.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined : undefined}
                     showAmountSign={false}
                     paddingY={14}
-                    onPress={onTransactionPress ? () => onTransactionPress(tx) : undefined}
+                    onPress={onTransactionPress}
                   />
                 ))}
                 {selectedTransactions.length === 0 ? (
@@ -728,48 +733,65 @@ function CategoryDonutChartBlockBase({
             )}
           </View>
         ) : (
-          <ScrollView
-            ref={listScrollRef}
+          <FlashList
+            ref={listScrollRef as any}
+            data={selectedTransactions}
             style={styles.expandedScroll}
             contentContainerStyle={styles.expandedScrollContent}
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled
-          >
-            {categoryList}
-            {negativeList}
-            <View style={[styles.transactionsSection, { backgroundColor: txPalette.surface, borderColor: txPalette.border }]}>
-              <View style={styles.transactionsHeader}>
-                <Text style={[styles.sectionTitle, { color: txPalette.text }]}>Transactions</Text>
-                <Text style={{ fontSize: HOME_TEXT.caption, color: txPalette.textMuted }}>{selectedTransactions.length}</Text>
-              </View>
-              {selectedTransactions.map((tx, index) => (
-                <TransactionListItem
-                  key={tx.id}
-                  tx={tx}
-                  sym={sym}
-                  palette={txPalette}
-                  isLast={index === selectedTransactions.length - 1}
-                  categoryName={tx.categoryId ? (getCategoryFullDisplayName?.(tx.categoryId, ' › ') ?? categoriesById.get(tx.categoryId)?.name) : undefined}
-                  categoryIcon={getCategoryDisplayIcon(categoriesById, tx.categoryId)}
-                  accountName={accountsById?.get(tx.accountId)}
-                  linkedAccountName={tx.linkedAccountId ? accountsById?.get(tx.linkedAccountId) : undefined}
-                  loanPersonName={tx.loanId ? loansById?.get(tx.loanId)?.personName : undefined}
-                  loanDirection={tx.loanId ? loansById?.get(tx.loanId)?.direction : undefined}
-                  depositName={tx.depositId ? depositsById.get(tx.depositId)?.name : undefined}
-                  depositBankName={tx.depositId ? (depositsById.get(tx.depositId)?.bankName ?? undefined) : undefined}
-                  tertiaryText={tx.tags.length > 0 ? tx.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined : undefined}
-                  showAmountSign={false}
-                  paddingY={14}
-                  onPress={onTransactionPress ? () => onTransactionPress(tx) : undefined}
-                />
-              ))}
-              {selectedTransactions.length === 0 ? (
+            ListHeaderComponent={
+              <>
+                {categoryList}
+                {negativeList}
+                <View style={[styles.transactionsSection, { backgroundColor: txPalette.surface, borderColor: txPalette.border, borderBottomWidth: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0, paddingBottom: 0 }]}>
+                  <View style={styles.transactionsHeader}>
+                    <Text style={[styles.sectionTitle, { color: txPalette.text }]}>Transactions</Text>
+                    <Text style={{ fontSize: HOME_TEXT.caption, color: txPalette.textMuted }}>{selectedTransactions.length}</Text>
+                  </View>
+                </View>
+              </>
+            }
+            ListEmptyComponent={
+              <View style={[styles.transactionsSection, { backgroundColor: txPalette.surface, borderColor: txPalette.border, borderTopWidth: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0, marginTop: 0 }]}>
                 <Text style={{ color: txPalette.textSoft, fontSize: HOME_TEXT.bodySmall, textAlign: 'center', paddingVertical: 16 }}>
                   No transactions here
                 </Text>
-              ) : null}
-            </View>
-          </ScrollView>
+              </View>
+            }
+            renderItem={({ item, index }) => (
+              <View style={{
+                backgroundColor: txPalette.surface,
+                paddingHorizontal: 16,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderBottomWidth: index === selectedTransactions.length - 1 ? 1 : 0,
+                borderColor: txPalette.border,
+                borderBottomLeftRadius: index === selectedTransactions.length - 1 ? HOME_RADIUS.card : 0,
+                borderBottomRightRadius: index === selectedTransactions.length - 1 ? HOME_RADIUS.card : 0,
+                marginBottom: index === selectedTransactions.length - 1 ? HOME_SPACE.xxl : 0
+              }}>
+                <TransactionListItem
+                  tx={item}
+                  sym={sym}
+                  palette={txPalette}
+                  isLast={index === selectedTransactions.length - 1}
+                  categoryName={item.categoryId ? (getCategoryFullDisplayName?.(item.categoryId, ' › ') ?? categoriesById.get(item.categoryId)?.name) : undefined}
+                  categoryIcon={getCategoryDisplayIcon(categoriesById, item.categoryId)}
+                  accountName={accountsById?.get(item.accountId)}
+                  linkedAccountName={item.linkedAccountId ? accountsById?.get(item.linkedAccountId) : undefined}
+                  loanPersonName={item.loanId ? loansById?.get(item.loanId)?.personName : undefined}
+                  loanDirection={item.loanId ? loansById?.get(item.loanId)?.direction : undefined}
+                  depositName={item.depositId ? depositsById.get(item.depositId)?.name : undefined}
+                  depositBankName={item.depositId ? (depositsById.get(item.depositId)?.bankName ?? undefined) : undefined}
+                  tertiaryText={item.tags.length > 0 ? item.tags.map((id) => tagNamesById.get(id)).filter((v): v is string => !!v).join(' • ') || undefined : undefined}
+                  showAmountSign={false}
+                  paddingY={14}
+                  onPress={onTransactionPress}
+                />
+              </View>
+            )}
+          />
         )
       ) : (
         <ScrollView ref={listScrollRef} style={[styles.listViewport, styles.listViewportCollapsed]} contentContainerStyle={{ paddingBottom: 4 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>

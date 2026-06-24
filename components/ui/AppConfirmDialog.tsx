@@ -7,7 +7,7 @@ import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
 import { PressableScale } from './PressableScale';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type ConfirmAction = {
   label: string;

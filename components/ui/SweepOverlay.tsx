@@ -1,5 +1,4 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
 import Animated, { AnimatedStyle } from 'react-native-reanimated';
 import { ViewStyle } from 'react-native';
 

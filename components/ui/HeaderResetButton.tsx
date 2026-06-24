@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, Easing, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { AppIcon } from './AppIcon';
 import type { AppThemePalette } from '../../lib/theme';

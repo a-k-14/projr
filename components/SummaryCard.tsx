@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/AppText';
-import React, { Fragment } from 'react';
+import { Fragment } from 'react';
 import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { formatCurrency } from '../lib/derived';
 import { FONT_WEIGHT } from '../lib/design';

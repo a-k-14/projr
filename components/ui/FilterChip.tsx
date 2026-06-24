@@ -1,4 +1,3 @@
-import React from 'react';
 import { Text } from '@/components/ui/AppText';
 import { StyleSheet, ViewStyle } from 'react-native';
 import { PressableScale } from './PressableScale';

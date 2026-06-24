@@ -1,4 +1,3 @@
-import React from 'react';
 import { Pressable, View } from 'react-native';
 import { AppIcon } from './AppIcon';
 import type { AppThemePalette } from '../../lib/theme';

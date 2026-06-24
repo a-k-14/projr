@@ -328,7 +328,7 @@ function HomeScreenContent() {
       ? `Overspent · ${budgetSummary.spentPercent}%`
       : `Spent · ${budgetSummary.spentPercent}%`;
 
-  const moreCards = [
+  const moreCards = useMemo(() => [
     {
       id: 'Deposits',
       label: 'Deposits',
@@ -365,9 +365,9 @@ function HomeScreenContent() {
       tone: ASSET_TONE,
       bg: ASSET_BG,
     },
-  ] as const;
+  ] as const, [depositMeta, loanMeta, budgetMeta]);
 
-  const middleContent = (
+  const middleContent = useMemo(() => (
     <View style={{ marginTop: 0, marginBottom: 20 }}>
       <TouchableOpacity
         onPress={() => safePush(nav, '/accounts')}
@@ -413,7 +413,25 @@ function HomeScreenContent() {
       </View>
 
     </View>
-  );
+  ), [orderedAccounts, palette, hideAmounts, showCurrencySymbol, currencySymbol, nav, moreCards]);
+
+  const handleOpenCustomRange = useCallback(() => {
+    setCustomDraftFrom(new Date(dateFilter.customRange?.from || Date.now()));
+    setCustomDraftTo(new Date(dateFilter.customRange?.to || Date.now()));
+    setCustomRangeOpen(true);
+  }, [dateFilter]);
+
+  const handleRegisterScrollTop = useCallback((_: any, fn: (() => void) | null) => {
+    pageScrollTopRef.current = fn;
+  }, []);
+
+  const handleOpenNetWorth = useCallback(() => {
+    safePush(nav, '/net-worth');
+  }, [nav]);
+
+  const handleOpenBalanceVisibility = useCallback(() => {
+    setShowBalanceVisibilitySheet(true);
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
@@ -449,18 +467,14 @@ function HomeScreenContent() {
         settingsYearStart={settingsYearStart}
         currencySymbol={showCurrencySymbol ? currencySymbol : ''}
         dateFilter={dateFilter}
-        onOpenCustomRange={() => {
-          setCustomDraftFrom(new Date(dateFilter.customRange?.from || Date.now()));
-          setCustomDraftTo(new Date(dateFilter.customRange?.to || Date.now()));
-          setCustomRangeOpen(true);
-        }}
+        onOpenCustomRange={handleOpenCustomRange}
         totalBalance={includedHomeBalance}
         onRefresh={refreshAccounts}
         isSelected={true}
         pageIndex={0}
         verticalScrolls={verticalScrolls}
         indicatorY={indicatorY}
-        registerScrollTop={(_, fn) => { pageScrollTopRef.current = fn; }}
+        registerScrollTop={handleRegisterScrollTop}
         isPageReady={true}
         fullResetNonce={homeFullResetNonce}
         dataNonce={txMutationVersion}
@@ -470,8 +484,8 @@ function HomeScreenContent() {
         getCategoryFullDisplayName={getCategoryFullDisplayName}
         loansLoaded={loansLoaded}
         loadLoans={loadLoans}
-        onOpenNetWorth={() => safePush(nav, '/net-worth')}
-        onOpenBalanceVisibility={() => setShowBalanceVisibilitySheet(true)}
+        onOpenNetWorth={handleOpenNetWorth}
+        onOpenBalanceVisibility={handleOpenBalanceVisibility}
         homeExcludedCount={homeExcludedAccountIds.length}
         homeTotalCount={accounts.length}
         netWorth={stableNetWorth}

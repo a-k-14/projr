@@ -13,6 +13,7 @@ interface TransactionsStore {
   isLoadingMore: boolean;
   mutationVersion: number;
   pendingWrites: number;
+  currentRequestId: number;
   load: (filters?: TransactionFilters, skipPendingCheck?: boolean) => Promise<void>;
   reset: () => void;
   trimToFirstPage: () => void;
@@ -37,8 +38,12 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   isLoadingMore: false,
   mutationVersion: 0,
   pendingWrites: 0,
+  currentRequestId: 0,
 
   load: async (filters, skipPendingCheck) => {
+    const nextRequestId = get().currentRequestId + 1;
+    set({ currentRequestId: nextRequestId });
+
     // Wait for any in-flight writes to commit first
     if (!skipPendingCheck && get().pendingWrites > 0) {
       await new Promise<void>((resolve) => {
@@ -52,8 +57,14 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       });
     }
 
-    const f = { ...get().filters, ...currentMonthFilter(), ...filters, limit: PAGE_SIZE, offset: 0 };
+    const f = { ...currentMonthFilter(), ...get().filters, ...filters, limit: PAGE_SIZE, offset: 0 };
     const txs = await transactionsService.getTransactions(f);
+    
+    // Ignore this query resolution if a newer request has started in the meantime
+    if (nextRequestId !== get().currentRequestId) {
+      return;
+    }
+
     set({ transactions: txs, filters: f, isLoaded: true, hasMore: txs.length === PAGE_SIZE, isLoadingMore: false });
   },
 
@@ -65,6 +76,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       hasMore: true,
       isLoadingMore: false,
       pendingWrites: 0,
+      currentRequestId: get().currentRequestId + 1,
     });
   },
 
@@ -85,12 +97,18 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   markMutated: () => set((state) => ({ mutationVersion: state.mutationVersion + 1 })),
 
   loadMore: async () => {
-    const { filters, hasMore, isLoadingMore } = get();
+    const { filters, hasMore, isLoadingMore, currentRequestId } = get();
     if (!hasMore || isLoadingMore) return;
     set({ isLoadingMore: true });
     const newOffset = (filters.offset ?? 0) + PAGE_SIZE;
     try {
       const more = await transactionsService.getTransactions({ ...filters, offset: newOffset });
+      
+      // Ignore this paginated append if a newer main load has already started
+      if (currentRequestId !== get().currentRequestId) {
+        return;
+      }
+
       set((state) => {
         const ids = new Set(state.transactions.map((tx) => tx.id));
         return {
@@ -101,7 +119,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         };
       });
     } catch (error) {
-      set({ isLoadingMore: false });
+      if (currentRequestId === get().currentRequestId) {
+        set({ isLoadingMore: false });
+      }
       throw error;
     }
   },
@@ -142,6 +162,16 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     try {
       const originalTx = await transactionsService.getTransactionById(id);
       await transactionsService.deleteTransaction(id);
+      
+      // DB delete is committed. Immediately filter the tx from the local array
+      // AND bump mutationVersion in one atomic set(). This is safe — the DB is
+      // already consistent, we're just syncing in-memory state so screens see
+      // the deletion instantly without waiting for a full reload.
+      set((state) => ({
+        transactions: state.transactions.filter((tx) => tx.id !== id),
+        mutationVersion: state.mutationVersion + 1,
+      }));
+
       const linkedReloads: Promise<unknown>[] = [];
       if (originalTx?.loanId) {
         linkedReloads.push(import('./useLoansStore').then(m => m.useLoansStore.getState().load()).catch(() => undefined));
@@ -149,13 +179,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       if (originalTx?.depositId) {
         linkedReloads.push(import('./useFixedDepositsStore').then(m => m.useFixedDepositsStore.getState().load()).catch(() => undefined));
       }
+      
+      // 2. Await store reloads in the background (do not block the caller)
       await Promise.all([
         get().load(undefined, true),
         useAccountsStore.getState().refresh(),
         ...linkedReloads,
       ]);
-      // Bump AFTER reloads so screens see fresh store data immediately
-      set((state) => ({ mutationVersion: state.mutationVersion + 1 }));
     } finally {
       set((state) => ({ pendingWrites: Math.max(0, state.pendingWrites - 1) }));
     }

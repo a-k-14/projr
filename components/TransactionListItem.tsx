@@ -1,15 +1,14 @@
 import { AppIcon, IconName, isValidIcon } from '@/components/ui/AppIcon';
 import React, { memo } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { formatCurrency, getLoanTransactionUserNote, getTransactionCashflowImpact } from '../lib/derived';
-import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, getTxTypeConfig } from '../lib/layoutTokens';
+import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, getTxTypeConfig, ACTIVITY_LAYOUT } from '../lib/layoutTokens';
 import { isEmojiIcon } from '../lib/ui-format';
 import type { AppThemePalette } from '../lib/theme';
 import { AppCard, CardTitleRow } from './ui/AppCard';
 import type { Transaction } from '../types';
 import { FONT_WEIGHT } from '../lib/design';
-import { useCategoriesStore } from '../stores/useCategoriesStore';
 import { TagBadge } from './ui/TagBadge';
 
 interface Props {
@@ -47,6 +46,9 @@ interface Props {
   hideTags?: boolean;
   /** Optional: number of lines to display notes */
   noteNumberOfLines?: number;
+  isFirst?: boolean;
+  isGrouped?: boolean;
+  txTags?: { id: string; name: string; color: string }[];
 }
 
 function TransactionListItemBase({
@@ -74,11 +76,10 @@ function TransactionListItemBase({
   hidePayee = false,
   hideIcon = false,
   hideTags = false,
-  noteNumberOfLines = 2 }: Props) {
-  const tags = useCategoriesStore((state) => state.tags);
-  const txTags = (tx.tags || [])
-    .map((id) => tags.find((t) => t.id === id))
-    .filter((t): t is typeof tags[number] => !!t);
+  noteNumberOfLines = 2,
+  isFirst = false,
+  isGrouped = false,
+  txTags = [] }: Props) {
 
   const effectiveType = tx.transferPairId ? 'transfer' : tx.type;
   const accountNameSelected = accountName;
@@ -302,6 +303,18 @@ function TransactionListItemBase({
           borderWidth: 1,
           borderColor: palette.borderSoft,
         },
+        isGrouped && {
+          marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+          backgroundColor: palette.surface,
+          borderLeftWidth: 1,
+          borderRightWidth: 1,
+          borderTopWidth: isFirst ? 1 : 0,
+          borderColor: palette.divider,
+          borderTopLeftRadius: isFirst ? ACTIVITY_LAYOUT.groupCardRadius : 0,
+          borderTopRightRadius: isFirst ? ACTIVITY_LAYOUT.groupCardRadius : 0,
+          borderBottomLeftRadius: isLast ? ACTIVITY_LAYOUT.groupCardRadius : 0,
+          borderBottomRightRadius: isLast ? ACTIVITY_LAYOUT.groupCardRadius : 0,
+        },
         style
       ]}
     />
@@ -347,21 +360,9 @@ function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.hideIcon !== next.hideIcon) return false;
   if (prev.hideTags !== next.hideTags) return false;
   if (prev.noteNumberOfLines !== next.noteNumberOfLines) return false;
-  if (!isStyleEqual(prev.style, next.style)) return false;
-  return true;
-}
-
-function isStyleEqual(prevStyle: Props['style'], nextStyle: Props['style']) {
-  if (prevStyle === nextStyle) return true;
-  const prevFlat = StyleSheet.flatten(prevStyle) ?? {};
-  const nextFlat = StyleSheet.flatten(nextStyle) ?? {};
-  const prevKeys = Object.keys(prevFlat);
-  const nextKeys = Object.keys(nextFlat);
-  if (prevKeys.length !== nextKeys.length) return false;
-  for (const key of prevKeys) {
-    if ((prevFlat as Record<string, unknown>)[key] !== (nextFlat as Record<string, unknown>)[key]) {
-      return false;
-    }
-  }
+  if (prev.isFirst !== next.isFirst) return false;
+  if (prev.isGrouped !== next.isGrouped) return false;
+  if (prev.txTags !== next.txTags) return false;
+  if (prev.style !== next.style) return false;
   return true;
 }
