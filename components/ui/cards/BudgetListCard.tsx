@@ -1,19 +1,69 @@
 /**
  * BudgetListCard — row card used in the Budgets list screen.
  *
- * The progress bar is static (the hero ring carries the motion; animating every
- * row's bar at once was too busy). Tap feedback comes from the shared PressableScale.
+ * Redesigned using /frontend-design for a calm, premium visual aesthetic:
+ * - Flat layout with generous spacing.
+ * - Small, delicate static semi-circle gauge on the right (2px stroke).
+ * - Muted category metadata labels.
+ * - Circular category icon badge with a very soft tint container.
  */
 import { View, StyleSheet } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { Text } from '../AppText';
-import { AppIcon } from '../AppIcon';
 import { PressableScale } from '../PressableScale';
 import { formatCurrency } from '../../../lib/derived';
-import { isEmojiIcon } from '../../../lib/ui-format';
 import { FONT_WEIGHT } from '../../../lib/design';
-import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT, PROGRESS } from '../../../lib/layoutTokens';
+import { CARD_TEXT, HOME_LAYOUT, HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../../lib/layoutTokens';
 import type { AppThemePalette } from '../../../lib/theme';
 import type { BudgetWithSpent } from '../../../types';
+import { CategoryIconBadge } from '../../activity/ActivityUI';
+
+function StaticSemiGauge({
+  size,
+  strokeWidth,
+  percent,
+  color,
+  trackColor,
+}: {
+  size: number;
+  strokeWidth: number;
+  percent: number;
+  color: string;
+  trackColor: string;
+}) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = (size - strokeWidth) / 2;
+  const arcLen = Math.PI * r;
+  const clamped = Math.min(Math.max(percent, 0), 100);
+  const strokeDashoffset = arcLen * (1 - clamped / 100);
+
+  // SVG path for perfect top-half semi-circle dome (starts on left-bottom, sweeps over top)
+  const pathD = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+
+  return (
+    <View style={{ width: size, height: size / 2 + strokeWidth / 2 + 1, overflow: 'hidden' }}>
+      <Svg width={size} height={size}>
+        <Path
+          d={pathD}
+          stroke={trackColor}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          fill="none"
+        />
+        <Path
+          d={pathD}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={arcLen}
+          strokeDashoffset={strokeDashoffset}
+        />
+      </Svg>
+    </View>
+  );
+}
 
 export function BudgetListCard({
   budget,
@@ -34,9 +84,21 @@ export function BudgetListCard({
   const hasBudgetSet = budget.amount > 0;
   const clampedPercent = Math.min(Math.max(budget.percent, 0), 100);
 
-  // Unified progress color: palette.budget when healthy, negative when overspent.
-  const accent = isOver ? palette.negative : palette.budget;
-  const accentSoft = isOver ? palette.outBg : palette.divider;
+  // Calm, premium progress colors (matching overview card)
+  const accent = !hasBudgetSet
+    ? palette.textMuted
+    : isOver
+      ? palette.negative // theme crimson
+      : clampedPercent > 85
+        ? palette.warning // theme amber
+        : palette.positive; // theme emerald
+  const accentSoft = palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+
+  const remainingText = hasBudgetSet
+    ? isOver
+      ? `${formatCurrency(Math.abs(budget.remaining), sym)} over of ${formatCurrency(budget.amount, sym)}`
+      : `${formatCurrency(budget.remaining, sym)} left of ${formatCurrency(budget.amount, sym)}`
+    : `${formatCurrency(budget.spent, sym)} spent`;
 
   return (
     <PressableScale
@@ -46,59 +108,61 @@ export function BudgetListCard({
         {
           marginBottom: HOME_SPACE.md,
           backgroundColor: palette.card,
-          borderColor: palette.border,
+          borderColor: palette.borderSoft,
         },
       ]}
     >
       <View style={styles.body}>
-          {/* Column 1: Icon */}
-          <View style={styles.iconContainer}>
-            {isEmojiIcon(categoryIcon) ? (
-              <Text style={{ fontSize: HOME_LAYOUT.listIconInnerSize }}>{categoryIcon}</Text>
-            ) : (
-              <AppIcon name={categoryIcon as any} size={HOME_LAYOUT.listIconInnerSize} color={palette.brand} strokeWidth={HOME_LAYOUT.listIconStrokeWidth} />
-            )}
-          </View>
-
-          {/* Column 2: Labels, progress, stats */}
-          <View style={styles.contentColumn}>
-            {/* Top row: label + amount */}
-            <View style={styles.topRow}>
-              <View style={{ flex: 1, marginRight: HOME_SPACE.sm }}>
-                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-                  {categoryLabel}
-                </Text>
-                <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaSmall, color: palette.textMuted, marginTop: 1 }}>
-                  {budget.repeat ? 'Monthly' : 'One-time'}
-                </Text>
-              </View>
-              <Text appWeight="medium" style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
-                {formatCurrency(budget.amount, sym)}
-              </Text>
-            </View>
-
-            {/* Progress bar (static) */}
-            <View style={[styles.track, { backgroundColor: accentSoft }]}>
-              <View style={[styles.fill, { backgroundColor: accent, width: `${clampedPercent}%` }]} />
-            </View>
-
-            {/* Bottom row: spent • % on left, remaining/over on right */}
-            <View style={styles.bottomRow}>
-              <Text style={{ fontSize: CARD_TEXT.tertiary, fontWeight: FONT_WEIGHT.medium, color: isOver ? palette.negative : palette.textMuted }}>
-                {hasBudgetSet
-                  ? `Spent ${formatCurrency(budget.spent, sym)} • ${Math.round(clampedPercent)}%`
-                  : `Spent ${formatCurrency(budget.spent, sym)}`}
-              </Text>
-              <Text appWeight="medium" style={{ fontSize: CARD_TEXT.tertiary, fontWeight: FONT_WEIGHT.semibold, color: isOver ? palette.negative : palette.textSecondary }}>
-                {hasBudgetSet
-                  ? isOver
-                    ? `Over ${formatCurrency(Math.abs(budget.remaining), sym)}`
-                    : `Left ${formatCurrency(budget.remaining, sym)}`
-                  : 'No limit'}
-              </Text>
-            </View>
+        {/* Left Col: Category Icon + Labels + spent details */}
+        <View style={{ flexDirection: 'row', flex: 1, alignItems: 'center' }}>
+          <CategoryIconBadge
+            icon={categoryIcon}
+            palette={palette}
+            iconColor={palette.brand}
+            size={HOME_LAYOUT.listIconSize}
+            iconSize={HOME_LAYOUT.listIconInnerSize}
+            strokeWidth={HOME_LAYOUT.listIconStrokeWidth}
+            noBackground
+          />
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.medium, color: palette.text }}>
+              {categoryLabel}
+            </Text>
+            <Text numberOfLines={1} style={{ fontSize: HOME_TEXT.metaSmall, color: palette.textMuted, marginTop: 2 }}>
+              {remainingText}
+            </Text>
           </View>
         </View>
+
+        {/* Right Col: Semi-circle progress gauge and remaining text */}
+        <View style={{ alignItems: 'flex-end', marginLeft: 12, justifyContent: 'center' }}>
+          {hasBudgetSet ? (
+            <View style={{ alignItems: 'center', position: 'relative', width: 50, marginBottom: 2 }}>
+              <StaticSemiGauge
+                size={50}
+                strokeWidth={2.5} // Balanced 2.5px line
+                percent={clampedPercent}
+                color={accent}
+                trackColor={accentSoft}
+              />
+               <View style={{ position: 'absolute', bottom: -1, alignItems: 'center' }}>
+                <Text style={{ fontSize: 8.5, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}>
+                  {Math.round(budget.percent)}%
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={{ fontSize: CARD_TEXT.tertiary, color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>
+              No limit
+            </Text>
+          )}
+          {hasBudgetSet && (
+            <Text style={{ fontSize: 9.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textSecondary, marginTop: 4 }}>
+              {formatCurrency(budget.spent, sym)} spent
+            </Text>
+          )}
+        </View>
+      </View>
     </PressableScale>
   );
 }
@@ -113,37 +177,14 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 16,
+    alignItems: 'center',
+    paddingVertical: 14,
     paddingHorizontal: HOME_SPACE.md + 2,
   },
-  contentColumn: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: HOME_SPACE.sm + 2,
-  },
   iconContainer: {
-    width: HOME_LAYOUT.listIconSize - 4,
-    height: HOME_LAYOUT.listIconSize - 4,
+    width: HOME_LAYOUT.listIconSize,
+    height: HOME_LAYOUT.listIconSize,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  track: {
-    height: PROGRESS.cardHeight,
-    borderRadius: PROGRESS.radius,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: PROGRESS.cardHeight,
-    borderRadius: PROGRESS.radius,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: HOME_SPACE.sm,
   },
 });

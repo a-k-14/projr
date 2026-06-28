@@ -27,6 +27,11 @@ import { markStarterDataSeeded, shouldAutoSeedStarterData } from '../services/se
 import { isAutoBackupDue, runAutoBackup } from '../services/backup';
 import { pruneAuditLogs } from '../services/audit';
 import { FilledButton } from '../components/ui/AppButton';
+import { getTransactions } from '../services/transactions';
+import { toLocalDayStartISO, toLocalDayEndISO } from '../lib/dateUtils';
+import { setHomeBootstrapCache } from '../lib/homeBootstrapCache';
+import { setAccountBootstrapCache } from '../lib/accountBootstrapCache';
+import { getAccountBalanceTrend } from '../services/analytics';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -45,6 +50,16 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SecurityGuard } from '../components/SecurityGuard';
 import { GlobalNotice } from '../components/ui/GlobalNotice';
 import { useAppDialog } from '../components/ui/useAppDialog';
+
+// Module-level flag survives component re-mounts within the same JS runtime.
+// Prevents full re-initialization (splash + data reload) when Android's
+// singleTask launch mode re-delivers an intent on warm resume (e.g. widget
+// tap → home → icon tap). The "Try again" button bypasses this by calling
+// init() directly.
+let hasCompletedInit = false;
+// Tracks whether we've already handled QuickActions.initial — the property is
+// read-only so we can't null it out; this flag prevents re-firing on re-mount.
+let hasConsumedInitialShortcut = false;
 
 export default function RootLayout() {
   const loadAccounts = useAccountsStore((s) => s.load);
@@ -84,9 +99,69 @@ export default function RootLayout() {
         await Promise.all([loadAccounts(), loadCategories(), loadTransactions()]);
       }
 
+      // Prefetch today's period data on the critical path — awaited before the
+      // splash hides so inc/exp/NW-change are ready on the very first render,
+      // exactly like accounts.balance which is already loaded in loadAccounts().
+      const now = new Date();
+      const todayFrom = toLocalDayStartISO(now);
+      const todayTo = toLocalDayEndISO(now);
+      const [todayTxs, recentTxs] = await Promise.all([
+        getTransactions({ fromDate: todayFrom, toDate: todayTo }),
+        getTransactions({ limit: 10 }),
+      ]);
+      setHomeBootstrapCache({
+        todayTransactions: todayTxs,
+        recentTransactions: recentTxs,
+        rangeFrom: todayFrom,
+        rangeTo: todayTo,
+      });
+
       setReady(true);
+      hasCompletedInit = true;
+
       // Background loads — kick off after the home tab is visible.
       Promise.all([loadDeposits(), loadLoans(), loadAssets(), pruneAuditLogs(30)]).catch(() => undefined);
+
+      // Async pre-warm/prefetch of account detail data in the background
+      (async () => {
+        try {
+          const activeAccounts = useAccountsStore.getState().accounts;
+          // Use full-month range (1st to last day) to match the detail screen's
+          // DEFAULT_FILTER_PERIOD = 'month', so the cache key aligns and
+          // loadRangeData can skip the redundant first DB query.
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          const monthFrom = toLocalDayStartISO(monthStart);
+          const monthTo = toLocalDayEndISO(monthEnd);
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(now.getDate() - 29);
+          const trendFrom = toLocalDayStartISO(thirtyDaysAgo);
+          const trendTo = toLocalDayEndISO(now);
+
+          await Promise.all(
+            activeAccounts.map(async (acc) => {
+              try {
+                const [monthTxs, recentTxs, trend] = await Promise.all([
+                  getTransactions({ accountId: acc.id, fromDate: monthFrom, toDate: monthTo }),
+                  getTransactions({ accountId: acc.id, limit: 10 }),
+                  getAccountBalanceTrend(acc.id, trendFrom, trendTo),
+                ]);
+                setAccountBootstrapCache(acc.id, {
+                  todayTransactions: monthTxs,
+                  recentTransactions: recentTxs,
+                  trendPoints: trend.map(t => ({ date: t.date, val: t.balance })),
+                  rangeFrom: monthFrom,
+                  rangeTo: monthTo,
+                });
+              } catch (err) {
+                console.error(`Failed to prefetch account ${acc.id}`, err);
+              }
+            })
+          );
+        } catch (err) {
+          console.error('Failed to prefetch accounts details background cache', err);
+        }
+      })();
     } catch (error) {
       setInitError(
         error instanceof Error ? error.message : 'Something went wrong while opening the app.'
@@ -95,6 +170,12 @@ export default function RootLayout() {
   }, [loadAccounts, loadCategories, loadSettings, loadDeposits, loadLoans, loadAssets, loadTransactions]);
 
   useEffect(() => {
+    if (hasCompletedInit) {
+      // Already loaded in this JS session — skip the expensive init and just
+      // ensure the UI shows as ready (handles singleTask re-mount).
+      if (!ready) setReady(true);
+      return;
+    }
     init();
   }, [init]);
 
@@ -183,7 +264,8 @@ export default function RootLayout() {
       router.push({ pathname: '/modals/add-transaction', params: { type: String(type), fromWidget: '1' } });
     };
 
-    if (QuickActions.initial) {
+    if (QuickActions.initial && !hasConsumedInitialShortcut) {
+      hasConsumedInitialShortcut = true;
       openFromShortcut(QuickActions.initial.params?.type);
     }
 

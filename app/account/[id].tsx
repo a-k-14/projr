@@ -2,7 +2,7 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { InteractionManager, Modal, Pressable, TouchableOpacity, View } from 'react-native';
+import { InteractionManager, Modal, Pressable, TouchableOpacity, View, BackHandler } from 'react-native';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,7 +15,7 @@ import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
 
 import { Text } from '@/components/ui/AppText';
-import { HomeAccountPage } from '../(tabs)/index';
+import { HomeAccountPage, CategoryDrilldown, AccountViewMode } from '../(tabs)/index';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
 import { ActionStrip } from '../../components/ui/ActionStrip';
 import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppButton';
@@ -30,8 +30,10 @@ import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../lib/layoutTokens';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { trendCache } from '../../lib/trendCache';
-import { useDateFilter } from '../../lib/useDateFilter';
+import { useDateFilter, DEFAULT_FILTER_PERIOD } from '../../lib/useDateFilter';
 import { getAccountBalanceTrend } from '../../services/analytics';
+import { getMaxTransactionDate } from '../../services/transactions';
+import { getAccountBootstrapCache } from '../../lib/accountBootstrapCache';
 
 export default function AccountDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -62,14 +64,40 @@ export default function AccountDetailScreen() {
 
   const account = accounts.find((a) => a.id === id);
 
+  const cachedFromPrefetch = id ? getAccountBootstrapCache(id) : undefined;
   const [trendPoints, setTrendPoints] = useState<{ date: string; val: number }[]>(
-    () => trendCache.get(id ?? '')?.data ?? []
+    () => trendCache.get(id ?? '')?.data ?? cachedFromPrefetch?.trendPoints ?? []
   );
-  const [isLoadingTrend, setIsLoadingTrend] = useState(!trendCache.has(id ?? ''));
+  const [isLoadingTrend, setIsLoadingTrend] = useState(
+    () => !trendCache.has(id ?? '') && !cachedFromPrefetch?.trendPoints
+  );
   const [chartInteracting, setChartInteracting] = useState(false);
   const mutationVersion = useTransactionsStore((s) => s.mutationVersion);
   const [inlineFilter, setInlineFilter] = useState<'in' | 'out' | null>(null);
   const [resetInlineFilterToken, setResetInlineFilterToken] = useState(0);
+
+  const [activityViewMode, setActivityViewMode] = useState<AccountViewMode>('date');
+  const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
+  const [chartReady, setChartReady] = useState(false);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setChartReady(true);
+    });
+    return () => task.cancel();
+  }, []);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (activityViewMode === 'category' && categoryDrilldown) {
+        setCategoryDrilldown(null);
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [categoryDrilldown, activityViewMode, isFocused]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -87,7 +115,7 @@ export default function AccountDetailScreen() {
     let active = true;
     const loadTrend = async () => {
       // Only show skeleton on the very first load; subsequent refreshes are silent.
-      if (!cachedTrend) setIsLoadingTrend(true);
+      if (!cachedTrend && trendPoints.length === 0) setIsLoadingTrend(true);
       const today = new Date();
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(today.getDate() - 29);
@@ -128,7 +156,20 @@ export default function AccountDetailScreen() {
   const verticalScrolls = useSharedValue<number[]>([0]);
   const indicatorY = useSharedValue(0);
 
-  const dateFilter = useDateFilter({ initialPeriod: 'today' });
+  const [maxTxDate, setMaxTxDate] = useState<string | null>(
+    () => cachedFromPrefetch?.recentTransactions?.[0]?.date ?? null
+  );
+
+  useEffect(() => {
+    if (!account?.id) return;
+    let active = true;
+    getMaxTransactionDate(account.id).then((date) => {
+      if (active) setMaxTxDate(date);
+    });
+    return () => { active = false; };
+  }, [account?.id, mutationVersion]);
+
+  const dateFilter = useDateFilter({ initialPeriod: DEFAULT_FILTER_PERIOD, maxDate: maxTxDate });
   const [activePoint, setActivePoint] = useState<any>(null);
 
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
@@ -215,82 +256,89 @@ export default function AccountDetailScreen() {
   const isLedger = designVariant === 'ledger';
   const isPulse = designVariant === 'pulse';
   // Both Pulse and Ledger use the editorial cream canvas.
-  const isEditorial = isLedger || isPulse;
+  const isEditorial = isLedger || isPulse;  const middleContent = useMemo(() => {
 
-  const middleContent = useMemo(() => (
-    <TrendLineChart
-      points={trendPoints}
-      palette={palette}
-      currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-      title=""
-      lineColor={lineColor}
-      onInteractionStateChange={setChartInteracting}
-      isLoading={isLoadingTrend}
-      hideHeader={true}
-      hideStartDot={true}
-      flatStyle={true}
-      smoothCurves={true}
-      hideAxisLabels={true}
-      endLabelIsToday={true}
-      hideEndBalance={true}
-      onActivePointChange={setActivePoint}
-      hideInternalTooltip={true}
-      lineStrokeWidth={1.8}
-      chartHeight={100}
-      paddingX={10}
-    />
-  ), [trendPoints, palette, showCurrencySymbol, currencySymbol, lineColor, setChartInteracting, isLoadingTrend, setActivePoint]);
+    return (
+      <TrendLineChart
+        points={trendPoints}
+        palette={palette}
+        currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+        title=""
+        lineColor={lineColor}
+        onInteractionStateChange={setChartInteracting}
+        isLoading={isLoadingTrend}
+        hideHeader={true}
+        hideStartDot={true}
+        flatStyle={true}
+        smoothCurves={true}
+        hideAxisLabels={true}
+        endLabelIsToday={true}
+        hideEndBalance={true}
+        onActivePointChange={setActivePoint}
+        hideInternalTooltip={true}
+        lineStrokeWidth={1.8}
+        chartHeight={100}
+        paddingX={10}
+      />
+    );
+  }, [chartReady, trendPoints, palette, showCurrencySymbol, currencySymbol, lineColor, setChartInteracting, isLoadingTrend, setActivePoint]);
 
   // Ledger-tuned chart: deep ink 1px stroke, no fill, no axis labels chrome.
-  const middleContentLedger = useMemo(() => (
-    <TrendLineChart
-      points={trendPoints}
-      palette={palette}
-      currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-      title=""
-      lineColor={LEDGER_INK}
-      onInteractionStateChange={setChartInteracting}
-      isLoading={isLoadingTrend}
-      hideHeader={true}
-      hideStartDot={true}
-      flatStyle={true}
-      smoothCurves={true}
-      hideAxisLabels={true}
-      endLabelIsToday={true}
-      hideEndBalance={true}
-      onActivePointChange={setActivePoint}
-      hideInternalTooltip={true}
-      hideAreaFill={true}
-      lineStrokeWidth={1.6}
-      chartHeight={100}
-    />
-  ), [trendPoints, palette, showCurrencySymbol, currencySymbol, setChartInteracting, isLoadingTrend, setActivePoint]);
+  const middleContentLedger = useMemo(() => {
+
+    return (
+      <TrendLineChart
+        points={trendPoints}
+        palette={palette}
+        currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+        title=""
+        lineColor={LEDGER_INK}
+        onInteractionStateChange={setChartInteracting}
+        isLoading={isLoadingTrend}
+        hideHeader={true}
+        hideStartDot={true}
+        flatStyle={true}
+        smoothCurves={true}
+        hideAxisLabels={true}
+        endLabelIsToday={true}
+        hideEndBalance={true}
+        onActivePointChange={setActivePoint}
+        hideInternalTooltip={true}
+        hideAreaFill={true}
+        lineStrokeWidth={1.6}
+        chartHeight={100}
+      />
+    );
+  }, [chartReady, trendPoints, palette, showCurrencySymbol, currencySymbol, setChartInteracting, isLoadingTrend, setActivePoint]);
 
   // Pulse-tuned chart: ink stroke (2.0px width), no area fill, no axis labels.
-  const middleContentPulse = useMemo(() => (
-    <TrendLineChart
-      points={trendPoints}
-      palette={palette}
-      currencySymbol={showCurrencySymbol ? currencySymbol : ''}
-      title=""
-      lineColor={palette.text}
-      onInteractionStateChange={setChartInteracting}
-      isLoading={isLoadingTrend}
-      hideHeader={true}
-      hideStartDot={true}
-      flatStyle={true}
-      smoothCurves={true}
-      hideAxisLabels={true}
-      hideAxisBalances={true}
-      endLabelIsToday={true}
-      hideEndBalance={true}
-      onActivePointChange={setActivePoint}
-      hideInternalTooltip={true}
-      hideAreaFill={true}
-      lineStrokeWidth={1.8}
-      chartHeight={100}
-    />
-  ), [trendPoints, palette, showCurrencySymbol, currencySymbol, setChartInteracting, isLoadingTrend, setActivePoint]);
+  const middleContentPulse = useMemo(() => {
+
+    return (
+      <TrendLineChart
+        points={trendPoints}
+        palette={palette}
+        currencySymbol={showCurrencySymbol ? currencySymbol : ''}
+        title=""
+        lineColor={palette.text}
+        onInteractionStateChange={setChartInteracting}
+        isLoading={isLoadingTrend}
+        hideHeader={true}
+        hideStartDot={true}
+        flatStyle={true}
+        smoothCurves={true}
+        hideAxisLabels={true}
+        hideAxisBalances={true}
+        endLabelIsToday={true}
+        hideEndBalance={true}
+        onActivePointChange={setActivePoint}
+        hideInternalTooltip={true}
+        hideAreaFill={true}
+        lineStrokeWidth={1.8}
+        chartHeight={100}
+      />
+    );
+  }, [chartReady, trendPoints, palette, showCurrencySymbol, currencySymbol, setChartInteracting, isLoadingTrend, setActivePoint]);
 
   return (
     <ScreenScaffold
@@ -305,7 +353,13 @@ export default function AccountDetailScreen() {
             <View style={{ paddingTop: insets.top, backgroundColor: isEditorial ? LEDGER_BG : palette.background }}>
               <ScreenHeader
                 title={formatAccountDisplayName(account.name, account.accountNumber)}
-                onBack={() => router.back()}
+                onBack={() => {
+                  if (activityViewMode === 'category' && categoryDrilldown) {
+                    setCategoryDrilldown(null);
+                  } else {
+                    router.back();
+                  }
+                }}
                 palette={palette}
                 onTitleLongPress={__DEV__ ? cycleDesignVariant : undefined}
                 backgroundColor={isEditorial ? LEDGER_BG : undefined}
@@ -314,10 +368,10 @@ export default function AccountDetailScreen() {
                 titleAddon={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <HeaderResetButton
-                      visible={!!inlineFilter || dateFilter.period !== 'today' || dateFilter.offset !== 0}
+                      visible={!!inlineFilter || dateFilter.period !== DEFAULT_FILTER_PERIOD || dateFilter.offset !== 0}
                       onPress={() => {
                         setInlineFilter(null);
-                        dateFilter.setPeriod('today');
+                        dateFilter.setPeriod(DEFAULT_FILTER_PERIOD);
                         dateFilter.setOffset(0);
                         setResetInlineFilterToken((t) => t + 1);
                       }}
@@ -406,7 +460,7 @@ export default function AccountDetailScreen() {
         verticalScrolls={verticalScrolls}
         indicatorY={indicatorY}
         registerScrollTop={handleRegisterScrollTop}
-        isPageReady={true}
+        isPageReady={chartReady}
         accountsById={accountsById}
         categoriesById={categoriesById}
         loansById={loansById}
@@ -426,6 +480,10 @@ export default function AccountDetailScreen() {
         activePoint={activePoint}
         onApplyCustomRange={handleApplyCustomRange}
         onScrollYChange={handleScrollYChange}
+        activityViewMode={activityViewMode}
+        onActivityViewModeChange={setActivityViewMode}
+        categoryDrilldown={categoryDrilldown}
+        onCategoryDrilldownChange={setCategoryDrilldown}
       />
 
       <Modal

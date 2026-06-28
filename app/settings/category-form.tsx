@@ -171,9 +171,6 @@ export default function CategoryFormScreen() {
 
   function addSub() {
     setSubs((s) => [...s, { name: '', deleted: false }]);
-    requestAnimationFrame(() => {
-      formScrollRef.current?.scrollToEnd({ animated: true });
-    });
   }
 
   function updateSubName(idx: number, value: string) {

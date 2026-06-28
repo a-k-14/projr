@@ -32,6 +32,7 @@ import { ActivityPeriodHeader } from '../../components/activity/ActivityPeriodHe
 import { CategoryIconBadge } from '../../components/activity/ActivityUI';
 import { PeriodFilterSheet } from '../../components/activity/PeriodFilterSheet';
 import { DateGroupedTransactionList, EmptyTransactions } from '../../components/DateGroupedTransactionList';
+import { ChartTooltip } from '../../components/insights/ChartTooltip';
 import { CardSection, ScreenTitle } from '../../components/settings-ui';
 import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { AppChevron } from '../../components/ui/AppChevron';
@@ -77,7 +78,7 @@ import { useDateFilter } from '../../lib/useDateFilter';
 import { useSweep } from '../../lib/useSweep';
 import { useTransactionPress } from '../../lib/useTransactionPress';
 import { getCashflowSnapshotFromTransactions } from '../../services/analytics';
-import { getTransactions } from '../../services/transactions';
+import { getTransactions, getMaxTransactionDate } from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useAssetsStore } from '../../stores/useAssetsStore';
 import { useBudgetStore } from '../../stores/useBudgetStore';
@@ -87,6 +88,8 @@ import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { drainHomeBootstrapCache, peekHomeBootstrapCache } from '../../lib/homeBootstrapCache';
+import { getAccountBootstrapCache } from '../../lib/accountBootstrapCache';
 import type {
   Account,
   AccountType,
@@ -126,8 +129,8 @@ function familyAwareCurrency(familyKey: HierarchyFamily, total: number, sym: str
 
 type HomePeriodType = 'today' | PeriodType;
 type HierarchyFamily = 'in' | 'out' | 'loan' | 'deposit' | 'transfer';
-type CategoryDrilldown = { parentKey: string; parentLabel: string; subKey: string; subLabel: string; compactLabel?: boolean };
-type AccountViewMode = 'date' | 'category';
+export type CategoryDrilldown = { parentKey: string; parentLabel: string; subKey: string; subLabel: string; compactLabel?: boolean };
+export type AccountViewMode = 'date' | 'category';
 
 const PERIODS: HomePeriodType[] = ['today', 'week', 'month', 'year', 'custom'];
 const PERIOD_LABELS: Record<HomePeriodType, string> = {
@@ -200,7 +203,19 @@ function HomeScreenContent() {
   const verticalScrolls = useSharedValue<number[]>([0]);
   const indicatorY = useSharedValue(0);
 
-  const dateFilter = useDateFilter({ initialPeriod: 'today' });
+  const [maxTxDate, setMaxTxDate] = useState<string | null>(
+    () => peekHomeBootstrapCache()?.recentTransactions?.[0]?.date ?? null
+  );
+
+  useEffect(() => {
+    let active = true;
+    getMaxTransactionDate().then((date) => {
+      if (active) setMaxTxDate(date);
+    });
+    return () => { active = false; };
+  }, [txMutationVersion]);
+
+  const dateFilter = useDateFilter({ initialPeriod: 'today', maxDate: maxTxDate });
   const [homeFullResetNonce, setHomeFullResetNonce] = useState(0);
 
   const [customDraftFrom, setCustomDraftFrom] = useState(() => new Date());
@@ -1706,6 +1721,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   activePoint = null,
   onApplyCustomRange,
   onScrollYChange,
+
+  activityViewMode: activityViewModeProp,
+  onActivityViewModeChange,
+  categoryDrilldown: categoryDrilldownProp,
+  onCategoryDrilldownChange,
 }: {
   pageHeight: number;
   accountId: string | 'all';
@@ -1753,6 +1773,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   activePoint?: any;
   onApplyCustomRange?: (from: Date, to: Date) => void;
   onScrollYChange?: (y: number) => void;
+
+  activityViewMode?: AccountViewMode;
+  onActivityViewModeChange?: (mode: AccountViewMode) => void;
+  categoryDrilldown?: CategoryDrilldown | null;
+  onCategoryDrilldownChange?: (drilldown: CategoryDrilldown | null) => void;
 }) {
   const { palette } = useAppTheme();
   const accountInsets = useSafeAreaInsets();
@@ -1760,10 +1785,41 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const depositsById = useMemo(() => new Map(deposits.map((d) => [d.id, d])), [deposits]);
   const tags = useCategoriesStore((s) => s.tags);
   const tagNamesById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
-  const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
-  const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
-  const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
+  // Drain the bootstrap cache on first mount — gives us today's data
+  // synchronously so the hero values are visible before the first async load.
+  // Wrapped in useMemo to prevent redundant cache drains and calculations on every render.
+  const _bootstrapOnce = useMemo(() => {
+    if (accountId === 'all') {
+      return drainHomeBootstrapCache();
+    } else {
+      const cached = getAccountBootstrapCache(accountId);
+      return cached ? {
+        todayTransactions: cached.todayTransactions,
+        recentTransactions: cached.recentTransactions,
+        rangeFrom: cached.rangeFrom,
+        rangeTo: cached.rangeTo
+      } : null;
+    }
+  }, [accountId]);
+
+  const _bootstrapCashflow = useMemo(() => {
+    if (!_bootstrapOnce) return null;
+    return getCashflowSnapshotFromTransactions(_bootstrapOnce.todayTransactions, { includeTransfers: true, includeLoans: true }).summary;
+  }, [_bootstrapOnce]);
+
+  const [cashflow, setCashflow] = useState<CashflowSummary>(
+    _bootstrapCashflow ?? { in: 0, out: 0, net: 0 }
+  );
+  const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>(
+    _bootstrapOnce ? _bootstrapOnce.todayTransactions : []
+  );
+  const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(
+    _bootstrapOnce ? `${_bootstrapOnce.rangeFrom}:${_bootstrapOnce.rangeTo}` : null
+  );
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    _bootstrapOnce ? _bootstrapOnce.recentTransactions : []
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [cashflowIsCashflow, setCashflowIsCashflow] = useState(false);
   // Inline filter: tap inc/exp on hero → filter Activity list to those tx; reset clears it
@@ -1777,16 +1833,22 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
       setActivityViewMode('date');
       setCategoryDrilldown(null);
       setExpandedCategoryIds([]);
-      dateFilter?.setPeriod('today');
+      dateFilter?.setPeriod(isDetailScreen ? 'month' : 'today');
       setShowInfoSection(false);
       mainScrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetInlineFilterToken]);
   // Activity view mode (list vs category grouped) — only used for individual account pages
-  const [activityViewMode, setActivityViewMode] = useState<AccountViewMode>('date');
+  const [localActivityViewMode, setLocalActivityViewMode] = useState<AccountViewMode>('date');
+  const activityViewMode = activityViewModeProp !== undefined ? activityViewModeProp : localActivityViewMode;
+  const setActivityViewMode = onActivityViewModeChange !== undefined ? onActivityViewModeChange : setLocalActivityViewMode;
+
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
-  const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
+
+  const [localCategoryDrilldown, setLocalCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
+  const categoryDrilldown = categoryDrilldownProp !== undefined ? categoryDrilldownProp : localCategoryDrilldown;
+  const setCategoryDrilldown = onCategoryDrilldownChange !== undefined ? onCategoryDrilldownChange : setLocalCategoryDrilldown;
   const isScreenFocused = useIsFocused();
   const loadRequestIdRef = useRef(0);
 
@@ -1816,7 +1878,14 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     }
   }, [fullResetNonce]);
 
+  const isFirstMountRef = useRef(true);
+  const hasLoadedOnceRef = useRef(false);
+
   useEffect(() => {
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      return;
+    }
     loadRequestIdRef.current += 1;
     setCashflow({ in: 0, out: 0, net: 0 });
     setPeriodTransactions([]);
@@ -1824,12 +1893,18 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     setTransactions([]);
     todayDataCacheRef.current = null;
     lastNWChipValueRef.current = undefined;
+    hasLoadedOnceRef.current = false;
   }, [accountId]);
 
   const loadRangeData = useCallback(async (rangeFrom: string, rangeTo: string) => {
     if (!isPageReady) return;
-    const requestId = ++loadRequestIdRef.current;
     const requestRangeKey = `${rangeFrom}:${rangeTo}`;
+    if (!hasLoadedOnceRef.current && requestRangeKey === periodDataRangeKey && periodDataRangeKey !== null) {
+      hasLoadedOnceRef.current = true;
+      return;
+    }
+    hasLoadedOnceRef.current = true;
+    const requestId = ++loadRequestIdRef.current;
     const accountFilter = accountId === 'all' ? undefined : accountId;
     const [recentTransactions, periodScopedTransactions] = await Promise.all([
       getTransactions({ accountId: accountFilter, limit: 10 }),
@@ -1928,11 +2003,12 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const totalTick = tickIn + tickOut;
   const incomeFraction = totalTick > 0 ? tickIn / totalTick : 0.5;
   const animatedIncomeFraction = useSharedValue(incomeFraction);
-  const tickActivityProgress = useSharedValue(totalTick > 0 ? 1 : 0);
+  const tickActivityProgress = useSharedValue((totalTick > 0 && isPageReady) ? 1 : 0);
 
   const prevTotalTickRef = React.useRef(totalTick);
 
   React.useEffect(() => {
+    if (!isPageReady) return;
     if (totalTick > 0) {
       if (prevTotalTickRef.current === 0) {
         animatedIncomeFraction.value = incomeFraction;
@@ -1942,7 +2018,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     }
     tickActivityProgress.value = withTiming(totalTick > 0 ? 1 : 0, { duration: 250 });
     prevTotalTickRef.current = totalTick;
-  }, [tickIn, tickOut, incomeFraction, totalTick]);
+  }, [tickIn, tickOut, incomeFraction, totalTick, isPageReady]);
 
   const detailIncomeTickOverlayStyle = useAnimatedStyle(() => {
     const progress = tickActivityProgress.value;
@@ -2371,72 +2447,19 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                     prevDateStr = isNaN(prevD.getTime()) ? '' : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
                   }
                   const isPositive = diff > 0;
-                  const tooltipBg = palette.background;
-                  const textMainColor = palette.text;
-                  const textMutedColor = palette.textSecondary;
-                  const dividerColor = palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+                  const diffLabel = formatSignedCurrency(Math.abs(diff), currencySymbol, { zeroPlaceholder: null });
 
                   return (
-                    <View style={{
-                      position: 'absolute',
-                      top: 28,
-                      alignSelf: 'center',
-                      backgroundColor: tooltipBg,
-                      borderRadius: 12,
-                      paddingVertical: 8,
-                      paddingHorizontal: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 12,
-                      zIndex: 100,
-                      shadowColor: palette.isDark ? '#000000' : '#94A3B8',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: palette.isDark ? 0.3 : 0.15,
-                      shadowRadius: 8,
-                      elevation: 8,
-                    }}>
-                      {/* Column 1: Dates */}
-                      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                        <Text style={{ fontSize: 11, color: textMutedColor, fontWeight: FONT_WEIGHT.semibold }}>
-                          {activePointDateFormatted}
-                        </Text>
-                        {hasPrev && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={{ fontSize: 9.5, color: palette.textMuted, marginRight: 3 }}>vs</Text>
-                            <Text style={{ fontSize: 10, color: textMutedColor, fontWeight: FONT_WEIGHT.medium }}>
-                              {prevDateStr}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Divider */}
-                      <View style={{ width: 1, height: hasPrev ? 26 : 14, backgroundColor: dividerColor }} />
-
-                      {/* Column 2: Amounts */}
-                      <View style={{ alignItems: 'flex-start', gap: 2 }}>
-                        <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: textMainColor }}>
-                          {activePointValFormatted}
-                        </Text>
-                        {hasPrev && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                            <AppIcon
-                              name={isPositive ? 'trending-up' : 'trending-down'}
-                              size={12}
-                              color={isPositive ? palette.numberPositive : palette.numberNegative}
-                              strokeWidth={2.5}
-                            />
-                            <Text style={{
-                              fontSize: 10,
-                              color: isPositive ? palette.numberPositive : palette.numberNegative,
-                              fontWeight: FONT_WEIGHT.bold,
-                            }}>
-                              {formatSignedCurrency(Math.abs(diff), currencySymbol, { zeroPlaceholder: null })}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
+                    <ChartTooltip
+                      palette={palette}
+                      dateLabel={activePointDateFormatted}
+                      valueLabel={activePointValFormatted}
+                      hasPrev={!!hasPrev}
+                      prevDateLabel={prevDateStr}
+                      diffLabel={diffLabel}
+                      isPositive={isPositive}
+                      topOffset={28}
+                    />
                   );
                 })()}
 
@@ -2810,7 +2833,10 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             {/* Date-grouped list view (default, or drilldown from category) */}
             {(activityViewMode === 'date' || categoryDrilldown) && (
               <DateGroupedTransactionList
-                transactions={categoryDrilldown ? drilldownTransactions : inlineFilter ? inlineFilteredTransactions : (accountId === 'all' ? transactions : displayedPeriodTransactions)}
+                transactions={(() => {
+                  const txs = categoryDrilldown ? drilldownTransactions : inlineFilter ? inlineFilteredTransactions : (accountId === 'all' ? transactions : displayedPeriodTransactions);
+                  return isPageReady ? txs : [];
+                })()}
                 palette={palette}
                 sym={currencySymbol}
                 categoriesById={categoriesById}
@@ -2818,6 +2844,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 loansById={loansById}
                 depositsById={depositsById}
                 tagNamesById={tagNamesById}
+                tagsById={tagsById}
                 getCategoryFullDisplayName={getCategoryFullDisplayName}
                 onTransactionPress={handleTransactionPress}
                 emptyText="No Transactions Yet"

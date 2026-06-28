@@ -6,16 +6,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
+  Dimensions,
   InteractionManager,
   LayoutAnimation,
   LayoutChangeEvent,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View
 } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountFilterSheet } from '../../components/activity/AccountFilterSheet';
 import { ActivityFilterBar } from '../../components/activity/ActivityFilterBar';
@@ -33,11 +35,11 @@ import { EmptyStateCard } from '../../components/ui/EmptyStateCard';
 import { FinanceEmptyMascot } from '../../components/ui/FinanceEmptyMascot';
 import { HeaderResetButton } from '../../components/ui/HeaderResetButton';
 import { HeaderSearchBar, HeaderSearchTrigger } from '../../components/ui/HeaderSearchBar';
-import { useDateFilter } from '../../lib/useDateFilter';
 import { getScrollableBottomPadding } from '../../components/ui/safeBottom';
 import { getActivityDisplayedCashflow, getActivityDrilldownTransactions } from '../../lib/activityCashflow';
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import {
+  APP_LOCALE,
   getRelativeDateLabel
 } from '../../lib/dateUtils';
 import {
@@ -50,12 +52,14 @@ import { ACTIVITY_LAYOUT, getTxTypeConfig, HOME_LAYOUT, HOME_RADIUS, HOME_TEXT, 
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { useAppTheme } from '../../lib/theme';
 import { filterTransactions } from '../../lib/transactionFilters';
+import { DEFAULT_FILTER_PERIOD, useDateFilter } from '../../lib/useDateFilter';
 import { useTransactionPress } from '../../lib/useTransactionPress';
 import { getActivityPeriodCashflow, getActivityPeriodCashflowFromTransactions } from '../../services/analytics';
 import * as transactionsService from '../../services/transactions';
 import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useActivityFiltersStore } from '../../stores/useActivityFiltersStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
+import { ACTIVITY_VARIANT_LABEL, useDesignLabStore } from '../../stores/useDesignLabStore';
 import { useFixedDepositsStore } from '../../stores/useFixedDepositsStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
@@ -93,8 +97,101 @@ type CategoryDrilldown = {
   compactLabel?: boolean;
 };
 type HierarchyFamily = 'in' | 'out' | 'loan' | 'deposit' | 'transfer';
+
+const TICK_W = 2;
+const TICK_GAP = 4;
+const TICK_CONTAINER_W = Math.max(80, Dimensions.get('window').width - 2 * SCREEN_GUTTER - 2 * 14);
+const TICK_TOTAL = Math.floor((TICK_CONTAINER_W + TICK_GAP) / (TICK_W + TICK_GAP));
+const TICK_CONTENT_W = TICK_TOTAL * (TICK_W + TICK_GAP) - TICK_GAP;
+
+function splitTickAmount(amount: number): { int: string; dec: string } {
+  const abs = Math.abs(amount);
+  const truncated = Math.floor(abs * 100) / 100;
+  const intPart = Math.floor(truncated);
+  const cents = Math.round((truncated - intPart) * 100);
+  return {
+    int: intPart.toLocaleString(APP_LOCALE),
+    dec: cents > 0 ? '.' + String(cents).padStart(2, '0') : '',
+  };
+}
+
+const METRIC_ARM_WINDOW_MS = 1200;
+
+function useMetricSprings(tweenTrigger: number, leftAmount: number, rightAmount: number) {
+  const leftSpring = useSharedValue(0);
+  const rightSpring = useSharedValue(0);
+  const lastTweenTriggerRef = useRef(tweenTrigger);
+  const armedStampRef = useRef(0);
+  const lastLeftAmountRef = useRef(leftAmount);
+  const lastRightAmountRef = useRef(rightAmount);
+
+  useEffect(() => {
+    if (tweenTrigger !== lastTweenTriggerRef.current) {
+      lastTweenTriggerRef.current = tweenTrigger;
+      armedStampRef.current = performance.now();
+    }
+
+    const leftChanged = leftAmount !== lastLeftAmountRef.current;
+    const rightChanged = rightAmount !== lastRightAmountRef.current;
+    lastLeftAmountRef.current = leftAmount;
+    lastRightAmountRef.current = rightAmount;
+
+    if (armedStampRef.current === 0) return;
+    if (performance.now() - armedStampRef.current > METRIC_ARM_WINDOW_MS) {
+      armedStampRef.current = 0;
+      return;
+    }
+
+    const springUp = (sv: typeof leftSpring) => {
+      sv.value = -4;
+      sv.value = withSpring(0, { damping: 12, stiffness: 220, mass: 0.6 });
+    };
+
+    if (leftChanged) springUp(leftSpring);
+    if (rightChanged) springUp(rightSpring);
+    if (leftChanged || rightChanged) armedStampRef.current = 0;
+  }, [tweenTrigger, leftAmount, rightAmount, leftSpring, rightSpring]);
+
+  const leftSpringStyle = useAnimatedStyle(() => ({ transform: [{ translateY: leftSpring.value }] }));
+  const rightSpringStyle = useAnimatedStyle(() => ({ transform: [{ translateY: rightSpring.value }] }));
+
+  return { leftSpringStyle, rightSpringStyle };
+}
+
+function AnimatedMetricValue({
+  style,
+  children,
+}: {
+  style: ReturnType<typeof useMetricSprings>['leftSpringStyle'];
+  children: React.ReactNode;
+}) {
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
+const PREMIUM_ROW_STYLE = {
+  backgroundColor: 'transparent',
+  borderWidth: 0,
+  borderLeftWidth: 0,
+  borderRightWidth: 0,
+  borderTopWidth: 0,
+  borderBottomWidth: 0,
+  borderRadius: 0,
+  borderTopLeftRadius: 0,
+  borderTopRightRadius: 0,
+  borderBottomLeftRadius: 0,
+  borderBottomRightRadius: 0,
+  paddingLeft: 8,
+  paddingRight: 16,
+  marginHorizontal: 0,
+  shadowOpacity: 0,
+  elevation: 0,
+};
+
 export default function ActivityScreen() {
   const isFocused = useIsFocused();
+  const activityVariantRaw = useDesignLabStore((s) => s.activityVariant || 'card2');
+  const activityVariant = __DEV__ ? activityVariantRaw : 'card2';
+  const cycleActivityVariant = useDesignLabStore((s) => s.cycleActivityVariant);
   const routeParams = useLocalSearchParams<{
     source?: string;
     period?: string;
@@ -140,7 +237,7 @@ export default function ActivityScreen() {
   const tagNamesById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
   const tagsById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag])), [tags]);
 
-  const dateFilter = useDateFilter({ initialPeriod: 'month' });
+  const dateFilter = useDateFilter({ initialPeriod: DEFAULT_FILTER_PERIOD });
   const period = dateFilter.period;
   const periodOffset = dateFilter.offset;
   const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
@@ -208,6 +305,11 @@ export default function ActivityScreen() {
   const [chipScrollResetToken, setChipScrollResetToken] = useState(0);
   const [topBarHeight, setTopBarHeight] = useState(0);
   const [activityHeaderHeight, setActivityHeaderHeight] = useState(0);
+  const activityHeaderHeightRef = useRef(0);
+  const heightTimeoutRef = useRef<any>(null);
+
+  // Reference activityHeaderHeight to trigger re-renders on layout change, satisfying TS compiler
+  void activityHeaderHeight;
 
   const [stickyDateLabel, setStickyDateLabel] = useState<{ key: string; title: string; subtitle?: string } | null>(null);
   const [showStickyDateLabel, setShowStickyDateLabel] = useState(false);
@@ -251,7 +353,7 @@ export default function ActivityScreen() {
   }, [queueScrollToTop]);
 
   const resetAllFilters = useCallback((animated: boolean) => {
-    dateFilter.setPeriod('month');
+    dateFilter.setPeriod(DEFAULT_FILTER_PERIOD);
     setSelectedAccountId('all');
     setTypeFilter('all');
     setCashflowBucket('all');
@@ -662,7 +764,7 @@ export default function ActivityScreen() {
       return;
     }
 
-    dateFilter.setPeriod('month');
+    dateFilter.setPeriod(DEFAULT_FILTER_PERIOD);
     setSelectedAccountId('all');
     setTypeFilter('all');
     setCashflowBucket('all');
@@ -772,8 +874,9 @@ export default function ActivityScreen() {
       if (nativeEvent.contentOffset.y > 24) {
         hasUserScrolledRef.current = true;
       }
+      const headerHeight = activityHeaderHeightRef.current;
       const shouldShowStickyDate =
-        activityHeaderHeight > 0 && nativeEvent.contentOffset.y >= activityHeaderHeight + 8;
+        headerHeight > 0 && nativeEvent.contentOffset.y >= headerHeight + 8;
       if (showStickyDateLabelRef.current !== shouldShowStickyDate) {
         showStickyDateLabelRef.current = shouldShowStickyDate;
         setShowStickyDateLabel(shouldShowStickyDate);
@@ -784,7 +887,14 @@ export default function ActivityScreen() {
         void onLoadMore();
       }
     },
-    [activityHeaderHeight, onLoadMore],
+    [onLoadMore],
+  );
+
+  const handleScroll = useCallback(
+    ({ nativeEvent }: any) => {
+      maybePrefetchMore(nativeEvent);
+    },
+    [maybePrefetchMore],
   );
 
   const goPrev = () => {
@@ -889,12 +999,105 @@ export default function ActivityScreen() {
   // when available; for local-only scopes, use the exact rows visible on screen.
   // Apply cashflowBucket so the card matches the filtered list — when viewing only income,
   // only show income total; when viewing only expenses, only show expense total.
+  const baseCashflow = useMemo(() => {
+    return summaryUsesLocalScope ? displayedCashflow : (serverCashflow ?? displayedCashflow);
+  }, [summaryUsesLocalScope, displayedCashflow, serverCashflow]);
+
   const summaryCardCashflow = useMemo((): CashflowSummary => {
-    const base = summaryUsesLocalScope ? displayedCashflow : (serverCashflow ?? displayedCashflow);
-    if (cashflowBucket === 'in') return { in: base.in, out: 0, net: base.in };
-    if (cashflowBucket === 'out') return { in: 0, out: base.out, net: -base.out };
-    return base;
-  }, [serverCashflow, displayedCashflow, cashflowBucket, summaryUsesLocalScope]);
+    if (cashflowBucket === 'in') return { in: baseCashflow.in, out: 0, net: baseCashflow.in };
+    if (cashflowBucket === 'out') return { in: 0, out: baseCashflow.out, net: -baseCashflow.out };
+    return baseCashflow;
+  }, [baseCashflow, cashflowBucket]);
+
+  const metricLeftAmount = baseCashflow.in;
+  const metricRightAmount = baseCashflow.out;
+  const netAmount = baseCashflow.net;
+
+  const tickIn = metricLeftAmount;
+  const tickOut = metricRightAmount;
+  const totalTick = tickIn + tickOut;
+  const incomeFraction = totalTick > 0 ? tickIn / totalTick : 0.5;
+  const animatedIncomeFraction = useSharedValue(incomeFraction);
+  const tickActivityProgress = useSharedValue(totalTick > 0 ? 1 : 0);
+
+  const prevTotalTickRef = useRef(totalTick);
+
+  useEffect(() => {
+    if (totalTick > 0) {
+      if (prevTotalTickRef.current === 0) {
+        animatedIncomeFraction.value = incomeFraction;
+      } else {
+        animatedIncomeFraction.value = withSpring(incomeFraction, { damping: 26, stiffness: 180, mass: 0.9, overshootClamping: true });
+      }
+    }
+    tickActivityProgress.value = withTiming(totalTick > 0 ? 1 : 0, { duration: 250 });
+    prevTotalTickRef.current = totalTick;
+  }, [tickIn, tickOut, incomeFraction, totalTick]);
+
+  const detailIncomeTickOverlayStyle = useAnimatedStyle(() => {
+    const progress = tickActivityProgress.value;
+    const fraction = animatedIncomeFraction.value;
+    const greenTicksCount = Math.round(fraction * TICK_TOTAL);
+    const currentGreenTicks = greenTicksCount * progress;
+    const width = currentGreenTicks > 0
+      ? currentGreenTicks * TICK_W + (currentGreenTicks - 1) * TICK_GAP
+      : 0;
+    return {
+      width: Math.max(0, width),
+    };
+  });
+
+  const detailExpenseTickOverlayStyle = useAnimatedStyle(() => {
+    const progress = tickActivityProgress.value;
+    const fraction = animatedIncomeFraction.value;
+    const greenTicksCount = Math.round(fraction * TICK_TOTAL);
+    const redTicksCount = TICK_TOTAL - greenTicksCount;
+    const currentRedTicks = redTicksCount * progress;
+    const width = currentRedTicks > 0
+      ? currentRedTicks * TICK_W + (currentRedTicks - 1) * TICK_GAP
+      : 0;
+    return {
+      width: Math.max(0, width),
+      right: 0,
+    };
+  });
+
+  const premiumInflowLineStyle = useAnimatedStyle(() => {
+    const fraction = animatedIncomeFraction.value;
+    const progress = tickActivityProgress.value;
+    const gap = (fraction > 0 && fraction < 1) ? 2 : 0;
+    const targetW = fraction * TICK_CONTENT_W - gap;
+    return {
+      width: Math.max(0, targetW * progress),
+    };
+  });
+
+  const premiumOutflowLineStyle = useAnimatedStyle(() => {
+    const fraction = animatedIncomeFraction.value;
+    const progress = tickActivityProgress.value;
+    const gap = (fraction > 0 && fraction < 1) ? 2 : 0;
+    const targetW = (1 - fraction) * TICK_CONTENT_W - gap;
+    return {
+      width: Math.max(0, targetW * progress),
+    };
+  });
+
+  const { leftSpringStyle, rightSpringStyle } = useMetricSprings(
+    storeMutationVersion,
+    metricLeftAmount,
+    metricRightAmount
+  );
+
+  const detailCashflowNoteProgress = useSharedValue(0);
+  useEffect(() => {
+    detailCashflowNoteProgress.value = withTiming(cashflowMode === 'total' ? 1 : 0, { duration: 220 });
+  }, [cashflowMode]);
+
+  const detailCashflowNoteStyle = useAnimatedStyle(() => ({
+    height: detailCashflowNoteProgress.value * 22,
+    opacity: detailCashflowNoteProgress.value,
+    overflow: 'hidden',
+  }));
 
   const isCashflowFilterActiveInMore = cashflowBucket !== 'all';
 
@@ -1145,31 +1348,22 @@ export default function ActivityScreen() {
     [dateRows],
   );
 
-  // The sticky label should reflect the section whose *transactions* are currently
-  // under the overlay — not the next section's header just because it crossed into
-  // the viewport. Pick the lowest-index visible transaction; fall back to the lowest
-  // visible item only if no transactions are visible at all.
+  // The sticky label should reflect the topmost visible item. Under a 1% visibility 
+  // threshold config, we keep the header locked to the current date until its last 
+  // item scrolls completely off-screen.
   const pickStickyIndex = (
     viewableItems: Array<{ item: ActivityDateRow; index: number | null; isViewable: boolean }>,
   ): number | null => {
     const sorted = viewableItems
       .filter((item) => item.isViewable && item.index != null)
       .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-    const firstTx = sorted.find((item) => item.item.type === 'transaction');
-    return (firstTx ?? sorted[0])?.index ?? null;
+    return sorted[0]?.index ?? null;
   };
 
-  const handleDateRowsViewableChanged = useRef(
-    ({ viewableItems }: { viewableItems: Array<{ item: ActivityDateRow; index: number | null; isViewable: boolean }> }) => {
-      updateStickyDateFromIndex(pickStickyIndex(viewableItems));
-    },
-  );
-
-  useEffect(() => {
-    handleDateRowsViewableChanged.current = ({ viewableItems }) => {
-      updateStickyDateFromIndex(pickStickyIndex(viewableItems));
-    };
-  }, [updateStickyDateFromIndex]);
+  const handleDateRowsViewableChanged = useRef<any>(null);
+  handleDateRowsViewableChanged.current = ({ viewableItems }: any) => {
+    updateStickyDateFromIndex(pickStickyIndex(viewableItems));
+  };
 
   useEffect(() => {
     const firstHeader = dateRows.find((row) => row.type === 'dateHeader');
@@ -1205,12 +1399,13 @@ export default function ActivityScreen() {
     ({ item }: ListRenderItemInfo<ActivityDateRow>) => {
       if (item.type === 'dateHeader') {
         const labelSuffix = item.subtitle ? `  •  ${item.subtitle}` : '';
+        const isPremium = activityVariant === 'premium';
         return (
           <View
             style={{
               height: item.isFirst ? 30 : 54,
-              paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
-              paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
+              paddingLeft: isPremium ? ACTIVITY_LAYOUT.headerPaddingX : ACTIVITY_LAYOUT.groupHeaderPaddingX,
+              paddingRight: isPremium ? 24 : ACTIVITY_LAYOUT.headerPaddingX + 10,
               paddingBottom: 1,
               paddingTop: item.isFirst ? 0 : 20,
               backgroundColor: palette.background,
@@ -1221,10 +1416,20 @@ export default function ActivityScreen() {
             <Text
               appWeight="medium"
               numberOfLines={1}
-              style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }}
+              style={
+                isPremium
+                  ? {
+                    fontSize: 10,
+                    fontWeight: FONT_WEIGHT.bold,
+                    color: palette.textSecondary,
+                    letterSpacing: 1.2,
+                    textTransform: 'uppercase',
+                  }
+                  : { fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: palette.text }
+              }
             >
               {item.title}
-              <Text style={{ color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>{labelSuffix}</Text>
+              <Text style={{ color: palette.textMuted, fontWeight: FONT_WEIGHT.medium, textTransform: isPremium ? 'uppercase' : 'none' }}>{labelSuffix}</Text>
             </Text>
           </View>
         );
@@ -1241,7 +1446,7 @@ export default function ActivityScreen() {
         ? tx.tags.map((tagId) => tagsById.get(tagId)).filter((value): value is { id: string; name: string; color: string } => !!value)
         : undefined;
 
-      return (
+      const rowItem = (
         <TransactionListItem
           tx={tx}
           sym={sym}
@@ -1271,17 +1476,44 @@ export default function ActivityScreen() {
           useTypeAmountColor
           noteNumberOfLines={1}
           onPress={handleTransactionPress}
+          style={activityVariant === 'premium' ? PREMIUM_ROW_STYLE : undefined}
         />
       );
+
+      if (activityVariant === 'premium') {
+        return (
+          <View style={{ marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
+            {rowItem}
+            {!isLast && (
+              <View
+                style={{
+                  height: StyleSheet.hairlineWidth,
+                  backgroundColor: palette.divider,
+                  marginLeft: 48, // aligns under the text column (0px padding + 36px icon + 12px gap)
+                  marginRight: 14, // matches the right padding
+                  opacity: 0.6,
+                }}
+              />
+            )}
+          </View>
+        );
+      }
+
+      return rowItem;
     },
-    [accountsById, categoriesById, loansById, depositsById, tagNamesById, tagsById, getCategoryFullDisplayName, handleTransactionPress, palette, sym],
+    [accountsById, categoriesById, loansById, depositsById, tagNamesById, tagsById, getCategoryFullDisplayName, handleTransactionPress, palette, sym, activityVariant],
   );
 
   const activityHeader = useMemo(() => (
     <View
       onLayout={(event: LayoutChangeEvent) => {
         const nextHeight = event.nativeEvent.layout.height;
-        setActivityHeaderHeight((current) => (Math.abs(current - nextHeight) > 1 ? nextHeight : current));
+        activityHeaderHeightRef.current = nextHeight;
+
+        if (heightTimeoutRef.current) clearTimeout(heightTimeoutRef.current);
+        heightTimeoutRef.current = setTimeout(() => {
+          setActivityHeaderHeight((current) => (Math.abs(current - nextHeight) > 1 ? nextHeight : current));
+        }, 200); // 200ms matching transition duration
       }}
       style={{ paddingTop: 4 }}
     >
@@ -1304,6 +1536,7 @@ export default function ActivityScreen() {
         chipScrollResetToken={chipScrollResetToken}
         isExpanded={isFiltersExpanded}
         setIsExpanded={setIsFiltersExpanded}
+        hidePeriodNavigation={activityVariant === 'card2' || activityVariant === 'premium'}
         periodNavigation={
           <ActivityPeriodHeader
             period={period}
@@ -1317,7 +1550,401 @@ export default function ActivityScreen() {
         }
       />
 
-      {period !== 'all' ? (
+      {/* CARD 2 REDESIGN VARIANT CONTAINER */}
+      {activityVariant === 'card2' && period !== 'all' ? (
+        <View
+          style={{
+            borderRadius: HOME_RADIUS.card,
+            borderWidth: 1,
+            borderColor: palette.borderSoft,
+            backgroundColor: palette.card,
+            paddingTop: 16,
+            paddingBottom: 12,
+            paddingHorizontal: 18,
+            marginBottom: 24,
+            marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Row 1: Period switcher */}
+          <View style={{ height: 28, width: TICK_CONTENT_W + 8, alignSelf: 'center', marginBottom: 0, marginTop: -4 }}>
+            <ActivityPeriodHeader
+              period={period === 'today' ? 'day' : period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
+              periodLabel={
+                typeFilter === 'in'
+                  ? `${cashflowMode === 'total' ? 'Inflow' : 'Income'} · ${periodLabel}`
+                  : typeFilter === 'out'
+                    ? `${cashflowMode === 'total' ? 'Outflow' : 'Expenses'} · ${periodLabel}`
+                    : periodLabel
+              }
+              goPrev={goPrev}
+              goNext={goNext}
+              canGoNext={canGoNext}
+              setShowPeriodSheet={handleOpenPeriodSheet}
+              palette={palette}
+              height={28}
+              noBackground={true}
+              showArrowBorders={true}
+            />
+          </View>
+
+          {/* Row 3: Ticks and Values */}
+          <View style={{ paddingBottom: 0 }}>
+            {/* Speedometer sweep ticks */}
+            <View style={{ flexDirection: 'row', gap: TICK_GAP, marginTop: 12, marginBottom: 10, width: TICK_CONTENT_W, alignSelf: 'center' }}>
+              {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+                <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
+              ))}
+              <Animated.View style={[{ position: 'absolute', left: 0, top: 0, height: 12, overflow: 'hidden' }, detailIncomeTickOverlayStyle]}>
+                <View style={{ flexDirection: 'row', gap: TICK_GAP, width: TICK_CONTENT_W }}>
+                  {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+                    <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.positive }} />
+                  ))}
+                </View>
+              </Animated.View>
+              <Animated.View style={[{ position: 'absolute', top: 0, height: 12, overflow: 'hidden' }, detailExpenseTickOverlayStyle]}>
+                <View style={{ position: 'absolute', right: 0, flexDirection: 'row', gap: TICK_GAP, width: TICK_CONTENT_W }}>
+                  {Array.from({ length: TICK_TOTAL }).map((_, i) => (
+                    <View key={i} style={{ width: TICK_W, height: 12, borderRadius: 2, backgroundColor: palette.negative }} />
+                  ))}
+                </View>
+              </Animated.View>
+            </View>
+
+            {/* Values (Income/Expense / Inflow/Outflow / Net in one row) */}
+            {(() => {
+              const leftSplit = splitTickAmount(metricLeftAmount);
+              const rightSplit = splitTickAmount(metricRightAmount);
+              const leftIsZero = metricLeftAmount === 0;
+              const rightIsZero = metricRightAmount === 0;
+              const leftSign = metricLeftAmount < 0 ? '-' : '';
+              const rightSign = metricRightAmount < 0 ? '-' : '';
+              return (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 2, width: TICK_CONTENT_W, alignSelf: 'center', alignItems: 'center' }}>
+                  {/* Column 1: Income */}
+                  <TouchableOpacity
+                    delayPressIn={0}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      setTypeFilter('in');
+                      setCashflowBucket('all');
+                    }}
+                    style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <AppIcon
+                        name="arrow-down-left"
+                        size={14}
+                        color={leftIsZero ? palette.textMuted : palette.positive}
+                        strokeWidth={2.4}
+                      />
+                      <Text style={{ fontSize: 10, color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }} numberOfLines={1}>
+                        {cashflowMode === 'total' ? 'Inflow' : 'Income'}
+                      </Text>
+                    </View>
+                    <AnimatedMetricValue style={leftSpringStyle}>
+                      <Text style={{ fontSize: 14, fontWeight: FONT_WEIGHT.regular, color: leftIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }} numberOfLines={1}>
+                        {leftIsZero ? '—' : (
+                          <Text>{leftSign}{leftSplit.int}{leftSplit.dec ? <Text style={{ fontSize: 11, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted }}>{leftSplit.dec}</Text> : null}</Text>
+                        )}
+                      </Text>
+                    </AnimatedMetricValue>
+                  </TouchableOpacity>
+
+                  {/* Divider 1 */}
+                  <View style={{ width: 1, height: 22, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', marginHorizontal: 8 }} />
+
+                  {/* Column 2: Expense */}
+                  <TouchableOpacity
+                    delayPressIn={0}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      setTypeFilter('out');
+                      setCashflowBucket('all');
+                    }}
+                    style={{ flex: 1, flexDirection: 'column', alignItems: 'center', gap: 2 }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontSize: 10, color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }} numberOfLines={1}>
+                        {cashflowMode === 'total' ? 'Outflow' : 'Expense'}
+                      </Text>
+                      <AppIcon
+                        name="arrow-up-right"
+                        size={14}
+                        color={rightIsZero ? palette.textMuted : palette.negative}
+                        strokeWidth={2.4}
+                      />
+                    </View>
+                    <AnimatedMetricValue style={rightSpringStyle}>
+                      <Text style={{ fontSize: 14, fontWeight: FONT_WEIGHT.regular, color: rightIsZero ? palette.textMuted : palette.text, letterSpacing: -0.4 }} numberOfLines={1}>
+                        {rightIsZero ? '—' : (
+                          <Text>{rightSign}{rightSplit.int}{rightSplit.dec ? <Text style={{ fontSize: 11, fontWeight: FONT_WEIGHT.regular, color: palette.textMuted }}>{rightSplit.dec}</Text> : null}</Text>
+                        )}
+                      </Text>
+                    </AnimatedMetricValue>
+                  </TouchableOpacity>
+
+                  {/* Divider 2 */}
+                  <View style={{ width: 1, height: 22, backgroundColor: palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', marginHorizontal: 8 }} />
+
+                  {/* Column 3: Net */}
+                  <View style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontSize: 10, color: palette.textMuted, fontWeight: FONT_WEIGHT.medium }}>
+                        Net
+                      </Text>
+                      <AppIcon
+                        name={netAmount >= 0 ? 'trending-up' : 'trending-down'}
+                        size={14}
+                        color={netAmount === 0 ? palette.textMuted : netAmount < 0 ? palette.negative : palette.positive}
+                        strokeWidth={2.4}
+                      />
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: FONT_WEIGHT.regular, color: netAmount === 0 ? palette.textMuted : netAmount < 0 ? palette.negative : palette.positive, letterSpacing: -0.4 }} numberOfLines={1} adjustsFontSizeToFit>
+                      {netAmount === 0 ? '—' : formatCurrency(netAmount, sym)}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })()}
+          </View>
+        </View>
+      ) : null}
+
+      {activityVariant === 'premium' && period !== 'all' ? (
+        <View
+          style={{
+            paddingTop: 12,
+            paddingBottom: 16,
+            marginBottom: 16,
+            marginHorizontal: ACTIVITY_LAYOUT.headerPaddingX,
+          }}
+        >
+          {/* Row 1: Period Navigation (Minimal layout) */}
+          <View style={{ height: 28, width: TICK_CONTENT_W + 8, alignSelf: 'center', marginBottom: 12 }}>
+            <ActivityPeriodHeader
+              period={period === 'today' ? 'day' : period as 'day' | 'week' | 'month' | 'year' | 'all' | 'custom'}
+              periodLabel={
+                typeFilter === 'in'
+                  ? `Income · ${periodLabel}`
+                  : typeFilter === 'out'
+                    ? `Expenses · ${periodLabel}`
+                    : periodLabel
+              }
+              goPrev={goPrev}
+              goNext={goNext}
+              canGoNext={canGoNext}
+              setShowPeriodSheet={handleOpenPeriodSheet}
+              palette={palette}
+              height={28}
+              noBackground={true}
+              showArrowBorders={false}
+            />
+          </View>
+
+          {/* Row 2: Elegant Proportional 6px Cashflow Balance Capsules */}
+          <View
+            style={{
+              width: TICK_CONTENT_W,
+              height: 6,
+              alignSelf: 'center',
+              marginVertical: 14,
+              position: 'relative',
+            }}
+          >
+            {/* Proportional Income Fill */}
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  backgroundColor: palette.positive,
+                  borderRadius: 3,
+                },
+                premiumInflowLineStyle,
+              ]}
+            />
+            {/* Proportional Expense Fill */}
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  backgroundColor: palette.negative,
+                  borderRadius: 3,
+                },
+                premiumOutflowLineStyle,
+              ]}
+            />
+          </View>
+
+          {/* Row 3: Values Row (Three equal columns, minimal text styling) */}
+          {(() => {
+            const leftSplit = splitTickAmount(metricLeftAmount);
+            const rightSplit = splitTickAmount(metricRightAmount);
+            const leftIsZero = metricLeftAmount === 0;
+            const rightIsZero = metricRightAmount === 0;
+            const leftSign = metricLeftAmount < 0 ? '-' : '';
+            const rightSign = metricRightAmount < 0 ? '-' : '';
+
+            return (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  width: TICK_CONTENT_W,
+                  alignSelf: 'center',
+                  alignItems: 'center',
+                  marginTop: 6,
+                }}
+              >
+                {/* Income / Inflow */}
+                <TouchableOpacity
+                  delayPressIn={0}
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    setTypeFilter('in');
+                    setCashflowBucket('all');
+                  }}
+                  style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 8.5,
+                      fontWeight: FONT_WEIGHT.semibold,
+                      color: palette.textMuted,
+                      letterSpacing: 1.2,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    INCOME
+                  </Text>
+                  <AnimatedMetricValue style={leftSpringStyle}>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: FONT_WEIGHT.regular,
+                        color: leftIsZero ? palette.textMuted : palette.text,
+                        letterSpacing: -0.3,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {leftIsZero ? '—' : (
+                        <Text>
+                          {leftSign}{leftSplit.int}
+                          {leftSplit.dec ? (
+                            <Text style={{ fontSize: 10, color: palette.textMuted }}>{leftSplit.dec}</Text>
+                          ) : null}
+                        </Text>
+                      )}
+                    </Text>
+                  </AnimatedMetricValue>
+                </TouchableOpacity>
+
+                {/* Vertical Divider */}
+                <View
+                  style={{
+                    width: 1,
+                    height: 16,
+                    backgroundColor: palette.divider,
+                    opacity: 0.5,
+                    marginHorizontal: 4,
+                  }}
+                />
+
+                {/* Expense / Outflow */}
+                <TouchableOpacity
+                  delayPressIn={0}
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    setTypeFilter('out');
+                    setCashflowBucket('all');
+                  }}
+                  style={{ flex: 1, flexDirection: 'column', alignItems: 'center', gap: 2 }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 8.5,
+                      fontWeight: FONT_WEIGHT.semibold,
+                      color: palette.textMuted,
+                      letterSpacing: 1.2,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    EXPENSES
+                  </Text>
+                  <AnimatedMetricValue style={rightSpringStyle}>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: FONT_WEIGHT.regular,
+                        color: rightIsZero ? palette.textMuted : palette.text,
+                        letterSpacing: -0.3,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {rightIsZero ? '—' : (
+                        <Text>
+                          {rightSign}{rightSplit.int}
+                          {rightSplit.dec ? (
+                            <Text style={{ fontSize: 10, color: palette.textMuted }}>{rightSplit.dec}</Text>
+                          ) : null}
+                        </Text>
+                      )}
+                    </Text>
+                  </AnimatedMetricValue>
+                </TouchableOpacity>
+
+                {/* Vertical Divider */}
+                <View
+                  style={{
+                    width: 1,
+                    height: 16,
+                    backgroundColor: palette.divider,
+                    opacity: 0.5,
+                    marginHorizontal: 4,
+                  }}
+                />
+
+                {/* Net */}
+                <View style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                  <Text
+                    style={{
+                      fontSize: 8.5,
+                      fontWeight: FONT_WEIGHT.semibold,
+                      color: palette.textMuted,
+                      letterSpacing: 1.2,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    NET
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: FONT_WEIGHT.regular,
+                      color: netAmount === 0 ? palette.textMuted : netAmount < 0 ? palette.negative : palette.positive,
+                      letterSpacing: -0.3,
+                    }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {netAmount === 0 ? '—' : formatCurrency(netAmount, sym)}
+                  </Text>
+                </View>
+              </View>
+            );
+          })()}
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: palette.divider, marginTop: 18, opacity: 0.4 }} />
+        </View>
+      ) : null}
+
+      {activityVariant === 'current' && period !== 'all' ? (
         <View style={{ paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX }}>
           <SummaryCard cashflow={summaryCardCashflow} sym={sym} palette={palette} isCashflowMode={cashflowBucket !== 'all'} style={{ marginTop: 12, marginBottom: 32 }} />
         </View>
@@ -1349,7 +1976,45 @@ export default function ActivityScreen() {
         </View>
       ) : null}
     </View>
-  ), [accountLabel, setShowAccountSheet, groupByMode, setGroupByMode, setExpandedCategoryIds, setCategoryDrilldown, typeFilter, setTypeFilter, cashflowBucket, setCashflowBucket, derivedCashflowMode, setShowMoreSheet, moreActiveCount, palette, chipScrollResetToken, period, periodLabel, goPrev, goNext, canGoNext, handleOpenPeriodSheet, summaryCardCashflow, sym, isFiltersExpanded, setIsFiltersExpanded]);
+  ), [
+    accountLabel,
+    setShowAccountSheet,
+    groupByMode,
+    setGroupByMode,
+    setExpandedCategoryIds,
+    setCategoryDrilldown,
+    typeFilter,
+    setTypeFilter,
+    cashflowBucket,
+    setCashflowBucket,
+    derivedCashflowMode,
+    setShowMoreSheet,
+    moreActiveCount,
+    palette,
+    chipScrollResetToken,
+    period,
+    periodLabel,
+    goPrev,
+    goNext,
+    canGoNext,
+    handleOpenPeriodSheet,
+    summaryCardCashflow,
+    sym,
+    isFiltersExpanded,
+    setIsFiltersExpanded,
+    activityVariant,
+    cashflowMode,
+    metricLeftAmount,
+    metricRightAmount,
+    netAmount,
+    detailIncomeTickOverlayStyle,
+    detailExpenseTickOverlayStyle,
+    premiumInflowLineStyle,
+    premiumOutflowLineStyle,
+    leftSpringStyle,
+    rightSpringStyle,
+    detailCashflowNoteStyle,
+  ]);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background, paddingTop: insets.top }}>
@@ -1370,9 +2035,48 @@ export default function ActivityScreen() {
           style={[styles.topBar, { backgroundColor: palette.background, borderBottomColor: palette.divider }]}
         >
           <View style={styles.topBarMainRow}>
-            <Text style={{ fontSize: HOME_TEXT.screenTitle, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.5 }}>
-              Activity
-            </Text>
+            <Pressable
+              onPress={__DEV__ ? cycleActivityVariant : undefined}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                opacity: pressed ? 0.8 : 1,
+              })}
+            >
+              <Text style={{
+                fontSize: HOME_TEXT.screenTitle,
+                fontWeight: activityVariant === 'premium' ? FONT_WEIGHT.semibold : FONT_WEIGHT.regular,
+                color: palette.text,
+                letterSpacing: activityVariant === 'premium' ? 1.0 : -0.5,
+                textTransform: activityVariant === 'premium' ? 'uppercase' : 'none'
+              }}>
+                Activity
+              </Text>
+
+              {__DEV__ && activityVariant !== 'card2' && (
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: palette.brand,
+                    backgroundColor: palette.brandSoft,
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 9.5,
+                    fontWeight: FONT_WEIGHT.heavy,
+                    color: palette.brand,
+                    letterSpacing: 0.8,
+                    textTransform: 'uppercase',
+                  }}>
+                    {ACTIVITY_VARIANT_LABEL[activityVariant]}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
 
             <HeaderResetButton
               visible={!isFullyDefault}
@@ -1426,9 +2130,7 @@ export default function ActivityScreen() {
             data={dateRows}
             keyExtractor={(item) => item.key}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-            onScroll={({ nativeEvent }) => {
-              maybePrefetchMore(nativeEvent);
-            }}
+            onScroll={handleScroll}
             scrollEventThrottle={32}
             onEndReached={onLoadMore}
             onEndReachedThreshold={0.6}
@@ -1463,9 +2165,7 @@ export default function ActivityScreen() {
               data={dateRows}
               keyExtractor={(item) => item.key}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.brand} />}
-              onScroll={({ nativeEvent }) => {
-                maybePrefetchMore(nativeEvent);
-              }}
+              onScroll={handleScroll}
               scrollEventThrottle={32}
               onEndReached={onLoadMore}
               onEndReachedThreshold={0.6}
@@ -1517,8 +2217,8 @@ export default function ActivityScreen() {
                 left: 0,
                 right: 0,
                 height: 34,
-                paddingLeft: ACTIVITY_LAYOUT.groupHeaderPaddingX,
-                paddingRight: ACTIVITY_LAYOUT.headerPaddingX + 10,
+                paddingLeft: activityVariant === 'premium' ? ACTIVITY_LAYOUT.headerPaddingX : ACTIVITY_LAYOUT.groupHeaderPaddingX,
+                paddingRight: activityVariant === 'premium' ? 24 : ACTIVITY_LAYOUT.headerPaddingX + 10,
                 backgroundColor: palette.background,
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -1716,9 +2416,6 @@ export default function ActivityScreen() {
                                   }}
                                 >
                                   {category.subcategories.map((sub) => {
-                                    const subColor = categoriesById.get(sub.subKey)?.color ||
-                                                     (sub.subKey.startsWith('type:') ? (txTypeConfig as any)[sub.subKey.slice(5)]?.color : undefined) ||
-                                                     palette.brand;
                                     return (
                                       <TouchableOpacity delayPressIn={0}
                                         key={sub.subKey}
@@ -1735,7 +2432,7 @@ export default function ActivityScreen() {
                                           flexDirection: 'row',
                                           alignItems: 'center',
                                           paddingVertical: 12,
-                                          paddingLeft: CARD_PADDING + 24,
+                                          paddingLeft: CARD_PADDING + 52,
                                           paddingRight: CARD_PADDING,
                                           minHeight: 52,
                                           borderTopWidth: 1,
@@ -1743,35 +2440,28 @@ export default function ActivityScreen() {
                                           backgroundColor: palette.surface,
                                         }}
                                       >
-                                        <View style={{
-                                          width: 8,
-                                          height: 8,
-                                          borderRadius: 4,
-                                          backgroundColor: subColor,
-                                          marginLeft: 5,
-                                          marginRight: 15,
-                                        }} />
+
                                         <Text numberOfLines={1} style={{ flex: 1, fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.regular, color: palette.text }}>
                                           {sub.subLabel}
                                         </Text>
-                                      <Text
-                                        style={{
-                                          fontSize: HOME_TEXT.bodySmall,
-                                          fontWeight: FONT_WEIGHT.medium,
-                                          // Sub inherits its parent's bucket role for coloring.
-                                          color: category.familyKey === 'in'
-                                            ? palette.numberPositive
-                                            : category.familyKey === 'out'
-                                              ? palette.numberNegative
-                                              : sub.total >= 0 ? palette.numberPositive : palette.numberNegative,
-                                          marginRight: 10
-                                        }}
-                                      >
-                                        {familyAwareCurrency(category.familyKey, sub.total, sym)}
-                                      </Text>
-                                      <AppChevron direction="right" size={16} tone="secondary" palette={palette} />
-                                    </TouchableOpacity>
-                                  );
+                                        <Text
+                                          style={{
+                                            fontSize: HOME_TEXT.bodySmall,
+                                            fontWeight: FONT_WEIGHT.medium,
+                                            // Sub inherits its parent's bucket role for coloring.
+                                            color: category.familyKey === 'in'
+                                              ? palette.numberPositive
+                                              : category.familyKey === 'out'
+                                                ? palette.numberNegative
+                                                : sub.total >= 0 ? palette.numberPositive : palette.numberNegative,
+                                            marginRight: 10
+                                          }}
+                                        >
+                                          {familyAwareCurrency(category.familyKey, sub.total, sym)}
+                                        </Text>
+                                        <AppChevron direction="right" size={16} tone="secondary" palette={palette} />
+                                      </TouchableOpacity>
+                                    );
                                   })}
                                 </View>
                               ) : null}

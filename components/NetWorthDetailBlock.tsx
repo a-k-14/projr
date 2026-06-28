@@ -381,7 +381,6 @@ export function NetWorthDetailBlock({
         </View>
       </View>
 
-      {/* Historical Trend Chart */}
       <TrendLineChart
         points={points}
         palette={palette}
@@ -390,6 +389,8 @@ export function NetWorthDetailBlock({
         subtitle="(Last 30 Days)"
         onInteractionStateChange={setChartInteracting}
         containerStyle={{ marginTop: 28 }}
+        smoothCurves={true}
+        lineStrokeWidth={1.8}
       />
 
       {/* Unified Assets & Liabilities Card */}

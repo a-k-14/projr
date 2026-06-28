@@ -58,6 +58,9 @@ export default function DepositDetailScreen() {
   const loadCategories = useCategoriesStore((s) => s.load);
   const getCategoryFullDisplayName = useCategoriesStore((s) => s.getCategoryFullDisplayName);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const tags = useCategoriesStore((s) => s.tags);
+  const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
+  const tagNamesById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
 
   const deposit = useMemo(() => deposits.find((d) => d.id === id), [deposits, id]);
   const sourceAccount = useMemo(
@@ -285,6 +288,8 @@ export default function DepositDetailScreen() {
               categoriesById={categoriesById}
               accountsById={accountsById}
               depositsById={depositsById}
+              tagNamesById={tagNamesById}
+              tagsById={tagsById}
               getCategoryFullDisplayName={getCategoryFullDisplayName}
               onTransactionPress={handleTransactionPress}
               emptyText="No activity"

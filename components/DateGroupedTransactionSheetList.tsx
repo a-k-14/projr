@@ -49,6 +49,7 @@ export function DateGroupedTransactionSheetList({
   loansById,
   depositsById,
   tagNamesById,
+  tagsById,
   getCategoryFullDisplayName,
   onTransactionPress,
 }: Props) {
@@ -57,8 +58,8 @@ export function DateGroupedTransactionSheetList({
   // Stable row-props object so the memoized DateGroupCard only re-renders when an
   // actual input changes — keeps the VirtualizedList cheap to update/scroll.
   const row = useMemo(
-    () => ({ palette, sym, categoriesById, accountsById, loansById, depositsById, tagNamesById, getCategoryFullDisplayName, onTransactionPress }),
-    [palette, sym, categoriesById, accountsById, loansById, depositsById, tagNamesById, getCategoryFullDisplayName, onTransactionPress],
+    () => ({ palette, sym, categoriesById, accountsById, loansById, depositsById, tagNamesById, tagsById, getCategoryFullDisplayName, onTransactionPress }),
+    [palette, sym, categoriesById, accountsById, loansById, depositsById, tagNamesById, tagsById, getCategoryFullDisplayName, onTransactionPress],
   );
   const renderItem = useCallback(
     ({ item }: { item: DateGroup }) => <DateGroupCard group={item} row={row} />,

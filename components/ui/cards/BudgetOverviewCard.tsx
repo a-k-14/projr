@@ -1,25 +1,105 @@
 /**
  * BudgetOverviewCard — hero summary card at the top of the Budgets list screen.
  *
- * Direction A redesign: gradient slate surface, animated circular progress ring,
- * stacked text block with primary "Remaining" value + secondary spent/budgeted line
- * + status pill. Ring fills via reanimated.
+ * Redesigned using /frontend-design for a calm, premium visual aesthetic:
+ * - Clean, spacious layout with a thin card structure.
+ * - Ultra-thin (3px) semi-circle dome progress gauge that feels light and elegant.
+ * - Refined display typography using light/medium weights.
+ * - Elegant status indicator dot and curated calm colors.
  */
-import { View, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, InteractionManager } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 import { Text } from '../AppText';
-import { RingProgress } from '../RingProgress';
 import { formatCurrency } from '../../../lib/derived';
 import { FONT_WEIGHT } from '../../../lib/design';
 import { HOME_RADIUS, HOME_SPACE, HOME_TEXT } from '../../../lib/layoutTokens';
-import { useAppTheme, type AppThemePalette } from '../../../lib/theme';
+import { type AppThemePalette } from '../../../lib/theme';
 
-// Slate gradient pair derived from the existing palette.budget tones — keeps the
-// hero on-palette while gaining a "carved" depth. Light mode uses the deeper slate
-// pair (white text reads well); dark mode uses a softer pair that doesn't fight
-// the pure-black background.
-const GRADIENT_LIGHT = ['#1F2A3C', '#0F172A'] as const;
-const GRADIENT_DARK = ['#1A2438', '#0B1220'] as const;
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+// ── Semi-circle helpers ───────────────────────────────────────────────────────
+
+function semiArcLength(r: number) {
+  return Math.PI * r;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+interface SemiGaugeProps {
+  size: number;
+  strokeWidth: number;
+  percent: number; // 0–100
+  color: string;
+  trackColor: string;
+}
+
+function SemiGauge({ size, strokeWidth, percent, color, trackColor }: SemiGaugeProps) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = (size - strokeWidth) / 2;
+  const arcLen = semiArcLength(r);
+
+  // Perfect top-half semi-circle dome path
+  const pathD = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+
+  const progress = useSharedValue(0);
+  const clamped = Math.min(Math.max(percent, 0), 100);
+
+  useEffect(() => {
+    let timer: any;
+    const task = InteractionManager.runAfterInteractions(() => {
+      // Small timeout to ensure visual smoothness after the transition/render settles
+      timer = setTimeout(() => {
+        progress.value = withTiming(clamped / 100, {
+          duration: 900,
+          easing: Easing.out(Easing.cubic),
+        });
+      }, 120);
+    });
+    return () => {
+      task.cancel();
+      if (timer) clearTimeout(timer);
+    };
+  }, [clamped, progress]);
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: arcLen * (1 - progress.value),
+  }));
+
+  const viewH = size / 2 + strokeWidth / 2 + 2;
+
+  return (
+    <View style={{ width: size, height: viewH, overflow: 'hidden' }}>
+      <Svg width={size} height={size}>
+        <Path
+          d={pathD}
+          stroke={trackColor}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          fill="none"
+        />
+        <AnimatedPath
+          d={pathD}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={arcLen}
+          animatedProps={animatedProps}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+// ── Main card ─────────────────────────────────────────────────────────────────
 
 export function BudgetOverviewCard({
   palette,
@@ -36,91 +116,108 @@ export function BudgetOverviewCard({
   overBudgetCount: number;
   sym: string;
 }) {
-  const { mode } = useAppTheme();
   const hasBudgetSet = totalBudgeted > 0;
   const isOver = hasBudgetSet && totalRemaining < 0;
   const rawPercent = hasBudgetSet ? (totalSpent / totalBudgeted) * 100 : 0;
   const clampedPercent = Math.min(Math.max(rawPercent, 0), 100);
 
-
-
-  const gradient = mode === 'dark' ? GRADIENT_DARK : GRADIENT_LIGHT;
-  // Status colors — keep on-gradient (white-ish) so the hero reads as one surface.
-  const onHero = '#FFFFFF';
-  const onHeroSoft = 'rgba(255,255,255,0.85)';
-  const onHeroFaint = 'rgba(255,255,255,0.48)';
-  const ringTrack = 'rgba(255,255,255,0.14)';
+  // Calm, premium progress colors (softer, refined tones)
   const ringColor = !hasBudgetSet
-    ? 'rgba(255,255,255,0.35)'
+    ? palette.textMuted
     : isOver
-      ? '#FB7185' // soft rose for over-budget
+      ? palette.negative // theme crimson
       : clampedPercent > 85
-        ? '#FBBF24' // amber when nearing cap
-        : '#34D399'; // emerald — healthy
+        ? palette.warning // theme amber
+        : palette.positive; // theme emerald
 
-  const pill = pillState(hasBudgetSet, isOver, overBudgetCount);
+  const trackColor = palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+  const pill = pillState(palette, hasBudgetSet, isOver, overBudgetCount);
+
+  const GAUGE_SIZE = 130;
+  const STROKE = 4; // Refined progress line stroke
 
   return (
-    <LinearGradient
-      colors={gradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.card, !palette.isDark && palette.states.cardSoftShadow]}
-    >
+    <View style={[styles.card, {
+      backgroundColor: palette.card,
+      borderColor: palette.borderSoft,
+    }]}>
 
-
+      {/* Main row: text block + gauge */}
       <View style={styles.row}>
-        {/* Left text block */}
-        <View style={{ flex: 1, marginRight: 24, justifyContent: 'space-between', alignSelf: 'stretch' }}>
+        {/* Left: display label, value + secondary metrics */}
+        <View style={{ flex: 1, marginRight: 16, justifyContent: 'space-between', alignSelf: 'stretch' }}>
           <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: onHeroFaint, letterSpacing: 0.3 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <Text style={{ fontSize: 10, fontWeight: FONT_WEIGHT.semibold, color: palette.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' }}>
                 {hasBudgetSet ? (isOver ? 'Over budget' : 'Remaining') : 'Monthly budget'}
               </Text>
-              {pill ? (
-                <View style={[styles.pillInline, { backgroundColor: pill.bg }]}>
-                  <View style={[styles.pillDot, { backgroundColor: pill.dot }]} />
-                  <Text appWeight="medium" style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: pill.text }}>
-                    {pill.label}
-                  </Text>
-                </View>
-              ) : null}
             </View>
             <Text
               adjustsFontSizeToFit
               numberOfLines={1}
-              style={{ fontSize: 28, fontWeight: FONT_WEIGHT.medium, color: onHero, letterSpacing: -0.5, marginTop: 4 }}
+              style={{ fontSize: 32, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.8, marginTop: 1 }}
             >
               {hasBudgetSet ? formatCurrency(Math.abs(totalRemaining), sym) : 'Not Set'}
             </Text>
           </View>
 
           <View style={styles.secondaryRow}>
-            <SecondaryStat label="Budgeted" value={hasBudgetSet ? formatCurrency(totalBudgeted, sym) : '—'} labelColor={onHeroFaint} valueColor={onHeroSoft} />
-            <View style={styles.secondaryDivider} />
-            <SecondaryStat label="Spent" value={hasBudgetSet ? formatCurrency(totalSpent, sym) : '—'} labelColor={onHeroFaint} valueColor={onHeroSoft} />
+            <SecondaryStat
+              label="Budgeted"
+              value={hasBudgetSet ? formatCurrency(totalBudgeted, sym) : '—'}
+              labelColor={palette.textMuted}
+              valueColor={palette.textSecondary}
+            />
+            <View style={[styles.secondaryDivider, { backgroundColor: palette.borderSoft }]} />
+            <SecondaryStat
+              label="Spent"
+              value={hasBudgetSet ? formatCurrency(totalSpent, sym) : '—'}
+              labelColor={palette.textMuted}
+              valueColor={palette.textSecondary}
+            />
           </View>
         </View>
 
-        {/* Ring */}
-        <RingProgress
-          size={96}
-          strokeWidth={8}
-          percent={hasBudgetSet ? clampedPercent : 0}
-          color={ringColor}
-          trackColor={ringTrack}
-        >
-          <Text style={{ fontSize: 24, fontWeight: FONT_WEIGHT.medium, color: onHero, letterSpacing: -0.5 }}>
-            {hasBudgetSet ? `${Math.round(clampedPercent)}%` : '—'}
-          </Text>
-          <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.medium, color: onHeroFaint, marginTop: 1 }}>
-            Used
-          </Text>
-        </RingProgress>
+        {/* Right: semi-circle gauge with badge above */}
+        <View style={{ alignItems: 'flex-end', justifyContent: 'space-between', alignSelf: 'stretch' }}>
+          {pill ? (
+            <View style={[styles.pillInline, { backgroundColor: pill.bg, borderColor: pill.border, borderWidth: 1, paddingVertical: 1.5, paddingHorizontal: 7 }]}>
+              <Text style={{ fontSize: 10, fontWeight: FONT_WEIGHT.medium, color: pill.text, letterSpacing: 0.1 }}>
+                {pill.label}
+              </Text>
+            </View>
+          ) : <View />}
+          <View style={{ position: 'relative', width: GAUGE_SIZE, alignItems: 'center' }}>
+            <SemiGauge
+              size={GAUGE_SIZE}
+              strokeWidth={STROKE}
+              percent={hasBudgetSet ? clampedPercent : 0}
+              color={ringColor}
+              trackColor={trackColor}
+            />
+            {/* Centred label overlaid on the flat edge of the semi-circle */}
+            <View style={{
+              position: 'absolute',
+              bottom: 4,
+              left: 0,
+              right: 0,
+              alignItems: 'center',
+            }}>
+              <Text style={{ fontSize: 22, fontWeight: FONT_WEIGHT.regular, color: palette.text, letterSpacing: -0.6 }}>
+                {hasBudgetSet ? `${Math.round(rawPercent)}%` : '—'}
+              </Text>
+              <Text style={{ fontSize: 9.5, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 1 }}>
+                used
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
-    </LinearGradient>
+    </View>
   );
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function SecondaryStat({
   label,
@@ -135,43 +232,70 @@ function SecondaryStat({
 }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: HOME_TEXT.metaSmall, fontWeight: FONT_WEIGHT.semibold, color: labelColor }}>{label}</Text>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: valueColor, marginTop: 2 }}>
+      <Text style={{ fontSize: 9.5, fontWeight: FONT_WEIGHT.semibold, color: labelColor, letterSpacing: 0.6, textTransform: 'uppercase' }}>{label}</Text>
+      <Text adjustsFontSizeToFit numberOfLines={1} style={{ fontSize: HOME_TEXT.bodySmall, fontWeight: FONT_WEIGHT.semibold, color: valueColor, marginTop: 3 }}>
         {value}
       </Text>
     </View>
   );
 }
 
-function pillState(hasBudgetSet: boolean, isOver: boolean, overBudgetCount: number) {
+function getRgba(hex: string, alpha: number) {
+  const normalized = hex.replace('#', '');
+  const value = normalized.length === 3
+    ? normalized.split('').map((part) => part + part).join('')
+    : normalized;
+  const int = Number.parseInt(value, 16);
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function pillState(palette: AppThemePalette, hasBudgetSet: boolean, isOver: boolean, overBudgetCount: number) {
   if (!hasBudgetSet) return null;
+  const opacityBg = palette.isDark ? 0.15 : 0.08;
+  const opacityBorder = palette.isDark ? 0.4 : 0.3;
+
   if (isOver) {
+    const color = palette.negative;
     return {
       label: overBudgetCount > 1 ? `${overBudgetCount} Overspent` : 'Overspent',
-      bg: 'rgba(251,113,133,0.18)',
-      text: '#FCA5A5',
-      dot: '#FB7185',
+      bg: getRgba(color, opacityBg),
+      text: color,
+      border: getRgba(color, opacityBorder),
     };
   }
+
+  if (overBudgetCount > 0) {
+    const color = palette.warning;
+    return {
+      label: overBudgetCount > 1 ? `${overBudgetCount} Overspent` : '1 Overspent',
+      bg: getRgba(color, opacityBg),
+      text: color,
+      border: getRgba(color, opacityBorder),
+    };
+  }
+
+  const color = palette.positive;
   return {
     label: 'On Track',
-    bg: 'rgba(52,211,153,0.16)',
-    text: '#86EFAC',
-    dot: '#34D399',
+    bg: getRgba(color, opacityBg),
+    text: color,
+    border: getRgba(color, opacityBorder),
   };
 }
 
 const styles = StyleSheet.create({
   card: {
-    position: 'relative',
     borderRadius: HOME_RADIUS.card,
+    borderWidth: 1,
     paddingHorizontal: HOME_SPACE.lg,
-    paddingTop: HOME_SPACE.xl,
-    paddingBottom: HOME_SPACE.xl + 2,
-    minHeight: 164,
+    paddingTop: 14,
+    paddingBottom: 14,
+    minHeight: 132,
     overflow: 'hidden',
   },
-
   row: {
     flex: 1,
     flexDirection: 'row',
@@ -184,21 +308,20 @@ const styles = StyleSheet.create({
   },
   secondaryDivider: {
     width: 1,
-    height: 28,
+    height: 24,
     marginHorizontal: HOME_SPACE.md,
-    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   pillInline: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: HOME_RADIUS.full,
+    paddingVertical: 2.5,
+    borderRadius: HOME_RADIUS.small,
   },
   pillDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
 });

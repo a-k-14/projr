@@ -10,14 +10,17 @@ import { useUIStore } from '../stores/useUIStore';
 
 export type FilterPeriod = 'today' | 'week' | 'month' | 'year' | 'all' | 'custom' | 'preset' | 'last30';
 
+export const DEFAULT_FILTER_PERIOD: FilterPeriod = 'month';
+
 export interface DateFilterOptions {
   initialPeriod?: FilterPeriod;
   initialOffset?: number;
   initialCustomRange?: { from: string; to: string } | null;
+  maxDate?: string | null;
 }
 
 export function useDateFilter(options: DateFilterOptions = {}) {
-  const { initialPeriod = 'month', initialOffset = 0, initialCustomRange = null } = options;
+  const { initialPeriod = DEFAULT_FILTER_PERIOD, initialOffset = 0, initialCustomRange = null, maxDate = null } = options;
   const settingsYearStart = useUIStore((s: any) => s.settings.yearStart);
 
   const [period, setPeriod] = useState<FilterPeriod>(initialPeriod);
@@ -99,7 +102,14 @@ export function useDateFilter(options: DateFilterOptions = {}) {
     }
   }, [period]);
 
-  const canNavigateNext = period !== 'custom' && period !== 'all' && period !== 'preset' && period !== 'last30' && offset < 0;
+  const canNavigateNext = useMemo(() => {
+    if (period === 'custom' || period === 'all' || period === 'preset' || period === 'last30') {
+      return false;
+    }
+    if (offset < 0) return true;
+    if (!maxDate) return false;
+    return to < maxDate;
+  }, [period, offset, to, maxDate]);
 
   return {
     period,

@@ -14,5 +14,4 @@
 export { DepositListCard } from './DepositListCard';
 export { LoanListCard } from './LoanListCard';
 export { BudgetListCard } from './BudgetListCard';
-export { LoanOverviewCard } from './LoanOverviewCard';
 export { BudgetOverviewCard } from './BudgetOverviewCard';

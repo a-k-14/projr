@@ -333,6 +333,40 @@ function getAmountPrefix(amount: number, impact: 'in' | 'out' | 'neutral', showA
   return '';
 }
 
+function areTxTagsEqual(a?: { id: string; name: string; color: string }[], b?: { id: string; name: string; color: string }[]) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].id !== b[i].id || a[i].name !== b[i].name || a[i].color !== b[i].color) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function areStylesEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!areStylesEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  if (typeof a === 'object' && typeof b === 'object') {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    for (const key of keysA) {
+      if (a[key] !== b[key]) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.tx !== next.tx) return false;
   if (prev.tx.splitGroupTotal !== next.tx.splitGroupTotal) return false;
@@ -362,7 +396,7 @@ function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.noteNumberOfLines !== next.noteNumberOfLines) return false;
   if (prev.isFirst !== next.isFirst) return false;
   if (prev.isGrouped !== next.isGrouped) return false;
-  if (prev.txTags !== next.txTags) return false;
-  if (prev.style !== next.style) return false;
+  if (!areTxTagsEqual(prev.txTags, next.txTags)) return false;
+  if (!areStylesEqual(prev.style, next.style)) return false;
   return true;
 }

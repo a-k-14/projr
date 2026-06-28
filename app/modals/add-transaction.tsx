@@ -41,7 +41,7 @@ import {
 } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
 import { formatAccountDisplayName } from '../../lib/account-utils';
-import { addMonthsSafe, APP_LOCALE, formatDate } from '../../lib/dateUtils';
+import { addMonthsSafe, APP_LOCALE, formatDate, toLocalMonthStartISO } from '../../lib/dateUtils';
 import {
   formatCurrency,
   formatIndianNumberStr,
@@ -70,6 +70,7 @@ import { usePersonsStore } from '../../stores/usePersonsStore';
 import { useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
 import { useTransactionsStore } from '../../stores/useTransactionsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useBudgetStore } from '../../stores/useBudgetStore';
 import { updateAllReniWidgets } from '../../widgets/widgetTaskHandler';
 
 
@@ -97,6 +98,202 @@ function AccountTypeBadge({ account, palette: _palette }: { account: Account; pa
     >
       <AppIcon name={typeMeta.icon as any} size={19} color={typeMeta.color} strokeWidth={1.6} />
     </View>
+  );
+}
+
+function AnimatedFutureWarning({ visible, dateStr, palette }: { visible: boolean; dateStr: string; palette: AppThemePalette }) {
+  const expansion = useSharedValue(visible ? 1 : 0);
+  const contentHeight = useSharedValue(0);
+
+  useEffect(() => {
+    expansion.value = withTiming(visible ? 1 : 0, {
+      duration: 200,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [visible]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    height: expansion.value * contentHeight.value,
+    opacity: expansion.value,
+    overflow: 'hidden' as const,
+  }));
+
+  const formattedDate = useMemo(() => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString(APP_LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+      return '';
+    }
+  }, [dateStr]);
+
+  return (
+    <Animated.View style={animStyle}>
+      <View
+        onLayout={(e) => {
+          contentHeight.value = e.nativeEvent.layout.height;
+        }}
+        style={{ position: 'absolute', width: '100%' }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingHorizontal: FORM_TOKENS.gutter + 4,
+            paddingTop: 8,
+            paddingBottom: 4,
+          }}
+        >
+          <AppIcon name="info" size={14} color={palette.textSecondary} />
+          <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary }}>
+            Future Date: Scheduled for {formattedDate}
+          </Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+function AnimatedBudgetPreview({
+  visible,
+  budget,
+  palette,
+  sym,
+  amountStr,
+}: {
+  visible: boolean;
+  budget: any;
+  palette: AppThemePalette;
+  sym: string;
+  amountStr: string;
+}) {
+  const expansion = useSharedValue(visible ? 1 : 0);
+  const contentHeight = useSharedValue(0);
+
+  useEffect(() => {
+    expansion.value = withTiming(visible ? 1 : 0, {
+      duration: 200,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [visible]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    height: expansion.value * contentHeight.value,
+    opacity: expansion.value,
+    overflow: 'hidden' as const,
+  }));
+
+  const limitText = budget ? formatCurrency(budget.amount, sym) : '';
+  const remainingVal = budget ? budget.remaining : 0;
+  const absRemaining = Math.abs(remainingVal);
+  const formattedDiff = formatCurrency(absRemaining, sym);
+
+  const isOver = budget ? budget.remaining < 0 : false;
+  const percent = budget ? (budget.amount > 0 ? (budget.spent / budget.amount) * 100 : 0) : 0;
+
+  const inputValue = useMemo(() => {
+    if (!amountStr) return 0;
+    const parsed = parseFormattedNumber(amountStr);
+    return Number(parsed) || 0;
+  }, [amountStr]);
+
+  const projectedRemaining = remainingVal - inputValue;
+  const isProjectedOver = projectedRemaining < 0;
+  const absProjectedRemaining = Math.abs(projectedRemaining);
+  const formattedProjectedDiff = formatCurrency(absProjectedRemaining, sym);
+
+  const projectedSpent = budget ? budget.spent + inputValue : 0;
+  const projectedPercent = budget && budget.amount > 0 ? (projectedSpent / budget.amount) * 100 : 0;
+
+  const leftOrOver = isOver ? 'over' : 'left';
+  const currentStatusColor = isOver
+    ? palette.negative // red
+    : percent > 85
+      ? palette.warning // orange
+      : palette.text; // normal text color
+
+  const projectedStatusColor = isProjectedOver
+    ? palette.negative // red
+    : projectedPercent > 85
+      ? palette.warning // orange
+      : palette.text; // normal text color
+
+  return (
+    <Animated.View style={animStyle}>
+      <View
+        onLayout={(e) => {
+          contentHeight.value = e.nativeEvent.layout.height;
+        }}
+        style={{ position: 'absolute', width: '100%' }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 4,
+            paddingTop: 8,
+            paddingBottom: 4,
+            gap: 6,
+          }}
+        >
+          <AppIcon name="info" size={14} color={palette.text} />
+          {inputValue === 0 ? (
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: FONT_WEIGHT.regular }}>
+              <Text style={{ color: currentStatusColor }}>
+                {formattedDiff}
+              </Text>
+              {` ${leftOrOver} of `}
+              <Text>
+                {limitText}
+              </Text>
+              {' budget'}
+            </Text>
+          ) : (
+            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.text, fontWeight: FONT_WEIGHT.regular }}>
+              {isOver ? (
+                <>
+                  <Text style={{ color: palette.negative }}>
+                    {formattedDiff}
+                  </Text>
+                  {' over ('}
+                  <Text style={{ color: palette.negative }}>
+                    {formattedProjectedDiff}
+                  </Text>
+                  {' after this) of '}
+                </>
+              ) : isProjectedOver ? (
+                <>
+                  <Text style={{ color: currentStatusColor }}>
+                    {formattedDiff}
+                  </Text>
+                  {' left ('}
+                  <Text style={{ color: palette.negative }}>
+                    will overspend by {formattedProjectedDiff}
+                  </Text>
+                  {') of '}
+                </>
+              ) : (
+                <>
+                  <Text style={{ color: currentStatusColor }}>
+                    {formattedDiff}
+                  </Text>
+                  {' left ('}
+                  <Text style={{ color: projectedStatusColor }}>
+                    {formattedProjectedDiff}
+                  </Text>
+                  {' after this) of '}
+                </>
+              )}
+              <Text>
+                {limitText}
+              </Text>
+              {' budget'}
+            </Text>
+          )}
+        </View>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -378,6 +575,62 @@ export default function AddTransactionModal() {
   const persons = usePersonsStore((s) => s.persons);
   const personsLoaded = usePersonsStore((s) => s.isLoaded);
   const loadPersons = usePersonsStore((s) => s.load);
+
+  const budgets = useBudgetStore((s) => s.budgets);
+  const loadBudgets = useBudgetStore((s) => s.load);
+
+  const dateMonthStr = useMemo(() => {
+    try {
+      const d = new Date(date);
+      return toLocalMonthStartISO(d.getFullYear(), d.getMonth());
+    } catch {
+      return '';
+    }
+  }, [date]);
+
+  useEffect(() => {
+    if (dateMonthStr) {
+      loadBudgets(dateMonthStr).catch(() => undefined);
+    }
+  }, [dateMonthStr, loadBudgets]);
+
+  const isFutureDate = useMemo(() => {
+    try {
+      const txDate = new Date(date);
+      const today = new Date();
+      txDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      return txDate.getTime() > today.getTime();
+    } catch {
+      return false;
+    }
+  }, [date]);
+
+  const activeBudget = useMemo(() => {
+    if (!categoryId || type === 'transfer' || type === 'loan') return null;
+    const cat = categories.find((c) => c.id === categoryId);
+    if (!cat) return null;
+
+    // Check if this category itself is the main budget category
+    let match = budgets.find((b) => b.categoryId === categoryId);
+    if (match) return match;
+
+    // If it's a subcategory, check if its parent has a budget that covers it
+    if (cat.parentId) {
+      const parentBudget = budgets.find((b) => b.categoryId === cat.parentId);
+      if (parentBudget) {
+        // If subCategoryIds is empty/null, it means it covers all subcategories
+        if (!parentBudget.subCategoryIds || parentBudget.subCategoryIds.length === 0) {
+          return parentBudget;
+        }
+        // Otherwise, it must be explicitly selected in the budget
+        if (parentBudget.subCategoryIds.includes(categoryId)) {
+          return parentBudget;
+        }
+      }
+    }
+    return null;
+  }, [budgets, categoryId, type, categories]);
   const [personName, setPersonName] = useState('');
   const [loanDirection, setLoanDirection] = useState<'lent' | 'borrowed'>('lent');
   const [loanEditMode, setLoanEditMode] = useState<'new' | 'origin' | 'settlement'>('new');
@@ -1030,6 +1283,7 @@ export default function AddTransactionModal() {
         confirmLabel: 'Discard',
         onConfirm: () => {
           setIsClosing(true);
+          clearSplitRows();
           if (fromWidget === '1') {
             BackHandler.exitApp();
           } else if (!router.canGoBack()) {
@@ -1042,6 +1296,7 @@ export default function AddTransactionModal() {
       return;
     }
     setIsClosing(true);
+    clearSplitRows();
     if (fromWidget === '1' && !isCancelBoolean) {
       BackHandler.exitApp();
     } else if (!router.canGoBack()) {
@@ -1051,19 +1306,6 @@ export default function AddTransactionModal() {
     }
   };
 
-  const closeScreenAndExecute = (
-    runWork: () => void,
-    isSynchronous = false
-  ) => {
-    if (isSynchronous) {
-      runWork();
-      closeScreen(false);
-    } else {
-      closeScreen(false);
-      // Wait 50ms to let the transition start smoothly before firing heavy queries
-      setTimeout(runWork, 50);
-    }
-  };
 
   // Listen for incoming deep links while the modal is already mounted
   useEffect(() => {
@@ -1358,7 +1600,6 @@ export default function AddTransactionModal() {
             // Convert single → split: drop the now-orphaned original row.
             if (isEditing && editId) await deleteTransaction(editId);
           };
-        clearSplitRows();
         persistLastAccountEagerly();
         await runMutationThenClose(splitWork, { tx: true, widgets: true });
         return;
@@ -1377,7 +1618,6 @@ export default function AddTransactionModal() {
         usableSplitRows.length === 0
       ) {
         const oldGroupMemberId = editId;
-        clearSplitRows();
         persistLastAccountEagerly();
         await runMutationThenClose(async () => {
           await deleteTransaction(oldGroupMemberId);
@@ -1398,7 +1638,6 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         };
-        clearSplitRows();
         persistLastAccountEagerly();
         await runMutationThenClose(() => updateLoanOrigin(loanId, payload, txId), { tx: true, widgets: true });
         return;
@@ -1415,7 +1654,6 @@ export default function AddTransactionModal() {
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
           date,
         };
-        clearSplitRows();
         persistLastAccountEagerly();
         await runMutationThenClose(() => updateLoanSettlement(txId, payload), { tx: true, widgets: true });
         return;
@@ -1430,7 +1668,6 @@ export default function AddTransactionModal() {
           note: mergeLoanTransactionNote(getLoanSettlementLabel(loanDirection, personName), note),
           date,
         };
-        clearSplitRows();
         persistLastAccountEagerly();
         // The transaction store already reloads transactions/accounts and bumps
         // mutationVersion after commit, so avoid doing the same reads twice.
@@ -1440,7 +1677,6 @@ export default function AddTransactionModal() {
       if (type === 'loan' && isLoanAddMore && routeLoanId) {
         const loanId = routeLoanId;
         const trimmedNote = note.trim();
-        clearSplitRows();
         persistLastAccountEagerly();
         await runMutationThenClose(() => addLoanPrincipal(loanId, amount, accountId, date, trimmedNote), { tx: true, widgets: true });
         return;
@@ -1455,7 +1691,6 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
         };
-        clearSplitRows();
         persistLastAccountEagerly();
         await runMutationThenClose(() => addLoan(payload), { tx: true, widgets: true });
         return;
@@ -1470,7 +1705,6 @@ export default function AddTransactionModal() {
           note: note.trim(),
           payee: payee.trim() || undefined,
         };
-        clearSplitRows();
         persistLastAccountEagerly();
         await runMutationThenClose(() => updateTransferTransaction(txId, payload), { tx: true, widgets: true });
         return;
@@ -1481,7 +1715,6 @@ export default function AddTransactionModal() {
 
       if (fromWidget === '1') {
         if (showDatePicker) setShowDatePicker(false);
-        clearSplitRows();
         persistLastAccountEagerly();
         try {
           await runMutation();
@@ -1502,7 +1735,6 @@ export default function AddTransactionModal() {
       }
 
       if (showDatePicker) setShowDatePicker(false);
-      clearSplitRows();
       persistLastAccountEagerly();
       // store.add/update does: DB write → reload txs + refresh accounts → bump
       // mutationVersion. Await it so data is fully fresh before screen closes.
@@ -1847,6 +2079,12 @@ export default function AddTransactionModal() {
             </Pressable>
           ) : null}
 
+          <AnimatedFutureWarning
+            visible={isFutureDate}
+            dateStr={date}
+            palette={palette}
+          />
+
           {type === 'in' || type === 'out' ? (
             <>
               <PremiumSection title="Account" palette={palette}>
@@ -1980,6 +2218,15 @@ export default function AddTransactionModal() {
                   <AppChevron direction="right" size={18} tone="secondary" color={attemptedSubmit && !categoryId ? palette.negative : palette.textSecondary} palette={palette} />
                 </TouchableOpacity>
               </PremiumSection>
+              <View style={{ marginHorizontal: FORM_TOKENS.gutter }}>
+                <AnimatedBudgetPreview
+                  visible={!!activeBudget}
+                  budget={activeBudget}
+                  palette={palette}
+                  sym={displaySym}
+                  amountStr={amountStr}
+                />
+              </View>
 
               <PremiumSection title="" palette={palette}>
                 {/* Payee */}

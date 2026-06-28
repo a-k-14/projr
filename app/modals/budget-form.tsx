@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
 import { Keyboard, ScrollView, View, TouchableOpacity, Pressable, TextInput, BackHandler } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming, runOnJS } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BudgetMonthSheet, formatBudgetMonthLabel } from '../../components/budget-ui';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
@@ -25,6 +25,44 @@ import { BudgetCategoryPickerSheet } from '../../components/ui/BudgetCategoryPic
 import type { BudgetWithSpent } from '../../types';
 import { toLocalMonthStartISO } from '../../lib/dateUtils';
 import { isEmojiIcon } from '../../lib/ui-format';
+
+function AnimatedHelperText({ repeat, palette }: { repeat: boolean; palette: AppThemePalette }) {
+  const expansion = useSharedValue(1);
+  const contentHeight = useSharedValue(0);
+  const [displayedRepeat, setDisplayedRepeat] = useState(repeat);
+
+  useEffect(() => {
+    expansion.value = withTiming(0, { duration: 120, easing: Easing.in(Easing.quad) }, (finished) => {
+      if (finished) {
+        runOnJS(setDisplayedRepeat)(repeat);
+        expansion.value = withTiming(1, { duration: 180, easing: Easing.out(Easing.quad) });
+      }
+    });
+  }, [repeat]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    height: expansion.value * contentHeight.value,
+    opacity: expansion.value,
+    overflow: 'hidden' as const,
+  }));
+
+  return (
+    <Animated.View style={animStyle}>
+      <View
+        onLayout={(e) => {
+          contentHeight.value = e.nativeEvent.layout.height;
+        }}
+        style={{ position: 'absolute', width: '100%' }}
+      >
+        <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary }}>
+          {displayedRepeat
+            ? 'Budget repeats every month from the selected month onward.'
+            : 'Budget applies only to the selected month.'}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function BudgetFormModal() {
   const { budgetId, month } = useLocalSearchParams<{ budgetId?: string; month?: string }>();
@@ -368,7 +406,7 @@ export default function BudgetFormModal() {
                   justifyContent: 'center',
                 }}
               >
-                <AppIcon name="repeat" size={21} color={palette.brand} strokeWidth={1.5} />
+                <AppIcon name={repeat ? 'repeat' : 'calendar'} size={21} color={palette.brand} strokeWidth={1.5} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
@@ -420,12 +458,8 @@ export default function BudgetFormModal() {
           </FormSection>
 
           {/* Repeat helper text */}
-          <View style={{ marginHorizontal: FORM_TOKENS.gutter + 4, marginTop: 6, marginBottom: 2 }}>
-            <Text style={{ fontSize: HOME_TEXT.bodySmall, color: palette.textSecondary }}>
-              {repeat
-                ? 'Budget repeats every month from the selected month onward.'
-                : 'Budget applies only to the selected month.'}
-            </Text>
+          <View style={{ marginHorizontal: FORM_TOKENS.gutter + 4, marginTop: 6, marginBottom: 2, minHeight: 18 }}>
+            <AnimatedHelperText repeat={repeat} palette={palette} />
           </View>
 
           {/* Category FormSection */}

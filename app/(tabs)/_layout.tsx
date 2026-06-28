@@ -91,17 +91,16 @@ function AppTabBar({
 
   const getPillTarget = (slotIndex: number) =>
     Math.max(slotIndex, 0) * itemWidth + (itemWidth - pillWidth) / 2;
+
+  // Initialize directly to the correct position — avoids the pill appearing on
+  // the wrong tab when the component re-mounts (e.g. when a lazy tab loads).
   const pillX = useSharedValue(getPillTarget(targetSlotIndex));
-  const hasAnimatedPillRef = useRef(false);
+  const prevSlotIndexRef = useRef(targetSlotIndex);
 
   useEffect(() => {
-    const nextX = getPillTarget(targetSlotIndex);
-    if (!hasAnimatedPillRef.current) {
-      pillX.value = nextX;
-      hasAnimatedPillRef.current = true;
-      return;
-    }
-    pillX.value = withSpring(nextX, {
+    if (prevSlotIndexRef.current === targetSlotIndex) return;
+    prevSlotIndexRef.current = targetSlotIndex;
+    pillX.value = withSpring(getPillTarget(targetSlotIndex), {
       damping: 24,
       stiffness: 420,
       mass: 0.45,

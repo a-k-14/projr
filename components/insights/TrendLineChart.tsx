@@ -7,7 +7,7 @@ import { FONT_WEIGHT } from '../../lib/design';
 import { HOME_RADIUS, HOME_TEXT } from '../../lib/layoutTokens';
 import type { AppThemePalette } from '../../lib/theme';
 import { Text } from '../ui/AppText';
-import { AppIcon } from '../ui/AppIcon';
+import { ChartTooltip } from './ChartTooltip';
 
 interface TrendPoint {
   date: string;
@@ -381,7 +381,7 @@ function TrendLineChartBase({
         const activePoint = points[activePointIndex];
         const prevPoint = activePointIndex > 0 ? points[activePointIndex - 1] : null;
         const diff = prevPoint ? activePoint.val - prevPoint.val : 0;
-        const hasPrev = diff !== 0 && prevPoint;
+        const hasPrev = diff !== 0 && !!prevPoint;
         let prevDateStr = '';
         if (hasPrev) {
           const prevD = new Date(prevPoint.date + 'T00:00:00');
@@ -390,79 +390,20 @@ function TrendLineChartBase({
             : `${prevD.getDate()} ${prevD.toLocaleDateString(APP_LOCALE, { month: 'short' })}`;
         }
         const isPositive = diff > 0;
-        const tooltipBg = palette.background;
-        const tooltipBorder = palette.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-        const textMainColor = palette.text;
-        const textMutedColor = palette.textSecondary;
-        const dividerColor = palette.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+        const diffLabel = formatSignedCurrency(Math.abs(diff), currencySymbol, { zeroPlaceholder: null });
+        const valueLabel = formatSignedCurrency(activePoint.val, currencySymbol, { zeroPlaceholder: null });
 
         return (
-          <View
-            style={{
-              position: 'absolute',
-              top: 26,
-              alignSelf: 'center',
-              backgroundColor: tooltipBg,
-              borderColor: tooltipBorder,
-              borderWidth: 1,
-              borderRadius: 12,
-              paddingVertical: 8,
-              paddingHorizontal: 14,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-              zIndex: 100,
-              shadowColor: '#000000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: palette.isDark ? 0.3 : 0.08,
-              shadowRadius: 8,
-              elevation: 8,
-            }}
-          >
-            {/* Column 1: Dates */}
-            <View style={{ alignItems: 'flex-end', gap: 2 }}>
-              <Text style={{ fontSize: 11, color: textMutedColor, fontWeight: FONT_WEIGHT.semibold }}>
-                {formattedTooltipDate}
-              </Text>
-              {hasPrev && (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 9.5, color: palette.textMuted, marginRight: 3 }}>vs</Text>
-                  <Text style={{ fontSize: 10, color: textMutedColor, fontWeight: FONT_WEIGHT.medium }}>
-                    {prevDateStr}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Divider */}
-            <View style={{ width: 1, height: hasPrev ? 26 : 14, backgroundColor: dividerColor }} />
-
-            {/* Column 2: Amounts */}
-            <View style={{ alignItems: 'flex-start', gap: 2 }}>
-              <Text style={{ fontSize: 12, fontWeight: FONT_WEIGHT.semibold, color: textMainColor }}>
-                {formatSignedCurrency(activePoint.val, currencySymbol, { zeroPlaceholder: null })}
-              </Text>
-              {hasPrev && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <AppIcon
-                    name={isPositive ? 'trending-up' : 'trending-down'}
-                    size={12}
-                    color={isPositive ? palette.numberPositive : palette.numberNegative}
-                    strokeWidth={2.5}
-                  />
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: isPositive ? palette.numberPositive : palette.numberNegative,
-                      fontWeight: FONT_WEIGHT.bold,
-                    }}
-                  >
-                    {formatSignedCurrency(Math.abs(diff), currencySymbol, { zeroPlaceholder: null })}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
+          <ChartTooltip
+            palette={palette}
+            dateLabel={formattedTooltipDate}
+            valueLabel={valueLabel}
+            hasPrev={!!hasPrev}
+            prevDateLabel={prevDateStr}
+            diffLabel={diffLabel}
+            isPositive={isPositive}
+            topOffset={26}
+          />
         );
       })()}
 

@@ -3,7 +3,7 @@ import { HeaderMoreButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/AppText';
 import { AppChevron } from '@/components/ui/AppChevron';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -29,7 +29,7 @@ import { useAccountsStore } from '../../stores/useAccountsStore';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { useLoansStore } from '../../stores/useLoansStore';
 import { useUIStore } from '../../stores/useUIStore';
-import type { LoanWithSummary } from '../../types';
+import type { LoanWithSummary, Transaction } from '../../types';
 
 export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -88,8 +88,14 @@ export default function LoanDetailScreen() {
   const balanceColor = isLent ? palette.loan : palette.textSecondary;
   const displayedTransactions = useMemo(() => {
     if (!loan) return [];
-    if (!filterNonPrincipal) return loan.transactions;
-    return loan.transactions.filter((tx) => {
+    // Enrich transactions with stable payee name to avoid reconstructing on every render
+    const enriched = loan.transactions.map((tx) => ({
+      ...tx,
+      payee: describeLoanDetailTransaction(loan, tx),
+    }));
+
+    if (!filterNonPrincipal) return enriched;
+    return enriched.filter((tx) => {
       const type = tx.loanTransactionType || 'principal';
       return type === 'interest' || type === 'others' || type === 'charges' || type === 'adjustment';
     });
@@ -116,6 +122,17 @@ export default function LoanDetailScreen() {
     }
     return result;
   }, [displayedTransactions, filterNonPrincipal]);
+  const handleTransactionPress = useCallback((tx: Transaction) => {
+    if (!loan) return;
+    router.push({
+      pathname:
+        getLoanTransactionKind(tx, loan.direction) === 'settlement'
+          ? '/modals/loan-settlement'
+          : '/modals/add-transaction',
+      params: { editId: tx.id }
+    });
+  }, [loan]);
+
   const originTx = useMemo(() => {
     if (!loan) return undefined;
     return loan.transactions
@@ -426,7 +443,7 @@ export default function LoanDetailScreen() {
                             {dateItems.map((tx, i) => (
                               <TransactionListItem
                                 key={tx.id}
-                                tx={{ ...tx, payee: describeLoanDetailTransaction(loan, tx) }}
+                                tx={tx}
                                 sym={sym}
                                 palette={palette}
                                 isLast={i === dateItems.length - 1}
@@ -442,15 +459,7 @@ export default function LoanDetailScreen() {
                                       .join(' • ') || undefined
                                     : undefined
                                 }
-                                onPress={() =>
-                                  router.push({
-                                    pathname:
-                                      getLoanTransactionKind(tx, loan.direction) === 'settlement'
-                                        ? '/modals/loan-settlement'
-                                        : '/modals/add-transaction',
-                                    params: { editId: tx.id }
-                                  })
-                                }
+                                onPress={handleTransactionPress}
                               />
                             ))}
                           </View>
@@ -499,7 +508,7 @@ export default function LoanDetailScreen() {
                       {items.map((tx, i) => (
                         <TransactionListItem
                           key={tx.id}
-                          tx={{ ...tx, payee: describeLoanDetailTransaction(loan, tx) }}
+                          tx={tx}
                           sym={sym}
                           palette={palette}
                           isLast={i === items.length - 1}
@@ -517,15 +526,7 @@ export default function LoanDetailScreen() {
                                 .join(' • ') || undefined
                               : undefined
                           }
-                          onPress={() =>
-                            router.push({
-                              pathname:
-                                getLoanTransactionKind(tx, loan.direction) === 'settlement'
-                                  ? '/modals/loan-settlement'
-                                  : '/modals/add-transaction',
-                              params: { editId: tx.id }
-                            })
-                          }
+                          onPress={handleTransactionPress}
                         />
                       ))}
                     </View>

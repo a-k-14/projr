@@ -206,6 +206,8 @@ export function PulseAccountHero({
             alignItems: 'center',
             gap: 12,
             zIndex: 100,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
             shadowColor: isDark ? '#000000' : '#94A3B8',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: isDark ? 0.35 : 0.15,

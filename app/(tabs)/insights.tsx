@@ -27,7 +27,7 @@ import { DateGroupedTransactionSheetList } from '../../components/DateGroupedTra
 import { SheetScrollTopButton } from '../../components/ui/SheetScrollTopButton';
 import { IncomeExpenseChart } from '../../components/insights/IncomeExpenseChart';
 import { TrendLineChart } from '../../components/insights/TrendLineChart';
-import { useDateFilter } from '../../lib/useDateFilter';
+import { useDateFilter, DEFAULT_FILTER_PERIOD } from '../../lib/useDateFilter';
 import { getAutoBucketType, getAvailableGranularities, getTimeBuckets, type ChartGranularity } from '../../lib/chartUtils';
 import { formatDate, getDateRange, safeLocalDateKey, toLocalDateKey, toLocalDayEndISO, toLocalDayStartISO } from '../../lib/dateUtils';
 import { useTransactionPress } from '../../lib/useTransactionPress';
@@ -122,7 +122,7 @@ export default function InsightsScreen() {
   // Default to a rolling 7-day window so the screen is never empty on a fresh
   // calendar month (which would happen with a strict `month` default).
   const dateFilter = useDateFilter({ 
-    initialPeriod: 'month',
+    initialPeriod: DEFAULT_FILTER_PERIOD,
     initialCustomRange: computePresetRange('last7', settingsYearStart)
   });
   const period = dateFilter.period;
@@ -319,6 +319,7 @@ export default function InsightsScreen() {
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const loansById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
   const tagNamesById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
+  const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
   const handleTransactionPress = useTransactionPress();
 
@@ -409,7 +410,7 @@ export default function InsightsScreen() {
       setIncExpBucketFilter(null);
       if (mode === 'full') {
         if (period === 'custom' && !activePreset) {
-          dateFilter.setPeriod('month');
+          dateFilter.setPeriod(DEFAULT_FILTER_PERIOD);
           setActivePreset(null);
         }
         setSelectedChartCategoryId(null);
@@ -550,6 +551,8 @@ export default function InsightsScreen() {
           containerStyle={{ marginTop: 8 }}
           startDate={dateRange.from}
           endDate={dateRange.to}
+          smoothCurves={true}
+          lineStrokeWidth={1.8}
         />
 
         <View style={{ height: 24 }} />
@@ -677,6 +680,7 @@ export default function InsightsScreen() {
             accountsById={accountsById}
             loansById={loansById}
             tagNamesById={tagNamesById}
+            tagsById={tagsById}
             getCategoryFullDisplayName={getCategoryFullDisplayName}
             onTransactionPress={handleTransactionPress}
             emptyText="No transactions"
@@ -765,6 +769,7 @@ export default function InsightsScreen() {
             accountsById={accountsById}
             loansById={loansById}
             tagNamesById={tagNamesById}
+            tagsById={tagsById}
             getCategoryFullDisplayName={getCategoryFullDisplayName}
             onTransactionPress={handleTransactionPress}
             emptyText="No transactions in this period"

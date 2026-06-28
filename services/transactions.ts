@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, desc, inArray, sql, or, like } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, inArray, sql, or, like, max } from 'drizzle-orm';
 import { db } from '../db/client';
 import { accounts, categories, deposits, transactions, loans, auditLogs } from '../db/schema';
 import type {
@@ -853,5 +853,17 @@ export async function getSplitGroupTotals(splitGroupIds: string[]): Promise<Map<
     }
   }
   return result;
+}
+
+export async function getMaxTransactionDate(accountId?: string): Promise<string | null> {
+  const conditions = [];
+  if (accountId && accountId !== 'all') {
+    conditions.push(eq(transactions.accountId, accountId));
+  }
+  const result = await db
+    .select({ maxDate: max(transactions.date) })
+    .from(transactions)
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+  return result[0]?.maxDate ?? null;
 }
 

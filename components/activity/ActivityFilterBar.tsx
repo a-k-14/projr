@@ -25,6 +25,7 @@ interface ActivityFilterBarProps {
   chipScrollResetToken?: number;
   isExpanded: boolean;
   setIsExpanded: (expanded: boolean) => void;
+  hidePeriodNavigation?: boolean;
 }
 
 export function ActivityFilterBar({
@@ -42,7 +43,9 @@ export function ActivityFilterBar({
   periodNavigation,
   chipScrollResetToken = 0,
   isExpanded,
-  setIsExpanded }: ActivityFilterBarProps) {
+  setIsExpanded,
+  hidePeriodNavigation,
+}: ActivityFilterBarProps) {
   const chipScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -90,22 +93,24 @@ export function ActivityFilterBar({
   return (
     <Animated.View style={outerStyle}>
       {/* Row 1: Period navigation centered */}
-      <Animated.View
-        style={[
-          styles.row,
-          row1Style,
-          { 
-            paddingHorizontal: 10,
-            justifyContent: 'center',
-          },
-        ]}
-      >
-        <View style={{ flex: 1 }}>
-          {periodNavigation}
-        </View>
-      </Animated.View>
+      {!hidePeriodNavigation && (
+        <Animated.View
+          style={[
+            styles.row,
+            row1Style,
+            { 
+              paddingHorizontal: 10,
+              justifyContent: 'center',
+            },
+          ]}
+        >
+          <View style={{ flex: 1 }}>
+            {periodNavigation}
+          </View>
+        </Animated.View>
+      )}
 
-      {/* Rows 2 + 3 — collapse together */}
+      {/* Rows 2 + 3 — collapse together (in-flow screen expansion) */}
       <Animated.View style={[animStyle, { overflow: 'hidden' }]}>
         {/* Row 2: List/Group toggle | Account picker | More filters */}
         <View style={[styles.row, { paddingHorizontal: ACTIVITY_LAYOUT.headerPaddingX, height: ACTIVITY_LAYOUT.controlHeight, marginBottom: ACTIVITY_LAYOUT.headerRowGap }]}>
