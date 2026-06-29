@@ -65,7 +65,7 @@ function TransactionListItemBase({
   loanDirection,
   depositName,
   tertiaryText,
-  showAmountSign = true,
+  showAmountSign = false,
   useTypeAmountColor = true,
   hideNote = false,
   paddingY = HOME_LAYOUT.listRowPaddingY + 2,
@@ -76,7 +76,7 @@ function TransactionListItemBase({
   hidePayee = false,
   hideIcon = false,
   hideTags = false,
-  noteNumberOfLines = 2,
+  noteNumberOfLines = 1,
   isFirst = false,
   isGrouped = false,
   txTags = [] }: Props) {
@@ -181,15 +181,25 @@ function TransactionListItemBase({
     ? (displayImpact === 'in' ? palette.numberPositive : displayImpact === 'out' ? palette.numberNegative : palette.text)
     : palette.text;
   const supportIcons = tx.splitGroupId || hasReceipt ? (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minHeight: 18 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
       {tx.splitGroupId ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 3,
+          backgroundColor: palette.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+          borderWidth: 0.5,
+          borderColor: palette.borderSoft,
+          borderRadius: 4,
+          paddingHorizontal: 5,
+          paddingVertical: 2,
+        }}>
+          <AppIcon name="layers" size={10} color={palette.textSecondary} />
           {tx.splitGroupTotal !== undefined ? (
-            <Text style={{ fontSize: CARD_TEXT.tertiary, color: palette.textSecondary }}>
+            <Text style={{ fontSize: 9.5, fontWeight: FONT_WEIGHT.semibold, color: palette.textSecondary }}>
               {formatCurrency(Math.abs(tx.splitGroupTotal), sym)}
             </Text>
           ) : null}
-          <AppIcon name="layers" size={12} color={palette.textSecondary} />
         </View>
       ) : null}
       {hasReceipt ? (

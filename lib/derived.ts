@@ -142,16 +142,18 @@ export function groupTransactionsByDate(
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(t);
   }
+  const todayKey = toLocalDateKey(new Date().toISOString());
   return Array.from(map.entries())
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([dateKey, items]) => ({
-      dateKey,
-      items: items.slice().sort((a, b) => {
-        const dateDelta = new Date(b.date).getTime() - new Date(a.date).getTime();
-        if (dateDelta !== 0) return dateDelta;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }),
-    }));
+    .map(([dateKey, items]) => {
+      const isFuture = dateKey > todayKey;
+      return {
+        dateKey,
+        items: items.slice().sort((a, b) => {
+          return b.createdAt.localeCompare(a.createdAt);
+        }),
+      };
+    });
 }
 
 export function groupTransactionsByCategory(

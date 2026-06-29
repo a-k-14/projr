@@ -2,6 +2,7 @@ import { Text } from '@/components/ui/AppText';
 import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
@@ -417,6 +418,7 @@ function AnimatedWarningBox({ visible, children }: { visible: boolean; children:
 
 export default function AddTransactionModal() {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const shakeOffset = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({
@@ -1217,6 +1219,7 @@ export default function AddTransactionModal() {
   };
 
   useEffect(() => {
+    if (!isFocused) return;
     const onBackPress = () => {
       if (checkIsDirty()) {
         showConfirm({
@@ -1244,6 +1247,7 @@ export default function AddTransactionModal() {
       subscription.remove();
     };
   }, [
+    isFocused,
     initialTx,
     initialDeposit,
     type,
