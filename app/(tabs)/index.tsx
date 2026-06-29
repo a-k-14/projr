@@ -1835,15 +1835,19 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     }
     // Individual account: try SWR cache first (version-checked, warm)
     const today = new Date();
-    const todayFrom = toLocalDayStartISO(today);
-    const todayTo = toLocalDayEndISO(today);
-    const period = getPeriodData(accountId, todayFrom, todayTo, txMutationVersionForHydration);
+    const rangeFrom = isDetailScreen
+      ? toLocalDayStartISO(new Date(today.getFullYear(), today.getMonth(), 1))
+      : toLocalDayStartISO(today);
+    const rangeTo = isDetailScreen
+      ? toLocalDayEndISO(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+      : toLocalDayEndISO(today);
+    const period = getPeriodData(accountId, rangeFrom, rangeTo, txMutationVersionForHydration);
     const recent = getRecentActivity(accountId, txMutationVersionForHydration);
     if (period || recent) {
       return {
         cashflow: period?.cashflow ?? { in: 0, out: 0, net: 0 },
         periodTransactions: period?.periodTransactions ?? [],
-        rangeKey: period ? `${todayFrom}:${todayTo}` as string | null : null,
+        rangeKey: period ? `${rangeFrom}:${rangeTo}` as string | null : null,
         recent: recent ?? [],
         isCacheHit: true,
       };
@@ -1940,15 +1944,19 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     // version-mismatched fresh fetch lands. This is what eliminates the
     // empty-state flash on accountId change.
     const today = new Date();
-    const todayFrom = toLocalDayStartISO(today);
-    const todayTo = toLocalDayEndISO(today);
+    const rangeFrom = isDetailScreen
+      ? toLocalDayStartISO(new Date(today.getFullYear(), today.getMonth(), 1))
+      : toLocalDayStartISO(today);
+    const rangeTo = isDetailScreen
+      ? toLocalDayEndISO(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+      : toLocalDayEndISO(today);
     const v = useTransactionsStore.getState().mutationVersion;
-    const cachedPeriod = accountId !== 'all' ? getPeriodData(accountId, todayFrom, todayTo, v) : undefined;
+    const cachedPeriod = accountId !== 'all' ? getPeriodData(accountId, rangeFrom, rangeTo, v) : undefined;
     const cachedRecent = accountId !== 'all' ? getRecentActivity(accountId, v) : undefined;
     if (cachedPeriod) {
       setCashflow(cachedPeriod.cashflow);
       setPeriodTransactions(cachedPeriod.periodTransactions);
-      setPeriodDataRangeKey(`${todayFrom}:${todayTo}`);
+      setPeriodDataRangeKey(`${rangeFrom}:${rangeTo}`);
     } else {
       setCashflow({ in: 0, out: 0, net: 0 });
       setPeriodTransactions([]);
