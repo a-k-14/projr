@@ -354,24 +354,23 @@ export default function RootLayout() {
                 <Stack.Screen name="notes" options={{ headerShown: false }} />
                 <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
                 <Stack.Screen
-                  name="modals/add-transaction"
-                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
+                  options={{ headerShown: false, presentation: 'transparentModal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
                 />
                 <Stack.Screen
                   name="modals/asset-form"
-                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
+                  options={{ headerShown: false, presentation: 'transparentModal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
                 />
                 <Stack.Screen
                   name="modals/budget-form"
-                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
+                  options={{ headerShown: false, presentation: 'transparentModal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
                 />
                 <Stack.Screen
                   name="modals/loan-settlement"
-                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
+                  options={{ headerShown: false, presentation: 'transparentModal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
                 />
                 <Stack.Screen
                   name="modals/split-transaction"
-                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
+                  options={{ headerShown: false, presentation: 'transparentModal', gestureEnabled: true, animation: 'slide_from_right', animationDuration: 180 }}
                 />
               </Stack>
             </SecurityGuard>

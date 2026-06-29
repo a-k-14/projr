@@ -71,6 +71,7 @@ import {
   getTxTypeConfig
 } from '../../lib/layoutTokens';
 import { safePush } from '../../lib/safePush';
+
 import {
   getPeriodData,
   getRecentActivity,
@@ -2927,11 +2928,13 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 emptyText="No Transactions Yet"
                 emptyStateTransparentDashed={activeVariant === 'pulse'}
                 // Cold-cache window only: on a detail screen, while the first
-                // fetch is still in flight AND we have no cached values to
-                // hot-hydrate from, render a skeleton instead of the empty
-                // text so the user doesn't briefly read "No transactions"
-                // before real data lands.
-                showSkeleton={isDetailScreen && !hasCurrentPeriodData && periodTransactions.length === 0 && transactions.length === 0}
+                // fetch for the current period is still in flight, render a
+                // pulsing skeleton instead of the empty-state text so the user
+                // doesn't briefly read "No transactions" before real data
+                // lands. As soon as periodDataRangeKey matches the current
+                // range (load completed, with or without results), the
+                // skeleton stops and the real list / empty state takes over.
+                showSkeleton={isDetailScreen && !hasCurrentPeriodData && !categoryDrilldown && !inlineFilter}
               />
             )}
 
