@@ -2224,7 +2224,7 @@ export default function AddTransactionModal() {
               </PremiumSection>
               <View style={{ marginHorizontal: FORM_TOKENS.gutter }}>
                 <AnimatedBudgetPreview
-                  visible={!!activeBudget}
+                  visible={!isEditing && !!activeBudget}
                   budget={activeBudget}
                   palette={palette}
                   sym={displaySym}
@@ -3490,9 +3490,7 @@ export default function AddTransactionModal() {
                 }}
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: palette.border, backgroundColor: palette.surface, gap: 12 }}
               >
-                <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.chip, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
-                  <AppIcon name="camera" size={20} color={palette.textSecondary} />
-                </View>
+                <AppIcon name="camera" size={20} color={palette.textSecondary} />
                 <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: FONT_WEIGHT.semibold }}>Take Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -3503,9 +3501,7 @@ export default function AddTransactionModal() {
                 }}
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, backgroundColor: palette.surface, gap: 12 }}
               >
-                <View style={{ width: 34, height: 34, borderRadius: HOME_RADIUS.chip, backgroundColor: palette.inputBg, alignItems: 'center', justifyContent: 'center' }}>
-                  <AppIcon name="image" size={20} color={palette.textSecondary} />
-                </View>
+                <AppIcon name="image" size={20} color={palette.textSecondary} />
                 <Text style={{ fontSize: HOME_TEXT.sectionTitle, color: palette.text, fontWeight: FONT_WEIGHT.semibold }}>Choose Photo</Text>
               </TouchableOpacity>
               <View style={{ padding: 16, backgroundColor: palette.surface, alignItems: 'center' }}>
