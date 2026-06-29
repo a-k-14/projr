@@ -1,5 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { Text } from '@/components/ui/AppText';
 import { TransactionListItem } from '@/components/TransactionListItem';
 import { getCategoryDisplayIcon } from '@/lib/category-utils';
@@ -123,14 +131,26 @@ export function EmptyTransactions({ palette, emptyText }: { palette: AppThemePal
   );
 }
 
-/** 3 placeholder rows shown ONLY during the first cold-cache load — replaces
- *  the "No transactions" empty state for that brief window so the user never
- *  reads a stale message before real data lands. */
+/** 3 placeholder rows with a subtle pulsing shimmer. Shown ONLY during the
+ *  first cold-cache load — replaces the "No transactions" empty state so the
+ *  user never reads a stale message before real data lands. */
 export function TransactionsSkeleton({ palette }: { palette: AppThemePalette }) {
-  const placeholderBg = palette.isDark ? 'rgba(255,255,255,0.05)' : '#F0F2F6';
-  const placeholderBgDim = palette.isDark ? 'rgba(255,255,255,0.03)' : '#F5F7FA';
+  const placeholderBg = palette.isDark ? 'rgba(255,255,255,0.07)' : '#E8ECF2';
+  const placeholderBgDim = palette.isDark ? 'rgba(255,255,255,0.04)' : '#EFF2F7';
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 850, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 850, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+  }, [pulse]);
+  const animStyle = useAnimatedStyle(() => ({ opacity: 0.55 + pulse.value * 0.45 }));
   return (
-    <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF', padding: 14, gap: 14 }}>
+    <Animated.View style={[{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF', padding: 14, gap: 14 }, animStyle]}>
       {[0, 1, 2].map((i) => (
         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: placeholderBg }} />
@@ -141,7 +161,7 @@ export function TransactionsSkeleton({ palette }: { palette: AppThemePalette }) 
           <View style={{ width: 60, height: 12, borderRadius: 3, backgroundColor: placeholderBg }} />
         </View>
       ))}
-    </View>
+    </Animated.View>
   );
 }
 
