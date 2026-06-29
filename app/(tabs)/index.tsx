@@ -48,6 +48,7 @@ import { ASSET_BG, ASSET_TONE } from '../../lib/assetVisuals';
 import {
   APP_LOCALE,
   formatDate,
+  getCurrentMonthToDateRange,
   getLast30DaysRange,
   toLocalDayEndISO,
   toLocalDayStartISO,
@@ -70,6 +71,14 @@ import {
 } from '../../lib/layoutTokens';
 import { safePush } from '../../lib/safePush';
 import { prefetchAccountTrend } from '../../lib/trendCache';
+import {
+  getPeriodData,
+  getRecentActivity,
+  prefetchAccountActivity,
+  prefetchAccountPeriod,
+  setPeriodData,
+  setRecentActivity,
+} from '../../lib/accountDataCache';
 import { ACCOUNT_TYPE_META, getAccountTypeLabel } from '../../lib/settings-shared';
 import { registerTabReset } from '../../lib/tabResetRegistry';
 import { AppThemePalette, useAppTheme } from '../../lib/theme';
@@ -187,7 +196,21 @@ function HomeScreenContent() {
   }, [txMutationVersion, refreshAccounts]);
 
   useEffect(() => {
-    accounts.forEach(a => prefetchAccountTrend(a.id, txMutationVersion));
+    accounts.forEach((a) => {
+      // Three caches kept warm: trend (chart), recent activity (last 10),
+      // and the month-to-date period scope (matches the detail screen's
+      // first-render period). Today range is also prefetched so the
+      // Today/Month toggle is instant in either direction. All fire-and-
+      // forget; failures are logged but never block UI.
+      prefetchAccountTrend(a.id, txMutationVersion);
+      prefetchAccountActivity(a.id, txMutationVersion);
+      const today = new Date();
+      const todayFrom = toLocalDayStartISO(today);
+      const todayTo = toLocalDayEndISO(today);
+      const monthRange = getCurrentMonthToDateRange();
+      prefetchAccountPeriod(a.id, txMutationVersion, todayFrom, todayTo);
+      prefetchAccountPeriod(a.id, txMutationVersion, monthRange.from, monthRange.to);
+    });
   }, [accounts, txMutationVersion]);
   const accountScrollRef = useRef<any>(null);
   const pageScrollTopRef = useRef<(() => void) | null>(null);
@@ -1742,10 +1765,37 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const depositsById = useMemo(() => new Map(deposits.map((d) => [d.id, d])), [deposits]);
   const tags = useCategoriesStore((s) => s.tags);
   const tagNamesById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
-  const [cashflow, setCashflow] = useState<CashflowSummary>({ in: 0, out: 0, net: 0 });
-  const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
-  const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  // ── SWR hot-hydration ─────────────────────────────────────────────────────
+  // Account-detail screens (and re-visits to the same account on home) read
+  // any cached values synchronously at mount so balance/cashflow/activity
+  // appear on the FIRST frame — no flash of empty state. Cache miss falls
+  // through to today's behavior (empty initial + fresh fetch).
+  const txMutationVersionForHydration = useTransactionsStore((s) => s.mutationVersion);
+  const initialCache = useMemo(() => {
+    if (accountId === 'all') return { cashflow: { in: 0, out: 0, net: 0 }, periodTransactions: [] as Transaction[], rangeKey: null as string | null, recent: [] as Transaction[], isCacheHit: false };
+    // We don't know the date range yet (dateFilter not constructed), so we
+    // try the most likely first-render range — TODAY — which matches
+    // HomeAccountPage's `useDateFilter({ initialPeriod: 'today' })`.
+    const today = new Date();
+    const todayFrom = toLocalDayStartISO(today);
+    const todayTo = toLocalDayEndISO(today);
+    const period = getPeriodData(accountId, todayFrom, todayTo, txMutationVersionForHydration);
+    const recent = getRecentActivity(accountId, txMutationVersionForHydration);
+    return {
+      cashflow: period?.cashflow ?? { in: 0, out: 0, net: 0 },
+      periodTransactions: period?.periodTransactions ?? [],
+      rangeKey: period ? `${todayFrom}:${todayTo}` : null,
+      recent: recent ?? [],
+      isCacheHit: !!(period || recent),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← intentionally compute ONCE at mount
+
+  const [cashflow, setCashflow] = useState<CashflowSummary>(initialCache.cashflow);
+  const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>(initialCache.periodTransactions);
+  const [periodDataRangeKey, setPeriodDataRangeKey] = useState<string | null>(initialCache.rangeKey);
+  const [transactions, setTransactions] = useState<Transaction[]>(initialCache.recent);
   const [refreshing, setRefreshing] = useState(false);
   const [cashflowIsCashflow, setCashflowIsCashflow] = useState(false);
   // Inline filter: tap inc/exp on hero → filter Activity list to those tx; reset clears it
@@ -1797,10 +1847,30 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
 
   useEffect(() => {
     loadRequestIdRef.current += 1;
-    setCashflow({ in: 0, out: 0, net: 0 });
-    setPeriodTransactions([]);
-    setPeriodDataRangeKey(null);
-    setTransactions([]);
+    // SWR: only wipe local state when there's no usable cache entry. With a
+    // warm cache we keep showing the last known correct values until the
+    // version-mismatched fresh fetch lands. This is what eliminates the
+    // empty-state flash on accountId change.
+    const today = new Date();
+    const todayFrom = toLocalDayStartISO(today);
+    const todayTo = toLocalDayEndISO(today);
+    const v = useTransactionsStore.getState().mutationVersion;
+    const cachedPeriod = accountId !== 'all' ? getPeriodData(accountId, todayFrom, todayTo, v) : undefined;
+    const cachedRecent = accountId !== 'all' ? getRecentActivity(accountId, v) : undefined;
+    if (cachedPeriod) {
+      setCashflow(cachedPeriod.cashflow);
+      setPeriodTransactions(cachedPeriod.periodTransactions);
+      setPeriodDataRangeKey(`${todayFrom}:${todayTo}`);
+    } else {
+      setCashflow({ in: 0, out: 0, net: 0 });
+      setPeriodTransactions([]);
+      setPeriodDataRangeKey(null);
+    }
+    if (cachedRecent) {
+      setTransactions(cachedRecent);
+    } else {
+      setTransactions([]);
+    }
     todayDataCacheRef.current = null;
     lastNWChipValueRef.current = undefined;
   }, [accountId]);
@@ -1827,6 +1897,16 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     setTransactions(recentTransactions);
     setPeriodTransactions(periodScopedTransactions);
     setPeriodDataRangeKey(requestRangeKey);
+
+    // SWR write-through: fresh data just landed, populate the cache so the
+    // next mount of this screen (or any sibling reading the same key) gets
+    // it on the first frame. Skip for the 'all' aggregate view — it doesn't
+    // navigate, so caching adds no value.
+    if (accountFilter) {
+      const v = useTransactionsStore.getState().mutationVersion;
+      setRecentActivity(accountFilter, v, recentTransactions);
+      setPeriodData(accountFilter, rangeFrom, rangeTo, v, periodScopedTransactions, periodSummary);
+    }
 
     const today = new Date();
     if (rangeFrom === toLocalDayStartISO(today) && rangeTo === toLocalDayEndISO(today)) {
@@ -2715,6 +2795,12 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
                 getCategoryFullDisplayName={getCategoryFullDisplayName}
                 onTransactionPress={handleTransactionPress}
                 emptyText="No Transactions Yet"
+                // Cold-cache window only: on a detail screen, while the first
+                // fetch is still in flight AND we have no cached values to
+                // hot-hydrate from, render a skeleton instead of the empty
+                // text so the user doesn't briefly read "No transactions"
+                // before real data lands.
+                showSkeleton={isDetailScreen && !hasCurrentPeriodData && periodTransactions.length === 0 && transactions.length === 0}
               />
             )}
 

@@ -123,10 +123,35 @@ export function EmptyTransactions({ palette, emptyText }: { palette: AppThemePal
   );
 }
 
+/** 3 placeholder rows shown ONLY during the first cold-cache load — replaces
+ *  the "No transactions" empty state for that brief window so the user never
+ *  reads a stale message before real data lands. */
+export function TransactionsSkeleton({ palette }: { palette: AppThemePalette }) {
+  const placeholderBg = palette.isDark ? 'rgba(255,255,255,0.05)' : '#F0F2F6';
+  const placeholderBgDim = palette.isDark ? 'rgba(255,255,255,0.03)' : '#F5F7FA';
+  return (
+    <View style={{ borderRadius: HOME_RADIUS.card, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.isDark ? palette.surface : '#FFFFFF', padding: 14, gap: 14 }}>
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: placeholderBg }} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <View style={{ width: '55%', height: 11, borderRadius: 3, backgroundColor: placeholderBg }} />
+            <View style={{ width: '38%', height: 9, borderRadius: 3, backgroundColor: placeholderBgDim }} />
+          </View>
+          <View style={{ width: 60, height: 12, borderRadius: 3, backgroundColor: placeholderBg }} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 interface Props extends DateGroupRowProps {
   transactions: Transaction[];
   /** Shown when transactions is empty. Defaults to "No transactions". */
   emptyText?: string;
+  /** When true and transactions is empty, render a skeleton instead of the
+   *  empty-state text. Used during the cold-cache window on account detail. */
+  showSkeleton?: boolean;
 }
 
 /** Plain (non-virtualized) list for use as content inside an existing ScrollView,
@@ -135,9 +160,11 @@ interface Props extends DateGroupRowProps {
 export function DateGroupedTransactionList({
   transactions,
   emptyText = 'No transactions',
+  showSkeleton = false,
   ...row
 }: Props) {
   if (transactions.length === 0) {
+    if (showSkeleton) return <TransactionsSkeleton palette={row.palette} />;
     return <EmptyTransactions palette={row.palette} emptyText={emptyText} />;
   }
 

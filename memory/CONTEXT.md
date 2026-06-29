@@ -134,6 +134,47 @@ The hero card top is `typeColor`, bottom is darkened ×0.68. That's the
 - `+ Add` stays where it is (secondary).
 - Asked for codebase notes file (this one).
 
+### Phase 3 — Perceived speed (SHIPPED 2026-01)
+**Stale-While-Revalidate (SWR) cache for account-detail data.**
+
+- New `lib/accountDataCache.ts` — two in-memory `Map`s (`recentActivityCache`,
+  `periodCache`), invalidated by `txMutationVersion` mismatch. Same pattern
+  as the existing `lib/trendCache.ts`.
+- `HomeAccountPage` hot-hydrates `cashflow` / `periodTransactions` /
+  `transactions` from the cache via `useState` initializer at mount. Cache
+  miss falls through to the existing fresh-fetch path — no behavior change.
+- The accountId-change effect previously wiped state to zero
+  unconditionally; now it tries the cache first and only wipes on miss.
+  Eliminates the "flash to empty" on detail-screen open.
+- `loadRangeData` writes through to the cache after every fresh fetch.
+- Home screen extends its prefetch loop: along with `prefetchAccountTrend`,
+  now also runs `prefetchAccountActivity` + `prefetchAccountPeriod` for
+  both today AND month ranges per account. All fire-and-forget after the
+  home screen has rendered.
+- Cold-cache UX: new `TransactionsSkeleton` (3 placeholder rows) in
+  `DateGroupedTransactionList` via `showSkeleton` prop. Replaces the
+  "No Transactions Yet" empty text during the cold-cache window only.
+
+**Modal animation tightening:**
+- All 5 modal screens (`add-transaction`, `asset-form`, `budget-form`,
+  `loan-settlement`, `split-transaction`) now use explicit
+  `animation: 'slide_from_right'` + `animationDuration: 180` (was native
+  default ~350ms). Save → back transition feels ~150ms snappier with no
+  correctness change — data refresh (~30-55ms) still lands well within
+  the animation window.
+
+**What was NOT touched (deliberate):**
+- `useTransactionsStore` mutation flow — production already correctly
+  updates balance/chart/values/list before the modal closes.
+- SQLite layer, drizzle schema — untouched.
+- `freezeOnBlur` — explored, rejected (would introduce stale-flash on
+  return).
+- Mutation-time cache pre-warm — explored, rejected (existing
+  `mutationVersion` + `loadRangeData` effect chain already does this
+  correctly within the modal close window).
+
+
+
 ### Design Lab — Phase 1 SHIPPED 2026-01
 Lab mode lets us A/B test full screen redesigns against real data.
 - **Toggle:** long-press the account name in the header → cycles
