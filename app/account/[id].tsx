@@ -2,7 +2,7 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { InteractionManager, Modal, Pressable, TouchableOpacity, View, BackHandler } from 'react-native';
+import { Modal, Pressable, TouchableOpacity, View, BackHandler } from 'react-native';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -78,14 +78,7 @@ export default function AccountDetailScreen() {
 
   const [activityViewMode, setActivityViewMode] = useState<AccountViewMode>('date');
   const [categoryDrilldown, setCategoryDrilldown] = useState<CategoryDrilldown | null>(null);
-  const [chartReady, setChartReady] = useState(false);
-
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      setChartReady(true);
-    });
-    return () => task.cancel();
-  }, []);
+  const chartReady = true;
 
   useEffect(() => {
     if (!isFocused) return;
@@ -135,17 +128,9 @@ export default function AccountDetailScreen() {
       }
     };
 
-    if (cachedTrend) {
-      // Mutation-driven refresh: data exists but is stale — reload immediately,
-      // no need to wait for a navigation transition that's already complete.
-      loadTrend();
-      return () => { active = false; };
-    }
-    // Initial load: defer until the screen's navigation transition settles.
-    const task = InteractionManager.runAfterInteractions(() => { loadTrend(); });
+    loadTrend();
     return () => {
       active = false;
-      task.cancel();
     };
   }, [account?.id, mutationVersion, isFocused]);
 

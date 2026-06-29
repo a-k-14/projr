@@ -1965,7 +1965,6 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   }, [accountId]);
 
   const loadRangeData = useCallback(async (rangeFrom: string, rangeTo: string) => {
-    if (!isPageReady) return;
     const requestRangeKey = `${rangeFrom}:${rangeTo}`;
     if (!hasLoadedOnceRef.current && requestRangeKey === periodDataRangeKey && periodDataRangeKey !== null) {
       hasLoadedOnceRef.current = true;
@@ -2081,12 +2080,11 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const totalTick = tickIn + tickOut;
   const incomeFraction = totalTick > 0 ? tickIn / totalTick : 0.5;
   const animatedIncomeFraction = useSharedValue(incomeFraction);
-  const tickActivityProgress = useSharedValue((totalTick > 0 && isPageReady) ? 1 : 0);
+  const tickActivityProgress = useSharedValue(totalTick > 0 ? 1 : 0);
 
   const prevTotalTickRef = React.useRef(totalTick);
 
   React.useEffect(() => {
-    if (!isPageReady) return;
     if (totalTick > 0) {
       if (prevTotalTickRef.current === 0) {
         animatedIncomeFraction.value = incomeFraction;
@@ -2096,7 +2094,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     }
     tickActivityProgress.value = withTiming(totalTick > 0 ? 1 : 0, { duration: 250 });
     prevTotalTickRef.current = totalTick;
-  }, [tickIn, tickOut, incomeFraction, totalTick, isPageReady]);
+  }, [tickIn, tickOut, incomeFraction, totalTick]);
 
   const detailIncomeTickOverlayStyle = useAnimatedStyle(() => {
     const progress = tickActivityProgress.value;
@@ -2295,7 +2293,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
   const lastLoadedNonceRef = useRef(dataNonce);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!isPageReady || !isScreenFocused) return;
+    if (!isScreenFocused) return;
     if (dataNonce !== lastLoadedNonceRef.current) {
       lastLoadedNonceRef.current = dataNonce;
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
@@ -2313,12 +2311,12 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
     return () => {
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
     };
-  }, [isPageReady, isScreenFocused, loadPageData, dataNonce]);
+  }, [isScreenFocused, loadPageData, dataNonce]);
 
   useEffect(() => {
-    if (!isPageReady || !isScreenFocused || !isSelected || loansLoaded) return;
+    if (!isScreenFocused || !isSelected || loansLoaded) return;
     loadLoans().catch(() => undefined);
-  }, [isPageReady, isScreenFocused, isSelected, loadLoans, loansLoaded]);
+  }, [isScreenFocused, isSelected, loadLoans, loansLoaded]);
 
 
   const handleRefresh = useCallback(async () => {
@@ -2911,10 +2909,7 @@ export const HomeAccountPage = React.memo(function HomeAccountPage({
             {/* Date-grouped list view (default, or drilldown from category) */}
             {(activityViewMode === 'date' || categoryDrilldown) && (
               <DateGroupedTransactionList
-                transactions={(() => {
-                  const txs = categoryDrilldown ? drilldownTransactions : inlineFilter ? inlineFilteredTransactions : (accountId === 'all' ? transactions : displayedPeriodTransactions);
-                  return isPageReady ? txs : [];
-                })()}
+                transactions={categoryDrilldown ? drilldownTransactions : inlineFilter ? inlineFilteredTransactions : (accountId === 'all' ? transactions : displayedPeriodTransactions)}
                 palette={palette}
                 sym={currencySymbol}
                 categoriesById={categoriesById}
