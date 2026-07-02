@@ -48,6 +48,7 @@ export const transactions = sqliteTable('transactions', {
   receiptImageUris: text('receipt_image_uris'),
   date: text('date').notNull(),
   transferPairId: text('transfer_pair_id'),
+  excludeFromTotals: integer('exclude_from_totals').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
 
@@ -90,6 +91,7 @@ export const deposits = sqliteTable('deposits', {
   principalAmount: real('principal_amount').notNull(),
   interestRate: real('interest_rate'),
   tenureMonths: integer('tenure_months'),
+  tenureUnit: text('tenure_unit').notNull().default('months'),
   startDate: text('start_date').notNull(),
   maturityDate: text('maturity_date'),
   maturityValue: real('maturity_value'),

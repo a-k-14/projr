@@ -64,6 +64,7 @@ export interface Transaction {
   receiptImageUris?: string[];
   date: string;
   transferPairId?: string;
+  excludeFromTotals?: boolean;
   createdAt: string;
 }
 
@@ -214,6 +215,7 @@ export interface CreateTransactionInput {
   note?: string;
   receiptImageUris?: string[] | null;
   date: string;
+  excludeFromTotals?: boolean;
 }
 
 export interface CreateLoanInput {
@@ -236,6 +238,7 @@ export interface Deposit {
   principalAmount: number;
   interestRate?: number;
   tenureMonths?: number;
+  tenureUnit?: 'months' | 'days';
   startDate: string;
   maturityDate?: string;
   maturityValue?: number;
@@ -251,6 +254,7 @@ export interface CreateDepositInput {
   principalAmount: number;
   interestRate?: number | null;
   tenureMonths?: number | null;
+  tenureUnit?: 'months' | 'days' | null;
   startDate: string;
   maturityDate?: string | null;
   maturityValue?: number | null;

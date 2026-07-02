@@ -385,7 +385,7 @@ export default function BudgetFormModal() {
               <AppChevron direction="right" size={18} tone="secondary" color={palette.textSecondary} palette={palette} />
             </TouchableOpacity>
 
-            <PremiumDivider palette={palette} />
+            <FormDivider palette={palette} />
 
             {/* Repeat row */}
             <View
@@ -592,6 +592,6 @@ export default function BudgetFormModal() {
   );
 }
 
-function PremiumDivider({ palette }: { palette: AppThemePalette }) {
+function FormDivider({ palette }: { palette: AppThemePalette }) {
   return <View style={{ height: 1, backgroundColor: palette.borderSoft, marginLeft: FORM_TOKENS.dividerIndent }} />;
 }

@@ -508,7 +508,7 @@ export default function LoanSettlementModal() {
               </View>
             </View>
 
-            <PremiumDivider palette={palette} />
+            <FormDivider palette={palette} />
 
             {/* Type Row (Interactive) */}
             <TouchableOpacity
@@ -745,7 +745,7 @@ export default function LoanSettlementModal() {
   );
 }
 
-function PremiumDivider({ palette }: { palette: AppThemePalette }) {
+function FormDivider({ palette }: { palette: AppThemePalette }) {
   return <View style={{ height: 1, backgroundColor: palette.borderSoft, marginLeft: FORM_TOKENS.dividerIndent }} />;
 }
 

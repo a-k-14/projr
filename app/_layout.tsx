@@ -373,6 +373,10 @@ export default function RootLayout() {
                   name="modals/split-transaction"
                   options={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}
                 />
+                <Stack.Screen
+                  name="modals/search-transactions"
+                  options={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}
+                />
               </Stack>
             </SecurityGuard>
           </ErrorBoundary>

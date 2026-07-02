@@ -77,14 +77,17 @@ export function prettifyCalculatorValue(value: string) {
 
 export function appendCalculatorToken(current: string, token: string) {
   const operators = DISPLAY_OPERATORS as readonly string[];
+  const basicOperators = BASIC_OPERATORS as readonly string[];
   const isNewTokenOperator = operators.includes(token);
   const lastChar = current.slice(-1);
-  const isLastCharOperator = operators.includes(lastChar);
+  const isLastCharBasicOperator = basicOperators.includes(lastChar);
   let base = current;
 
   if (isNewTokenOperator) {
-    if (isLastCharOperator) {
+    if (isLastCharBasicOperator) {
       base = current.slice(0, -1);
+    } else if (lastChar === '%' && token === '%') {
+      return current;
     } else if (lastChar === '.') {
       base = current.slice(0, -1);
     }
@@ -92,7 +95,7 @@ export function appendCalculatorToken(current: string, token: string) {
     const parts = current.split(/[+−×÷%]/);
     const lastPart = parts[parts.length - 1];
     if (lastPart.includes('.')) return current;
-    if (isLastCharOperator || !current || current === '0') {
+    if (operators.includes(lastChar) || !current || current === '0') {
       base = current === '0' ? '' : current;
       return `${base}0.`;
     }

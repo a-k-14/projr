@@ -31,7 +31,7 @@ jest.mock('expo-file-system/legacy', () => ({
 }));
 
 import * as FileSystem from 'expo-file-system/legacy';
-import { countByAccount, createTransaction, getTransactions, updateTransaction, createSplitTransactionGroup, deleteTransaction } from '../services/transactions.ts';
+import { countByAccount, createTransaction, getTransactions, updateTransaction, createSplitTransactionGroup, updateSplitTransactionGroup, deleteTransaction } from '../services/transactions.ts';
 import { getAuditLogs } from '../services/audit.ts';
 
 beforeEach(() => {
@@ -72,6 +72,7 @@ beforeEach(() => {
       receipt_image_uris TEXT,
       date TEXT NOT NULL,
       transfer_pair_id TEXT,
+      exclude_from_totals INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -271,5 +272,95 @@ describe('transactions database integration', () => {
         const deleteLogs = logs.filter(l => l.action === 'delete');
         expect(deleteLogs).toHaveLength(2);
         expect(deleteLogs.map(l => l.recordId).sort()).toEqual(splitGroup.map(item => item.id).sort());
+    });
+
+    it('handles single to split to single conversion, and type conversion with/without splits', async () => {
+        // 1. Start with single transaction (Income, amount: 1000)
+        sqlite.exec("INSERT INTO accounts (id, name, type, balance, created_at) VALUES ('acc3', 'Account 3', 'regular', 5000, '2024-01-01T12:00:00.000Z');");
+        sqlite.exec("INSERT INTO categories (id, name, type) VALUES ('cat3', 'Category 3', 'both');");
+        const singleTx = await createTransaction({
+            type: 'in',
+            accountId: 'acc3',
+            amount: 1000,
+            date: '2024-01-02T12:00:00.000Z',
+            categoryId: 'cat3'
+        });
+
+        // Verify balance = 5000 + 1000 = 6000
+        let account = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc3'").get() as any;
+        expect(account.balance).toBe(6000);
+
+        // 2. Convert Single to Split (Income, split: 300 + 700 = 1000)
+        // Simulated: createSplitTransactionGroup, then deleteTransaction(singleTx.id)
+        const splitGroup = await createSplitTransactionGroup({
+            type: 'in',
+            accountId: 'acc3',
+            date: '2024-01-02T12:00:00.000Z',
+            items: [
+                { categoryId: 'cat3', amount: 300 },
+                { categoryId: 'cat3', amount: 700 }
+            ]
+        });
+        await deleteTransaction(singleTx.id);
+
+        // Balance should be: 5000 + 300 + 700 = 6000
+        account = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc3'").get() as any;
+        expect(account.balance).toBe(6000);
+
+        // 3. Convert Split to Single (Expense, amount: 1200)
+        // Simulated: deleteTransaction(splitGroup[0].id) -> drops whole split group, then createTransaction
+        await deleteTransaction(splitGroup[0].id);
+        const singleTx2 = await createTransaction({
+            type: 'out',
+            accountId: 'acc3',
+            amount: 1200,
+            date: '2024-01-02T12:00:00.000Z',
+            categoryId: 'cat3'
+        });
+
+        // Balance: 5000 (after group delete) - 1200 = 3800
+        account = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc3'").get() as any;
+        expect(account.balance).toBe(3800);
+
+        // 4. Inc to Exp without splits (edit singleTx2 from 'out' to 'in', amount: 1500)
+        await updateTransaction(singleTx2.id, {
+            type: 'in',
+            amount: 1500
+        });
+
+        // Balance: 5000 (rolled back Expense) + 1500 = 6500
+        account = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc3'").get() as any;
+        expect(account.balance).toBe(6500);
+
+        // 5. Convert back to Split (Expense, split: 400 + 600 = 1000)
+        const splitGroup2 = await createSplitTransactionGroup({
+            type: 'out',
+            accountId: 'acc3',
+            date: '2024-01-02T12:00:00.000Z',
+            items: [
+                { categoryId: 'cat3', amount: 400 },
+                { categoryId: 'cat3', amount: 600 }
+            ]
+        });
+        await deleteTransaction(singleTx2.id);
+
+        // Balance: 5000 (rolled back singleTx2) - 400 - 600 = 4000
+        account = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc3'").get() as any;
+        expect(account.balance).toBe(4000);
+
+        // 6. Inc to Exp WITH splits (edit splitGroup2 from 'out' to 'in', split: 500 + 800 = 1300)
+        await updateSplitTransactionGroup(splitGroup2[0].splitGroupId!, {
+            type: 'in',
+            accountId: 'acc3',
+            date: '2024-01-02T12:00:00.000Z',
+            items: [
+                { categoryId: 'cat3', amount: 500 },
+                { categoryId: 'cat3', amount: 800 }
+            ]
+        });
+
+        // Balance: 5000 (rolled back splitGroup2) + 500 + 800 = 6300
+        account = sqlite.prepare("SELECT balance FROM accounts WHERE id = 'acc3'").get() as any;
+        expect(account.balance).toBe(6300);
     });
 });

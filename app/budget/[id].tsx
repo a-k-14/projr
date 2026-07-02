@@ -141,10 +141,12 @@ function pillState(palette: any, hasBudgetSet: boolean, isOver: boolean, overBud
   };
 }
 import { getCategoryDisplayIcon } from '../../lib/category-utils';
+import { isEmojiIcon } from '../../lib/ui-format';
 import { getRelativeDateLabel, toLocalDateKey } from '../../lib/dateUtils';
 import { formatCurrency } from '../../lib/derived';
 import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
 import {
+  ACTIVITY_LAYOUT,
   HOME_RADIUS,
   HOME_SPACE,
   HOME_TEXT,
@@ -329,7 +331,7 @@ export default function BudgetDetailScreen() {
         </ActionStrip>
 
         {/* Hero card — sticky outside ScrollView */}
-        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: HOME_SPACE.md }}>
+        <View style={{ paddingHorizontal: SCREEN_GUTTER, paddingTop: ACTIVITY_LAYOUT.headerPaddingTop }}>
           <View style={[styles.card, {
             backgroundColor: palette.card,
             borderColor: palette.borderSoft,
@@ -410,12 +412,19 @@ export default function BudgetDetailScreen() {
             {/* Sub-info section (Category, Subcategories, Frequency) */}
             <View style={{ marginTop: HOME_SPACE.md, paddingTop: HOME_SPACE.md, borderTopWidth: 1, borderStyle: 'dashed', borderColor: palette.borderSoft }}>
               {/* Category & Subcategories Info */}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 4 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
                 <View style={{ marginTop: 2 }}>
-                  <AppIcon name="tag" size={12} color={palette.textSecondary} strokeWidth={1.8} />
+                  {(() => {
+                    const icon = getCategoryDisplayIcon(categoriesById, budget.categoryId);
+                    return isEmojiIcon(icon) ? (
+                      <Text style={{ fontSize: 12 }}>{icon}</Text>
+                    ) : (
+                      <AppIcon name={(icon as any) ?? 'tag'} size={12} color={palette.textSecondary} strokeWidth={1.8} />
+                    );
+                  })()}
                 </View>
                 <Text style={{ flex: 1, flexWrap: 'wrap' }}>
-                  <Text style={{ fontSize: 11, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
                     {parentCategory?.name ?? 'Category'}
                   </Text>
                   {isAllSubcats ? (
@@ -431,7 +440,7 @@ export default function BudgetDetailScreen() {
               </View>
 
               {/* Frequency */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: HOME_SPACE.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: HOME_SPACE.sm }}>
                 <AppIcon name={budget.repeat ? 'repeat' : 'calendar'} size={12} color={palette.textSecondary} strokeWidth={1.8} />
                 <Text style={{ fontSize: 11, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary }}>
                   {budget.repeat ? 'Repeats Monthly' : 'One-time Budget'}

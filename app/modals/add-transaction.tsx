@@ -29,6 +29,7 @@ import { ActionChip, FilledButton, TextButton } from '../../components/ui/AppBut
 import { HeaderMoreButton } from '../../components/ui/ScreenHeader';
 import { ActionStrip } from '../../components/ui/ActionStrip';
 import { AppChevron } from '../../components/ui/AppChevron';
+import { AppSwitch } from '../../components/ui/AppSwitch';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
@@ -301,7 +302,7 @@ function AnimatedBudgetPreview({
 
 
 
-function PremiumSection({
+function FormSection({
   title,
   children,
   palette,
@@ -347,8 +348,8 @@ function PremiumSection({
   );
 }
 
-function PremiumDivider({ palette }: { palette: AppThemePalette }) {
-  return <View style={{ height: 1, backgroundColor: palette.borderSoft, marginLeft: FORM_TOKENS.dividerIndent }} />;
+function FormDivider({ palette, indent = FORM_TOKENS.dividerIndent }: { palette: AppThemePalette; indent?: number }) {
+  return <View style={{ height: 1, backgroundColor: palette.borderSoft, marginLeft: indent }} />;
 }
 
 /** Smoothly expands / collapses a suggestion chip strip (payee, person, etc.). */
@@ -557,11 +558,14 @@ export default function AddTransactionModal() {
   const [depositName, setDepositName] = useState('');
   const [depositBank, setDepositBank] = useState('');
   const [depositTenure, setDepositTenure] = useState('');
+  const [depositTenureUnit, setDepositTenureUnit] = useState<'months' | 'days'>('months');
+  const [showTenureUnitSheet, setShowTenureUnitSheet] = useState(false);
   const [depositInterest, setDepositInterest] = useState('');
   const [depositMaturityStr, setDepositMaturityStr] = useState('');
   // Close-deposit split fields
   const [closePrincipalStr, setClosePrincipalStr] = useState('');
   const [closeInterestStr, setCloseInterestStr] = useState('');
+  const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const [amountStr, setAmountStr] = useState('');
   const [accountId, setAccountId] = useState('');
   const [linkedAccountId, setLinkedAccountId] = useState('');
@@ -921,6 +925,7 @@ export default function AddTransactionModal() {
     setDepositName(found.name);
     setDepositBank(found.bankName ?? '');
     setDepositTenure(found.tenureMonths != null ? String(found.tenureMonths) : '');
+    setDepositTenureUnit((found.tenureUnit as 'months' | 'days') || 'months');
     setDepositInterest(found.interestRate != null ? String(found.interestRate) : '');
     if (!isClosingDeposit && found.maturityValue != null) {
       setDepositMaturityStr(formatIndianNumberStr(String(Math.round(found.maturityValue))));
@@ -936,13 +941,13 @@ export default function AddTransactionModal() {
     const tenure = parseInt(depositTenure.trim(), 10);
     const interest = parseFloat(depositInterest.trim());
     if (principal > 0 && Number.isFinite(tenure) && tenure > 0 && Number.isFinite(interest) && interest > 0) {
-      const quarters = tenure / 3;
+      const quarters = depositTenureUnit === 'days' ? tenure / 90 : tenure / 3;
       const mv = principal * Math.pow(1 + interest / 400, quarters);
       setDepositMaturityStr(formatIndianNumberStr(String(Math.round(mv))));
     } else if (!isDepositHydratedRef.current) {
       setDepositMaturityStr('');
     }
-  }, [amountStr, depositTenure, depositInterest, type, isClosingDeposit]);
+  }, [amountStr, depositTenure, depositTenureUnit, depositInterest, type, isClosingDeposit]);
 
   useEffect(() => {
     if (!isEditing || !editId) return;
@@ -957,6 +962,7 @@ export default function AddTransactionModal() {
     setSelectedTagIds([]);
     setNote('');
     setReceiptImageUris([]);
+    setExcludeFromTotals(false);
     const task = InteractionManager.runAfterInteractions(() => {
       getTransactionById(editId).then(async (tx) => {
         if (!tx) return;
@@ -972,6 +978,7 @@ export default function AddTransactionModal() {
         setDate(tx.date);
         if (tx.note) setNote(tx.note);
         setReceiptImageUris(tx.receiptImageUris ?? []);
+        setExcludeFromTotals(!!tx.excludeFromTotals);
 
         if (tx.splitGroupId) {
           const group = await getTransactionsBySplitGroup(tx.splitGroupId);
@@ -998,7 +1005,8 @@ export default function AddTransactionModal() {
             const mappedRows = group.map((item) => ({
               id: `split-${splitIdSeed.current++}`,
               categoryId: item.categoryId ?? '',
-              amountStr: formatIndianNumberStr(String(item.amount))
+              amountStr: formatIndianNumberStr(String(item.amount)),
+              note: item.note ?? undefined,
             }));
             setSplitRows(mappedRows);
 
@@ -1008,7 +1016,7 @@ export default function AddTransactionModal() {
             initialSplitNoteRef.current = noteVal;
             initialSplitTagsRef.current = tagsVal;
             initialSplitReceiptsRef.current = receiptsVal;
-            initialSplitRowsRef.current = mappedRows.map(r => ({ categoryId: r.categoryId, amountStr: r.amountStr }));
+            initialSplitRowsRef.current = mappedRows.map(r => ({ categoryId: r.categoryId, amountStr: r.amountStr, note: r.note || undefined }));
           }
         }
 
@@ -1117,6 +1125,7 @@ export default function AddTransactionModal() {
         depositName !== (initialDeposit.name ?? '') ||
         depositBank !== (initialDeposit.bankName ?? '') ||
         depositTenure !== (initialDeposit.tenureMonths != null ? String(initialDeposit.tenureMonths) : '') ||
+        depositTenureUnit !== ((initialDeposit.tenureUnit as 'months' | 'days') || 'months') ||
         depositInterest !== (initialDeposit.interestRate != null ? String(initialDeposit.interestRate) : '') ||
         amountStr !== originalAmountStr ||
         note !== (initialDeposit.note ?? '')
@@ -1176,11 +1185,11 @@ export default function AddTransactionModal() {
         );
       }
 
-      if (initialTx.splitGroupId) {
-        const splitRowsChanged = JSON.stringify(
-          splitRows.map(r => ({ categoryId: r.categoryId, amountStr: r.amountStr }))
-        ) !== JSON.stringify(initialSplitRowsRef.current);
+      const splitRowsChanged = JSON.stringify(
+        splitRows.map(r => ({ categoryId: r.categoryId, amountStr: r.amountStr, note: r.note || undefined }))
+      ) !== JSON.stringify(initialSplitRowsRef.current);
 
+      if (initialTx.splitGroupId) {
         return (
           amountStr !== initialSplitTotalRef.current ||
           accountId !== initialTx.accountId ||
@@ -1200,8 +1209,10 @@ export default function AddTransactionModal() {
         categoryId !== (initialTx.categoryId ?? '') ||
         payee !== (initialTx.payee ?? '') ||
         note !== (initialTx.note ?? '') ||
+        excludeFromTotals !== (!!initialTx.excludeFromTotals) ||
         JSON.stringify(selectedTagIds.sort()) !== JSON.stringify((initialTx.tags ?? []).sort()) ||
-        JSON.stringify(receiptImageUris.sort()) !== JSON.stringify((initialTx.receiptImageUris ?? []).sort())
+        JSON.stringify(receiptImageUris.sort()) !== JSON.stringify((initialTx.receiptImageUris ?? []).sort()) ||
+        splitRowsChanged
       );
     }
 
@@ -1210,9 +1221,10 @@ export default function AddTransactionModal() {
       payee !== '' ||
       note !== '' ||
       categoryId !== '' ||
+      excludeFromTotals ||
       selectedTagIds.length > 0 ||
       receiptImageUris.length > 0 ||
-      splitRows.length > 0 ||
+      splitRows.some(r => r.categoryId || r.amountStr || r.note) ||
       (type === 'loan' && personName !== '') ||
       (type === 'deposit' && (depositName !== '' || depositBank !== '' || depositTenure !== '' || depositInterest !== ''))
     );
@@ -1553,6 +1565,7 @@ export default function AddTransactionModal() {
           principalAmount: amount,
           interestRate: interestRate ?? null,
           tenureMonths: tenureMonths ?? null,
+          tenureUnit: depositTenureUnit,
           startDate: date,
           maturityDate,
           maturityValue,
@@ -1577,13 +1590,15 @@ export default function AddTransactionModal() {
         categoryId: categoryId || undefined,
         payee: payee.trim() || undefined,
         tags: selectedTagIds,
+        excludeFromTotals: (type === 'in' || type === 'out') ? excludeFromTotals : undefined,
         linkedAccountId: type === 'transfer' ? linkedAccountId : undefined
       };
 
       if ((type === 'in' || type === 'out') && usableSplitRows.length > 0) {
         const splitItems = usableSplitRows.map((row) => ({
           categoryId: row.categoryId,
-          amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0
+          amount: parseFloat(parseFormattedNumber(row.amountStr)) || 0,
+          note: row.note?.trim() || undefined,
         }));
         const splitPayload = {
           type,
@@ -1594,6 +1609,7 @@ export default function AddTransactionModal() {
           tags: selectedTagIds,
           date,
           items: splitItems,
+          excludeFromTotals,
         };
         const splitWork = isEditing && editId && editingSplitGroupId
           ? async () => {
@@ -1888,6 +1904,11 @@ export default function AddTransactionModal() {
   };
 
 
+  // Temporary bypass for unused receipts handlers
+  if (false as any) {
+    console.log(openReceiptPicker, openReceiptPreview, removeReceiptAtIndex, Image);
+  }
+
   if (isClosing) {
     return <View style={{ flex: 1, backgroundColor: palette.background }} />;
   }
@@ -2091,7 +2112,7 @@ export default function AddTransactionModal() {
 
           {type === 'in' || type === 'out' ? (
             <>
-              <PremiumSection title="Account" palette={palette}>
+              <FormSection title="Account" palette={palette}>
                 <TouchableOpacity
                   onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
                   activeOpacity={0.76}
@@ -2144,9 +2165,9 @@ export default function AddTransactionModal() {
                   )}
                   <AppChevron direction="right" size={18} tone="secondary" color={attemptedSubmit && !accountId ? palette.negative : palette.textSecondary} palette={palette} />
                 </TouchableOpacity>
-              </PremiumSection>
+              </FormSection>
 
-              <PremiumSection
+              <FormSection
                 title="Category"
                 palette={palette}
                 rightElement={
@@ -2221,7 +2242,7 @@ export default function AddTransactionModal() {
                   </View>
                   <AppChevron direction="right" size={18} tone="secondary" color={attemptedSubmit && !categoryId ? palette.negative : palette.textSecondary} palette={palette} />
                 </TouchableOpacity>
-              </PremiumSection>
+              </FormSection>
               <View style={{ marginHorizontal: FORM_TOKENS.gutter }}>
                 <AnimatedBudgetPreview
                   visible={!isEditing && !!activeBudget}
@@ -2232,7 +2253,7 @@ export default function AddTransactionModal() {
                 />
               </View>
 
-              <PremiumSection title="" palette={palette}>
+              <FormSection title="" palette={palette}>
                 {/* Payee */}
                 <Pressable
                   onPress={() => payeeInputRef.current?.focus()}
@@ -2313,7 +2334,7 @@ export default function AddTransactionModal() {
                   </View>
                 </AnimatedSuggestionStrip>
 
-                <PremiumDivider palette={palette} />
+                <FormDivider palette={palette} />
 
                 {/* Tags */}
                 <TouchableOpacity
@@ -2356,40 +2377,71 @@ export default function AddTransactionModal() {
                   <AppChevron direction="right" size={18} tone="secondary" color={palette.textSecondary} palette={palette} />
                 </TouchableOpacity>
 
-                <PremiumDivider palette={palette} />
+                {usableSplitRows.length === 0 && (
+                  <>
+                    <FormDivider palette={palette} />
+                    {/* Notes (Hidden for split transactions since each row has its own note) */}
+                    <InlineComboBox
+                      label="Notes"
+                      value={note}
+                      onChange={setNote}
+                      suggestions={noteSuggestions}
+                      multiline
+                      palette={palette}
+                      onFocus={() => {
+                        handleFieldFocus(460);
+                      }}
+                      leftIcon="file-text"
+                      hideLabel={true}
+                      placeholder="Notes"
+                    />
+                  </>
+                )}
+              </FormSection>
 
-                {/* Notes */}
-                <InlineComboBox
-                  label="Notes"
-                  value={note}
-                  onChange={setNote}
-                  suggestions={noteSuggestions}
-                  multiline
-                  palette={palette}
-                  onFocus={() => {
-                    handleFieldFocus(460);
+              {/* Not Mine Card (Receipt card hidden for now) */}
+              <View style={{ marginHorizontal: FORM_TOKENS.gutter, marginTop: 10 }}>
+                <Pressable
+                  onPress={() => setExcludeFromTotals(!excludeFromTotals)}
+                  style={{
+                    backgroundColor: palette.card,
+                    borderRadius: HOME_RADIUS.card,
+                    borderWidth: 1,
+                    borderColor: palette.borderSoft,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    minHeight: 82,
                   }}
-                  leftIcon="file-text"
-                  hideLabel={true}
-                  placeholder="Notes"
-                />
-              </PremiumSection>
-
-              {/* Receipts */}
-              <PremiumSection title="" palette={palette}>
-                <ReceiptSection
-                  palette={palette}
-                  receiptImageUris={receiptImageUris}
-                  onAdd={openReceiptPicker}
-                  onPreview={openReceiptPreview}
-                  onRemove={removeReceiptAtIndex}
-                />
-              </PremiumSection>
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 26 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <AppIcon name="user-x" size={18} color={excludeFromTotals ? palette.brand : palette.text} />
+                      <Text style={{ fontSize: HOME_TEXT.body, color: palette.text, fontWeight: FONT_WEIGHT.medium }}>
+                        Not Mine
+                      </Text>
+                    </View>
+                    <AppSwitch
+                      value={excludeFromTotals}
+                      onValueChange={setExcludeFromTotals}
+                      palette={palette}
+                      width={38}
+                      height={22}
+                      thumbSize={16}
+                      padding={3}
+                    />
+                  </View>
+                  <Text style={{ fontSize: 11, color: palette.textMuted, marginTop: 8, lineHeight: 15 }} numberOfLines={2}>
+                    {type === 'out'
+                      ? 'Excluded from expense totals & budgets, but updates account balance.'
+                      : 'Excluded from income totals, but updates account balance.'}
+                  </Text>
+                </Pressable>
+              </View>
             </>
           ) : type === 'transfer' ? (
             <>
               {/* From Account selection */}
-              <PremiumSection title="From Account" palette={palette}>
+              <FormSection title="From Account" palette={palette}>
                 <TouchableOpacity
                   onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('from'))}
                   activeOpacity={0.76}
@@ -2442,7 +2494,7 @@ export default function AddTransactionModal() {
                   )}
                   <AppChevron direction="right" size={18} tone="secondary" color={attemptedSubmit && !accountId ? palette.negative : palette.textSecondary} palette={palette} />
                 </TouchableOpacity>
-              </PremiumSection>
+              </FormSection>
 
               {/* Swap Button row */}
               <View style={{ alignItems: 'center', marginTop: 10, marginBottom: -8, zIndex: 10 }}>
@@ -2471,7 +2523,7 @@ export default function AddTransactionModal() {
               </View>
 
               {/* To Account selection */}
-              <PremiumSection title="To Account" palette={palette} style={{ marginTop: 0 }}>
+              <FormSection title="To Account" palette={palette} style={{ marginTop: 0 }}>
                 <TouchableOpacity
                   onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('to'))}
                   activeOpacity={0.76}
@@ -2524,7 +2576,7 @@ export default function AddTransactionModal() {
                   )}
                   <AppChevron direction="right" size={18} tone="secondary" color={attemptedSubmit && !linkedAccountId ? palette.negative : palette.textSecondary} palette={palette} />
                 </TouchableOpacity>
-              </PremiumSection>
+              </FormSection>
 
               {accountId && linkedAccountId && accountId === linkedAccountId ? (
                 <View style={{ paddingHorizontal: FORM_TOKENS.gutter + 8, marginTop: 8 }}>
@@ -2535,7 +2587,7 @@ export default function AddTransactionModal() {
               ) : null}
 
               {/* Notes */}
-              <PremiumSection title="" palette={palette}>
+              <FormSection title="" palette={palette}>
                 <InlineComboBox
                   label="Notes"
                   value={note}
@@ -2550,11 +2602,11 @@ export default function AddTransactionModal() {
                   hideLabel={true}
                   placeholder="Notes"
                 />
-              </PremiumSection>
+              </FormSection>
             </>
           ) : type === 'loan' ? (
             <>
-              <PremiumSection title="Loan Direction" palette={palette}>
+              <FormSection title="Loan Direction" palette={palette}>
                 {loanEditMode === 'settlement' ? (
                   <>
                     {/* Person display */}
@@ -2578,7 +2630,7 @@ export default function AddTransactionModal() {
                       </View>
                     </View>
 
-                    <PremiumDivider palette={palette} />
+                    <FormDivider palette={palette} />
 
                     {/* Type picker */}
                     <TouchableOpacity
@@ -2776,7 +2828,7 @@ export default function AddTransactionModal() {
                     )}
                   </>
                 )}
-              </PremiumSection>
+              </FormSection>
 
               <AnimatedWarningBox visible={loanTransactionType !== 'principal'}>
                 <View
@@ -2797,7 +2849,7 @@ export default function AddTransactionModal() {
               </AnimatedWarningBox>
 
               {/* Account selection */}
-              <PremiumSection title="Account" palette={palette}>
+              <FormSection title="Account" palette={palette}>
                 <TouchableOpacity
                   onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
                   activeOpacity={0.76}
@@ -2850,10 +2902,10 @@ export default function AddTransactionModal() {
                   )}
                   <AppChevron direction="right" size={18} tone="secondary" color={attemptedSubmit && !accountId ? palette.negative : palette.textSecondary} palette={palette} />
                 </TouchableOpacity>
-              </PremiumSection>
+              </FormSection>
 
               {/* Notes */}
-              <PremiumSection title="" palette={palette}>
+              <FormSection title="" palette={palette}>
                 <InlineComboBox
                   label="Notes"
                   value={note}
@@ -2868,12 +2920,12 @@ export default function AddTransactionModal() {
                   hideLabel={true}
                   placeholder="Notes"
                 />
-              </PremiumSection>
+              </FormSection>
             </>
           ) : type === 'deposit' ? (
             <>
               {/* Source Account selection */}
-              <PremiumSection title="Source Account" palette={palette}>
+              <FormSection title="Source Account" palette={palette}>
                 <TouchableOpacity
                   onPress={() => runAfterKeyboardDismiss(() => setAccountSheetMode('account'))}
                   activeOpacity={0.76}
@@ -2926,10 +2978,10 @@ export default function AddTransactionModal() {
                   )}
                   <AppChevron direction="right" size={18} tone="secondary" color={attemptedSubmit && !accountId ? palette.negative : palette.textSecondary} palette={palette} />
                 </TouchableOpacity>
-              </PremiumSection>
+              </FormSection>
 
               {/* Deposit details */}
-              <PremiumSection title={isClosingDeposit ? "Closing Details" : "Deposit Details"} palette={palette}>
+              <FormSection title={isClosingDeposit ? "Closing Details" : "Deposit Details"} palette={palette}>
                 {isClosingDeposit ? (
                   <>
                     {/* Principal */}
@@ -2970,7 +3022,7 @@ export default function AddTransactionModal() {
                       />
                     </Pressable>
 
-                    <PremiumDivider palette={palette} />
+                    <FormDivider palette={palette} />
 
                     {/* Interest */}
                     <Pressable
@@ -3012,7 +3064,7 @@ export default function AddTransactionModal() {
 
                     {(closePrincipal > 0 || closeInterest > 0) && (
                       <>
-                        <PremiumDivider palette={palette} />
+                        <FormDivider palette={palette} />
                         <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
                           <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.semibold, color: palette.textSecondary }}>Total Received</Text>
                           <Text style={{ fontSize: HOME_TEXT.caption, fontWeight: FONT_WEIGHT.bold, color: palette.text }}>
@@ -3026,15 +3078,15 @@ export default function AddTransactionModal() {
                   <>
                     {/* Deposit Name */}
                     <Pressable
-                      onPress={() => depositNameInputRef.current?.focus()}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        minHeight: 62,
-                        gap: 12,
-                      }}
+                       onPress={() => depositNameInputRef.current?.focus()}
+                       style={{
+                         flexDirection: 'row',
+                         alignItems: 'center',
+                         paddingHorizontal: 16,
+                         paddingVertical: 12,
+                         minHeight: 62,
+                         gap: 12,
+                       }}
                     >
                       <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
                         <AppIcon name="info" size={18} color={palette.text} />
@@ -3060,19 +3112,19 @@ export default function AddTransactionModal() {
                       />
                     </Pressable>
 
-                    <PremiumDivider palette={palette} />
+                    <FormDivider palette={palette} indent={52} />
 
                     {/* Bank */}
                     <Pressable
-                      onPress={() => depositBankInputRef.current?.focus()}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        minHeight: 62,
-                        gap: 12,
-                      }}
+                       onPress={() => depositBankInputRef.current?.focus()}
+                       style={{
+                         flexDirection: 'row',
+                         alignItems: 'center',
+                         paddingHorizontal: 16,
+                         paddingVertical: 12,
+                         minHeight: 62,
+                         gap: 12,
+                       }}
                     >
                       <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
                         <AppIcon name="landmark" size={18} color={palette.text} />
@@ -3098,19 +3150,19 @@ export default function AddTransactionModal() {
                       />
                     </Pressable>
 
-                    <PremiumDivider palette={palette} />
+                    <FormDivider palette={palette} indent={52} />
 
                     {/* Tenure */}
                     <Pressable
-                      onPress={() => depositTenureInputRef.current?.focus()}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        minHeight: 62,
-                        gap: 12,
-                      }}
+                       onPress={() => depositTenureInputRef.current?.focus()}
+                       style={{
+                         flexDirection: 'row',
+                         alignItems: 'center',
+                         paddingHorizontal: 16,
+                         paddingVertical: 12,
+                         minHeight: 62,
+                         gap: 12,
+                       }}
                     >
                       <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
                         <AppIcon name="calendar" size={18} color={palette.text} />
@@ -3118,41 +3170,58 @@ export default function AddTransactionModal() {
                       <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.textSecondary, width: 64 }}>
                         Tenure
                       </Text>
-                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-                        <TextInput
-                          ref={depositTenureInputRef}
-                          value={depositTenure}
-                          onChangeText={setDepositTenure}
-                          placeholder=""
-                          placeholderTextColor={palette.textMuted}
-                          cursorColor={palette.isDark ? '#FFFFFF' : palette.text}
-                          keyboardType="number-pad"
-                          style={{
-                            flex: 1,
-                            fontSize: HOME_TEXT.bodyLarge,
-                            color: palette.text,
-                            paddingVertical: 0,
-                            minHeight: 28,
-                            fontWeight: FONT_WEIGHT.regular,
-                          }}
-                        />
-                        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginLeft: 6 }}>months</Text>
-                      </View>
+                      <TextInput
+                        ref={depositTenureInputRef}
+                        value={depositTenure}
+                        onChangeText={setDepositTenure}
+                        placeholder=""
+                        placeholderTextColor={palette.textMuted}
+                        cursorColor={palette.isDark ? '#FFFFFF' : palette.text}
+                        keyboardType="number-pad"
+                        style={{
+                          flex: 1,
+                          fontSize: HOME_TEXT.bodyLarge,
+                          color: palette.text,
+                          paddingVertical: 0,
+                          minHeight: 28,
+                          fontWeight: FONT_WEIGHT.regular,
+                        }}
+                      />
+                      <TouchableOpacity
+                        delayPressIn={0}
+                        onPress={() => runAfterKeyboardDismiss(() => setShowTenureUnitSheet(true))}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          borderRadius: HOME_RADIUS.small,
+                          borderWidth: 1,
+                          borderColor: palette.borderSoft,
+                          backgroundColor: 'transparent',
+                        }}
+                      >
+                        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, fontWeight: FONT_WEIGHT.semibold }}>
+                          {depositTenureUnit === 'months' ? 'Months' : 'Days'}
+                        </Text>
+                        <AppIcon name="chevron-down" size={12} color={palette.textSecondary} strokeWidth={2} />
+                      </TouchableOpacity>
                     </Pressable>
 
-                    <PremiumDivider palette={palette} />
+                    <FormDivider palette={palette} indent={52} />
 
                     {/* Interest % */}
                     <Pressable
-                      onPress={() => depositInterestInputRef.current?.focus()}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        minHeight: 62,
-                        gap: 12,
-                      }}
+                       onPress={() => depositInterestInputRef.current?.focus()}
+                       style={{
+                         flexDirection: 'row',
+                         alignItems: 'center',
+                         paddingHorizontal: 16,
+                         paddingVertical: 12,
+                         minHeight: 62,
+                         gap: 12,
+                       }}
                     >
                       <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
                         <AppIcon name="percent" size={18} color={palette.text} />
@@ -3160,41 +3229,39 @@ export default function AddTransactionModal() {
                       <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.textSecondary, width: 64 }}>
                         Interest
                       </Text>
-                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-                        <TextInput
-                          ref={depositInterestInputRef}
-                          value={depositInterest}
-                          onChangeText={setDepositInterest}
-                          placeholder=""
-                          placeholderTextColor={palette.textMuted}
-                          cursorColor={palette.isDark ? '#FFFFFF' : palette.text}
-                          keyboardType="decimal-pad"
-                          style={{
-                            flex: 1,
-                            fontSize: HOME_TEXT.bodyLarge,
-                            color: palette.text,
-                            paddingVertical: 0,
-                            minHeight: 28,
-                            fontWeight: FONT_WEIGHT.regular,
-                          }}
-                        />
-                        <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginLeft: 6 }}>% p.a.</Text>
-                      </View>
+                      <TextInput
+                        ref={depositInterestInputRef}
+                        value={depositInterest}
+                        onChangeText={setDepositInterest}
+                        placeholder=""
+                        placeholderTextColor={palette.textMuted}
+                        cursorColor={palette.isDark ? '#FFFFFF' : palette.text}
+                        keyboardType="decimal-pad"
+                        style={{
+                          flex: 1,
+                          fontSize: HOME_TEXT.bodyLarge,
+                          color: palette.text,
+                          paddingVertical: 0,
+                          minHeight: 28,
+                          fontWeight: FONT_WEIGHT.regular,
+                        }}
+                      />
+                      <Text style={{ fontSize: HOME_TEXT.caption, color: palette.textSecondary, marginLeft: 6 }}>% p.a.</Text>
                     </Pressable>
 
-                    <PremiumDivider palette={palette} />
+                    <FormDivider palette={palette} indent={52} />
 
                     {/* Maturity Value */}
                     <Pressable
-                      onPress={() => depositMaturityInputRef.current?.focus()}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        minHeight: 62,
-                        gap: 12,
-                      }}
+                       onPress={() => depositMaturityInputRef.current?.focus()}
+                       style={{
+                         flexDirection: 'row',
+                         alignItems: 'center',
+                         paddingHorizontal: 16,
+                         paddingVertical: 12,
+                         minHeight: 62,
+                         gap: 12,
+                       }}
                     >
                       <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
                         <AppIcon name="trending-up" size={18} color={palette.text} />
@@ -3222,10 +3289,10 @@ export default function AddTransactionModal() {
                     </Pressable>
                   </>
                 )}
-              </PremiumSection>
+              </FormSection>
 
               {/* Notes */}
-              <PremiumSection title="" palette={palette}>
+              <FormSection title="" palette={palette}>
                 <InlineComboBox
                   label="Notes"
                   value={note}
@@ -3240,10 +3307,9 @@ export default function AddTransactionModal() {
                   hideLabel={true}
                   placeholder="Notes"
                 />
-              </PremiumSection>
+              </FormSection>
             </>
           ) : null}
-
 
         </Pressable>
       </ScrollView>
@@ -3318,6 +3384,24 @@ export default function AddTransactionModal() {
               onPress={() => {
                 setLoanTransactionType(type);
                 setShowTypeSheet(false);
+              }}
+              noBorder={index === arr.length - 1}
+            />
+          ))}
+        </BottomSheet>
+      ) : null}
+
+      {showTenureUnitSheet ? (
+        <BottomSheet title="Tenure" palette={palette} onClose={() => setShowTenureUnitSheet(false)}>
+          {(['months', 'days'] as const).map((unit, index, arr) => (
+            <ChoiceRow
+              key={unit}
+              title={unit === 'months' ? 'Months' : 'Days'}
+              selected={depositTenureUnit === unit}
+              palette={palette}
+              onPress={() => {
+                setDepositTenureUnit(unit);
+                setShowTenureUnitSheet(false);
               }}
               noBorder={index === arr.length - 1}
             />
@@ -3642,116 +3726,6 @@ export default function AddTransactionModal() {
       </Modal>
       {dialog}
     </KeyboardAvoidingView>
-  );
-}
-
-function ReceiptSection({
-  palette,
-  receiptImageUris,
-  onAdd,
-  onPreview,
-  onRemove,
-}: {
-  palette: AppThemePalette;
-  receiptImageUris: string[];
-  onAdd: () => void;
-  onPreview: (index: number) => void;
-  onRemove: (index: number) => void;
-}) {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingLeft: 16,
-        paddingRight: 16,
-        height: 72,
-        gap: 12,
-      }}
-    >
-      <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
-        <AppIcon name="camera" size={18} color={palette.text} />
-      </View>
-
-      {receiptImageUris.length === 0 ? (
-        <>
-          <TouchableOpacity
-            delayPressIn={0}
-            onPress={onAdd}
-            activeOpacity={0.7}
-            style={{
-              flex: 1,
-              height: '100%',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.textMuted, fontWeight: FONT_WEIGHT.regular }}>
-              Receipt
-            </Text>
-          </TouchableOpacity>
-          <PressableScale
-            onPress={onAdd}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: palette.borderSoft,
-              backgroundColor: 'transparent',
-            }}
-          >
-            <AppIcon name="plus" size={16} color={palette.text} strokeWidth={2.2} />
-          </PressableScale>
-        </>
-      ) : (
-        <>
-          <View style={{ flex: 1, height: '100%', justifyContent: 'center' }}>
-            <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.text, fontWeight: FONT_WEIGHT.regular }}>
-              Receipt Attached
-            </Text>
-          </View>
-          <View style={{ width: 54, height: 54, justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ width: 54, height: 54, position: 'relative' }}>
-              <TouchableOpacity
-                delayPressIn={0}
-                onPress={() => onPreview(0)}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: HOME_RADIUS.chip,
-                  borderWidth: 1,
-                  borderColor: palette.borderSoft,
-                  backgroundColor: palette.surface,
-                  overflow: 'hidden',
-                }}
-              >
-                <Image source={{ uri: receiptImageUris[0] }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                delayPressIn={0}
-                onPress={() => onRemove(0)}
-                style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  backgroundColor: palette.brand,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 10,
-                }}
-              >
-                <AppIcon name="x" size={10} color="#FFFFFF" strokeWidth={2.8} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </>
-      )}
-    </View>
   );
 }
 

@@ -565,7 +565,7 @@ const AuditLogItem = React.memo(({
           dateKey={dateKey}
           palette={palette}
           style={{
-            marginTop: 16,
+            marginTop: index === 0 ? 4 : 16,
             marginBottom: 10,
           }}
         />

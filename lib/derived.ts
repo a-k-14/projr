@@ -142,11 +142,9 @@ export function groupTransactionsByDate(
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(t);
   }
-  const todayKey = toLocalDateKey(new Date().toISOString());
   return Array.from(map.entries())
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([dateKey, items]) => {
-      const isFuture = dateKey > todayKey;
       return {
         dateKey,
         items: items.slice().sort((a, b) => {

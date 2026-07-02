@@ -226,7 +226,6 @@ function CalcButton({
   const borderColor = primary || isOperator
     ? 'transparent'
     : palette.states.calcBorder;
-
   const pressOverlay = primary
     ? (palette.isDark ? 'rgba(0, 0, 0, 0.16)' : 'rgba(255, 255, 255, 0.24)')
     : isOperator
@@ -236,6 +235,7 @@ function CalcButton({
   return (
     <Pressable
       onPress={onPress}
+      unstable_pressDelay={0}
       style={{ flex: 1 }}
     >
       {({ pressed }) => (
@@ -252,7 +252,7 @@ function CalcButton({
           }}
         >
           {pressed && (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: pressOverlay }]} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: pressOverlay, borderRadius: HOME_RADIUS.pill }]} />
           )}
           {label === '⌫' ? (
             <AppIcon name="delete" size={22} color={primary ? (brandOnColor || palette.onBrand) : palette.text} strokeWidth={1.9} />

@@ -18,6 +18,7 @@ export interface SplitDraftRow {
   id: string;
   categoryId: string;
   amountStr: string;
+  note?: string;
 }
 
 export const useTransactionDraftStore = create<TransactionDraftStore>((set) => ({

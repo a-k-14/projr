@@ -35,12 +35,14 @@ export function getTransactionCashflowImpact(tx: {
   depositTransactionType?: string | null;
   loanTransactionType?: string | null;
   categoryId?: string | null;
+  excludeFromTotals?: boolean | number | null;
 }, options?: {
   // Transfer impact is relative to the concrete transfer leg represented by tx.type.
   includeTransfers?: boolean;
   includeLoans?: boolean;
   includeDeposits?: boolean;
 }): 'in' | 'out' | 'neutral' {
+  if (tx.excludeFromTotals) return 'neutral';
   if (tx.transferPairId) {
     return options?.includeTransfers && (tx.type === 'in' || tx.type === 'out') ? tx.type : 'neutral';
   }

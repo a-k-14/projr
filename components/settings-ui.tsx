@@ -164,7 +164,7 @@ export function SettingsRow({
 
   if (onPress) {
     return (
-      <PressableScale onPress={onPress} style={style}>
+      <PressableScale activeScale={0.985} onPress={onPress} style={style}>
         {content}
       </PressableScale>
     );
@@ -193,9 +193,9 @@ export function ChoiceRow({
     horizontalPadding?: number;
   }) {
   return (
-    <TouchableOpacity delayPressIn={0}
+    <PressableScale
+      activeScale={0.985}
       onPress={onPress}
-      activeOpacity={0.6}
       style={{
         minHeight: 68,
         paddingHorizontal: horizontalPadding,
@@ -247,7 +247,7 @@ export function ChoiceRow({
           <AppIcon name="check" size={13} color={palette.onBrand} />
         </View>
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

@@ -73,6 +73,7 @@ export async function runMigrations() {
       receipt_image_uris TEXT,
       date TEXT NOT NULL,
       transfer_pair_id TEXT,
+      exclude_from_totals INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -100,6 +101,7 @@ export async function runMigrations() {
       principal_amount REAL NOT NULL,
       interest_rate REAL,
       tenure_months INTEGER,
+      tenure_unit TEXT NOT NULL DEFAULT 'months',
       start_date TEXT NOT NULL,
       maturity_date TEXT,
       maturity_value REAL,
@@ -438,4 +440,25 @@ export async function runMigrations() {
   } catch (err) {
     console.warn('Migration patch (budget.sub_category_ids) error:', err);
   }
+
+  // Add tenure_unit column to deposits if missing
+  try {
+    const depositCols = await sqlite.getAllAsync<{ name: string }>('PRAGMA table_info(deposits);');
+    if (depositCols.length > 0 && !depositCols.some((c) => c.name === 'tenure_unit')) {
+      await sqlite.execAsync("ALTER TABLE deposits ADD COLUMN tenure_unit TEXT NOT NULL DEFAULT 'months';");
+    }
+  } catch (err) {
+    console.warn('Migration patch (deposits.tenure_unit) error:', err);
+  }
+
+  // Add exclude_from_totals column to transactions if missing
+  try {
+    const txCols = await sqlite.getAllAsync<{ name: string }>('PRAGMA table_info(transactions);');
+    if (txCols.length > 0 && !txCols.some((c) => c.name === 'exclude_from_totals')) {
+      await sqlite.execAsync('ALTER TABLE transactions ADD COLUMN exclude_from_totals INTEGER NOT NULL DEFAULT 0;');
+    }
+  } catch (err) {
+    console.warn('Migration patch (transactions.exclude_from_totals) error:', err);
+  }
 }
+

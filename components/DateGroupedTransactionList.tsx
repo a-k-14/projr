@@ -40,7 +40,6 @@ export interface DateGroup {
 
 /** Bucket a transaction list into contiguous same-day groups, sorting them in-memory first. */
 export function buildDateGroups(transactions: Transaction[]): DateGroup[] {
-  const todayKey = toLocalDateKey(new Date().toISOString());
   const sorted = transactions.slice().sort((a, b) => {
     const keyA = toLocalDateKey(a.date);
     const keyB = toLocalDateKey(b.date);

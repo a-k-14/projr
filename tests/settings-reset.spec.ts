@@ -124,6 +124,7 @@ beforeEach(() => {
       receipt_image_uris TEXT,
       date TEXT NOT NULL,
       transfer_pair_id TEXT,
+      exclude_from_totals INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -140,6 +141,7 @@ beforeEach(() => {
       principal_amount REAL NOT NULL,
       interest_rate REAL,
       tenure_months INTEGER,
+      tenure_unit TEXT NOT NULL DEFAULT 'months',
       start_date TEXT NOT NULL,
       maturity_date TEXT,
       maturity_value REAL,

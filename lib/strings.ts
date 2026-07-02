@@ -123,7 +123,7 @@ export const STRINGS = {
     },
     modal: {
       title: 'Activity Log',
-      description: 'You can see the date-wise log of all changes made to your transactions, deposits, loans, and assets over the last 30 days.',
+      description: 'Shows the date-wise log of all changes made to your transactions for the last 30 days.',
       added: 'Added:',
       addedDesc: 'Newly created items',
       edited: 'Edited:',

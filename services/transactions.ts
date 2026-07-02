@@ -76,6 +76,7 @@ const transactionSelectColumns = {
   receiptImageUris: transactions.receiptImageUris,
   date: transactions.date,
   transferPairId: transactions.transferPairId,
+  excludeFromTotals: transactions.excludeFromTotals,
   createdAt: transactions.createdAt,
   splitGroupTotal: sql<number>`(
     SELECT SUM(t2.amount)
@@ -104,6 +105,7 @@ export function rowToTransaction(row: typeof transactions.$inferSelect & { split
     receiptImageUris: parseReceiptImageUris(row.receiptImageUris),
     date: row.date,
     transferPairId: row.transferPairId ?? undefined,
+    excludeFromTotals: !!row.excludeFromTotals,
     createdAt: row.createdAt,
   };
 }
@@ -276,6 +278,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       receiptImageUris: null,
       date: data.date,
       transferPairId,
+      excludeFromTotals: 0,
       createdAt: now,
     };
     const inRow = {
@@ -296,6 +299,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
       receiptImageUris: null,
       date: data.date,
       transferPairId,
+      excludeFromTotals: 0,
       createdAt: now,
     };
 
@@ -331,6 +335,7 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
     receiptImageUris: JSON.stringify(receiptImageUris),
     date: data.date,
     transferPairId: null,
+    excludeFromTotals: data.excludeFromTotals ? 1 : 0,
     createdAt: now,
   };
 
@@ -395,6 +400,7 @@ export async function updateTransaction(
   if (data.date !== undefined) updateData.date = data.date;
   if (data.accountId !== undefined) updateData.accountId = data.accountId;
   if (data.splitGroupId !== undefined) updateData.splitGroupId = data.splitGroupId;
+  if (data.excludeFromTotals !== undefined) updateData.excludeFromTotals = data.excludeFromTotals ? 1 : 0;
 
   let updatedRow: typeof transactions.$inferSelect | undefined;
   await db.transaction(async (tx) => {
@@ -529,6 +535,7 @@ export async function getTransactionsByTransferPairId(transferPairId: string): P
 type SplitGroupItemInput = {
   categoryId: string;
   amount: number;
+  note?: string;
 };
 
 type SplitGroupInput = {
@@ -540,6 +547,7 @@ type SplitGroupInput = {
   receiptImageUris?: string[] | null;
   date: string;
   items: SplitGroupItemInput[];
+  excludeFromTotals?: boolean;
 };
 
 async function normalizeSplitGroupItems(
@@ -550,6 +558,7 @@ async function normalizeSplitGroupItems(
     .map((item) => ({
       categoryId: item.categoryId,
       amount: Number(item.amount),
+      note: item.note ? item.note.trim() : undefined,
     }))
     .filter((item) => item.categoryId && Number.isFinite(item.amount) && item.amount !== 0);
 
@@ -599,10 +608,11 @@ export async function createSplitTransactionGroup(data: SplitGroupInput): Promis
       categoryId: item.categoryId,
       payee: data.payee ?? null,
       tags: JSON.stringify(data.tags ?? []),
-      note: data.note ?? null,
+      note: item.note ?? null,
       receiptImageUris: JSON.stringify(receiptImageUris),
       date: data.date,
       transferPairId: null,
+      excludeFromTotals: data.excludeFromTotals ? 1 : 0,
       createdAt,
     };
   });
@@ -659,10 +669,11 @@ export async function updateSplitTransactionGroup(
       categoryId: item.categoryId,
       payee: data.payee ?? null,
       tags: JSON.stringify(data.tags ?? []),
-      note: data.note ?? null,
+      note: item.note ?? null,
       receiptImageUris: JSON.stringify(receiptImageUris),
       date: data.date,
       transferPairId: null,
+      excludeFromTotals: data.excludeFromTotals ? 1 : 0,
       createdAt,
     };
   });

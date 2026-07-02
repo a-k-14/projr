@@ -89,6 +89,7 @@ beforeEach(() => {
       receipt_image_uris TEXT,
       date TEXT NOT NULL,
       transfer_pair_id TEXT,
+      exclude_from_totals INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 

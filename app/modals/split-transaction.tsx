@@ -1,28 +1,29 @@
-import React from 'react';
-import RNAnimated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
 import { Text } from '@/components/ui/AppText';
-import { Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Keyboard, KeyboardAvoidingView, LayoutAnimation, Platform, Pressable, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import RNAnimated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { CalculatorSheet } from '../../components/CalculatorSheet';
+import { FilledButton, TextButton } from '../../components/ui/AppButton';
 import { CategoryPickerSheet } from '../../components/ui/CategoryPickerSheet';
 import { getBottomActionPadding, getScrollableBottomPadding } from '../../components/ui/safeBottom';
-import { AmountRow, PickerRow, SectionCard } from '../../components/ui/transaction-form-primitives';
+import { sanitizeDecimalInput, SectionCard } from '../../components/ui/transaction-form-primitives';
 import { useAppDialog } from '../../components/ui/useAppDialog';
+import { getCategoryDisplayIcon } from '../../lib/category-utils';
 import { formatIndianNumberStr, parseFormattedNumber } from '../../lib/derived';
-import { SCREEN_GUTTER, FONT_WEIGHT } from '../../lib/design';
-
+import { FONT_WEIGHT, SCREEN_GUTTER } from '../../lib/design';
 import { HOME_TEXT, SCREEN_HEADER } from '../../lib/layoutTokens';
 import { useAppTheme } from '../../lib/theme';
+import { isEmojiIcon } from '../../lib/ui-format';
 import { runAfterKeyboardDismiss } from '../../lib/ui-utils';
 import { useCategoriesStore } from '../../stores/useCategoriesStore';
 import { SplitDraftRow, useTransactionDraftStore } from '../../stores/useTransactionDraftStore';
+import { useUIStore } from '../../stores/useUIStore';
 import type { Category, TransactionType } from '../../types';
 
-const CARD_GAP = 8;
+const CARD_GAP = 24;
 
 function getCategoryName(categories: Category[], categoryId: string) {
   const category = categories.find((item) => item.id === categoryId);
@@ -73,6 +74,12 @@ export default function SplitTransactionModal() {
   const splitRows = useTransactionDraftStore((s) => s.splitRows);
   const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
   const { palette } = useAppTheme();
+  const sym = useUIStore((s) => s.settings.currencySymbol);
+  const showCurrencySymbol = useUIStore((s) => s.settings.showCurrencySymbol);
+  const categoriesById = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories],
+  );
   const { dialog } = useAppDialog(palette);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
@@ -80,6 +87,7 @@ export default function SplitTransactionModal() {
   const preFocusScrollYRef = useRef<number | null>(null);
   const [categorySheetRowId, setCategorySheetRowId] = useState<string | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [lastFocusedRowId, setLastFocusedRowId] = useState<string | null>(null);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const shakeOffset = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({
@@ -146,6 +154,7 @@ export default function SplitTransactionModal() {
   };
 
   const addRow = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSplitRows([...splitRows, { id: `split-${Date.now()}-${splitRows.length}`, categoryId: '', amountStr: '' }]);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   };
@@ -160,7 +169,7 @@ export default function SplitTransactionModal() {
 
   const handleDone = () => {
     const filledRows = splitRows.filter(
-      (row) => row.categoryId || (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0,
+      (row) => row.categoryId || (parseFloat(parseFormattedNumber(row.amountStr)) || 0) !== 0 || (row.note && row.note.trim().length > 0),
     );
     if (filledRows.length === 0) {
       setSplitRows([]);
@@ -235,25 +244,143 @@ export default function SplitTransactionModal() {
               >
                 {(triggerDelete) => (
                   <SectionCard palette={palette} horizontalInset={0}>
-                    <AmountRow
-                      sym=""
-                      amountStr={row.amountStr}
-                      setAmountStr={(value) => updateRow(row.id, { amountStr: value })}
-                      palette={palette}
-                      accentColor={amountColor}
-                      autoFocus={index === 0}
-                      onDelete={triggerDelete}
-                      hasError={attemptedSubmit && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) === 0}
-                      onFocus={() => handleFieldFocus(index)}
-                    />
-                    <PickerRow
-                      label="Category"
-                      value={getCategoryName(categories, row.categoryId)}
-                      placeholder={!row.categoryId}
+                    {/* Row 1: Amount Field with Label on Left, Value on Right, and red trash-2 icon */}
+                    <Pressable
+                      onPress={() => handleFieldFocus(index)}
+                      style={{
+                        minHeight: 56,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+                          <AppIcon name="hash" size={18} color={palette.text} />
+                        </View>
+                        <Text style={{ fontSize: HOME_TEXT.bodyLarge, color: palette.textSecondary, fontWeight: FONT_WEIGHT.regular }}>
+                          Amount
+                        </Text>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          {showCurrencySymbol && (
+                            <Text style={{ fontSize: 14, fontWeight: FONT_WEIGHT.medium, color: palette.textMuted, marginRight: 3 }}>
+                              {sym}
+                            </Text>
+                          )}
+                          <TextInput
+                            value={row.amountStr}
+                            onChangeText={(value: string) => updateRow(row.id, { amountStr: formatIndianNumberStr(sanitizeDecimalInput(value)) })}
+                            keyboardType="decimal-pad"
+                            placeholder="0"
+                            placeholderTextColor={attemptedSubmit && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) === 0 ? palette.negative : palette.textSoft}
+                            cursorColor={palette.isDark ? '#FFFFFF' : '#000000'}
+                            style={{
+                              fontSize: 15,
+                              fontWeight: FONT_WEIGHT.semibold,
+                              color: attemptedSubmit && (parseFloat(parseFormattedNumber(row.amountStr)) || 0) === 0 ? palette.negative : amountColor,
+                              textAlign: 'right',
+                              minWidth: 50,
+                              paddingVertical: 0,
+                            }}
+                            autoFocus={index === 0}
+                            onFocus={() => {
+                              handleFieldFocus(index);
+                              setLastFocusedRowId(row.id);
+                            }}
+                          />
+                        </View>
+
+                        {/* Red Trash Can Icon on Right with no borders */}
+                        <TouchableOpacity
+                          delayPressIn={0}
+                          onPress={triggerDelete}
+                          activeOpacity={0.7}
+                          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                          style={{ padding: 4 }}
+                        >
+                          <AppIcon name="trash-2" size={18} color={palette.negative} />
+                        </TouchableOpacity>
+                      </View>
+                    </Pressable>
+
+                    {/* Row 2: Category Picker (minHeight: 56) */}
+                    <TouchableOpacity
                       onPress={() => openCategoryPickerForRow(row.id, index)}
-                      palette={palette}
-                      hasError={attemptedSubmit && !row.categoryId}
-                    />
+                      activeOpacity={0.76}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        minHeight: 56,
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                        gap: 12,
+                        borderTopWidth: 1,
+                        borderTopColor: palette.borderSoft,
+                      }}
+                    >
+                      <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+                        {row.categoryId ? (() => {
+                          const icon = getCategoryDisplayIcon(categoriesById, row.categoryId);
+                          return isEmojiIcon(icon) ? (
+                            <Text style={{ fontSize: 18 }}>{icon}</Text>
+                          ) : (
+                            <AppIcon name={icon as any} size={18} color={palette.brand} strokeWidth={1.5} />
+                          );
+                        })() : (
+                          <AppIcon name="layout-grid" size={18} color={attemptedSubmit && !row.categoryId ? palette.negative : palette.text} strokeWidth={1.5} />
+                        )}
+                      </View>
+                      <Text
+                        style={{
+                          flex: 1,
+                          fontSize: HOME_TEXT.body,
+                          color: row.categoryId ? palette.text : attemptedSubmit && !row.categoryId ? palette.negative : palette.textMuted,
+                          fontWeight: FONT_WEIGHT.medium,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {getCategoryName(categories, row.categoryId)}
+                      </Text>
+                      <AppIcon name="chevron-right" size={16} color={palette.textSecondary} />
+                    </TouchableOpacity>
+
+                    {/* Row 3: Notes Field (minHeight: 56) */}
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        minHeight: 56,
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                        gap: 12,
+                        borderTopWidth: 1,
+                        borderTopColor: palette.borderSoft,
+                      }}
+                    >
+                      <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+                        <AppIcon name="file-text" size={18} color={palette.text} />
+                      </View>
+                      <TextInput
+                        value={row.note ?? ''}
+                        onChangeText={(text: string) => updateRow(row.id, { note: text })}
+                        placeholder="Notes"
+                        placeholderTextColor={palette.textMuted}
+                        cursorColor={palette.isDark ? '#FFFFFF' : palette.text}
+                        style={{
+                          flex: 1,
+                          fontSize: HOME_TEXT.body,
+                          color: palette.text,
+                          paddingVertical: 0,
+                          fontWeight: FONT_WEIGHT.regular,
+                        }}
+                        onFocus={() => handleFieldFocus(index)}
+                      />
+                    </View>
                   </SectionCard>
                 )}
               </AnimatedSplitCard>
@@ -297,13 +424,21 @@ export default function SplitTransactionModal() {
 
       <CalculatorSheet
         visible={showCalculator}
-        value=""
+        value={
+          (splitRows.find(r => r.id === (lastFocusedRowId || splitRows[0]?.id))?.amountStr || '').replace(/,/g, '')
+        }
         palette={palette}
         brandColor={palette.brand}
         brandSoft={palette.brandSoft}
         brandOnColor={palette.onBrand}
         onClose={() => setShowCalculator(false)}
-        onApply={() => setShowCalculator(false)}
+        onApply={(finalValue) => {
+          setShowCalculator(false);
+          const targetId = lastFocusedRowId || splitRows[0]?.id;
+          if (targetId) {
+            updateRow(targetId, { amountStr: formatIndianNumberStr(finalValue) });
+          }
+        }}
       />
 
       {dialog}

@@ -93,7 +93,7 @@ function TransactionListItemBase({
   let titleSecondaryText: string | undefined;
   let subtitle = [categoryName, accountNameSelected].filter(Boolean).join(' \u2022 ');
   let noteLine: string | undefined;
-  const hasReceipt = (tx.receiptImageUris?.length ?? 0) > 0;
+  const hasReceipt = false; // Hidden for now
 
   // specialized Title/Subtitle based on type
   if (tx.transferPairId && linkedAccountName) {
@@ -180,7 +180,7 @@ function TransactionListItemBase({
   const amountColor = useTypeAmountColor
     ? (displayImpact === 'in' ? palette.numberPositive : displayImpact === 'out' ? palette.numberNegative : palette.text)
     : palette.text;
-  const supportIcons = tx.splitGroupId || hasReceipt ? (
+  const supportIcons = tx.splitGroupId || hasReceipt || tx.excludeFromTotals ? (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
       {tx.splitGroupId ? (
         <View style={{
@@ -201,6 +201,9 @@ function TransactionListItemBase({
             </Text>
           ) : null}
         </View>
+      ) : null}
+      {tx.excludeFromTotals ? (
+        <AppIcon name="user-x" size={12} color={palette.textSecondary} />
       ) : null}
       {hasReceipt ? (
         <AppIcon name="image" size={12} color={palette.textSecondary} />
@@ -380,6 +383,7 @@ function areStylesEqual(a: any, b: any): boolean {
 function areTransactionListItemPropsEqual(prev: Props, next: Props) {
   if (prev.tx !== next.tx) return false;
   if (prev.tx.splitGroupTotal !== next.tx.splitGroupTotal) return false;
+  if (prev.tx.excludeFromTotals !== next.tx.excludeFromTotals) return false;
   if (prev.sym !== next.sym) return false;
   if (prev.palette !== next.palette) return false;
   if (prev.isLast !== next.isLast) return false;

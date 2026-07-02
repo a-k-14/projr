@@ -268,13 +268,13 @@ export default function DepositDetailScreen() {
               overflow: 'hidden',
             }}
           >
-            <DetailRow palette={palette} label="Source" value={sourceAccount?.name ?? '—'} />
-            <DetailRow palette={palette} label="Start Date" value={formatDate(deposit.startDate)} />
-            <DetailRow palette={palette} label="Tenure" value={deposit.tenureMonths != null ? `${deposit.tenureMonths} months` : '—'} />
-            <DetailRow palette={palette} label="Interest Rate" value={deposit.interestRate != null ? `${deposit.interestRate}% p.a.` : '—'} />
-            <DetailRow palette={palette} label="Maturity Date" value={deposit.maturityDate ? formatDate(deposit.maturityDate) : '—'} />
-            <DetailRow palette={palette} label="Bank" value={deposit.bankName ?? '—'} />
-            <DetailRow palette={palette} label="Notes" value={deposit.note ?? '—'} multiline last />
+            <DetailRow palette={palette} label="Source" value={sourceAccount?.name ?? '—'} icon="credit-card" />
+            <DetailRow palette={palette} label="Bank" value={deposit.bankName ?? '—'} icon="landmark" />
+            <DetailRow palette={palette} label="Start Date" value={formatDate(deposit.startDate)} icon="calendar" />
+            <DetailRow palette={palette} label="Tenure" value={deposit.tenureMonths != null ? `${deposit.tenureMonths} months` : '—'} icon="calendar" />
+            <DetailRow palette={palette} label="Interest Rate" value={deposit.interestRate != null ? `${deposit.interestRate}% p.a.` : '—'} icon="percent" />
+            <DetailRow palette={palette} label="Maturity Date" value={deposit.maturityDate ? formatDate(deposit.maturityDate) : '—'} icon="calendar" />
+            <DetailRow palette={palette} label="Notes" value={deposit.note ?? '—'} icon="file-text" multiline last />
           </View>
         </View>
 
@@ -376,25 +376,30 @@ function SectionHeader({ label, palette }: { label: string; palette: AppThemePal
   );
 }
 
-function DetailRow({ palette, label, value, multiline, last }: {
-  palette: ReturnType<typeof useAppTheme>['palette']; label: string; value: string; multiline?: boolean; last?: boolean;
+function DetailRow({ palette, label, value, icon, multiline, last }: {
+  palette: ReturnType<typeof useAppTheme>['palette']; label: string; value: string; icon?: string; multiline?: boolean; last?: boolean;
 }) {
   return (
     <View style={{
-      flexDirection: multiline ? 'column' : 'row',
+      flexDirection: 'row',
       alignItems: multiline ? 'flex-start' : 'center',
       justifyContent: 'space-between',
-      minHeight: multiline ? undefined : 52,
+      minHeight: 52,
       paddingHorizontal: HOME_SPACE.lg,
-      paddingVertical: multiline ? 12 : 9,
+      paddingVertical: 12,
       borderBottomWidth: last ? 0 : 1,
       borderBottomColor: palette.divider,
-      gap: multiline ? 6 : 14,
+      gap: 12,
     }}>
-      <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, flexShrink: 0 }}>
-        {label}
-      </Text>
-      <Text appWeight="medium" numberOfLines={multiline ? undefined : 1} style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.medium, color: palette.text, flex: multiline ? undefined : 1, textAlign: multiline ? 'left' : 'right', lineHeight: multiline ? 22 : undefined }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+        {icon ? (
+          <AppIcon name={icon as any} size={16} color={palette.textSecondary} strokeWidth={1.8} />
+        ) : null}
+        <Text appWeight="medium" style={{ fontSize: HOME_TEXT.body, fontWeight: FONT_WEIGHT.medium, color: palette.textSecondary, flexShrink: 0 }}>
+          {label}
+        </Text>
+      </View>
+      <Text appWeight="medium" numberOfLines={multiline ? undefined : 1} style={{ fontSize: HOME_TEXT.bodyLarge, fontWeight: FONT_WEIGHT.medium, color: palette.text, flex: 1, textAlign: 'right', lineHeight: multiline ? 22 : undefined }}>
         {value}
       </Text>
     </View>

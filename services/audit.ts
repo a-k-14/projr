@@ -70,6 +70,7 @@ function hasSubstantiveChanges(tableName: string, before: any, after: any): bool
       before.loanTransactionType !== after.loanTransactionType ||
       before.depositId !== after.depositId ||
       before.depositTransactionType !== after.depositTransactionType ||
+      before.excludeFromTotals !== after.excludeFromTotals ||
       normalizeTags(before.tags) !== normalizeTags(after.tags) ||
       normalizeReceipts(before.receiptImageUris) !== normalizeReceipts(after.receiptImageUris)
     );
@@ -84,6 +85,7 @@ function hasSubstantiveChanges(tableName: string, before: any, after: any): bool
       before.principalAmount !== after.principalAmount ||
       before.interestRate !== after.interestRate ||
       before.tenureMonths !== after.tenureMonths ||
+      before.tenureUnit !== after.tenureUnit ||
       before.startDate !== after.startDate ||
       before.maturityDate !== after.maturityDate ||
       before.maturityValue !== after.maturityValue ||

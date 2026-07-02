@@ -16,6 +16,7 @@ function rowToDeposit(row: typeof deposits.$inferSelect): Deposit {
     principalAmount: row.principalAmount,
     interestRate: row.interestRate ?? undefined,
     tenureMonths: row.tenureMonths ?? undefined,
+    tenureUnit: (row.tenureUnit as 'months' | 'days') ?? 'months',
     startDate: row.startDate,
     maturityDate: row.maturityDate ?? undefined,
     maturityValue: row.maturityValue ?? undefined,
@@ -64,6 +65,7 @@ export async function createDeposit(data: CreateDepositInput): Promise<Deposit> 
     principalAmount: data.principalAmount,
     interestRate: data.interestRate ?? null,
     tenureMonths: data.tenureMonths ?? null,
+    tenureUnit: data.tenureUnit ?? 'months',
     startDate: data.startDate,
     maturityDate: data.maturityDate ?? null,
     maturityValue: data.maturityValue ?? null,
@@ -107,12 +109,14 @@ export async function updateDeposit(
 
   const nextStartDate = data.startDate ?? existing.startDate;
   const nextTenureMonths = data.tenureMonths !== undefined ? data.tenureMonths : existing.tenureMonths;
+  const nextTenureUnit = data.tenureUnit !== undefined ? data.tenureUnit : existing.tenureUnit;
   const nextInterestRate = data.interestRate !== undefined ? data.interestRate : existing.interestRate;
   const nextPrincipal = data.principalAmount ?? existing.principalAmount;
 
   const inputsChanged =
     data.startDate !== undefined ||
     data.tenureMonths !== undefined ||
+    data.tenureUnit !== undefined ||
     data.interestRate !== undefined ||
     data.principalAmount !== undefined;
 
@@ -121,7 +125,9 @@ export async function updateDeposit(
   if (inputsChanged && data.maturityDate === undefined) {
     if (nextTenureMonths) {
       const start = new Date(nextStartDate);
-      const end = addMonthsSafe(start, nextTenureMonths);
+      const end = nextTenureUnit === 'days'
+        ? new Date(start.getTime() + nextTenureMonths * 86400000)
+        : addMonthsSafe(start, nextTenureMonths);
       computedMaturityDate = end.toISOString();
     } else {
       computedMaturityDate = null;
@@ -129,7 +135,7 @@ export async function updateDeposit(
   }
   if (inputsChanged && data.maturityValue === undefined) {
     if (nextTenureMonths && nextInterestRate) {
-      const quartersElapsed = nextTenureMonths / 3;
+      const quartersElapsed = nextTenureUnit === 'days' ? nextTenureMonths / 90 : nextTenureMonths / 3;
       const ratePerQuarter = (nextInterestRate / 100) / 4;
       computedMaturityValue = nextPrincipal * Math.pow(1 + ratePerQuarter, quartersElapsed);
     } else {
@@ -144,6 +150,7 @@ export async function updateDeposit(
   if (data.principalAmount !== undefined) patch.principalAmount = data.principalAmount;
   if (data.interestRate !== undefined) patch.interestRate = data.interestRate ?? null;
   if (data.tenureMonths !== undefined) patch.tenureMonths = data.tenureMonths ?? null;
+  if (data.tenureUnit !== undefined) patch.tenureUnit = data.tenureUnit ?? 'months';
   if (data.startDate !== undefined) patch.startDate = data.startDate;
   if (data.maturityDate !== undefined) patch.maturityDate = data.maturityDate ?? null;
   else if (computedMaturityDate !== undefined) patch.maturityDate = computedMaturityDate;
