@@ -206,10 +206,11 @@ export default function LoanDetailScreen() {
           )}
           <ActionChip
             icon="plus"
-            label="Add More"
+            label={isLent ? 'Lend More' : 'Borrow More'}
             palette={palette}
             onPress={() => { closePanel(); router.push({ pathname: '/modals/add-transaction', params: { loanId: loan.id, addMore: '1' } }); }}
           />
+
           <ActionChip
             icon={loan.status === 'open' ? 'check-square' : 'play'}
             label={loan.status === 'open' ? 'Close Loan' : 'Reopen Loan'}

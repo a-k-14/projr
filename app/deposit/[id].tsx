@@ -172,6 +172,7 @@ export default function DepositDetailScreen() {
   };
   const openEdit = () => router.push({ pathname: '/modals/add-transaction', params: { editDepositId: deposit.id, closeDepositId: '' } });
   const openClose = () => router.push({ pathname: '/modals/add-transaction', params: { closeDepositId: deposit.id, editDepositId: '' } });
+  const openClone = () => router.push({ pathname: '/modals/add-transaction', params: { cloneDepositId: deposit.id, editDepositId: '', closeDepositId: '' } });
 
   return (
     <ScreenScaffold palette={palette} style={{ paddingTop: insets.top }}>
@@ -193,6 +194,7 @@ export default function DepositDetailScreen() {
         {deposit.status === 'closed' && (
           <ActionChip icon="rotate-ccw" label="Reopen" palette={palette} onPress={() => { closePanel(); setShowReopenConfirm(true); }} />
         )}
+        <ActionChip icon="copy" label="Clone" palette={palette} onPress={() => { closePanel(); openClone(); }} />
         <ActionChip icon="trash-2" label="Delete" destructive palette={palette} onPress={() => { closePanel(); setShowDeleteConfirm(true); }} />
       </ActionStrip>
 
@@ -271,7 +273,7 @@ export default function DepositDetailScreen() {
             <DetailRow palette={palette} label="Source" value={sourceAccount?.name ?? '—'} icon="credit-card" />
             <DetailRow palette={palette} label="Bank" value={deposit.bankName ?? '—'} icon="landmark" />
             <DetailRow palette={palette} label="Start Date" value={formatDate(deposit.startDate)} icon="calendar" />
-            <DetailRow palette={palette} label="Tenure" value={deposit.tenureMonths != null ? `${deposit.tenureMonths} months` : '—'} icon="calendar" />
+            <DetailRow palette={palette} label="Tenure" value={deposit.tenureMonths != null ? `${deposit.tenureMonths} ${deposit.tenureUnit || 'months'}` : '—'} icon="calendar" />
             <DetailRow palette={palette} label="Interest Rate" value={deposit.interestRate != null ? `${deposit.interestRate}% p.a.` : '—'} icon="percent" />
             <DetailRow palette={palette} label="Maturity Date" value={deposit.maturityDate ? formatDate(deposit.maturityDate) : '—'} icon="calendar" />
             <DetailRow palette={palette} label="Notes" value={deposit.note ?? '—'} icon="file-text" multiline last />

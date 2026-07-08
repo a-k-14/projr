@@ -438,12 +438,14 @@ export default function AddTransactionModal() {
     addMore,
     editDepositId,
     closeDepositId,
+    cloneDepositId,
     focusField,
     fromWidget
-  } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string; focusField?: string; fromWidget?: string }>();
+  } = useLocalSearchParams<{ editId?: string; accountId?: string; type?: string; loanId?: string; settlement?: string; addMore?: string; editDepositId?: string; closeDepositId?: string; cloneDepositId?: string; focusField?: string; fromWidget?: string }>();
   const [duplicateMode, setDuplicateMode] = useState(false);
   const isEditingDeposit = !!editDepositId && editDepositId !== '' && !duplicateMode;
   const isClosingDeposit = !!closeDepositId && closeDepositId !== '' && !isEditingDeposit;
+  const isCloningDeposit = !!cloneDepositId && cloneDepositId !== '' && !isEditingDeposit;
   const isEditing = (!!editId || isEditingDeposit) && !duplicateMode;
   const isLoanAddMore = !isEditing && !!routeLoanId && addMore === '1';
 
@@ -540,7 +542,7 @@ export default function AddTransactionModal() {
   const setSplitRows = useTransactionDraftStore((s) => s.setSplitRows);
   const clearSplitRows = useTransactionDraftStore((s) => s.clearSplitRows);
   const [type, setType] = useState<TransactionType | 'deposit'>(() => {
-    if (isEditingDeposit || isClosingDeposit || editDepositId || closeDepositId) {
+    if (isEditingDeposit || isClosingDeposit || isCloningDeposit || editDepositId || closeDepositId || cloneDepositId) {
       return 'deposit';
     }
     if (routeLoanId) {
@@ -886,8 +888,8 @@ export default function AddTransactionModal() {
 
   // Hydrate form from existing deposit when editing or closing.
   useEffect(() => {
-    const depositId = editDepositId || closeDepositId;
-    if ((!isEditingDeposit && !isClosingDeposit) || !depositId) return;
+    const depositId = editDepositId || closeDepositId || cloneDepositId;
+    if ((!isEditingDeposit && !isClosingDeposit && !isCloningDeposit) || !depositId) return;
     // Only hydrate once — prevent dep-change re-runs from overwriting user edits.
     if (isDepositHydratedRef.current) return;
 
@@ -921,17 +923,17 @@ export default function AddTransactionModal() {
 
     setAmountStr(formatIndianNumberStr(String(Math.round(found.principalAmount))));
     setAccountId(found.accountId);
-    if (!isClosingDeposit) setDate(found.startDate);
+    if (!isClosingDeposit && !isCloningDeposit) setDate(found.startDate);
     setDepositName(found.name);
     setDepositBank(found.bankName ?? '');
     setDepositTenure(found.tenureMonths != null ? String(found.tenureMonths) : '');
     setDepositTenureUnit((found.tenureUnit as 'months' | 'days') || 'months');
     setDepositInterest(found.interestRate != null ? String(found.interestRate) : '');
-    if (!isClosingDeposit && found.maturityValue != null) {
+    if (!isClosingDeposit && !isCloningDeposit && found.maturityValue != null) {
       setDepositMaturityStr(formatIndianNumberStr(String(Math.round(found.maturityValue))));
     }
     setNote(isClosingDeposit ? '' : found.note ?? '');
-  }, [closeDepositId, editDepositId, isClosingDeposit, isEditingDeposit, deposits, isDepositsLoaded, loadDeposits]);
+  }, [closeDepositId, editDepositId, cloneDepositId, isClosingDeposit, isEditingDeposit, isCloningDeposit, deposits, isDepositsLoaded, loadDeposits]);
 
   // Auto-compute maturity value from principal + tenure + interest rate.
   // Runs for new deposits and whenever the user changes core inputs while editing.
@@ -1089,6 +1091,8 @@ export default function AddTransactionModal() {
     return () => task.cancel();
   }, [addMore, isEditing, routeLoanId, settlement, duplicateMode]);
 
+
+
   const amount = parseFloat(parseFormattedNumber(amountStr)) || 0;
   const closePrincipal = parseFloat(parseFormattedNumber(closePrincipalStr)) || 0;
   const closeInterest = parseFloat(parseFormattedNumber(closeInterestStr)) || 0;
@@ -1118,7 +1122,7 @@ export default function AddTransactionModal() {
       );
     }
 
-    if (isEditingDeposit) {
+    if (isEditingDeposit || isCloningDeposit) {
       if (!initialDeposit) return false;
       const originalAmountStr = formatIndianNumberStr(String(Math.round(initialDeposit.principalAmount)));
       return (
@@ -1131,6 +1135,8 @@ export default function AddTransactionModal() {
         note !== (initialDeposit.note ?? '')
       );
     }
+
+
 
     if (isEditing) {
       if (!initialTx) return false;
@@ -1437,7 +1443,7 @@ export default function AddTransactionModal() {
   const actionLabel = (() => {
     if (isEditing) return 'Save Changes';
     if (isClosingDeposit) return 'Close Deposit';
-    if (isLoanAddMore) return 'Add More';
+    if (isLoanAddMore) return loanDirection === 'lent' ? 'Lend More' : 'Borrow More';
     if (type === 'loan' && routeLoanId && settlement === '1') {
       return loanDirection === 'lent' ? 'Add Receipt' : 'Add Payment';
     }
@@ -1459,7 +1465,7 @@ export default function AddTransactionModal() {
     : isClosingDeposit
       ? 'Close Deposit'
       : isLoanAddMore
-        ? 'Add More'
+        ? loanDirection === 'lent' ? 'Lend More' : 'Borrow More'
         : type === 'deposit'
           ? 'New Deposit'
           : 'New Transaction';
@@ -1478,7 +1484,7 @@ export default function AddTransactionModal() {
     }
     if (isSubmittingRef.current) return;
 
-    if ((isEditing || isEditingDeposit || isClosingDeposit) && !checkIsDirty()) {
+    if ((isEditing || isEditingDeposit) && !checkIsDirty()) {
       closeScreen(false);
       return;
     }
@@ -1493,18 +1499,18 @@ export default function AddTransactionModal() {
       work: () => Promise<unknown>,
       refresh?: { tx?: boolean; widgets?: boolean; accounts?: boolean },
     ) => {
-      await work();
-      const tasks: Promise<unknown>[] = [];
-      if (refresh?.accounts !== false) tasks.push(refreshAccounts());
-      if (refresh?.tx) tasks.push(reloadTransactions());
-      await Promise.all(tasks);
-      // These paths (splits, transfer edits, deposits, loans) write straight to
-      // the service layer, bypassing the store's own mutationVersion bump. Bump
-      // it now — after the DB-truth reload — so screens keyed on it refresh too.
-      if (refresh?.tx) markTxMutated();
       closeScreen(false);
-      // Widgets are non-critical — fire after the screen has closed.
-      if (refresh?.widgets) updateAllReniWidgets().catch(() => undefined);
+      try {
+        await work();
+        const tasks: Promise<unknown>[] = [];
+        if (refresh?.accounts !== false) tasks.push(refreshAccounts());
+        if (refresh?.tx) tasks.push(reloadTransactions());
+        await Promise.all(tasks);
+        if (refresh?.tx) markTxMutated();
+        if (refresh?.widgets) updateAllReniWidgets().catch(() => undefined);
+      } catch (err) {
+        console.warn('Background refresh error:', err);
+      }
     };
 
     try {
@@ -1545,7 +1551,9 @@ export default function AddTransactionModal() {
         let maturityDate: string | null = null;
         if (tenureMonths) {
           const start = new Date(date);
-          const end = addMonthsSafe(start, tenureMonths);
+          const end = depositTenureUnit === 'days'
+            ? new Date(start.getTime() + tenureMonths * 86400000)
+            : addMonthsSafe(start, tenureMonths);
           maturityDate = end.toISOString();
         }
         // Use the maturity value from the editable field (auto-computed or user-overridden).
@@ -1555,7 +1563,8 @@ export default function AddTransactionModal() {
           maturityValue = maturityParsed;
         } else if (tenureMonths && interestRate) {
           // Fallback: quarterly-compounded estimate if field was empty.
-          maturityValue = amount * Math.pow(1 + interestRate / 400, tenureMonths / 3);
+          const quarters = depositTenureUnit === 'days' ? tenureMonths / 90 : tenureMonths / 3;
+          maturityValue = amount * Math.pow(1 + interestRate / 400, quarters);
         }
 
         const depositPayload = {
